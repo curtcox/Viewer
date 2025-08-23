@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12 text-center mb-5">
+            <h1 class="display-4 fw-bold">Choose Your Plan</h1>
+            <p class="lead text-muted">Select the perfect plan for your needs</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <!-- Basic Plan -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="card-title mb-0">Basic</h4>
+                    <small>Perfect for individuals</small>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <span class="display-4 fw-bold">$9</span>
+                        <span class="text-muted">.99/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            HTTP Request Analysis
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Basic Headers Display
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            User Profile Management
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Payment History Tracking
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Email Support
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('subscribe') }}" class="btn btn-primary w-100">
+                            <i class="fas fa-credit-card me-2"></i>Subscribe to Basic
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up for Basic
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Premium Plan -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-success position-relative">
+                <div class="position-absolute top-0 start-50 translate-middle">
+                    <span class="badge bg-success px-3 py-2">POPULAR</span>
+                </div>
+                <div class="card-header bg-success text-white text-center">
+                    <h4 class="card-title mb-0">Premium</h4>
+                    <small>Great for power users</small>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <span class="display-4 fw-bold">$19</span>
+                        <span class="text-muted">.99/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Everything in Basic
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Advanced Request Analysis
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Environment Variables
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Client Information Details
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Priority Support
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Advanced Security Features
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('subscribe') }}" class="btn btn-success w-100">
+                            <i class="fas fa-star me-2"></i>Subscribe to Premium
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up for Premium
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark text-center">
+                    <h4 class="card-title mb-0">Enterprise</h4>
+                    <small>For organizations</small>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <span class="display-4 fw-bold">$49</span>
+                        <span class="text-muted">.99/month</span>
+                    </div>
+                    
+                    <ul class="list-unstyled mb-4">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Everything in Premium
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Complete Request Forensics
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Custom Reporting
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            API Access
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            24/7 Phone Support
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            Custom Integrations
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('subscribe') }}" class="btn btn-warning w-100">
+                            <i class="fas fa-building me-2"></i>Subscribe to Enterprise
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('register') }}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up for Enterprise
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Comparison -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Feature Comparison</h2>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th class="text-center">Basic</th>
+                            <th class="text-center">Premium</th>
+                            <th class="text-center">Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>HTTP Request Analysis</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Headers Display</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>User Profile Management</td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Environment Variables</td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Advanced Security Features</td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Custom Reporting</td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>API Access</td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-times text-danger"></i></td>
+                            <td class="text-center"><i class="fas fa-check text-success"></i></td>
+                        </tr>
+                        <tr>
+                            <td>Support Level</td>
+                            <td class="text-center">Email</td>
+                            <td class="text-center">Priority</td>
+                            <td class="text-center">24/7 Phone</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Frequently Asked Questions</h2>
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            Can I change my plan later?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Yes, you can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            Is there a free trial?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            We offer a 7-day free trial for all new users. No credit card required during the trial period.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            What payment methods do you accept?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            We accept all major credit cards, PayPal, and bank transfers for Enterprise customers.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

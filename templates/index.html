@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center py-5">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold text-primary mb-4">
+                Welcome to SecureApp
+            </h1>
+            <p class="lead mb-4">
+                Experience secure, premium content with our advanced access control system. 
+                Get detailed insights into your web interactions with comprehensive HTTP request tracking.
+            </p>
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus me-2"></i>Get Started
+                </a>
+                <a href="{{ url_for('plans') }}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-info-circle me-2"></i>View Plans
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6 text-center">
+            <i class="fas fa-shield-alt text-primary" style="font-size: 12rem; opacity: 0.1;"></i>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row py-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5">Why Choose SecureApp?</h2>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-lock text-primary mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Secure Access</h5>
+                    <p class="card-text">
+                        Multi-layered security with user authentication, payment verification, 
+                        and terms acceptance tracking.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-chart-line text-success mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Request Tracking</h5>
+                    <p class="card-text">
+                        Comprehensive HTTP request analysis with detailed headers, 
+                        parameters, and environmental data.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-credit-card text-warning mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="card-title">Payment Management</h5>
+                    <p class="card-text">
+                        Track your subscription history with detailed payment records 
+                        and expiration monitoring.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="row py-5 bg-light rounded">
+        <div class="col-12">
+            <h2 class="text-center mb-5">How It Works</h2>
+        </div>
+        <div class="col-md-3 mb-4 text-center">
+            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <span class="fw-bold">1</span>
+            </div>
+            <h6>Create Account</h6>
+            <p class="text-muted">Register with your email and create a secure password</p>
+        </div>
+        <div class="col-md-3 mb-4 text-center">
+            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <span class="fw-bold">2</span>
+            </div>
+            <h6>Choose Plan</h6>
+            <p class="text-muted">Select a subscription plan that fits your needs</p>
+        </div>
+        <div class="col-md-3 mb-4 text-center">
+            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <span class="fw-bold">3</span>
+            </div>
+            <h6>Accept Terms</h6>
+            <p class="text-muted">Review and accept our terms and conditions</p>
+        </div>
+        <div class="col-md-3 mb-4 text-center">
+            <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                <span class="fw-bold">4</span>
+            </div>
+            <h6>Access Content</h6>
+            <p class="text-muted">Enjoy secure access to premium features</p>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="row py-5 text-center">
+        <div class="col-12">
+            <h3 class="mb-3">Ready to Get Started?</h3>
+            <p class="lead mb-4">Join thousands of users who trust SecureApp for their content management needs.</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-rocket me-2"></i>Start Free Trial
+            </a>
+            <a href="{{ url_for('plans') }}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-eye me-2"></i>View Pricing
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+from datetime import datetime, timedelta
+from flask import render_template, flash, redirect, url_for, request, session
+from flask_login import login_user, logout_user, current_user, login_required
+from app import app, db
+from models import User, Payment, TermsAcceptance, CURRENT_TERMS_VERSION
+from forms import LoginForm, RegistrationForm, PaymentForm, TermsAcceptanceForm
+
+@app.route('/')
+def index():
+    """Landing page - shows different content based on user status"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('index.html')
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """User dashboard - redirects based on access level"""
+    if current_user.has_access():
+        return redirect(url_for('content'))
+    return redirect(url_for('profile'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password', 'danger')
+            return redirect(url_for('login'))
+        
+        login_user(user, remember=form.remember_me.data)
+        next_page = request.args.get('next')
+        if not next_page or not next_page.startswith('/'):
+            next_page = url_for('dashboard')
+        return redirect(next_page)
+    
+    return render_template('login.html', title='Sign In', form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User()
+        user.username = form.username.data
+        user.email = form.email.data
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Congratulations, you are now registered!', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html', title='Register', form=form)
+
+@app.route('/profile')
+@login_required
+def profile():
+    """User profile showing payment history and terms acceptance"""
+    payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.payment_date.desc()).all()
+    terms_history = TermsAcceptance.query.filter_by(user_id=current_user.id).order_by(TermsAcceptance.accepted_at.desc()).all()
+    
+    # Check if user needs to accept current terms
+    current_terms_accepted = TermsAcceptance.query.filter_by(
+        user_id=current_user.id, 
+        terms_version=CURRENT_TERMS_VERSION
+    ).first()
+    
+    needs_terms_acceptance = current_terms_accepted is None
+    
+    return render_template('profile.html', 
+                         payments=payments, 
+                         terms_history=terms_history,
+                         needs_terms_acceptance=needs_terms_acceptance,
+                         current_terms_version=CURRENT_TERMS_VERSION)
+
+@app.route('/subscribe', methods=['GET', 'POST'])
+@login_required
+def subscribe():
+    """Handle subscription payments (mock implementation)"""
+    form = PaymentForm()
+    if form.validate_on_submit():
+        plan_prices = {
+            'basic': 9.99,
+            'premium': 19.99,
+            'enterprise': 49.99
+        }
+        
+        plan = form.plan.data
+        amount = plan_prices.get(plan, 9.99)
+        
+        # Create mock payment record
+        payment = Payment()
+        payment.user_id = current_user.id
+        payment.amount = amount
+        payment.plan_type = plan
+        payment.expires_at = datetime.utcnow() + timedelta(days=30)
+        payment.transaction_id = f"mock_txn_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        
+        # Update user payment status
+        current_user.is_paid = True
+        current_user.payment_expires_at = payment.expires_at
+        
+        db.session.add(payment)
+        db.session.commit()
+        
+        flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
+        return redirect(url_for('profile'))
+    
+    return render_template('subscribe.html', form=form)
+
+@app.route('/accept-terms', methods=['GET', 'POST'])
+@login_required
+def accept_terms():
+    """Handle terms and conditions acceptance"""
+    form = TermsAcceptanceForm()
+    if form.validate_on_submit():
+        # Check if user already accepted current terms
+        existing = TermsAcceptance.query.filter_by(
+            user_id=current_user.id,
+            terms_version=CURRENT_TERMS_VERSION
+        ).first()
+        
+        if not existing:
+            terms_acceptance = TermsAcceptance()
+            terms_acceptance.user_id = current_user.id
+            terms_acceptance.terms_version = CURRENT_TERMS_VERSION
+            terms_acceptance.ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+            
+            current_user.current_terms_accepted = True
+            
+            db.session.add(terms_acceptance)
+            db.session.commit()
+            
+            flash('Terms and conditions accepted successfully!', 'success')
+        
+        return redirect(url_for('profile'))
+    
+    return render_template('accept_terms.html', form=form, terms_version=CURRENT_TERMS_VERSION)
+
+@app.route('/content')
+@login_required
+def content():
+    """Protected content area - displays HTTP request details"""
+    if not current_user.has_access():
+        flash('Access denied. Please ensure you have an active subscription and have accepted the current terms and conditions.', 'warning')
+        return redirect(url_for('profile'))
+    
+    # Gather comprehensive HTTP request information
+    request_info = {
+        'method': request.method,
+        'url': request.url,
+        'path': request.path,
+        'query_string': request.query_string.decode('utf-8'),
+        'remote_addr': request.remote_addr,
+        'user_agent': request.user_agent.string,
+        'headers': dict(request.headers),
+        'form_data': dict(request.form) if request.form else {},
+        'args': dict(request.args) if request.args else {},
+        'endpoint': request.endpoint,
+        'blueprint': request.blueprint,
+        'scheme': request.scheme,
+        'host': request.host,
+        'environ_vars': {
+            'HTTP_X_FORWARDED_FOR': request.environ.get('HTTP_X_FORWARDED_FOR'),
+            'HTTP_X_REAL_IP': request.environ.get('HTTP_X_REAL_IP'),
+            'HTTP_REFERER': request.environ.get('HTTP_REFERER'),
+            'HTTP_ACCEPT_LANGUAGE': request.environ.get('HTTP_ACCEPT_LANGUAGE'),
+            'HTTP_ACCEPT_ENCODING': request.environ.get('HTTP_ACCEPT_ENCODING'),
+        }
+    }
+    
+    return render_template('content.html', request_info=request_info)
+
+@app.route('/plans')
+def plans():
+    """Display pricing plans"""
+    return render_template('plans.html')
+
+@app.route('/terms')
+def terms():
+    """Display terms and conditions"""
+    return render_template('terms.html', current_version=CURRENT_TERMS_VERSION)
+
+@app.route('/privacy')
+def privacy():
+    """Display privacy policy"""
+    return render_template('privacy.html')
+
+# Error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('500.html'), 500
