@@ -1,9 +1,17 @@
 from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
-from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import current_user
 from app import app, db
 from models import User, Payment, TermsAcceptance, CURRENT_TERMS_VERSION
-from forms import LoginForm, RegistrationForm, PaymentForm, TermsAcceptanceForm
+from forms import PaymentForm, TermsAcceptanceForm
+from replit_auth import require_login, make_replit_blueprint
+
+app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+
+# Make session permanent
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 @app.route('/')
 def index():
@@ -13,60 +21,15 @@ def index():
     return render_template('index.html')
 
 @app.route('/dashboard')
-@login_required
+@require_login
 def dashboard():
     """User dashboard - redirects based on access level"""
     if current_user.has_access():
         return redirect(url_for('content'))
     return redirect(url_for('profile'))
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password', 'danger')
-            return redirect(url_for('login'))
-        
-        login_user(user, remember=form.remember_me.data)
-        next_page = request.args.get('next')
-        if not next_page or not next_page.startswith('/'):
-            next_page = url_for('dashboard')
-        return redirect(next_page)
-    
-    return render_template('login.html', title='Sign In', form=form)
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User()
-        user.username = form.username.data
-        user.email = form.email.data
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Congratulations, you are now registered!', 'success')
-        return redirect(url_for('login'))
-    
-    return render_template('register.html', title='Register', form=form)
-
 @app.route('/profile')
-@login_required
+@require_login
 def profile():
     """User profile showing payment history and terms acceptance"""
     payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.payment_date.desc()).all()
@@ -87,31 +50,34 @@ def profile():
                          current_terms_version=CURRENT_TERMS_VERSION)
 
 @app.route('/subscribe', methods=['GET', 'POST'])
-@login_required
+@require_login
 def subscribe():
     """Handle subscription payments (mock implementation)"""
     form = PaymentForm()
     if form.validate_on_submit():
         plan_prices = {
-            'basic': 9.99,
-            'premium': 19.99,
-            'enterprise': 49.99
+            'free': 0.00,
+            'annual': 99.00
         }
         
         plan = form.plan.data
-        amount = plan_prices.get(plan, 9.99)
+        amount = plan_prices.get(plan, 0.00)
         
         # Create mock payment record
         payment = Payment()
         payment.user_id = current_user.id
         payment.amount = amount
         payment.plan_type = plan
-        payment.expires_at = datetime.utcnow() + timedelta(days=30)
-        payment.transaction_id = f"mock_txn_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        if plan == 'annual':
+            payment.expires_at = datetime.utcnow() + timedelta(days=365)
+            current_user.is_paid = True
+            current_user.payment_expires_at = payment.expires_at
+        else:
+            # Free plan
+            current_user.is_paid = False
+            current_user.payment_expires_at = None
         
-        # Update user payment status
-        current_user.is_paid = True
-        current_user.payment_expires_at = payment.expires_at
+        payment.transaction_id = f"mock_txn_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
         
         db.session.add(payment)
         db.session.commit()
@@ -122,7 +88,7 @@ def subscribe():
     return render_template('subscribe.html', form=form)
 
 @app.route('/accept-terms', methods=['GET', 'POST'])
-@login_required
+@require_login
 def accept_terms():
     """Handle terms and conditions acceptance"""
     form = TermsAcceptanceForm()
@@ -151,7 +117,7 @@ def accept_terms():
     return render_template('accept_terms.html', form=form, terms_version=CURRENT_TERMS_VERSION)
 
 @app.route('/content')
-@login_required
+@require_login
 def content():
     """Protected content area - displays HTTP request details"""
     if not current_user.has_access():
