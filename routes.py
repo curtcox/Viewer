@@ -6,7 +6,7 @@ from models import User, Payment, TermsAcceptance, CID, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm
 import hashlib
 import base64
-from flask import make_response
+from flask import make_response, abort
 from replit_auth import require_login, make_replit_blueprint
 
 app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
@@ -231,9 +231,35 @@ def not_found_error(error):
     if cid_content:
         # If this is a file upload (has file_data), serve the raw bytes
         if cid_content.file_data:
+            # Extract CID from path (remove leading slash)
+            cid = path[1:] if path.startswith('/') else path
+            
+            # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
+            etag = f'"{cid}"'
+            if request.headers.get('If-None-Match') == etag:
+                # Client has the file cached, return 304 Not Modified
+                response = make_response('', 304)
+                response.headers['ETag'] = etag
+                return response
+            
+            # Check If-Modified-Since (though ETag is more reliable for immutable content)
+            if request.headers.get('If-Modified-Since'):
+                # Since content is immutable, we can always return 304 if they have any cached version
+                response = make_response('', 304)
+                response.headers['ETag'] = etag
+                response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+                return response
+            
+            # Serve the file with aggressive caching headers
             response = make_response(cid_content.file_data)
             response.headers['Content-Type'] = cid_content.content_type
             response.headers['Content-Length'] = len(cid_content.file_data)
+            
+            # Immutable content caching headers
+            response.headers['ETag'] = etag
+            response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
+            response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
             
             # Add content disposition header for downloads if it's not a web-displayable type
             if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
