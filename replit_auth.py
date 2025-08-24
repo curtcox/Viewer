@@ -1,6 +1,7 @@
 import jwt
 import os
 import uuid
+from datetime import datetime
 from functools import wraps
 from urllib.parse import urlencode
 
@@ -127,15 +128,36 @@ def make_replit_blueprint():
 
 
 def save_user(user_claims):
-    user = User()
-    user.id = user_claims['sub']
-    user.email = user_claims.get('email')
-    user.first_name = user_claims.get('first_name')
-    user.last_name = user_claims.get('last_name')
-    user.profile_image_url = user_claims.get('profile_image_url')
-    merged_user = db.session.merge(user)
-    db.session.commit()
-    return merged_user
+    # Check if user already exists
+    existing_user = User.query.filter_by(id=user_claims['sub']).first()
+    
+    if existing_user:
+        # Update existing user info
+        existing_user.email = user_claims.get('email')
+        existing_user.first_name = user_claims.get('first_name')
+        existing_user.last_name = user_claims.get('last_name')
+        existing_user.profile_image_url = user_claims.get('profile_image_url')
+        existing_user.updated_at = datetime.now()
+        user = existing_user
+    else:
+        # Create new user
+        user = User()
+        user.id = user_claims['sub']
+        user.email = user_claims.get('email')
+        user.first_name = user_claims.get('first_name')
+        user.last_name = user_claims.get('last_name')
+        user.profile_image_url = user_claims.get('profile_image_url')
+        user.created_at = datetime.now()
+        user.updated_at = datetime.now()
+        db.session.add(user)
+    
+    try:
+        db.session.commit()
+        return user
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error saving user: {e}")
+        return user
 
 
 @oauth_authorized.connect

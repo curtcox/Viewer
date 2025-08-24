@@ -57,7 +57,7 @@ def subscribe():
     if form.validate_on_submit():
         plan_prices = {
             'free': 0.00,
-            'annual': 99.00
+            'annual': 50.00
         }
         
         plan = form.plan.data

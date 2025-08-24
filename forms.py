@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired
 class PaymentForm(FlaskForm):
     plan = SelectField('Plan', choices=[
         ('free', 'Free Plan - $0/year'),
-        ('annual', 'Annual Plan - $99/year')
+        ('annual', 'Annual Plan - $50/year')
     ], validators=[DataRequired()])
     submit = SubmitField('Subscribe')
 
