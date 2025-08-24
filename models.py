@@ -123,8 +123,12 @@ class CID(db.Model):
     content_type = db.Column(db.String(100), default='html')
     filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
+    uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    uploaded_by = db.relationship('User', backref='uploads')
     
     def __repr__(self):
         return f'<CID {self.path}>'

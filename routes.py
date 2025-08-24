@@ -179,6 +179,7 @@ def generate_cid(file_data):
     return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
 
 @app.route('/upload', methods=['GET', 'POST'])
+@require_login
 def upload():
     """File upload page with IPFS CID storage"""
     form = FileUploadForm()
@@ -199,7 +200,8 @@ def upload():
             file_data=file_content,  # Store the actual file bytes
             content_type=uploaded_file.content_type or 'application/octet-stream',
             filename=uploaded_file.filename,
-            file_size=len(file_content)
+            file_size=len(file_content),
+            uploaded_by_user_id=current_user.id  # Track who uploaded the file
         )
         
         # Check if CID already exists
@@ -305,6 +307,20 @@ def accept_invitation(invitation_code):
     else:
         flash('Invalid or expired invitation link.', 'danger')
         return redirect(url_for('require_invitation'))
+
+@app.route('/uploads')
+@require_login
+def uploads():
+    """Display user's uploaded files"""
+    user_uploads = CID.query.filter_by(uploaded_by_user_id=current_user.id).order_by(CID.created_at.desc()).all()
+    
+    # Calculate total storage used
+    total_storage = sum(upload.file_size or 0 for upload in user_uploads)
+    
+    return render_template('uploads.html', 
+                         uploads=user_uploads,
+                         total_uploads=len(user_uploads),
+                         total_storage=total_storage)
 
 # Error handlers
 @app.errorhandler(404)

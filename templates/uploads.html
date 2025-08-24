@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}My Uploads{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-upload me-2"></i>My Uploads</h2>
+                <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Upload New File
+                </a>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Total Files</h5>
+                                    <h3 class="mb-0">{{ total_uploads }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-file fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Storage Used</h5>
+                                    <h3 class="mb-0">
+                                        {% if total_storage < 1024 %}
+                                            {{ total_storage }} B
+                                        {% elif total_storage < 1024 * 1024 %}
+                                            {{ "%.1f"|format(total_storage / 1024) }} KB
+                                        {% elif total_storage < 1024 * 1024 * 1024 %}
+                                            {{ "%.1f"|format(total_storage / (1024 * 1024)) }} MB
+                                        {% else %}
+                                            {{ "%.1f"|format(total_storage / (1024 * 1024 * 1024)) }} GB
+                                        {% endif %}
+                                    </h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-hdd fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if uploads %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Your Files</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Uploaded</th>
+                                    <th>CID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for upload in uploads %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file me-2 text-muted"></i>
+                                        <strong>{{ upload.filename or 'Unknown' }}</strong>
+                                    </td>
+                                    <td>{{ upload.title or '-' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ upload.content_type }}</span>
+                                    </td>
+                                    <td>
+                                        {% if upload.file_size %}
+                                            {% if upload.file_size < 1024 %}
+                                                {{ upload.file_size }} B
+                                            {% elif upload.file_size < 1024 * 1024 %}
+                                                {{ "%.1f"|format(upload.file_size / 1024) }} KB
+                                            {% elif upload.file_size < 1024 * 1024 * 1024 %}
+                                                {{ "%.1f"|format(upload.file_size / (1024 * 1024)) }} MB
+                                            {% else %}
+                                                {{ "%.1f"|format(upload.file_size / (1024 * 1024 * 1024)) }} GB
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if upload.created_at %}
+                                            {{ upload.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <code class="small">{{ upload.path[1:] if upload.path.startswith('/') else upload.path }}</code>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ upload.path }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-external-link-alt me-1"></i>View
+                                            </a>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="copyLink('{{ upload.path }}')">
+                                                <i class="fas fa-copy me-1"></i>Copy
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center">
+                <div class="card">
+                    <div class="card-body py-5">
+                        <i class="fas fa-cloud-upload-alt text-muted mb-3" style="font-size: 3rem;"></i>
+                        <h4>No Files Uploaded Yet</h4>
+                        <p class="text-muted">Upload your first file to start building your content library.</p>
+                        <a href="{{ url_for('upload') }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i>Upload Your First File
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function copyLink(path) {
+    const link = `${window.location.origin}${path}`;
+    navigator.clipboard.writeText(link).then(function() {
+        // Show temporary success feedback
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}
