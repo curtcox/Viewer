@@ -54,13 +54,18 @@
                             <h6 class="alert-heading">
                                 <i class="fas fa-link me-2"></i>Access Your File
                             </h6>
-                            <p>Your file is now accessible at the following URL:</p>
+                            <p>Your file is now accessible at the following URL and will be served with the correct MIME type:</p>
                             <div class="input-group">
                                 <input type="text" class="form-control" value="{{ request.url_root[:-1] }}/{{ cid }}" readonly>
                                 <a href="/{{ cid }}" class="btn btn-primary" target="_blank">
-                                    <i class="fas fa-external-link-alt me-1"></i>View
+                                    <i class="fas fa-external-link-alt me-1"></i>View/Download
                                 </a>
                             </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Files are served directly from the database with their original MIME type. 
+                                Images and text files will display in the browser, while other files will download.
+                            </small>
                         </div>
                     </div>
                     

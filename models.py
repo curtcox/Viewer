@@ -79,9 +79,12 @@ class TermsAcceptance(db.Model):
 class CID(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=True)  # For HTML content
+    file_data = db.Column(db.LargeBinary, nullable=True)  # For actual file bytes
     title = db.Column(db.String(255), nullable=True)
-    content_type = db.Column(db.String(50), default='html')
+    content_type = db.Column(db.String(100), default='html')
+    filename = db.Column(db.String(255), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

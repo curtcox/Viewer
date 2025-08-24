@@ -6,6 +6,7 @@ from models import User, Payment, TermsAcceptance, CID, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm
 import hashlib
 import base64
+from flask import make_response
 from replit_auth import require_login, make_replit_blueprint
 
 app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
@@ -190,30 +191,14 @@ def upload():
         # Generate IPFS-like CID
         cid = generate_cid(file_content)
         
-        # Store file metadata and content in CID table
+        # Store actual file bytes and metadata in CID table
         file_record = CID(
             path=f"/{cid}",
             title=form.title.data or f"Uploaded File: {uploaded_file.filename}",
-            content=f"""
-            <div class="file-upload-content">
-                <h3>File Upload Details</h3>
-                <div class="card">
-                    <div class="card-body">
-                        <p><strong>Original Filename:</strong> {uploaded_file.filename}</p>
-                        <p><strong>File Size:</strong> {len(file_content)} bytes</p>
-                        <p><strong>IPFS CID:</strong> <code>{cid}</code></p>
-                        <p><strong>Content Type:</strong> {uploaded_file.content_type}</p>
-                        {f'<p><strong>Description:</strong> {form.description.data}</p>' if form.description.data else ''}
-                        <p><strong>Upload Date:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            This file is now accessible at: <a href="/{cid}">/{cid}</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """,
-            content_type='html'
+            file_data=file_content,  # Store the actual file bytes
+            content_type=uploaded_file.content_type or 'application/octet-stream',
+            filename=uploaded_file.filename,
+            file_size=len(file_content)
         )
         
         # Check if CID already exists
@@ -244,14 +229,27 @@ def not_found_error(error):
     cid_content = CID.query.filter_by(path=path).first()
     
     if cid_content:
-        # If content exists for this path, display it
-        return render_template('cid_content.html', 
-                             content=cid_content.content,
-                             title=cid_content.title or f"Content for {path}",
-                             path=path), 200
-    else:
-        # If no content found, show 404 with the path
-        return render_template('404.html', path=path), 404
+        # If this is a file upload (has file_data), serve the raw bytes
+        if cid_content.file_data:
+            response = make_response(cid_content.file_data)
+            response.headers['Content-Type'] = cid_content.content_type
+            response.headers['Content-Length'] = len(cid_content.file_data)
+            
+            # Add content disposition header for downloads if it's not a web-displayable type
+            if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
+                response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
+            
+            return response
+        
+        # If this is HTML content (legacy), display it in template
+        elif cid_content.content:
+            return render_template('cid_content.html', 
+                                 content=cid_content.content,
+                                 title=cid_content.title or f"Content for {path}",
+                                 path=path), 200
+    
+    # If no content found, show 404 with the path
+    return render_template('404.html', path=path), 404
 
 @app.errorhandler(500)
 def internal_error(error):
