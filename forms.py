@@ -19,3 +19,11 @@ class FileUploadForm(FlaskForm):
     title = StringField('Title (optional)', validators=[Optional()])
     description = TextAreaField('Description (optional)', validators=[Optional()])
     submit = SubmitField('Upload File')
+
+class InvitationForm(FlaskForm):
+    email = StringField('Email (optional)', validators=[Optional()])
+    submit = SubmitField('Create Invitation')
+
+class InvitationCodeForm(FlaskForm):
+    invitation_code = StringField('Invitation Code', validators=[DataRequired()])
+    submit = SubmitField('Verify Invitation')

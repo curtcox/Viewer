@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm
+from models import User, Payment, TermsAcceptance, CID, Invitation, CURRENT_TERMS_VERSION
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm
+import secrets
 import hashlib
 import base64
 from flask import make_response, abort
@@ -218,6 +219,92 @@ def upload():
                              description=form.description.data)
     
     return render_template('upload.html', form=form)
+
+@app.route('/invitations')
+@require_login
+def invitations():
+    """Manage user invitations"""
+    user_invitations = Invitation.query.filter_by(inviter_user_id=current_user.id).order_by(Invitation.created_at.desc()).all()
+    return render_template('invitations.html', invitations=user_invitations)
+
+@app.route('/create-invitation', methods=['GET', 'POST'])
+@require_login
+def create_invitation():
+    """Create a new invitation"""
+    form = InvitationForm()
+    
+    if form.validate_on_submit():
+        # Generate unique invitation code
+        invitation_code = secrets.token_urlsafe(16)
+        
+        invitation = Invitation(
+            inviter_user_id=current_user.id,
+            invitation_code=invitation_code,
+            email=form.email.data if form.email.data else None
+        )
+        
+        db.session.add(invitation)
+        db.session.commit()
+        
+        flash(f'Invitation created! Code: {invitation_code}', 'success')
+        return redirect(url_for('invitations'))
+    
+    return render_template('create_invitation.html', form=form)
+
+@app.route('/require-invitation', methods=['GET', 'POST'])
+def require_invitation():
+    """Handle invitation code requirement for new users"""
+    form = InvitationCodeForm()
+    error_message = session.pop('invitation_error', None)
+    
+    if form.validate_on_submit():
+        invitation_code = form.invitation_code.data
+        
+        # Validate invitation
+        invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
+        
+        if invitation and invitation.is_valid():
+            # Store invitation code in session and retry authentication
+            session['invitation_code'] = invitation_code
+            
+            # If we have pending auth, complete it
+            if 'pending_token' in session and 'pending_user_claims' in session:
+                token = session.pop('pending_token')
+                user_claims = session.pop('pending_user_claims')
+                
+                try:
+                    from replit_auth import save_user
+                    user = save_user(user_claims, invitation_code)
+                    session.pop('invitation_code', None)
+                    
+                    from flask_login import login_user
+                    login_user(user)
+                    
+                    flash('Welcome! Your account has been created.', 'success')
+                    return redirect(url_for('index'))
+                except ValueError as e:
+                    flash(f'Error: {str(e)}', 'danger')
+            else:
+                # Just store invitation for future auth attempt
+                flash('Invitation validated! Please sign in.', 'success')
+                return redirect(url_for('replit_auth.login'))
+        else:
+            flash('Invalid or expired invitation code.', 'danger')
+    
+    return render_template('require_invitation.html', form=form, error_message=error_message)
+
+@app.route('/invite/<invitation_code>')
+def accept_invitation(invitation_code):
+    """Direct link to accept an invitation"""
+    invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
+    
+    if invitation and invitation.is_valid():
+        session['invitation_code'] = invitation_code
+        flash('Invitation accepted! Please sign in to complete your registration.', 'success')
+        return redirect(url_for('replit_auth.login'))
+    else:
+        flash('Invalid or expired invitation link.', 'danger')
+        return redirect(url_for('require_invitation'))
 
 # Error handlers
 @app.errorhandler(404)

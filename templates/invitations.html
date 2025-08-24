@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Invitations{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users me-2"></i>Manage Invitations</h2>
+                <a href="{{ url_for('create_invitation') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create Invitation
+                </a>
+            </div>
+
+            {% if invitations %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Your Invitations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Invitation Code</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Used By</th>
+                                    <th>Used Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invitation in invitations %}
+                                <tr>
+                                    <td>
+                                        <code>{{ invitation.invitation_code }}</code>
+                                    </td>
+                                    <td>
+                                        {% if invitation.email %}
+                                            {{ invitation.email }}
+                                        {% else %}
+                                            <span class="text-muted">Any email</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if invitation.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif invitation.status == 'used' %}
+                                            <span class="badge bg-success">Used</span>
+                                        {% elif invitation.status == 'expired' %}
+                                            <span class="badge bg-danger">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ invitation.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if invitation.used_by_user %}
+                                            {{ invitation.used_by_user.first_name or invitation.used_by_user.email or invitation.used_by_user.id }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if invitation.used_at %}
+                                            {{ invitation.used_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if invitation.status == 'pending' %}
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="copyInviteLink('{{ invitation.invitation_code }}')">
+                                                <i class="fas fa-copy me-1"></i>Copy Link
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center">
+                <div class="card">
+                    <div class="card-body py-5">
+                        <i class="fas fa-user-plus text-muted mb-3" style="font-size: 3rem;"></i>
+                        <h4>No Invitations Yet</h4>
+                        <p class="text-muted">You haven't created any invitations. Create your first invitation to start referring users.</p>
+                        <a href="{{ url_for('create_invitation') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Create First Invitation
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function copyInviteLink(code) {
+    const link = `${window.location.origin}/invite/${code}`;
+    navigator.clipboard.writeText(link).then(function() {
+        // Show temporary success feedback
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

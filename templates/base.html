@@ -34,6 +34,11 @@
                                 <i class="fas fa-user me-1"></i>Profile
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('invitations') }}">
+                                <i class="fas fa-users me-1"></i>Invitations
+                            </a>
+                        </li>
                         {% if current_user.has_access() %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('content') }}">

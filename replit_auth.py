@@ -127,7 +127,7 @@ def make_replit_blueprint():
     return replit_bp
 
 
-def save_user(user_claims):
+def save_user(user_claims, invitation_code=None):
     # Check if user already exists
     existing_user = User.query.filter_by(id=user_claims['sub']).first()
     
@@ -140,7 +140,18 @@ def save_user(user_claims):
         existing_user.updated_at = datetime.now()
         user = existing_user
     else:
-        # Create new user
+        # For new users, require a valid invitation
+        if not invitation_code:
+            raise ValueError("Invitation code required for new users")
+        
+        # Validate invitation
+        from models import Invitation
+        invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
+        
+        if not invitation or not invitation.is_valid():
+            raise ValueError("Invalid or expired invitation code")
+        
+        # Create new user with invitation tracking
         user = User()
         user.id = user_claims['sub']
         user.email = user_claims.get('email')
@@ -149,6 +160,12 @@ def save_user(user_claims):
         user.profile_image_url = user_claims.get('profile_image_url')
         user.created_at = datetime.now()
         user.updated_at = datetime.now()
+        user.invited_by_user_id = invitation.inviter_user_id
+        user.invitation_used_id = invitation.id
+        
+        # Mark invitation as used
+        invitation.mark_used(user.id)
+        
         db.session.add(user)
     
     try:
@@ -157,19 +174,48 @@ def save_user(user_claims):
     except Exception as e:
         db.session.rollback()
         print(f"Error saving user: {e}")
-        return user
+        raise e
 
 
 @oauth_authorized.connect
 def logged_in(blueprint, token):
     user_claims = jwt.decode(token['id_token'],
                              options={"verify_signature": False})
-    user = save_user(user_claims)
-    login_user(user)
-    blueprint.token = token
-    next_url = session.pop("next_url", None)
-    if next_url is not None:
-        return redirect(next_url)
+    
+    # Check if this is an existing user
+    existing_user = User.query.filter_by(id=user_claims['sub']).first()
+    
+    if existing_user:
+        # Existing user - no invitation required
+        user = save_user(user_claims)
+        login_user(user)
+        blueprint.token = token
+        next_url = session.pop("next_url", None)
+        if next_url is not None:
+            return redirect(next_url)
+    else:
+        # New user - check for invitation code
+        invitation_code = session.get('invitation_code')
+        if not invitation_code:
+            # Store token temporarily and redirect to invitation page
+            session['pending_token'] = token
+            session['pending_user_claims'] = user_claims
+            return redirect(url_for('require_invitation'))
+        
+        try:
+            user = save_user(user_claims, invitation_code)
+            session.pop('invitation_code', None)  # Clear used invitation
+            login_user(user)
+            blueprint.token = token
+            next_url = session.pop("next_url", None)
+            if next_url is not None:
+                return redirect(next_url)
+        except ValueError as e:
+            # Invalid invitation - redirect to invitation page with error
+            session['invitation_error'] = str(e)
+            session['pending_token'] = token
+            session['pending_user_claims'] = user_claims
+            return redirect(url_for('require_invitation'))
 
 
 @oauth_error.connect
