@@ -76,5 +76,17 @@ class TermsAcceptance(db.Model):
     def __repr__(self):
         return f'<TermsAcceptance {self.terms_version} by user {self.user_id}>'
 
+class CID(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    content = db.Column(db.Text, nullable=False)
+    title = db.Column(db.String(255), nullable=True)
+    content_type = db.Column(db.String(50), default='html')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<CID {self.path}>'
+
 # Current terms version - update this when terms change
 CURRENT_TERMS_VERSION = "1.0"

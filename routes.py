@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CURRENT_TERMS_VERSION
+from models import User, Payment, TermsAcceptance, CID, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm
 from replit_auth import require_login, make_replit_blueprint
 
@@ -168,7 +168,21 @@ def privacy():
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('404.html'), 404
+    """Custom 404 handler that checks CID table for content"""
+    path = request.path
+    
+    # Look up the path in the CID table
+    cid_content = CID.query.filter_by(path=path).first()
+    
+    if cid_content:
+        # If content exists for this path, display it
+        return render_template('cid_content.html', 
+                             content=cid_content.content,
+                             title=cid_content.title or f"Content for {path}",
+                             path=path), 200
+    else:
+        # If no content found, show 404 with the path
+        return render_template('404.html', path=path), 404
 
 @app.errorhandler(500)
 def internal_error(error):
