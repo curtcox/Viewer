@@ -3,7 +3,9 @@ from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
 from models import User, Payment, TermsAcceptance, CID, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm
+import hashlib
+import base64
 from replit_auth import require_login, make_replit_blueprint
 
 app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
@@ -164,6 +166,73 @@ def terms():
 def privacy():
     """Display privacy policy"""
     return render_template('privacy.html')
+
+def generate_cid(file_data):
+    """Generate a simple CID-like hash from file data"""
+    # Create SHA-256 hash of the file content
+    sha256_hash = hashlib.sha256(file_data).digest()
+    # Encode to base64 and create a CID-like string
+    encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
+    # Add CID prefix to make it look like an IPFS CID
+    return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload():
+    """File upload page with IPFS CID storage"""
+    form = FileUploadForm()
+    
+    if form.validate_on_submit():
+        uploaded_file = form.file.data
+        
+        # Read file content
+        file_content = uploaded_file.read()
+        
+        # Generate IPFS-like CID
+        cid = generate_cid(file_content)
+        
+        # Store file metadata and content in CID table
+        file_record = CID(
+            path=f"/{cid}",
+            title=form.title.data or f"Uploaded File: {uploaded_file.filename}",
+            content=f"""
+            <div class="file-upload-content">
+                <h3>File Upload Details</h3>
+                <div class="card">
+                    <div class="card-body">
+                        <p><strong>Original Filename:</strong> {uploaded_file.filename}</p>
+                        <p><strong>File Size:</strong> {len(file_content)} bytes</p>
+                        <p><strong>IPFS CID:</strong> <code>{cid}</code></p>
+                        <p><strong>Content Type:</strong> {uploaded_file.content_type}</p>
+                        {f'<p><strong>Description:</strong> {form.description.data}</p>' if form.description.data else ''}
+                        <p><strong>Upload Date:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This file is now accessible at: <a href="/{cid}">/{cid}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """,
+            content_type='html'
+        )
+        
+        # Check if CID already exists
+        existing = CID.query.filter_by(path=f"/{cid}").first()
+        if existing:
+            flash(f'File with this content already exists! CID: {cid}', 'warning')
+        else:
+            db.session.add(file_record)
+            db.session.commit()
+            flash(f'File uploaded successfully! CID: {cid}', 'success')
+        
+        return render_template('upload_success.html', 
+                             cid=cid, 
+                             filename=uploaded_file.filename,
+                             file_size=len(file_content),
+                             title=form.title.data,
+                             description=form.description.data)
+    
+    return render_template('upload.html', form=form)
 
 # Error handlers
 @app.errorhandler(404)

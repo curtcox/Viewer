@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Successful{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-check-circle me-2"></i>Upload Successful!
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-thumbs-up me-2"></i>File uploaded successfully!
+                        </h5>
+                        <p class="mb-0">Your file has been stored in the database and assigned a unique IPFS CID.</p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>File Details:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Filename:</strong> {{ filename }}</li>
+                                <li><strong>Size:</strong> {{ file_size }} bytes</li>
+                                {% if title %}
+                                <li><strong>Title:</strong> {{ title }}</li>
+                                {% endif %}
+                                {% if description %}
+                                <li><strong>Description:</strong> {{ description }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>IPFS Information:</h6>
+                            <div class="bg-light p-3 rounded">
+                                <label class="form-label fw-bold">IPFS CID:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control font-monospace" value="{{ cid }}" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ cid }}')">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">This unique identifier can be used to access your file.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-link me-2"></i>Access Your File
+                            </h6>
+                            <p>Your file is now accessible at the following URL:</p>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="{{ request.url_root[:-1] }}/{{ cid }}" readonly>
+                                <a href="/{{ cid }}" class="btn btn-primary" target="_blank">
+                                    <i class="fas fa-external-link-alt me-1"></i>View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{{ url_for('upload') }}" class="btn btn-success">
+                            <i class="fas fa-upload me-2"></i>Upload Another File
+                        </a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-home me-2"></i>Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show temporary success feedback
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i>';
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

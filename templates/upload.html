@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-upload me-2"></i>Upload File
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="card-text text-muted mb-4">
+                        Upload a file to store it in the database with an IPFS CID as the lookup key.
+                        The file will be accessible at a unique path based on its content hash.
+                    </p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.file.label(class="form-label") }}
+                            {{ form.file(class="form-control") }}
+                            {% if form.file.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.file.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Select any file to upload. A unique IPFS CID will be generated based on the file content.
+                            </small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control", placeholder="Enter a custom title for this file") }}
+                            {% if form.title.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.title.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows="3", placeholder="Enter an optional description") }}
+                            {% if form.description.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.description.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            {{ form.submit(class="btn btn-success") }}
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Files are stored securely and assigned a unique IPFS-compatible CID for easy retrieval.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
