@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Browse History{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-history me-2"></i>Browse History</h2>
+                <div class="text-muted">
+                    <small>Tracking your navigation since you started using the platform</small>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Total Views</h5>
+                                    <h3 class="mb-0">{{ total_views }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-eye fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Unique Pages</h5>
+                                    <h3 class="mb-0">{{ unique_paths }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-sitemap fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">This Session</h5>
+                                    <h3 class="mb-0">{{ page_views.items|length }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Main History -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Recent Activity</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if page_views.items %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Page</th>
+                                            <th>Method</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for view in page_views.items %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if view.path == '/' %}
+                                                        <i class="fas fa-home me-2 text-primary"></i>
+                                                        <strong>Home</strong>
+                                                    {% elif view.path.startswith('/profile') %}
+                                                        <i class="fas fa-user me-2 text-info"></i>
+                                                        Profile
+                                                    {% elif view.path.startswith('/content') %}
+                                                        <i class="fas fa-lock me-2 text-success"></i>
+                                                        Protected Content
+                                                    {% elif view.path.startswith('/upload') %}
+                                                        <i class="fas fa-upload me-2 text-warning"></i>
+                                                        File Upload
+                                                    {% elif view.path.startswith('/invitation') %}
+                                                        <i class="fas fa-users me-2 text-secondary"></i>
+                                                        Invitations
+                                                    {% elif view.path.startswith('/history') %}
+                                                        <i class="fas fa-history me-2 text-dark"></i>
+                                                        Browse History
+                                                    {% else %}
+                                                        <i class="fas fa-file me-2 text-muted"></i>
+                                                        {{ view.path }}
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">{{ view.path }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if view.method == 'GET' %}bg-primary{% elif view.method == 'POST' %}bg-success{% else %}bg-secondary{% endif %}">
+                                                    {{ view.method }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div>{{ view.viewed_at.strftime('%H:%M:%S') }}</div>
+                                                <small class="text-muted">{{ view.viewed_at.strftime('%Y-%m-%d') }}</small>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            {% if page_views.pages > 1 %}
+                            <nav aria-label="History pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_views.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('history', page=page_views.prev_num) }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in page_views.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != page_views.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('history', page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_views.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('history', page=page_views.next_num) }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                            
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-clock text-muted mb-3" style="font-size: 3rem;"></i>
+                                <h4>No History Yet</h4>
+                                <p class="text-muted">Your browsing history will appear here as you navigate the site.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popular Pages Sidebar -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Most Visited Pages</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if popular_paths %}
+                                {% for path, count in popular_paths %}
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <div class="fw-bold">
+                                            {% if path == '/' %}
+                                                <i class="fas fa-home me-1"></i> Home
+                                            {% else %}
+                                                <i class="fas fa-file me-1"></i> {{ path }}
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ path }}</small>
+                                    </div>
+                                    <span class="badge bg-primary">{{ count }}</span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted">No data available yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

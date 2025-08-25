@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, CURRENT_TERMS_VERSION
+from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm
 import secrets
 import hashlib
@@ -12,10 +12,36 @@ from replit_auth import require_login, make_replit_blueprint
 
 app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
 
-# Make session permanent
+# Make session permanent and track page views
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
+@app.after_request
+def track_page_view(response):
+    """Track page views for authenticated users"""
+    try:
+        # Only track for authenticated users and successful responses
+        if current_user.is_authenticated and response.status_code == 200:
+            # Skip tracking for static files, API calls, and certain paths
+            skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
+            if not any(request.path.startswith(skip) for skip in skip_paths):
+                # Skip tracking AJAX requests
+                if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    page_view = PageView(
+                        user_id=current_user.id,
+                        path=request.path,
+                        method=request.method,
+                        user_agent=request.headers.get('User-Agent', '')[:500],
+                        ip_address=request.remote_addr
+                    )
+                    db.session.add(page_view)
+                    db.session.commit()
+    except Exception as e:
+        # Don't let tracking errors break the request
+        db.session.rollback()
+        
+    return response
 
 @app.route('/')
 def index():
@@ -321,6 +347,40 @@ def uploads():
                          uploads=user_uploads,
                          total_uploads=len(user_uploads),
                          total_storage=total_storage)
+
+@app.route('/history')
+@require_login
+def history():
+    """Display user's page view history"""
+    # Get page parameter for pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 50  # Show 50 entries per page
+    
+    # Query user's page views with pagination
+    page_views = PageView.query.filter_by(user_id=current_user.id)\
+                              .order_by(PageView.viewed_at.desc())\
+                              .paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Get some statistics
+    total_views = PageView.query.filter_by(user_id=current_user.id).count()
+    
+    # Get unique paths count
+    from sqlalchemy import func
+    unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
+                            .filter_by(user_id=current_user.id).scalar()
+    
+    # Get most visited paths
+    popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
+                             .filter_by(user_id=current_user.id)\
+                             .group_by(PageView.path)\
+                             .order_by(func.count(PageView.path).desc())\
+                             .limit(5).all()
+    
+    return render_template('history.html',
+                         page_views=page_views,
+                         total_views=total_views,
+                         unique_paths=unique_paths,
+                         popular_paths=popular_paths)
 
 # Error handlers
 @app.errorhandler(404)

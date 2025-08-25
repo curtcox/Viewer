@@ -133,5 +133,20 @@ class CID(db.Model):
     def __repr__(self):
         return f'<CID {self.path}>'
 
+class PageView(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    path = db.Column(db.String(255), nullable=False)
+    method = db.Column(db.String(10), default='GET')
+    user_agent = db.Column(db.String(500), nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)  # Support IPv6
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='page_views')
+    
+    def __repr__(self):
+        return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
+
 # Current terms version - update this when terms change
 CURRENT_TERMS_VERSION = "1.0"
