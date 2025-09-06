@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm
+from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, CURRENT_TERMS_VERSION
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm
 import secrets
 import hashlib
 import base64
@@ -381,6 +381,87 @@ def history():
                          total_views=total_views,
                          unique_paths=unique_paths,
                          popular_paths=popular_paths)
+
+@app.route('/servers')
+@require_login
+def servers():
+    """Display user's servers"""
+    user_servers = Server.query.filter_by(user_id=current_user.id).order_by(Server.name).all()
+    return render_template('servers.html', servers=user_servers)
+
+@app.route('/servers/new', methods=['GET', 'POST'])
+@require_login
+def new_server():
+    """Create a new server"""
+    form = ServerForm()
+    
+    if form.validate_on_submit():
+        # Check if server name already exists for this user
+        existing_server = Server.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+        if existing_server:
+            flash(f'A server named "{form.name.data}" already exists', 'danger')
+        else:
+            server = Server(
+                name=form.name.data,
+                definition=form.definition.data,
+                user_id=current_user.id
+            )
+            db.session.add(server)
+            db.session.commit()
+            flash(f'Server "{form.name.data}" created successfully!', 'success')
+            return redirect(url_for('servers'))
+    
+    return render_template('server_form.html', form=form, title='Create New Server')
+
+@app.route('/servers/<server_name>')
+@require_login
+def view_server(server_name):
+    """View a specific server"""
+    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    if not server:
+        abort(404)
+    
+    return render_template('server_view.html', server=server)
+
+@app.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
+@require_login
+def edit_server(server_name):
+    """Edit a specific server"""
+    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    if not server:
+        abort(404)
+    
+    form = ServerForm(obj=server)
+    
+    if form.validate_on_submit():
+        # Check if new name conflicts with existing server (if name changed)
+        if form.name.data != server.name:
+            existing_server = Server.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+            if existing_server:
+                flash(f'A server named "{form.name.data}" already exists', 'danger')
+                return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
+        
+        server.name = form.name.data
+        server.definition = form.definition.data
+        server.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Server "{server.name}" updated successfully!', 'success')
+        return redirect(url_for('view_server', server_name=server.name))
+    
+    return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
+
+@app.route('/servers/<server_name>/delete', methods=['POST'])
+@require_login
+def delete_server(server_name):
+    """Delete a specific server"""
+    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    if not server:
+        abort(404)
+    
+    db.session.delete(server)
+    db.session.commit()
+    flash(f'Server "{server_name}" deleted successfully!', 'success')
+    return redirect(url_for('servers'))
 
 # Error handlers
 @app.errorhandler(404)

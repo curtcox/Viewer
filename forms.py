@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
 from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
+import re
 
 class PaymentForm(FlaskForm):
     plan = SelectField('Plan', choices=[
@@ -27,3 +28,16 @@ class InvitationForm(FlaskForm):
 class InvitationCodeForm(FlaskForm):
     invitation_code = StringField('Invitation Code', validators=[DataRequired()])
     submit = SubmitField('Verify Invitation')
+
+class ServerForm(FlaskForm):
+    name = StringField('Server Name', validators=[
+        DataRequired(),
+        Regexp(r'^[a-zA-Z0-9._-]+$', message='Server name can only contain letters, numbers, dots, hyphens, and underscores')
+    ])
+    definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
+    submit = SubmitField('Save Server')
+    
+    def validate_name(self, field):
+        # Additional validation to ensure URL safety
+        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
+            raise ValidationError('Server name contains invalid characters for URLs')

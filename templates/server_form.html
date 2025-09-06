@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-server me-2"></i>{{ title }}</h2>
+                <a href="{{ url_for('servers') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Servers
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Server Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">
+                                    Server name can only contain letters, numbers, dots, hyphens, and underscores. This will be used in URLs.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.definition.label(class="form-label") }}
+                            {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
+                            {% if form.definition.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.definition.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">
+                                    Enter the server configuration or definition. This can be any text content you want to associate with this server.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('servers') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if server %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Current Server Name:</strong><br>
+                            <code>{{ server.name }}</code>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Last Updated:</strong><br>
+                            {{ server.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
