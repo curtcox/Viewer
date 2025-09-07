@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="mb-4">
+                <h2><i class="fas fa-cog me-2"></i>Settings</h2>
+                <p class="text-muted">Manage your servers, variables, and other configurations.</p>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-server me-2 text-primary"></i>Servers
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Manage your named server definitions. Each server can have a multi-line configuration or definition.</p>
+                            <div class="mb-3">
+                                <span class="badge bg-primary fs-6">{{ server_count }} server{{ 's' if server_count != 1 else '' }}</span>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('servers') }}" class="btn btn-primary">
+                                    <i class="fas fa-list me-1"></i>View All Servers
+                                </a>
+                                <a href="{{ url_for('new_server') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-plus me-1"></i>Create New Server
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Access servers at: <code>/servers/{name}</code></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-code me-2 text-success"></i>Variables
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Manage your named variable definitions. Each variable can contain any text content or configuration values.</p>
+                            <div class="mb-3">
+                                <span class="badge bg-success fs-6">{{ variable_count }} variable{{ 's' if variable_count != 1 else '' }}</span>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('variables') }}" class="btn btn-success">
+                                    <i class="fas fa-list me-1"></i>View All Variables
+                                </a>
+                                <a href="{{ url_for('new_variable') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-plus me-1"></i>Create New Variable
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Access variables at: <code>/variables/{name}</code></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-info-circle me-2 text-info"></i>Usage Information
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>URL-Safe Naming</h6>
+                                    <p class="small text-muted">All server and variable names must contain only letters, numbers, dots, hyphens, and underscores to ensure they work properly in URLs.</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Multi-line Definitions</h6>
+                                    <p class="small text-muted">Both servers and variables support multi-line text definitions, making them perfect for configurations, scripts, or any text content.</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Direct Access</h6>
+                                    <p class="small text-muted">Access your servers and variables directly via their URLs: <code>/servers/{name}</code> and <code>/variables/{name}</code></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Personal Libraries</h6>
+                                    <p class="small text-muted">Each user maintains their own separate collections of servers and variables with no conflicts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

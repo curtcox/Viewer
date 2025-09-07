@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm
+from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, CURRENT_TERMS_VERSION
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm
 import secrets
 import hashlib
 import base64
@@ -462,6 +462,99 @@ def delete_server(server_name):
     db.session.commit()
     flash(f'Server "{server_name}" deleted successfully!', 'success')
     return redirect(url_for('servers'))
+
+@app.route('/variables')
+@require_login
+def variables():
+    """Display user's variables"""
+    user_variables = Variable.query.filter_by(user_id=current_user.id).order_by(Variable.name).all()
+    return render_template('variables.html', variables=user_variables)
+
+@app.route('/variables/new', methods=['GET', 'POST'])
+@require_login
+def new_variable():
+    """Create a new variable"""
+    form = VariableForm()
+    
+    if form.validate_on_submit():
+        # Check if variable name already exists for this user
+        existing_variable = Variable.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+        if existing_variable:
+            flash(f'A variable named "{form.name.data}" already exists', 'danger')
+        else:
+            variable = Variable(
+                name=form.name.data,
+                definition=form.definition.data,
+                user_id=current_user.id
+            )
+            db.session.add(variable)
+            db.session.commit()
+            flash(f'Variable "{form.name.data}" created successfully!', 'success')
+            return redirect(url_for('variables'))
+    
+    return render_template('variable_form.html', form=form, title='Create New Variable')
+
+@app.route('/variables/<variable_name>')
+@require_login
+def view_variable(variable_name):
+    """View a specific variable"""
+    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    if not variable:
+        abort(404)
+    
+    return render_template('variable_view.html', variable=variable)
+
+@app.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
+@require_login
+def edit_variable(variable_name):
+    """Edit a specific variable"""
+    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    if not variable:
+        abort(404)
+    
+    form = VariableForm(obj=variable)
+    
+    if form.validate_on_submit():
+        # Check if new name conflicts with existing variable (if name changed)
+        if form.name.data != variable.name:
+            existing_variable = Variable.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+            if existing_variable:
+                flash(f'A variable named "{form.name.data}" already exists', 'danger')
+                return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
+        
+        variable.name = form.name.data
+        variable.definition = form.definition.data
+        variable.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Variable "{variable.name}" updated successfully!', 'success')
+        return redirect(url_for('view_variable', variable_name=variable.name))
+    
+    return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
+
+@app.route('/variables/<variable_name>/delete', methods=['POST'])
+@require_login
+def delete_variable(variable_name):
+    """Delete a specific variable"""
+    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    if not variable:
+        abort(404)
+    
+    db.session.delete(variable)
+    db.session.commit()
+    flash(f'Variable "{variable_name}" deleted successfully!', 'success')
+    return redirect(url_for('variables'))
+
+@app.route('/settings')
+@require_login
+def settings():
+    """Settings page with links to servers and variables"""
+    # Get counts for display
+    server_count = Server.query.filter_by(user_id=current_user.id).count()
+    variable_count = Variable.query.filter_by(user_id=current_user.id).count()
+    
+    return render_template('settings.html', 
+                         server_count=server_count,
+                         variable_count=variable_count)
 
 # Error handlers
 @app.errorhandler(404)
