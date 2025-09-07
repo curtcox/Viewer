@@ -546,7 +546,7 @@ def delete_variable(variable_name):
 
 @app.route('/secrets')
 @require_login
-def secrets():
+def user_secrets():
     """Display user's secrets"""
     user_secrets = Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
     return render_template('secrets.html', secrets=user_secrets)
@@ -571,7 +571,7 @@ def new_secret():
             db.session.add(secret)
             db.session.commit()
             flash(f'Secret "{form.name.data}" created successfully!', 'success')
-            return redirect(url_for('secrets'))
+            return redirect(url_for('user_secrets'))
     
     return render_template('secret_form.html', form=form, title='Create New Secret')
 
@@ -623,7 +623,7 @@ def delete_secret(secret_name):
     db.session.delete(secret)
     db.session.commit()
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
-    return redirect(url_for('secrets'))
+    return redirect(url_for('user_secrets'))
 
 @app.route('/tags')
 @require_login

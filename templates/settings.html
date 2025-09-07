@@ -79,7 +79,7 @@
                                 <span class="badge bg-warning fs-6">{{ secret_count }} secret{{ 's' if secret_count != 1 else '' }}</span>
                             </div>
                             <div class="d-grid gap-2">
-                                <a href="{{ url_for('secrets') }}" class="btn btn-warning">
+                                <a href="{{ url_for('user_secrets') }}" class="btn btn-warning">
                                     <i class="fas fa-list me-1"></i>View All Secrets
                                 </a>
                                 <a href="{{ url_for('new_secret') }}" class="btn btn-outline-warning">
