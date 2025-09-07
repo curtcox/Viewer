@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, Tag, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm, TagForm
+from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 import secrets
 import hashlib
 import base64
@@ -546,7 +546,7 @@ def delete_variable(variable_name):
 
 @app.route('/secrets')
 @require_login
-def user_secrets():
+def secrets():
     """Display user's secrets"""
     user_secrets = Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
     return render_template('secrets.html', secrets=user_secrets)
@@ -571,7 +571,7 @@ def new_secret():
             db.session.add(secret)
             db.session.commit()
             flash(f'Secret "{form.name.data}" created successfully!', 'success')
-            return redirect(url_for('user_secrets'))
+            return redirect(url_for('secrets'))
     
     return render_template('secret_form.html', form=form, title='Create New Secret')
 
@@ -623,104 +623,21 @@ def delete_secret(secret_name):
     db.session.delete(secret)
     db.session.commit()
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
-    return redirect(url_for('user_secrets'))
-
-@app.route('/tags')
-@require_login
-def tags():
-    """Display user's tags"""
-    user_tags = Tag.query.filter_by(user_id=current_user.id).order_by(Tag.name).all()
-    return render_template('tags.html', tags=user_tags)
-
-@app.route('/tags/new', methods=['GET', 'POST'])
-@require_login
-def new_tag():
-    """Create a new tag"""
-    form = TagForm()
-    
-    if form.validate_on_submit():
-        # Check if tag name already exists for this user
-        existing_tag = Tag.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-        if existing_tag:
-            flash(f'A tag named "{form.name.data}" already exists', 'danger')
-        else:
-            tag = Tag(
-                name=form.name.data,
-                value=form.value.data,
-                user_id=current_user.id
-            )
-            db.session.add(tag)
-            db.session.commit()
-            flash(f'Tag "{form.name.data}" created successfully!', 'success')
-            return redirect(url_for('tags'))
-    
-    return render_template('tag_form.html', form=form, title='Create New Tag')
-
-@app.route('/tags/<tag_name>')
-@require_login
-def view_tag(tag_name):
-    """View a specific tag"""
-    tag = Tag.query.filter_by(user_id=current_user.id, name=tag_name).first()
-    if not tag:
-        abort(404)
-    
-    return render_template('tag_view.html', tag=tag)
-
-@app.route('/tags/<tag_name>/edit', methods=['GET', 'POST'])
-@require_login
-def edit_tag(tag_name):
-    """Edit a specific tag"""
-    tag = Tag.query.filter_by(user_id=current_user.id, name=tag_name).first()
-    if not tag:
-        abort(404)
-    
-    form = TagForm(obj=tag)
-    
-    if form.validate_on_submit():
-        # Check if new name conflicts with existing tag (if name changed)
-        if form.name.data != tag.name:
-            existing_tag = Tag.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-            if existing_tag:
-                flash(f'A tag named "{form.name.data}" already exists', 'danger')
-                return render_template('tag_form.html', form=form, title=f'Edit Tag "{tag.name}"', tag=tag)
-        
-        tag.name = form.name.data
-        tag.value = form.value.data
-        tag.updated_at = datetime.utcnow()
-        db.session.commit()
-        flash(f'Tag "{tag.name}" updated successfully!', 'success')
-        return redirect(url_for('view_tag', tag_name=tag.name))
-    
-    return render_template('tag_form.html', form=form, title=f'Edit Tag "{tag.name}"', tag=tag)
-
-@app.route('/tags/<tag_name>/delete', methods=['POST'])
-@require_login
-def delete_tag(tag_name):
-    """Delete a specific tag"""
-    tag = Tag.query.filter_by(user_id=current_user.id, name=tag_name).first()
-    if not tag:
-        abort(404)
-    
-    db.session.delete(tag)
-    db.session.commit()
-    flash(f'Tag "{tag_name}" deleted successfully!', 'success')
-    return redirect(url_for('tags'))
+    return redirect(url_for('secrets'))
 
 @app.route('/settings')
 @require_login
 def settings():
-    """Settings page with links to servers, variables, secrets, and tags"""
+    """Settings page with links to servers, variables, and secrets"""
     # Get counts for display
     server_count = Server.query.filter_by(user_id=current_user.id).count()
     variable_count = Variable.query.filter_by(user_id=current_user.id).count()
     secret_count = Secret.query.filter_by(user_id=current_user.id).count()
-    tag_count = Tag.query.filter_by(user_id=current_user.id).count()
     
     return render_template('settings.html', 
                          server_count=server_count,
                          variable_count=variable_count,
-                         secret_count=secret_count,
-                         tag_count=tag_count)
+                         secret_count=secret_count)
 
 # Error handlers
 @app.errorhandler(404)
