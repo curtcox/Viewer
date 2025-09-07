@@ -7,10 +7,24 @@ from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationFo
 import secrets
 import hashlib
 import base64
+import os
 from flask import make_response, abort
-from replit_auth import require_login, make_replit_blueprint
-
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+# Replit authentication (optional - only register if REPL_ID is set)
+try:
+    from replit_auth import require_login, make_replit_blueprint
+    if os.environ.get('REPL_ID'):
+        app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+        REPLIT_AUTH_AVAILABLE = True
+    else:
+        REPLIT_AUTH_AVAILABLE = False
+        # Create a dummy require_login decorator for local development
+        def require_login(f):
+            return f
+except ImportError:
+    REPLIT_AUTH_AVAILABLE = False
+    # Create a dummy require_login decorator for local development
+    def require_login(f):
+        return f
 
 # Make session permanent and track page views
 @app.before_request
@@ -40,7 +54,7 @@ def track_page_view(response):
     except Exception as e:
         # Don't let tracking errors break the request
         db.session.rollback()
-        
+
     return response
 
 @app.route('/')
@@ -64,17 +78,17 @@ def profile():
     """User profile showing payment history and terms acceptance"""
     payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.payment_date.desc()).all()
     terms_history = TermsAcceptance.query.filter_by(user_id=current_user.id).order_by(TermsAcceptance.accepted_at.desc()).all()
-    
+
     # Check if user needs to accept current terms
     current_terms_accepted = TermsAcceptance.query.filter_by(
-        user_id=current_user.id, 
+        user_id=current_user.id,
         terms_version=CURRENT_TERMS_VERSION
     ).first()
-    
+
     needs_terms_acceptance = current_terms_accepted is None
-    
-    return render_template('profile.html', 
-                         payments=payments, 
+
+    return render_template('profile.html',
+                         payments=payments,
                          terms_history=terms_history,
                          needs_terms_acceptance=needs_terms_acceptance,
                          current_terms_version=CURRENT_TERMS_VERSION)
@@ -89,10 +103,10 @@ def subscribe():
             'free': 0.00,
             'annual': 50.00
         }
-        
+
         plan = form.plan.data
         amount = plan_prices.get(plan, 0.00)
-        
+
         # Create mock payment record
         payment = Payment()
         payment.user_id = current_user.id
@@ -106,15 +120,15 @@ def subscribe():
             # Free plan
             current_user.is_paid = False
             current_user.payment_expires_at = None
-        
+
         payment.transaction_id = f"mock_txn_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-        
+
         db.session.add(payment)
         db.session.commit()
-        
+
         flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
         return redirect(url_for('profile'))
-    
+
     return render_template('subscribe.html', form=form)
 
 @app.route('/accept-terms', methods=['GET', 'POST'])
@@ -128,22 +142,22 @@ def accept_terms():
             user_id=current_user.id,
             terms_version=CURRENT_TERMS_VERSION
         ).first()
-        
+
         if not existing:
             terms_acceptance = TermsAcceptance()
             terms_acceptance.user_id = current_user.id
             terms_acceptance.terms_version = CURRENT_TERMS_VERSION
             terms_acceptance.ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-            
+
             current_user.current_terms_accepted = True
-            
+
             db.session.add(terms_acceptance)
             db.session.commit()
-            
+
             flash('Terms and conditions accepted successfully!', 'success')
-        
+
         return redirect(url_for('profile'))
-    
+
     return render_template('accept_terms.html', form=form, terms_version=CURRENT_TERMS_VERSION)
 
 @app.route('/content')
@@ -153,7 +167,7 @@ def content():
     if not current_user.has_access():
         flash('Access denied. Please ensure you have an active subscription and have accepted the current terms and conditions.', 'warning')
         return redirect(url_for('profile'))
-    
+
     # Gather comprehensive HTTP request information
     request_info = {
         'method': request.method,
@@ -177,7 +191,7 @@ def content():
             'HTTP_ACCEPT_ENCODING': request.environ.get('HTTP_ACCEPT_ENCODING'),
         }
     }
-    
+
     return render_template('content.html', request_info=request_info)
 
 @app.route('/plans')
@@ -209,16 +223,16 @@ def generate_cid(file_data):
 def upload():
     """File upload page with IPFS CID storage"""
     form = FileUploadForm()
-    
+
     if form.validate_on_submit():
         uploaded_file = form.file.data
-        
+
         # Read file content
         file_content = uploaded_file.read()
-        
+
         # Generate IPFS-like CID
         cid = generate_cid(file_content)
-        
+
         # Store actual file bytes and metadata in CID table
         file_record = CID(
             path=f"/{cid}",
@@ -229,7 +243,7 @@ def upload():
             file_size=len(file_content),
             uploaded_by_user_id=current_user.id  # Track who uploaded the file
         )
-        
+
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
         if existing:
@@ -238,14 +252,14 @@ def upload():
             db.session.add(file_record)
             db.session.commit()
             flash(f'File uploaded successfully! CID: {cid}', 'success')
-        
-        return render_template('upload_success.html', 
-                             cid=cid, 
+
+        return render_template('upload_success.html',
+                             cid=cid,
                              filename=uploaded_file.filename,
                              file_size=len(file_content),
                              title=form.title.data,
                              description=form.description.data)
-    
+
     return render_template('upload.html', form=form)
 
 @app.route('/invitations')
@@ -260,23 +274,23 @@ def invitations():
 def create_invitation():
     """Create a new invitation"""
     form = InvitationForm()
-    
+
     if form.validate_on_submit():
         # Generate unique invitation code
         invitation_code = secrets.token_urlsafe(16)
-        
+
         invitation = Invitation(
             inviter_user_id=current_user.id,
             invitation_code=invitation_code,
             email=form.email.data if form.email.data else None
         )
-        
+
         db.session.add(invitation)
         db.session.commit()
-        
+
         flash(f'Invitation created! Code: {invitation_code}', 'success')
         return redirect(url_for('invitations'))
-    
+
     return render_template('create_invitation.html', form=form)
 
 @app.route('/require-invitation', methods=['GET', 'POST'])
@@ -284,30 +298,36 @@ def require_invitation():
     """Handle invitation code requirement for new users"""
     form = InvitationCodeForm()
     error_message = session.pop('invitation_error', None)
-    
+
     if form.validate_on_submit():
         invitation_code = form.invitation_code.data
-        
+
         # Validate invitation
         invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-        
+
         if invitation and invitation.is_valid():
             # Store invitation code in session and retry authentication
             session['invitation_code'] = invitation_code
-            
+
             # If we have pending auth, complete it
             if 'pending_token' in session and 'pending_user_claims' in session:
                 token = session.pop('pending_token')
                 user_claims = session.pop('pending_user_claims')
-                
+
                 try:
-                    from replit_auth import save_user
-                    user = save_user(user_claims, invitation_code)
+                    if REPLIT_AUTH_AVAILABLE:
+                        from replit_auth import save_user
+                        user = save_user(user_claims, invitation_code)
+                    else:
+                        # For local development without Replit auth
+                        flash('Replit authentication not available in local development mode.', 'info')
+                        return redirect(url_for('index'))
+
                     session.pop('invitation_code', None)
-                    
+
                     from flask_login import login_user
                     login_user(user)
-                    
+
                     flash('Welcome! Your account has been created.', 'success')
                     return redirect(url_for('index'))
                 except ValueError as e:
@@ -315,21 +335,29 @@ def require_invitation():
             else:
                 # Just store invitation for future auth attempt
                 flash('Invitation validated! Please sign in.', 'success')
-                return redirect(url_for('replit_auth.login'))
+                if REPLIT_AUTH_AVAILABLE:
+                    return redirect(url_for('replit_auth.login'))
+                else:
+                    flash('Replit authentication not available in local development mode.', 'info')
+                    return redirect(url_for('index'))
         else:
             flash('Invalid or expired invitation code.', 'danger')
-    
+
     return render_template('require_invitation.html', form=form, error_message=error_message)
 
 @app.route('/invite/<invitation_code>')
 def accept_invitation(invitation_code):
     """Direct link to accept an invitation"""
     invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-    
+
     if invitation and invitation.is_valid():
         session['invitation_code'] = invitation_code
         flash('Invitation accepted! Please sign in to complete your registration.', 'success')
-        return redirect(url_for('replit_auth.login'))
+        if REPLIT_AUTH_AVAILABLE:
+            return redirect(url_for('replit_auth.login'))
+        else:
+            flash('Replit authentication not available in local development mode.', 'info')
+            return redirect(url_for('index'))
     else:
         flash('Invalid or expired invitation link.', 'danger')
         return redirect(url_for('require_invitation'))
@@ -339,11 +367,11 @@ def accept_invitation(invitation_code):
 def uploads():
     """Display user's uploaded files"""
     user_uploads = CID.query.filter_by(uploaded_by_user_id=current_user.id).order_by(CID.created_at.desc()).all()
-    
+
     # Calculate total storage used
     total_storage = sum(upload.file_size or 0 for upload in user_uploads)
-    
-    return render_template('uploads.html', 
+
+    return render_template('uploads.html',
                          uploads=user_uploads,
                          total_uploads=len(user_uploads),
                          total_storage=total_storage)
@@ -355,27 +383,27 @@ def history():
     # Get page parameter for pagination
     page = request.args.get('page', 1, type=int)
     per_page = 50  # Show 50 entries per page
-    
+
     # Query user's page views with pagination
     page_views = PageView.query.filter_by(user_id=current_user.id)\
                               .order_by(PageView.viewed_at.desc())\
                               .paginate(page=page, per_page=per_page, error_out=False)
-    
+
     # Get some statistics
     total_views = PageView.query.filter_by(user_id=current_user.id).count()
-    
+
     # Get unique paths count
     from sqlalchemy import func
     unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
                             .filter_by(user_id=current_user.id).scalar()
-    
+
     # Get most visited paths
     popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
                              .filter_by(user_id=current_user.id)\
                              .group_by(PageView.path)\
                              .order_by(func.count(PageView.path).desc())\
                              .limit(5).all()
-    
+
     return render_template('history.html',
                          page_views=page_views,
                          total_views=total_views,
@@ -394,7 +422,7 @@ def servers():
 def new_server():
     """Create a new server"""
     form = ServerForm()
-    
+
     if form.validate_on_submit():
         # Check if server name already exists for this user
         existing_server = Server.query.filter_by(user_id=current_user.id, name=form.name.data).first()
@@ -410,7 +438,7 @@ def new_server():
             db.session.commit()
             flash(f'Server "{form.name.data}" created successfully!', 'success')
             return redirect(url_for('servers'))
-    
+
     return render_template('server_form.html', form=form, title='Create New Server')
 
 @app.route('/servers/<server_name>')
@@ -420,7 +448,7 @@ def view_server(server_name):
     server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
     if not server:
         abort(404)
-    
+
     return render_template('server_view.html', server=server)
 
 @app.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
@@ -430,9 +458,9 @@ def edit_server(server_name):
     server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
     if not server:
         abort(404)
-    
+
     form = ServerForm(obj=server)
-    
+
     if form.validate_on_submit():
         # Check if new name conflicts with existing server (if name changed)
         if form.name.data != server.name:
@@ -440,14 +468,14 @@ def edit_server(server_name):
             if existing_server:
                 flash(f'A server named "{form.name.data}" already exists', 'danger')
                 return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
-        
+
         server.name = form.name.data
         server.definition = form.definition.data
         server.updated_at = datetime.utcnow()
         db.session.commit()
         flash(f'Server "{server.name}" updated successfully!', 'success')
         return redirect(url_for('view_server', server_name=server.name))
-    
+
     return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
 
 @app.route('/servers/<server_name>/delete', methods=['POST'])
@@ -457,7 +485,7 @@ def delete_server(server_name):
     server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
     if not server:
         abort(404)
-    
+
     db.session.delete(server)
     db.session.commit()
     flash(f'Server "{server_name}" deleted successfully!', 'success')
@@ -475,7 +503,7 @@ def variables():
 def new_variable():
     """Create a new variable"""
     form = VariableForm()
-    
+
     if form.validate_on_submit():
         # Check if variable name already exists for this user
         existing_variable = Variable.query.filter_by(user_id=current_user.id, name=form.name.data).first()
@@ -491,7 +519,7 @@ def new_variable():
             db.session.commit()
             flash(f'Variable "{form.name.data}" created successfully!', 'success')
             return redirect(url_for('variables'))
-    
+
     return render_template('variable_form.html', form=form, title='Create New Variable')
 
 @app.route('/variables/<variable_name>')
@@ -501,7 +529,7 @@ def view_variable(variable_name):
     variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
     if not variable:
         abort(404)
-    
+
     return render_template('variable_view.html', variable=variable)
 
 @app.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
@@ -511,9 +539,9 @@ def edit_variable(variable_name):
     variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
     if not variable:
         abort(404)
-    
+
     form = VariableForm(obj=variable)
-    
+
     if form.validate_on_submit():
         # Check if new name conflicts with existing variable (if name changed)
         if form.name.data != variable.name:
@@ -521,14 +549,14 @@ def edit_variable(variable_name):
             if existing_variable:
                 flash(f'A variable named "{form.name.data}" already exists', 'danger')
                 return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
-        
+
         variable.name = form.name.data
         variable.definition = form.definition.data
         variable.updated_at = datetime.utcnow()
         db.session.commit()
         flash(f'Variable "{variable.name}" updated successfully!', 'success')
         return redirect(url_for('view_variable', variable_name=variable.name))
-    
+
     return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
 
 @app.route('/variables/<variable_name>/delete', methods=['POST'])
@@ -538,7 +566,7 @@ def delete_variable(variable_name):
     variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
     if not variable:
         abort(404)
-    
+
     db.session.delete(variable)
     db.session.commit()
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
@@ -556,7 +584,7 @@ def secrets():
 def new_secret():
     """Create a new secret"""
     form = SecretForm()
-    
+
     if form.validate_on_submit():
         # Check if secret name already exists for this user
         existing_secret = Secret.query.filter_by(user_id=current_user.id, name=form.name.data).first()
@@ -572,7 +600,7 @@ def new_secret():
             db.session.commit()
             flash(f'Secret "{form.name.data}" created successfully!', 'success')
             return redirect(url_for('secrets'))
-    
+
     return render_template('secret_form.html', form=form, title='Create New Secret')
 
 @app.route('/secrets/<secret_name>')
@@ -582,7 +610,7 @@ def view_secret(secret_name):
     secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
     if not secret:
         abort(404)
-    
+
     return render_template('secret_view.html', secret=secret)
 
 @app.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
@@ -592,9 +620,9 @@ def edit_secret(secret_name):
     secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
     if not secret:
         abort(404)
-    
+
     form = SecretForm(obj=secret)
-    
+
     if form.validate_on_submit():
         # Check if new name conflicts with existing secret (if name changed)
         if form.name.data != secret.name:
@@ -602,14 +630,14 @@ def edit_secret(secret_name):
             if existing_secret:
                 flash(f'A secret named "{form.name.data}" already exists', 'danger')
                 return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
-        
+
         secret.name = form.name.data
         secret.definition = form.definition.data
         secret.updated_at = datetime.utcnow()
         db.session.commit()
         flash(f'Secret "{secret.name}" updated successfully!', 'success')
         return redirect(url_for('view_secret', secret_name=secret.name))
-    
+
     return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
 
 @app.route('/secrets/<secret_name>/delete', methods=['POST'])
@@ -619,7 +647,7 @@ def delete_secret(secret_name):
     secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
     if not secret:
         abort(404)
-    
+
     db.session.delete(secret)
     db.session.commit()
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
@@ -633,8 +661,8 @@ def settings():
     server_count = Server.query.filter_by(user_id=current_user.id).count()
     variable_count = Variable.query.filter_by(user_id=current_user.id).count()
     secret_count = Secret.query.filter_by(user_id=current_user.id).count()
-    
-    return render_template('settings.html', 
+
+    return render_template('settings.html',
                          server_count=server_count,
                          variable_count=variable_count,
                          secret_count=secret_count)
@@ -644,16 +672,16 @@ def settings():
 def not_found_error(error):
     """Custom 404 handler that checks CID table for content"""
     path = request.path
-    
+
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()
-    
+
     if cid_content:
         # If this is a file upload (has file_data), serve the raw bytes
         if cid_content.file_data:
             # Extract CID from path (remove leading slash)
             cid = path[1:] if path.startswith('/') else path
-            
+
             # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
             etag = f'"{cid}"'
             if request.headers.get('If-None-Match') == etag:
@@ -661,7 +689,7 @@ def not_found_error(error):
                 response = make_response('', 304)
                 response.headers['ETag'] = etag
                 return response
-            
+
             # Check If-Modified-Since (though ETag is more reliable for immutable content)
             if request.headers.get('If-Modified-Since'):
                 # Since content is immutable, we can always return 304 if they have any cached version
@@ -669,31 +697,31 @@ def not_found_error(error):
                 response.headers['ETag'] = etag
                 response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
                 return response
-            
+
             # Serve the file with aggressive caching headers
             response = make_response(cid_content.file_data)
             response.headers['Content-Type'] = cid_content.content_type
             response.headers['Content-Length'] = len(cid_content.file_data)
-            
+
             # Immutable content caching headers
             response.headers['ETag'] = etag
             response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
             response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
-            
+
             # Add content disposition header for downloads if it's not a web-displayable type
             if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
                 response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
-            
+
             return response
-        
+
         # If this is HTML content (legacy), display it in template
         elif cid_content.content:
-            return render_template('cid_content.html', 
+            return render_template('cid_content.html',
                                  content=cid_content.content,
                                  title=cid_content.title or f"Content for {path}",
                                  path=path), 200
-    
+
     # If no content found, show 404 with the path
     return render_template('404.html', path=path), 404
 
