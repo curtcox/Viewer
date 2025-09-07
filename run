@@ -11,6 +11,7 @@ if [ ! -f ".env" ]; then
   exit 1
 fi
 
-source .env
+# Load environment variables from .env file
+export $(grep -v '^#' .env | xargs)
 
 python main.py
