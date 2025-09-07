@@ -1,0 +1,153 @@
+#!/bin/bash
+
+# SecureApp Installation Script
+# Compatible with macOS and Linux
+
+set -e  # Exit on any error
+
+echo "🚀 SecureApp Installation Script"
+echo "================================"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if running on supported OS
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    OS="linux"
+    print_status "Detected Linux system"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    OS="macos"
+    print_status "Detected macOS system"
+else
+    print_error "Unsupported operating system: $OSTYPE"
+    print_error "This script supports Linux and macOS only"
+    exit 1
+fi
+
+# Check if Python 3 is installed
+print_status "Checking Python installation..."
+if command -v python3 &> /dev/null; then
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+    print_success "Python 3 found: $PYTHON_VERSION"
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_VERSION=$(python --version | cut -d' ' -f2)
+    if [[ $PYTHON_VERSION == 3.* ]]; then
+        print_success "Python 3 found: $PYTHON_VERSION"
+        PYTHON_CMD="python"
+    else
+        print_error "Python 3 is required, but found Python $PYTHON_VERSION"
+        exit 1
+    fi
+else
+    print_error "Python 3 is not installed"
+    print_error "Please install Python 3.8 or higher and try again"
+    exit 1
+fi
+
+# Check if pip is installed
+print_status "Checking pip installation..."
+if command -v pip3 &> /dev/null; then
+    print_success "pip3 found"
+    PIP_CMD="pip3"
+elif command -v pip &> /dev/null; then
+    print_success "pip found"
+    PIP_CMD="pip"
+else
+    print_error "pip is not installed"
+    print_error "Please install pip and try again"
+    exit 1
+fi
+
+# Install PostgreSQL if not present (optional)
+print_status "Checking PostgreSQL installation..."
+if command -v psql &> /dev/null; then
+    print_success "PostgreSQL found"
+else
+    print_warning "PostgreSQL not found"
+    print_warning "You can:"
+    print_warning "  1. Install PostgreSQL locally"
+    print_warning "  2. Use Replit's built-in database (if running on Replit)"
+    print_warning "  3. Use a cloud PostgreSQL service"
+    echo
+fi
+
+# Create virtual environment (optional but recommended)
+if [[ -d "venv" ]]; then
+    print_status "Virtual environment already exists"
+else
+    print_status "Creating virtual environment..."
+    $PYTHON_CMD -m venv venv
+    print_success "Virtual environment created"
+fi
+
+# Activate virtual environment
+print_status "Activating virtual environment..."
+source venv/bin/activate
+print_success "Virtual environment activated"
+
+# Upgrade pip
+print_status "Upgrading pip..."
+$PIP_CMD install --upgrade pip
+
+# Install requirements
+print_status "Installing Python dependencies..."
+if [[ -f "requirements.txt" ]]; then
+    $PIP_CMD install -r requirements.txt
+    print_success "Dependencies installed successfully"
+else
+    print_warning "requirements.txt not found, installing dependencies manually..."
+    $PIP_CMD install flask flask-sqlalchemy flask-login flask-wtf flask-dance wtforms werkzeug psycopg2-binary pyjwt oauthlib gunicorn email-validator
+    print_success "Core dependencies installed"
+fi
+
+# Create .env file if it doesn't exist
+if [[ ! -f ".env" ]]; then
+    if [[ -f ".env.sample" ]]; then
+        print_status "Creating .env file from .env.sample..."
+        cp .env.sample .env
+        print_success ".env file created"
+        print_warning "Please edit .env file with your actual configuration values"
+    else
+        print_warning ".env.sample not found, you'll need to create .env manually"
+    fi
+else
+    print_status ".env file already exists"
+fi
+
+# Make scripts executable
+print_status "Making scripts executable..."
+chmod +x install doctor run 2>/dev/null || true
+print_success "Scripts are now executable"
+
+echo
+print_success "Installation completed successfully! 🎉"
+echo
+echo "Next steps:"
+echo "1. Edit the .env file with your configuration"
+echo "2. Set up your PostgreSQL database"
+echo "3. Run './doctor' to verify your setup"
+echo "4. Run './run' to start the application"
+echo
+echo "For detailed instructions, see README.md"

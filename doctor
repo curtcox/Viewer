@@ -1,0 +1,248 @@
+#!/bin/bash
+
+# SecureApp Doctor Script
+# Checks if all dependencies are installed and the app is ready to run
+
+set -e  # Exit on any error
+
+echo "🏥 SecureApp Doctor - Health Check"
+echo "=================================="
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Counters
+CHECKS_PASSED=0
+CHECKS_FAILED=0
+WARNINGS=0
+
+# Function to print colored output
+print_check() {
+    echo -e "${BLUE}[CHECK]${NC} $1"
+}
+
+print_pass() {
+    echo -e "${GREEN}[PASS]${NC} $1"
+    ((CHECKS_PASSED++))
+}
+
+print_fail() {
+    echo -e "${RED}[FAIL]${NC} $1"
+    ((CHECKS_FAILED++))
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+    ((WARNINGS++))
+}
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+# Check Python installation
+print_check "Checking Python installation..."
+if command -v python3 &> /dev/null; then
+    PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+    PYTHON_CMD="python3"
+    print_pass "Python 3 found: $PYTHON_VERSION"
+elif command -v python &> /dev/null; then
+    PYTHON_VERSION=$(python --version | cut -d' ' -f2)
+    if [[ $PYTHON_VERSION == 3.* ]]; then
+        PYTHON_CMD="python"
+        print_pass "Python 3 found: $PYTHON_VERSION"
+    else
+        print_fail "Python 3 required, found Python $PYTHON_VERSION"
+    fi
+else
+    print_fail "Python 3 not found"
+fi
+
+# Check pip installation
+print_check "Checking pip installation..."
+if command -v pip3 &> /dev/null; then
+    PIP_CMD="pip3"
+    print_pass "pip3 found"
+elif command -v pip &> /dev/null; then
+    PIP_CMD="pip"
+    print_pass "pip found"
+else
+    print_fail "pip not found"
+fi
+
+# Check virtual environment
+print_check "Checking virtual environment..."
+if [[ -d "venv" ]]; then
+    print_pass "Virtual environment exists"
+    
+    # Check if virtual environment is activated
+    if [[ "$VIRTUAL_ENV" != "" ]]; then
+        print_pass "Virtual environment is activated"
+    else
+        print_warning "Virtual environment not activated (run: source venv/bin/activate)"
+    fi
+else
+    print_warning "Virtual environment not found (recommended)"
+fi
+
+# Check Python dependencies
+print_check "Checking Python dependencies..."
+MISSING_DEPS=()
+
+# List of required packages
+REQUIRED_PACKAGES=("flask" "flask-sqlalchemy" "flask-login" "flask-wtf" "flask-dance" "wtforms" "werkzeug" "psycopg2" "pyjwt" "oauthlib" "gunicorn" "email-validator")
+
+for package in "${REQUIRED_PACKAGES[@]}"; do
+    if $PYTHON_CMD -c "import ${package//-/_}" &> /dev/null; then
+        continue
+    else
+        MISSING_DEPS+=($package)
+    fi
+done
+
+if [[ ${#MISSING_DEPS[@]} -eq 0 ]]; then
+    print_pass "All required Python packages are installed"
+else
+    print_fail "Missing Python packages: ${MISSING_DEPS[*]}"
+    print_info "Run: $PIP_CMD install ${MISSING_DEPS[*]}"
+fi
+
+# Check .env file
+print_check "Checking environment configuration..."
+if [[ -f ".env" ]]; then
+    print_pass ".env file exists"
+    
+    # Check required environment variables
+    source .env 2>/dev/null || true
+    
+    if [[ -n "$DATABASE_URL" ]]; then
+        print_pass "DATABASE_URL is set"
+    else
+        print_fail "DATABASE_URL not set in .env"
+    fi
+    
+    if [[ -n "$SESSION_SECRET" ]]; then
+        print_pass "SESSION_SECRET is set"
+    else
+        print_fail "SESSION_SECRET not set in .env"
+    fi
+    
+    if [[ -n "$REPL_ID" ]]; then
+        print_pass "REPL_ID is set"
+    else
+        print_warning "REPL_ID not set (required for Replit authentication)"
+    fi
+else
+    print_fail ".env file not found"
+    print_info "Copy .env.sample to .env and configure it"
+fi
+
+# Check PostgreSQL
+print_check "Checking PostgreSQL availability..."
+if command -v psql &> /dev/null; then
+    print_pass "PostgreSQL client found"
+    
+    # Try to connect to database if DATABASE_URL is set
+    if [[ -n "$DATABASE_URL" ]]; then
+        print_check "Testing database connection..."
+        if $PYTHON_CMD -c "
+import os
+import psycopg2
+try:
+    conn = psycopg2.connect(os.environ.get('DATABASE_URL', ''))
+    conn.close()
+    print('SUCCESS')
+except Exception as e:
+    print(f'FAILED: {e}')
+" 2>/dev/null | grep -q "SUCCESS"; then
+            print_pass "Database connection successful"
+        else
+            print_fail "Cannot connect to database"
+            print_info "Check your DATABASE_URL and ensure PostgreSQL is running"
+        fi
+    fi
+else
+    print_warning "PostgreSQL client not found"
+    print_info "Install PostgreSQL or use Replit's built-in database"
+fi
+
+# Check if database tables exist
+print_check "Checking database tables..."
+if [[ -n "$DATABASE_URL" ]] && $PYTHON_CMD -c "
+import os
+import psycopg2
+try:
+    conn = psycopg2.connect(os.environ.get('DATABASE_URL', ''))
+    cur = conn.cursor()
+    cur.execute(\"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users';")
+    if cur.fetchone():
+        print('EXISTS')
+    else:
+        print('MISSING')
+    conn.close()
+except:
+    print('ERROR')
+" 2>/dev/null | grep -q "EXISTS"; then
+    print_pass "Database tables exist"
+else
+    print_warning "Database tables not found"
+    print_info "Run: $PYTHON_CMD -c \"from app import app, db; app.app_context().push(); db.create_all()\""
+fi
+
+# Check file permissions
+print_check "Checking file permissions..."
+if [[ -x "run" ]]; then
+    print_pass "run script is executable"
+else
+    print_warning "run script is not executable (run: chmod +x run)"
+fi
+
+if [[ -x "doctor" ]]; then
+    print_pass "doctor script is executable"
+else
+    print_warning "doctor script is not executable (run: chmod +x doctor)"
+fi
+
+if [[ -x "install" ]]; then
+    print_pass "install script is executable"
+else
+    print_warning "install script is not executable (run: chmod +x install)"
+fi
+
+# Check core application files
+print_check "Checking core application files..."
+CORE_FILES=("app.py" "main.py" "models.py" "routes.py" "forms.py" "replit_auth.py")
+for file in "${CORE_FILES[@]}"; do
+    if [[ -f "$file" ]]; then
+        continue
+    else
+        print_fail "Missing core file: $file"
+    fi
+done
+print_pass "All core application files present"
+
+# Summary
+echo
+echo "=================================="
+echo "🏥 Health Check Summary"
+echo "=================================="
+echo -e "Checks passed: ${GREEN}$CHECKS_PASSED${NC}"
+echo -e "Checks failed: ${RED}$CHECKS_FAILED${NC}"
+echo -e "Warnings: ${YELLOW}$WARNINGS${NC}"
+echo
+
+if [[ $CHECKS_FAILED -eq 0 ]]; then
+    echo -e "${GREEN}✅ Your application appears to be ready to run!${NC}"
+    echo "Run './run' to start the application"
+else
+    echo -e "${RED}❌ Please fix the failed checks before running the application${NC}"
+    echo "Refer to the README.md for detailed setup instructions"
+fi
+
+if [[ $WARNINGS -gt 0 ]]; then
+    echo -e "${YELLOW}⚠️  Consider addressing the warnings for optimal setup${NC}"
+fi

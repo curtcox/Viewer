@@ -12,15 +12,59 @@ SecureApp is a comprehensive Flask-based web application that demonstrates advan
 - **Content Analysis**: Comprehensive HTTP request information display
 - **Replit Authentication**: Seamless integration with Replit's OAuth system
 
+## Quick Start
+
+For a streamlined setup experience, use the provided scripts:
+
+```bash
+# 1. Install all dependencies
+./install
+
+# 2. Copy and configure environment variables
+cp .env.sample .env
+# Edit .env with your configuration
+
+# 3. Check if everything is ready
+./doctor
+
+# 4. Run the application
+./run
+```
+
 ## Prerequisites
 
 Before running the application locally, ensure you have the following installed:
 
 - Python 3.8 or higher
-- PostgreSQL database
+- PostgreSQL database (or use Replit's built-in database)
 - Git (for cloning the repository)
 
 ## Installation & Setup
+
+### Option 1: Automated Setup (Recommended)
+
+Use the provided installation script for Mac and Linux:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd secureapp
+
+# Run the automated installer
+./install
+
+# Configure your environment
+cp .env.sample .env
+# Edit .env with your actual values
+
+# Verify everything is working
+./doctor
+
+# Start the application
+./run
+```
+
+### Option 2: Manual Setup
 
 ### 1. Clone the Repository
 
@@ -32,6 +76,11 @@ cd secureapp
 ### 2. Install Python Dependencies
 
 ```bash
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -71,21 +120,18 @@ If running on Replit, the PostgreSQL database is automatically configured and av
 
 ### 4. Environment Variables
 
-Create a `.env` file in the project root with the following variables:
+Copy the sample environment file and configure it:
 
-```env
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/secureapp
-
-# Session Secret (generate a random string)
-SESSION_SECRET=your-super-secret-session-key-here
-
-# Replit OAuth Configuration (for authentication)
-REPL_ID=your-replit-app-id
-
-# Optional: Custom issuer URL (defaults to Replit's)
-ISSUER_URL=https://replit.com/oidc
+```bash
+cp .env.sample .env
 ```
+
+Then edit `.env` with your actual values. The sample file includes:
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Secure session key (generate with the provided command)
+- `REPL_ID` - Replit OAuth application ID
+- Optional configurations for development
 
 #### Generating Environment Variables
 
@@ -127,23 +173,67 @@ This will create all necessary tables:
 
 ## Running the Application
 
-### Development Mode
+### Using the Run Script (Recommended)
 
-Run the Flask development server:
+The provided run script handles environment setup and health checks:
 
 ```bash
+# Development mode (default)
+./run
+
+# Production mode
+./run production
+
+# Test mode
+./run test
+```
+
+### Manual Execution
+
+#### Development Mode
+
+```bash
+# Activate virtual environment (if using)
+source venv/bin/activate
+
+# Run the Flask development server
 python main.py
 ```
 
 The application will be available at `http://localhost:5000`
 
-### Production Mode
-
-Use Gunicorn for production deployment:
+#### Production Mode
 
 ```bash
+# Using Gunicorn for production
 gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 ```
+
+## Helper Scripts
+
+The repository includes three helper scripts for Mac and Linux:
+
+### `./install` - Dependency Installation
+- Checks system requirements (Python 3, pip, PostgreSQL)
+- Creates virtual environment
+- Installs Python dependencies
+- Creates `.env` from `.env.sample`
+- Makes all scripts executable
+
+### `./doctor` - Health Check
+- Verifies Python and pip installation
+- Checks all required Python packages
+- Validates environment configuration
+- Tests database connectivity
+- Ensures all core files are present
+- Provides detailed diagnostics and recommendations
+
+### `./run` - Application Runner
+- Loads environment variables
+- Activates virtual environment
+- Performs quick health check
+- Creates database tables if needed
+- Starts application in specified mode (development/production/test)
 
 ## Application Structure
 
@@ -251,36 +341,63 @@ Regexp(r'^[a-zA-Z0-9._-]+$')
 
 ## Troubleshooting
 
+### Quick Diagnostics
+
+Run the doctor script for comprehensive health checks:
+
+```bash
+./doctor
+```
+
+This will check:
+- Python and pip installation
+- Virtual environment setup
+- Python package dependencies
+- Environment variable configuration
+- Database connectivity
+- File permissions
+- Core application files
+
 ### Common Issues
 
 1. **Database Connection Errors**
    - Verify PostgreSQL is running
-   - Check DATABASE_URL format
+   - Check DATABASE_URL format in `.env`
    - Ensure database exists and user has permissions
+   - Run `./doctor` to test connectivity
 
 2. **Authentication Issues**
-   - Verify REPL_ID is correctly configured
+   - Verify REPL_ID is correctly configured in `.env`
    - Check Replit OAuth application settings
    - Ensure redirect URLs match
 
-3. **Missing Tables**
-   - Run the database creation script
-   - Check for migration errors in logs
+3. **Missing Dependencies**
+   - Run `./install` to install all dependencies
+   - Check `./doctor` output for missing packages
+   - Ensure virtual environment is activated
 
 4. **Permission Errors**
-   - Verify file upload directory permissions
-   - Check database user privileges
+   - Run `chmod +x install doctor run` to fix script permissions
+   - Verify database user privileges
+   - Check file system permissions
+
+5. **Environment Configuration**
+   - Ensure `.env` file exists (copy from `.env.sample`)
+   - Verify all required variables are set
+   - Use `./doctor` to validate configuration
 
 ### Logs and Debugging
 
-Enable debug mode for detailed error information:
-```python
-app.debug = True  # Only for development
+The run script provides detailed startup information and error messages.
+
+For development debugging:
+```bash
+./run development  # Enables Flask debug mode
 ```
 
-View application logs:
+View detailed health information:
 ```bash
-tail -f logs/app.log  # If logging to file
+./doctor  # Comprehensive system check
 ```
 
 ## API Endpoints
