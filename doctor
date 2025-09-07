@@ -18,7 +18,7 @@ fi
 
 status=0
 
-if [ -d ".venv" ]; then
+if [ -d "venv" ]; then
   echo "Virtual environment: found"
 else
   echo "Virtual environment: missing. Run ./install"
@@ -27,11 +27,22 @@ fi
 
 # check packages
 missing=()
-for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib pyjwt gunicorn sqlalchemy; do
-  if ! $python_cmd -c "import ${pkg//-/_}" >/dev/null 2>&1; then
-    missing+=("$pkg")
-  fi
-done
+if [ -d "venv" ]; then
+  # Use virtual environment python
+  venv_python="venv/bin/python"
+  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy; do
+    if ! $venv_python -c "import ${pkg//-/_}" >/dev/null 2>&1; then
+      missing+=("$pkg")
+    fi
+  done
+else
+  # Use system python
+  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy; do
+    if ! $python_cmd -c "import ${pkg//-/_}" >/dev/null 2>&1; then
+      missing+=("$pkg")
+    fi
+  done
+fi
 if [ ${#missing[@]} -eq 0 ]; then
   echo "Python packages: ok"
 else
