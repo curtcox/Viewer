@@ -22,7 +22,7 @@
                         <span class="display-4 fw-bold">$0</span>
                         <span class="text-muted">/year</span>
                     </div>
-                    
+
                     <ul class="list-unstyled mb-4">
                         <li class="mb-2">
                             <i class="fas fa-check text-success me-2"></i>
@@ -52,9 +52,15 @@
                             <i class="fas fa-credit-card me-2"></i>Select Free Plan
                         </a>
                     {% else %}
+                        {% if REPLIT_AUTH_AVAILABLE %}
                         <a href="{{ url_for('replit_auth.login') }}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-user-plus me-2"></i>Get Started Free
                         </a>
+                        {% else %}
+                        <a href="#" onclick="alert('Authentication not available in local development mode.'); return false;" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i>Get Started Free
+                        </a>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -75,7 +81,7 @@
                         <span class="display-4 fw-bold">$50</span>
                         <span class="text-muted">/year</span>
                     </div>
-                    
+
                     <ul class="list-unstyled mb-4">
                         <li class="mb-2">
                             <i class="fas fa-check text-success me-2"></i>
@@ -109,9 +115,15 @@
                             <i class="fas fa-star me-2"></i>Subscribe Annual
                         </a>
                     {% else %}
+                        {% if REPLIT_AUTH_AVAILABLE %}
                         <a href="{{ url_for('replit_auth.login') }}" class="btn btn-outline-success w-100">
                             <i class="fas fa-user-plus me-2"></i>Start Annual Plan
                         </a>
+                        {% else %}
+                        <a href="#" onclick="alert('Authentication not available in local development mode.'); return false;" class="btn btn-outline-success w-100">
+                            <i class="fas fa-user-plus me-2"></i>Start Annual Plan
+                        </a>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -190,7 +202,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
@@ -203,7 +215,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="accordion-item">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">

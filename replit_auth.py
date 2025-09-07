@@ -130,7 +130,7 @@ def make_replit_blueprint():
 def save_user(user_claims, invitation_code=None):
     # Check if user already exists
     existing_user = User.query.filter_by(id=user_claims['sub']).first()
-    
+
     if existing_user:
         # Update existing user info
         existing_user.email = user_claims.get('email')
@@ -143,14 +143,14 @@ def save_user(user_claims, invitation_code=None):
         # For new users, require a valid invitation
         if not invitation_code:
             raise ValueError("Invitation code required for new users")
-        
+
         # Validate invitation
         from models import Invitation
         invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-        
+
         if not invitation or not invitation.is_valid():
             raise ValueError("Invalid or expired invitation code")
-        
+
         # Create new user with invitation tracking
         user = User()
         user.id = user_claims['sub']
@@ -162,12 +162,12 @@ def save_user(user_claims, invitation_code=None):
         user.updated_at = datetime.now()
         user.invited_by_user_id = invitation.inviter_user_id
         user.invitation_used_id = invitation.id
-        
+
         # Mark invitation as used
         invitation.mark_used(user.id)
-        
+
         db.session.add(user)
-    
+
     try:
         db.session.commit()
         return user
@@ -181,10 +181,10 @@ def save_user(user_claims, invitation_code=None):
 def logged_in(blueprint, token):
     user_claims = jwt.decode(token['id_token'],
                              options={"verify_signature": False})
-    
+
     # Check if this is an existing user
     existing_user = User.query.filter_by(id=user_claims['sub']).first()
-    
+
     if existing_user:
         # Existing user - no invitation required
         user = save_user(user_claims)
@@ -201,7 +201,7 @@ def logged_in(blueprint, token):
             session['pending_token'] = token
             session['pending_user_claims'] = user_claims
             return redirect(url_for('require_invitation'))
-        
+
         try:
             user = save_user(user_claims, invitation_code)
             session.pop('invitation_code', None)  # Clear used invitation
@@ -229,7 +229,13 @@ def require_login(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             session["next_url"] = get_next_navigation_url(request)
-            return redirect(url_for('replit_auth.login'))
+            # Check if REPL_ID is set (Replit auth is available)
+            if os.environ.get('REPL_ID'):
+                return redirect(url_for('replit_auth.login'))
+            else:
+                from flask import flash
+                flash('Authentication not available in local development mode.', 'info')
+                return redirect(url_for('index'))
 
         try:
             expires_in = replit.token.get('expires_in', 0)
@@ -242,12 +248,22 @@ def require_login(f):
                 except InvalidGrantError:
                     # If the refresh token is invalid, the users needs to re-login.
                     session["next_url"] = get_next_navigation_url(request)
-                    return redirect(url_for('replit_auth.login'))
+                    if os.environ.get('REPL_ID'):
+                        return redirect(url_for('replit_auth.login'))
+                    else:
+                        from flask import flash
+                        flash('Authentication not available in local development mode.', 'info')
+                        return redirect(url_for('index'))
                 replit.token_updater(token)
         except:
             # If token doesn't exist or is invalid, redirect to login
             session["next_url"] = get_next_navigation_url(request)
-            return redirect(url_for('replit_auth.login'))
+            if os.environ.get('REPL_ID'):
+                return redirect(url_for('replit_auth.login'))
+            else:
+                from flask import flash
+                flash('Authentication not available in local development mode.', 'info')
+                return redirect(url_for('index'))
 
         return f(*args, **kwargs)
 

@@ -31,5 +31,6 @@ db = SQLAlchemy(app, model_class=Base)
 # Need to put this in module-level to make it work with Gunicorn.
 with app.app_context():
     import models  # noqa: F401
+    import routes  # noqa: F401 - Import routes to register them
     db.create_all()
     logging.info("Database tables created")

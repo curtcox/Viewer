@@ -26,6 +26,11 @@ except ImportError:
     def require_login(f):
         return f
 
+# Make REPLIT_AUTH_AVAILABLE available to all templates
+@app.context_processor
+def inject_replit_auth_available():
+    return dict(REPLIT_AUTH_AVAILABLE=REPLIT_AUTH_AVAILABLE)
+
 # Make session permanent and track page views
 @app.before_request
 def make_session_permanent():

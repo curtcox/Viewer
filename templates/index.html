@@ -9,13 +9,19 @@
                 Welcome to SecureApp
             </h1>
             <p class="lead mb-4">
-                Experience secure, premium content with our advanced access control system. 
+                Experience secure, premium content with our advanced access control system.
                 Get detailed insights into your web interactions with comprehensive HTTP request tracking.
             </p>
             <div class="d-flex gap-3">
+                {% if REPLIT_AUTH_AVAILABLE %}
                 <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-plus me-2"></i>Get Started
                 </a>
+                {% else %}
+                <a href="#" onclick="alert('Authentication not available in local development mode.'); return false;" class="btn btn-primary btn-lg">
+                    <i class="fas fa-user-plus me-2"></i>Get Started
+                </a>
+                {% endif %}
                 <a href="{{ url_for('plans') }}" class="btn btn-outline-secondary btn-lg">
                     <i class="fas fa-info-circle me-2"></i>View Plans
                 </a>
@@ -37,7 +43,7 @@
                     <i class="fas fa-lock text-primary mb-3" style="font-size: 3rem;"></i>
                     <h5 class="card-title">Secure Access</h5>
                     <p class="card-text">
-                        Multi-layered security with user authentication, payment verification, 
+                        Multi-layered security with user authentication, payment verification,
                         and terms acceptance tracking.
                     </p>
                 </div>
@@ -49,7 +55,7 @@
                     <i class="fas fa-chart-line text-success mb-3" style="font-size: 3rem;"></i>
                     <h5 class="card-title">Request Tracking</h5>
                     <p class="card-text">
-                        Comprehensive HTTP request analysis with detailed headers, 
+                        Comprehensive HTTP request analysis with detailed headers,
                         parameters, and environmental data.
                     </p>
                 </div>
@@ -61,7 +67,7 @@
                     <i class="fas fa-credit-card text-warning mb-3" style="font-size: 3rem;"></i>
                     <h5 class="card-title">Payment Management</h5>
                     <p class="card-text">
-                        Track your subscription history with detailed payment records 
+                        Track your subscription history with detailed payment records
                         and expiration monitoring.
                     </p>
                 </div>
@@ -109,9 +115,15 @@
         <div class="col-12">
             <h3 class="mb-3">Ready to Get Started?</h3>
             <p class="lead mb-4">Join thousands of users who trust SecureApp for their content management needs.</p>
+            {% if REPLIT_AUTH_AVAILABLE %}
             <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg me-3">
                 <i class="fas fa-rocket me-2"></i>Start Free Trial
             </a>
+            {% else %}
+            <a href="#" onclick="alert('Authentication not available in local development mode.'); return false;" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-rocket me-2"></i>Start Free Trial
+            </a>
+            {% endif %}
             <a href="{{ url_for('plans') }}" class="btn btn-outline-primary btn-lg">
                 <i class="fas fa-eye me-2"></i>View Pricing
             </a>
