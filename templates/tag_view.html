@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Tag: {{ tag.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tag me-2"></i>{{ tag.name }}</h2>
+                <div class="btn-group">
+                    <a href="{{ url_for('tags') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Tags
+                    </a>
+                    <a href="{{ url_for('edit_tag', tag_name=tag.name) }}" class="btn btn-primary">
+                        <i class="fas fa-edit me-1"></i>Edit Tag
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Tag Value</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyValue()">
+                            <i class="fas fa-copy me-1"></i>Copy
+                        </button>
+                        <form method="POST" action="{{ url_for('delete_tag', tag_name=tag.name) }}" 
+                              onsubmit="return confirm('Are you sure you want to delete tag {{ tag.name }}?')" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="border rounded p-3 bg-light">
+                        <code id="tag-value" class="fs-6">{{ tag.value }}</code>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small>
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                Created: {{ tag.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            {% if tag.updated_at != tag.created_at %}
+                            <small>
+                                <i class="fas fa-calendar-edit me-1"></i>
+                                Last Updated: {{ tag.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Tag Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Tag Name:</strong><br>
+                            <code>{{ tag.name }}</code>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Direct URL:</strong><br>
+                            <code>{{ request.url_root }}tags/{{ tag.name }}</code>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <strong>Value Length:</strong><br>
+                            {{ tag.value|length }} characters
+                        </div>
+                        <div class="col-md-6">
+                            <strong>URL Fragment:</strong><br>
+                            Valid URL fragment format
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyValue() {
+    const value = document.getElementById('tag-value').textContent;
+    navigator.clipboard.writeText(value).then(function() {
+        // Show temporary success feedback
+        const button = event.target.closest('button');
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

@@ -67,3 +67,24 @@ class SecretForm(FlaskForm):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Secret name contains invalid characters for URLs')
+
+class TagForm(FlaskForm):
+    name = StringField('Tag Name', validators=[
+        DataRequired(),
+        Regexp(r'^[a-zA-Z0-9._-]+$', message='Tag name can only contain letters, numbers, dots, hyphens, and underscores')
+    ])
+    value = StringField('Tag Value', validators=[
+        DataRequired(),
+        Regexp(r'^[a-zA-Z0-9._~:/?#\[\]@!$&\'()*+,;=%-]+$', message='Tag value must be a valid URL fragment')
+    ])
+    submit = SubmitField('Save Tag')
+    
+    def validate_name(self, field):
+        # Additional validation to ensure URL safety
+        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
+            raise ValidationError('Tag name contains invalid characters for URLs')
+    
+    def validate_value(self, field):
+        # Additional validation to ensure URL fragment validity
+        if not re.match(r'^[a-zA-Z0-9._~:/?#\[\]@!$&\'()*+,;=%-]+$', field.data):
+            raise ValidationError('Tag value contains invalid characters for URL fragments')

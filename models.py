@@ -199,5 +199,22 @@ class Secret(db.Model):
     def __repr__(self):
         return f'<Secret {self.name} by {self.user_id}>'
 
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, index=True)
+    value = db.Column(db.String(255), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='tags')
+    
+    # Unique constraint: each user can only have one tag with a given name
+    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_tag_name'),)
+    
+    def __repr__(self):
+        return f'<Tag {self.name} by {self.user_id}>'
+
 # Current terms version - update this when terms change
 CURRENT_TERMS_VERSION = "1.0"
