@@ -182,5 +182,22 @@ class Variable(db.Model):
     def __repr__(self):
         return f'<Variable {self.name} by {self.user_id}>'
 
+class Secret(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, index=True)
+    definition = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='secrets')
+    
+    # Unique constraint: each user can only have one secret with a given name
+    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)
+    
+    def __repr__(self):
+        return f'<Secret {self.name} by {self.user_id}>'
+
 # Current terms version - update this when terms change
 CURRENT_TERMS_VERSION = "1.0"

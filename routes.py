@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, CURRENT_TERMS_VERSION
-from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm
+from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 import secrets
 import hashlib
 import base64
@@ -544,17 +544,100 @@ def delete_variable(variable_name):
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
     return redirect(url_for('variables'))
 
+@app.route('/secrets')
+@require_login
+def secrets():
+    """Display user's secrets"""
+    user_secrets = Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
+    return render_template('secrets.html', secrets=user_secrets)
+
+@app.route('/secrets/new', methods=['GET', 'POST'])
+@require_login
+def new_secret():
+    """Create a new secret"""
+    form = SecretForm()
+    
+    if form.validate_on_submit():
+        # Check if secret name already exists for this user
+        existing_secret = Secret.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+        if existing_secret:
+            flash(f'A secret named "{form.name.data}" already exists', 'danger')
+        else:
+            secret = Secret(
+                name=form.name.data,
+                definition=form.definition.data,
+                user_id=current_user.id
+            )
+            db.session.add(secret)
+            db.session.commit()
+            flash(f'Secret "{form.name.data}" created successfully!', 'success')
+            return redirect(url_for('secrets'))
+    
+    return render_template('secret_form.html', form=form, title='Create New Secret')
+
+@app.route('/secrets/<secret_name>')
+@require_login
+def view_secret(secret_name):
+    """View a specific secret"""
+    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    if not secret:
+        abort(404)
+    
+    return render_template('secret_view.html', secret=secret)
+
+@app.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
+@require_login
+def edit_secret(secret_name):
+    """Edit a specific secret"""
+    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    if not secret:
+        abort(404)
+    
+    form = SecretForm(obj=secret)
+    
+    if form.validate_on_submit():
+        # Check if new name conflicts with existing secret (if name changed)
+        if form.name.data != secret.name:
+            existing_secret = Secret.query.filter_by(user_id=current_user.id, name=form.name.data).first()
+            if existing_secret:
+                flash(f'A secret named "{form.name.data}" already exists', 'danger')
+                return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
+        
+        secret.name = form.name.data
+        secret.definition = form.definition.data
+        secret.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Secret "{secret.name}" updated successfully!', 'success')
+        return redirect(url_for('view_secret', secret_name=secret.name))
+    
+    return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
+
+@app.route('/secrets/<secret_name>/delete', methods=['POST'])
+@require_login
+def delete_secret(secret_name):
+    """Delete a specific secret"""
+    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    if not secret:
+        abort(404)
+    
+    db.session.delete(secret)
+    db.session.commit()
+    flash(f'Secret "{secret_name}" deleted successfully!', 'success')
+    return redirect(url_for('secrets'))
+
 @app.route('/settings')
 @require_login
 def settings():
-    """Settings page with links to servers and variables"""
+    """Settings page with links to servers, variables, and secrets"""
     # Get counts for display
     server_count = Server.query.filter_by(user_id=current_user.id).count()
     variable_count = Variable.query.filter_by(user_id=current_user.id).count()
+    secret_count = Secret.query.filter_by(user_id=current_user.id).count()
     
     return render_template('settings.html', 
                          server_count=server_count,
-                         variable_count=variable_count)
+                         variable_count=variable_count,
+                         secret_count=secret_count)
 
 # Error handlers
 @app.errorhandler(404)

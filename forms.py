@@ -54,3 +54,16 @@ class VariableForm(FlaskForm):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Variable name contains invalid characters for URLs')
+
+class SecretForm(FlaskForm):
+    name = StringField('Secret Name', validators=[
+        DataRequired(),
+        Regexp(r'^[a-zA-Z0-9._-]+$', message='Secret name can only contain letters, numbers, dots, hyphens, and underscores')
+    ])
+    definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
+    submit = SubmitField('Save Secret')
+    
+    def validate_name(self, field):
+        # Additional validation to ensure URL safety
+        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
+            raise ValidationError('Secret name contains invalid characters for URLs')
