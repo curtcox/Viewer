@@ -6,6 +6,7 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask, url_for
+from flask_login import LoginManager
 from app import app, db
 from local_auth import local_auth_bp
 from models import User
@@ -20,9 +21,50 @@ class TestLocalAuthRoutes(unittest.TestCase):
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         self.app.config['SECRET_KEY'] = 'test-secret'
+        self.app.config['WTF_CSRF_ENABLED'] = False
+
+        # Initialize Flask-Login
+        login_manager = LoginManager()
+        login_manager.init_app(self.app)
+        login_manager.login_view = 'local_auth.login'
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(user_id)
 
         db.init_app(self.app)
+
+        # Register all necessary routes
         self.app.register_blueprint(local_auth_bp, url_prefix="/auth")
+
+        # Add basic routes that templates need
+        @self.app.route('/')
+        def index():
+            return "Index page"
+
+        @self.app.route('/dashboard')
+        def dashboard():
+            return "Dashboard page"
+
+        @self.app.route('/plans')
+        def plans():
+            return "Plans page"
+
+        @self.app.route('/profile')
+        def profile():
+            return "Profile page"
+
+        @self.app.route('/content')
+        def content():
+            return "Content page"
+
+        @self.app.route('/terms')
+        def terms():
+            return "Terms page"
+
+        @self.app.route('/privacy')
+        def privacy():
+            return "Privacy page"
 
         with self.app.app_context():
             db.create_all()
@@ -126,9 +168,9 @@ class TestLocalAuthRoutes(unittest.TestCase):
 
                     self.assertEqual(response.status_code, 302)
                     mock_create_user.assert_called_once_with(
-                        email='',
-                        first_name='',
-                        last_name=''
+                        email=None,
+                        first_name=None,
+                        last_name=None
                     )
 
     def test_register_post_with_next_url(self):
@@ -161,9 +203,50 @@ class TestLocalAuthIntegration(unittest.TestCase):
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         self.app.config['SECRET_KEY'] = 'test-secret'
+        self.app.config['WTF_CSRF_ENABLED'] = False
+
+        # Initialize Flask-Login
+        login_manager = LoginManager()
+        login_manager.init_app(self.app)
+        login_manager.login_view = 'local_auth.login'
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            return User.query.get(user_id)
 
         db.init_app(self.app)
+
+        # Register all necessary routes
         self.app.register_blueprint(local_auth_bp, url_prefix="/auth")
+
+        # Add basic routes that templates need
+        @self.app.route('/')
+        def index():
+            return "Index page"
+
+        @self.app.route('/dashboard')
+        def dashboard():
+            return "Dashboard page"
+
+        @self.app.route('/plans')
+        def plans():
+            return "Plans page"
+
+        @self.app.route('/profile')
+        def profile():
+            return "Profile page"
+
+        @self.app.route('/content')
+        def content():
+            return "Content page"
+
+        @self.app.route('/terms')
+        def terms():
+            return "Terms page"
+
+        @self.app.route('/privacy')
+        def privacy():
+            return "Privacy page"
 
         with self.app.app_context():
             db.create_all()

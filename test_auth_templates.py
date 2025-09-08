@@ -73,8 +73,12 @@ class TestAuthTemplateIntegration(unittest.TestCase):
                 response = client.post('/auth/login')
                 self.assertEqual(response.status_code, 302)
 
-                # Now check that logout link is present
-                response = client.get('/')
+                # Follow the redirect to complete the login flow
+                response = client.get('/dashboard')
+                self.assertEqual(response.status_code, 302)  # Redirects to content or profile
+
+                # Now check that logout link is present on a page that doesn't redirect
+                response = client.get('/profile')
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b'/auth/logout', response.data)
 
@@ -143,8 +147,12 @@ class TestAuthTemplateIntegration(unittest.TestCase):
                 response = client.post('/auth/login')
                 self.assertEqual(response.status_code, 302)
 
-                # Check that user info is displayed
-                response = client.get('/')
+                # Follow the redirect to complete the login flow
+                response = client.get('/dashboard')
+                self.assertEqual(response.status_code, 302)  # Redirects to content or profile
+
+                # Check that user info is displayed on a page that doesn't redirect
+                response = client.get('/profile')
                 self.assertEqual(response.status_code, 200)
 
                 # Should show user dropdown (authenticated state)
