@@ -32,5 +32,20 @@ db = SQLAlchemy(app, model_class=Base)
 with app.app_context():
     import models  # noqa: F401
     import routes  # noqa: F401 - Import routes to register them
+    import local_auth  # noqa: F401 - Import local auth routes
+    from auth_providers import auth_manager
+
+    # Register blueprints
+    from local_auth import local_auth_bp
+    app.register_blueprint(local_auth_bp, url_prefix="/auth")
+
+    # Register Replit auth if available
+    try:
+        from replit_auth import make_replit_blueprint
+        if os.environ.get('REPL_ID'):
+            app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+    except ImportError:
+        pass
+
     db.create_all()
     logging.info("Database tables created")

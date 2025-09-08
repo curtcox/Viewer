@@ -128,53 +128,9 @@ def make_replit_blueprint():
 
 
 def save_user(user_claims, invitation_code=None):
-    # Check if user already exists
-    existing_user = User.query.filter_by(id=user_claims['sub']).first()
-
-    if existing_user:
-        # Update existing user info
-        existing_user.email = user_claims.get('email')
-        existing_user.first_name = user_claims.get('first_name')
-        existing_user.last_name = user_claims.get('last_name')
-        existing_user.profile_image_url = user_claims.get('profile_image_url')
-        existing_user.updated_at = datetime.now()
-        user = existing_user
-    else:
-        # For new users, require a valid invitation
-        if not invitation_code:
-            raise ValueError("Invitation code required for new users")
-
-        # Validate invitation
-        from models import Invitation
-        invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-
-        if not invitation or not invitation.is_valid():
-            raise ValueError("Invalid or expired invitation code")
-
-        # Create new user with invitation tracking
-        user = User()
-        user.id = user_claims['sub']
-        user.email = user_claims.get('email')
-        user.first_name = user_claims.get('first_name')
-        user.last_name = user_claims.get('last_name')
-        user.profile_image_url = user_claims.get('profile_image_url')
-        user.created_at = datetime.now()
-        user.updated_at = datetime.now()
-        user.invited_by_user_id = invitation.inviter_user_id
-        user.invitation_used_id = invitation.id
-
-        # Mark invitation as used
-        invitation.mark_used(user.id)
-
-        db.session.add(user)
-
-    try:
-        db.session.commit()
-        return user
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error saving user: {e}")
-        raise e
+    """Legacy function - now delegates to auth_providers.save_user_from_claims"""
+    from auth_providers import save_user_from_claims
+    return save_user_from_claims(user_claims, invitation_code)
 
 
 @oauth_authorized.connect

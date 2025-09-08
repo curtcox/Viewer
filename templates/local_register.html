@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus text-primary" style="font-size: 4rem;"></i>
+                        <h3 class="mt-3">Local Development Registration</h3>
+                        <p class="text-muted">Create a customized local development account</p>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Development Mode:</strong> This creates a local development account with full access.
+                    </div>
+
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email (Optional)</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   placeholder="your.email@example.com">
+                            <div class="form-text">Leave blank for auto-generated email</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="first_name" class="form-label">First Name (Optional)</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   placeholder="Your first name">
+                            <div class="form-text">Leave blank for "Local"</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="last_name" class="form-label">Last Name (Optional)</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   placeholder="Your last name">
+                            <div class="form-text">Leave blank for "User"</div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Create Local Account
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="text-center">
+                        <p class="text-muted mb-2">Just want to get started quickly?</p>
+                        <a href="{{ url_for('local_auth.login') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-sign-in-alt me-2"></i>Quick Login
+                        </a>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('index') }}" class="text-muted text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

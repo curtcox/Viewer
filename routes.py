@@ -4,32 +4,22 @@ from flask_login import current_user
 from app import app, db
 from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
+from auth_providers import require_login, auth_manager, save_user_from_claims
 import secrets
 import hashlib
 import base64
 import os
 from flask import make_response, abort
-# Replit authentication (optional - only register if REPL_ID is set)
-try:
-    from replit_auth import require_login, make_replit_blueprint
-    if os.environ.get('REPL_ID'):
-        app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
-        REPLIT_AUTH_AVAILABLE = True
-    else:
-        REPLIT_AUTH_AVAILABLE = False
-        # Create a dummy require_login decorator for local development
-        def require_login(f):
-            return f
-except ImportError:
-    REPLIT_AUTH_AVAILABLE = False
-    # Create a dummy require_login decorator for local development
-    def require_login(f):
-        return f
 
-# Make REPLIT_AUTH_AVAILABLE available to all templates
+# Make authentication info available to all templates
 @app.context_processor
-def inject_replit_auth_available():
-    return dict(REPLIT_AUTH_AVAILABLE=REPLIT_AUTH_AVAILABLE)
+def inject_auth_info():
+    return dict(
+        AUTH_AVAILABLE=auth_manager.is_authentication_available(),
+        AUTH_PROVIDER=auth_manager.get_provider_name(),
+        LOGIN_URL=auth_manager.get_login_url(),
+        LOGOUT_URL=auth_manager.get_logout_url()
+    )
 
 # Make session permanent and track page views
 @app.before_request
@@ -320,14 +310,7 @@ def require_invitation():
                 user_claims = session.pop('pending_user_claims')
 
                 try:
-                    if REPLIT_AUTH_AVAILABLE:
-                        from replit_auth import save_user
-                        user = save_user(user_claims, invitation_code)
-                    else:
-                        # For local development without Replit auth
-                        flash('Replit authentication not available in local development mode.', 'info')
-                        return redirect(url_for('index'))
-
+                    user = save_user_from_claims(user_claims, invitation_code)
                     session.pop('invitation_code', None)
 
                     from flask_login import login_user
@@ -340,11 +323,7 @@ def require_invitation():
             else:
                 # Just store invitation for future auth attempt
                 flash('Invitation validated! Please sign in.', 'success')
-                if REPLIT_AUTH_AVAILABLE:
-                    return redirect(url_for('replit_auth.login'))
-                else:
-                    flash('Replit authentication not available in local development mode.', 'info')
-                    return redirect(url_for('index'))
+                return redirect(auth_manager.get_login_url())
         else:
             flash('Invalid or expired invitation code.', 'danger')
 
@@ -358,11 +337,7 @@ def accept_invitation(invitation_code):
     if invitation and invitation.is_valid():
         session['invitation_code'] = invitation_code
         flash('Invitation accepted! Please sign in to complete your registration.', 'success')
-        if REPLIT_AUTH_AVAILABLE:
-            return redirect(url_for('replit_auth.login'))
-        else:
-            flash('Replit authentication not available in local development mode.', 'info')
-            return redirect(url_for('index'))
+        return redirect(auth_manager.get_login_url())
     else:
         flash('Invalid or expired invitation link.', 'danger')
         return redirect(url_for('require_invitation'))

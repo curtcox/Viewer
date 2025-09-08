@@ -84,19 +84,19 @@
                                     <i class="fas fa-user me-2"></i>Profile
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('replit_auth.logout') }}">
+                                <li><a class="dropdown-item" href="{{ LOGOUT_URL }}">
                                     <i class="fas fa-sign-out-alt me-2"></i>Logout
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
-                        {% if REPLIT_AUTH_AVAILABLE %}
+                        {% if AUTH_AVAILABLE %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('replit_auth.login') }}">Login</a>
+                            <a class="nav-link" href="{{ LOGIN_URL }}">Login</a>
                         </li>
                         {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="alert('Authentication not available in local development mode.'); return false;">Login</a>
+                            <a class="nav-link" href="#" onclick="alert('Authentication not available.'); return false;">Login</a>
                         </li>
                         {% endif %}
                     {% endif %}
