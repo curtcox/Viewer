@@ -17,15 +17,15 @@ def run_tests():
     # Create test suite
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    
+
     # Add test modules
     test_modules = [
         'test_auth_providers',
-        'test_local_auth', 
+        'test_local_auth',
         'test_auth_integration',
         'test_auth_templates'
     ]
-    
+
     for module_name in test_modules:
         try:
             module = __import__(module_name)
@@ -36,36 +36,36 @@ def run_tests():
             print(f"❌ Failed to import {module_name}: {e}")
         except Exception as e:
             print(f"❌ Error loading {module_name}: {e}")
-    
+
     # Run tests
     print(f"\n🧪 Running {suite.countTestCases()} authentication tests...\n")
-    
+
     runner = unittest.TextTestRunner(
         verbosity=2,
         stream=sys.stdout,
         descriptions=True,
         failfast=False
     )
-    
+
     result = runner.run(suite)
-    
+
     # Print summary
     print(f"\n📊 Test Summary:")
     print(f"   Tests run: {result.testsRun}")
     print(f"   Failures: {len(result.failures)}")
     print(f"   Errors: {len(result.errors)}")
     print(f"   Skipped: {len(result.skipped) if hasattr(result, 'skipped') else 0}")
-    
+
     if result.failures:
         print(f"\n❌ Failures:")
         for test, traceback in result.failures:
             print(f"   - {test}: {traceback.split('AssertionError: ')[-1].split('\\n')[0]}")
-    
+
     if result.errors:
         print(f"\n💥 Errors:")
         for test, traceback in result.errors:
             print(f"   - {test}: {traceback.split('\\n')[-2]}")
-    
+
     # Return success/failure
     return len(result.failures) == 0 and len(result.errors) == 0
 
