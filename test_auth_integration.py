@@ -4,11 +4,10 @@ Integration tests for the complete authentication system.
 """
 import os
 import unittest
-from unittest.mock import patch, MagicMock
-from flask import Flask, url_for
+from unittest.mock import patch
 from app import app, db
 from auth_providers import auth_manager
-from models import User, Invitation
+from models import User
 
 
 class TestAuthIntegration(unittest.TestCase):

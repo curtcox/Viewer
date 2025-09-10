@@ -1,5 +1,4 @@
-import secrets
-from datetime import datetime, timedelta
+from datetime import datetime
 from app import db
 from flask_login import UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin

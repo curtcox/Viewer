@@ -5,7 +5,6 @@ Test runner for all authentication system tests.
 import os
 import sys
 import unittest
-from io import StringIO
 
 # Set up environment for testing
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -50,19 +49,19 @@ def run_tests():
     result = runner.run(suite)
 
     # Print summary
-    print(f"\n📊 Test Summary:")
+    print("\n📊 Test Summary:")
     print(f"   Tests run: {result.testsRun}")
     print(f"   Failures: {len(result.failures)}")
     print(f"   Errors: {len(result.errors)}")
     print(f"   Skipped: {len(result.skipped) if hasattr(result, 'skipped') else 0}")
 
     if result.failures:
-        print(f"\n❌ Failures:")
+        print("\n❌ Failures:")
         for test, traceback in result.failures:
             print(f"   - {test}: {traceback.split('AssertionError: ')[-1].split('\\n')[0]}")
 
     if result.errors:
-        print(f"\n💥 Errors:")
+        print("\n💥 Errors:")
         for test, traceback in result.errors:
             print(f"   - {test}: {traceback.split('\\n')[-2]}")
 

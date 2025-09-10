@@ -2,12 +2,11 @@
 """
 Unit tests for the local authentication routes.
 """
-import os
 import unittest
 from unittest.mock import patch, MagicMock
-from flask import Flask, url_for
+from flask import Flask
 from flask_login import LoginManager
-from app import app, db
+from app import db
 from local_auth import local_auth_bp
 from models import User
 

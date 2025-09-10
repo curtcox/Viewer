@@ -2,13 +2,12 @@ from datetime import datetime, timedelta
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
 import secrets
 import hashlib
 import base64
-import os
 from flask import make_response, abort
 
 # Make authentication info available to all templates
@@ -46,7 +45,7 @@ def track_page_view(response):
                     )
                     db.session.add(page_view)
                     db.session.commit()
-    except Exception as e:
+    except Exception:
         # Don't let tracking errors break the request
         db.session.rollback()
 

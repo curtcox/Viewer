@@ -33,7 +33,6 @@ with app.app_context():
     import models  # noqa: F401
     import routes  # noqa: F401 - Import routes to register them
     import local_auth  # noqa: F401 - Import local auth routes
-    from auth_providers import auth_manager
 
     # Register blueprints
     from local_auth import local_auth_bp

@@ -6,10 +6,10 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from app import app, db
+from app import db
 from auth_providers import (
     AuthProvider, ReplitAuthProvider, LocalAuthProvider, AuthManager,
-    auth_manager, create_local_user, save_user_from_claims, require_login
+    create_local_user, save_user_from_claims, require_login
 )
 from models import User, Invitation
 

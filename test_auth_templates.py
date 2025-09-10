@@ -5,7 +5,6 @@ Unit tests for authentication template integration.
 import os
 import unittest
 from unittest.mock import patch
-from flask import Flask
 from app import app, db
 
 

@@ -3,7 +3,7 @@ Local development authentication routes.
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user
-from auth_providers import create_local_user, auth_manager
+from auth_providers import create_local_user
 
 # Create blueprint for local auth routes
 local_auth_bp = Blueprint('local_auth', __name__)

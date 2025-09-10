@@ -6,8 +6,8 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional, Dict, Any
-from flask import session, redirect, url_for, request, flash, render_template
-from flask_login import login_user, logout_user, current_user
+from flask import session, redirect, url_for, request, flash
+from flask_login import current_user
 from app import db
 from models import User, Invitation
 
