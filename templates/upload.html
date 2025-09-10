@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Upload File{% endblock %}
+{% block title %}Upload Content{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -9,36 +9,116 @@
             <div class="card">
                 <div class="card-header">
                     <h4 class="card-title mb-0">
-                        <i class="fas fa-upload me-2"></i>Upload File
+                        <i class="fas fa-upload me-2"></i>Upload Content
                     </h4>
                 </div>
                 <div class="card-body">
                     <p class="card-text text-muted mb-4">
-                        Upload a file to store it in the database with an IPFS CID as the lookup key.
-                        The file will be accessible at a unique path based on its content hash.
+                        Upload a file or paste text content to store it in the database with an IPFS CID as the lookup key.
+                        The content will be accessible at a unique path based on its content hash.
                     </p>
-                    
-                    <form method="POST" enctype="multipart/form-data">
+
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
                         {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
-                            {{ form.file.label(class="form-label") }}
-                            {{ form.file(class="form-control") }}
-                            {% if form.file.errors %}
+
+                        <!-- Upload Method Selection -->
+                        <div class="mb-4">
+                            {{ form.upload_type.label(class="form-label") }}
+                            <div class="btn-group w-100" role="group" aria-label="Upload method">
+                                {% for value, label in form.upload_type.choices %}
+                                    <input type="radio" class="btn-check" name="{{ form.upload_type.name }}"
+                                           id="{{ form.upload_type.name }}_{{ value }}" value="{{ value }}"
+                                           {% if form.upload_type.data == value or (not form.upload_type.data and value == 'file') %}checked{% endif %}
+                                           onchange="toggleUploadMethod()">
+                                    <label class="btn btn-outline-primary" for="{{ form.upload_type.name }}_{{ value }}">
+                                        <i class="fas fa-{% if value == 'file' %}file-upload{% else %}edit{% endif %} me-2"></i>{{ label }}
+                                    </label>
+                                {% endfor %}
+                            </div>
+                            {% if form.upload_type.errors %}
                                 <div class="text-danger mt-1">
-                                    {% for error in form.file.errors %}
+                                    {% for error in form.upload_type.errors %}
                                         <small>{{ error }}</small>
                                     {% endfor %}
                                 </div>
                             {% endif %}
-                            <small class="form-text text-muted">
-                                Select any file to upload. A unique IPFS CID will be generated based on the file content.
-                            </small>
                         </div>
-                        
+
+                        <!-- File Upload Section -->
+                        <div id="fileUploadSection" class="upload-section">
+                            <div class="mb-3">
+                                {{ form.file.label(class="form-label") }}
+                                {{ form.file(class="form-control") }}
+                                {% if form.file.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.file.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Select any file to upload. A unique IPFS CID will be generated based on the file content.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Text Input Section -->
+                        <div id="textUploadSection" class="upload-section" style="display: none;">
+                            <div class="mb-3">
+                                {{ form.filename.label(class="form-label") }}
+                                {{ form.filename(class="form-control", oninput="updateContentType()") }}
+                                {% if form.filename.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.filename.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Enter a filename for your text content (e.g., document.txt, notes.md).
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.text_content.label(class="form-label") }}
+                                {{ form.text_content(class="form-control", oninput="updateContentType()") }}
+                                {% if form.text_content.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.text_content.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Paste or type your text content here. A unique IPFS CID will be generated based on the content.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.content_type.label(class="form-label") }}
+                                <div class="input-group">
+                                    {{ form.content_type(class="form-control", id="contentTypeField") }}
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetContentType()" title="Reset to auto-detected">
+                                        <i class="fas fa-refresh"></i>
+                                    </button>
+                                </div>
+                                {% if form.content_type.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.content_type.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    <span id="contentTypeStatus">Auto-detected based on filename and content</span>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Common Fields -->
                         <div class="mb-3">
                             {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control", placeholder="Enter a custom title for this file") }}
+                            {{ form.title(class="form-control", placeholder="Enter a custom title for this content") }}
                             {% if form.title.errors %}
                                 <div class="text-danger mt-1">
                                     {% for error in form.title.errors %}
@@ -47,7 +127,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="mb-4">
                             {{ form.description.label(class="form-label") }}
                             {{ form.description(class="form-control", rows="3", placeholder="Enter an optional description") }}
@@ -59,7 +139,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="d-flex gap-2">
                             {{ form.submit(class="btn btn-success") }}
                             <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancel</a>
@@ -69,11 +149,182 @@
                 <div class="card-footer">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Files are stored securely and assigned a unique IPFS-compatible CID for easy retrieval.
+                        Content is stored securely and assigned a unique IPFS-compatible CID for easy retrieval.
                     </small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Content type mappings based on file extensions
+const contentTypeMap = {
+    // Text formats
+    'txt': 'text/plain',
+    'md': 'text/markdown',
+    'markdown': 'text/markdown',
+    'html': 'text/html',
+    'htm': 'text/html',
+    'css': 'text/css',
+    'js': 'application/javascript',
+    'json': 'application/json',
+    'xml': 'application/xml',
+    'csv': 'text/csv',
+    'tsv': 'text/tab-separated-values',
+    'rtf': 'application/rtf',
+
+    // Programming languages
+    'py': 'text/x-python',
+    'java': 'text/x-java-source',
+    'c': 'text/x-c',
+    'cpp': 'text/x-c++',
+    'h': 'text/x-c',
+    'hpp': 'text/x-c++',
+    'php': 'text/x-php',
+    'rb': 'text/x-ruby',
+    'go': 'text/x-go',
+    'rs': 'text/x-rust',
+    'sh': 'text/x-shellscript',
+    'bash': 'text/x-shellscript',
+    'sql': 'text/x-sql',
+    'r': 'text/x-r',
+    'scala': 'text/x-scala',
+    'swift': 'text/x-swift',
+    'kt': 'text/x-kotlin',
+
+    // Config files
+    'yaml': 'text/yaml',
+    'yml': 'text/yaml',
+    'toml': 'text/x-toml',
+    'ini': 'text/plain',
+    'conf': 'text/plain',
+    'cfg': 'text/plain',
+
+    // Documentation
+    'tex': 'text/x-tex',
+    'latex': 'text/x-tex',
+    'org': 'text/org',
+    'rst': 'text/x-rst',
+    'asciidoc': 'text/asciidoc',
+    'adoc': 'text/asciidoc'
+};
+
+let userModifiedContentType = false;
+
+function detectContentTypeFromFilename(filename) {
+    if (!filename) return 'text/plain';
+
+    const extension = filename.split('.').pop().toLowerCase();
+    return contentTypeMap[extension] || 'text/plain';
+}
+
+function detectContentTypeFromContent(content) {
+    if (!content || content.trim() === '') return 'text/plain';
+
+    const trimmed = content.trim();
+
+    // Check for common patterns
+    if (trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html')) {
+        return 'text/html';
+    }
+    if (trimmed.startsWith('<?xml')) {
+        return 'application/xml';
+    }
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+            JSON.parse(trimmed);
+            return 'application/json';
+        } catch (e) {
+            // Not valid JSON
+        }
+    }
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+            JSON.parse(trimmed);
+            return 'application/json';
+        } catch (e) {
+            // Not valid JSON
+        }
+    }
+    if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('### ')) {
+        return 'text/markdown';
+    }
+    if (trimmed.includes('SELECT ') || trimmed.includes('INSERT ') || trimmed.includes('UPDATE ') || trimmed.includes('DELETE ')) {
+        return 'text/x-sql';
+    }
+
+    return 'text/plain';
+}
+
+function updateContentType() {
+    if (userModifiedContentType) return; // Don't override user changes
+
+    const filenameField = document.querySelector('input[name="filename"]');
+    const textContentField = document.querySelector('textarea[name="text_content"]');
+    const contentTypeField = document.getElementById('contentTypeField');
+    const statusSpan = document.getElementById('contentTypeStatus');
+
+    if (!filenameField || !textContentField || !contentTypeField) return;
+
+    const filename = filenameField.value;
+    const content = textContentField.value;
+
+    // Detect from filename first, then from content
+    let detectedType = detectContentTypeFromFilename(filename);
+    if (detectedType === 'text/plain' && content) {
+        const contentBasedType = detectContentTypeFromContent(content);
+        if (contentBasedType !== 'text/plain') {
+            detectedType = contentBasedType;
+        }
+    }
+
+    contentTypeField.value = detectedType;
+
+    // Update status message
+    if (filename && content) {
+        statusSpan.textContent = `Auto-detected from filename and content: ${detectedType}`;
+    } else if (filename) {
+        statusSpan.textContent = `Auto-detected from filename: ${detectedType}`;
+    } else if (content) {
+        statusSpan.textContent = `Auto-detected from content: ${detectedType}`;
+    } else {
+        statusSpan.textContent = 'Auto-detected based on filename and content';
+    }
+}
+
+function resetContentType() {
+    userModifiedContentType = false;
+    updateContentType();
+}
+
+function toggleUploadMethod() {
+    const fileRadio = document.getElementById('upload_type_file');
+    const textRadio = document.getElementById('upload_type_text');
+    const fileSection = document.getElementById('fileUploadSection');
+    const textSection = document.getElementById('textUploadSection');
+
+    if (fileRadio.checked) {
+        fileSection.style.display = 'block';
+        textSection.style.display = 'none';
+    } else if (textRadio.checked) {
+        fileSection.style.display = 'none';
+        textSection.style.display = 'block';
+        updateContentType(); // Update content type when switching to text mode
+    }
+}
+
+// Initialize the correct section on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleUploadMethod();
+
+    // Track manual changes to content type field
+    const contentTypeField = document.getElementById('contentTypeField');
+    if (contentTypeField) {
+        contentTypeField.addEventListener('input', function() {
+            userModifiedContentType = true;
+        });
+    }
+});
+</script>
 {% endblock %}

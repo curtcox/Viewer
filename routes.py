@@ -203,10 +203,14 @@ def privacy():
     """Display privacy policy"""
     return render_template('privacy.html')
 
-def generate_cid(file_data):
-    """Generate a simple CID-like hash from file data"""
-    # Create SHA-256 hash of the file content
-    sha256_hash = hashlib.sha256(file_data).digest()
+def generate_cid(file_data, content_type):
+    """Generate a simple CID-like hash from file data and content type"""
+    # Create SHA-256 hash of both the file content and content type
+    hasher = hashlib.sha256()
+    hasher.update(file_data)
+    hasher.update(content_type.encode('utf-8'))
+    sha256_hash = hasher.digest()
+
     # Encode to base64 and create a CID-like string
     encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
     # Add CID prefix to make it look like an IPFS CID
@@ -215,25 +219,40 @@ def generate_cid(file_data):
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
-    """File upload page with IPFS CID storage"""
+    """File upload page with IPFS CID storage - supports both file upload and text input"""
     form = FileUploadForm()
 
     if form.validate_on_submit():
-        uploaded_file = form.file.data
-
-        # Read file content
-        file_content = uploaded_file.read()
+        if form.upload_type.data == 'file':
+            # Handle file upload
+            uploaded_file = form.file.data
+            file_content = uploaded_file.read()
+            filename = uploaded_file.filename
+            # Use user-specified content type if provided, otherwise fall back to file's content type
+            content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else (uploaded_file.content_type or 'application/octet-stream')
+            title = form.title.data or f"Uploaded File: {filename}"
+        else:
+            # Handle text input
+            text_content = form.text_content.data
+            file_content = text_content.encode('utf-8')
+            filename = form.filename.data
+            # Use user-specified content type if provided, otherwise default to text/plain with charset
+            content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else 'text/plain'
+            # Add charset for text content types that don't already specify it
+            if content_type.startswith('text/') and 'charset=' not in content_type:
+                content_type += '; charset=utf-8'
+            title = form.title.data or f"Text File: {filename}"
 
         # Generate IPFS-like CID
-        cid = generate_cid(file_content)
+        cid = generate_cid(file_content, content_type)
 
         # Store actual file bytes and metadata in CID table
         file_record = CID(
             path=f"/{cid}",
-            title=form.title.data or f"Uploaded File: {uploaded_file.filename}",
+            title=title,
             file_data=file_content,  # Store the actual file bytes
-            content_type=uploaded_file.content_type or 'application/octet-stream',
-            filename=uploaded_file.filename,
+            content_type=content_type,
+            filename=filename,
             file_size=len(file_content),
             uploaded_by_user_id=current_user.id  # Track who uploaded the file
         )
@@ -241,15 +260,15 @@ def upload():
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
         if existing:
-            flash(f'File with this content already exists! CID: {cid}', 'warning')
+            flash(f'Content with this hash already exists! CID: {cid}', 'warning')
         else:
             db.session.add(file_record)
             db.session.commit()
-            flash(f'File uploaded successfully! CID: {cid}', 'success')
+            flash(f'Content uploaded successfully! CID: {cid}', 'success')
 
         return render_template('upload_success.html',
                              cid=cid,
-                             filename=uploaded_file.filename,
+                             filename=filename,
                              file_size=len(file_content),
                              title=form.title.data,
                              description=form.description.data)

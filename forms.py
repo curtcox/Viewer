@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired
-from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField
+from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField, RadioField
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 import re
 
@@ -16,10 +16,35 @@ class TermsAcceptanceForm(FlaskForm):
     submit = SubmitField('Accept Terms')
 
 class FileUploadForm(FlaskForm):
-    file = FileField('Choose File', validators=[FileRequired()])
+    upload_type = RadioField('Upload Method', choices=[
+        ('file', 'Upload File'),
+        ('text', 'Paste Text')
+    ], default='file', validators=[DataRequired()])
+    file = FileField('Choose File', validators=[Optional()])
+    text_content = TextAreaField('Text Content', validators=[Optional()], render_kw={'rows': 10, 'placeholder': 'Paste your text content here...'})
+    filename = StringField('Filename (for text uploads)', validators=[Optional()], render_kw={'placeholder': 'e.g., document.txt'})
+    content_type = StringField('Content Type', validators=[Optional()], render_kw={'placeholder': 'Auto-detected based on filename and content'})
     title = StringField('Title (optional)', validators=[Optional()])
     description = TextAreaField('Description (optional)', validators=[Optional()])
-    submit = SubmitField('Upload File')
+    submit = SubmitField('Upload')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators):
+            return False
+
+        if self.upload_type.data == 'file':
+            if not self.file.data:
+                self.file.errors.append('File is required when using file upload.')
+                return False
+        elif self.upload_type.data == 'text':
+            if not self.text_content.data or not self.text_content.data.strip():
+                self.text_content.errors.append('Text content is required when using text upload.')
+                return False
+            if not self.filename.data or not self.filename.data.strip():
+                self.filename.errors.append('Filename is required when using text upload.')
+                return False
+
+        return True
 
 class InvitationForm(FlaskForm):
     email = StringField('Email (optional)', validators=[Optional()])
@@ -36,7 +61,7 @@ class ServerForm(FlaskForm):
     ])
     definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Server')
-    
+
     def validate_name(self, field):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
@@ -49,7 +74,7 @@ class VariableForm(FlaskForm):
     ])
     definition = TextAreaField('Variable Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Variable')
-    
+
     def validate_name(self, field):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
@@ -62,7 +87,7 @@ class SecretForm(FlaskForm):
     ])
     definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Secret')
-    
+
     def validate_name(self, field):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
