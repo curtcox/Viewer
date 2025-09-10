@@ -210,7 +210,7 @@ def require_login(f):
                         flash('Authentication not available in local development mode.', 'info')
                         return redirect(url_for('index'))
                 replit.token_updater(token)
-        except:
+        except (AttributeError, KeyError, TypeError) as e:
             # If token doesn't exist or is invalid, redirect to login
             session["next_url"] = get_next_navigation_url(request)
             if os.environ.get('REPL_ID'):
