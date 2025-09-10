@@ -4,11 +4,9 @@ Comprehensive unit tests for routes.py
 """
 import os
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch
 from datetime import datetime, timedelta
 from io import BytesIO
-import hashlib
-import base64
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
