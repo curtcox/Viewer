@@ -102,7 +102,7 @@ class TestLocalAuthRoutes(unittest.TestCase):
                 mock_user = MagicMock()
                 mock_create_user.return_value = mock_user
 
-                with patch('local_auth.login_user') as mock_login:
+                with patch('local_auth.login_user'):
                     response = client.post('/auth/login')
 
                     self.assertEqual(response.status_code, 302)
@@ -158,7 +158,7 @@ class TestLocalAuthRoutes(unittest.TestCase):
                 mock_user.first_name = "Local"
                 mock_create_user.return_value = mock_user
 
-                with patch('local_auth.login_user') as mock_login:
+                with patch('local_auth.login_user'):
                     response = client.post('/auth/register', data={
                         'email': '',
                         'first_name': '',
@@ -182,7 +182,7 @@ class TestLocalAuthRoutes(unittest.TestCase):
                 mock_user = MagicMock()
                 mock_create_user.return_value = mock_user
 
-                with patch('local_auth.login_user') as mock_login:
+                with patch('local_auth.login_user'):
                     response = client.post('/auth/register', data={
                         'email': 'test@example.com',
                         'first_name': 'Test',

@@ -433,7 +433,7 @@ class TestInvitationRoutes(BaseTestCase):
         db.session.add(invitation)
         db.session.commit()
         
-        response = self.app.post('/require-invitation', data={
+        self.app.post('/require-invitation', data={
             'invitation_code': 'valid_code',
             'submit': 'Verify Invitation'
         }, follow_redirects=False)
@@ -778,10 +778,10 @@ class TestPageViewTracking(BaseTestCase):
         mock_current_user.id = self.test_user.id
         
         # Make request that should be tracked
-        response = self.app.get('/profile')
+        self.app.get('/profile')
         
         # Check if page view was recorded
-        page_view = PageView.query.filter_by(user_id=self.test_user.id, path='/profile').first()
+        PageView.query.filter_by(user_id=self.test_user.id, path='/profile').first()
         # Note: This might not work in test environment due to mocking complexity
         # but the test structure is correct
     
@@ -793,7 +793,7 @@ class TestPageViewTracking(BaseTestCase):
         static_paths = ['/static/css/style.css', '/favicon.ico', '/robots.txt']
         
         for path in static_paths:
-            response = self.app.get(path)
+            self.app.get(path)
             # Even if 404, should not create page view
             page_view = PageView.query.filter_by(path=path).first()
             self.assertIsNone(page_view)
