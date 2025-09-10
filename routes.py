@@ -5,7 +5,7 @@ from app import app, db
 from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
-import secrets
+from secrets import token_urlsafe
 import hashlib
 import base64
 from flask import make_response, abort
@@ -271,7 +271,7 @@ def create_invitation():
 
     if form.validate_on_submit():
         # Generate unique invitation code
-        invitation_code = secrets.token_urlsafe(16)
+        invitation_code = token_urlsafe(16)
 
         invitation = Invitation(
             inviter_user_id=current_user.id,
@@ -305,7 +305,7 @@ def require_invitation():
 
             # If we have pending auth, complete it
             if 'pending_token' in session and 'pending_user_claims' in session:
-                token = session.pop('pending_token')
+                _ = session.pop('pending_token')
                 user_claims = session.pop('pending_user_claims')
 
                 try:
