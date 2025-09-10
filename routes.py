@@ -665,11 +665,35 @@ def settings():
                          variable_count=variable_count,
                          secret_count=secret_count)
 
+
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
-    """Custom 404 handler that checks CID table for content"""
+    """Custom 404 handler that checks CID table and server names for content"""
     path = request.path
+
+    # Define existing routes that should take precedence over server names
+    existing_routes = {
+        '/', '/dashboard', '/profile', '/subscribe', '/accept-terms', '/content',
+        '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
+        '/require-invitation', '/uploads', '/history', '/servers', '/variables',
+        '/secrets', '/settings'
+    }
+
+    # Check if this is a single-segment path that could be a server name
+    # and it's not an existing route
+    if path.startswith('/') and path.count('/') == 1 and path not in existing_routes:
+        # Extract potential server name (remove leading slash)
+        potential_server_name = path[1:]
+
+        # Check if user is authenticated and if this server name exists for them
+        if current_user.is_authenticated:
+            server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
+            if server:
+                # Serve the server definition content as plain text
+                response = make_response(server.definition)
+                response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+                return response
 
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()
