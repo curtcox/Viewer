@@ -9,6 +9,8 @@ from secrets import token_urlsafe
 import hashlib
 import base64
 from flask import make_response, abort
+import traceback
+from text_function_runner import run_text_function
 
 # Make authentication info available to all templates
 @app.context_processor
@@ -489,12 +491,14 @@ def delete_server(server_name):
     flash(f'Server "{server_name}" deleted successfully!', 'success')
     return redirect(url_for('servers'))
 
+def user_variables():
+    return Variable.query.filter_by(user_id=current_user.id).order_by(Variable.name).all()
+
 @app.route('/variables')
 @require_login
 def variables():
     """Display user's variables"""
-    user_variables = Variable.query.filter_by(user_id=current_user.id).order_by(Variable.name).all()
-    return render_template('variables.html', variables=user_variables)
+    return render_template('variables.html', variables=user_variables())
 
 @app.route('/variables/new', methods=['GET', 'POST'])
 @require_login
@@ -570,12 +574,14 @@ def delete_variable(variable_name):
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
     return redirect(url_for('variables'))
 
+def user_secrets():
+    return Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
+
 @app.route('/secrets')
 @require_login
 def secrets():
     """Display user's secrets"""
-    user_secrets = Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
-    return render_template('secrets.html', secrets=user_secrets)
+    return render_template('secrets.html', secrets=user_secrets())
 
 @app.route('/secrets/new', methods=['GET', 'POST'])
 @require_login
@@ -690,10 +696,35 @@ def not_found_error(error):
         if current_user.is_authenticated:
             server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
             if server:
-                # Serve the server definition content as plain text
-                response = make_response(server.definition)
-                response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-                return response
+                code = server.definition
+                args = {
+                    'path': path,
+                    'query_string': request.query_string.decode('utf-8'),
+                    'remote_addr': request.remote_addr,
+                    'user_agent': request.user_agent.string,
+                    'headers': dict(request.headers),
+                    'form_data': dict(request.form) if request.form else {},
+                    'args': dict(request.args) if request.args else {},
+                    'endpoint': request.endpoint,
+                    'blueprint': request.blueprint,
+                    'scheme': request.scheme,
+                    'host': request.host,
+                    'environ': request.environ,
+                    'variables': user_variables(),
+                    'secrets': user_secrets(),
+                }
+                try:
+                    result = run_text_function(code, args)
+                    response = make_response(result.get('output'))
+                    if result.get('content_type'):
+                        response.headers['Content-Type'] = result.get('content_type')
+                    return response
+                except Exception as e:
+                    text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
+                    response = make_response(text)
+                    response.headers['Content-Type'] = 'text/plain'
+                    response.status_code = 500
+                    return response
 
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()

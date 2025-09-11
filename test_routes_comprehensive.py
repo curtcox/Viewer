@@ -68,17 +68,17 @@ class TestUtilityFunctions(BaseTestCase):
     def test_generate_cid(self):
         """Test CID generation function."""
         test_data = b"Hello, World!"
-        cid = generate_cid(test_data)
+        cid = generate_cid(test_data, 'text/plain')
         
         # Should start with 'bafybei'
         self.assertTrue(cid.startswith('bafybei'))
         
         # Should be deterministic
-        cid2 = generate_cid(test_data)
+        cid2 = generate_cid(test_data, 'text/plain')
         self.assertEqual(cid, cid2)
         
         # Different data should produce different CID
-        different_cid = generate_cid(b"Different data")
+        different_cid = generate_cid(b"Different data", 'text/plain')
         self.assertNotEqual(cid, different_cid)
         
         # Should be reasonable length
@@ -346,7 +346,7 @@ class TestFileUploadRoutes(BaseTestCase):
         self.login_user()
         
         test_data = b"Duplicate content"
-        cid = generate_cid(test_data)
+        cid = generate_cid(test_data, 'text/plain')
         
         # Create existing CID record
         existing_cid = CID(
@@ -729,7 +729,7 @@ class TestErrorHandlers(BaseTestCase):
     def test_404_handler_with_etag_caching(self):
         """Test 404 handler ETag caching."""
         test_data = b"Cached content"
-        cid = generate_cid(test_data)
+        cid = generate_cid(test_data, 'text/plain')
         
         cid_content = CID(
             path=f"/{cid}",
