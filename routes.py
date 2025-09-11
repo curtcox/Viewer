@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import render_template, flash, redirect, url_for, request, session
 from flask_login import current_user
 from app import app, db
@@ -109,7 +109,7 @@ def subscribe():
         payment.amount = amount
         payment.plan_type = plan
         if plan == 'annual':
-            payment.expires_at = datetime.utcnow() + timedelta(days=365)
+            payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
             current_user.is_paid = True
             current_user.payment_expires_at = payment.expires_at
         else:
@@ -117,7 +117,7 @@ def subscribe():
             current_user.is_paid = False
             current_user.payment_expires_at = None
 
-        payment.transaction_id = f"mock_txn_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        payment.transaction_id = f"mock_txn_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
         db.session.add(payment)
         db.session.commit()
@@ -471,7 +471,7 @@ def edit_server(server_name):
 
         server.name = form.name.data
         server.definition = form.definition.data
-        server.updated_at = datetime.utcnow()
+        server.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         flash(f'Server "{server.name}" updated successfully!', 'success')
         return redirect(url_for('view_server', server_name=server.name))
@@ -554,7 +554,7 @@ def edit_variable(variable_name):
 
         variable.name = form.name.data
         variable.definition = form.definition.data
-        variable.updated_at = datetime.utcnow()
+        variable.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         flash(f'Variable "{variable.name}" updated successfully!', 'success')
         return redirect(url_for('view_variable', variable_name=variable.name))
@@ -637,7 +637,7 @@ def edit_secret(secret_name):
 
         secret.name = form.name.data
         secret.definition = form.definition.data
-        secret.updated_at = datetime.utcnow()
+        secret.updated_at = datetime.now(timezone.utc)
         db.session.commit()
         flash(f'Secret "{secret.name}" updated successfully!', 'success')
         return redirect(url_for('view_secret', secret_name=secret.name))

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 from flask_login import UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
@@ -33,7 +33,7 @@ class User(UserMixin, db.Model):
     def has_access(self):
         """Check if user has full access (logged in, paid, terms accepted)"""
         return self.is_paid and self.current_terms_accepted and (
-            self.payment_expires_at is None or self.payment_expires_at > datetime.utcnow()
+            self.payment_expires_at is None or self.payment_expires_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
         )
     
     @property
@@ -63,7 +63,7 @@ class Payment(db.Model):
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     plan_type = db.Column(db.String(50), nullable=False)  # 'free' or 'annual'
-    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     expires_at = db.Column(db.DateTime)
     payment_method = db.Column(db.String(50), default='Mock Payment')
     transaction_id = db.Column(db.String(100))
@@ -76,7 +76,7 @@ class TermsAcceptance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     terms_version = db.Column(db.String(10), nullable=False)
-    accepted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    accepted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     ip_address = db.Column(db.String(45))  # Support IPv6
     
     def __repr__(self):
@@ -87,7 +87,7 @@ class Invitation(db.Model):
     inviter_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     invitation_code = db.Column(db.String(32), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), nullable=True)  # Optional: specific email invite
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     used_at = db.Column(db.DateTime, nullable=True)
     used_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
     status = db.Column(db.String(20), default='pending')  # pending, used, expired
@@ -100,14 +100,14 @@ class Invitation(db.Model):
         """Check if invitation is still valid for use"""
         if self.status != 'pending':
             return False
-        if self.expires_at and self.expires_at < datetime.utcnow():
+        if self.expires_at and self.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             return False
         return True
     
     def mark_used(self, user_id):
         """Mark invitation as used by a specific user"""
         self.status = 'used'
-        self.used_at = datetime.utcnow()
+        self.used_at = datetime.now(timezone.utc)
         self.used_by_user_id = user_id
     
     def __repr__(self):
@@ -123,8 +123,8 @@ class CID(db.Model):
     filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
     uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     uploaded_by = db.relationship('User', backref='uploads')
@@ -139,7 +139,7 @@ class PageView(db.Model):
     method = db.Column(db.String(10), default='GET')
     user_agent = db.Column(db.String(500), nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)  # Support IPv6
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     
     # Relationships
     user = db.relationship('User', backref='page_views')
@@ -152,8 +152,8 @@ class Server(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = db.relationship('User', backref='servers')
@@ -169,8 +169,8 @@ class Variable(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = db.relationship('User', backref='variables')
@@ -186,8 +186,8 @@ class Secret(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = db.relationship('User', backref='secrets')

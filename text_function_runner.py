@@ -1,7 +1,7 @@
 import builtins
 import hashlib
 import textwrap
-from typing import Dict, Iterable, Optional
+from typing import Dict
 
 def run_text_function(
     body_text: str,

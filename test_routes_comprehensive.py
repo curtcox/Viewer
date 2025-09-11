@@ -5,7 +5,7 @@ Comprehensive unit tests for routes.py
 import os
 import unittest
 from unittest.mock import patch
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 # Set up test environment before importing app
@@ -41,7 +41,7 @@ class BaseTestCase(unittest.TestCase):
             last_name='User',
             is_paid=True,
             current_terms_accepted=True,
-            payment_expires_at=datetime.utcnow() + timedelta(days=365)
+            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=365)
         )
         db.session.add(self.test_user)
         db.session.commit()

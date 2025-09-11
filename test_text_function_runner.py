@@ -1,5 +1,4 @@
 import pytest
-import math
 from text_function_runner import run_text_function
 
 
@@ -61,7 +60,6 @@ return z + w
 
         # Since we can't pass extra_globals anymore, we need to modify the test
         # to use builtins or skip this test case
-        import math
         body = "import math; return math.sqrt(x) + 3.14159"  # Use hardcoded pi
         result = run_text_function(body, argmap)
         assert result == pytest.approx(7.14159, rel=1e-4)  # sqrt(16) + 3.14159 = 4 + 3.14159

@@ -24,7 +24,7 @@ login_manager = LoginManager(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(user_id)
+    return db.session.get(User, user_id)
 
 
 class UserSessionStorage(BaseStorage):

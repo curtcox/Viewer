@@ -29,7 +29,7 @@ class TestLocalAuthRoutes(unittest.TestCase):
 
         @login_manager.user_loader
         def load_user(user_id):
-            return User.query.get(user_id)
+            return db.session.get(User, user_id)
 
         db.init_app(self.app)
 
@@ -211,7 +211,7 @@ class TestLocalAuthIntegration(unittest.TestCase):
 
         @login_manager.user_loader
         def load_user(user_id):
-            return User.query.get(user_id)
+            return db.session.get(User, user_id)
 
         db.init_app(self.app)
 
