@@ -254,20 +254,16 @@ class TestModels(unittest.TestCase):
         # Test CID model datetime defaults
         cid = CID(
             path='/test/path',
-            content='test content'
+            file_data=b'test content'
         )
         db.session.add(cid)
         db.session.commit()
 
         self.assertIsNotNone(cid.created_at)
-        self.assertIsNotNone(cid.updated_at)
         self.assertIsInstance(cid.created_at, datetime)
-        self.assertIsInstance(cid.updated_at, datetime)
-        # Verify the datetimes are recent (within last minute)
+        # Verify the datetime is recent (within last minute)
         time_diff_created = datetime.now(timezone.utc).replace(tzinfo=None) - cid.created_at
-        time_diff_updated = datetime.now(timezone.utc).replace(tzinfo=None) - cid.updated_at
         self.assertLess(time_diff_created.total_seconds(), 60)
-        self.assertLess(time_diff_updated.total_seconds(), 60)
 
         # Test PageView model datetime defaults
         page_view = PageView(
@@ -343,28 +339,9 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_onupdate_functionality(self):
         """Test that onupdate datetime fields work correctly."""
-        from models import CID, Server
+        from models import Server
 
-        # Test CID model onupdate
-        cid = CID(
-            path='/test/update/path',
-            content='original content'
-        )
-        db.session.add(cid)
-        db.session.commit()
-
-        original_updated_at = cid.updated_at
-
-        # Update the cid
-        cid.content = 'updated content'
-        db.session.commit()
-
-        # Verify updated_at changed
-        self.assertNotEqual(cid.updated_at, original_updated_at)
-        self.assertIsInstance(cid.updated_at, datetime)
-        # Verify the datetime is recent (within last minute)
-        time_diff = datetime.now(timezone.utc).replace(tzinfo=None) - cid.updated_at
-        self.assertLess(time_diff.total_seconds(), 60)
+        # Note: CID model no longer has updated_at field, so we only test Server model
 
         # Test Server model onupdate
         server = Server(

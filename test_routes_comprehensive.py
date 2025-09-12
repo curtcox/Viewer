@@ -68,17 +68,17 @@ class TestUtilityFunctions(BaseTestCase):
     def test_generate_cid(self):
         """Test CID generation function."""
         test_data = b"Hello, World!"
-        cid = generate_cid(test_data, 'text/plain')
+        cid = generate_cid(test_data)
         
         # Should start with 'bafybei'
         self.assertTrue(cid.startswith('bafybei'))
         
         # Should be deterministic
-        cid2 = generate_cid(test_data, 'text/plain')
+        cid2 = generate_cid(test_data)
         self.assertEqual(cid, cid2)
         
         # Different data should produce different CID
-        different_cid = generate_cid(b"Different data", 'text/plain')
+        different_cid = generate_cid(b"Different data")
         self.assertNotEqual(cid, different_cid)
         
         # Should be reasonable length
@@ -339,21 +339,18 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
         self.assertEqual(cid_record.filename, 'test.txt')
-        self.assertEqual(cid_record.title, 'Test File')
     
     def test_upload_duplicate_file(self):
         """Test uploading duplicate file."""
         self.login_user()
         
         test_data = b"Duplicate content"
-        cid = generate_cid(test_data, 'text/plain')
+        cid = generate_cid(test_data)
         
         # Create existing CID record
         existing_cid = CID(
             path=f"/{cid}",
-            title="Existing File",
             file_data=test_data,
-            content_type='text/plain',
             filename='existing.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
@@ -382,9 +379,7 @@ class TestFileUploadRoutes(BaseTestCase):
         # Create test upload
         test_cid = CID(
             path="/test_cid",
-            title="Test Upload",
             file_data=b"test data",
-            content_type='text/plain',
             filename='test.txt',
             file_size=9,
             uploaded_by_user_id=self.test_user.id
@@ -711,9 +706,7 @@ class TestErrorHandlers(BaseTestCase):
         test_data = b"Test file content for CID"
         cid_content = CID(
             path="/test-cid-path",
-            title="Test CID Content",
             file_data=test_data,
-            content_type='text/plain',
             filename='test.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
@@ -724,18 +717,16 @@ class TestErrorHandlers(BaseTestCase):
         response = self.app.get('/test-cid-path')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, test_data)
-        self.assertEqual(response.content_type, 'text/plain')
+        self.assertEqual(response.content_type, 'application/octet-stream')
     
     def test_404_handler_with_etag_caching(self):
         """Test 404 handler ETag caching."""
         test_data = b"Cached content"
-        cid = generate_cid(test_data, 'text/plain')
+        cid = generate_cid(test_data)
         
         cid_content = CID(
             path=f"/{cid}",
-            title="Cached Content",
             file_data=test_data,
-            content_type='text/plain',
             filename='cached.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
@@ -757,8 +748,8 @@ class TestErrorHandlers(BaseTestCase):
         """Test 404 handler with legacy HTML content."""
         cid_content = CID(
             path="/legacy-content",
-            title="Legacy HTML Content",
-            content="<h1>Legacy HTML</h1>",  # Using content field instead of file_data
+            file_data=b"<h1>Legacy HTML</h1>",
+            filename="legacy.html",
             uploaded_by_user_id=self.test_user.id
         )
         db.session.add(cid_content)

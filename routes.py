@@ -195,12 +195,11 @@ def privacy():
 # FILE UPLOAD AND CID HELPERS
 # ============================================================================
 
-def generate_cid(file_data, content_type):
-    """Generate a simple CID-like hash from file data and content type"""
-    # Create SHA-256 hash of both the file content and content type
+def generate_cid(file_data):
+    """Generate a simple CID-like hash from file data only"""
+    # Create SHA-256 hash of the file content only
     hasher = hashlib.sha256()
     hasher.update(file_data)
-    hasher.update(content_type.encode('utf-8'))
     sha256_hash = hasher.digest()
 
     # Encode to base64 and create a CID-like string
@@ -209,35 +208,24 @@ def generate_cid(file_data, content_type):
     return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
 
 def process_file_upload(form):
-    """Process file upload from form and return file content, filename, content_type, title"""
+    """Process file upload from form and return file content and filename"""
     uploaded_file = form.file.data
     file_content = uploaded_file.read()
     filename = uploaded_file.filename
-    # Use user-specified content type if provided, otherwise fall back to file's content type
-    content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else (uploaded_file.content_type or 'application/octet-stream')
-    title = form.title.data or f"Uploaded File: {filename}"
-    return file_content, filename, content_type, title
+    return file_content, filename
 
 def process_text_upload(form):
-    """Process text upload from form and return file content, filename, content_type, title"""
+    """Process text upload from form and return file content and filename"""
     text_content = form.text_content.data
     file_content = text_content.encode('utf-8')
     filename = form.filename.data
-    # Use user-specified content type if provided, otherwise default to text/plain with charset
-    content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else 'text/plain'
-    # Add charset for text content types that don't already specify it
-    if content_type.startswith('text/') and 'charset=' not in content_type:
-        content_type += '; charset=utf-8'
-    title = form.title.data or f"Text File: {filename}"
-    return file_content, filename, content_type, title
+    return file_content, filename
 
-def create_cid_record(cid, title, file_content, content_type, filename, user_id):
+def create_cid_record(cid, file_content, filename, user_id):
     """Create and return a CID record for the database"""
     return CID(
         path=f"/{cid}",
-        title=title,
         file_data=file_content,  # Store the actual file bytes
-        content_type=content_type,
         filename=filename,
         file_size=len(file_content),
         uploaded_by_user_id=user_id  # Track who uploaded the file
@@ -251,15 +239,15 @@ def upload():
 
     if form.validate_on_submit():
         if form.upload_type.data == 'file':
-            file_content, filename, content_type, title = process_file_upload(form)
+            file_content, filename = process_file_upload(form)
         else:
-            file_content, filename, content_type, title = process_text_upload(form)
+            file_content, filename = process_text_upload(form)
 
         # Generate IPFS-like CID
-        cid = generate_cid(file_content, content_type)
+        cid = generate_cid(file_content)
 
         # Store actual file bytes and metadata in CID table
-        file_record = create_cid_record(cid, title, file_content, content_type, filename, current_user.id)
+        file_record = create_cid_record(cid, file_content, filename, current_user.id)
 
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
@@ -273,9 +261,7 @@ def upload():
         return render_template('upload_success.html',
                              cid=cid,
                              filename=filename,
-                             file_size=len(file_content),
-                             title=form.title.data,
-                             description=form.description.data)
+                             file_size=len(file_content))
 
     return render_template('upload.html', form=form)
 
@@ -589,15 +575,14 @@ def execute_server_code(server, server_name):
             output_bytes = output
         
         # Generate CID for the result
-        cid = generate_cid(output_bytes, content_type)
+        cid = generate_cid(output_bytes)
         
         # Store result in CID table
         cid_record = CID(
             path=f"/{cid}",
-            content=output if isinstance(output, str) else None,
-            file_data=output_bytes if not isinstance(output, str) else None,
-            title=f"Server Output: {server_name}",
-            content_type=content_type,
+            file_data=output_bytes,
+            filename=f"{server_name}_output",
+            file_size=len(output_bytes),
             uploaded_by_user_id=current_user.id
         )
         
@@ -620,51 +605,104 @@ def execute_server_code(server, server_name):
 # CID CONTENT SERVING HELPERS
 # ============================================================================
 
+def get_mime_type_from_extension(path):
+    """Determine MIME type from file extension in URL path"""
+    # Extract extension from path
+    if '.' in path:
+        extension = path.split('.')[-1].lower()
+        
+        # Common MIME type mappings
+        mime_types = {
+            'html': 'text/html',
+            'htm': 'text/html',
+            'txt': 'text/plain',
+            'css': 'text/css',
+            'js': 'application/javascript',
+            'json': 'application/json',
+            'xml': 'application/xml',
+            'pdf': 'application/pdf',
+            'zip': 'application/zip',
+            'tar': 'application/x-tar',
+            'gz': 'application/gzip',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'svg': 'image/svg+xml',
+            'webp': 'image/webp',
+            'ico': 'image/x-icon',
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'ogg': 'audio/ogg',
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'md': 'text/markdown',
+            'csv': 'text/csv',
+            'py': 'text/x-python',
+            'java': 'text/x-java-source',
+            'c': 'text/x-c',
+            'cpp': 'text/x-c++',
+            'h': 'text/x-c',
+            'hpp': 'text/x-c++',
+            'sh': 'application/x-sh',
+            'bat': 'application/x-msdos-program',
+            'exe': 'application/x-msdownload',
+            'dmg': 'application/x-apple-diskimage',
+            'deb': 'application/vnd.debian.binary-package',
+            'rpm': 'application/x-rpm'
+        }
+        
+        return mime_types.get(extension, 'application/octet-stream')
+    
+    # No extension, return default
+    return 'application/octet-stream'
+
 def serve_cid_content(cid_content, path):
     """Serve CID content with appropriate headers and caching"""
-    # If this is a file upload (has file_data), serve the raw bytes
-    if cid_content.file_data:
-        # Extract CID from path (remove leading slash)
-        cid = path[1:] if path.startswith('/') else path
+    # Check if file_data is None (corrupted or missing data)
+    if cid_content is None or cid_content.file_data is None:
+        return None  # Return None to indicate content not found, let caller handle 404
+    
+    # Extract CID from path (remove leading slash)
+    cid = path[1:] if path.startswith('/') else path
+    
+    # Determine MIME type from URL extension
+    content_type = get_mime_type_from_extension(path)
 
-        # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
-        etag = f'"{cid}"'
-        if request.headers.get('If-None-Match') == etag:
-            # Client has the file cached, return 304 Not Modified
-            response = make_response('', 304)
-            response.headers['ETag'] = etag
-            return response
+    # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
+    etag = f'"{cid.split(".")[0]}"'  # Use base CID without extension for ETag
+    if request.headers.get('If-None-Match') == etag:
+        # Client has the file cached, return 304 Not Modified
+        response = make_response('', 304)
+        response.headers['ETag'] = etag
+        return response
 
-        # Check If-Modified-Since (though ETag is more reliable for immutable content)
-        if request.headers.get('If-Modified-Since'):
-            # Since content is immutable, we can always return 304 if they have any cached version
-            response = make_response('', 304)
-            response.headers['ETag'] = etag
-            response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-            return response
-
-        # Serve the file with aggressive caching headers
-        response = make_response(cid_content.file_data)
-        response.headers['Content-Type'] = cid_content.content_type
-        response.headers['Content-Length'] = len(cid_content.file_data)
-
-        # Immutable content caching headers
+    # Check If-Modified-Since (though ETag is more reliable for immutable content)
+    if request.headers.get('If-Modified-Since'):
+        # Since content is immutable, we can always return 304 if they have any cached version
+        response = make_response('', 304)
         response.headers['ETag'] = etag
         response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
-        response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
-
-        # Add content disposition header for downloads if it's not a web-displayable type
-        if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
-            response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
-
         return response
 
-    # If this is HTML content (legacy), serve it directly
-    elif cid_content.content:
-        response = make_response(cid_content.content)
-        response.headers['Content-Type'] = cid_content.content_type or 'text/html'
-        return response
+    # Serve the file with aggressive caching headers
+    response = make_response(cid_content.file_data)
+    response.headers['Content-Type'] = content_type
+    response.headers['Content-Length'] = len(cid_content.file_data)
+
+    # Immutable content caching headers
+    response.headers['ETag'] = etag
+    response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
+    response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
+
+    # Add content disposition header for downloads if it's not a web-displayable type
+    if not content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
+        response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
+
+    return response
 
 # ============================================================================
 # CRUD OPERATION HELPERS
@@ -922,7 +960,9 @@ def not_found_error(error):
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()
     if cid_content:
-        return serve_cid_content(cid_content, path)
+        result = serve_cid_content(cid_content, path)
+        if result is not None:
+            return result
 
     # If no content found, show 404 with the path
     return render_template('404.html', path=path), 404

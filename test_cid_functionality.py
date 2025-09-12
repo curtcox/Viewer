@@ -1,0 +1,384 @@
+import unittest
+import hashlib
+import base64
+from unittest.mock import patch, MagicMock
+from app import app, db
+from models import CID, User
+from routes import generate_cid, get_mime_type_from_extension, create_cid_record, serve_cid_content
+from flask import request
+
+
+class TestCIDFunctionality(unittest.TestCase):
+    """Test suite for the new simplified CID functionality"""
+    
+    def setUp(self):
+        """Set up test environment"""
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+        self.app.config['WTF_CSRF_ENABLED'] = False
+        
+        with self.app.app_context():
+            db.create_all()
+    
+    def tearDown(self):
+        """Clean up after tests"""
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+    
+    def _create_test_user(self):
+        """Helper method to create a test user within the current session"""
+        test_user = User(
+            id='test_user_123',
+            email='test@example.com',
+            first_name='Test',
+            last_name='User',
+            is_paid=True,
+            current_terms_accepted=True
+        )
+        db.session.add(test_user)
+        db.session.commit()
+        return test_user
+    
+    def test_generate_cid_only_uses_file_data(self):
+        """Test that CID generation only uses file data, not MIME type"""
+        file_data = b"Hello, World!"
+        
+        # Generate CID
+        cid = generate_cid(file_data)
+        
+        # Verify CID format
+        self.assertTrue(cid.startswith('bafybei'))
+        self.assertEqual(len(cid), 59)  # bafybei + 52 characters
+        
+        # Verify CID is deterministic (same input = same output)
+        cid2 = generate_cid(file_data)
+        self.assertEqual(cid, cid2)
+        
+        # Verify different data produces different CID
+        different_data = b"Hello, Universe!"
+        different_cid = generate_cid(different_data)
+        self.assertNotEqual(cid, different_cid)
+    
+    def test_generate_cid_matches_expected_hash(self):
+        """Test that CID generation produces expected hash"""
+        file_data = b"test content"
+        
+        # Calculate expected hash manually
+        hasher = hashlib.sha256()
+        hasher.update(file_data)
+        sha256_hash = hasher.digest()
+        encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
+        expected_cid = f"bafybei{encoded[:52]}"
+        
+        # Generate CID using function
+        actual_cid = generate_cid(file_data)
+        
+        self.assertEqual(actual_cid, expected_cid)
+    
+    def test_get_mime_type_from_extension(self):
+        """Test MIME type detection from file extensions"""
+        test_cases = [
+            # No extension should return default
+            ('/bafybei123', 'application/octet-stream'),
+            
+            # Common text types
+            ('/bafybei123.txt', 'text/plain'),
+            ('/bafybei123.html', 'text/html'),
+            ('/bafybei123.htm', 'text/html'),
+            ('/bafybei123.css', 'text/css'),
+            ('/bafybei123.js', 'application/javascript'),
+            ('/bafybei123.json', 'application/json'),
+            ('/bafybei123.xml', 'application/xml'),
+            ('/bafybei123.md', 'text/markdown'),
+            ('/bafybei123.csv', 'text/csv'),
+            
+            # Images
+            ('/bafybei123.jpg', 'image/jpeg'),
+            ('/bafybei123.jpeg', 'image/jpeg'),
+            ('/bafybei123.png', 'image/png'),
+            ('/bafybei123.gif', 'image/gif'),
+            ('/bafybei123.svg', 'image/svg+xml'),
+            ('/bafybei123.webp', 'image/webp'),
+            ('/bafybei123.ico', 'image/x-icon'),
+            
+            # Audio/Video
+            ('/bafybei123.mp3', 'audio/mpeg'),
+            ('/bafybei123.wav', 'audio/wav'),
+            ('/bafybei123.mp4', 'video/mp4'),
+            ('/bafybei123.webm', 'video/webm'),
+            
+            # Archives
+            ('/bafybei123.zip', 'application/zip'),
+            ('/bafybei123.tar', 'application/x-tar'),
+            ('/bafybei123.gz', 'application/gzip'),
+            ('/bafybei123.pdf', 'application/pdf'),
+            
+            # Programming languages
+            ('/bafybei123.py', 'text/x-python'),
+            ('/bafybei123.java', 'text/x-java-source'),
+            ('/bafybei123.c', 'text/x-c'),
+            ('/bafybei123.cpp', 'text/x-c++'),
+            ('/bafybei123.h', 'text/x-c'),
+            ('/bafybei123.hpp', 'text/x-c++'),
+            
+            # Case insensitive
+            ('/bafybei123.HTML', 'text/html'),
+            ('/bafybei123.PNG', 'image/png'),
+            ('/bafybei123.PDF', 'application/pdf'),
+            
+            # Unknown extension should return default
+            ('/bafybei123.unknown', 'application/octet-stream'),
+        ]
+        
+        for path, expected_mime in test_cases:
+            with self.subTest(path=path):
+                actual_mime = get_mime_type_from_extension(path)
+                self.assertEqual(actual_mime, expected_mime)
+    
+    def test_create_cid_record_with_all_fields(self):
+        """Test creating CID record with all required fields"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            file_content = b"Test file content for CID record"
+            filename = "test_file.txt"
+            cid = generate_cid(file_content)
+            
+            # Create CID record
+            cid_record = create_cid_record(
+                cid=cid,
+                file_content=file_content,
+                filename=filename,
+                user_id=test_user.id
+            )
+            # Verify record properties
+            self.assertEqual(cid_record.path, f"/{cid}")
+            self.assertEqual(cid_record.file_data, file_content)
+            self.assertEqual(cid_record.filename, filename)
+            self.assertEqual(cid_record.file_size, len(file_content))
+            self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
+            
+            # Verify fields that should NOT exist
+            self.assertFalse(hasattr(cid_record, 'content'))
+            self.assertFalse(hasattr(cid_record, 'title'))
+            self.assertFalse(hasattr(cid_record, 'content_type'))
+            self.assertFalse(hasattr(cid_record, 'updated_at'))
+    
+    @patch('routes.make_response')
+    def test_serve_cid_content_with_extension(self, mock_make_response):
+        """Test serving CID content with file extension for MIME type detection"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                # Create test CID record
+                file_content = b"<html><body>Hello World</body></html>"
+                filename = "test.html"
+                cid = generate_cid(file_content)
+                
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    filename=filename,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+                
+                # Mock response
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+                
+                # Test serving with .html extension
+                path_with_extension = f"/{cid}.html"
+                serve_cid_content(cid_record, path_with_extension)
+                
+                # Verify response was created with correct content
+                mock_make_response.assert_called_once_with(file_content)
+                
+                # Verify correct MIME type was set
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
+                
+                # Verify other headers
+                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(file_content))
+                mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
+    
+    @patch('routes.make_response')
+    def test_serve_cid_content_without_extension(self, mock_make_response):
+        """Test serving CID content without extension (should use application/octet-stream)"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                # Create test CID record
+                file_content = b"Binary data content"
+                filename = "binary_file"
+                cid = generate_cid(file_content)
+                
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    filename=filename,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+                
+                # Mock response
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+                
+                # Test serving without extension
+                path_without_extension = f"/{cid}"
+                serve_cid_content(cid_record, path_without_extension)
+                
+                # Verify response was created with correct content
+                mock_make_response.assert_called_once_with(file_content)
+                
+                # Verify default MIME type was set
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
+    
+    @patch('routes.make_response')
+    def test_serve_cid_content_caching_headers(self, mock_make_response):
+        """Test that proper caching headers are set for CID content"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                # Create test CID record
+                file_content = b"Test content for caching"
+                filename = "test.txt"
+                cid = generate_cid(file_content)
+                
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    filename=filename,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+                
+                # Mock response
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+                
+                # Test serving content
+                serve_cid_content(cid_record, f"/{cid}.txt")
+                
+                # Verify caching headers are set
+                expected_etag = f'"{cid}"'
+                mock_response.headers.__setitem__.assert_any_call('ETag', expected_etag)
+                mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
+                mock_response.headers.__setitem__.assert_any_call('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT')
+    
+    @patch('routes.make_response')
+    def test_serve_cid_content_etag_caching(self, mock_make_response):
+        """Test ETag-based caching returns 304 when content hasn't changed"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context(headers={'If-None-Match': '"test_etag"'}):
+                # Create test CID record
+                file_content = b"Cached content"
+                filename = "cached.txt"
+                cid = generate_cid(file_content)
+                
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    filename=filename,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+                
+                # Mock 304 response
+                mock_304_response = MagicMock()
+                mock_make_response.return_value = mock_304_response
+                
+                # Test serving content with matching ETag (use the actual CID as ETag)
+                expected_etag = f'"{cid}"'
+                with self.app.test_request_context(headers={'If-None-Match': expected_etag}):
+                    result = serve_cid_content(cid_record, f"/{cid}.txt")
+                    
+                    # Verify 304 response was created
+                    mock_make_response.assert_called_once_with('', 304)
+                    mock_304_response.headers.__setitem__.assert_called_with('ETag', expected_etag)
+    
+    def test_cid_model_simplified_fields(self):
+        """Test that CID model only has the required fields"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            # Create a CID record
+            file_content = b"Model test content"
+            filename = "model_test.txt"
+            cid = generate_cid(file_content)
+            
+            cid_record = CID(
+                path=f"/{cid}",
+                file_data=file_content,
+                filename=filename,
+                file_size=len(file_content),
+                uploaded_by_user_id=test_user.id
+            )
+            db.session.add(cid_record)
+            db.session.commit()
+            
+            # Verify required fields exist
+            self.assertIsNotNone(cid_record.id)
+            self.assertEqual(cid_record.path, f"/{cid}")
+            self.assertEqual(cid_record.file_data, file_content)
+            self.assertEqual(cid_record.filename, filename)
+            self.assertEqual(cid_record.file_size, len(file_content))
+            self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
+            self.assertIsNotNone(cid_record.created_at)
+            
+            # Verify removed fields don't exist
+            with self.assertRaises(AttributeError):
+                _ = cid_record.content
+            
+            with self.assertRaises(AttributeError):
+                _ = cid_record.title
+            
+            with self.assertRaises(AttributeError):
+                _ = cid_record.content_type
+            
+            with self.assertRaises(AttributeError):
+                _ = cid_record.updated_at
+    
+    def test_serve_cid_content_with_none_file_data_returns_none(self):
+        """Test that serving CID content with None file_data returns None (fixed behavior)"""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                # Create a CID record with valid file_data first
+                cid_record = CID(
+                    path="/bafybei123",
+                    file_data=b"test content",  # Valid data initially
+                    filename="test.txt",
+                    file_size=12,
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+                
+                # Now simulate corrupted data by setting file_data to None directly
+                # (this simulates what might happen with database corruption)
+                cid_record.file_data = None
+                
+                # This should now return None instead of raising TypeError
+                result = serve_cid_content(cid_record, "/bafybei123.txt")
+                self.assertIsNone(result)
+    
+    def test_serve_cid_content_with_none_cid_record_returns_none(self):
+        """Test that serving None CID record returns None"""
+        with self.app.app_context():
+            # This should return None when cid_content is None
+            result = serve_cid_content(None, "/bafybei123.txt")
+            self.assertIsNone(result)
+
+
+if __name__ == '__main__':
+    unittest.main()

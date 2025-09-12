@@ -116,15 +116,11 @@ class Invitation(db.Model):
 class CID(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    content = db.Column(db.Text, nullable=True)  # For HTML content
-    file_data = db.Column(db.LargeBinary, nullable=True)  # For actual file bytes
-    title = db.Column(db.String(255), nullable=True)
-    content_type = db.Column(db.String(100), default='html')
+    file_data = db.Column(db.LargeBinary, nullable=False)  # For actual file bytes
     filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
     uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     uploaded_by = db.relationship('User', backref='uploads')
