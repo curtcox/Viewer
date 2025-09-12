@@ -410,12 +410,14 @@ def history():
                          unique_paths=unique_paths,
                          popular_paths=popular_paths)
 
+def user_servers():
+    return Server.query.filter_by(user_id=current_user.id).order_by(Server.name).all()
+
 @app.route('/servers')
 @require_login
 def servers():
     """Display user's servers"""
-    user_servers = Server.query.filter_by(user_id=current_user.id).order_by(Server.name).all()
-    return render_template('servers.html', servers=user_servers)
+    return render_template('servers.html', servers=user_servers())
 
 @app.route('/servers/new', methods=['GET', 'POST'])
 @require_login
@@ -712,13 +714,41 @@ def not_found_error(error):
                     'environ': request.environ,
                     'variables': user_variables(),
                     'secrets': user_secrets(),
+                    'servers': user_servers(),
                 }
                 try:
                     result = run_text_function(code, args)
-                    response = make_response(result.get('output'))
-                    if result.get('content_type'):
-                        response.headers['Content-Type'] = result.get('content_type')
-                    return response
+                    # Store the result in the CID table and redirect to the /<cid> URL
+                    output = result.get('output', '')
+                    content_type = result.get('content_type', 'text/html')
+                    
+                    # Convert output to bytes for CID generation
+                    if isinstance(output, str):
+                        output_bytes = output.encode('utf-8')
+                    else:
+                        output_bytes = output
+                    
+                    # Generate CID for the result
+                    cid = generate_cid(output_bytes, content_type)
+                    
+                    # Store result in CID table
+                    cid_record = CID(
+                        path=f"/{cid}",
+                        content=output if isinstance(output, str) else None,
+                        file_data=output_bytes if not isinstance(output, str) else None,
+                        title=f"Server Output: {potential_server_name}",
+                        content_type=content_type,
+                        uploaded_by_user_id=current_user.id
+                    )
+                    
+                    # Check if CID already exists
+                    existing = CID.query.filter_by(path=f"/{cid}").first()
+                    if not existing:
+                        db.session.add(cid_record)
+                        db.session.commit()
+                    
+                    # Redirect to the CID URL
+                    return redirect(f"/{cid}")
                 except Exception as e:
                     text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
                     response = make_response(text)
