@@ -27,26 +27,44 @@ def inject_auth_info():
 def make_session_permanent():
     session.permanent = True
 
+# ============================================================================
+# PAGE VIEW TRACKING HELPERS
+# ============================================================================
+
+def should_track_page_view(response):
+    """Determine if the current request should be tracked"""
+    if not current_user.is_authenticated or response.status_code != 200:
+        return False
+    
+    # Skip tracking for static files, API calls, and certain paths
+    skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
+    if any(request.path.startswith(skip) for skip in skip_paths):
+        return False
+    
+    # Skip tracking AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return False
+    
+    return True
+
+def create_page_view_record():
+    """Create a page view record for the current request"""
+    return PageView(
+        user_id=current_user.id,
+        path=request.path,
+        method=request.method,
+        user_agent=request.headers.get('User-Agent', '')[:500],
+        ip_address=request.remote_addr
+    )
+
 @app.after_request
 def track_page_view(response):
     """Track page views for authenticated users"""
     try:
-        # Only track for authenticated users and successful responses
-        if current_user.is_authenticated and response.status_code == 200:
-            # Skip tracking for static files, API calls, and certain paths
-            skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
-            if not any(request.path.startswith(skip) for skip in skip_paths):
-                # Skip tracking AJAX requests
-                if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    page_view = PageView(
-                        user_id=current_user.id,
-                        path=request.path,
-                        method=request.method,
-                        user_agent=request.headers.get('User-Agent', '')[:500],
-                        ip_address=request.remote_addr
-                    )
-                    db.session.add(page_view)
-                    db.session.commit()
+        if should_track_page_view(response):
+            page_view = create_page_view_record()
+            db.session.add(page_view)
+            db.session.commit()
     except Exception:
         # Don't let tracking errors break the request
         db.session.rollback()
@@ -68,26 +86,36 @@ def dashboard():
         return redirect(url_for('content'))
     return redirect(url_for('profile'))
 
+# ============================================================================
+# PROFILE DATA HELPERS
+# ============================================================================
+
+def get_user_profile_data(user_id):
+    """Gather all profile-related data for a user"""
+    payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.payment_date.desc()).all()
+    terms_history = TermsAcceptance.query.filter_by(user_id=user_id).order_by(TermsAcceptance.accepted_at.desc()).all()
+    
+    # Check if user needs to accept current terms
+    current_terms_accepted = TermsAcceptance.query.filter_by(
+        user_id=user_id,
+        terms_version=CURRENT_TERMS_VERSION
+    ).first()
+    
+    needs_terms_acceptance = current_terms_accepted is None
+    
+    return {
+        'payments': payments,
+        'terms_history': terms_history,
+        'needs_terms_acceptance': needs_terms_acceptance,
+        'current_terms_version': CURRENT_TERMS_VERSION
+    }
+
 @app.route('/profile')
 @require_login
 def profile():
     """User profile showing payment history and terms acceptance"""
-    payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.payment_date.desc()).all()
-    terms_history = TermsAcceptance.query.filter_by(user_id=current_user.id).order_by(TermsAcceptance.accepted_at.desc()).all()
-
-    # Check if user needs to accept current terms
-    current_terms_accepted = TermsAcceptance.query.filter_by(
-        user_id=current_user.id,
-        terms_version=CURRENT_TERMS_VERSION
-    ).first()
-
-    needs_terms_acceptance = current_terms_accepted is None
-
-    return render_template('profile.html',
-                         payments=payments,
-                         terms_history=terms_history,
-                         needs_terms_acceptance=needs_terms_acceptance,
-                         current_terms_version=CURRENT_TERMS_VERSION)
+    profile_data = get_user_profile_data(current_user.id)
+    return render_template('profile.html', **profile_data)
 
 @app.route('/subscribe', methods=['GET', 'POST'])
 @require_login
@@ -336,6 +364,40 @@ def uploads():
                          total_uploads=len(user_uploads),
                          total_storage=total_storage)
 
+# ============================================================================
+# HISTORY AND STATISTICS HELPERS
+# ============================================================================
+
+def get_user_history_statistics(user_id):
+    """Calculate history statistics for a user"""
+    from sqlalchemy import func
+    
+    # Get total views count
+    total_views = PageView.query.filter_by(user_id=user_id).count()
+    
+    # Get unique paths count
+    unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
+                            .filter_by(user_id=user_id).scalar()
+    
+    # Get most visited paths
+    popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
+                             .filter_by(user_id=user_id)\
+                             .group_by(PageView.path)\
+                             .order_by(func.count(PageView.path).desc())\
+                             .limit(5).all()
+    
+    return {
+        'total_views': total_views,
+        'unique_paths': unique_paths,
+        'popular_paths': popular_paths
+    }
+
+def get_paginated_page_views(user_id, page, per_page=50):
+    """Get paginated page views for a user"""
+    return PageView.query.filter_by(user_id=user_id)\
+                        .order_by(PageView.viewed_at.desc())\
+                        .paginate(page=page, per_page=per_page, error_out=False)
+
 @app.route('/history')
 @require_login
 def history():
@@ -344,31 +406,15 @@ def history():
     page = request.args.get('page', 1, type=int)
     per_page = 50  # Show 50 entries per page
 
-    # Query user's page views with pagination
-    page_views = PageView.query.filter_by(user_id=current_user.id)\
-                              .order_by(PageView.viewed_at.desc())\
-                              .paginate(page=page, per_page=per_page, error_out=False)
-
-    # Get some statistics
-    total_views = PageView.query.filter_by(user_id=current_user.id).count()
-
-    # Get unique paths count
-    from sqlalchemy import func
-    unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
-                            .filter_by(user_id=current_user.id).scalar()
-
-    # Get most visited paths
-    popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
-                             .filter_by(user_id=current_user.id)\
-                             .group_by(PageView.path)\
-                             .order_by(func.count(PageView.path).desc())\
-                             .limit(5).all()
+    # Get paginated page views
+    page_views = get_paginated_page_views(current_user.id, page, per_page)
+    
+    # Get statistics
+    stats = get_user_history_statistics(current_user.id)
 
     return render_template('history.html',
                          page_views=page_views,
-                         total_views=total_views,
-                         unique_paths=unique_paths,
-                         popular_paths=popular_paths)
+                         **stats)
 
 # ============================================================================
 # USER DATA QUERY HELPERS
@@ -808,50 +854,74 @@ def delete_secret(secret_name):
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
     return redirect(url_for('secrets'))
 
+# ============================================================================
+# SETTINGS DATA HELPERS
+# ============================================================================
+
+def get_user_settings_counts(user_id):
+    """Get counts of user's servers, variables, and secrets for settings display"""
+    return {
+        'server_count': Server.query.filter_by(user_id=user_id).count(),
+        'variable_count': Variable.query.filter_by(user_id=user_id).count(),
+        'secret_count': Secret.query.filter_by(user_id=user_id).count()
+    }
+
 @app.route('/settings')
 @require_login
 def settings():
     """Settings page with links to servers, variables, and secrets"""
-    # Get counts for display
-    server_count = Server.query.filter_by(user_id=current_user.id).count()
-    variable_count = Variable.query.filter_by(user_id=current_user.id).count()
-    secret_count = Secret.query.filter_by(user_id=current_user.id).count()
-
-    return render_template('settings.html',
-                         server_count=server_count,
-                         variable_count=variable_count,
-                         secret_count=secret_count)
+    counts = get_user_settings_counts(current_user.id)
+    return render_template('settings.html', **counts)
 
 
-# Error handlers
-@app.errorhandler(404)
-def not_found_error(error):
-    """Custom 404 handler that checks CID table and server names for content"""
-    path = request.path
+# ============================================================================
+# ERROR HANDLING HELPERS
+# ============================================================================
 
-    # Define existing routes that should take precedence over server names
-    existing_routes = {
+def get_existing_routes():
+    """Get set of existing routes that should take precedence over server names"""
+    return {
         '/', '/dashboard', '/profile', '/subscribe', '/accept-terms', '/content',
         '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
         '/require-invitation', '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings'
     }
 
-    # Check if this is a single-segment path that could be a server name
-    # and it's not an existing route
-    if path.startswith('/') and path.count('/') == 1 and path not in existing_routes:
-        # Extract potential server name (remove leading slash)
-        potential_server_name = path[1:]
+def is_potential_server_path(path, existing_routes):
+    """Check if path could be a server name (single segment, not existing route)"""
+    return (path.startswith('/') and 
+            path.count('/') == 1 and 
+            path not in existing_routes)
 
-        # Check if user is authenticated and if this server name exists for them
-        if current_user.is_authenticated:
-            server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
-            if server:
-                return execute_server_code(server, potential_server_name)
+def try_server_execution(path):
+    """Try to execute server code if path matches a server name"""
+    if not current_user.is_authenticated:
+        return None
+    
+    # Extract potential server name (remove leading slash)
+    potential_server_name = path[1:]
+    
+    # Check if this server name exists for the user
+    server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
+    if server:
+        return execute_server_code(server, potential_server_name)
+    
+    return None
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Custom 404 handler that checks CID table and server names for content"""
+    path = request.path
+    existing_routes = get_existing_routes()
+
+    # Check if this could be a server name and try to execute it
+    if is_potential_server_path(path, existing_routes):
+        server_result = try_server_execution(path)
+        if server_result:
+            return server_result
 
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()
-
     if cid_content:
         return serve_cid_content(cid_content, path)
 
