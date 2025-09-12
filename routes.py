@@ -103,22 +103,7 @@ def subscribe():
         plan = form.plan.data
         amount = plan_prices.get(plan, 0.00)
 
-        # Create mock payment record
-        payment = Payment()
-        payment.user_id = current_user.id
-        payment.amount = amount
-        payment.plan_type = plan
-        if plan == 'annual':
-            payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
-            current_user.is_paid = True
-            current_user.payment_expires_at = payment.expires_at
-        else:
-            # Free plan
-            current_user.is_paid = False
-            current_user.payment_expires_at = None
-
-        payment.transaction_id = f"mock_txn_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-
+        payment = create_payment_record(plan, amount, current_user.id)
         db.session.add(payment)
         db.session.commit()
 
@@ -140,11 +125,7 @@ def accept_terms():
         ).first()
 
         if not existing:
-            terms_acceptance = TermsAcceptance()
-            terms_acceptance.user_id = current_user.id
-            terms_acceptance.terms_version = CURRENT_TERMS_VERSION
-            terms_acceptance.ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-
+            terms_acceptance = create_terms_acceptance_record(current_user.id)
             current_user.current_terms_accepted = True
 
             db.session.add(terms_acceptance)
@@ -164,30 +145,7 @@ def content():
         flash('Access denied. Please ensure you have an active subscription and have accepted the current terms and conditions.', 'warning')
         return redirect(url_for('profile'))
 
-    # Gather comprehensive HTTP request information
-    request_info = {
-        'method': request.method,
-        'url': request.url,
-        'path': request.path,
-        'query_string': request.query_string.decode('utf-8'),
-        'remote_addr': request.remote_addr,
-        'user_agent': request.user_agent.string,
-        'headers': dict(request.headers),
-        'form_data': dict(request.form) if request.form else {},
-        'args': dict(request.args) if request.args else {},
-        'endpoint': request.endpoint,
-        'blueprint': request.blueprint,
-        'scheme': request.scheme,
-        'host': request.host,
-        'environ_vars': {
-            'HTTP_X_FORWARDED_FOR': request.environ.get('HTTP_X_FORWARDED_FOR'),
-            'HTTP_X_REAL_IP': request.environ.get('HTTP_X_REAL_IP'),
-            'HTTP_REFERER': request.environ.get('HTTP_REFERER'),
-            'HTTP_ACCEPT_LANGUAGE': request.environ.get('HTTP_ACCEPT_LANGUAGE'),
-            'HTTP_ACCEPT_ENCODING': request.environ.get('HTTP_ACCEPT_ENCODING'),
-        }
-    }
-
+    request_info = gather_request_info()
     return render_template('content.html', request_info=request_info)
 
 @app.route('/plans')
@@ -205,6 +163,10 @@ def privacy():
     """Display privacy policy"""
     return render_template('privacy.html')
 
+# ============================================================================
+# FILE UPLOAD AND CID HELPERS
+# ============================================================================
+
 def generate_cid(file_data, content_type):
     """Generate a simple CID-like hash from file data and content type"""
     # Create SHA-256 hash of both the file content and content type
@@ -218,6 +180,41 @@ def generate_cid(file_data, content_type):
     # Add CID prefix to make it look like an IPFS CID
     return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
 
+def process_file_upload(form):
+    """Process file upload from form and return file content, filename, content_type, title"""
+    uploaded_file = form.file.data
+    file_content = uploaded_file.read()
+    filename = uploaded_file.filename
+    # Use user-specified content type if provided, otherwise fall back to file's content type
+    content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else (uploaded_file.content_type or 'application/octet-stream')
+    title = form.title.data or f"Uploaded File: {filename}"
+    return file_content, filename, content_type, title
+
+def process_text_upload(form):
+    """Process text upload from form and return file content, filename, content_type, title"""
+    text_content = form.text_content.data
+    file_content = text_content.encode('utf-8')
+    filename = form.filename.data
+    # Use user-specified content type if provided, otherwise default to text/plain with charset
+    content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else 'text/plain'
+    # Add charset for text content types that don't already specify it
+    if content_type.startswith('text/') and 'charset=' not in content_type:
+        content_type += '; charset=utf-8'
+    title = form.title.data or f"Text File: {filename}"
+    return file_content, filename, content_type, title
+
+def create_cid_record(cid, title, file_content, content_type, filename, user_id):
+    """Create and return a CID record for the database"""
+    return CID(
+        path=f"/{cid}",
+        title=title,
+        file_data=file_content,  # Store the actual file bytes
+        content_type=content_type,
+        filename=filename,
+        file_size=len(file_content),
+        uploaded_by_user_id=user_id  # Track who uploaded the file
+    )
+
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
@@ -226,38 +223,15 @@ def upload():
 
     if form.validate_on_submit():
         if form.upload_type.data == 'file':
-            # Handle file upload
-            uploaded_file = form.file.data
-            file_content = uploaded_file.read()
-            filename = uploaded_file.filename
-            # Use user-specified content type if provided, otherwise fall back to file's content type
-            content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else (uploaded_file.content_type or 'application/octet-stream')
-            title = form.title.data or f"Uploaded File: {filename}"
+            file_content, filename, content_type, title = process_file_upload(form)
         else:
-            # Handle text input
-            text_content = form.text_content.data
-            file_content = text_content.encode('utf-8')
-            filename = form.filename.data
-            # Use user-specified content type if provided, otherwise default to text/plain with charset
-            content_type = form.content_type.data.strip() if form.content_type.data and form.content_type.data.strip() else 'text/plain'
-            # Add charset for text content types that don't already specify it
-            if content_type.startswith('text/') and 'charset=' not in content_type:
-                content_type += '; charset=utf-8'
-            title = form.title.data or f"Text File: {filename}"
+            file_content, filename, content_type, title = process_text_upload(form)
 
         # Generate IPFS-like CID
         cid = generate_cid(file_content, content_type)
 
         # Store actual file bytes and metadata in CID table
-        file_record = CID(
-            path=f"/{cid}",
-            title=title,
-            file_data=file_content,  # Store the actual file bytes
-            content_type=content_type,
-            filename=filename,
-            file_size=len(file_content),
-            uploaded_by_user_id=current_user.id  # Track who uploaded the file
-        )
+        file_record = create_cid_record(cid, title, file_content, content_type, filename, current_user.id)
 
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
@@ -316,34 +290,20 @@ def require_invitation():
 
     if form.validate_on_submit():
         invitation_code = form.invitation_code.data
+        invitation = validate_invitation_code(invitation_code)
 
-        # Validate invitation
-        invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-
-        if invitation and invitation.is_valid():
+        if invitation:
             # Store invitation code in session and retry authentication
             session['invitation_code'] = invitation_code
 
-            # If we have pending auth, complete it
-            if 'pending_token' in session and 'pending_user_claims' in session:
-                _ = session.pop('pending_token')
-                user_claims = session.pop('pending_user_claims')
-
-                try:
-                    user = save_user_from_claims(user_claims, invitation_code)
-                    session.pop('invitation_code', None)
-
-                    from flask_login import login_user
-                    login_user(user)
-
-                    flash('Welcome! Your account has been created.', 'success')
-                    return redirect(url_for('index'))
-                except ValueError as e:
-                    flash(f'Error: {str(e)}', 'danger')
-            else:
-                # Just store invitation for future auth attempt
-                flash('Invitation validated! Please sign in.', 'success')
-                return redirect(auth_manager.get_login_url())
+            # Try to handle pending authentication
+            auth_result = handle_pending_authentication(invitation_code)
+            if auth_result:
+                return auth_result
+            
+            # Just store invitation for future auth attempt
+            flash('Invitation validated! Please sign in.', 'success')
+            return redirect(auth_manager.get_login_url())
         else:
             flash('Invalid or expired invitation code.', 'danger')
 
@@ -352,9 +312,9 @@ def require_invitation():
 @app.route('/invite/<invitation_code>')
 def accept_invitation(invitation_code):
     """Direct link to accept an invitation"""
-    invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
+    invitation = validate_invitation_code(invitation_code)
 
-    if invitation and invitation.is_valid():
+    if invitation:
         session['invitation_code'] = invitation_code
         flash('Invitation accepted! Please sign in to complete your registration.', 'success')
         return redirect(auth_manager.get_login_url())
@@ -410,6 +370,10 @@ def history():
                          unique_paths=unique_paths,
                          popular_paths=popular_paths)
 
+# ============================================================================
+# USER DATA QUERY HELPERS
+# ============================================================================
+
 def user_servers():
     return Server.query.filter_by(user_id=current_user.id).order_by(Server.name).all()
 
@@ -426,19 +390,7 @@ def new_server():
     form = ServerForm()
 
     if form.validate_on_submit():
-        # Check if server name already exists for this user
-        existing_server = Server.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-        if existing_server:
-            flash(f'A server named "{form.name.data}" already exists', 'danger')
-        else:
-            server = Server(
-                name=form.name.data,
-                definition=form.definition.data,
-                user_id=current_user.id
-            )
-            db.session.add(server)
-            db.session.commit()
-            flash(f'Server "{form.name.data}" created successfully!', 'success')
+        if create_entity(Server, form, current_user.id, 'server'):
             return redirect(url_for('servers'))
 
     return render_template('server_form.html', form=form, title='Create New Server')
@@ -464,19 +416,10 @@ def edit_server(server_name):
     form = ServerForm(obj=server)
 
     if form.validate_on_submit():
-        # Check if new name conflicts with existing server (if name changed)
-        if form.name.data != server.name:
-            existing_server = Server.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-            if existing_server:
-                flash(f'A server named "{form.name.data}" already exists', 'danger')
-                return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
-
-        server.name = form.name.data
-        server.definition = form.definition.data
-        server.updated_at = datetime.now(timezone.utc)
-        db.session.commit()
-        flash(f'Server "{server.name}" updated successfully!', 'success')
-        return redirect(url_for('view_server', server_name=server.name))
+        if update_entity(server, form, 'server'):
+            return redirect(url_for('view_server', server_name=server.name))
+        else:
+            return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
 
     return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
 
@@ -509,19 +452,7 @@ def new_variable():
     form = VariableForm()
 
     if form.validate_on_submit():
-        # Check if variable name already exists for this user
-        existing_variable = Variable.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-        if existing_variable:
-            flash(f'A variable named "{form.name.data}" already exists', 'danger')
-        else:
-            variable = Variable(
-                name=form.name.data,
-                definition=form.definition.data,
-                user_id=current_user.id
-            )
-            db.session.add(variable)
-            db.session.commit()
-            flash(f'Variable "{form.name.data}" created successfully!', 'success')
+        if create_entity(Variable, form, current_user.id, 'variable'):
             return redirect(url_for('variables'))
 
     return render_template('variable_form.html', form=form, title='Create New Variable')
@@ -547,19 +478,10 @@ def edit_variable(variable_name):
     form = VariableForm(obj=variable)
 
     if form.validate_on_submit():
-        # Check if new name conflicts with existing variable (if name changed)
-        if form.name.data != variable.name:
-            existing_variable = Variable.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-            if existing_variable:
-                flash(f'A variable named "{form.name.data}" already exists', 'danger')
-                return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
-
-        variable.name = form.name.data
-        variable.definition = form.definition.data
-        variable.updated_at = datetime.now(timezone.utc)
-        db.session.commit()
-        flash(f'Variable "{variable.name}" updated successfully!', 'success')
-        return redirect(url_for('view_variable', variable_name=variable.name))
+        if update_entity(variable, form, 'variable'):
+            return redirect(url_for('view_variable', variable_name=variable.name))
+        else:
+            return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
 
     return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
 
@@ -579,6 +501,254 @@ def delete_variable(variable_name):
 def user_secrets():
     return Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
 
+# ============================================================================
+# SERVER EXECUTION HELPERS
+# ============================================================================
+
+def build_request_args():
+    """Build request arguments dictionary for server execution"""
+    return {
+        'path': request.path,
+        'query_string': request.query_string.decode('utf-8'),
+        'remote_addr': request.remote_addr,
+        'user_agent': request.user_agent.string,
+        'headers': dict(request.headers),
+        'form_data': dict(request.form) if request.form else {},
+        'args': dict(request.args) if request.args else {},
+        'endpoint': request.endpoint,
+        'blueprint': request.blueprint,
+        'scheme': request.scheme,
+        'host': request.host,
+        'environ': request.environ,
+        'variables': user_variables(),
+        'secrets': user_secrets(),
+        'servers': user_servers(),
+    }
+
+def execute_server_code(server, server_name):
+    """Execute server code and return CID redirect response or error response"""
+    code = server.definition
+    args = build_request_args()
+    
+    try:
+        result = run_text_function(code, args)
+        # Store the result in the CID table and redirect to the /<cid> URL
+        output = result.get('output', '')
+        content_type = result.get('content_type', 'text/html')
+        
+        # Convert output to bytes for CID generation
+        if isinstance(output, str):
+            output_bytes = output.encode('utf-8')
+        else:
+            output_bytes = output
+        
+        # Generate CID for the result
+        cid = generate_cid(output_bytes, content_type)
+        
+        # Store result in CID table
+        cid_record = CID(
+            path=f"/{cid}",
+            content=output if isinstance(output, str) else None,
+            file_data=output_bytes if not isinstance(output, str) else None,
+            title=f"Server Output: {server_name}",
+            content_type=content_type,
+            uploaded_by_user_id=current_user.id
+        )
+        
+        # Check if CID already exists
+        existing = CID.query.filter_by(path=f"/{cid}").first()
+        if not existing:
+            db.session.add(cid_record)
+            db.session.commit()
+        
+        # Redirect to the CID URL
+        return redirect(f"/{cid}")
+    except Exception as e:
+        text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
+        response = make_response(text)
+        response.headers['Content-Type'] = 'text/plain'
+        response.status_code = 500
+        return response
+
+# ============================================================================
+# CID CONTENT SERVING HELPERS
+# ============================================================================
+
+def serve_cid_content(cid_content, path):
+    """Serve CID content with appropriate headers and caching"""
+    # If this is a file upload (has file_data), serve the raw bytes
+    if cid_content.file_data:
+        # Extract CID from path (remove leading slash)
+        cid = path[1:] if path.startswith('/') else path
+
+        # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
+        etag = f'"{cid}"'
+        if request.headers.get('If-None-Match') == etag:
+            # Client has the file cached, return 304 Not Modified
+            response = make_response('', 304)
+            response.headers['ETag'] = etag
+            return response
+
+        # Check If-Modified-Since (though ETag is more reliable for immutable content)
+        if request.headers.get('If-Modified-Since'):
+            # Since content is immutable, we can always return 304 if they have any cached version
+            response = make_response('', 304)
+            response.headers['ETag'] = etag
+            response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+            return response
+
+        # Serve the file with aggressive caching headers
+        response = make_response(cid_content.file_data)
+        response.headers['Content-Type'] = cid_content.content_type
+        response.headers['Content-Length'] = len(cid_content.file_data)
+
+        # Immutable content caching headers
+        response.headers['ETag'] = etag
+        response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
+        response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
+
+        # Add content disposition header for downloads if it's not a web-displayable type
+        if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
+            response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
+
+        return response
+
+    # If this is HTML content (legacy), display it in template
+    elif cid_content.content:
+        return render_template('cid_content.html',
+                             content=cid_content.content,
+                             title=cid_content.title or f"Content for {path}",
+                             path=path), 200
+
+# ============================================================================
+# CRUD OPERATION HELPERS
+# ============================================================================
+
+def check_name_exists(model_class, name, user_id, exclude_id=None):
+    """Check if a name already exists for a user, optionally excluding a specific record"""
+    query = model_class.query.filter_by(user_id=user_id, name=name)
+    if exclude_id:
+        query = query.filter(model_class.id != exclude_id)
+    return query.first() is not None
+
+def create_entity(model_class, form, user_id, entity_type):
+    """Generic function to create a new entity (server, variable, or secret)"""
+    if check_name_exists(model_class, form.name.data, user_id):
+        flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+        return False
+    
+    entity = model_class(
+        name=form.name.data,
+        definition=form.definition.data,
+        user_id=user_id
+    )
+    db.session.add(entity)
+    db.session.commit()
+    flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
+    return True
+
+def update_entity(entity, form, entity_type):
+    """Generic function to update an entity (server, variable, or secret)"""
+    # Check if new name conflicts with existing entity (if name changed)
+    if form.name.data != entity.name:
+        if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
+            flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+            return False
+    
+    entity.name = form.name.data
+    entity.definition = form.definition.data
+    entity.updated_at = datetime.now(timezone.utc)
+    db.session.commit()
+    flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
+    return True
+
+# ============================================================================
+# REQUEST PROCESSING HELPERS
+# ============================================================================
+
+def gather_request_info():
+    """Gather comprehensive HTTP request information"""
+    return {
+        'method': request.method,
+        'url': request.url,
+        'path': request.path,
+        'query_string': request.query_string.decode('utf-8'),
+        'remote_addr': request.remote_addr,
+        'user_agent': request.user_agent.string,
+        'headers': dict(request.headers),
+        'form_data': dict(request.form) if request.form else {},
+        'args': dict(request.args) if request.args else {},
+        'endpoint': request.endpoint,
+        'blueprint': request.blueprint,
+        'scheme': request.scheme,
+        'host': request.host,
+        'environ_vars': {
+            'HTTP_X_FORWARDED_FOR': request.environ.get('HTTP_X_FORWARDED_FOR'),
+            'HTTP_X_REAL_IP': request.environ.get('HTTP_X_REAL_IP'),
+            'HTTP_REFERER': request.environ.get('HTTP_REFERER'),
+            'HTTP_ACCEPT_LANGUAGE': request.environ.get('HTTP_ACCEPT_LANGUAGE'),
+            'HTTP_ACCEPT_ENCODING': request.environ.get('HTTP_ACCEPT_ENCODING'),
+        }
+    }
+
+# ============================================================================
+# BUSINESS LOGIC HELPERS
+# ============================================================================
+
+def create_payment_record(plan, amount, user_id):
+    """Create a payment record and update user subscription status"""
+    payment = Payment()
+    payment.user_id = user_id
+    payment.amount = amount
+    payment.plan_type = plan
+    
+    if plan == 'annual':
+        payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
+        current_user.is_paid = True
+        current_user.payment_expires_at = payment.expires_at
+    else:
+        # Free plan
+        current_user.is_paid = False
+        current_user.payment_expires_at = None
+
+    payment.transaction_id = f"mock_txn_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    return payment
+
+# Invitation handling
+def validate_invitation_code(invitation_code):
+    """Validate an invitation code and return the invitation if valid"""
+    invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
+    return invitation if invitation and invitation.is_valid() else None
+
+def handle_pending_authentication(invitation_code):
+    """Handle pending authentication with invitation code"""
+    if 'pending_token' in session and 'pending_user_claims' in session:
+        _ = session.pop('pending_token')
+        user_claims = session.pop('pending_user_claims')
+
+        try:
+            user = save_user_from_claims(user_claims, invitation_code)
+            session.pop('invitation_code', None)
+
+            from flask_login import login_user
+            login_user(user)
+
+            flash('Welcome! Your account has been created.', 'success')
+            return redirect(url_for('index'))
+        except ValueError as e:
+            flash(f'Error: {str(e)}', 'danger')
+            return None
+    return None
+
+def create_terms_acceptance_record(user_id):
+    """Create a terms acceptance record for the user"""
+    terms_acceptance = TermsAcceptance()
+    terms_acceptance.user_id = user_id
+    terms_acceptance.terms_version = CURRENT_TERMS_VERSION
+    terms_acceptance.ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+    return terms_acceptance
+
 @app.route('/secrets')
 @require_login
 def secrets():
@@ -592,19 +762,7 @@ def new_secret():
     form = SecretForm()
 
     if form.validate_on_submit():
-        # Check if secret name already exists for this user
-        existing_secret = Secret.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-        if existing_secret:
-            flash(f'A secret named "{form.name.data}" already exists', 'danger')
-        else:
-            secret = Secret(
-                name=form.name.data,
-                definition=form.definition.data,
-                user_id=current_user.id
-            )
-            db.session.add(secret)
-            db.session.commit()
-            flash(f'Secret "{form.name.data}" created successfully!', 'success')
+        if create_entity(Secret, form, current_user.id, 'secret'):
             return redirect(url_for('secrets'))
 
     return render_template('secret_form.html', form=form, title='Create New Secret')
@@ -630,19 +788,10 @@ def edit_secret(secret_name):
     form = SecretForm(obj=secret)
 
     if form.validate_on_submit():
-        # Check if new name conflicts with existing secret (if name changed)
-        if form.name.data != secret.name:
-            existing_secret = Secret.query.filter_by(user_id=current_user.id, name=form.name.data).first()
-            if existing_secret:
-                flash(f'A secret named "{form.name.data}" already exists', 'danger')
-                return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
-
-        secret.name = form.name.data
-        secret.definition = form.definition.data
-        secret.updated_at = datetime.now(timezone.utc)
-        db.session.commit()
-        flash(f'Secret "{secret.name}" updated successfully!', 'success')
-        return redirect(url_for('view_secret', secret_name=secret.name))
+        if update_entity(secret, form, 'secret'):
+            return redirect(url_for('view_secret', secret_name=secret.name))
+        else:
+            return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
 
     return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
 
@@ -698,112 +847,13 @@ def not_found_error(error):
         if current_user.is_authenticated:
             server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
             if server:
-                code = server.definition
-                args = {
-                    'path': path,
-                    'query_string': request.query_string.decode('utf-8'),
-                    'remote_addr': request.remote_addr,
-                    'user_agent': request.user_agent.string,
-                    'headers': dict(request.headers),
-                    'form_data': dict(request.form) if request.form else {},
-                    'args': dict(request.args) if request.args else {},
-                    'endpoint': request.endpoint,
-                    'blueprint': request.blueprint,
-                    'scheme': request.scheme,
-                    'host': request.host,
-                    'environ': request.environ,
-                    'variables': user_variables(),
-                    'secrets': user_secrets(),
-                    'servers': user_servers(),
-                }
-                try:
-                    result = run_text_function(code, args)
-                    # Store the result in the CID table and redirect to the /<cid> URL
-                    output = result.get('output', '')
-                    content_type = result.get('content_type', 'text/html')
-                    
-                    # Convert output to bytes for CID generation
-                    if isinstance(output, str):
-                        output_bytes = output.encode('utf-8')
-                    else:
-                        output_bytes = output
-                    
-                    # Generate CID for the result
-                    cid = generate_cid(output_bytes, content_type)
-                    
-                    # Store result in CID table
-                    cid_record = CID(
-                        path=f"/{cid}",
-                        content=output if isinstance(output, str) else None,
-                        file_data=output_bytes if not isinstance(output, str) else None,
-                        title=f"Server Output: {potential_server_name}",
-                        content_type=content_type,
-                        uploaded_by_user_id=current_user.id
-                    )
-                    
-                    # Check if CID already exists
-                    existing = CID.query.filter_by(path=f"/{cid}").first()
-                    if not existing:
-                        db.session.add(cid_record)
-                        db.session.commit()
-                    
-                    # Redirect to the CID URL
-                    return redirect(f"/{cid}")
-                except Exception as e:
-                    text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
-                    response = make_response(text)
-                    response.headers['Content-Type'] = 'text/plain'
-                    response.status_code = 500
-                    return response
+                return execute_server_code(server, potential_server_name)
 
     # Look up the path in the CID table
     cid_content = CID.query.filter_by(path=path).first()
 
     if cid_content:
-        # If this is a file upload (has file_data), serve the raw bytes
-        if cid_content.file_data:
-            # Extract CID from path (remove leading slash)
-            cid = path[1:] if path.startswith('/') else path
-
-            # Check conditional requests using ETag (CID is perfect as ETag since it's content-based hash)
-            etag = f'"{cid}"'
-            if request.headers.get('If-None-Match') == etag:
-                # Client has the file cached, return 304 Not Modified
-                response = make_response('', 304)
-                response.headers['ETag'] = etag
-                return response
-
-            # Check If-Modified-Since (though ETag is more reliable for immutable content)
-            if request.headers.get('If-Modified-Since'):
-                # Since content is immutable, we can always return 304 if they have any cached version
-                response = make_response('', 304)
-                response.headers['ETag'] = etag
-                response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-                return response
-
-            # Serve the file with aggressive caching headers
-            response = make_response(cid_content.file_data)
-            response.headers['Content-Type'] = cid_content.content_type
-            response.headers['Content-Length'] = len(cid_content.file_data)
-
-            # Immutable content caching headers
-            response.headers['ETag'] = etag
-            response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
-            response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
-
-            # Add content disposition header for downloads if it's not a web-displayable type
-            if not cid_content.content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
-                response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
-
-            return response
-
-        # If this is HTML content (legacy), display it in template
-        elif cid_content.content:
-            return render_template('cid_content.html',
-                                 content=cid_content.content,
-                                 title=cid_content.title or f"Content for {path}",
-                                 path=path), 200
+        return serve_cid_content(cid_content, path)
 
     # If no content found, show 404 with the path
     return render_template('404.html', path=path), 404
