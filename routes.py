@@ -660,12 +660,11 @@ def serve_cid_content(cid_content, path):
 
         return response
 
-    # If this is HTML content (legacy), display it in template
+    # If this is HTML content (legacy), serve it directly
     elif cid_content.content:
-        return render_template('cid_content.html',
-                             content=cid_content.content,
-                             title=cid_content.title or f"Content for {path}",
-                             path=path), 200
+        response = make_response(cid_content.content)
+        response.headers['Content-Type'] = cid_content.content_type or 'text/html'
+        return response
 
 # ============================================================================
 # CRUD OPERATION HELPERS
