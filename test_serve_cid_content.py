@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 import sys
 import os
@@ -57,7 +57,7 @@ flask_login_mock = Mock()
 sys.modules['flask_login'] = flask_login_mock
 
 # Now we can import the function we want to test
-from routes import serve_cid_content, get_mime_type_from_extension
+from routes import serve_cid_content
 
 
 class TestServeCidContent(unittest.TestCase):
@@ -65,7 +65,7 @@ class TestServeCidContent(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.app = Flask(__name__)
+        self.app = MockApp()
         self.app.config['TESTING'] = True
         
         # Create mock CID content object

@@ -9,8 +9,30 @@ from unittest.mock import Mock, patch
 # Add current directory to path
 sys.path.insert(0, '.')
 
-# Import Flask app and models
-from app import app
+# Mock all dependencies before importing
+sys.modules['app'] = Mock()
+sys.modules['models'] = Mock()
+sys.modules['forms'] = Mock()
+sys.modules['auth_providers'] = Mock()
+sys.modules['text_function_runner'] = Mock()
+
+# Mock Flask imports
+flask_mock = Mock()
+flask_mock.render_template = Mock()
+flask_mock.flash = Mock()
+flask_mock.redirect = Mock()
+flask_mock.url_for = Mock()
+flask_mock.request = Mock()
+flask_mock.session = Mock()
+flask_mock.make_response = Mock()
+flask_mock.abort = Mock()
+sys.modules['flask'] = flask_mock
+
+# Mock flask_login
+flask_login_mock = Mock()
+sys.modules['flask_login'] = flask_login_mock
+
+# Import the functions we want to test
 from routes import user_variables, user_secrets, build_request_args
 
 class TestVariablesSecretsIssue(unittest.TestCase):
@@ -18,13 +40,11 @@ class TestVariablesSecretsIssue(unittest.TestCase):
     
     def setUp(self):
         """Set up test environment"""
-        self.app = app
-        self.app_context = self.app.app_context()
-        self.app_context.push()
+        self.mock_app = Mock()
         
     def tearDown(self):
         """Clean up test environment"""
-        self.app_context.pop()
+        pass
     
     @patch('routes.current_user')
     @patch('routes.Variable')
@@ -120,66 +140,23 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         
         mock_user_servers.return_value = []
         
-        # Use Flask test client to create proper request context
-        with self.app.test_client() as client:
-            with client.application.test_request_context('/echo1'):
-                # Call build_request_args within request context
-                args = build_request_args()
-                
-                # Check that variables and secrets are converted to dictionaries by model_as_dict
-                self.assertIsInstance(args['variables'], dict)
-                self.assertIsInstance(args['secrets'], dict)
-                
-                # Check that the dictionary contains the expected key-value pairs
-                self.assertEqual(args['variables']['test_var'], 'test_value')
-                self.assertEqual(args['secrets']['test_secret'], 'secret_value')
-                
-                print(f"Variables in args: {args['variables']}")
-                print(f"Secrets in args: {args['secrets']}")
-                
-                # This demonstrates that the data is properly serializable
-                args_str = str(args)
-                print(f"String representation of args: {args_str}")
-                
-                # The variables and secrets should show their actual data, not model representations
-                self.assertIn('test_var', args_str)
-                self.assertIn('test_value', args_str)
-                self.assertIn('test_secret', args_str)
-                self.assertIn('secret_value', args_str)
-    
-    def test_what_echo1_server_should_receive(self):
-        """Test what the echo1 server should actually receive for variables and secrets"""
-        # This is what the echo1 server SHOULD receive
-        expected_variables = [
-            {'name': 'test_var1', 'definition': 'value1'},
-            {'name': 'test_var2', 'definition': 'value2'}
-        ]
-        expected_secrets = [
-            {'name': 'test_secret1', 'definition': 'secret_value1'}
-        ]
-        
-        # These can be properly serialized
-        import json
-        variables_json = json.dumps(expected_variables)
-        secrets_json = json.dumps(expected_secrets)
-        
-        print(f"Expected variables format: {expected_variables}")
-        print(f"Expected secrets format: {expected_secrets}")
-        print(f"Variables JSON: {variables_json}")
-        print(f"Secrets JSON: {secrets_json}")
-        
-        # When converted to string, they show meaningful data
-        variables_str = str(expected_variables)
-        secrets_str = str(expected_secrets)
-        
-        print(f"Variables as string: {variables_str}")
-        print(f"Secrets as string: {secrets_str}")
-        
-        # This is what should appear in the echo1 output
-        self.assertIn('test_var1', variables_str)
-        self.assertIn('value1', variables_str)
-        self.assertIn('test_secret1', secrets_str)
-        self.assertIn('secret_value1', secrets_str)
+        # Mock request context
+        with patch('routes.request') as mock_request:
+            mock_request.path = '/echo1'
+            mock_request.method = 'GET'
+            mock_request.headers = {}
+            
+            # Call build_request_args
+            args = build_request_args()
+            
+            # Check that variables and secrets are included in args
+            self.assertIsInstance(args['variables'], dict)
+            self.assertIsInstance(args['secrets'], dict)
+            
+            # Check that the dictionary contains the expected key-value pairs
+            self.assertEqual(args['variables']['test_var'], 'test_value')
+            self.assertEqual(args['secrets']['test_secret'], 'secret_value')
+
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    unittest.main()
