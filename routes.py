@@ -10,6 +10,7 @@ import hashlib
 import base64
 from flask import make_response, abort
 import traceback
+import json
 from text_function_runner import run_text_function
 
 # Make authentication info available to all templates
@@ -35,16 +36,16 @@ def should_track_page_view(response):
     """Determine if the current request should be tracked"""
     if not current_user.is_authenticated or response.status_code != 200:
         return False
-    
+
     # Skip tracking for static files, API calls, and certain paths
     skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
     if any(request.path.startswith(skip) for skip in skip_paths):
         return False
-    
+
     # Skip tracking AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return False
-    
+
     return True
 
 def create_page_view_record():
@@ -94,15 +95,15 @@ def get_user_profile_data(user_id):
     """Gather all profile-related data for a user"""
     payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.payment_date.desc()).all()
     terms_history = TermsAcceptance.query.filter_by(user_id=user_id).order_by(TermsAcceptance.accepted_at.desc()).all()
-    
+
     # Check if user needs to accept current terms
     current_terms_accepted = TermsAcceptance.query.filter_by(
         user_id=user_id,
         terms_version=CURRENT_TERMS_VERSION
     ).first()
-    
+
     needs_terms_acceptance = current_terms_accepted is None
-    
+
     return {
         'payments': payments,
         'terms_history': terms_history,
@@ -232,10 +233,10 @@ def save_server_definition_as_cid(definition, user_id):
     """Save server definition as CID and return the CID string"""
     # Convert definition to bytes
     definition_bytes = definition.encode('utf-8')
-    
+
     # Generate CID for the definition
     cid = generate_cid(definition_bytes)
-    
+
     # Check if CID already exists to avoid duplicates
     existing_cid = CID.query.filter_by(path=f"/{cid}").first()
     if not existing_cid:
@@ -243,8 +244,57 @@ def save_server_definition_as_cid(definition, user_id):
         cid_record = create_cid_record(cid, definition_bytes, user_id)
         db.session.add(cid_record)
         db.session.commit()
-    
+
     return cid
+
+def generate_all_server_definitions_json(user_id):
+    """Generate JSON containing all server definitions for a user"""
+    servers = Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
+
+    # Create dictionary with server names as keys and definitions as values
+    server_definitions = {}
+    for server in servers:
+        server_definitions[server.name] = server.definition
+
+    # Convert to JSON string
+    return json.dumps(server_definitions, indent=2, sort_keys=True)
+
+def store_server_definitions_cid(user_id):
+    """Store all server definitions as JSON in a CID and return the CID path"""
+    json_content = generate_all_server_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+
+    # Generate CID for the JSON content
+    cid = generate_cid(json_bytes)
+
+    # Check if CID already exists to avoid duplicates
+    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    if not existing_cid:
+        # Create new CID record
+        cid_record = create_cid_record(cid, json_bytes, user_id)
+        db.session.add(cid_record)
+        db.session.commit()
+
+    return cid
+
+def get_current_server_definitions_cid(user_id):
+    """Get the CID path for the current server definitions JSON"""
+    # Generate what the current CID should be based on current servers
+    json_content = generate_all_server_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+    expected_cid = generate_cid(json_bytes)
+
+    # Check if this CID exists in the database
+    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    if existing_cid:
+        return expected_cid
+    else:
+        # If it doesn't exist, create it
+        return store_server_definitions_cid(user_id)
+
+def update_server_definitions_cid(user_id):
+    """Update the server definitions CID after server changes"""
+    return store_server_definitions_cid(user_id)
 
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
@@ -328,7 +378,7 @@ def require_invitation():
             auth_result = handle_pending_authentication(invitation_code)
             if auth_result:
                 return auth_result
-            
+
             # Just store invitation for future auth attempt
             flash('Invitation validated! Please sign in.', 'success')
             return redirect(auth_manager.get_login_url())
@@ -384,21 +434,21 @@ def uploads():
 def get_user_history_statistics(user_id):
     """Calculate history statistics for a user"""
     from sqlalchemy import func
-    
+
     # Get total views count
     total_views = PageView.query.filter_by(user_id=user_id).count()
-    
+
     # Get unique paths count
     unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
                             .filter_by(user_id=user_id).scalar()
-    
+
     # Get most visited paths
     popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
                              .filter_by(user_id=user_id)\
                              .group_by(PageView.path)\
                              .order_by(func.count(PageView.path).desc())\
                              .limit(5).all()
-    
+
     return {
         'total_views': total_views,
         'unique_paths': unique_paths,
@@ -421,7 +471,7 @@ def history():
 
     # Get paginated page views
     page_views = get_paginated_page_views(current_user.id, page, per_page)
-    
+
     # Get statistics
     stats = get_user_history_statistics(current_user.id)
 
@@ -440,7 +490,15 @@ def user_servers():
 @require_login
 def servers():
     """Display user's servers"""
-    return render_template('servers.html', servers=user_servers())
+    servers_list = user_servers()
+    # Get current server definitions CID if user has servers
+    server_definitions_cid = None
+    if servers_list:
+        server_definitions_cid = get_current_server_definitions_cid(current_user.id)
+
+    return render_template('servers.html',
+                         servers=servers_list,
+                         server_definitions_cid=server_definitions_cid)
 
 @app.route('/servers/new', methods=['GET', 'POST'])
 @require_login
@@ -490,8 +548,13 @@ def delete_server(server_name):
     if not server:
         abort(404)
 
+    user_id = server.user_id  # Store user_id before deletion
     db.session.delete(server)
     db.session.commit()
+
+    # Update the server definitions CID after deletion
+    update_server_definitions_cid(user_id)
+
     flash(f'Server "{server_name}" deleted successfully!', 'success')
     return redirect(url_for('servers'))
 
@@ -568,7 +631,7 @@ def model_as_dict(model_objects):
     """Convert SQLAlchemy model objects to dict with names as keys and definitions as values"""
     if not model_objects:
         return {}
-    
+
     result = {}
     for obj in model_objects:
         if hasattr(obj, 'name') and hasattr(obj, 'definition'):
@@ -577,7 +640,7 @@ def model_as_dict(model_objects):
         else:
             # Fallback for other object types
             result[str(obj)] = str(obj)
-    
+
     return result
 
 def build_request_args():
@@ -604,22 +667,22 @@ def execute_server_code(server, server_name):
     """Execute server code and return CID redirect response or error response"""
     code = server.definition
     args = build_request_args()
-    
+
     try:
         result = run_text_function(code, args)
         # Store the result in the CID table and redirect to the /<cid> URL
         output = result.get('output', '')
         content_type = result.get('content_type', 'text/html')
-        
+
         # Convert output to bytes for CID generation
         if isinstance(output, str):
             output_bytes = output.encode('utf-8')
         else:
             output_bytes = output
-        
+
         # Generate CID for the result
         cid = generate_cid(output_bytes)
-        
+
         # Store result in CID table
         cid_record = CID(
             path=f"/{cid}",
@@ -627,16 +690,16 @@ def execute_server_code(server, server_name):
             file_size=len(output_bytes),
             uploaded_by_user_id=current_user.id
         )
-        
+
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
         if not existing:
             db.session.add(cid_record)
             db.session.commit()
-        
+
         # Get appropriate extension for the content type
         extension = get_extension_from_mime_type(content_type)
-        
+
         # Redirect to the CID URL with extension if available
         if extension:
             return redirect(f"/{cid}.{extension}")
@@ -718,15 +781,45 @@ def get_extension_from_mime_type(content_type):
     base_mime = content_type.split(';')[0].strip().lower()
     return MIME_TO_EXTENSION.get(base_mime, '')
 
+def extract_filename_from_cid_path(path):
+    """
+    Extract filename from CID path for content disposition header.
+    
+    Rules:
+    - /{CID} -> no filename (no content disposition)
+    - /{CID}.{ext} -> no filename (no content disposition) 
+    - /{CID}.{filename}.{ext} -> filename = {filename}.{ext}
+    """
+    # Remove leading slash
+    if path.startswith('/'):
+        path = path[1:]
+    
+    # Handle empty or invalid paths
+    if not path or path in ['.', '..']:
+        return None
+    
+    # Split by dots
+    parts = path.split('.')
+    
+    # Need at least 3 parts for filename: CID.filename.ext
+    if len(parts) < 3:
+        return None
+    
+    # First part is CID, rest form the filename
+    filename_parts = parts[1:]
+    filename = '.'.join(filename_parts)
+    
+    return filename
+
 def serve_cid_content(cid_content, path):
     """Serve CID content with appropriate headers and caching"""
     # Check if file_data is None (corrupted or missing data)
     if cid_content is None or cid_content.file_data is None:
         return None  # Return None to indicate content not found, let caller handle 404
-    
+
     # Extract CID from path (remove leading slash)
     cid = path[1:] if path.startswith('/') else path
-    
+
     # Determine MIME type from URL extension
     content_type = get_mime_type_from_extension(path)
 
@@ -751,15 +844,16 @@ def serve_cid_content(cid_content, path):
     response.headers['Content-Type'] = content_type
     response.headers['Content-Length'] = len(cid_content.file_data)
 
+    # Set content disposition header if filename is indicated in the path
+    filename = extract_filename_from_cid_path(path)
+    if filename:
+        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+
     # Immutable content caching headers
     response.headers['ETag'] = etag
     response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
     response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
     response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'  # Far future
-
-    # Add content disposition header for downloads if it's not a web-displayable type
-    if not content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
-        response.headers['Content-Disposition'] = f'attachment; filename="{cid}"'
 
     return response
 
@@ -779,22 +873,27 @@ def create_entity(model_class, form, user_id, entity_type):
     if check_name_exists(model_class, form.name.data, user_id):
         flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
         return False
-    
+
     # Create entity with basic fields
     entity_data = {
         'name': form.name.data,
         'definition': form.definition.data,
         'user_id': user_id
     }
-    
+
     # If this is a Server, save definition as CID
     if model_class.__name__ == 'Server':
         definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
         entity_data['definition_cid'] = definition_cid
-    
+
     entity = model_class(**entity_data)
     db.session.add(entity)
     db.session.commit()
+
+    # If this is a Server, update the server definitions CID
+    if model_class.__name__ == 'Server':
+        update_server_definitions_cid(user_id)
+
     flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
     return True
 
@@ -805,19 +904,24 @@ def update_entity(entity, form, entity_type):
         if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
             flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
             return False
-    
+
     # If this is a Server and definition changed, save new definition as CID
     if type(entity).__name__ == 'Server':
         # Check if definition actually changed to avoid unnecessary CID generation
         if form.definition.data != entity.definition:
             definition_cid = save_server_definition_as_cid(form.definition.data, entity.user_id)
             entity.definition_cid = definition_cid
-    
+
     entity.name = form.name.data
     entity.definition = form.definition.data
     entity.updated_at = datetime.now(timezone.utc)
-    
+
     db.session.commit()
+
+    # If this is a Server, update the server definitions CID
+    if type(entity).__name__ == 'Server':
+        update_server_definitions_cid(entity.user_id)
+
     flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
     return True
 
@@ -860,7 +964,7 @@ def create_payment_record(plan, amount, user_id):
     payment.user_id = user_id
     payment.amount = amount
     payment.plan_type = plan
-    
+
     if plan == 'annual':
         payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
         current_user.is_paid = True
@@ -1001,23 +1105,23 @@ def get_existing_routes():
 
 def is_potential_server_path(path, existing_routes):
     """Check if path could be a server name (single segment, not existing route)"""
-    return (path.startswith('/') and 
-            path.count('/') == 1 and 
+    return (path.startswith('/') and
+            path.count('/') == 1 and
             path not in existing_routes)
 
 def try_server_execution(path):
     """Try to execute server code if path matches a server name"""
     if not current_user.is_authenticated:
         return None
-    
+
     # Extract potential server name (remove leading slash)
     potential_server_name = path[1:]
-    
+
     # Check if this server name exists for the user
     server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
     if server:
         return execute_server_code(server, potential_server_name)
-    
+
     return None
 
 @app.errorhandler(404)
