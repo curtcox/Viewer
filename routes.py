@@ -546,6 +546,22 @@ def user_secrets():
 # SERVER EXECUTION HELPERS
 # ============================================================================
 
+def model_as_dict(model_objects):
+    """Convert SQLAlchemy model objects to dict with names as keys and definitions as values"""
+    if not model_objects:
+        return {}
+    
+    result = {}
+    for obj in model_objects:
+        if hasattr(obj, 'name') and hasattr(obj, 'definition'):
+            # For Variable, Secret, and Server objects
+            result[obj.name] = obj.definition
+        else:
+            # Fallback for other object types
+            result[str(obj)] = str(obj)
+    
+    return result
+
 def build_request_args():
     """Build request arguments dictionary for server execution"""
     return {
@@ -561,9 +577,9 @@ def build_request_args():
         'scheme': request.scheme,
         'host': request.host,
         'environ': request.environ,
-        'variables': user_variables(),
-        'secrets': user_secrets(),
-        'servers': user_servers(),
+        'variables': model_as_dict(user_variables()),
+        'secrets': model_as_dict(user_secrets()),
+        'servers': model_as_dict(user_servers()),
     }
 
 def execute_server_code(server, server_name):
