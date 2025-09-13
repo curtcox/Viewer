@@ -289,7 +289,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 # Test serving content with matching ETag (use the actual CID as ETag)
                 expected_etag = f'"{cid}"'
                 with self.app.test_request_context(headers={'If-None-Match': expected_etag}):
-                    result = serve_cid_content(cid_record, f"/{cid}.txt")
+                    serve_cid_content(cid_record, f"/{cid}.txt")
                     
                     # Verify 304 response was created
                     mock_make_response.assert_called_once_with('', 304)

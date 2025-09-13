@@ -98,7 +98,7 @@ def show_cid_details(cid_path=None):
                 try:
                     preview_text = preview.decode('utf-8', errors='replace')
                     print(f"Preview: {repr(preview_text)}")
-                except:
+                except UnicodeDecodeError:
                     print(f"Preview (hex): {preview.hex()}")
         else:
             print("CID not found.")
