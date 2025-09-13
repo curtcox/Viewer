@@ -592,8 +592,14 @@ def execute_server_code(server, server_name):
             db.session.add(cid_record)
             db.session.commit()
         
-        # Redirect to the CID URL
-        return redirect(f"/{cid}")
+        # Get appropriate extension for the content type
+        extension = get_extension_from_mime_type(content_type)
+        
+        # Redirect to the CID URL with extension if available
+        if extension:
+            return redirect(f"/{cid}.{extension}")
+        else:
+            return redirect(f"/{cid}")
     except Exception as e:
         text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
         response = make_response(text)
@@ -605,59 +611,70 @@ def execute_server_code(server, server_name):
 # CID CONTENT SERVING HELPERS
 # ============================================================================
 
+# Shared MIME type and extension mappings
+EXTENSION_TO_MIME = {
+    'html': 'text/html',
+    'htm': 'text/html',
+    'txt': 'text/plain',
+    'css': 'text/css',
+    'js': 'application/javascript',
+    'json': 'application/json',
+    'xml': 'application/xml',
+    'pdf': 'application/pdf',
+    'zip': 'application/zip',
+    'tar': 'application/x-tar',
+    'gz': 'application/gzip',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'svg': 'image/svg+xml',
+    'webp': 'image/webp',
+    'ico': 'image/x-icon',
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'md': 'text/markdown',
+    'csv': 'text/csv',
+    'py': 'text/x-python',
+    'java': 'text/x-java-source',
+    'c': 'text/x-c',
+    'cpp': 'text/x-c++',
+    'h': 'text/x-c',
+    'hpp': 'text/x-c++',
+    'sh': 'application/x-sh',
+    'bat': 'application/x-msdos-program',
+    'exe': 'application/x-msdownload',
+    'dmg': 'application/x-apple-diskimage',
+    'deb': 'application/vnd.debian.binary-package',
+    'rpm': 'application/x-rpm'
+}
+
+# Create reverse mapping from MIME types to extensions
+MIME_TO_EXTENSION = {}
+for ext, mime in EXTENSION_TO_MIME.items():
+    if mime not in MIME_TO_EXTENSION:
+        # Use the first extension for each MIME type as the preferred one
+        MIME_TO_EXTENSION[mime] = ext
+
 def get_mime_type_from_extension(path):
     """Determine MIME type from file extension in URL path"""
     # Extract extension from path
     if '.' in path:
         extension = path.split('.')[-1].lower()
-        
-        # Common MIME type mappings
-        mime_types = {
-            'html': 'text/html',
-            'htm': 'text/html',
-            'txt': 'text/plain',
-            'css': 'text/css',
-            'js': 'application/javascript',
-            'json': 'application/json',
-            'xml': 'application/xml',
-            'pdf': 'application/pdf',
-            'zip': 'application/zip',
-            'tar': 'application/x-tar',
-            'gz': 'application/gzip',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'png': 'image/png',
-            'gif': 'image/gif',
-            'svg': 'image/svg+xml',
-            'webp': 'image/webp',
-            'ico': 'image/x-icon',
-            'mp3': 'audio/mpeg',
-            'wav': 'audio/wav',
-            'ogg': 'audio/ogg',
-            'mp4': 'video/mp4',
-            'webm': 'video/webm',
-            'avi': 'video/x-msvideo',
-            'mov': 'video/quicktime',
-            'md': 'text/markdown',
-            'csv': 'text/csv',
-            'py': 'text/x-python',
-            'java': 'text/x-java-source',
-            'c': 'text/x-c',
-            'cpp': 'text/x-c++',
-            'h': 'text/x-c',
-            'hpp': 'text/x-c++',
-            'sh': 'application/x-sh',
-            'bat': 'application/x-msdos-program',
-            'exe': 'application/x-msdownload',
-            'dmg': 'application/x-apple-diskimage',
-            'deb': 'application/vnd.debian.binary-package',
-            'rpm': 'application/x-rpm'
-        }
-        
-        return mime_types.get(extension, 'application/octet-stream')
-    
+        return EXTENSION_TO_MIME.get(extension, 'application/octet-stream')
     # No extension, return default
     return 'application/octet-stream'
+
+def get_extension_from_mime_type(content_type):
+    """Get file extension from MIME type"""
+    # Handle MIME types with parameters (e.g., "text/html; charset=utf-8")
+    base_mime = content_type.split(';')[0].strip().lower()
+    return MIME_TO_EXTENSION.get(base_mime, '')
 
 def serve_cid_content(cid_content, path):
     """Serve CID content with appropriate headers and caching"""
@@ -958,7 +975,9 @@ def not_found_error(error):
             return server_result
 
     # Look up the path in the CID table
-    cid_content = CID.query.filter_by(path=path).first()
+    # Strip extension for CID lookup since CIDs are stored without extensions
+    base_path = path.split('.')[0] if '.' in path else path
+    cid_content = CID.query.filter_by(path=base_path).first()
     if cid_content:
         result = serve_cid_content(cid_content, path)
         if result is not None:
