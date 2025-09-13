@@ -12,7 +12,6 @@ def test_server_cid_functionality():
     """Test that server definitions are saved as CIDs when created/updated"""
     
     # Use in-memory SQLite for testing
-    original_uri = app.config.get('SQLALCHEMY_DATABASE_URI')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     app.config['TESTING'] = True
     
