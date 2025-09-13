@@ -275,7 +275,7 @@ def test_echo1_integration():
         'servers': model_as_dict(servers)
     }
     
-    print(f"Echo1 would receive:")
+    print("Echo1 would receive:")
     print(f"  variables: {args['variables']}")
     print(f"  secrets: {args['secrets']}")
     print(f"  servers: {args['servers']}")
@@ -287,7 +287,7 @@ def test_echo1_integration():
     
     # Test string representation (what echo1 sees when it does str(args))
     args_str = str(args)
-    print(f"\nString representation (what echo1 sees):")
+    print("\nString representation (what echo1 sees):")
     print(args_str)
     
     # Verify actual data is visible in the string

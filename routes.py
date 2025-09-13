@@ -228,6 +228,24 @@ def create_cid_record(cid, file_content, user_id):
         uploaded_by_user_id=user_id  # Track who uploaded the file
     )
 
+def save_server_definition_as_cid(definition, user_id):
+    """Save server definition as CID and return the CID string"""
+    # Convert definition to bytes
+    definition_bytes = definition.encode('utf-8')
+    
+    # Generate CID for the definition
+    cid = generate_cid(definition_bytes)
+    
+    # Check if CID already exists to avoid duplicates
+    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    if not existing_cid:
+        # Create new CID record
+        cid_record = create_cid_record(cid, definition_bytes, user_id)
+        db.session.add(cid_record)
+        db.session.commit()
+    
+    return cid
+
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
@@ -762,11 +780,19 @@ def create_entity(model_class, form, user_id, entity_type):
         flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
         return False
     
-    entity = model_class(
-        name=form.name.data,
-        definition=form.definition.data,
-        user_id=user_id
-    )
+    # Create entity with basic fields
+    entity_data = {
+        'name': form.name.data,
+        'definition': form.definition.data,
+        'user_id': user_id
+    }
+    
+    # If this is a Server, save definition as CID
+    if model_class.__name__ == 'Server':
+        definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
+        entity_data['definition_cid'] = definition_cid
+    
+    entity = model_class(**entity_data)
     db.session.add(entity)
     db.session.commit()
     flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
@@ -780,9 +806,17 @@ def update_entity(entity, form, entity_type):
             flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
             return False
     
+    # If this is a Server and definition changed, save new definition as CID
+    if type(entity).__name__ == 'Server':
+        # Check if definition actually changed to avoid unnecessary CID generation
+        if form.definition.data != entity.definition:
+            definition_cid = save_server_definition_as_cid(form.definition.data, entity.user_id)
+            entity.definition_cid = definition_cid
+    
     entity.name = form.name.data
     entity.definition = form.definition.data
     entity.updated_at = datetime.now(timezone.utc)
+    
     db.session.commit()
     flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
     return True

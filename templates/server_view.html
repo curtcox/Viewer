@@ -81,6 +81,16 @@
                             {{ server.definition.split('\n')|length }} lines
                         </div>
                     </div>
+                    {% if server.definition_cid %}
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <strong>Definition CID:</strong><br>
+                            <a href="/{{ server.definition_cid }}.txt" target="_blank" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-external-link-alt me-1"></i>View as Text ({{ server.definition_cid }})
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
