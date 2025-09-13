@@ -338,6 +338,19 @@ def uploads():
     """Display user's uploaded files"""
     user_uploads = CID.query.filter_by(uploaded_by_user_id=current_user.id).order_by(CID.created_at.desc()).all()
 
+    # Add content preview to each upload
+    for upload in user_uploads:
+        if upload.file_data:
+            try:
+                # Try to decode as UTF-8 and get first 20 characters
+                content_text = upload.file_data.decode('utf-8', errors='replace')
+                upload.content_preview = content_text[:20].replace('\n', ' ').replace('\r', ' ')
+            except Exception:
+                # If decoding fails, show hex representation
+                upload.content_preview = upload.file_data[:10].hex()
+        else:
+            upload.content_preview = ""
+
     # Calculate total storage used
     total_storage = sum(upload.file_size or 0 for upload in user_uploads)
 

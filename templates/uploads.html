@@ -70,6 +70,7 @@
                                     <th>Size</th>
                                     <th>Uploaded</th>
                                     <th>CID</th>
+                                    <th>Content Preview</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -102,8 +103,11 @@
                                         <code class="small">{{ upload.path[1:] if upload.path.startswith('/') else upload.path }}</code>
                                     </td>
                                     <td>
+                                        <span class="text-muted small font-monospace">{{ upload.content_preview }}{% if upload.content_preview|length == 20 %}...{% endif %}</span>
+                                    </td>
+                                    <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="{{ upload.path }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <a href="{{ upload.path }}.txt" target="_blank" class="btn btn-outline-primary btn-sm">
                                                 <i class="fas fa-external-link-alt me-1"></i>View
                                             </a>
                                             <button class="btn btn-outline-secondary btn-sm" onclick="copyLink('{{ upload.path }}')">
