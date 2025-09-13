@@ -102,26 +102,11 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
     
-    @patch('routes.request')
     @patch('routes.user_variables')
     @patch('routes.user_secrets')
     @patch('routes.user_servers')
-    def test_build_request_args_with_model_objects(self, mock_user_servers, mock_user_secrets, mock_user_variables, mock_request):
+    def test_build_request_args_with_model_objects(self, mock_user_servers, mock_user_secrets, mock_user_variables):
         """Test that build_request_args includes model objects instead of serializable data"""
-        # Mock request object
-        mock_request.path = '/echo1'
-        mock_request.query_string.decode.return_value = ''
-        mock_request.remote_addr = '127.0.0.1'
-        mock_request.user_agent.string = 'test-agent'
-        mock_request.headers = {}
-        mock_request.form = {}
-        mock_request.args = {}
-        mock_request.endpoint = None
-        mock_request.blueprint = None
-        mock_request.scheme = 'http'
-        mock_request.host = 'localhost'
-        mock_request.environ = {}
-        
         # Mock variables and secrets to return model objects
         mock_var = Mock()
         mock_var.name = 'test_var'
@@ -135,30 +120,32 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         
         mock_user_servers.return_value = []
         
-        # Call build_request_args
-        args = build_request_args()
-        
-        # Check that variables and secrets are model objects
-        self.assertIsInstance(args['variables'], list)
-        self.assertIsInstance(args['secrets'], list)
-        
-        if args['variables']:
-            self.assertIsInstance(args['variables'][0], Mock)
-            print(f"Variables in args: {args['variables']}")
-            print(f"Type of first variable: {type(args['variables'][0])}")
-        
-        if args['secrets']:
-            self.assertIsInstance(args['secrets'][0], Mock)
-            print(f"Secrets in args: {args['secrets']}")
-            print(f"Type of first secret: {type(args['secrets'][0])}")
-        
-        # This demonstrates the problem: when str() is called on the args dict
-        # (as happens in the echo1 server), the model objects don't serialize properly
-        args_str = str(args)
-        print(f"String representation of args: {args_str}")
-        
-        # The variables and secrets will show as model object representations, not their actual data
-        self.assertIn('Mock', args_str)  # Model objects show up as Mock objects
+        # Use Flask test client to create proper request context
+        with self.app.test_client() as client:
+            with client.application.test_request_context('/echo1'):
+                # Call build_request_args within request context
+                args = build_request_args()
+                
+                # Check that variables and secrets are converted to dictionaries by model_as_dict
+                self.assertIsInstance(args['variables'], dict)
+                self.assertIsInstance(args['secrets'], dict)
+                
+                # Check that the dictionary contains the expected key-value pairs
+                self.assertEqual(args['variables']['test_var'], 'test_value')
+                self.assertEqual(args['secrets']['test_secret'], 'secret_value')
+                
+                print(f"Variables in args: {args['variables']}")
+                print(f"Secrets in args: {args['secrets']}")
+                
+                # This demonstrates that the data is properly serializable
+                args_str = str(args)
+                print(f"String representation of args: {args_str}")
+                
+                # The variables and secrets should show their actual data, not model representations
+                self.assertIn('test_var', args_str)
+                self.assertIn('test_value', args_str)
+                self.assertIn('test_secret', args_str)
+                self.assertIn('secret_value', args_str)
     
     def test_what_echo1_server_should_receive(self):
         """Test what the echo1 server should actually receive for variables and secrets"""
