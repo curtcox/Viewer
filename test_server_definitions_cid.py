@@ -1,8 +1,7 @@
-import os
 import unittest
 import json
 import sys
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 # Mock all dependencies before importing
 sys.modules['app'] = Mock()
@@ -32,7 +31,7 @@ sqlalchemy_mock = Mock()
 sys.modules['sqlalchemy'] = sqlalchemy_mock
 
 # Now import the functions we want to test
-from routes import (
+from routes import (  # noqa: E402
     generate_all_server_definitions_json,
     store_server_definitions_cid,
     get_current_server_definitions_cid,

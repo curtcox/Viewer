@@ -33,7 +33,7 @@ flask_login_mock = Mock()
 sys.modules['flask_login'] = flask_login_mock
 
 # Import the functions we want to test
-from routes import user_variables, user_secrets, build_request_args
+from routes import user_variables, user_secrets, build_request_args  # noqa: E402
 
 class TestVariablesSecretsIssue(unittest.TestCase):
     """Test cases to demonstrate the variables and secrets serialization issue"""

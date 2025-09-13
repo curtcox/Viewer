@@ -5,7 +5,7 @@ This test focuses on the path parsing logic without requiring the full Flask app
 """
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from datetime import datetime, timezone
 
 
@@ -124,7 +124,7 @@ def mock_serve_cid_content_with_disposition(cid_content, path):
         return None
 
     # Extract CID from path (remove leading slash)
-    cid = path[1:] if path.startswith('/') else path
+    # cid = path[1:] if path.startswith('/') else path  # Not used in this test
 
     # Mock response object
     response = Mock()

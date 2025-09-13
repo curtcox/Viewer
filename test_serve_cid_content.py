@@ -7,6 +7,33 @@ import os
 # Add the current directory to the path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Mock all the dependencies
+sys.modules['app'] = Mock()
+sys.modules['models'] = Mock()
+sys.modules['forms'] = Mock()
+sys.modules['auth_providers'] = Mock()
+sys.modules['text_function_runner'] = Mock()
+
+# Mock Flask imports
+flask_mock = Mock()
+flask_mock.render_template = Mock()
+flask_mock.flash = Mock()
+flask_mock.redirect = Mock()
+flask_mock.url_for = Mock()
+flask_mock.request = Mock()
+flask_mock.session = Mock()
+flask_mock.make_response = Mock()
+flask_mock.abort = Mock()
+sys.modules['flask'] = flask_mock
+
+# Mock flask_login
+flask_login_mock = Mock()
+sys.modules['flask_login'] = flask_login_mock
+
+# Now we can import the function we want to test
+from routes import serve_cid_content  # noqa: E402
+
+
 # Mock the Flask app and other dependencies before importing routes
 class MockApp:
     def __init__(self):
@@ -32,33 +59,6 @@ class MockRequestContext:
     def __exit__(self, *args):
         pass
 
-# Mock all the dependencies
-sys.modules['app'] = Mock()
-sys.modules['models'] = Mock()
-sys.modules['forms'] = Mock()
-sys.modules['auth_providers'] = Mock()
-sys.modules['text_function_runner'] = Mock()
-
-# Mock Flask imports
-from unittest.mock import Mock
-flask_mock = Mock()
-flask_mock.render_template = Mock()
-flask_mock.flash = Mock()
-flask_mock.redirect = Mock()
-flask_mock.url_for = Mock()
-flask_mock.request = Mock()
-flask_mock.session = Mock()
-flask_mock.make_response = Mock()
-flask_mock.abort = Mock()
-sys.modules['flask'] = flask_mock
-
-# Mock flask_login
-flask_login_mock = Mock()
-sys.modules['flask_login'] = flask_login_mock
-
-# Now we can import the function we want to test
-from routes import serve_cid_content
-
 
 class TestServeCidContent(unittest.TestCase):
     """Test suite for serve_cid_content function content disposition header behavior"""
@@ -83,7 +83,7 @@ class TestServeCidContent(unittest.TestCase):
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response
                 
-                result = serve_cid_content(self.mock_cid_content, path)
+                serve_cid_content(self.mock_cid_content, path)
                 
                 # Should not have Content-Disposition header
                 self.assertNotIn('Content-Disposition', mock_response.headers)
@@ -105,7 +105,7 @@ class TestServeCidContent(unittest.TestCase):
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
                         
-                        result = serve_cid_content(self.mock_cid_content, path)
+                        serve_cid_content(self.mock_cid_content, path)
                         
                         # Should not have Content-Disposition header
                         self.assertNotIn('Content-Disposition', mock_response.headers)
@@ -129,7 +129,7 @@ class TestServeCidContent(unittest.TestCase):
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
                         
-                        result = serve_cid_content(self.mock_cid_content, path)
+                        serve_cid_content(self.mock_cid_content, path)
                         
                         # Should have Content-Disposition header with correct filename
                         expected_header = f'attachment; filename="{expected_filename}"'
@@ -151,7 +151,7 @@ class TestServeCidContent(unittest.TestCase):
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
                         
-                        result = serve_cid_content(self.mock_cid_content, path)
+                        serve_cid_content(self.mock_cid_content, path)
                         
                         # Should have Content-Disposition header with correct filename
                         expected_header = f'attachment; filename="{expected_filename}"'
@@ -174,7 +174,7 @@ class TestServeCidContent(unittest.TestCase):
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
                         
-                        result = serve_cid_content(self.mock_cid_content, path)
+                        serve_cid_content(self.mock_cid_content, path)
                         
                         if expected_filename:
                             expected_header = f'attachment; filename="{expected_filename}"'
@@ -198,7 +198,7 @@ class TestServeCidContent(unittest.TestCase):
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
                         
-                        result = serve_cid_content(self.mock_cid_content, path)
+                        serve_cid_content(self.mock_cid_content, path)
                         
                         # Should have Content-Disposition header with correct filename
                         expected_header = f'attachment; filename="{expected_filename}"'
@@ -232,7 +232,7 @@ class TestServeCidContent(unittest.TestCase):
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response
                 
-                result = serve_cid_content(self.mock_cid_content, path)
+                serve_cid_content(self.mock_cid_content, path)
                 
                 # Should have caching headers
                 self.assertIn('ETag', mock_response.headers)
@@ -253,7 +253,7 @@ class TestServeCidContent(unittest.TestCase):
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response
                 
-                result = serve_cid_content(self.mock_cid_content, path)
+                serve_cid_content(self.mock_cid_content, path)
                 
                 # Should return 304 response
                 mock_make_response.assert_called_with('', 304)
