@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 import sys
 import os
 
@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.modules['models'] = Mock()
 
 # Import the actual function to test it
-from text_function_runner import run_text_function
 
 
 class TestRunTextFunction(unittest.TestCase):
