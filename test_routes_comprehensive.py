@@ -338,7 +338,6 @@ class TestFileUploadRoutes(BaseTestCase):
         cid_record = CID.query.filter_by(uploaded_by_user_id=self.test_user.id).first()
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
-        self.assertEqual(cid_record.filename, 'test.txt')
     
     def test_upload_duplicate_file(self):
         """Test uploading duplicate file."""
@@ -351,7 +350,6 @@ class TestFileUploadRoutes(BaseTestCase):
         existing_cid = CID(
             path=f"/{cid}",
             file_data=test_data,
-            filename='existing.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
         )
@@ -380,7 +378,6 @@ class TestFileUploadRoutes(BaseTestCase):
         test_cid = CID(
             path="/test_cid",
             file_data=b"test data",
-            filename='test.txt',
             file_size=9,
             uploaded_by_user_id=self.test_user.id
         )
@@ -707,7 +704,6 @@ class TestErrorHandlers(BaseTestCase):
         cid_content = CID(
             path="/test-cid-path",
             file_data=test_data,
-            filename='test.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
         )
@@ -727,7 +723,6 @@ class TestErrorHandlers(BaseTestCase):
         cid_content = CID(
             path=f"/{cid}",
             file_data=test_data,
-            filename='cached.txt',
             file_size=len(test_data),
             uploaded_by_user_id=self.test_user.id
         )
@@ -749,7 +744,6 @@ class TestErrorHandlers(BaseTestCase):
         cid_content = CID(
             path="/legacy-content",
             file_data=b"<h1>Legacy HTML</h1>",
-            filename="legacy.html",
             uploaded_by_user_id=self.test_user.id
         )
         db.session.add(cid_content)

@@ -117,7 +117,6 @@ class CID(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
     file_data = db.Column(db.LargeBinary, nullable=False)  # For actual file bytes
-    filename = db.Column(db.String(255), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
     uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

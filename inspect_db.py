@@ -2,7 +2,6 @@
 """
 Database inspection script for the Viewer application
 """
-import os
 import sys
 from datetime import datetime
 
@@ -10,7 +9,7 @@ from datetime import datetime
 sys.path.insert(0, '.')
 
 # Import Flask app and models
-from app import app, db
+from app import app
 from models import User, CID, PageView, Server, Variable, Secret, Payment, TermsAcceptance, Invitation
 
 def inspect_database():
@@ -88,7 +87,6 @@ def show_cid_details(cid_path=None):
         if cid:
             print(f"CID DETAILS: {cid.path}")
             print("-" * 40)
-            print(f"Filename: {cid.filename}")
             print(f"File Size: {cid.file_size} bytes")
             print(f"Created: {cid.created_at}")
             print(f"Uploaded by: {cid.uploaded_by_user_id}")

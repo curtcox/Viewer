@@ -5,7 +5,6 @@ from unittest.mock import patch, MagicMock
 from app import app, db
 from models import CID, User
 from routes import generate_cid, get_mime_type_from_extension, create_cid_record, serve_cid_content
-from flask import request
 
 
 class TestCIDFunctionality(unittest.TestCase):
@@ -142,20 +141,17 @@ class TestCIDFunctionality(unittest.TestCase):
         with self.app.app_context():
             test_user = self._create_test_user()
             file_content = b"Test file content for CID record"
-            filename = "test_file.txt"
             cid = generate_cid(file_content)
             
             # Create CID record
             cid_record = create_cid_record(
                 cid=cid,
                 file_content=file_content,
-                filename=filename,
                 user_id=test_user.id
             )
             # Verify record properties
             self.assertEqual(cid_record.path, f"/{cid}")
             self.assertEqual(cid_record.file_data, file_content)
-            self.assertEqual(cid_record.filename, filename)
             self.assertEqual(cid_record.file_size, len(file_content))
             self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
             
@@ -173,13 +169,11 @@ class TestCIDFunctionality(unittest.TestCase):
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"<html><body>Hello World</body></html>"
-                filename = "test.html"
                 cid = generate_cid(file_content)
                 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
-                    filename=filename,
                     file_size=len(file_content),
                     uploaded_by_user_id=test_user.id
                 )
@@ -212,13 +206,11 @@ class TestCIDFunctionality(unittest.TestCase):
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"Binary data content"
-                filename = "binary_file"
                 cid = generate_cid(file_content)
                 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
-                    filename=filename,
                     file_size=len(file_content),
                     uploaded_by_user_id=test_user.id
                 )
@@ -247,13 +239,11 @@ class TestCIDFunctionality(unittest.TestCase):
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"Test content for caching"
-                filename = "test.txt"
                 cid = generate_cid(file_content)
                 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
-                    filename=filename,
                     file_size=len(file_content),
                     uploaded_by_user_id=test_user.id
                 )
@@ -281,13 +271,11 @@ class TestCIDFunctionality(unittest.TestCase):
             with self.app.test_request_context(headers={'If-None-Match': '"test_etag"'}):
                 # Create test CID record
                 file_content = b"Cached content"
-                filename = "cached.txt"
                 cid = generate_cid(file_content)
                 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
-                    filename=filename,
                     file_size=len(file_content),
                     uploaded_by_user_id=test_user.id
                 )
@@ -313,13 +301,11 @@ class TestCIDFunctionality(unittest.TestCase):
             test_user = self._create_test_user()
             # Create a CID record
             file_content = b"Model test content"
-            filename = "model_test.txt"
             cid = generate_cid(file_content)
             
             cid_record = CID(
                 path=f"/{cid}",
                 file_data=file_content,
-                filename=filename,
                 file_size=len(file_content),
                 uploaded_by_user_id=test_user.id
             )
@@ -330,7 +316,6 @@ class TestCIDFunctionality(unittest.TestCase):
             self.assertIsNotNone(cid_record.id)
             self.assertEqual(cid_record.path, f"/{cid}")
             self.assertEqual(cid_record.file_data, file_content)
-            self.assertEqual(cid_record.filename, filename)
             self.assertEqual(cid_record.file_size, len(file_content))
             self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
             self.assertIsNotNone(cid_record.created_at)
@@ -357,7 +342,6 @@ class TestCIDFunctionality(unittest.TestCase):
                 cid_record = CID(
                     path="/bafybei123",
                     file_data=b"test content",  # Valid data initially
-                    filename="test.txt",
                     file_size=12,
                     uploaded_by_user_id=test_user.id
                 )

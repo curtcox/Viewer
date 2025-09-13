@@ -208,25 +208,22 @@ def generate_cid(file_data):
     return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
 
 def process_file_upload(form):
-    """Process file upload from form and return file content and filename"""
+    """Process file upload from form and return file content"""
     uploaded_file = form.file.data
     file_content = uploaded_file.read()
-    filename = uploaded_file.filename
-    return file_content, filename
+    return file_content
 
 def process_text_upload(form):
-    """Process text upload from form and return file content and filename"""
+    """Process text upload from form and return file content"""
     text_content = form.text_content.data
     file_content = text_content.encode('utf-8')
-    filename = form.filename.data
-    return file_content, filename
+    return file_content
 
-def create_cid_record(cid, file_content, filename, user_id):
+def create_cid_record(cid, file_content, user_id):
     """Create and return a CID record for the database"""
     return CID(
         path=f"/{cid}",
         file_data=file_content,  # Store the actual file bytes
-        filename=filename,
         file_size=len(file_content),
         uploaded_by_user_id=user_id  # Track who uploaded the file
     )
@@ -239,15 +236,15 @@ def upload():
 
     if form.validate_on_submit():
         if form.upload_type.data == 'file':
-            file_content, filename = process_file_upload(form)
+            file_content = process_file_upload(form)
         else:
-            file_content, filename = process_text_upload(form)
+            file_content = process_text_upload(form)
 
         # Generate IPFS-like CID
         cid = generate_cid(file_content)
 
         # Store actual file bytes and metadata in CID table
-        file_record = create_cid_record(cid, file_content, filename, current_user.id)
+        file_record = create_cid_record(cid, file_content, current_user.id)
 
         # Check if CID already exists
         existing = CID.query.filter_by(path=f"/{cid}").first()
@@ -260,7 +257,6 @@ def upload():
 
         return render_template('upload_success.html',
                              cid=cid,
-                             filename=filename,
                              file_size=len(file_content))
 
     return render_template('upload.html', form=form)
@@ -581,7 +577,6 @@ def execute_server_code(server, server_name):
         cid_record = CID(
             path=f"/{cid}",
             file_data=output_bytes,
-            filename=f"{server_name}_output",
             file_size=len(output_bytes),
             uploaded_by_user_id=current_user.id
         )
@@ -717,7 +712,7 @@ def serve_cid_content(cid_content, path):
 
     # Add content disposition header for downloads if it's not a web-displayable type
     if not content_type.startswith(('text/', 'image/', 'video/', 'audio/')):
-        response.headers['Content-Disposition'] = f'attachment; filename="{cid_content.filename}"'
+        response.headers['Content-Disposition'] = f'attachment; filename="{cid}"'
 
     return response
 

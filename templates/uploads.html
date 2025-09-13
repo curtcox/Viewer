@@ -67,9 +67,6 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>File Name</th>
-                                    <th>Title</th>
-                                    <th>Type</th>
                                     <th>Size</th>
                                     <th>Uploaded</th>
                                     <th>CID</th>
@@ -79,14 +76,6 @@
                             <tbody>
                                 {% for upload in uploads %}
                                 <tr>
-                                    <td>
-                                        <i class="fas fa-file me-2 text-muted"></i>
-                                        <strong>{{ upload.filename or 'Unknown' }}</strong>
-                                    </td>
-                                    <td>{{ upload.title or '-' }}</td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ upload.content_type }}</span>
-                                    </td>
                                     <td>
                                         {% if upload.file_size %}
                                             {% if upload.file_size < 1024 %}
