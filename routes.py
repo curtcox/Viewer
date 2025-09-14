@@ -296,6 +296,59 @@ def update_server_definitions_cid(user_id):
     """Update the server definitions CID after server changes"""
     return store_server_definitions_cid(user_id)
 
+# ============================================================================
+# VARIABLE DEFINITIONS CID HELPERS
+# ============================================================================
+
+def generate_all_variable_definitions_json(user_id):
+    """Generate JSON containing all variable definitions for a user"""
+    variables = Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
+
+    # Create dictionary with variable names as keys and definitions as values
+    variable_definitions = {}
+    for variable in variables:
+        variable_definitions[variable.name] = variable.definition
+
+    # Convert to JSON string
+    return json.dumps(variable_definitions, indent=2, sort_keys=True)
+
+def store_variable_definitions_cid(user_id):
+    """Store all variable definitions as JSON in a CID and return the CID path"""
+    json_content = generate_all_variable_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+
+    # Generate CID for the JSON content
+    cid = generate_cid(json_bytes)
+
+    # Check if CID already exists to avoid duplicates
+    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    if not existing_cid:
+        # Create new CID record
+        cid_record = create_cid_record(cid, json_bytes, user_id)
+        db.session.add(cid_record)
+        db.session.commit()
+
+    return cid
+
+def get_current_variable_definitions_cid(user_id):
+    """Get the CID path for the current variable definitions JSON"""
+    # Generate what the current CID should be based on current variables
+    json_content = generate_all_variable_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+    expected_cid = generate_cid(json_bytes)
+
+    # Check if this CID exists in the database
+    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    if existing_cid:
+        return expected_cid
+    else:
+        # If it doesn't exist, create it
+        return store_variable_definitions_cid(user_id)
+
+def update_variable_definitions_cid(user_id):
+    """Update the variable definitions CID after variable changes"""
+    return store_variable_definitions_cid(user_id)
+
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
@@ -565,7 +618,9 @@ def user_variables():
 @require_login
 def variables():
     """Display user's variables"""
-    return render_template('variables.html', variables=user_variables())
+    variables_list = user_variables()
+    variable_definitions_cid = get_current_variable_definitions_cid(current_user.id) if variables_list else None
+    return render_template('variables.html', variables=variables_list, variable_definitions_cid=variable_definitions_cid)
 
 @app.route('/variables/new', methods=['GET', 'POST'])
 @require_login
@@ -617,6 +672,10 @@ def delete_variable(variable_name):
 
     db.session.delete(variable)
     db.session.commit()
+    
+    # Update variable definitions CID after deletion
+    update_variable_definitions_cid(current_user.id)
+    
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
     return redirect(url_for('variables'))
 
@@ -890,9 +949,11 @@ def create_entity(model_class, form, user_id, entity_type):
     db.session.add(entity)
     db.session.commit()
 
-    # If this is a Server, update the server definitions CID
+    # Update the appropriate definitions CID
     if model_class.__name__ == 'Server':
         update_server_definitions_cid(user_id)
+    elif model_class.__name__ == 'Variable':
+        update_variable_definitions_cid(user_id)
 
     flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
     return True
@@ -918,9 +979,11 @@ def update_entity(entity, form, entity_type):
 
     db.session.commit()
 
-    # If this is a Server, update the server definitions CID
+    # Update the appropriate definitions CID
     if type(entity).__name__ == 'Server':
         update_server_definitions_cid(entity.user_id)
+    elif type(entity).__name__ == 'Variable':
+        update_variable_definitions_cid(entity.user_id)
 
     flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
     return True
