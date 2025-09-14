@@ -405,9 +405,35 @@ class TestInvitationRoutes(BaseTestCase):
     
     def test_create_invitation_post(self):
         """Test creating invitation."""
-        # Skip this test due to naming conflict between secrets module and secrets() route
-        # The functionality works in practice but is difficult to test due to the conflict
-        self.skipTest("Skipping due to naming conflict between secrets module and secrets() route")
+        self.login_user()
+        
+        # Test creating invitation with email
+        response = self.app.post('/create-invitation', data={
+            'email': 'invited@example.com',
+            'submit': 'Create Invitation'
+        })
+        
+        # Should redirect after successful creation
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify invitation was created in database
+        invitation = Invitation.query.filter_by(inviter_user_id=self.test_user.id).first()
+        self.assertIsNotNone(invitation)
+        self.assertEqual(invitation.email, 'invited@example.com')
+        self.assertEqual(invitation.status, 'pending')
+        self.assertIsNotNone(invitation.invitation_code)
+        
+        # Test creating invitation without email
+        response = self.app.post('/create-invitation', data={
+            'submit': 'Create Invitation'
+        })
+        
+        # Should redirect after successful creation
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify second invitation was created
+        invitations = Invitation.query.filter_by(inviter_user_id=self.test_user.id).all()
+        self.assertEqual(len(invitations), 2)
     
     def test_require_invitation_get(self):
         """Test require invitation page GET request."""

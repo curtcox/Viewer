@@ -5,7 +5,7 @@ from app import app, db
 from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
-from secrets import token_urlsafe
+from secrets import token_urlsafe as secrets_token_urlsafe
 import hashlib
 import base64
 from flask import make_response, abort
@@ -344,7 +344,7 @@ def create_invitation():
 
     if form.validate_on_submit():
         # Generate unique invitation code
-        invitation_code = token_urlsafe(16)
+        invitation_code = secrets_token_urlsafe(16)
 
         invitation = Invitation(
             inviter_user_id=current_user.id,

@@ -205,14 +205,20 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""
-        # Skip this test as it requires database session management
-        # and the models have proper defaults defined in their schema
-        self.skipTest("Skipping datetime defaults test to avoid database constraint issues")
+        # Create a test user first to satisfy foreign key constraints
+        test_user = User(
+            id='test_user_datetime',
+            email='datetime@example.com',
+            first_name='DateTime',
+            last_name='Test'
+        )
+        db.session.add(test_user)
+        db.session.commit()
 
         # Test Invitation model datetime defaults
         invitation = Invitation(
             invitation_code='TEST456',
-            inviter_user_id='test_user'
+            inviter_user_id=test_user.id
         )
         db.session.add(invitation)
         db.session.commit()
@@ -225,8 +231,10 @@ class TestModels(unittest.TestCase):
 
         # Test CID model datetime defaults
         cid = CID(
-            path='/test/path',
-            file_data=b'test content'
+            path='/test/path/datetime',
+            file_data=b'test content',
+            file_size=12,
+            uploaded_by_user_id=test_user.id
         )
         db.session.add(cid)
         db.session.commit()
@@ -239,7 +247,7 @@ class TestModels(unittest.TestCase):
 
         # Test PageView model datetime defaults
         page_view = PageView(
-            user_id='test_user',
+            user_id=test_user.id,
             path='/test',
             method='GET'
         )
@@ -254,9 +262,9 @@ class TestModels(unittest.TestCase):
 
         # Test Server model datetime defaults
         server = Server(
-            name='test_server',
+            name='test_server_datetime',
             definition='test definition',
-            user_id='test_user'
+            user_id=test_user.id
         )
         db.session.add(server)
         db.session.commit()
@@ -273,9 +281,9 @@ class TestModels(unittest.TestCase):
 
         # Test Variable model datetime defaults
         variable = Variable(
-            name='test_var',
+            name='test_var_datetime',
             definition='test value',
-            user_id='test_user'
+            user_id=test_user.id
         )
         db.session.add(variable)
         db.session.commit()
@@ -292,9 +300,9 @@ class TestModels(unittest.TestCase):
 
         # Test Secret model datetime defaults
         secret = Secret(
-            name='test_secret',
+            name='test_secret_datetime',
             definition='test secret value',
-            user_id='test_user'
+            user_id=test_user.id
         )
         db.session.add(secret)
         db.session.commit()
@@ -311,9 +319,88 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_onupdate_functionality(self):
         """Test that onupdate datetime fields work correctly."""
-        # Skip this test as it requires database session management
-        # and the models have proper onupdate defaults defined in their schema
-        self.skipTest("Skipping onupdate datetime test to avoid database constraint issues")
+        # Create a test user first to satisfy foreign key constraints
+        test_user = User(
+            id='test_user_onupdate',
+            email='onupdate@example.com',
+            first_name='OnUpdate',
+            last_name='Test'
+        )
+        db.session.add(test_user)
+        db.session.commit()
+
+        # Test Server model onupdate functionality
+        server = Server(
+            name='test_server_onupdate',
+            definition='initial definition',
+            user_id=test_user.id
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        # Store initial timestamps
+        initial_created_at = server.created_at
+        initial_updated_at = server.updated_at
+
+        # Wait a small amount to ensure timestamp difference
+        import time
+        time.sleep(0.1)
+
+        # Update the server
+        server.definition = 'updated definition'
+        db.session.commit()
+
+        # Verify that created_at didn't change but updated_at did
+        self.assertEqual(server.created_at, initial_created_at)
+        self.assertGreater(server.updated_at, initial_updated_at)
+
+        # Test Variable model onupdate functionality
+        variable = Variable(
+            name='test_var_onupdate',
+            definition='initial value',
+            user_id=test_user.id
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        # Store initial timestamps
+        initial_var_created_at = variable.created_at
+        initial_var_updated_at = variable.updated_at
+
+        # Wait a small amount to ensure timestamp difference
+        time.sleep(0.1)
+
+        # Update the variable
+        variable.definition = 'updated value'
+        db.session.commit()
+
+        # Verify that created_at didn't change but updated_at did
+        self.assertEqual(variable.created_at, initial_var_created_at)
+        self.assertGreater(variable.updated_at, initial_var_updated_at)
+
+        # Test Secret model onupdate functionality
+        secret = Secret(
+            name='test_secret_onupdate',
+            definition='initial secret',
+            user_id=test_user.id
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+        # Store initial timestamps
+        initial_secret_created_at = secret.created_at
+        initial_secret_updated_at = secret.updated_at
+
+        # Wait a small amount to ensure timestamp difference
+        time.sleep(0.1)
+
+        # Update the secret
+        secret.definition = 'updated secret'
+        db.session.commit()
+
+        # Verify that created_at didn't change but updated_at did
+        self.assertEqual(secret.created_at, initial_secret_created_at)
+        self.assertGreater(secret.updated_at, initial_secret_updated_at)
 
 
 if __name__ == '__main__':
