@@ -42,8 +42,18 @@ class TestAuthIntegration(unittest.TestCase):
 
     def test_auth_manager_detection_replit(self):
         """Test that auth manager detects Replit environment correctly."""
-        # Skip this test as it requires complex Replit environment setup
-        self.skipTest("Skipping Replit auth test due to complex environment requirements")
+        with patch.dict(os.environ, {
+            'REPL_ID': 'test-repl-123',
+            'REPL_OWNER': 'test-user',
+            'REPL_SLUG': 'test-project'
+        }):
+            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+                # Reset the active provider to force re-detection
+                auth_manager._active_provider = None
+                
+                provider = auth_manager.get_active_provider()
+                self.assertEqual(provider.get_provider_name(), "Replit")
+                self.assertTrue(auth_manager.is_authentication_available())
 
     def test_local_auth_flow(self):
         """Test complete local authentication flow."""
@@ -53,7 +63,7 @@ class TestAuthIntegration(unittest.TestCase):
 
             with self.app.test_client() as client:
                 # Test that login URL is correct (may be full URL due to app config)
-                with self.app.app_context():
+                with self.app.test_request_context('/'):
                     login_url = auth_manager.get_login_url()
                     self.assertIn('/auth/login', login_url)
 
@@ -165,13 +175,43 @@ class TestAuthProviderSwitching(unittest.TestCase):
 
     def test_switch_from_local_to_replit(self):
         """Test switching from local to Replit authentication."""
-        # Skip this test as it requires complex environment switching
-        self.skipTest("Skipping auth provider switching test due to complex environment requirements")
+        # Start with local environment (no REPL_ID)
+        with patch.dict(os.environ, {}, clear=True):
+            auth_manager._active_provider = None
+            local_provider = auth_manager.get_active_provider()
+            self.assertEqual(local_provider.get_provider_name(), "Local Development")
+        
+        # Switch to Replit environment
+        with patch.dict(os.environ, {
+            'REPL_ID': 'test-repl-456',
+            'REPL_OWNER': 'test-user-2',
+            'REPL_SLUG': 'test-project-2'
+        }):
+            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+                # Reset to force re-detection
+                auth_manager._active_provider = None
+                replit_provider = auth_manager.get_active_provider()
+                self.assertEqual(replit_provider.get_provider_name(), "Replit")
 
     def test_switch_from_replit_to_local(self):
         """Test switching from Replit to local authentication."""
-        # Skip this test as it requires complex environment switching
-        self.skipTest("Skipping auth provider switching test due to complex environment requirements")
+        # Start with Replit environment
+        with patch.dict(os.environ, {
+            'REPL_ID': 'test-repl-789',
+            'REPL_OWNER': 'test-user-3',
+            'REPL_SLUG': 'test-project-3'
+        }):
+            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+                auth_manager._active_provider = None
+                replit_provider = auth_manager.get_active_provider()
+                self.assertEqual(replit_provider.get_provider_name(), "Replit")
+        
+        # Switch to local environment (clear REPL_ID)
+        with patch.dict(os.environ, {}, clear=True):
+            # Reset to force re-detection
+            auth_manager._active_provider = None
+            local_provider = auth_manager.get_active_provider()
+            self.assertEqual(local_provider.get_provider_name(), "Local Development")
 
 
 class TestAuthErrorHandling(unittest.TestCase):
@@ -207,15 +247,15 @@ class TestAuthErrorHandling(unittest.TestCase):
 
     def test_invalid_login_url_when_no_provider(self):
         """Test that login URL handling works when no provider is available."""
-        with patch.dict(os.environ, {}, clear=True):
-            auth_manager._active_provider = None
-
-            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=False):
-                with patch.object(auth_manager.providers['local'], 'is_available', return_value=False):
-                    # This should not crash, but return a fallback URL
-                    with self.app.app_context():
-                        login_url = auth_manager.get_login_url()
-                        self.assertIn('/', login_url)  # May be full URL due to app config
+        with self.app.test_request_context('/'):
+            with patch('auth_providers.LocalAuthProvider.is_available', return_value=False):
+                with patch('auth_providers.ReplitAuthProvider.is_available', return_value=False):
+                    # Reset to force re-detection
+                    auth_manager._active_provider = None
+                    
+                    # Should fall back to index when no provider available
+                    login_url = auth_manager.get_login_url()
+                    self.assertIn('/', login_url)  # May be full URL due to app config
 
 
 if __name__ == '__main__':

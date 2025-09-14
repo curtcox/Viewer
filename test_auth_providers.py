@@ -283,6 +283,20 @@ class TestRequireLoginDecorator(unittest.TestCase):
         """Set up test environment."""
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'test-secret'
+        self.app.config['SERVER_NAME'] = 'localhost'
+        
+        # Initialize Flask-Login
+        from flask_login import LoginManager
+        self.login_manager = LoginManager()
+        self.login_manager.init_app(self.app)
+        
+        @self.login_manager.user_loader
+        def load_user(user_id):
+            return None  # Mock user loader
+        
+        # Register local_auth blueprint to provide the login endpoint
+        from local_auth import local_auth_bp
+        self.app.register_blueprint(local_auth_bp, url_prefix='/auth')
 
         @self.app.route('/test')
         @require_login
@@ -291,13 +305,38 @@ class TestRequireLoginDecorator(unittest.TestCase):
 
     def test_require_login_authenticated_user(self):
         """Test require_login with authenticated user."""
-        # Skip this test as it requires complex Flask-Login session management
-        self.skipTest("Skipping require_login test due to complex Flask-Login mocking requirements")
+        with self.app.test_request_context('/'):
+            with patch('auth_providers.current_user') as mock_current_user:
+                # Mock authenticated user
+                mock_current_user.is_authenticated = True
+                mock_current_user.id = 'test_user_123'
+                
+                # Create a test function that uses require_login
+                @require_login
+                def protected_function():
+                    return "success"
+                
+                # Test that the function executes normally for authenticated user
+                result = protected_function()
+                self.assertEqual(result, "success")
 
     def test_require_login_unauthenticated_user(self):
         """Test require_login with unauthenticated user."""
-        # Skip this test as it requires complex Flask-Login session management
-        self.skipTest("Skipping require_login test due to complex Flask-Login mocking requirements")
+        with self.app.test_request_context('/'):
+            with patch('auth_providers.current_user') as mock_current_user:
+                # Mock unauthenticated user
+                mock_current_user.is_authenticated = False
+                
+                # Create a test function that uses require_login
+                @require_login
+                def protected_function():
+                    return "success"
+                
+                # Test that the function returns a redirect response for unauthenticated user
+                result = protected_function()
+                # Should return a redirect response
+                self.assertEqual(result.status_code, 302)
+                self.assertIn('/auth/login', result.location)
 
 
 if __name__ == '__main__':
