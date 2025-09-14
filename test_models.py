@@ -11,7 +11,7 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
-from models import db, User, Invitation
+from models import db, User, Invitation, CID, PageView, Server, Variable, Secret
 
 
 class TestModels(unittest.TestCase):
