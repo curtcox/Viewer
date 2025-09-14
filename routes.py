@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from flask import render_template, flash, redirect, url_for, request, session
+from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
 from flask_login import current_user
 from app import app, db
 from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
@@ -8,7 +8,6 @@ from auth_providers import require_login, auth_manager, save_user_from_claims
 from secrets import token_urlsafe as secrets_token_urlsafe
 import hashlib
 import base64
-from flask import make_response, abort
 import traceback
 import json
 from text_function_runner import run_text_function
@@ -1305,6 +1304,34 @@ def settings():
     """Settings page with links to servers, variables, and secrets"""
     counts = get_user_settings_counts(current_user.id)
     return render_template('settings.html', **counts)
+
+@app.route('/meta/<cid>')
+def meta_cid(cid):
+    """Serve metadata about a CID as JSON"""
+    # Look up the CID in the database
+    cid_record = CID.query.filter_by(path=f"/{cid}").first()
+    
+    if not cid_record:
+        return jsonify({'error': 'CID not found'}), 404
+    
+    # Build metadata response
+    metadata = {
+        'cid': cid,
+        'path': cid_record.path,
+        'file_size': cid_record.file_size,
+        'created_at': cid_record.created_at.isoformat() if cid_record.created_at else None,
+        'uploaded_by_user_id': cid_record.uploaded_by_user_id
+    }
+    
+    # Add uploader information if available
+    if cid_record.uploaded_by:
+        metadata['uploaded_by'] = {
+            'user_id': cid_record.uploaded_by.id,
+            'username': cid_record.uploaded_by.username,
+            'email': cid_record.uploaded_by.email
+        }
+    
+    return jsonify(metadata)
 
 
 # ============================================================================
