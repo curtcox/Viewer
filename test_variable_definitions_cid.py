@@ -10,8 +10,7 @@ from routes import (
     generate_all_variable_definitions_json,
     store_variable_definitions_cid,
     get_current_variable_definitions_cid,
-    update_variable_definitions_cid,
-    generate_cid
+    update_variable_definitions_cid
 )
 
 class TestVariableDefinitionsCID(unittest.TestCase):

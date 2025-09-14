@@ -725,10 +725,10 @@ def delete_variable(variable_name):
 
     db.session.delete(variable)
     db.session.commit()
-    
+
     # Update variable definitions CID after deletion
     update_variable_definitions_cid(current_user.id)
-    
+
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
     return redirect(url_for('variables'))
 
@@ -757,7 +757,7 @@ def model_as_dict(model_objects):
 
 def build_request_args():
     """Build request arguments dictionary for server execution"""
-    return {
+    details = {
         'path': request.path,
         'query_string': request.query_string.decode('utf-8'),
         'remote_addr': request.remote_addr,
@@ -766,13 +766,19 @@ def build_request_args():
         'form_data': dict(request.form) if request.form else {},
         'args': dict(request.args) if request.args else {},
         'endpoint': request.endpoint,
-        'blueprint': request.blueprint,
         'scheme': request.scheme,
         'host': request.host,
+        'method': request.method,
         'environ': request.environ,
+    }
+    context = {
         'variables': model_as_dict(user_variables()),
         'secrets': model_as_dict(user_secrets()),
         'servers': model_as_dict(user_servers()),
+    }
+    return {
+        'request': details,
+        'context': context,
     }
 
 def execute_server_code(server, server_name):
@@ -896,31 +902,31 @@ def get_extension_from_mime_type(content_type):
 def extract_filename_from_cid_path(path):
     """
     Extract filename from CID path for content disposition header.
-    
+
     Rules:
     - /{CID} -> no filename (no content disposition)
-    - /{CID}.{ext} -> no filename (no content disposition) 
+    - /{CID}.{ext} -> no filename (no content disposition)
     - /{CID}.{filename}.{ext} -> filename = {filename}.{ext}
     """
     # Remove leading slash
     if path.startswith('/'):
         path = path[1:]
-    
+
     # Handle empty or invalid paths
     if not path or path in ['.', '..']:
         return None
-    
+
     # Split by dots
     parts = path.split('.')
-    
+
     # Need at least 3 parts for filename: CID.filename.ext
     if len(parts) < 3:
         return None
-    
+
     # First part is CID, rest form the filename
     filename_parts = parts[1:]
     filename = '.'.join(filename_parts)
-    
+
     return filename
 
 def serve_cid_content(cid_content, path):
@@ -1189,10 +1195,10 @@ def delete_secret(secret_name):
 
     db.session.delete(secret)
     db.session.commit()
-    
+
     # Update secret definitions CID after deletion
     update_secret_definitions_cid(current_user.id)
-    
+
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
     return redirect(url_for('secrets'))
 

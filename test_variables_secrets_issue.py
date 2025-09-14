@@ -149,13 +149,13 @@ class TestVariablesSecretsIssue(unittest.TestCase):
             # Call build_request_args
             args = build_request_args()
             
-            # Check that variables and secrets are included in args
-            self.assertIsInstance(args['variables'], dict)
-            self.assertIsInstance(args['secrets'], dict)
+            # Check that variables and secrets are included in args.context
+            self.assertIsInstance(args['context']['variables'], dict)
+            self.assertIsInstance(args['context']['secrets'], dict)
             
             # Check that the dictionary contains the expected key-value pairs
-            self.assertEqual(args['variables']['test_var'], 'test_value')
-            self.assertEqual(args['secrets']['test_secret'], 'secret_value')
+            self.assertEqual(args['context']['variables']['test_var'], 'test_value')
+            self.assertEqual(args['context']['secrets']['test_secret'], 'secret_value')
 
 
 if __name__ == '__main__':

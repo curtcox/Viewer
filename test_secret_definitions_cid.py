@@ -10,8 +10,7 @@ from routes import (
     generate_all_secret_definitions_json,
     store_secret_definitions_cid,
     get_current_secret_definitions_cid,
-    update_secret_definitions_cid,
-    generate_cid
+    update_secret_definitions_cid
 )
 
 class TestSecretDefinitionsCID(unittest.TestCase):
