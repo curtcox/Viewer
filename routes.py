@@ -220,6 +220,67 @@ def process_text_upload(form):
     file_content = text_content.encode('utf-8')
     return file_content
 
+def process_url_upload(form):
+    """Process URL upload from form by downloading content and return file content and MIME type"""
+    import requests
+    from urllib.parse import urlparse
+    
+    url = form.url.data.strip()
+    
+    try:
+        # Set reasonable timeout and headers
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, timeout=30, headers=headers, stream=True)
+        response.raise_for_status()
+        
+        # Get MIME type from response headers
+        content_type = response.headers.get('content-type', 'application/octet-stream')
+        # Clean up MIME type (remove charset and other parameters)
+        mime_type = content_type.split(';')[0].strip().lower()
+        
+        # Check content length to avoid downloading huge files
+        content_length = response.headers.get('content-length')
+        if content_length and int(content_length) > 100 * 1024 * 1024:  # 100MB limit
+            raise ValueError("File too large (>100MB)")
+        
+        # Download content in chunks to handle large files efficiently
+        file_content = b''
+        downloaded_size = 0
+        max_size = 100 * 1024 * 1024  # 100MB limit
+        
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                downloaded_size += len(chunk)
+                if downloaded_size > max_size:
+                    raise ValueError("File too large (>100MB)")
+                file_content += chunk
+        
+        # Auto-populate filename from URL and MIME type if not provided in title
+        if not form.title.data:
+            parsed_url = urlparse(url)
+            filename = parsed_url.path.split('/')[-1]
+            
+            # If no filename from URL or no extension, use MIME type to determine extension
+            if not filename or '.' not in filename:
+                extension = get_extension_from_mime_type(mime_type)
+                if extension:
+                    filename = f"download{extension}"
+                else:
+                    filename = "download"
+            
+            if filename:
+                form.title.data = filename
+        
+        return file_content, mime_type
+        
+    except requests.exceptions.RequestException as e:
+        raise ValueError(f"Failed to download from URL: {str(e)}")
+    except Exception as e:
+        raise ValueError(f"Error processing URL: {str(e)}")
+
 def create_cid_record(cid, file_content, user_id):
     """Create and return a CID record for the database"""
     return CID(
@@ -409,10 +470,17 @@ def upload():
     form = FileUploadForm()
 
     if form.validate_on_submit():
-        if form.upload_type.data == 'file':
-            file_content = process_file_upload(form)
-        else:
-            file_content = process_text_upload(form)
+        try:
+            detected_mime_type = None
+            if form.upload_type.data == 'file':
+                file_content = process_file_upload(form)
+            elif form.upload_type.data == 'text':
+                file_content = process_text_upload(form)
+            else:  # url upload
+                file_content, detected_mime_type = process_url_upload(form)
+        except ValueError as e:
+            flash(str(e), 'error')
+            return render_template('upload.html', form=form)
 
         # Generate IPFS-like CID
         cid = generate_cid(file_content)
@@ -429,9 +497,18 @@ def upload():
             db.session.commit()
             flash(f'Content uploaded successfully! CID: {cid}', 'success')
 
+        # Determine the appropriate file extension for the view URL
+        view_url_extension = ""
+        if detected_mime_type:
+            extension = get_extension_from_mime_type(detected_mime_type)
+            if extension:
+                view_url_extension = extension
+        
         return render_template('upload_success.html',
                              cid=cid,
-                             file_size=len(file_content))
+                             file_size=len(file_content),
+                             detected_mime_type=detected_mime_type,
+                             view_url_extension=view_url_extension)
 
     return render_template('upload.html', form=form)
 

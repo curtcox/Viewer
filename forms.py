@@ -18,11 +18,13 @@ class TermsAcceptanceForm(FlaskForm):
 class FileUploadForm(FlaskForm):
     upload_type = RadioField('Upload Method', choices=[
         ('file', 'Upload File'),
-        ('text', 'Paste Text')
+        ('text', 'Paste Text'),
+        ('url', 'Download from URL')
     ], default='file', validators=[DataRequired()])
     file = FileField('Choose File', validators=[Optional()])
     text_content = TextAreaField('Text Content', validators=[Optional()], render_kw={'rows': 10, 'placeholder': 'Paste your text content here...'})
     filename = StringField('Filename (for text uploads)', validators=[Optional()], render_kw={'placeholder': 'e.g., document.txt'})
+    url = StringField('URL', validators=[Optional()], render_kw={'placeholder': 'https://example.com/file.pdf'})
     content_type = StringField('Content Type', validators=[Optional()], render_kw={'placeholder': 'Auto-detected based on filename and content'})
     title = StringField('Title (optional)', validators=[Optional()])
     description = TextAreaField('Description (optional)', validators=[Optional()])
@@ -42,6 +44,15 @@ class FileUploadForm(FlaskForm):
                 return False
             if not self.filename.data or not self.filename.data.strip():
                 self.filename.errors.append('Filename is required when using text upload.')
+                return False
+        elif self.upload_type.data == 'url':
+            if not self.url.data or not self.url.data.strip():
+                self.url.errors.append('URL is required when using URL upload.')
+                return False
+            # Basic URL validation
+            url = self.url.data.strip()
+            if not (url.startswith('http://') or url.startswith('https://')):
+                self.url.errors.append('URL must start with http:// or https://')
                 return False
 
         return True

@@ -31,7 +31,7 @@
                                            {% if form.upload_type.data == value or (not form.upload_type.data and value == 'file') %}checked{% endif %}
                                            onchange="toggleUploadMethod()">
                                     <label class="btn btn-outline-primary" for="{{ form.upload_type.name }}_{{ value }}">
-                                        <i class="fas fa-{% if value == 'file' %}file-upload{% else %}edit{% endif %} me-2"></i>{{ label }}
+                                        <i class="fas fa-{% if value == 'file' %}file-upload{% elif value == 'text' %}edit{% else %}download{% endif %} me-2"></i>{{ label }}
                                     </label>
                                 {% endfor %}
                             </div>
@@ -111,6 +111,24 @@
                                 {% endif %}
                                 <small class="form-text text-muted">
                                     <span id="contentTypeStatus">Auto-detected based on filename and content</span>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- URL Upload Section -->
+                        <div id="urlUploadSection" class="upload-section" style="display: none;">
+                            <div class="mb-3">
+                                {{ form.url.label(class="form-label") }}
+                                {{ form.url(class="form-control", oninput="updateUrlFilename()") }}
+                                {% if form.url.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.url.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Enter the URL of the file you want to download and store. The file will be fetched and a unique IPFS CID will be generated.
                                 </small>
                             </div>
                         </div>
@@ -301,16 +319,24 @@ function resetContentType() {
 function toggleUploadMethod() {
     const fileRadio = document.getElementById('upload_type_file');
     const textRadio = document.getElementById('upload_type_text');
+    const urlRadio = document.getElementById('upload_type_url');
     const fileSection = document.getElementById('fileUploadSection');
     const textSection = document.getElementById('textUploadSection');
+    const urlSection = document.getElementById('urlUploadSection');
 
     if (fileRadio.checked) {
         fileSection.style.display = 'block';
         textSection.style.display = 'none';
+        urlSection.style.display = 'none';
     } else if (textRadio.checked) {
         fileSection.style.display = 'none';
         textSection.style.display = 'block';
+        urlSection.style.display = 'none';
         updateContentType(); // Update content type when switching to text mode
+    } else if (urlRadio.checked) {
+        fileSection.style.display = 'none';
+        textSection.style.display = 'none';
+        urlSection.style.display = 'block';
     }
 }
 
@@ -326,5 +352,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function updateUrlFilename() {
+    const urlField = document.querySelector('input[name="url"]');
+    if (!urlField) return;
+    
+    const url = urlField.value.trim();
+    if (!url) return;
+    
+    try {
+        const urlObj = new URL(url);
+        const pathname = urlObj.pathname;
+        const filename = pathname.split('/').pop();
+        
+        // If we have a filename with extension, auto-populate the title field
+        if (filename && filename.includes('.')) {
+            const titleField = document.querySelector('input[name="title"]');
+            if (titleField && !titleField.value) {
+                titleField.value = filename;
+            }
+        }
+    } catch (e) {
+        // Invalid URL, ignore
+    }
+}
 </script>
 {% endblock %}

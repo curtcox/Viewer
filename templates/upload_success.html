@@ -56,8 +56,8 @@
                             </h6>
                             <p>Your file is now accessible at the following URL and will be served with the correct MIME type:</p>
                             <div class="input-group">
-                                <input type="text" class="form-control" value="{{ request.url_root[:-1] }}/{{ cid }}" readonly>
-                                <a href="/{{ cid }}" class="btn btn-primary" target="_blank">
+                                <input type="text" class="form-control" value="{{ request.url_root[:-1] }}/{{ cid }}{% if view_url_extension %}.{{ view_url_extension }}{% endif %}" readonly>
+                                <a href="/{{ cid }}{% if view_url_extension %}.{{ view_url_extension }}{% endif %}" class="btn btn-primary" target="_blank">
                                     <i class="fas fa-external-link-alt me-1"></i>View/Download
                                 </a>
                             </div>
