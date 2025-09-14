@@ -209,10 +209,11 @@ def generate_cid(file_data):
     return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
 
 def process_file_upload(form):
-    """Process file upload from form and return file content"""
+    """Process file upload from form and return file content and filename"""
     uploaded_file = form.file.data
     file_content = uploaded_file.read()
-    return file_content
+    filename = uploaded_file.filename or 'upload'
+    return file_content, filename
 
 def process_text_upload(form):
     """Process text upload from form and return file content"""
@@ -258,21 +259,17 @@ def process_url_upload(form):
                     raise ValueError("File too large (>100MB)")
                 file_content += chunk
         
-        # Auto-populate filename from URL and MIME type if not provided in title
-        if not form.title.data:
-            parsed_url = urlparse(url)
-            filename = parsed_url.path.split('/')[-1]
-            
-            # If no filename from URL or no extension, use MIME type to determine extension
-            if not filename or '.' not in filename:
-                extension = get_extension_from_mime_type(mime_type)
-                if extension:
-                    filename = f"download{extension}"
-                else:
-                    filename = "download"
-            
-            if filename:
-                form.title.data = filename
+        # Extract filename from URL for potential future use
+        parsed_url = urlparse(url)
+        filename = parsed_url.path.split('/')[-1]
+        
+        # If no filename from URL or no extension, use MIME type to determine extension
+        if not filename or '.' not in filename:
+            extension = get_extension_from_mime_type(mime_type)
+            if extension:
+                filename = f"download{extension}"
+            else:
+                filename = "download"
         
         return file_content, mime_type
         
@@ -472,8 +469,10 @@ def upload():
     if form.validate_on_submit():
         try:
             detected_mime_type = None
+            original_filename = None
+            
             if form.upload_type.data == 'file':
-                file_content = process_file_upload(form)
+                file_content, original_filename = process_file_upload(form)
             elif form.upload_type.data == 'text':
                 file_content = process_text_upload(form)
             else:  # url upload
@@ -497,12 +496,21 @@ def upload():
             db.session.commit()
             flash(f'Content uploaded successfully! CID: {cid}', 'success')
 
-        # Determine the appropriate file extension for the view URL
+        # Determine the appropriate file extension for the view URL based on upload method
         view_url_extension = ""
-        if detected_mime_type:
+        
+        if form.upload_type.data == 'text':
+            # Pasted text always gets .txt extension
+            view_url_extension = "txt"
+        elif form.upload_type.data == 'file' and original_filename:
+            # File upload uses original file extension
+            if '.' in original_filename:
+                view_url_extension = original_filename.rsplit('.', 1)[1].lower()
+        elif detected_mime_type:
+            # URL upload uses MIME type detection
             extension = get_extension_from_mime_type(detected_mime_type)
             if extension:
-                view_url_extension = extension
+                view_url_extension = extension.lstrip('.')
         
         return render_template('upload_success.html',
                              cid=cid,
