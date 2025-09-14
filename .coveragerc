@@ -1,0 +1,72 @@
+[run]
+# Source code to analyze
+source = .
+
+# Omit files from coverage analysis
+omit = 
+    venv/*
+    */venv/*
+    .venv/*
+    */.venv/*
+    */site-packages/*
+    test_*.py
+    *test*.py
+    __pycache__/*
+    .git/*
+    .ruff_cache/*
+    migrations/*
+    */migrations/*
+
+# Include patterns
+include = 
+    *.py
+    app.py
+    main.py
+    routes.py
+    models.py
+    forms.py
+    auth_providers.py
+    local_auth.py
+    replit_auth.py
+    text_function_runner.py
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+    # Have to re-enable the standard pragma
+    pragma: no cover
+
+    # Don't complain about missing debug-only code:
+    def __repr__
+    if self\.debug
+
+    # Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+
+    # Don't complain about abstract methods
+    @(abc\.)?abstractmethod
+
+# Show missing line numbers in the report
+show_missing = True
+
+# Set minimum coverage percentage (optional)
+fail_under = 0
+
+# Skip covered files in report
+skip_covered = False
+
+# Precision for coverage percentage
+precision = 1
+
+[html]
+# Directory for HTML coverage report
+directory = htmlcov
+
+[xml]
+# Output file for XML coverage report
+output = coverage.xml
