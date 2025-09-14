@@ -65,23 +65,8 @@
                         <!-- Text Input Section -->
                         <div id="textUploadSection" class="upload-section" style="display: none;">
                             <div class="mb-3">
-                                {{ form.filename.label(class="form-label") }}
-                                {{ form.filename(class="form-control", oninput="updateContentType()") }}
-                                {% if form.filename.errors %}
-                                    <div class="text-danger mt-1">
-                                        {% for error in form.filename.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Enter a filename for your text content (e.g., document.txt, notes.md).
-                                </small>
-                            </div>
-
-                            <div class="mb-3">
                                 {{ form.text_content.label(class="form-label") }}
-                                {{ form.text_content(class="form-control", oninput="updateContentType()") }}
+                                {{ form.text_content(class="form-control") }}
                                 {% if form.text_content.errors %}
                                     <div class="text-danger mt-1">
                                         {% for error in form.text_content.errors %}
@@ -93,33 +78,13 @@
                                     Paste or type your text content here. A unique IPFS CID will be generated based on the content.
                                 </small>
                             </div>
-
-                            <div class="mb-3">
-                                {{ form.content_type.label(class="form-label") }}
-                                <div class="input-group">
-                                    {{ form.content_type(class="form-control", id="contentTypeField") }}
-                                    <button type="button" class="btn btn-outline-secondary" onclick="resetContentType()" title="Reset to auto-detected">
-                                        <i class="fas fa-refresh"></i>
-                                    </button>
-                                </div>
-                                {% if form.content_type.errors %}
-                                    <div class="text-danger mt-1">
-                                        {% for error in form.content_type.errors %}
-                                            <small>{{ error }}</small>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    <span id="contentTypeStatus">Auto-detected based on filename and content</span>
-                                </small>
-                            </div>
                         </div>
 
                         <!-- URL Upload Section -->
                         <div id="urlUploadSection" class="upload-section" style="display: none;">
                             <div class="mb-3">
                                 {{ form.url.label(class="form-label") }}
-                                {{ form.url(class="form-control", oninput="updateUrlFilename()") }}
+                                {{ form.url(class="form-control") }}
                                 {% if form.url.errors %}
                                     <div class="text-danger mt-1">
                                         {% for error in form.url.errors %}
@@ -133,30 +98,6 @@
                             </div>
                         </div>
 
-                        <!-- Common Fields -->
-                        <div class="mb-3">
-                            {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control", placeholder="Enter a custom title for this content") }}
-                            {% if form.title.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.title.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows="3", placeholder="Enter an optional description") }}
-                            {% if form.description.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.description.errors %}
-                                        <small>{{ error }}</small>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
 
                         <div class="d-flex gap-2">
                             {{ form.submit(class="btn btn-success") }}
@@ -176,146 +117,6 @@
 </div>
 
 <script>
-// Content type mappings based on file extensions
-const contentTypeMap = {
-    // Text formats
-    'txt': 'text/plain',
-    'md': 'text/markdown',
-    'markdown': 'text/markdown',
-    'html': 'text/html',
-    'htm': 'text/html',
-    'css': 'text/css',
-    'js': 'application/javascript',
-    'json': 'application/json',
-    'xml': 'application/xml',
-    'csv': 'text/csv',
-    'tsv': 'text/tab-separated-values',
-    'rtf': 'application/rtf',
-
-    // Programming languages
-    'py': 'text/x-python',
-    'java': 'text/x-java-source',
-    'c': 'text/x-c',
-    'cpp': 'text/x-c++',
-    'h': 'text/x-c',
-    'hpp': 'text/x-c++',
-    'php': 'text/x-php',
-    'rb': 'text/x-ruby',
-    'go': 'text/x-go',
-    'rs': 'text/x-rust',
-    'sh': 'text/x-shellscript',
-    'bash': 'text/x-shellscript',
-    'sql': 'text/x-sql',
-    'r': 'text/x-r',
-    'scala': 'text/x-scala',
-    'swift': 'text/x-swift',
-    'kt': 'text/x-kotlin',
-
-    // Config files
-    'yaml': 'text/yaml',
-    'yml': 'text/yaml',
-    'toml': 'text/x-toml',
-    'ini': 'text/plain',
-    'conf': 'text/plain',
-    'cfg': 'text/plain',
-
-    // Documentation
-    'tex': 'text/x-tex',
-    'latex': 'text/x-tex',
-    'org': 'text/org',
-    'rst': 'text/x-rst',
-    'asciidoc': 'text/asciidoc',
-    'adoc': 'text/asciidoc'
-};
-
-let userModifiedContentType = false;
-
-function detectContentTypeFromFilename(filename) {
-    if (!filename) return 'text/plain';
-
-    const extension = filename.split('.').pop().toLowerCase();
-    return contentTypeMap[extension] || 'text/plain';
-}
-
-function detectContentTypeFromContent(content) {
-    if (!content || content.trim() === '') return 'text/plain';
-
-    const trimmed = content.trim();
-
-    // Check for common patterns
-    if (trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html')) {
-        return 'text/html';
-    }
-    if (trimmed.startsWith('<?xml')) {
-        return 'application/xml';
-    }
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-        try {
-            JSON.parse(trimmed);
-            return 'application/json';
-        } catch (e) {
-            // Not valid JSON
-        }
-    }
-    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-            JSON.parse(trimmed);
-            return 'application/json';
-        } catch (e) {
-            // Not valid JSON
-        }
-    }
-    if (trimmed.includes('# ') || trimmed.includes('## ') || trimmed.includes('### ')) {
-        return 'text/markdown';
-    }
-    if (trimmed.includes('SELECT ') || trimmed.includes('INSERT ') || trimmed.includes('UPDATE ') || trimmed.includes('DELETE ')) {
-        return 'text/x-sql';
-    }
-
-    return 'text/plain';
-}
-
-function updateContentType() {
-    if (userModifiedContentType) return; // Don't override user changes
-
-    const filenameField = document.querySelector('input[name="filename"]');
-    const textContentField = document.querySelector('textarea[name="text_content"]');
-    const contentTypeField = document.getElementById('contentTypeField');
-    const statusSpan = document.getElementById('contentTypeStatus');
-
-    if (!filenameField || !textContentField || !contentTypeField) return;
-
-    const filename = filenameField.value;
-    const content = textContentField.value;
-
-    // Detect from filename first, then from content
-    let detectedType = detectContentTypeFromFilename(filename);
-    if (detectedType === 'text/plain' && content) {
-        const contentBasedType = detectContentTypeFromContent(content);
-        if (contentBasedType !== 'text/plain') {
-            detectedType = contentBasedType;
-        }
-    }
-
-    contentTypeField.value = detectedType;
-
-    // Update status message
-    if (filename && content) {
-        statusSpan.textContent = `Auto-detected from filename and content: ${detectedType}`;
-    } else if (filename) {
-        statusSpan.textContent = `Auto-detected from filename: ${detectedType}`;
-    } else if (content) {
-        statusSpan.textContent = `Auto-detected from content: ${detectedType}`;
-    } else {
-        statusSpan.textContent = 'Auto-detected based on filename and content';
-    }
-}
-
-function resetContentType() {
-    userModifiedContentType = false;
-    updateContentType();
-}
-
 function toggleUploadMethod() {
     const fileRadio = document.getElementById('upload_type_file');
     const textRadio = document.getElementById('upload_type_text');
@@ -332,7 +133,6 @@ function toggleUploadMethod() {
         fileSection.style.display = 'none';
         textSection.style.display = 'block';
         urlSection.style.display = 'none';
-        updateContentType(); // Update content type when switching to text mode
     } else if (urlRadio.checked) {
         fileSection.style.display = 'none';
         textSection.style.display = 'none';
@@ -343,38 +143,6 @@ function toggleUploadMethod() {
 // Initialize the correct section on page load
 document.addEventListener('DOMContentLoaded', function() {
     toggleUploadMethod();
-
-    // Track manual changes to content type field
-    const contentTypeField = document.getElementById('contentTypeField');
-    if (contentTypeField) {
-        contentTypeField.addEventListener('input', function() {
-            userModifiedContentType = true;
-        });
-    }
 });
-
-function updateUrlFilename() {
-    const urlField = document.querySelector('input[name="url"]');
-    if (!urlField) return;
-    
-    const url = urlField.value.trim();
-    if (!url) return;
-    
-    try {
-        const urlObj = new URL(url);
-        const pathname = urlObj.pathname;
-        const filename = pathname.split('/').pop();
-        
-        // If we have a filename with extension, auto-populate the title field
-        if (filename && filename.includes('.')) {
-            const titleField = document.querySelector('input[name="title"]');
-            if (titleField && !titleField.value) {
-                titleField.value = filename;
-            }
-        }
-    } catch (e) {
-        // Invalid URL, ignore
-    }
-}
 </script>
 {% endblock %}

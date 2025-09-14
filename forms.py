@@ -23,11 +23,7 @@ class FileUploadForm(FlaskForm):
     ], default='file', validators=[DataRequired()])
     file = FileField('Choose File', validators=[Optional()])
     text_content = TextAreaField('Text Content', validators=[Optional()], render_kw={'rows': 10, 'placeholder': 'Paste your text content here...'})
-    filename = StringField('Filename (for text uploads)', validators=[Optional()], render_kw={'placeholder': 'e.g., document.txt'})
     url = StringField('URL', validators=[Optional()], render_kw={'placeholder': 'https://example.com/file.pdf'})
-    content_type = StringField('Content Type', validators=[Optional()], render_kw={'placeholder': 'Auto-detected based on filename and content'})
-    title = StringField('Title (optional)', validators=[Optional()])
-    description = TextAreaField('Description (optional)', validators=[Optional()])
     submit = SubmitField('Upload')
 
     def validate(self, extra_validators=None):
@@ -41,9 +37,6 @@ class FileUploadForm(FlaskForm):
         elif self.upload_type.data == 'text':
             if not self.text_content.data or not self.text_content.data.strip():
                 self.text_content.errors.append('Text content is required when using text upload.')
-                return False
-            if not self.filename.data or not self.filename.data.strip():
-                self.filename.errors.append('Filename is required when using text upload.')
                 return False
         elif self.upload_type.data == 'url':
             if not self.url.data or not self.url.data.strip():
