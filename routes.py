@@ -349,6 +349,59 @@ def update_variable_definitions_cid(user_id):
     """Update the variable definitions CID after variable changes"""
     return store_variable_definitions_cid(user_id)
 
+# ============================================================================
+# SECRET DEFINITIONS CID HELPERS
+# ============================================================================
+
+def generate_all_secret_definitions_json(user_id):
+    """Generate JSON containing all secret definitions for a user"""
+    secrets = Secret.query.filter_by(user_id=user_id).order_by(Secret.name).all()
+
+    # Create dictionary with secret names as keys and definitions as values
+    secret_definitions = {}
+    for secret in secrets:
+        secret_definitions[secret.name] = secret.definition
+
+    # Convert to JSON string
+    return json.dumps(secret_definitions, indent=2, sort_keys=True)
+
+def store_secret_definitions_cid(user_id):
+    """Store all secret definitions as JSON in a CID and return the CID path"""
+    json_content = generate_all_secret_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+
+    # Generate CID for the JSON content
+    cid = generate_cid(json_bytes)
+
+    # Check if CID already exists to avoid duplicates
+    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    if not existing_cid:
+        # Create new CID record
+        cid_record = create_cid_record(cid, json_bytes, user_id)
+        db.session.add(cid_record)
+        db.session.commit()
+
+    return cid
+
+def get_current_secret_definitions_cid(user_id):
+    """Get the CID path for the current secret definitions JSON"""
+    # Generate what the current CID should be based on current secrets
+    json_content = generate_all_secret_definitions_json(user_id)
+    json_bytes = json_content.encode('utf-8')
+    expected_cid = generate_cid(json_bytes)
+
+    # Check if this CID exists in the database
+    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    if existing_cid:
+        return expected_cid
+    else:
+        # If it doesn't exist, create it
+        return store_secret_definitions_cid(user_id)
+
+def update_secret_definitions_cid(user_id):
+    """Update the secret definitions CID after secret changes"""
+    return store_secret_definitions_cid(user_id)
+
 @app.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
@@ -954,6 +1007,8 @@ def create_entity(model_class, form, user_id, entity_type):
         update_server_definitions_cid(user_id)
     elif model_class.__name__ == 'Variable':
         update_variable_definitions_cid(user_id)
+    elif model_class.__name__ == 'Secret':
+        update_secret_definitions_cid(user_id)
 
     flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
     return True
@@ -984,6 +1039,8 @@ def update_entity(entity, form, entity_type):
         update_server_definitions_cid(entity.user_id)
     elif type(entity).__name__ == 'Variable':
         update_variable_definitions_cid(entity.user_id)
+    elif type(entity).__name__ == 'Secret':
+        update_secret_definitions_cid(entity.user_id)
 
     flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
     return True
@@ -1078,7 +1135,9 @@ def create_terms_acceptance_record(user_id):
 @require_login
 def secrets():
     """Display user's secrets"""
-    return render_template('secrets.html', secrets=user_secrets())
+    secrets_list = user_secrets()
+    secret_definitions_cid = get_current_secret_definitions_cid(current_user.id) if secrets_list else None
+    return render_template('secrets.html', secrets=secrets_list, secret_definitions_cid=secret_definitions_cid)
 
 @app.route('/secrets/new', methods=['GET', 'POST'])
 @require_login
@@ -1130,6 +1189,10 @@ def delete_secret(secret_name):
 
     db.session.delete(secret)
     db.session.commit()
+    
+    # Update secret definitions CID after deletion
+    update_secret_definitions_cid(current_user.id)
+    
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
     return redirect(url_for('secrets'))
 
