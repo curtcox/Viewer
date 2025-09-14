@@ -1,10 +1,31 @@
 #!/usr/bin/env python3
 """
 Test runner for all authentication system tests.
+
+These auth tests are segregated from the main test suite due to Flask-Login
+initialization conflicts when running alongside other tests. They must be
+run separately using this dedicated runner.
 """
 import os
 import sys
 import unittest
+from pathlib import Path
+
+# Activate virtual environment if it exists
+venv_path = Path(__file__).parent / 'venv'
+if venv_path.exists():
+    # Add venv to Python path - try multiple Python versions
+    python_versions = ['python3.12', 'python3.11', 'python3.10', 'python3.9']
+    for py_version in python_versions:
+        venv_site_packages = venv_path / 'lib' / py_version / 'site-packages'
+        if venv_site_packages.exists():
+            sys.path.insert(0, str(venv_site_packages))
+            break
+    
+    # Also add the venv bin directory for any executables
+    venv_bin = venv_path / 'bin'
+    if venv_bin.exists():
+        os.environ['PATH'] = str(venv_bin) + ':' + os.environ.get('PATH', '')
 
 # Set up environment for testing
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -13,6 +34,9 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 
 def run_tests():
     """Run all authentication tests."""
+    print("🔐 Running segregated authentication test suite...\n")
+    print("📝 These tests are separated from the main test suite due to Flask-Login conflicts.\n")
+    
     # Create test suite
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()

@@ -12,10 +12,18 @@ from pathlib import Path
 # Activate virtual environment if it exists
 venv_path = Path(__file__).parent / 'venv'
 if venv_path.exists():
-    # Add venv to Python path
-    venv_site_packages = venv_path / 'lib' / 'python3.12' / 'site-packages'
-    if venv_site_packages.exists():
-        sys.path.insert(0, str(venv_site_packages))
+    # Add venv to Python path - try multiple Python versions
+    python_versions = ['python3.12', 'python3.11', 'python3.10', 'python3.9']
+    for py_version in python_versions:
+        venv_site_packages = venv_path / 'lib' / py_version / 'site-packages'
+        if venv_site_packages.exists():
+            sys.path.insert(0, str(venv_site_packages))
+            break
+    
+    # Also add the venv bin directory for any executables
+    venv_bin = venv_path / 'bin'
+    if venv_bin.exists():
+        os.environ['PATH'] = str(venv_bin) + ':' + os.environ.get('PATH', '')
 
 # Set up environment for testing
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -27,10 +35,20 @@ def discover_test_files():
     test_files = []
     project_root = Path(__file__).parent
 
+    # Auth tests that should only run with run_auth_tests.py due to Flask-Login conflicts
+    auth_only_tests = {
+        'test_auth_integration',
+        'test_auth_providers', 
+        'test_local_auth',
+        'test_auth_templates'
+    }
+
     # Find all test_*.py files
     for test_file in project_root.glob('test_*.py'):
         if test_file.name != 'test':  # Don't include this script itself
-            test_files.append(test_file.stem)
+            # Skip auth-only tests that have Flask-Login conflicts
+            if test_file.stem not in auth_only_tests:
+                test_files.append(test_file.stem)
 
     return sorted(test_files)
 
@@ -48,6 +66,11 @@ def run_tests():
     print(f"📋 Found {len(test_files)} test files:")
     for test_file in test_files:
         print(f"   - {test_file}.py")
+    
+    print(f"\n📝 Note: Auth tests are segregated and run separately with run_auth_tests.py:")
+    auth_tests = ['test_auth_integration', 'test_auth_providers', 'test_local_auth', 'test_auth_templates']
+    for auth_test in auth_tests:
+        print(f"   - {auth_test}.py")
     print()
 
     # Create test suite
