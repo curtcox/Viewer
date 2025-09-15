@@ -3,6 +3,7 @@ from flask import render_template, flash, redirect, url_for, request, session, j
 from flask_login import current_user
 from app import app, db
 from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, ServerInvocation, CURRENT_TERMS_VERSION
+from db_access import log_page_view, save_invitation
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
 from secrets import token_urlsafe as secrets_token_urlsafe
@@ -60,14 +61,13 @@ def create_page_view_record():
 @app.after_request
 def track_page_view(response):
     """Track page views for authenticated users"""
-    try:
-        if should_track_page_view(response):
+    if should_track_page_view(response):
+        try:
             page_view = create_page_view_record()
-            db.session.add(page_view)
-            db.session.commit()
-    except Exception:
-        # Don't let tracking errors break the request
-        db.session.rollback()
+            log_page_view(page_view)
+        except Exception:
+            # Don't let tracking errors break the request
+            pass
 
     return response
 
@@ -537,8 +537,7 @@ def create_invitation():
             email=form.email.data if form.email.data else None
         )
 
-        db.session.add(invitation)
-        db.session.commit()
+        save_invitation(invitation)
 
         flash(f'Invitation created! Code: {invitation_code}', 'success')
         return redirect(url_for('invitations'))
