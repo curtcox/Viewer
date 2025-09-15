@@ -61,24 +61,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         """Clean up after tests"""
         pass
 
-    @patch('routes.Server')
-    def test_generate_all_server_definitions_json(self, mock_server_class):
+    @patch('routes.get_user_servers')
+    def test_generate_all_server_definitions_json(self, mock_get_servers):
         """Test generating JSON of all server definitions for a user"""
-        # Mock the full query chain: Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
-        mock_all = Mock()
-        mock_all.all.return_value = [self.mock_server1, self.mock_server2]
-        
-        mock_order_by = Mock()
-        mock_order_by.return_value = mock_all
-        
-        mock_filter_by = Mock()
-        mock_filter_by.order_by = mock_order_by
-        
-        mock_query = Mock()
-        mock_query.filter_by.return_value = mock_filter_by
-        
-        mock_server_class.query = mock_query
-        mock_server_class.name = Mock()  # For order_by
+        mock_get_servers.return_value = [self.mock_server1, self.mock_server2]
         
         json_data = generate_all_server_definitions_json('test_user_123')
         
@@ -96,24 +82,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be valid JSON
         self.assertIsInstance(data, dict)
 
-    @patch('routes.Server')
-    def test_generate_all_server_definitions_json_empty(self, mock_server_class):
+    @patch('routes.get_user_servers')
+    def test_generate_all_server_definitions_json_empty(self, mock_get_servers):
         """Test generating JSON when user has no servers"""
-        # Mock the full query chain for empty result
-        mock_all = Mock()
-        mock_all.all.return_value = []
-        
-        mock_order_by = Mock()
-        mock_order_by.return_value = mock_all
-        
-        mock_filter_by = Mock()
-        mock_filter_by.order_by = mock_order_by
-        
-        mock_query = Mock()
-        mock_query.filter_by.return_value = mock_filter_by
-        
-        mock_server_class.query = mock_query
-        mock_server_class.name = Mock()  # For order_by
+        mock_get_servers.return_value = []
         
         json_data = generate_all_server_definitions_json('empty_user_123')
         data = json.loads(json_data)
@@ -121,22 +93,21 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be empty dict
         self.assertEqual(data, {})
 
+    @patch('routes.create_cid_record')
+    @patch('routes.get_cid_by_path')
     @patch('routes.generate_cid')
-    @patch('routes.CID')
-    @patch('routes.db')
     @patch('routes.generate_all_server_definitions_json')
-    def test_store_server_definitions_cid(self, mock_json_gen, mock_db, mock_cid_class, mock_generate_cid):
+    def test_store_server_definitions_cid(self, mock_json_gen, mock_generate_cid, mock_get_cid, mock_create_cid):
         """Test storing server definitions JSON as CID"""
         # Mock the JSON generation
         mock_json_gen.return_value = '{"hello_world": "print(\\"Hello World\\")"}'
-        
+
         # Mock CID generation
         mock_generate_cid.return_value = 'bafybeihelloworld123456789012345678901234567890123456'
-        
-        # Mock CID creation
-        mock_cid_instance = Mock()
-        mock_cid_class.return_value = mock_cid_instance
-        
+
+        mock_get_cid.return_value = None
+        mock_create_cid.return_value = Mock()
+
         cid_path = store_server_definitions_cid('test_user_123')
         
         # Should return a CID path
@@ -145,21 +116,18 @@ class TestServerDefinitionsCID(unittest.TestCase):
 
     @patch('routes.generate_all_server_definitions_json')
     @patch('routes.store_server_definitions_cid')
-    @patch('routes.CID')
+    @patch('routes.get_cid_by_path')
     @patch('routes.generate_cid')
-    def test_get_current_server_definitions_cid(self, mock_generate_cid, mock_cid_class, mock_store_cid, mock_generate_json):
+    def test_get_current_server_definitions_cid(self, mock_generate_cid, mock_get_cid, mock_store_cid, mock_generate_json):
         """Test retrieving current server definitions CID"""
         # Mock the JSON generation
         mock_generate_json.return_value = '{"test": "data"}'
-        
+
         # Mock generate_cid to return a predictable CID
         mock_generate_cid.return_value = 'test_cid_123'
-        
+
         # Mock CID query to return existing CID
-        mock_existing_cid = Mock()
-        mock_cid_query = Mock()
-        mock_cid_query.filter_by.return_value.first.return_value = mock_existing_cid
-        mock_cid_class.query = mock_cid_query
+        mock_get_cid.return_value = Mock()
         
         cid_path = get_current_server_definitions_cid('test_user_123')
         self.assertIsNotNone(cid_path)

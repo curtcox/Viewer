@@ -2,7 +2,28 @@ from datetime import datetime, timedelta, timezone
 from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
 from flask_login import current_user
 from app import app, db
-from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, ServerInvocation, CURRENT_TERMS_VERSION
+from models import Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from db_access import (
+    get_user_profile_data,
+    create_payment_record,
+    create_terms_acceptance_record,
+    validate_invitation_code,
+    get_user_servers,
+    get_server_by_name,
+    get_user_variables,
+    get_variable_by_name,
+    get_user_secrets,
+    get_secret_by_name,
+    count_user_servers,
+    count_user_variables,
+    count_user_secrets,
+    save_entity,
+    delete_entity,
+    create_server_invocation,
+    get_cid_by_path,
+    create_cid_record,
+    get_user_uploads,
+)
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
 from secrets import token_urlsafe as secrets_token_urlsafe
@@ -86,30 +107,6 @@ def dashboard():
         return redirect(url_for('content'))
     return redirect(url_for('profile'))
 
-# ============================================================================
-# PROFILE DATA HELPERS
-# ============================================================================
-
-def get_user_profile_data(user_id):
-    """Gather all profile-related data for a user"""
-    payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.payment_date.desc()).all()
-    terms_history = TermsAcceptance.query.filter_by(user_id=user_id).order_by(TermsAcceptance.accepted_at.desc()).all()
-
-    # Check if user needs to accept current terms
-    current_terms_accepted = TermsAcceptance.query.filter_by(
-        user_id=user_id,
-        terms_version=CURRENT_TERMS_VERSION
-    ).first()
-
-    needs_terms_acceptance = current_terms_accepted is None
-
-    return {
-        'payments': payments,
-        'terms_history': terms_history,
-        'needs_terms_acceptance': needs_terms_acceptance,
-        'current_terms_version': CURRENT_TERMS_VERSION
-    }
-
 @app.route('/profile')
 @require_login
 def profile():
@@ -131,9 +128,7 @@ def subscribe():
         plan = form.plan.data
         amount = plan_prices.get(plan, 0.00)
 
-        payment = create_payment_record(plan, amount, current_user.id)
-        db.session.add(payment)
-        db.session.commit()
+        create_payment_record(plan, amount, current_user)
 
         flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
         return redirect(url_for('profile'))
@@ -146,21 +141,13 @@ def accept_terms():
     """Handle terms and conditions acceptance"""
     form = TermsAcceptanceForm()
     if form.validate_on_submit():
-        # Check if user already accepted current terms
-        existing = TermsAcceptance.query.filter_by(
-            user_id=current_user.id,
-            terms_version=CURRENT_TERMS_VERSION
-        ).first()
-
-        if not existing:
-            terms_acceptance = create_terms_acceptance_record(current_user.id)
-            current_user.current_terms_accepted = True
-
-            db.session.add(terms_acceptance)
-            db.session.commit()
-
+        profile_data = get_user_profile_data(current_user.id)
+        if profile_data['needs_terms_acceptance']:
+            create_terms_acceptance_record(
+                current_user,
+                request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
+            )
             flash('Terms and conditions accepted successfully!', 'success')
-
         return redirect(url_for('profile'))
 
     return render_template('accept_terms.html', form=form, terms_version=CURRENT_TERMS_VERSION)
@@ -276,16 +263,6 @@ def process_url_upload(form):
         raise ValueError(f"Failed to download from URL: {str(e)}")
     except Exception as e:
         raise ValueError(f"Error processing URL: {str(e)}")
-
-def create_cid_record(cid, file_content, user_id):
-    """Create and return a CID record for the database"""
-    return CID(
-        path=f"/{cid}",
-        file_data=file_content,  # Store the actual file bytes
-        file_size=len(file_content),
-        uploaded_by_user_id=user_id  # Track who uploaded the file
-    )
-
 def save_server_definition_as_cid(definition, user_id):
     """Save server definition as CID and return the CID string"""
     # Convert definition to bytes
@@ -295,12 +272,9 @@ def save_server_definition_as_cid(definition, user_id):
     cid = generate_cid(definition_bytes)
 
     # Check if CID already exists to avoid duplicates
-    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    existing_cid = get_cid_by_path(f"/{cid}")
     if not existing_cid:
-        # Create new CID record
-        cid_record = create_cid_record(cid, definition_bytes, user_id)
-        db.session.add(cid_record)
-        db.session.commit()
+        create_cid_record(cid, definition_bytes, user_id)
 
     return cid
 
@@ -310,7 +284,7 @@ def save_server_definition_as_cid(definition, user_id):
 
 def generate_all_server_definitions_json(user_id):
     """Generate JSON containing all server definitions for a user"""
-    servers = Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
+    servers = get_user_servers(user_id)
 
     # Create dictionary with server names as keys and definitions as values
     server_definitions = {}
@@ -320,12 +294,6 @@ def generate_all_server_definitions_json(user_id):
     # Convert to JSON string
     return json.dumps(server_definitions, indent=2, sort_keys=True)
 
-def create_new_cid(cid, json_bytes, user_id):
-    # Create new CID record
-    cid_record = create_cid_record(cid, json_bytes, user_id)
-    db.session.add(cid_record)
-    db.session.commit()
-
 def store_cid_from_json(json_content, user_id):
     """Store all server definitions as JSON in a CID and return the CID path"""
     json_bytes = json_content.encode('utf-8')
@@ -334,9 +302,9 @@ def store_cid_from_json(json_content, user_id):
     cid = generate_cid(json_bytes)
 
     # Check if CID already exists to avoid duplicates
-    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    existing_cid = get_cid_by_path(f"/{cid}")
     if not existing_cid:
-        create_new_cid(cid, json_bytes, user_id)
+        create_cid_record(cid, json_bytes, user_id)
 
     return cid
 
@@ -353,7 +321,7 @@ def get_current_server_definitions_cid(user_id):
     expected_cid = generate_cid(json_bytes)
 
     # Check if this CID exists in the database
-    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    existing_cid = get_cid_by_path(f"/{expected_cid}")
     if existing_cid:
         return expected_cid
     else:
@@ -370,7 +338,7 @@ def update_server_definitions_cid(user_id):
 
 def generate_all_variable_definitions_json(user_id):
     """Generate JSON containing all variable definitions for a user"""
-    variables = Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
+    variables = get_user_variables(user_id)
 
     # Create dictionary with variable names as keys and definitions as values
     variable_definitions = {}
@@ -393,7 +361,7 @@ def get_current_variable_definitions_cid(user_id):
     expected_cid = generate_cid(json_bytes)
 
     # Check if this CID exists in the database
-    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    existing_cid = get_cid_by_path(f"/{expected_cid}")
     if existing_cid:
         return expected_cid
     else:
@@ -410,7 +378,7 @@ def update_variable_definitions_cid(user_id):
 
 def generate_all_secret_definitions_json(user_id):
     """Generate JSON containing all secret definitions for a user"""
-    secrets = Secret.query.filter_by(user_id=user_id).order_by(Secret.name).all()
+    secrets = get_user_secrets(user_id)
 
     # Create dictionary with secret names as keys and definitions as values
     secret_definitions = {}
@@ -429,9 +397,9 @@ def store_secret_definitions_cid(user_id):
     cid = generate_cid(json_bytes)
 
     # Check if CID already exists to avoid duplicates
-    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
+    existing_cid = get_cid_by_path(f"/{cid}")
     if not existing_cid:
-        create_new_cid(cid, json_bytes, user_id)
+        create_cid_record(cid, json_bytes, user_id)
 
     return cid
 
@@ -443,7 +411,7 @@ def get_current_secret_definitions_cid(user_id):
     expected_cid = generate_cid(json_bytes)
 
     # Check if this CID exists in the database
-    existing_cid = CID.query.filter_by(path=f"/{expected_cid}").first()
+    existing_cid = get_cid_by_path(f"/{expected_cid}")
     if existing_cid:
         return expected_cid
     else:
@@ -478,16 +446,12 @@ def upload():
         # Generate IPFS-like CID
         cid = generate_cid(file_content)
 
-        # Store actual file bytes and metadata in CID table
-        file_record = create_cid_record(cid, file_content, current_user.id)
-
         # Check if CID already exists
-        existing = CID.query.filter_by(path=f"/{cid}").first()
+        existing = get_cid_by_path(f"/{cid}")
         if existing:
             flash(f'Content with this hash already exists! CID: {cid}', 'warning')
         else:
-            db.session.add(file_record)
-            db.session.commit()
+            create_cid_record(cid, file_content, current_user.id)
             flash(f'Content uploaded successfully! CID: {cid}', 'success')
 
         # Determine the appropriate file extension for the view URL based on upload method
@@ -589,7 +553,7 @@ def accept_invitation(invitation_code):
 @require_login
 def uploads():
     """Display user's uploaded files"""
-    user_uploads = CID.query.filter_by(uploaded_by_user_id=current_user.id).order_by(CID.created_at.desc()).all()
+    user_uploads = get_user_uploads(current_user.id)
 
     # Add content preview to each upload
     for upload in user_uploads:
@@ -669,7 +633,7 @@ def history():
 # ============================================================================
 
 def user_servers():
-    return Server.query.filter_by(user_id=current_user.id).order_by(Server.name).all()
+    return get_user_servers(current_user.id)
 
 @app.route('/servers')
 @require_login
@@ -701,7 +665,7 @@ def new_server():
 @require_login
 def view_server(server_name):
     """View a specific server"""
-    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    server = get_server_by_name(current_user.id, server_name)
     if not server:
         abort(404)
 
@@ -711,7 +675,7 @@ def view_server(server_name):
 @require_login
 def edit_server(server_name):
     """Edit a specific server"""
-    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    server = get_server_by_name(current_user.id, server_name)
     if not server:
         abort(404)
 
@@ -729,13 +693,12 @@ def edit_server(server_name):
 @require_login
 def delete_server(server_name):
     """Delete a specific server"""
-    server = Server.query.filter_by(user_id=current_user.id, name=server_name).first()
+    server = get_server_by_name(current_user.id, server_name)
     if not server:
         abort(404)
 
     user_id = server.user_id  # Store user_id before deletion
-    db.session.delete(server)
-    db.session.commit()
+    delete_entity(server)
 
     # Update the server definitions CID after deletion
     update_server_definitions_cid(user_id)
@@ -744,7 +707,7 @@ def delete_server(server_name):
     return redirect(url_for('servers'))
 
 def user_variables():
-    return Variable.query.filter_by(user_id=current_user.id).order_by(Variable.name).all()
+    return get_user_variables(current_user.id)
 
 @app.route('/variables')
 @require_login
@@ -770,7 +733,7 @@ def new_variable():
 @require_login
 def view_variable(variable_name):
     """View a specific variable"""
-    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    variable = get_variable_by_name(current_user.id, variable_name)
     if not variable:
         abort(404)
 
@@ -780,7 +743,7 @@ def view_variable(variable_name):
 @require_login
 def edit_variable(variable_name):
     """Edit a specific variable"""
-    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    variable = get_variable_by_name(current_user.id, variable_name)
     if not variable:
         abort(404)
 
@@ -798,12 +761,11 @@ def edit_variable(variable_name):
 @require_login
 def delete_variable(variable_name):
     """Delete a specific variable"""
-    variable = Variable.query.filter_by(user_id=current_user.id, name=variable_name).first()
+    variable = get_variable_by_name(current_user.id, variable_name)
     if not variable:
         abort(404)
 
-    db.session.delete(variable)
-    db.session.commit()
+    delete_entity(variable)
 
     # Update variable definitions CID after deletion
     update_variable_definitions_cid(current_user.id)
@@ -812,7 +774,7 @@ def delete_variable(variable_name):
     return redirect(url_for('variables'))
 
 def user_secrets():
-    return Secret.query.filter_by(user_id=current_user.id).order_by(Secret.name).all()
+    return get_user_secrets(current_user.id)
 
 # ============================================================================
 # SERVER EXECUTION HELPERS
@@ -868,20 +830,14 @@ def create_server_invocation_record(user_id, server_name, result_cid):
     variables_cid = get_current_variable_definitions_cid(user_id)
     secrets_cid = get_current_secret_definitions_cid(user_id)
 
-    # Create the ServerInvocation record
-    invocation = ServerInvocation(
-        user_id=user_id,
-        server_name=server_name,
-        result_cid=result_cid,
+    return create_server_invocation(
+        user_id,
+        server_name,
+        result_cid,
         servers_cid=servers_cid,
         variables_cid=variables_cid,
-        secrets_cid=secrets_cid
+        secrets_cid=secrets_cid,
     )
-
-    db.session.add(invocation)
-    db.session.commit()
-
-    return invocation
 
 def execute_server_code(server, server_name):
     """Execute server code and return CID redirect response or error response"""
@@ -903,19 +859,10 @@ def execute_server_code(server, server_name):
         # Generate CID for the result
         cid = generate_cid(output_bytes)
 
-        # Store result in CID table
-        cid_record = CID(
-            path=f"/{cid}",
-            file_data=output_bytes,
-            file_size=len(output_bytes),
-            uploaded_by_user_id=current_user.id
-        )
-
-        # Check if CID already exists
-        existing = CID.query.filter_by(path=f"/{cid}").first()
+        # Store result in CID table if it doesn't already exist
+        existing = get_cid_by_path(f"/{cid}")
         if not existing:
-            db.session.add(cid_record)
-            db.session.commit()
+            create_cid_record(cid, output_bytes, current_user.id)
 
         # Create ServerInvocation record to track this server execution
         create_server_invocation_record(current_user.id, server_name, cid)
@@ -1086,10 +1033,17 @@ def serve_cid_content(cid_content, path):
 
 def check_name_exists(model_class, name, user_id, exclude_id=None):
     """Check if a name already exists for a user, optionally excluding a specific record"""
-    query = model_class.query.filter_by(user_id=user_id, name=name)
-    if exclude_id:
-        query = query.filter(model_class.id != exclude_id)
-    return query.first() is not None
+    if model_class.__name__ == 'Server':
+        entity = get_server_by_name(user_id, name)
+    elif model_class.__name__ == 'Variable':
+        entity = get_variable_by_name(user_id, name)
+    elif model_class.__name__ == 'Secret':
+        entity = get_secret_by_name(user_id, name)
+    else:
+        entity = None
+    if entity and exclude_id and getattr(entity, 'id', None) == exclude_id:
+        return False
+    return entity is not None
 
 def create_entity(model_class, form, user_id, entity_type):
     """Generic function to create a new entity (server, variable, or secret)"""
@@ -1110,8 +1064,7 @@ def create_entity(model_class, form, user_id, entity_type):
         entity_data['definition_cid'] = definition_cid
 
     entity = model_class(**entity_data)
-    db.session.add(entity)
-    db.session.commit()
+    save_entity(entity)
 
     # Update the appropriate definitions CID
     if model_class.__name__ == 'Server':
@@ -1143,7 +1096,7 @@ def update_entity(entity, form, entity_type):
     entity.definition = form.definition.data
     entity.updated_at = datetime.now(timezone.utc)
 
-    db.session.commit()
+    save_entity(entity)
 
     # Update the appropriate definitions CID
     if type(entity).__name__ == 'Server':
@@ -1185,35 +1138,6 @@ def gather_request_info():
         }
     }
 
-# ============================================================================
-# BUSINESS LOGIC HELPERS
-# ============================================================================
-
-def create_payment_record(plan, amount, user_id):
-    """Create a payment record and update user subscription status"""
-    payment = Payment()
-    payment.user_id = user_id
-    payment.amount = amount
-    payment.plan_type = plan
-
-    if plan == 'annual':
-        payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
-        current_user.is_paid = True
-        current_user.payment_expires_at = payment.expires_at
-    else:
-        # Free plan
-        current_user.is_paid = False
-        current_user.payment_expires_at = None
-
-    payment.transaction_id = f"mock_txn_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    return payment
-
-# Invitation handling
-def validate_invitation_code(invitation_code):
-    """Validate an invitation code and return the invitation if valid"""
-    invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-    return invitation if invitation and invitation.is_valid() else None
-
 def handle_pending_authentication(invitation_code):
     """Handle pending authentication with invitation code"""
     if 'pending_token' in session and 'pending_user_claims' in session:
@@ -1232,16 +1156,6 @@ def handle_pending_authentication(invitation_code):
         except ValueError as e:
             flash(f'Error: {str(e)}', 'danger')
             return None
-    return None
-
-def create_terms_acceptance_record(user_id):
-    """Create a terms acceptance record for the user"""
-    terms_acceptance = TermsAcceptance()
-    terms_acceptance.user_id = user_id
-    terms_acceptance.terms_version = CURRENT_TERMS_VERSION
-    terms_acceptance.ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
-    return terms_acceptance
-
 @app.route('/secrets')
 @require_login
 def secrets():
@@ -1266,7 +1180,7 @@ def new_secret():
 @require_login
 def view_secret(secret_name):
     """View a specific secret"""
-    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    secret = get_secret_by_name(current_user.id, secret_name)
     if not secret:
         abort(404)
 
@@ -1276,7 +1190,7 @@ def view_secret(secret_name):
 @require_login
 def edit_secret(secret_name):
     """Edit a specific secret"""
-    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    secret = get_secret_by_name(current_user.id, secret_name)
     if not secret:
         abort(404)
 
@@ -1294,12 +1208,11 @@ def edit_secret(secret_name):
 @require_login
 def delete_secret(secret_name):
     """Delete a specific secret"""
-    secret = Secret.query.filter_by(user_id=current_user.id, name=secret_name).first()
+    secret = get_secret_by_name(current_user.id, secret_name)
     if not secret:
         abort(404)
 
-    db.session.delete(secret)
-    db.session.commit()
+    delete_entity(secret)
 
     # Update secret definitions CID after deletion
     update_secret_definitions_cid(current_user.id)
@@ -1314,9 +1227,9 @@ def delete_secret(secret_name):
 def get_user_settings_counts(user_id):
     """Get counts of user's servers, variables, and secrets for settings display"""
     return {
-        'server_count': Server.query.filter_by(user_id=user_id).count(),
-        'variable_count': Variable.query.filter_by(user_id=user_id).count(),
-        'secret_count': Secret.query.filter_by(user_id=user_id).count()
+        'server_count': count_user_servers(user_id),
+        'variable_count': count_user_variables(user_id),
+        'secret_count': count_user_secrets(user_id)
     }
 
 @app.route('/settings')
@@ -1330,7 +1243,7 @@ def settings():
 def meta_cid(cid):
     """Serve metadata about a CID as JSON"""
     # Look up the CID in the database
-    cid_record = CID.query.filter_by(path=f"/{cid}").first()
+    cid_record = get_cid_by_path(f"/{cid}")
 
     if not cid_record:
         return jsonify({'error': 'CID not found'}), 404
@@ -1383,7 +1296,7 @@ def try_server_execution(path):
     potential_server_name = path[1:]
 
     # Check if this server name exists for the user
-    server = Server.query.filter_by(user_id=current_user.id, name=potential_server_name).first()
+    server = get_server_by_name(current_user.id, potential_server_name)
     if server:
         return execute_server_code(server, potential_server_name)
 
@@ -1404,7 +1317,7 @@ def not_found_error(error):
     # Look up the path in the CID table
     # Strip extension for CID lookup since CIDs are stored without extensions
     base_path = path.split('.')[0] if '.' in path else path
-    cid_content = CID.query.filter_by(path=base_path).first()
+    cid_content = get_cid_by_path(base_path)
     if cid_content:
         result = serve_cid_content(cid_content, path)
         if result is not None:

@@ -47,8 +47,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         pass
     
     @patch('routes.current_user')
-    @patch('routes.Variable')
-    def test_user_variables_returns_model_objects(self, mock_variable_class, mock_current_user):
+    @patch('routes.get_user_variables')
+    def test_user_variables_returns_model_objects(self, mock_get_vars, mock_current_user):
         """Test that user_variables() returns SQLAlchemy model objects, not serializable data"""
         # Mock current user
         mock_current_user.id = 'test_user_123'
@@ -64,10 +64,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         mock_var2.definition = 'value2'
         mock_var2.user_id = 'test_user_123'
         
-        # Mock the query chain
-        mock_query = Mock()
-        mock_query.filter_by.return_value.order_by.return_value.all.return_value = [mock_var1, mock_var2]
-        mock_variable_class.query = mock_query
+        mock_get_vars.return_value = [mock_var1, mock_var2]
         
         # Call the function
         result = user_variables()
@@ -88,8 +85,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
     
     @patch('routes.current_user')
-    @patch('routes.Secret')
-    def test_user_secrets_returns_model_objects(self, mock_secret_class, mock_current_user):
+    @patch('routes.get_user_secrets')
+    def test_user_secrets_returns_model_objects(self, mock_get_secrets, mock_current_user):
         """Test that user_secrets() returns SQLAlchemy model objects, not serializable data"""
         # Mock current user
         mock_current_user.id = 'test_user_123'
@@ -100,10 +97,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         mock_secret1.definition = 'secret_value1'
         mock_secret1.user_id = 'test_user_123'
         
-        # Mock the query chain
-        mock_query = Mock()
-        mock_query.filter_by.return_value.order_by.return_value.all.return_value = [mock_secret1]
-        mock_secret_class.query = mock_query
+        mock_get_secrets.return_value = [mock_secret1]
         
         # Call the function
         result = user_secrets()
