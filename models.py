@@ -194,5 +194,21 @@ class Secret(db.Model):
     def __repr__(self):
         return f'<Secret {self.name} by {self.user_id}>'
 
+class ServerInvocation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
+    result_cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the result produced
+    servers_cid = db.Column(db.String(255), nullable=True)  # CID of current servers definitions
+    variables_cid = db.Column(db.String(255), nullable=True)  # CID of current variables definitions  
+    secrets_cid = db.Column(db.String(255), nullable=True)  # CID of current secrets definitions
+    invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='server_invocations')
+    
+    def __repr__(self):
+        return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
+
 # Current terms version - update this when terms change
 CURRENT_TERMS_VERSION = "1.0"

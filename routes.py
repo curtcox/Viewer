@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
 from flask_login import current_user
 from app import app, db
-from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from models import Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, ServerInvocation, CURRENT_TERMS_VERSION
 from forms import PaymentForm, TermsAcceptanceForm, FileUploadForm, InvitationForm, InvitationCodeForm, ServerForm, VariableForm, SecretForm
 from auth_providers import require_login, auth_manager, save_user_from_claims
 from secrets import token_urlsafe as secrets_token_urlsafe
@@ -224,44 +224,44 @@ def process_url_upload(form):
     """Process URL upload from form by downloading content and return file content and MIME type"""
     import requests
     from urllib.parse import urlparse
-    
+
     url = form.url.data.strip()
-    
+
     try:
         # Set reasonable timeout and headers
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        
+
         response = requests.get(url, timeout=30, headers=headers, stream=True)
         response.raise_for_status()
-        
+
         # Get MIME type from response headers
         content_type = response.headers.get('content-type', 'application/octet-stream')
         # Clean up MIME type (remove charset and other parameters)
         mime_type = content_type.split(';')[0].strip().lower()
-        
+
         # Check content length to avoid downloading huge files
         content_length = response.headers.get('content-length')
         if content_length and int(content_length) > 100 * 1024 * 1024:  # 100MB limit
             raise ValueError("File too large (>100MB)")
-        
+
         # Download content in chunks to handle large files efficiently
         file_content = b''
         downloaded_size = 0
         max_size = 100 * 1024 * 1024  # 100MB limit
-        
+
         for chunk in response.iter_content(chunk_size=8192):
             if chunk:
                 downloaded_size += len(chunk)
                 if downloaded_size > max_size:
                     raise ValueError("File too large (>100MB)")
                 file_content += chunk
-        
+
         # Extract filename from URL for potential future use
         parsed_url = urlparse(url)
         filename = parsed_url.path.split('/')[-1]
-        
+
         # If no filename from URL or no extension, use MIME type to determine extension
         if not filename or '.' not in filename:
             extension = get_extension_from_mime_type(mime_type)
@@ -269,9 +269,9 @@ def process_url_upload(form):
                 filename = f"download{extension}"
             else:
                 filename = "download"
-        
+
         return file_content, mime_type
-        
+
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Failed to download from URL: {str(e)}")
     except Exception as e:
@@ -304,6 +304,10 @@ def save_server_definition_as_cid(definition, user_id):
 
     return cid
 
+# ============================================================================
+# SERVER DEFINITIONS CID HELPERS
+# ============================================================================
+
 def generate_all_server_definitions_json(user_id):
     """Generate JSON containing all server definitions for a user"""
     servers = Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
@@ -316,9 +320,14 @@ def generate_all_server_definitions_json(user_id):
     # Convert to JSON string
     return json.dumps(server_definitions, indent=2, sort_keys=True)
 
-def store_server_definitions_cid(user_id):
+def create_new_cid(cid, json_bytes, user_id):
+    # Create new CID record
+    cid_record = create_cid_record(cid, json_bytes, user_id)
+    db.session.add(cid_record)
+    db.session.commit()
+
+def store_cid_from_json(json_content, user_id):
     """Store all server definitions as JSON in a CID and return the CID path"""
-    json_content = generate_all_server_definitions_json(user_id)
     json_bytes = json_content.encode('utf-8')
 
     # Generate CID for the JSON content
@@ -327,12 +336,14 @@ def store_server_definitions_cid(user_id):
     # Check if CID already exists to avoid duplicates
     existing_cid = CID.query.filter_by(path=f"/{cid}").first()
     if not existing_cid:
-        # Create new CID record
-        cid_record = create_cid_record(cid, json_bytes, user_id)
-        db.session.add(cid_record)
-        db.session.commit()
+        create_new_cid(cid, json_bytes, user_id)
 
     return cid
+
+def store_server_definitions_cid(user_id):
+    """Store all server definitions as JSON in a CID and return the CID path"""
+    json_content = generate_all_server_definitions_json(user_id)
+    return store_cid_from_json(json_content, user_id)
 
 def get_current_server_definitions_cid(user_id):
     """Get the CID path for the current server definitions JSON"""
@@ -372,20 +383,7 @@ def generate_all_variable_definitions_json(user_id):
 def store_variable_definitions_cid(user_id):
     """Store all variable definitions as JSON in a CID and return the CID path"""
     json_content = generate_all_variable_definitions_json(user_id)
-    json_bytes = json_content.encode('utf-8')
-
-    # Generate CID for the JSON content
-    cid = generate_cid(json_bytes)
-
-    # Check if CID already exists to avoid duplicates
-    existing_cid = CID.query.filter_by(path=f"/{cid}").first()
-    if not existing_cid:
-        # Create new CID record
-        cid_record = create_cid_record(cid, json_bytes, user_id)
-        db.session.add(cid_record)
-        db.session.commit()
-
-    return cid
+    return store_cid_from_json(json_content, user_id)
 
 def get_current_variable_definitions_cid(user_id):
     """Get the CID path for the current variable definitions JSON"""
@@ -407,7 +405,7 @@ def update_variable_definitions_cid(user_id):
     return store_variable_definitions_cid(user_id)
 
 # ============================================================================
-# SECRET DEFINITIONS CID HELPERS
+# SERVER DEFINITIONS CID HELPERS
 # ============================================================================
 
 def generate_all_secret_definitions_json(user_id):
@@ -433,10 +431,7 @@ def store_secret_definitions_cid(user_id):
     # Check if CID already exists to avoid duplicates
     existing_cid = CID.query.filter_by(path=f"/{cid}").first()
     if not existing_cid:
-        # Create new CID record
-        cid_record = create_cid_record(cid, json_bytes, user_id)
-        db.session.add(cid_record)
-        db.session.commit()
+        create_new_cid(cid, json_bytes, user_id)
 
     return cid
 
@@ -469,7 +464,7 @@ def upload():
         try:
             detected_mime_type = None
             original_filename = None
-            
+
             if form.upload_type.data == 'file':
                 file_content, original_filename = process_file_upload(form)
             elif form.upload_type.data == 'text':
@@ -497,7 +492,7 @@ def upload():
 
         # Determine the appropriate file extension for the view URL based on upload method
         view_url_extension = ""
-        
+
         if form.upload_type.data == 'text':
             # Pasted text always gets .txt extension
             view_url_extension = "txt"
@@ -510,7 +505,7 @@ def upload():
             extension = get_extension_from_mime_type(detected_mime_type)
             if extension:
                 view_url_extension = extension.lstrip('.')
-        
+
         return render_template('upload_success.html',
                              cid=cid,
                              file_size=len(file_content),
@@ -839,31 +834,54 @@ def model_as_dict(model_objects):
 
     return result
 
-def build_request_args():
-    """Build request arguments dictionary for server execution"""
-    details = {
+def request_details():
+    """Build request arguments for server execution"""
+    return {
         'path': request.path,
         'query_string': request.query_string.decode('utf-8'),
         'remote_addr': request.remote_addr,
         'user_agent': request.user_agent.string,
-        'headers': dict(request.headers),
+        'headers': {k: v for k, v in request.headers if k.lower() != 'cookie'},
         'form_data': dict(request.form) if request.form else {},
         'args': dict(request.args) if request.args else {},
         'endpoint': request.endpoint,
         'scheme': request.scheme,
         'host': request.host,
         'method': request.method,
-        'environ': request.environ,
     }
+
+def build_request_args():
+    """Build request arguments for server execution"""
     context = {
         'variables': model_as_dict(user_variables()),
         'secrets': model_as_dict(user_secrets()),
         'servers': model_as_dict(user_servers()),
     }
     return {
-        'request': details,
+        'request': request_details(),
         'context': context,
     }
+
+def create_server_invocation_record(user_id, server_name, result_cid):
+    """Create a ServerInvocation record to track server execution and current definitions"""
+    servers_cid = get_current_server_definitions_cid(user_id)
+    variables_cid = get_current_variable_definitions_cid(user_id)
+    secrets_cid = get_current_secret_definitions_cid(user_id)
+
+    # Create the ServerInvocation record
+    invocation = ServerInvocation(
+        user_id=user_id,
+        server_name=server_name,
+        result_cid=result_cid,
+        servers_cid=servers_cid,
+        variables_cid=variables_cid,
+        secrets_cid=secrets_cid
+    )
+
+    db.session.add(invocation)
+    db.session.commit()
+
+    return invocation
 
 def execute_server_code(server, server_name):
     """Execute server code and return CID redirect response or error response"""
@@ -898,6 +916,9 @@ def execute_server_code(server, server_name):
         if not existing:
             db.session.add(cid_record)
             db.session.commit()
+
+        # Create ServerInvocation record to track this server execution
+        create_server_invocation_record(current_user.id, server_name, cid)
 
         # Get appropriate extension for the content type
         extension = get_extension_from_mime_type(content_type)
@@ -1310,10 +1331,10 @@ def meta_cid(cid):
     """Serve metadata about a CID as JSON"""
     # Look up the CID in the database
     cid_record = CID.query.filter_by(path=f"/{cid}").first()
-    
+
     if not cid_record:
         return jsonify({'error': 'CID not found'}), 404
-    
+
     # Build metadata response
     metadata = {
         'cid': cid,
@@ -1322,7 +1343,7 @@ def meta_cid(cid):
         'created_at': cid_record.created_at.isoformat() if cid_record.created_at else None,
         'uploaded_by_user_id': cid_record.uploaded_by_user_id
     }
-    
+
     # Add uploader information if available
     if cid_record.uploaded_by:
         metadata['uploaded_by'] = {
@@ -1330,7 +1351,7 @@ def meta_cid(cid):
             'username': cid_record.uploaded_by.username,
             'email': cid_record.uploaded_by.email
         }
-    
+
     return jsonify(metadata)
 
 
