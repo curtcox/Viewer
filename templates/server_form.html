@@ -66,7 +66,7 @@
             {% if server %}
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Preview</h5>
+                    <h5 class="card-title mb-0">Current Server Info</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -81,8 +81,109 @@
                     </div>
                 </div>
             </div>
+
+            {% if definition_history %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Definition History
+                        <span class="badge bg-secondary ms-2">{{ definition_history|length }} version{{ 's' if definition_history|length != 1 else '' }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        You can view previous versions of this server's definition and copy them if needed.
+                    </p>
+                    <div class="list-group">
+                        {% for entry in definition_history %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <h6 class="mb-0">
+                                            {% if entry.is_current %}
+                                                <span class="badge bg-success me-2">Current</span>
+                                            {% endif %}
+                                            {{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        </h6>
+                                        <div class="ms-auto">
+                                            <a href="/{{ entry.definition_cid }}.txt" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                                <i class="fas fa-external-link-alt me-1"></i>View as Text
+                                            </a>
+                                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="copyHistoricalDefinition('{{ loop.index0 }}')">
+                                                <i class="fas fa-copy me-1"></i>Copy
+                                            </button>
+                                            <a href="/{{ entry.snapshot_cid }}.json" target="_blank" class="btn btn-outline-info btn-sm me-2">
+                                                <i class="fas fa-code me-1"></i>View JSON
+                                            </a>
+                                            <button class="btn btn-outline-info btn-sm" onclick="loadHistoricalDefinition('{{ loop.index0 }}')">
+                                                <i class="fas fa-arrow-up me-1"></i>Load into Editor
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="text-muted small mb-2">
+                                        Definition CID: <code>{{ entry.definition_cid }}</code>
+                                    </div>
+                                    <div class="collapse" id="definition-{{ loop.index0 }}">
+                                        <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition }}</pre>
+                                    </div>
+                                    <button class="btn btn-link btn-sm p-0" type="button" data-bs-toggle="collapse" data-bs-target="#definition-{{ loop.index0 }}" aria-expanded="false">
+                                        <i class="fas fa-chevron-down me-1"></i>Show/Hide Definition
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+function copyHistoricalDefinition(index) {
+    const definitionElement = document.querySelector(`#definition-${index} .historical-definition`);
+    if (definitionElement) {
+        const definition = definitionElement.textContent;
+        navigator.clipboard.writeText(definition).then(function() {
+            // Show temporary success feedback
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
+            setTimeout(() => {
+                button.innerHTML = originalContent;
+            }, 2000);
+        });
+    }
+}
+
+function loadHistoricalDefinition(index) {
+    const definitionElement = document.querySelector(`#definition-${index} .historical-definition`);
+    if (definitionElement) {
+        const definition = definitionElement.textContent;
+        const textarea = document.getElementById('definition');
+        if (textarea) {
+            if (confirm('This will replace the current definition in the editor. Are you sure?')) {
+                textarea.value = definition;
+                // Scroll to the textarea
+                textarea.scrollIntoView({ behavior: 'smooth' });
+                // Focus on the textarea
+                textarea.focus();
+                
+                // Show success feedback
+                const button = event.target.closest('button');
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check text-success"></i> Loaded!';
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                }, 2000);
+            }
+        }
+    }
+}
+</script>
 {% endblock %}

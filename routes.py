@@ -282,6 +282,62 @@ def save_server_definition_as_cid(definition, user_id):
 # SERVER DEFINITIONS CID HELPERS
 # ============================================================================
 
+def get_server_definition_history(user_id, server_name):
+    """Get historical server definitions for a specific server, ordered by time (latest first)"""
+    from models import CID, db
+    
+    # Get all CIDs that contain server definitions for this user
+    # We need to check the content of each CID to see if it contains the server
+    cids = db.session.query(CID).filter(
+        CID.uploaded_by_user_id == user_id
+    ).order_by(CID.created_at.desc()).all()
+    
+    history = []
+    
+    for cid in cids:
+        try:
+            # Decode the CID content
+            content = cid.file_data.decode('utf-8')
+            
+            # Check if this is a server definition by trying to parse as JSON
+            try:
+                import json
+                server_definitions = json.loads(content)
+                
+                # If this CID contains our server, add it to history
+                if isinstance(server_definitions, dict) and server_name in server_definitions:
+                    # Compute the content-addressed CID for just this server's definition
+                    definition_text = server_definitions[server_name]
+                    definition_bytes = definition_text.encode('utf-8')
+                    per_server_cid = generate_cid(definition_bytes)
+
+                    # Prepare snapshot CID without leading slash for clean URL building
+                    snapshot_cid_no_slash = cid.path[1:] if cid.path.startswith('/') else cid.path
+
+                    history.append({
+                        'definition': definition_text,
+                        'definition_cid': per_server_cid,  # hash only, no leading slash
+                        'snapshot_cid': snapshot_cid_no_slash,  # hash only, no leading slash
+                        'snapshot_path': cid.path,  # original path, with leading slash
+                        'created_at': cid.created_at,
+                        'is_current': False  # We'll mark the current one later
+                    })
+            except (json.JSONDecodeError, TypeError):
+                # This might be an individual server definition CID
+                # Check if the content matches any historical definition for this server
+                # For now, we'll skip individual CIDs and focus on the JSON collections
+                pass
+                
+        except (UnicodeDecodeError, AttributeError):
+            # Skip binary or malformed content
+            continue
+    
+    # Mark the most recent entry as current if we have any
+    if history:
+        history[0]['is_current'] = True
+    
+    return history
+
 def generate_all_server_definitions_json(user_id):
     """Generate JSON containing all server definitions for a user"""
     servers = get_user_servers(user_id)
@@ -669,7 +725,10 @@ def view_server(server_name):
     if not server:
         abort(404)
 
-    return render_template('server_view.html', server=server)
+    # Get historical definitions for this server
+    history = get_server_definition_history(current_user.id, server_name)
+
+    return render_template('server_view.html', server=server, definition_history=history)
 
 @app.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
 @require_login
@@ -681,13 +740,16 @@ def edit_server(server_name):
 
     form = ServerForm(obj=server)
 
+    # Get historical definitions for this server
+    history = get_server_definition_history(current_user.id, server_name)
+
     if form.validate_on_submit():
         if update_entity(server, form, 'server'):
             return redirect(url_for('view_server', server_name=server.name))
         else:
-            return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
+            return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history)
 
-    return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server)
+    return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history)
 
 @app.route('/servers/<server_name>/delete', methods=['POST'])
 @require_login
