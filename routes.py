@@ -2,7 +2,8 @@ from datetime import datetime, timedelta, timezone
 from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
 from flask_login import current_user
 from app import app, db
-from models import Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION, ServerInvocation
+from models import Invitation, Server, Variable, Secret, CURRENT_TERMS_VERSION, ServerInvocation
+from analytics import get_paginated_page_views, get_user_history_statistics
 from db_access import (
     get_user_profile_data,
     create_payment_record,
@@ -42,55 +43,6 @@ def inject_auth_info():
         LOGIN_URL=auth_manager.get_login_url(),
         LOGOUT_URL=auth_manager.get_logout_url()
     )
-
-# Make session permanent and track page views
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
-# ============================================================================
-# PAGE VIEW TRACKING HELPERS
-# ============================================================================
-
-def should_track_page_view(response):
-    """Determine if the current request should be tracked"""
-    if not current_user.is_authenticated or response.status_code != 200:
-        return False
-
-    # Skip tracking for static files, API calls, and certain paths
-    skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
-    if any(request.path.startswith(skip) for skip in skip_paths):
-        return False
-
-    # Skip tracking AJAX requests
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return False
-
-    return True
-
-def create_page_view_record():
-    """Create a page view record for the current request"""
-    return PageView(
-        user_id=current_user.id,
-        path=request.path,
-        method=request.method,
-        user_agent=request.headers.get('User-Agent', '')[:500],
-        ip_address=request.remote_addr
-    )
-
-@app.after_request
-def track_page_view(response):
-    """Track page views for authenticated users"""
-    try:
-        if should_track_page_view(response):
-            page_view = create_page_view_record()
-            db.session.add(page_view)
-            db.session.commit()
-    except Exception:
-        # Don't let tracking errors break the request
-        db.session.rollback()
-
-    return response
 
 @app.route('/')
 def index():
@@ -637,40 +589,6 @@ def uploads():
                          uploads=user_uploads,
                          total_uploads=len(user_uploads),
                          total_storage=total_storage)
-
-# ============================================================================
-# HISTORY AND STATISTICS HELPERS
-# ============================================================================
-
-def get_user_history_statistics(user_id):
-    """Calculate history statistics for a user"""
-    from sqlalchemy import func
-
-    # Get total views count
-    total_views = PageView.query.filter_by(user_id=user_id).count()
-
-    # Get unique paths count
-    unique_paths = db.session.query(func.count(func.distinct(PageView.path)))\
-                            .filter_by(user_id=user_id).scalar()
-
-    # Get most visited paths
-    popular_paths = db.session.query(PageView.path, func.count(PageView.path).label('count'))\
-                             .filter_by(user_id=user_id)\
-                             .group_by(PageView.path)\
-                             .order_by(func.count(PageView.path).desc())\
-                             .limit(5).all()
-
-    return {
-        'total_views': total_views,
-        'unique_paths': unique_paths,
-        'popular_paths': popular_paths
-    }
-
-def get_paginated_page_views(user_id, page, per_page=50):
-    """Get paginated page views for a user"""
-    return PageView.query.filter_by(user_id=user_id)\
-                        .order_by(PageView.viewed_at.desc())\
-                        .paginate(page=page, per_page=per_page, error_out=False)
 
 # ============================================================================
 # SERVER INVOCATION HISTORY HELPERS
