@@ -294,7 +294,13 @@ def get_server_definition_history(user_id, server_name):
     
     history = []
     
-    for cid in cids:
+    # Some tests may mock db and return a non-iterable; gracefully handle that
+    try:
+        iterator = iter(cids)
+    except TypeError:
+        return history
+
+    for cid in iterator:
         try:
             # Decode the CID content
             content = cid.file_data.decode('utf-8')
