@@ -35,6 +35,10 @@ jobs:
   tests:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/secureapp-ci.db
+      SESSION_SECRET: test-secret-key
+      TESTING: "True"
 
     steps:
       - name: Checkout repository
@@ -51,28 +55,51 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests with coverage
+        id: run_tests
         run: |
           python -m coverage run -m unittest discover -v
+        continue-on-error: true
 
       - name: Generate coverage reports
+        id: coverage
+        if: always()
         run: |
-          python -m coverage report > coverage-report.txt
-          cat coverage-report.txt
-          python -m coverage xml
-          python -m coverage html
-          echo "### Coverage summary" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat coverage-report.txt >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f ".coverage" ]; then
+            python -m coverage report > coverage-report.txt
+            cat coverage-report.txt
+            python -m coverage xml
+            python -m coverage html
+            {
+              echo "### Coverage summary"
+              echo '```'
+              cat coverage-report.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No coverage data found. Tests may not have run." | tee coverage-report.txt
+            {
+              echo "### Coverage summary"
+              echo
+              echo "No coverage data was generated."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload coverage XML
+        if: always() && steps.coverage.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-xml
           path: coverage.xml
 
       - name: Upload HTML coverage report
+        if: always() && steps.coverage.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-html
           path: htmlcov
+
+      - name: Fail if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: exit 1
