@@ -1116,7 +1116,7 @@ def extract_filename_from_cid_path(path):
     # Handle empty or invalid paths
     if not path or path in ['.', '..']:
         return None
-
+    
     # Split by dots
     parts = path.split('.')
 
@@ -1129,6 +1129,107 @@ def extract_filename_from_cid_path(path):
     filename = '.'.join(filename_parts)
 
     return filename
+
+def is_potential_versioned_server_path(path, existing_routes):
+    """Check if path could be a versioned server invocation: /{server_name}/{partial_CID}"""
+    if not path or not path.startswith('/'):
+        return False
+    # Split and remove empty segments
+    parts = [p for p in path.split('/') if p]
+    if len(parts) != 2:
+        return False
+    # First segment should not be an existing route root (e.g., /servers)
+    first_segment_route = f"/{parts[0]}"
+    if first_segment_route in existing_routes:
+        return False
+    return True
+
+def execute_server_code_from_definition(definition_text, server_name):
+    """Execute a server using a specific definition text (historical snapshot)."""
+    code = definition_text
+    args = build_request_args()
+
+    try:
+        result = run_text_function(code, args)
+        # Store the result in the CID table and redirect to the /<cid> URL
+        output = result.get('output', '')
+        content_type = result.get('content_type', 'text/html')
+
+        # Convert output to bytes for CID generation
+        if isinstance(output, str):
+            output_bytes = output.encode('utf-8')
+        else:
+            output_bytes = output
+
+        # Generate CID for the result
+        cid = generate_cid(output_bytes)
+
+        # Store result in CID table if it doesn't already exist
+        existing = get_cid_by_path(f"/{cid}")
+        if not existing:
+            create_cid_record(cid, output_bytes, current_user.id)
+
+        # Record invocation metadata
+        create_server_invocation_record(current_user.id, server_name, cid)
+
+        # Redirect with extension based on content type
+        extension = get_extension_from_mime_type(content_type)
+        if extension:
+            return redirect(f"/{cid}.{extension}")
+        else:
+            return redirect(f"/{cid}")
+    except Exception as e:
+        text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
+        response = make_response(text)
+        response.headers['Content-Type'] = 'text/plain'
+        response.status_code = 500
+        return response
+
+def try_server_execution_with_partial(path):
+    """Try to execute a specific server version using a partial CID in path /{server}/{partial}."""
+    if not current_user.is_authenticated:
+        return None
+
+    # Parse path
+    parts = [p for p in path.split('/') if p]
+    if len(parts) != 2:
+        return None
+    server_name, partial = parts[0], parts[1]
+
+    # Verify server exists for user
+    server = get_server_by_name(current_user.id, server_name)
+    if not server:
+        return None
+
+    # Get history and match partial against per-definition CIDs
+    history = get_server_definition_history(current_user.id, server_name)
+    matches = [h for h in history if h.get('definition_cid', '').startswith(partial)]
+
+    if not matches:
+        # No matches -> 404
+        return render_template('404.html', path=path), 404
+
+    if len(matches) > 1:
+        # Multiple matches -> 400 with list
+        payload = {
+            'error': 'Multiple matching server versions',
+            'server': server_name,
+            'partial': partial,
+            'matches': [
+                {
+                    'definition_cid': m.get('definition_cid'),
+                    'snapshot_cid': m.get('snapshot_cid'),
+                    'created_at': m.get('created_at').isoformat() if m.get('created_at') else None,
+                }
+                for m in matches
+            ],
+        }
+        return jsonify(payload), 400
+
+    # Exactly one match -> execute with that definition text
+    target = matches[0]
+    definition_text = target.get('definition', '')
+    return execute_server_code_from_definition(definition_text, server_name)
 
 def serve_cid_content(cid_content, path):
     """Serve CID content with appropriate headers and caching"""
@@ -1456,6 +1557,12 @@ def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content"""
     path = request.path
     existing_routes = get_existing_routes()
+
+    # First, check if this is a versioned server invocation like /{server_name}/{partial_CID}
+    if is_potential_versioned_server_path(path, existing_routes):
+        server_result = try_server_execution_with_partial(path)
+        if server_result is not None:
+            return server_result
 
     # Check if this could be a server name and try to execute it
     if is_potential_server_path(path, existing_routes):
