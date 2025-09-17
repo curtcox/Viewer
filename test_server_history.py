@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 with patch('routes.app') as mock_app:
     mock_app.config = {'SECRET_KEY': 'test'}
     from routes import get_server_definition_history
-    from models import CID
     import json
     from datetime import datetime, timezone
 

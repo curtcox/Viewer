@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
-from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
+from datetime import datetime, timezone
+from flask import render_template, flash, redirect, url_for, request, session, jsonify, abort
 from flask_login import current_user
 from app import app, db
 from models import Invitation, Server, Variable, Secret, CURRENT_TERMS_VERSION, ServerInvocation
@@ -39,7 +39,6 @@ from cid_utils import (
     get_current_variable_definitions_cid,
     store_secret_definitions_cid,
     get_current_secret_definitions_cid,
-    get_mime_type_from_extension,
     get_extension_from_mime_type,
     serve_cid_content,
 )

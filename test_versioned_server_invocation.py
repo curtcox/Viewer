@@ -17,7 +17,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
-import routes  # noqa: E402  # Ensure routes (and dependencies) are initialized
 
 from server_execution import (  # noqa: E402
     is_potential_versioned_server_path,

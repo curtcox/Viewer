@@ -1,6 +1,6 @@
 import unittest
 import json
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 from app import app, db
 from models import CID, User
 
@@ -68,7 +68,7 @@ class TestMetaCIDRoute(unittest.TestCase):
             cid_record = self._create_test_cid("bafybei123valid", test_content, test_user)
             
             # Make request to meta route
-            response = self.client.get(f'/meta/bafybei123valid')
+            response = self.client.get('/meta/bafybei123valid')
             
             # Verify response
             self.assertEqual(response.status_code, 200)
