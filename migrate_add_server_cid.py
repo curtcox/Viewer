@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
 from models import Server
-from routes import save_server_definition_as_cid
+from cid_utils import save_server_definition_as_cid
 import sqlite3
 
 def migrate_add_server_cid():

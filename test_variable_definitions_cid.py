@@ -6,12 +6,12 @@ import os
 import json
 from app import app, db
 from models import User, Variable, CID
-from routes import (
+from cid_utils import (
     generate_all_variable_definitions_json,
     store_variable_definitions_cid,
     get_current_variable_definitions_cid,
-    update_variable_definitions_cid
 )
+from routes import update_variable_definitions_cid
 
 class TestVariableDefinitionsCID(unittest.TestCase):
     def setUp(self):

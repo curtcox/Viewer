@@ -31,12 +31,12 @@ sqlalchemy_mock = Mock()
 sys.modules['sqlalchemy'] = sqlalchemy_mock
 
 # Now import the functions we want to test
-from routes import (  # noqa: E402
+from cid_utils import (  # noqa: E402
     generate_all_server_definitions_json,
     store_server_definitions_cid,
     get_current_server_definitions_cid,
-    update_server_definitions_cid
 )
+from routes import update_server_definitions_cid  # noqa: E402
 
 
 class TestServerDefinitionsCID(unittest.TestCase):
@@ -61,7 +61,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         """Clean up after tests"""
         pass
 
-    @patch('routes.get_user_servers')
+    @patch('cid_utils.get_user_servers')
     def test_generate_all_server_definitions_json(self, mock_get_servers):
         """Test generating JSON of all server definitions for a user"""
         mock_get_servers.return_value = [self.mock_server1, self.mock_server2]
@@ -82,7 +82,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be valid JSON
         self.assertIsInstance(data, dict)
 
-    @patch('routes.get_user_servers')
+    @patch('cid_utils.get_user_servers')
     def test_generate_all_server_definitions_json_empty(self, mock_get_servers):
         """Test generating JSON when user has no servers"""
         mock_get_servers.return_value = []
@@ -93,10 +93,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be empty dict
         self.assertEqual(data, {})
 
-    @patch('routes.create_cid_record')
-    @patch('routes.get_cid_by_path')
-    @patch('routes.generate_cid')
-    @patch('routes.generate_all_server_definitions_json')
+    @patch('cid_utils.create_cid_record')
+    @patch('cid_utils.get_cid_by_path')
+    @patch('cid_utils.generate_cid')
+    @patch('cid_utils.generate_all_server_definitions_json')
     def test_store_server_definitions_cid(self, mock_json_gen, mock_generate_cid, mock_get_cid, mock_create_cid):
         """Test storing server definitions JSON as CID"""
         # Mock the JSON generation
@@ -114,10 +114,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         self.assertIsInstance(cid_path, str)
         self.assertTrue(len(cid_path) > 0)
 
-    @patch('routes.generate_all_server_definitions_json')
-    @patch('routes.store_server_definitions_cid')
-    @patch('routes.get_cid_by_path')
-    @patch('routes.generate_cid')
+    @patch('cid_utils.generate_all_server_definitions_json')
+    @patch('cid_utils.store_server_definitions_cid')
+    @patch('cid_utils.get_cid_by_path')
+    @patch('cid_utils.generate_cid')
     def test_get_current_server_definitions_cid(self, mock_generate_cid, mock_get_cid, mock_store_cid, mock_generate_json):
         """Test retrieving current server definitions CID"""
         # Mock the JSON generation

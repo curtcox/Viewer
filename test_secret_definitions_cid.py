@@ -6,12 +6,12 @@ import os
 import json
 from app import app, db
 from models import User, Secret, CID
-from routes import (
+from cid_utils import (
     generate_all_secret_definitions_json,
     store_secret_definitions_cid,
     get_current_secret_definitions_cid,
-    update_secret_definitions_cid
 )
+from routes import update_secret_definitions_cid
 
 class TestSecretDefinitionsCID(unittest.TestCase):
     def setUp(self):

@@ -4,7 +4,8 @@ import base64
 from unittest.mock import patch, MagicMock
 from app import app, db
 from models import CID, User
-from routes import generate_cid, get_mime_type_from_extension, create_cid_record, serve_cid_content
+from cid_utils import generate_cid, get_mime_type_from_extension, serve_cid_content
+from db_access import create_cid_record
 
 
 class TestCIDFunctionality(unittest.TestCase):
@@ -166,7 +167,7 @@ class TestCIDFunctionality(unittest.TestCase):
             self.assertFalse(hasattr(cid_record, 'content_type'))
             self.assertFalse(hasattr(cid_record, 'updated_at'))
     
-    @patch('routes.make_response')
+    @patch('cid_utils.make_response')
     def test_serve_cid_content_with_extension(self, mock_make_response):
         """Test serving CID content with file extension for MIME type detection"""
         with self.app.app_context():
@@ -203,7 +204,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(file_content))
                 mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
     
-    @patch('routes.make_response')
+    @patch('cid_utils.make_response')
     def test_serve_cid_content_without_extension(self, mock_make_response):
         """Test serving CID content without extension (should use application/octet-stream)"""
         with self.app.app_context():
@@ -236,7 +237,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 # Verify default MIME type was set
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
     
-    @patch('routes.make_response')
+    @patch('cid_utils.make_response')
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
         with self.app.app_context():
@@ -268,7 +269,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
                 mock_response.headers.__setitem__.assert_any_call('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT')
     
-    @patch('routes.make_response')
+    @patch('cid_utils.make_response')
     def test_serve_cid_content_etag_caching(self, mock_make_response):
         """Test ETag-based caching returns 304 when content hasn't changed"""
         with self.app.app_context():

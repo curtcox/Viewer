@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import io
 from app import app, db
 from models import CID, User
-from routes import process_file_upload, process_text_upload
+from cid_utils import process_file_upload, process_text_upload
 from forms import FileUploadForm
 
 
