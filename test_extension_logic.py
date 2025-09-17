@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from routes import process_file_upload, process_text_upload
+from cid_utils import process_file_upload, process_text_upload
 
 
 class TestExtensionLogic(unittest.TestCase):

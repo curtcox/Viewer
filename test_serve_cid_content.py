@@ -31,10 +31,10 @@ flask_login_mock = Mock()
 sys.modules['flask_login'] = flask_login_mock
 
 # Now we can import the function we want to test
-from routes import serve_cid_content  # noqa: E402
+from cid_utils import serve_cid_content  # noqa: E402
 
 
-# Mock the Flask app and other dependencies before importing routes
+# Mock the Flask app and other dependencies before importing cid_utils
 class MockApp:
     def __init__(self):
         self.config = {'TESTING': True}
@@ -49,11 +49,11 @@ class MockRequestContext:
     
     def __enter__(self):
         # Mock the request object
-        import routes
-        routes.request = Mock()
-        routes.request.path = self.path
-        routes.request.headers = Mock()
-        routes.request.headers.get = lambda key, default=None: self.headers.get(key, default)
+        import cid_utils
+        cid_utils.request = Mock()
+        cid_utils.request.path = self.path
+        cid_utils.request.headers = Mock()
+        cid_utils.request.headers.get = lambda key, default=None: self.headers.get(key, default)
         return self
     
     def __exit__(self, *args):
@@ -78,7 +78,7 @@ class TestServeCidContent(unittest.TestCase):
         path = "/bafybeihelloworld123456789012345678901234567890123456"
         
         with self.app.test_request_context(path):
-            with patch('routes.make_response') as mock_make_response:
+            with patch('cid_utils.make_response') as mock_make_response:
                 mock_response = Mock()
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response
@@ -100,7 +100,7 @@ class TestServeCidContent(unittest.TestCase):
         for path in test_cases:
             with self.subTest(path=path):
                 with self.app.test_request_context(path):
-                    with patch('routes.make_response') as mock_make_response:
+                    with patch('cid_utils.make_response') as mock_make_response:
                         mock_response = Mock()
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
@@ -124,7 +124,7 @@ class TestServeCidContent(unittest.TestCase):
         for path, expected_filename in test_cases:
             with self.subTest(path=path, filename=expected_filename):
                 with self.app.test_request_context(path):
-                    with patch('routes.make_response') as mock_make_response:
+                    with patch('cid_utils.make_response') as mock_make_response:
                         mock_response = Mock()
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
@@ -146,7 +146,7 @@ class TestServeCidContent(unittest.TestCase):
         for path, expected_filename in test_cases:
             with self.subTest(path=path, filename=expected_filename):
                 with self.app.test_request_context(path):
-                    with patch('routes.make_response') as mock_make_response:
+                    with patch('cid_utils.make_response') as mock_make_response:
                         mock_response = Mock()
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
@@ -169,7 +169,7 @@ class TestServeCidContent(unittest.TestCase):
         for path, expected_filename in test_cases:
             with self.subTest(path=path, filename=expected_filename):
                 with self.app.test_request_context(path):
-                    with patch('routes.make_response') as mock_make_response:
+                    with patch('cid_utils.make_response') as mock_make_response:
                         mock_response = Mock()
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
@@ -193,7 +193,7 @@ class TestServeCidContent(unittest.TestCase):
         for path, expected_filename in test_cases:
             with self.subTest(path=path, filename=expected_filename):
                 with self.app.test_request_context(path):
-                    with patch('routes.make_response') as mock_make_response:
+                    with patch('cid_utils.make_response') as mock_make_response:
                         mock_response = Mock()
                         mock_response.headers = {}
                         mock_make_response.return_value = mock_response
@@ -227,7 +227,7 @@ class TestServeCidContent(unittest.TestCase):
         path = "/bafybeihelloworld123456789012345678901234567890123456.document.txt"
         
         with self.app.test_request_context(path):
-            with patch('routes.make_response') as mock_make_response:
+            with patch('cid_utils.make_response') as mock_make_response:
                 mock_response = Mock()
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response
@@ -248,7 +248,7 @@ class TestServeCidContent(unittest.TestCase):
         
         # Test If-None-Match
         with self.app.test_request_context(path, headers={'If-None-Match': '"bafybeihelloworld123456789012345678901234567890123456"'}):
-            with patch('routes.make_response') as mock_make_response:
+            with patch('cid_utils.make_response') as mock_make_response:
                 mock_response = Mock()
                 mock_response.headers = {}
                 mock_make_response.return_value = mock_response

@@ -12,7 +12,7 @@ from unittest.mock import Mock
 # Add the current directory to the path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Mock all the dependencies before importing routes
+# Mock all the dependencies before importing cid_utils
 # Mock Flask and other dependencies
 sys.modules['app'] = Mock()
 sys.modules['models'] = Mock()
@@ -34,7 +34,7 @@ flask_mock.abort = Mock()
 sys.modules['flask'] = flask_mock
 
 # Now import the function we want to test
-from routes import extract_filename_from_cid_path  # noqa: E402
+from cid_utils import extract_filename_from_cid_path  # noqa: E402
 
 
 class TestExtractFilenameFromCidPath(unittest.TestCase):

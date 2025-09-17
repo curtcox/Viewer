@@ -15,7 +15,7 @@ os.environ['TESTING'] = 'True'
 
 from app import app, db
 from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
-from routes import generate_cid
+from cid_utils import generate_cid
 
 
 class BaseTestCase(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 import hashlib
 import base64
-from routes import generate_cid
+from cid_utils import generate_cid
 
 
 class TestCIDGeneration(unittest.TestCase):
