@@ -33,7 +33,8 @@ flask_login_mock = Mock()
 sys.modules['flask_login'] = flask_login_mock
 
 # Import the functions we want to test
-from routes import user_variables, user_secrets, build_request_args  # noqa: E402
+from routes import user_variables, user_secrets  # noqa: E402
+from server_execution import build_request_args  # noqa: E402
 
 class TestVariablesSecretsIssue(unittest.TestCase):
     """Test cases to demonstrate the variables and secrets serialization issue"""
@@ -116,30 +117,45 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
     
-    @patch('routes.user_variables')
-    @patch('routes.user_secrets')
-    @patch('routes.user_servers')
-    def test_build_request_args_with_model_objects(self, mock_user_servers, mock_user_secrets, mock_user_variables):
+    @patch('server_execution.get_user_variables')
+    @patch('server_execution.get_user_secrets')
+    @patch('server_execution.get_user_servers')
+    @patch('server_execution.current_user')
+    def test_build_request_args_with_model_objects(self, mock_current_user, mock_user_servers, mock_user_secrets, mock_user_variables):
         """Test that build_request_args includes model objects instead of serializable data"""
         # Mock variables and secrets to return model objects
         mock_var = Mock()
         mock_var.name = 'test_var'
         mock_var.definition = 'test_value'
         mock_user_variables.return_value = [mock_var]
-        
+
         mock_secret = Mock()
         mock_secret.name = 'test_secret'
         mock_secret.definition = 'secret_value'
         mock_user_secrets.return_value = [mock_secret]
-        
+
         mock_user_servers.return_value = []
+
+        mock_current_user.is_authenticated = True
+        mock_current_user.id = 'test_user_123'
         
         # Mock request context
-        with patch('routes.request') as mock_request:
-            mock_request.path = '/echo1'
-            mock_request.method = 'GET'
-            mock_request.headers = {}
-            
+        mock_request = Mock()
+        mock_request.path = '/echo1'
+        mock_request.method = 'GET'
+        mock_request.headers = {}
+        mock_request.query_string = b''
+        mock_request.remote_addr = '127.0.0.1'
+        mock_request.user_agent = Mock()
+        mock_request.user_agent.string = 'test-agent'
+        mock_request.form = {}
+        mock_request.args = {}
+        mock_request.endpoint = None
+        mock_request.scheme = 'http'
+        mock_request.host = 'localhost'
+        mock_request.method = 'GET'
+
+        with patch.dict('server_execution.__dict__', {'request': mock_request}):
             # Call build_request_args
             args = build_request_args()
             

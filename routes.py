@@ -20,7 +20,6 @@ from db_access import (
     count_user_secrets,
     save_entity,
     delete_entity,
-    create_server_invocation,
     get_cid_by_path,
     create_cid_record,
     get_user_uploads,
@@ -44,9 +43,12 @@ from cid_utils import (
     get_extension_from_mime_type,
     serve_cid_content,
 )
-import traceback
-import json
-from text_function_runner import run_text_function
+from server_execution import (
+    is_potential_server_path,
+    is_potential_versioned_server_path,
+    try_server_execution,
+    try_server_execution_with_partial,
+)
 
 # Make authentication info available to all templates
 @app.context_processor
@@ -599,255 +601,8 @@ def user_secrets():
     return get_user_secrets(current_user.id)
 
 # ============================================================================
-# SERVER EXECUTION HELPERS
-# ============================================================================
-
-def model_as_dict(model_objects):
-    """Convert SQLAlchemy model objects to dict with names as keys and definitions as values"""
-    if not model_objects:
-        return {}
-
-    result = {}
-    for obj in model_objects:
-        if hasattr(obj, 'name') and hasattr(obj, 'definition'):
-            # For Variable, Secret, and Server objects
-            result[obj.name] = obj.definition
-        else:
-            # Fallback for other object types
-            result[str(obj)] = str(obj)
-
-    return result
-
-def request_details():
-    """Build request arguments for server execution"""
-    return {
-        'path': request.path,
-        'query_string': request.query_string.decode('utf-8'),
-        'remote_addr': request.remote_addr,
-        'user_agent': request.user_agent.string,
-        'headers': {k: v for k, v in request.headers if k.lower() != 'cookie'},
-        'form_data': dict(request.form) if request.form else {},
-        'args': dict(request.args) if request.args else {},
-        'endpoint': request.endpoint,
-        'scheme': request.scheme,
-        'host': request.host,
-        'method': request.method,
-    }
-
-def build_request_args():
-    """Build request arguments for server execution"""
-    context = {
-        'variables': model_as_dict(user_variables()),
-        'secrets': model_as_dict(user_secrets()),
-        'servers': model_as_dict(user_servers()),
-    }
-    return {
-        'request': request_details(),
-        'context': context,
-    }
-
-def create_server_invocation_record(user_id, server_name, result_cid):
-    """Create a ServerInvocation record to track server execution and current definitions"""
-    servers_cid = get_current_server_definitions_cid(user_id)
-    variables_cid = get_current_variable_definitions_cid(user_id)
-    secrets_cid = get_current_secret_definitions_cid(user_id)
-
-    # Build and store request details JSON as a CID
-    try:
-        req_details = request_details()
-        req_json = json.dumps(req_details, indent=2, sort_keys=True)
-        req_bytes = req_json.encode('utf-8')
-        req_cid = generate_cid(req_bytes)
-        if not get_cid_by_path(f"/{req_cid}"):
-            create_cid_record(req_cid, req_bytes, user_id)
-    except Exception:
-        # If anything goes wrong, skip storing request details
-        req_cid = None
-
-    # Create base invocation record (without invocation_cid yet)
-    invocation = create_server_invocation(
-        user_id,
-        server_name,
-        result_cid,
-        servers_cid=servers_cid,
-        variables_cid=variables_cid,
-        secrets_cid=secrets_cid,
-        request_details_cid=req_cid,
-        invocation_cid=None,
-    )
-
-    # Build the ServerInvocation JSON and store its CID, then update the record
-    try:
-        inv_payload = {
-            'user_id': user_id,
-            'server_name': server_name,
-            'result_cid': result_cid,
-            'servers_cid': servers_cid,
-            'variables_cid': variables_cid,
-            'secrets_cid': secrets_cid,
-            'request_details_cid': req_cid,
-            'invoked_at': invocation.invoked_at.isoformat() if invocation.invoked_at else None,
-        }
-        inv_json = json.dumps(inv_payload, indent=2, sort_keys=True)
-        inv_bytes = inv_json.encode('utf-8')
-        inv_cid = generate_cid(inv_bytes)
-        if not get_cid_by_path(f"/{inv_cid}"):
-            create_cid_record(inv_cid, inv_bytes, user_id)
-
-        # Update the invocation with its JSON CID
-        invocation.invocation_cid = inv_cid
-        save_entity(invocation)
-    except Exception:
-        pass
-
-    return invocation
-
-def execute_server_code(server, server_name):
-    """Execute server code and return CID redirect response or error response"""
-    code = server.definition
-    args = build_request_args()
-
-    try:
-        result = run_text_function(code, args)
-        # Store the result in the CID table and redirect to the /<cid> URL
-        output = result.get('output', '')
-        content_type = result.get('content_type', 'text/html')
-
-        # Convert output to bytes for CID generation
-        if isinstance(output, str):
-            output_bytes = output.encode('utf-8')
-        else:
-            output_bytes = output
-
-        # Generate CID for the result
-        cid = generate_cid(output_bytes)
-
-        # Store result in CID table if it doesn't already exist
-        existing = get_cid_by_path(f"/{cid}")
-        if not existing:
-            create_cid_record(cid, output_bytes, current_user.id)
-
-        # Create ServerInvocation record to track this server execution
-        create_server_invocation_record(current_user.id, server_name, cid)
-
-        # Get appropriate extension for the content type
-        extension = get_extension_from_mime_type(content_type)
-
-        # Redirect to the CID URL with extension if available
-        if extension:
-            return redirect(f"/{cid}.{extension}")
-        else:
-            return redirect(f"/{cid}")
-    except Exception as e:
-        text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
-        response = make_response(text)
-        response.headers['Content-Type'] = 'text/plain'
-        response.status_code = 500
-        return response
-
-def is_potential_versioned_server_path(path, existing_routes):
-    """Check if path could be a versioned server invocation: /{server_name}/{partial_CID}"""
-    if not path or not path.startswith('/'):
-        return False
-    # Split and remove empty segments
-    parts = [p for p in path.split('/') if p]
-    if len(parts) != 2:
-        return False
-    # First segment should not be an existing route root (e.g., /servers)
-    first_segment_route = f"/{parts[0]}"
-    if first_segment_route in existing_routes:
-        return False
-    return True
-
-def execute_server_code_from_definition(definition_text, server_name):
-    """Execute a server using a specific definition text (historical snapshot)."""
-    code = definition_text
-    args = build_request_args()
-
-    try:
-        result = run_text_function(code, args)
-        # Store the result in the CID table and redirect to the /<cid> URL
-        output = result.get('output', '')
-        content_type = result.get('content_type', 'text/html')
-
-        # Convert output to bytes for CID generation
-        if isinstance(output, str):
-            output_bytes = output.encode('utf-8')
-        else:
-            output_bytes = output
-
-        # Generate CID for the result
-        cid = generate_cid(output_bytes)
-
-        # Store result in CID table if it doesn't already exist
-        existing = get_cid_by_path(f"/{cid}")
-        if not existing:
-            create_cid_record(cid, output_bytes, current_user.id)
-
-        # Record invocation metadata
-        create_server_invocation_record(current_user.id, server_name, cid)
-
-        # Redirect with extension based on content type
-        extension = get_extension_from_mime_type(content_type)
-        if extension:
-            return redirect(f"/{cid}.{extension}")
-        else:
-            return redirect(f"/{cid}")
-    except Exception as e:
-        text = str(e) + "\n\n" + traceback.format_exc() + "\n\n" + code + "\n\n" + str(args)
-        response = make_response(text)
-        response.headers['Content-Type'] = 'text/plain'
-        response.status_code = 500
-        return response
-
-def try_server_execution_with_partial(path):
-    """Try to execute a specific server version using a partial CID in path /{server}/{partial}."""
-    if not current_user.is_authenticated:
-        return None
-
-    # Parse path
-    parts = [p for p in path.split('/') if p]
-    if len(parts) != 2:
-        return None
-    server_name, partial = parts[0], parts[1]
-
-    # Verify server exists for user
-    server = get_server_by_name(current_user.id, server_name)
-    if not server:
-        return None
-
-    # Get history and match partial against per-definition CIDs
-    history = get_server_definition_history(current_user.id, server_name)
-    matches = [h for h in history if h.get('definition_cid', '').startswith(partial)]
-
-    if not matches:
-        # No matches -> 404
-        return render_template('404.html', path=path), 404
-
-    if len(matches) > 1:
-        # Multiple matches -> 400 with list
-        payload = {
-            'error': 'Multiple matching server versions',
-            'server': server_name,
-            'partial': partial,
-            'matches': [
-                {
-                    'definition_cid': m.get('definition_cid'),
-                    'snapshot_cid': m.get('snapshot_cid'),
-                    'created_at': m.get('created_at').isoformat() if m.get('created_at') else None,
-                }
-                for m in matches
-            ],
-        }
-        return jsonify(payload), 400
-
-    # Exactly one match -> execute with that definition text
-    target = matches[0]
-    definition_text = target.get('definition', '')
-    return execute_server_code_from_definition(definition_text, server_name)
-
-# ============================================================================
 # CRUD OPERATION HELPERS
+
 # ============================================================================
 
 def check_name_exists(model_class, name, user_id, exclude_id=None):
@@ -1100,27 +855,6 @@ def get_existing_routes():
         '/secrets', '/settings'
     }
 
-def is_potential_server_path(path, existing_routes):
-    """Check if path could be a server name (single segment, not existing route)"""
-    return (path.startswith('/') and
-            path.count('/') == 1 and
-            path not in existing_routes)
-
-def try_server_execution(path):
-    """Try to execute server code if path matches a server name"""
-    if not current_user.is_authenticated:
-        return None
-
-    # Extract potential server name (remove leading slash)
-    potential_server_name = path[1:]
-
-    # Check if this server name exists for the user
-    server = get_server_by_name(current_user.id, potential_server_name)
-    if server:
-        return execute_server_code(server, potential_server_name)
-
-    return None
-
 @app.errorhandler(404)
 def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content"""
@@ -1129,7 +863,7 @@ def not_found_error(error):
 
     # First, check if this is a versioned server invocation like /{server_name}/{partial_CID}
     if is_potential_versioned_server_path(path, existing_routes):
-        server_result = try_server_execution_with_partial(path)
+        server_result = try_server_execution_with_partial(path, get_server_definition_history)
         if server_result is not None:
             return server_result
 
