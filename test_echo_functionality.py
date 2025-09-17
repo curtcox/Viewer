@@ -6,9 +6,12 @@ import os
 # Add the parent directory to the path so we can import the app modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+
 from app import app, db
 from models import Server, User
-from routes import not_found_error, try_server_execution, execute_server_code, get_existing_routes, is_potential_server_path
+from routes import not_found_error, get_existing_routes
+from server_execution import try_server_execution, execute_server_code, is_potential_server_path
 
 
 class TestEchoFunctionality(unittest.TestCase):
@@ -61,7 +64,7 @@ class TestEchoFunctionality(unittest.TestCase):
         """Test that server execution fails without authentication"""
         with app.test_request_context('/echo'):
             # Mock current_user as not authenticated
-            with patch('routes.current_user') as mock_user:
+            with patch('server_execution.current_user') as mock_user:
                 mock_user.is_authenticated = False
                 result = try_server_execution('/echo')
                 self.assertIsNone(result, "Should return None when user is not authenticated")
@@ -70,7 +73,7 @@ class TestEchoFunctionality(unittest.TestCase):
         """Test that server execution fails when authenticated but no echo server exists"""
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
-            with patch('routes.current_user') as mock_user:
+            with patch('server_execution.current_user') as mock_user:
                 mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
                 
@@ -90,12 +93,12 @@ class TestEchoFunctionality(unittest.TestCase):
         
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
-            with patch('routes.current_user') as mock_user:
+            with patch('server_execution.current_user') as mock_user:
                 mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
-                
+
                 # Mock the text function runner
-                with patch('routes.run_text_function') as mock_runner:
+                with patch('server_execution.run_text_function') as mock_runner:
                     mock_runner.return_value = {
                         'output': 'Hello, World!',
                         'content_type': 'text/html'
@@ -108,7 +111,7 @@ class TestEchoFunctionality(unittest.TestCase):
         """Test the complete 404 error handler flow for /echo"""
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
-            with patch('routes.current_user') as mock_user:
+            with patch('server_execution.current_user') as mock_user:
                 mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
                 
@@ -133,12 +136,12 @@ class TestEchoFunctionality(unittest.TestCase):
         db.session.commit()
         
         with app.test_request_context('/echo'):
-            with patch('routes.current_user') as mock_user:
+            with patch('server_execution.current_user') as mock_user:
                 mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
                 
                 # Mock the text function runner
-                with patch('routes.run_text_function') as mock_runner:
+                with patch('server_execution.run_text_function') as mock_runner:
                     mock_runner.return_value = {
                         'output': '<h1>Hello, World!</h1>',
                         'content_type': 'text/html'
