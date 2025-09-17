@@ -202,6 +202,8 @@ class ServerInvocation(db.Model):
     servers_cid = db.Column(db.String(255), nullable=True)  # CID of current servers definitions
     variables_cid = db.Column(db.String(255), nullable=True)  # CID of current variables definitions  
     secrets_cid = db.Column(db.String(255), nullable=True)  # CID of current secrets definitions
+    request_details_cid = db.Column(db.String(255), nullable=True)  # CID of request details JSON
+    invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     
     # Relationships

@@ -130,6 +130,8 @@ def create_server_invocation(
     servers_cid: Optional[str] = None,
     variables_cid: Optional[str] = None,
     secrets_cid: Optional[str] = None,
+    request_details_cid: Optional[str] = None,
+    invocation_cid: Optional[str] = None,
 ) -> ServerInvocation:
     invocation = ServerInvocation(
         user_id=user_id,
@@ -138,6 +140,8 @@ def create_server_invocation(
         servers_cid=servers_cid,
         variables_cid=variables_cid,
         secrets_cid=secrets_cid,
+        request_details_cid=request_details_cid,
+        invocation_cid=invocation_cid,
     )
     save_entity(invocation)
     return invocation

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from flask import render_template, flash, redirect, url_for, request, session, jsonify, make_response, abort
 from flask_login import current_user
 from app import app, db
-from models import Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from models import Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION, ServerInvocation
 from db_access import (
     get_user_profile_data,
     create_payment_record,
@@ -666,6 +666,48 @@ def get_paginated_page_views(user_id, page, per_page=50):
                         .order_by(PageView.viewed_at.desc())\
                         .paginate(page=page, per_page=per_page, error_out=False)
 
+# ============================================================================
+# SERVER INVOCATION HISTORY HELPERS
+# ============================================================================
+
+def _invocation_to_dict(inv):
+    return {
+        'result_cid': inv.result_cid,
+        'invoked_at': inv.invoked_at,
+        'servers_cid': inv.servers_cid,
+        'variables_cid': inv.variables_cid,
+        'secrets_cid': inv.secrets_cid,
+        'request_details_cid': getattr(inv, 'request_details_cid', None),
+        'invocation_cid': getattr(inv, 'invocation_cid', None),
+    }
+
+def get_server_invocation_extremes(user_id, server_name):
+    """Return first 3 and last 3 invocations for a server name (by time).
+
+    If there are fewer than 7 total invocations, return all of them (ascending by time)
+    under the key 'all_invocations'. Otherwise return 'first_invocations' and
+    'last_invocations' lists.
+    """
+    base_query = ServerInvocation.query.filter_by(user_id=user_id, server_name=server_name)
+    total = base_query.count()
+    result = { 'total_count': total }
+
+    if total == 0:
+        return result
+
+    if total < 7:
+        all_inv = base_query.order_by(ServerInvocation.invoked_at.asc(), ServerInvocation.id.asc()).all()
+        result['all_invocations'] = [_invocation_to_dict(i) for i in all_inv]
+        return result
+
+    first_three = base_query.order_by(ServerInvocation.invoked_at.asc(), ServerInvocation.id.asc()).limit(3).all()
+    last_three = base_query.order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc()).limit(3).all()
+
+    result['first_invocations'] = [_invocation_to_dict(i) for i in first_three]
+    # Ensure last_three is in descending time; render as latest first is fine
+    result['last_invocations'] = [_invocation_to_dict(i) for i in last_three]
+    return result
+
 @app.route('/history')
 @require_login
 def history():
@@ -727,8 +769,10 @@ def view_server(server_name):
 
     # Get historical definitions for this server
     history = get_server_definition_history(current_user.id, server_name)
+    # Get invocation extremes (first/last invocations)
+    invocations = get_server_invocation_extremes(current_user.id, server_name)
 
-    return render_template('server_view.html', server=server, definition_history=history)
+    return render_template('server_view.html', server=server, definition_history=history, server_invocations=invocations)
 
 @app.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
 @require_login
@@ -742,14 +786,16 @@ def edit_server(server_name):
 
     # Get historical definitions for this server
     history = get_server_definition_history(current_user.id, server_name)
+    # Get invocation extremes (first/last invocations)
+    invocations = get_server_invocation_extremes(current_user.id, server_name)
 
     if form.validate_on_submit():
         if update_entity(server, form, 'server'):
             return redirect(url_for('view_server', server_name=server.name))
         else:
-            return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history)
+            return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history, server_invocations=invocations)
 
-    return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history)
+    return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history, server_invocations=invocations)
 
 @app.route('/servers/<server_name>/delete', methods=['POST'])
 @require_login
@@ -892,14 +938,55 @@ def create_server_invocation_record(user_id, server_name, result_cid):
     variables_cid = get_current_variable_definitions_cid(user_id)
     secrets_cid = get_current_secret_definitions_cid(user_id)
 
-    return create_server_invocation(
+    # Build and store request details JSON as a CID
+    try:
+        req_details = request_details()
+        req_json = json.dumps(req_details, indent=2, sort_keys=True)
+        req_bytes = req_json.encode('utf-8')
+        req_cid = generate_cid(req_bytes)
+        if not get_cid_by_path(f"/{req_cid}"):
+            create_cid_record(req_cid, req_bytes, user_id)
+    except Exception:
+        # If anything goes wrong, skip storing request details
+        req_cid = None
+
+    # Create base invocation record (without invocation_cid yet)
+    invocation = create_server_invocation(
         user_id,
         server_name,
         result_cid,
         servers_cid=servers_cid,
         variables_cid=variables_cid,
         secrets_cid=secrets_cid,
+        request_details_cid=req_cid,
+        invocation_cid=None,
     )
+
+    # Build the ServerInvocation JSON and store its CID, then update the record
+    try:
+        inv_payload = {
+            'user_id': user_id,
+            'server_name': server_name,
+            'result_cid': result_cid,
+            'servers_cid': servers_cid,
+            'variables_cid': variables_cid,
+            'secrets_cid': secrets_cid,
+            'request_details_cid': req_cid,
+            'invoked_at': invocation.invoked_at.isoformat() if invocation.invoked_at else None,
+        }
+        inv_json = json.dumps(inv_payload, indent=2, sort_keys=True)
+        inv_bytes = inv_json.encode('utf-8')
+        inv_cid = generate_cid(inv_bytes)
+        if not get_cid_by_path(f"/{inv_cid}"):
+            create_cid_record(inv_cid, inv_bytes, user_id)
+
+        # Update the invocation with its JSON CID
+        invocation.invocation_cid = inv_cid
+        save_entity(invocation)
+    except Exception:
+        pass
+
+    return invocation
 
 def execute_server_code(server, server_name):
     """Execute server code and return CID redirect response or error response"""
