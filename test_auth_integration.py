@@ -19,7 +19,7 @@ class TestAuthIntegration(unittest.TestCase):
         from unittest.mock import Mock
         if isinstance(app, Mock):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         # Use the actual app but with test database
         self.app = app
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -33,6 +33,10 @@ class TestAuthIntegration(unittest.TestCase):
         """Clean up after each test."""
         with self.app.app_context():
             db.drop_all()
+        # Reset auth manager state to prevent test interference
+        auth_manager._active_provider = None
+        # Reset auth manager state to prevent test interference
+        auth_manager._active_provider = None
 
     def test_auth_manager_detection_local(self):
         """Test that auth manager detects local environment correctly."""
@@ -51,16 +55,16 @@ class TestAuthIntegration(unittest.TestCase):
         import sys
         if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         with patch.dict(os.environ, {
             'REPL_ID': 'test-repl-123',
             'REPL_OWNER': 'test-user',
             'REPL_SLUG': 'test-project'
         }):
-            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
                 # Reset the active provider to force re-detection
                 auth_manager._active_provider = None
-                
+
                 provider = auth_manager.get_active_provider()
                 self.assertEqual(provider.get_provider_name(), "Replit")
                 self.assertTrue(auth_manager.is_authentication_available())
@@ -174,7 +178,7 @@ class TestAuthProviderSwitching(unittest.TestCase):
         from unittest.mock import Mock
         if isinstance(app, Mock):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         self.app = app
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         self.app.config['TESTING'] = True
@@ -187,6 +191,8 @@ class TestAuthProviderSwitching(unittest.TestCase):
         """Clean up after each test."""
         with self.app.app_context():
             db.drop_all()
+        # Reset auth manager state to prevent test interference
+        auth_manager._active_provider = None
 
     def test_switch_from_local_to_replit(self):
         """Test switching from local to Replit authentication."""
@@ -194,20 +200,20 @@ class TestAuthProviderSwitching(unittest.TestCase):
         import sys
         if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         # Start with local environment (no REPL_ID)
         with patch.dict(os.environ, {}, clear=True):
             auth_manager._active_provider = None
             local_provider = auth_manager.get_active_provider()
             self.assertEqual(local_provider.get_provider_name(), "Local Development")
-        
+
         # Switch to Replit environment
         with patch.dict(os.environ, {
             'REPL_ID': 'test-repl-456',
             'REPL_OWNER': 'test-user-2',
             'REPL_SLUG': 'test-project-2'
         }):
-            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
                 # Reset to force re-detection
                 auth_manager._active_provider = None
                 replit_provider = auth_manager.get_active_provider()
@@ -219,18 +225,18 @@ class TestAuthProviderSwitching(unittest.TestCase):
         import sys
         if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         # Start with Replit environment
         with patch.dict(os.environ, {
             'REPL_ID': 'test-repl-789',
             'REPL_OWNER': 'test-user-3',
             'REPL_SLUG': 'test-project-3'
         }):
-            with patch('auth_providers.ReplitAuthProvider.is_available', return_value=True):
+            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
                 auth_manager._active_provider = None
                 replit_provider = auth_manager.get_active_provider()
                 self.assertEqual(replit_provider.get_provider_name(), "Replit")
-        
+
         # Switch to local environment (clear REPL_ID)
         with patch.dict(os.environ, {}, clear=True):
             # Reset to force re-detection
@@ -256,6 +262,8 @@ class TestAuthErrorHandling(unittest.TestCase):
         """Clean up after each test."""
         with self.app.app_context():
             db.drop_all()
+        # Reset auth manager state to prevent test interference
+        auth_manager._active_provider = None
 
     def test_auth_manager_no_providers_available(self):
         """Test auth manager when no providers are available."""
@@ -273,11 +281,11 @@ class TestAuthErrorHandling(unittest.TestCase):
     def test_invalid_login_url_when_no_provider(self):
         """Test that login URL handling works when no provider is available."""
         with self.app.test_request_context('/'):
-            with patch('auth_providers.LocalAuthProvider.is_available', return_value=False):
-                with patch('auth_providers.ReplitAuthProvider.is_available', return_value=False):
+            with patch.object(auth_manager.providers['local'], 'is_available', return_value=False):
+                with patch.object(auth_manager.providers['replit'], 'is_available', return_value=False):
                     # Reset to force re-detection
                     auth_manager._active_provider = None
-                    
+
                     # Should fall back to index when no provider available
                     login_url = auth_manager.get_login_url()
                     self.assertIn('/', login_url)  # May be full URL due to app config

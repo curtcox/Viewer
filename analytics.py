@@ -1,13 +1,12 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
-from flask import request, session
+from flask import request, session, current_app
 from flask_login import current_user
+from flask_sqlalchemy import SQLAlchemy
 
-from app import app, db
 from models import PageView, ServerInvocation  # noqa: F401
 
 
-@app.before_request
 def make_session_permanent():
     """Ensure the user's session is marked as permanent."""
     session.permanent = True
@@ -41,16 +40,17 @@ def create_page_view_record():
     )
 
 
-@app.after_request
 def track_page_view(response):
     """Track page views for authenticated users."""
     try:
         if should_track_page_view(response):
             page_view = create_page_view_record()
+            from database import db
             db.session.add(page_view)
             db.session.commit()
     except Exception:
         # Don't let tracking errors break the request
+        from database import db
         db.session.rollback()
 
     return response
@@ -59,6 +59,7 @@ def track_page_view(response):
 def get_user_history_statistics(user_id):
     """Calculate history statistics for a user."""
     from sqlalchemy import func
+    from database import db
 
     # Get total views count
     total_views = PageView.query.filter_by(user_id=user_id).count()

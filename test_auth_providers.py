@@ -281,32 +281,16 @@ class TestRequireLoginDecorator(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        # Skip test if running with unittest discover due to Flask-Login conflicts
-        import sys
-        if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
+        # Skip test if app is mocked (running with unittest discover)
+        from unittest.mock import Mock
+        from app import app
+        if isinstance(app, Mock):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
-        self.app = Flask(__name__)
-        self.app.config['SECRET_KEY'] = 'test-secret'
-        self.app.config['SERVER_NAME'] = 'localhost'
-        
-        # Initialize Flask-Login
-        from flask_login import LoginManager
-        self.login_manager = LoginManager()
-        self.login_manager.init_app(self.app)
-        
-        @self.login_manager.user_loader
-        def load_user(user_id):
-            return None  # Mock user loader
-        
-        # Register local_auth blueprint to provide the login endpoint
-        from local_auth import local_auth_bp
-        self.app.register_blueprint(local_auth_bp, url_prefix='/auth')
 
-        @self.app.route('/test')
-        @require_login
-        def test_route():
-            return "success"
+        # Use the actual app
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.app.config['WTF_CSRF_ENABLED'] = False
 
     def test_require_login_authenticated_user(self):
         """Test require_login with authenticated user."""
@@ -314,16 +298,16 @@ class TestRequireLoginDecorator(unittest.TestCase):
         import sys
         if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         with self.app.test_request_context('/'):
             with patch('auth_providers.current_user') as mock_current_user:
                 # Mock authenticated user
                 mock_current_user.is_authenticated = True
-                
+
                 @require_login
                 def protected_function():
                     return "success"
-                
+
                 # Test that the function executes normally for authenticated user
                 result = protected_function()
                 self.assertEqual(result, "success")
@@ -334,17 +318,17 @@ class TestRequireLoginDecorator(unittest.TestCase):
         import sys
         if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
             self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
+
         with self.app.test_request_context('/'):
             with patch('auth_providers.current_user') as mock_current_user:
                 # Mock unauthenticated user
                 mock_current_user.is_authenticated = False
-                
+
                 # Create a test function that uses require_login
                 @require_login
                 def protected_function():
                     return "success"
-                
+
                 # Test that the function returns a redirect response for unauthenticated user
                 result = protected_function()
                 # Should return a redirect response

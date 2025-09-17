@@ -1,8 +1,7 @@
 import os
 import logging
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
+from database import db, init_db
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
@@ -11,9 +10,6 @@ load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-
-class Base(DeclarativeBase):
-    pass
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -28,8 +24,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
 }
 
-# No need to call db.init_app(app) here, it's already done in the constructor.
-db = SQLAlchemy(app, model_class=Base)
+# Initialize database
+init_db(app)
 
 # Create tables
 # Need to put this in module-level to make it work with Gunicorn.
@@ -37,6 +33,12 @@ with app.app_context():
     import models  # noqa: F401
     import routes  # noqa: F401 - Import routes to register them
     import local_auth  # noqa: F401 - Import local auth routes
+    import analytics  # noqa: F401 - Import analytics to register functions
+
+    # Register analytics functions
+    from analytics import make_session_permanent, track_page_view
+    app.before_request(make_session_permanent)
+    app.after_request(track_page_view)
 
     # Register blueprints
     from local_auth import local_auth_bp

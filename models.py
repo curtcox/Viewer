@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from app import db
+from database import db
 from flask_login import UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 
@@ -14,33 +14,33 @@ class User(UserMixin, db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
     # Payment and access control
     is_paid = db.Column(db.Boolean, default=False)
     payment_expires_at = db.Column(db.DateTime)
     current_terms_accepted = db.Column(db.Boolean, default=False)
-    
+
     # Invitation tracking
     invited_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
     invitation_used_id = db.Column(db.Integer, db.ForeignKey('invitation.id'), nullable=True)
-    
+
     # Relationships
     payments = db.relationship('Payment', backref='user', lazy=True, cascade='all, delete-orphan')
     terms_acceptances = db.relationship('TermsAcceptance', backref='user', lazy=True, cascade='all, delete-orphan')
     invitations_sent = db.relationship('Invitation', backref='inviter', lazy=True, foreign_keys='Invitation.inviter_user_id')
     invited_by = db.relationship('User', remote_side=[id], backref='invited_users')
-    
+
     def has_access(self):
         """Check if user has full access (logged in, paid, terms accepted)"""
         return self.is_paid and self.current_terms_accepted and (
             self.payment_expires_at is None or self.payment_expires_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
         )
-    
+
     @property
     def username(self):
         """Compatibility property for templates"""
         return self.first_name or self.email or self.id
-    
+
     def __repr__(self):
         return f'<User {self.id}>'
 
@@ -68,7 +68,7 @@ class Payment(db.Model):
     payment_method = db.Column(db.String(50), default='Mock Payment')
     transaction_id = db.Column(db.String(100))
     status = db.Column(db.String(20), default='completed')
-    
+
     def __repr__(self):
         return f'<Payment {self.amount} for {self.plan_type}>'
 
@@ -78,7 +78,7 @@ class TermsAcceptance(db.Model):
     terms_version = db.Column(db.String(10), nullable=False)
     accepted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     ip_address = db.Column(db.String(45))  # Support IPv6
-    
+
     def __repr__(self):
         return f'<TermsAcceptance {self.terms_version} by user {self.user_id}>'
 
@@ -92,10 +92,10 @@ class Invitation(db.Model):
     used_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
     status = db.Column(db.String(20), default='pending')  # pending, used, expired
     expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration
-    
+
     # Relationships
     used_by_user = db.relationship('User', foreign_keys=[used_by_user_id], backref='invitation_used')
-    
+
     def is_valid(self):
         """Check if invitation is still valid for use"""
         if self.status != 'pending':
@@ -103,13 +103,13 @@ class Invitation(db.Model):
         if self.expires_at and self.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
             return False
         return True
-    
+
     def mark_used(self, user_id):
         """Mark invitation as used by a specific user"""
         self.status = 'used'
         self.used_at = datetime.now(timezone.utc)
         self.used_by_user_id = user_id
-    
+
     def __repr__(self):
         return f'<Invitation {self.invitation_code} by {self.inviter_user_id}>'
 
@@ -120,10 +120,10 @@ class CID(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
     uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    
+
     # Relationships
     uploaded_by = db.relationship('User', backref='uploads')
-    
+
     def __repr__(self):
         return f'<CID {self.path}>'
 
@@ -135,10 +135,10 @@ class PageView(db.Model):
     user_agent = db.Column(db.String(500), nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)  # Support IPv6
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    
+
     # Relationships
     user = db.relationship('User', backref='page_views')
-    
+
     def __repr__(self):
         return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
 
@@ -150,13 +150,13 @@ class Server(db.Model):
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+
     # Relationships
     user = db.relationship('User', backref='servers')
-    
+
     # Unique constraint: each user can only have one server with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_server_name'),)
-    
+
     def __repr__(self):
         return f'<Server {self.name} by {self.user_id}>'
 
@@ -167,13 +167,13 @@ class Variable(db.Model):
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+
     # Relationships
     user = db.relationship('User', backref='variables')
-    
+
     # Unique constraint: each user can only have one variable with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_variable_name'),)
-    
+
     def __repr__(self):
         return f'<Variable {self.name} by {self.user_id}>'
 
@@ -184,13 +184,13 @@ class Secret(db.Model):
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+
     # Relationships
     user = db.relationship('User', backref='secrets')
-    
+
     # Unique constraint: each user can only have one secret with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)
-    
+
     def __repr__(self):
         return f'<Secret {self.name} by {self.user_id}>'
 
@@ -200,15 +200,15 @@ class ServerInvocation(db.Model):
     server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
     result_cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the result produced
     servers_cid = db.Column(db.String(255), nullable=True)  # CID of current servers definitions
-    variables_cid = db.Column(db.String(255), nullable=True)  # CID of current variables definitions  
+    variables_cid = db.Column(db.String(255), nullable=True)  # CID of current variables definitions
     secrets_cid = db.Column(db.String(255), nullable=True)  # CID of current secrets definitions
     request_details_cid = db.Column(db.String(255), nullable=True)  # CID of request details JSON
     invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    
+
     # Relationships
     user = db.relationship('User', backref='server_invocations')
-    
+
     def __repr__(self):
         return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
 
