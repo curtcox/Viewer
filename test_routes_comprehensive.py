@@ -501,7 +501,7 @@ class TestInvitationRoutes(BaseTestCase):
 class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
     
-    @patch('routes.get_user_history_statistics')
+    @patch('analytics.get_user_history_statistics')
     def test_history_page(self, mock_stats):
         """Test history page."""
         # Mock the statistics function to avoid SQLAlchemy func issues
@@ -527,8 +527,8 @@ class TestHistoryRoutes(BaseTestCase):
         response = self.app.get('/history')
         self.assertEqual(response.status_code, 200)
     
-    @patch('routes.get_user_history_statistics')
-    @patch('routes.get_paginated_page_views')  
+    @patch('analytics.get_user_history_statistics')
+    @patch('analytics.get_paginated_page_views')
     def test_history_pagination(self, mock_paginated, mock_stats):
         """Test history page pagination."""
         # Mock the functions to avoid SQLAlchemy func issues
