@@ -25,7 +25,7 @@ def login():
         next_url = session.pop('next_url', None)
         if next_url:
             return redirect(next_url)
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     # GET request - show login page
     return render_template('local_login.html')
@@ -36,7 +36,7 @@ def logout():
     """Local development logout."""
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
 
 @local_auth_bp.route('/register', methods=['GET', 'POST'])
@@ -63,7 +63,7 @@ def register():
         next_url = session.pop('next_url', None)
         if next_url:
             return redirect(next_url)
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     # GET request - show registration page
     return render_template('local_register.html')

@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from flask import session, redirect, url_for, request, flash
 from flask_login import current_user
-from app import db
+from database import db
 from models import User, Invitation
 
 
@@ -108,10 +108,20 @@ class AuthManager:
         """Get the currently active authentication provider."""
         if self._active_provider is None:
             # Auto-detect based on environment
-            if self.providers['replit'].is_available():
-                self._active_provider = self.providers['replit']
-            elif self.providers['local'].is_available():
-                self._active_provider = self.providers['local']
+            providers: Dict[str, AuthProvider] = {}
+
+            if isinstance(self.providers, dict):
+                providers = self.providers
+
+            replit_provider = providers.get('replit')
+            local_provider = providers.get('local')
+
+            if replit_provider and getattr(replit_provider, 'is_available', None):
+                if replit_provider.is_available():
+                    self._active_provider = replit_provider
+            if self._active_provider is None and local_provider and getattr(local_provider, 'is_available', None):
+                if local_provider.is_available():
+                    self._active_provider = local_provider
         return self._active_provider
 
     def get_login_url(self) -> str:
@@ -119,14 +129,14 @@ class AuthManager:
         provider = self.get_active_provider()
         if provider:
             return provider.get_login_url()
-        return url_for('index')
+        return url_for('main.index')
 
     def get_logout_url(self) -> str:
         """Get the logout URL for the active provider."""
         provider = self.get_active_provider()
         if provider:
             return provider.get_logout_url()
-        return url_for('index')
+        return url_for('main.index')
 
     def is_authentication_available(self) -> bool:
         """Check if any authentication provider is available."""
@@ -156,7 +166,7 @@ def require_login(f):
                 return redirect(provider.get_login_url())
             else:
                 flash('Authentication not available.', 'info')
-                return redirect(url_for('index'))
+                return redirect(url_for('main.index'))
 
         return f(*args, **kwargs)
 

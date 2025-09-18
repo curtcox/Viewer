@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
-from app import db
+from database import db
 from models import (
     Payment,
     TermsAcceptance,

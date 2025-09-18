@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from flask import render_template, flash, redirect, url_for, request, session, jsonify, abort
+from flask import Blueprint, render_template, flash, redirect, url_for, request, session, jsonify, abort
 from flask_login import current_user
-from app import app, db
+from database import db
 from models import Invitation, Server, Variable, Secret, CURRENT_TERMS_VERSION, ServerInvocation
 from analytics import get_paginated_page_views, get_user_history_statistics
 from db_access import (
@@ -49,8 +49,12 @@ from server_execution import (
     try_server_execution_with_partial,
 )
 
+# Blueprint for main application routes
+main_bp = Blueprint('main', __name__)
+
+
 # Make authentication info available to all templates
-@app.context_processor
+@main_bp.app_context_processor
 def inject_auth_info():
     return dict(
         AUTH_AVAILABLE=auth_manager.is_authentication_available(),
@@ -59,29 +63,29 @@ def inject_auth_info():
         LOGOUT_URL=auth_manager.get_logout_url()
     )
 
-@app.route('/')
+@main_bp.route('/')
 def index():
     """Landing page - shows different content based on user status"""
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     return render_template('index.html')
 
-@app.route('/dashboard')
+@main_bp.route('/dashboard')
 @require_login
 def dashboard():
     """User dashboard - redirects based on access level"""
     if current_user.has_access():
-        return redirect(url_for('content'))
-    return redirect(url_for('profile'))
+        return redirect(url_for('main.content'))
+    return redirect(url_for('main.profile'))
 
-@app.route('/profile')
+@main_bp.route('/profile')
 @require_login
 def profile():
     """User profile showing payment history and terms acceptance"""
     profile_data = get_user_profile_data(current_user.id)
     return render_template('profile.html', **profile_data)
 
-@app.route('/subscribe', methods=['GET', 'POST'])
+@main_bp.route('/subscribe', methods=['GET', 'POST'])
 @require_login
 def subscribe():
     """Handle subscription payments (mock implementation)"""
@@ -98,11 +102,11 @@ def subscribe():
         create_payment_record(plan, amount, current_user)
 
         flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
-        return redirect(url_for('profile'))
+        return redirect(url_for('main.profile'))
 
     return render_template('subscribe.html', form=form)
 
-@app.route('/accept-terms', methods=['GET', 'POST'])
+@main_bp.route('/accept-terms', methods=['GET', 'POST'])
 @require_login
 def accept_terms():
     """Handle terms and conditions acceptance"""
@@ -115,32 +119,32 @@ def accept_terms():
                 request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
             )
             flash('Terms and conditions accepted successfully!', 'success')
-        return redirect(url_for('profile'))
+        return redirect(url_for('main.profile'))
 
     return render_template('accept_terms.html', form=form, terms_version=CURRENT_TERMS_VERSION)
 
-@app.route('/content')
+@main_bp.route('/content')
 @require_login
 def content():
     """Protected content area - displays HTTP request details"""
     if not current_user.has_access():
         flash('Access denied. Please ensure you have an active subscription and have accepted the current terms and conditions.', 'warning')
-        return redirect(url_for('profile'))
+        return redirect(url_for('main.profile'))
 
     request_info = gather_request_info()
     return render_template('content.html', request_info=request_info)
 
-@app.route('/plans')
+@main_bp.route('/plans')
 def plans():
     """Display pricing plans"""
     return render_template('plans.html')
 
-@app.route('/terms')
+@main_bp.route('/terms')
 def terms():
     """Display terms and conditions"""
     return render_template('terms.html', current_version=CURRENT_TERMS_VERSION)
 
-@app.route('/privacy')
+@main_bp.route('/privacy')
 def privacy():
     """Display privacy policy"""
     return render_template('privacy.html')
@@ -227,7 +231,7 @@ def update_secret_definitions_cid(user_id):
     """Update the secret definitions CID after secret changes"""
     return store_secret_definitions_cid(user_id)
 
-@app.route('/upload', methods=['GET', 'POST'])
+@main_bp.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
     """File upload page with IPFS CID storage - supports both file upload and text input"""
@@ -283,14 +287,14 @@ def upload():
 
     return render_template('upload.html', form=form)
 
-@app.route('/invitations')
+@main_bp.route('/invitations')
 @require_login
 def invitations():
     """Manage user invitations"""
     user_invitations = Invitation.query.filter_by(inviter_user_id=current_user.id).order_by(Invitation.created_at.desc()).all()
     return render_template('invitations.html', invitations=user_invitations)
 
-@app.route('/create-invitation', methods=['GET', 'POST'])
+@main_bp.route('/create-invitation', methods=['GET', 'POST'])
 @require_login
 def create_invitation():
     """Create a new invitation"""
@@ -310,11 +314,11 @@ def create_invitation():
         db.session.commit()
 
         flash(f'Invitation created! Code: {invitation_code}', 'success')
-        return redirect(url_for('invitations'))
+        return redirect(url_for('main.invitations'))
 
     return render_template('create_invitation.html', form=form)
 
-@app.route('/require-invitation', methods=['GET', 'POST'])
+@main_bp.route('/require-invitation', methods=['GET', 'POST'])
 def require_invitation():
     """Handle invitation code requirement for new users"""
     form = InvitationCodeForm()
@@ -341,7 +345,7 @@ def require_invitation():
 
     return render_template('require_invitation.html', form=form, error_message=error_message)
 
-@app.route('/invite/<invitation_code>')
+@main_bp.route('/invite/<invitation_code>')
 def accept_invitation(invitation_code):
     """Direct link to accept an invitation"""
     invitation = validate_invitation_code(invitation_code)
@@ -352,9 +356,9 @@ def accept_invitation(invitation_code):
         return redirect(auth_manager.get_login_url())
     else:
         flash('Invalid or expired invitation link.', 'danger')
-        return redirect(url_for('require_invitation'))
+        return redirect(url_for('main.require_invitation'))
 
-@app.route('/uploads')
+@main_bp.route('/uploads')
 @require_login
 def uploads():
     """Display user's uploaded files"""
@@ -423,7 +427,7 @@ def get_server_invocation_extremes(user_id, server_name):
     result['last_invocations'] = [_invocation_to_dict(i) for i in last_three]
     return result
 
-@app.route('/history')
+@main_bp.route('/history')
 @require_login
 def history():
     """Display user's page view history"""
@@ -448,7 +452,7 @@ def history():
 def user_servers():
     return get_user_servers(current_user.id)
 
-@app.route('/servers')
+@main_bp.route('/servers')
 @require_login
 def servers():
     """Display user's servers"""
@@ -462,7 +466,7 @@ def servers():
                          servers=servers_list,
                          server_definitions_cid=server_definitions_cid)
 
-@app.route('/servers/new', methods=['GET', 'POST'])
+@main_bp.route('/servers/new', methods=['GET', 'POST'])
 @require_login
 def new_server():
     """Create a new server"""
@@ -470,11 +474,11 @@ def new_server():
 
     if form.validate_on_submit():
         if create_entity(Server, form, current_user.id, 'server'):
-            return redirect(url_for('servers'))
+            return redirect(url_for('main.servers'))
 
     return render_template('server_form.html', form=form, title='Create New Server')
 
-@app.route('/servers/<server_name>')
+@main_bp.route('/servers/<server_name>')
 @require_login
 def view_server(server_name):
     """View a specific server"""
@@ -489,7 +493,7 @@ def view_server(server_name):
 
     return render_template('server_view.html', server=server, definition_history=history, server_invocations=invocations)
 
-@app.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
+@main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_server(server_name):
     """Edit a specific server"""
@@ -506,13 +510,13 @@ def edit_server(server_name):
 
     if form.validate_on_submit():
         if update_entity(server, form, 'server'):
-            return redirect(url_for('view_server', server_name=server.name))
+            return redirect(url_for('main.view_server', server_name=server.name))
         else:
             return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history, server_invocations=invocations)
 
     return render_template('server_form.html', form=form, title=f'Edit Server "{server.name}"', server=server, definition_history=history, server_invocations=invocations)
 
-@app.route('/servers/<server_name>/delete', methods=['POST'])
+@main_bp.route('/servers/<server_name>/delete', methods=['POST'])
 @require_login
 def delete_server(server_name):
     """Delete a specific server"""
@@ -527,12 +531,12 @@ def delete_server(server_name):
     update_server_definitions_cid(user_id)
 
     flash(f'Server "{server_name}" deleted successfully!', 'success')
-    return redirect(url_for('servers'))
+    return redirect(url_for('main.servers'))
 
 def user_variables():
     return get_user_variables(current_user.id)
 
-@app.route('/variables')
+@main_bp.route('/variables')
 @require_login
 def variables():
     """Display user's variables"""
@@ -540,7 +544,7 @@ def variables():
     variable_definitions_cid = get_current_variable_definitions_cid(current_user.id) if variables_list else None
     return render_template('variables.html', variables=variables_list, variable_definitions_cid=variable_definitions_cid)
 
-@app.route('/variables/new', methods=['GET', 'POST'])
+@main_bp.route('/variables/new', methods=['GET', 'POST'])
 @require_login
 def new_variable():
     """Create a new variable"""
@@ -548,11 +552,11 @@ def new_variable():
 
     if form.validate_on_submit():
         if create_entity(Variable, form, current_user.id, 'variable'):
-            return redirect(url_for('variables'))
+            return redirect(url_for('main.variables'))
 
     return render_template('variable_form.html', form=form, title='Create New Variable')
 
-@app.route('/variables/<variable_name>')
+@main_bp.route('/variables/<variable_name>')
 @require_login
 def view_variable(variable_name):
     """View a specific variable"""
@@ -562,7 +566,7 @@ def view_variable(variable_name):
 
     return render_template('variable_view.html', variable=variable)
 
-@app.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
+@main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_variable(variable_name):
     """Edit a specific variable"""
@@ -574,13 +578,13 @@ def edit_variable(variable_name):
 
     if form.validate_on_submit():
         if update_entity(variable, form, 'variable'):
-            return redirect(url_for('view_variable', variable_name=variable.name))
+            return redirect(url_for('main.view_variable', variable_name=variable.name))
         else:
             return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
 
     return render_template('variable_form.html', form=form, title=f'Edit Variable "{variable.name}"', variable=variable)
 
-@app.route('/variables/<variable_name>/delete', methods=['POST'])
+@main_bp.route('/variables/<variable_name>/delete', methods=['POST'])
 @require_login
 def delete_variable(variable_name):
     """Delete a specific variable"""
@@ -594,7 +598,7 @@ def delete_variable(variable_name):
     update_variable_definitions_cid(current_user.id)
 
     flash(f'Variable "{variable_name}" deleted successfully!', 'success')
-    return redirect(url_for('variables'))
+    return redirect(url_for('main.variables'))
 
 def user_secrets():
     return get_user_secrets(current_user.id)
@@ -725,11 +729,11 @@ def handle_pending_authentication(invitation_code):
             login_user(user)
 
             flash('Welcome! Your account has been created.', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('main.index'))
         except ValueError as e:
             flash(f'Error: {str(e)}', 'danger')
             return None
-@app.route('/secrets')
+@main_bp.route('/secrets')
 @require_login
 def secrets():
     """Display user's secrets"""
@@ -737,7 +741,7 @@ def secrets():
     secret_definitions_cid = get_current_secret_definitions_cid(current_user.id) if secrets_list else None
     return render_template('secrets.html', secrets=secrets_list, secret_definitions_cid=secret_definitions_cid)
 
-@app.route('/secrets/new', methods=['GET', 'POST'])
+@main_bp.route('/secrets/new', methods=['GET', 'POST'])
 @require_login
 def new_secret():
     """Create a new secret"""
@@ -745,11 +749,11 @@ def new_secret():
 
     if form.validate_on_submit():
         if create_entity(Secret, form, current_user.id, 'secret'):
-            return redirect(url_for('secrets'))
+            return redirect(url_for('main.secrets'))
 
     return render_template('secret_form.html', form=form, title='Create New Secret')
 
-@app.route('/secrets/<secret_name>')
+@main_bp.route('/secrets/<secret_name>')
 @require_login
 def view_secret(secret_name):
     """View a specific secret"""
@@ -759,7 +763,7 @@ def view_secret(secret_name):
 
     return render_template('secret_view.html', secret=secret)
 
-@app.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
+@main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
 @require_login
 def edit_secret(secret_name):
     """Edit a specific secret"""
@@ -771,13 +775,13 @@ def edit_secret(secret_name):
 
     if form.validate_on_submit():
         if update_entity(secret, form, 'secret'):
-            return redirect(url_for('view_secret', secret_name=secret.name))
+            return redirect(url_for('main.view_secret', secret_name=secret.name))
         else:
             return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
 
     return render_template('secret_form.html', form=form, title=f'Edit Secret "{secret.name}"', secret=secret)
 
-@app.route('/secrets/<secret_name>/delete', methods=['POST'])
+@main_bp.route('/secrets/<secret_name>/delete', methods=['POST'])
 @require_login
 def delete_secret(secret_name):
     """Delete a specific secret"""
@@ -791,7 +795,7 @@ def delete_secret(secret_name):
     update_secret_definitions_cid(current_user.id)
 
     flash(f'Secret "{secret_name}" deleted successfully!', 'success')
-    return redirect(url_for('secrets'))
+    return redirect(url_for('main.secrets'))
 
 # ============================================================================
 # SETTINGS DATA HELPERS
@@ -805,14 +809,14 @@ def get_user_settings_counts(user_id):
         'secret_count': count_user_secrets(user_id)
     }
 
-@app.route('/settings')
+@main_bp.route('/settings')
 @require_login
 def settings():
     """Settings page with links to servers, variables, and secrets"""
     counts = get_user_settings_counts(current_user.id)
     return render_template('settings.html', **counts)
 
-@app.route('/meta/<cid>')
+@main_bp.route('/meta/<cid>')
 def meta_cid(cid):
     """Serve metadata about a CID as JSON"""
     # Look up the CID in the database
@@ -854,7 +858,7 @@ def get_existing_routes():
         '/secrets', '/settings'
     }
 
-@app.errorhandler(404)
+@main_bp.app_errorhandler(404)
 def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content"""
     path = request.path
@@ -884,7 +888,7 @@ def not_found_error(error):
     # If no content found, show 404 with the path
     return render_template('404.html', path=path), 404
 
-@app.errorhandler(500)
+@main_bp.app_errorhandler(500)
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500

@@ -4,11 +4,46 @@ Unit tests for the local authentication routes.
 """
 import unittest
 from unittest.mock import patch, MagicMock
-from flask import Flask
+from flask import Flask, Blueprint
 from flask_login import LoginManager
 from app import db
 from local_auth import local_auth_bp
 from models import User
+
+
+def _create_main_stub_blueprint() -> Blueprint:
+    """Create a minimal main blueprint to satisfy template url_for calls."""
+    main_bp = Blueprint('main', __name__)
+
+    @main_bp.route('/')
+    def index():
+        return "Index page"
+
+    @main_bp.route('/dashboard')
+    def dashboard():
+        return "Dashboard page"
+
+    @main_bp.route('/plans')
+    def plans():
+        return "Plans page"
+
+    @main_bp.route('/profile')
+    def profile():
+        return "Profile page"
+
+    @main_bp.route('/content')
+    def content():
+        return "Content page"
+
+    @main_bp.route('/terms')
+    def terms():
+        return "Terms page"
+
+    @main_bp.route('/privacy')
+    def privacy():
+        return "Privacy page"
+
+    return main_bp
 
 
 class TestLocalAuthRoutes(unittest.TestCase):
@@ -33,37 +68,9 @@ class TestLocalAuthRoutes(unittest.TestCase):
 
         db.init_app(self.app)
 
-        # Register all necessary routes
+        # Register main blueprint stubs required by local_auth redirects
+        self.app.register_blueprint(_create_main_stub_blueprint())
         self.app.register_blueprint(local_auth_bp, url_prefix="/auth")
-
-        # Add basic routes that templates need
-        @self.app.route('/')
-        def index():
-            return "Index page"
-
-        @self.app.route('/dashboard')
-        def dashboard():
-            return "Dashboard page"
-
-        @self.app.route('/plans')
-        def plans():
-            return "Plans page"
-
-        @self.app.route('/profile')
-        def profile():
-            return "Profile page"
-
-        @self.app.route('/content')
-        def content():
-            return "Content page"
-
-        @self.app.route('/terms')
-        def terms():
-            return "Terms page"
-
-        @self.app.route('/privacy')
-        def privacy():
-            return "Privacy page"
 
         with self.app.app_context():
             db.create_all()
@@ -217,35 +224,7 @@ class TestLocalAuthIntegration(unittest.TestCase):
 
         # Register all necessary routes
         self.app.register_blueprint(local_auth_bp, url_prefix="/auth")
-
-        # Add basic routes that templates need
-        @self.app.route('/')
-        def index():
-            return "Index page"
-
-        @self.app.route('/dashboard')
-        def dashboard():
-            return "Dashboard page"
-
-        @self.app.route('/plans')
-        def plans():
-            return "Plans page"
-
-        @self.app.route('/profile')
-        def profile():
-            return "Profile page"
-
-        @self.app.route('/content')
-        def content():
-            return "Content page"
-
-        @self.app.route('/terms')
-        def terms():
-            return "Terms page"
-
-        @self.app.route('/privacy')
-        def privacy():
-            return "Privacy page"
+        self.app.register_blueprint(_create_main_stub_blueprint())
 
         with self.app.app_context():
             db.create_all()

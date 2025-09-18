@@ -4,10 +4,13 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db
+from app import create_app
+from database import db
 from models import Server
 from cid_utils import save_server_definition_as_cid
 import sqlite3
+
+app = create_app()
 
 def migrate_add_server_cid():
     """Add definition_cid column to Server table and populate existing servers"""

@@ -25,10 +25,10 @@
                                 <span class="badge bg-primary fs-6">{{ server_count }} server{{ 's' if server_count != 1 else '' }}</span>
                             </div>
                             <div class="d-grid gap-2">
-                                <a href="{{ url_for('servers') }}" class="btn btn-primary">
+                                <a href="{{ url_for('main.servers') }}" class="btn btn-primary">
                                     <i class="fas fa-list me-1"></i>View All Servers
                                 </a>
-                                <a href="{{ url_for('new_server') }}" class="btn btn-outline-primary">
+                                <a href="{{ url_for('main.new_server') }}" class="btn btn-outline-primary">
                                     <i class="fas fa-plus me-1"></i>Create New Server
                                 </a>
                             </div>
@@ -52,10 +52,10 @@
                                 <span class="badge bg-success fs-6">{{ variable_count }} variable{{ 's' if variable_count != 1 else '' }}</span>
                             </div>
                             <div class="d-grid gap-2">
-                                <a href="{{ url_for('variables') }}" class="btn btn-success">
+                                <a href="{{ url_for('main.variables') }}" class="btn btn-success">
                                     <i class="fas fa-list me-1"></i>View All Variables
                                 </a>
-                                <a href="{{ url_for('new_variable') }}" class="btn btn-outline-success">
+                                <a href="{{ url_for('main.new_variable') }}" class="btn btn-outline-success">
                                     <i class="fas fa-plus me-1"></i>Create New Variable
                                 </a>
                             </div>
@@ -79,10 +79,10 @@
                                 <span class="badge bg-warning fs-6">{{ secret_count }} secret{{ 's' if secret_count != 1 else '' }}</span>
                             </div>
                             <div class="d-grid gap-2">
-                                <a href="{{ url_for('secrets') }}" class="btn btn-warning">
+                                <a href="{{ url_for('main.secrets') }}" class="btn btn-warning">
                                     <i class="fas fa-list me-1"></i>View All Secrets
                                 </a>
-                                <a href="{{ url_for('new_secret') }}" class="btn btn-outline-warning">
+                                <a href="{{ url_for('main.new_secret') }}" class="btn btn-outline-warning">
                                     <i class="fas fa-plus me-1"></i>Create New Secret
                                 </a>
                             </div>
