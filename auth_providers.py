@@ -10,7 +10,6 @@ from flask import session, redirect, url_for, request, flash
 from flask_login import current_user
 from database import db
 from models import User, Invitation
-from werkzeug.routing import BuildError
 
 
 class AuthProvider(ABC):
@@ -62,16 +61,10 @@ class ReplitAuthProvider(AuthProvider):
         return self.blueprint is not None and os.environ.get('REPL_ID') is not None
 
     def get_login_url(self) -> str:
-        try:
-            return url_for('replit_auth.login')
-        except BuildError:
-            return url_for('local_auth.login')
+        return url_for('replit_auth.login')
 
     def get_logout_url(self) -> str:
-        try:
-            return url_for('replit_auth.logout')
-        except BuildError:
-            return url_for('local_auth.logout')
+        return url_for('replit_auth.logout')
 
     def handle_callback(self) -> Optional[User]:
         # Replit auth handles its own callbacks through the blueprint
@@ -113,18 +106,6 @@ class AuthManager:
 
     def get_active_provider(self) -> Optional[AuthProvider]:
         """Get the currently active authentication provider."""
-        if self._active_provider is not None:
-            provider = self._active_provider
-            is_available = getattr(provider, 'is_available', None)
-            available = False
-            if callable(is_available):
-                try:
-                    available = bool(is_available())
-                except Exception:
-                    available = False
-            if not available:
-                self._active_provider = None
-
         if self._active_provider is None:
             # Auto-detect based on environment
             providers: Dict[str, AuthProvider] = {}
@@ -136,18 +117,11 @@ class AuthManager:
             local_provider = providers.get('local')
 
             if replit_provider and getattr(replit_provider, 'is_available', None):
-                try:
-                    if replit_provider.is_available():
-                        self._active_provider = replit_provider
-                except Exception:
-                    pass
-
+                if replit_provider.is_available():
+                    self._active_provider = replit_provider
             if self._active_provider is None and local_provider and getattr(local_provider, 'is_available', None):
-                try:
-                    if local_provider.is_available():
-                        self._active_provider = local_provider
-                except Exception:
-                    pass
+                if local_provider.is_available():
+                    self._active_provider = local_provider
         return self._active_provider
 
     def get_login_url(self) -> str:

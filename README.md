@@ -9,7 +9,7 @@ The project includes simple helper scripts so you can get up and running quickly
 ./install   # set up a virtual environment and install dependencies
 ./doctor    # verify your environment
 ./run       # start the development server on http://localhost:5000
-./test      # run the full test suite with pytest
+./test      # run the full test suite
 ```
 
 The `install` script copies `.env.sample` to `.env` if it does not exist.  By default the application uses a local SQLite

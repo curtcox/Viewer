@@ -30,8 +30,6 @@ class TestAuthIntegration(unittest.TestCase):
             db.drop_all()
         # Reset auth manager state to prevent test interference
         auth_manager._active_provider = None
-        # Reset auth manager state to prevent test interference
-        auth_manager._active_provider = None
 
     def test_auth_manager_detection_local(self):
         """Test that auth manager detects local environment correctly."""
