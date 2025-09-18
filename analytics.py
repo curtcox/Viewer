@@ -1,8 +1,7 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
-from flask import request, session, current_app
+from flask import request, session
 from flask_login import current_user
-from flask_sqlalchemy import SQLAlchemy
 
 from models import PageView, ServerInvocation  # noqa: F401
 
