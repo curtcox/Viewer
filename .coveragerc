@@ -22,7 +22,7 @@ include =
     *.py
     app.py
     main.py
-    routes.py
+    routes/*.py
     models.py
     forms.py
     auth_providers.py

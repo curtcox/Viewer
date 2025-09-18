@@ -64,8 +64,8 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertEqual(content, b'test file content')
         self.assertEqual(filename, 'upload')
 
-    @patch('routes.current_user')
-    @patch('routes.require_login')
+    @patch('routes.uploads.current_user')
+    @patch('routes.uploads.require_login')
     def test_upload_text_gets_txt_extension(self, mock_require_login, mock_current_user):
         """Test that pasted text uploads get .txt extension in view URL"""
         # Mock authentication
@@ -93,8 +93,8 @@ class TestUploadExtensions(unittest.TestCase):
             # Check that the response contains .txt extension in the view URL
             self.assertIn(b'.txt', response.data)
 
-    @patch('routes.current_user')
-    @patch('routes.require_login')
+    @patch('routes.uploads.current_user')
+    @patch('routes.uploads.require_login')
     def test_upload_file_preserves_original_extension(self, mock_require_login, mock_current_user):
         """Test that file uploads preserve their original extension"""
         mock_current_user.is_authenticated = True
@@ -125,8 +125,8 @@ class TestUploadExtensions(unittest.TestCase):
             # Check that the response contains .pdf extension in the view URL
             self.assertIn(b'.pdf', response.data)
 
-    @patch('routes.current_user')
-    @patch('routes.require_login')
+    @patch('routes.uploads.current_user')
+    @patch('routes.uploads.require_login')
     def test_upload_file_handles_no_extension(self, mock_require_login, mock_current_user):
         """Test that file uploads without extension don't break"""
         mock_current_user.is_authenticated = True

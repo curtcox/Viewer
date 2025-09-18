@@ -90,7 +90,7 @@ class TestUtilityFunctions(BaseTestCase):
 class TestContextProcessors(BaseTestCase):
     """Test context processors and before/after request handlers."""
 
-    @patch('routes.auth_manager')
+    @patch('routes.core.auth_manager')
     def test_inject_auth_info(self, mock_auth_manager):
         """Test authentication info injection."""
         mock_auth_manager.is_authentication_available.return_value = True
@@ -498,7 +498,7 @@ class TestInvitationRoutes(BaseTestCase):
 class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
 
-    @patch('routes.get_user_history_statistics')
+    @patch('routes.history.get_user_history_statistics')
     def test_history_page(self, mock_stats):
         """Test history page."""
         # Mock the statistics function to avoid SQLAlchemy func issues
@@ -524,8 +524,8 @@ class TestHistoryRoutes(BaseTestCase):
         response = self.client.get('/history')
         self.assertEqual(response.status_code, 200)
 
-    @patch('routes.get_user_history_statistics')
-    @patch('routes.get_paginated_page_views')
+    @patch('routes.history.get_user_history_statistics')
+    @patch('routes.history.get_paginated_page_views')
     def test_history_pagination(self, mock_paginated, mock_stats):
         """Test history page pagination."""
         # Mock the functions to avoid SQLAlchemy func issues
@@ -544,7 +544,7 @@ class TestHistoryRoutes(BaseTestCase):
 class TestServerRoutes(BaseTestCase):
     """Test server management routes."""
 
-    @patch('routes.get_current_server_definitions_cid')
+    @patch('routes.servers.get_current_server_definitions_cid')
     def test_servers_list(self, mock_cid):
         """Test servers list page."""
         # Mock the CID function to avoid potential issues
@@ -806,7 +806,7 @@ class TestErrorHandlers(BaseTestCase):
 class TestPageViewTracking(BaseTestCase):
     """Test page view tracking functionality."""
 
-    @patch('routes.current_user')
+    @patch('routes.core.current_user')
     def test_page_view_tracking_authenticated(self, mock_current_user):
         """Test page view tracking for authenticated users."""
         mock_current_user.is_authenticated = True

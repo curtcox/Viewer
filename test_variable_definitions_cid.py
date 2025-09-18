@@ -11,7 +11,7 @@ from cid_utils import (
     store_variable_definitions_cid,
     get_current_variable_definitions_cid,
 )
-from routes import update_variable_definitions_cid
+from routes.variables import update_variable_definitions_cid
 
 class TestVariableDefinitionsCID(unittest.TestCase):
     def setUp(self):

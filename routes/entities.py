@@ -1,0 +1,103 @@
+"""Shared CRUD helper utilities for route modules."""
+from datetime import datetime, timezone
+from typing import Any, Type
+
+from flask import flash
+
+from db_access import (
+    get_secret_by_name,
+    get_server_by_name,
+    get_variable_by_name,
+    save_entity,
+)
+from cid_utils import save_server_definition_as_cid
+
+
+def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:
+    """Check if a name already exists for a user, optionally excluding a specific record."""
+    if model_class.__name__ == 'Server':
+        entity = get_server_by_name(user_id, name)
+    elif model_class.__name__ == 'Variable':
+        entity = get_variable_by_name(user_id, name)
+    elif model_class.__name__ == 'Secret':
+        entity = get_secret_by_name(user_id, name)
+    else:
+        entity = None
+
+    if entity and exclude_id and getattr(entity, 'id', None) == exclude_id:
+        return False
+    return entity is not None
+
+
+def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) -> bool:
+    """Generic function to create a new entity (server, variable, or secret)."""
+    if check_name_exists(model_class, form.name.data, user_id):
+        flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+        return False
+
+    entity_data = {
+        'name': form.name.data,
+        'definition': form.definition.data,
+        'user_id': user_id,
+    }
+
+    if model_class.__name__ == 'Server':
+        definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
+        entity_data['definition_cid'] = definition_cid
+
+    entity = model_class(**entity_data)
+    save_entity(entity)
+
+    if model_class.__name__ == 'Server':
+        from .servers import update_server_definitions_cid
+
+        update_server_definitions_cid(user_id)
+    elif model_class.__name__ == 'Variable':
+        from .variables import update_variable_definitions_cid
+
+        update_variable_definitions_cid(user_id)
+    elif model_class.__name__ == 'Secret':
+        from .secrets import update_secret_definitions_cid
+
+        update_secret_definitions_cid(user_id)
+
+    flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
+    return True
+
+
+def update_entity(entity, form, entity_type: str) -> bool:
+    """Generic function to update an entity (server, variable, or secret)."""
+    if form.name.data != entity.name:
+        if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
+            flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+            return False
+
+    if type(entity).__name__ == 'Server':
+        if form.definition.data != entity.definition:
+            definition_cid = save_server_definition_as_cid(form.definition.data, entity.user_id)
+            entity.definition_cid = definition_cid
+
+    entity.name = form.name.data
+    entity.definition = form.definition.data
+    entity.updated_at = datetime.now(timezone.utc)
+
+    save_entity(entity)
+
+    if type(entity).__name__ == 'Server':
+        from .servers import update_server_definitions_cid
+
+        update_server_definitions_cid(entity.user_id)
+    elif type(entity).__name__ == 'Variable':
+        from .variables import update_variable_definitions_cid
+
+        update_variable_definitions_cid(entity.user_id)
+    elif type(entity).__name__ == 'Secret':
+        from .secrets import update_secret_definitions_cid
+
+        update_secret_definitions_cid(entity.user_id)
+
+    flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
+    return True
+
+
+__all__ = ['check_name_exists', 'create_entity', 'update_entity']

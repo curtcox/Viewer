@@ -11,7 +11,7 @@ from cid_utils import (
     store_secret_definitions_cid,
     get_current_secret_definitions_cid,
 )
-from routes import update_secret_definitions_cid
+from routes.secrets import update_secret_definitions_cid
 
 class TestSecretDefinitionsCID(unittest.TestCase):
     def setUp(self):
