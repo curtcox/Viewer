@@ -9,32 +9,8 @@ from unittest.mock import Mock, patch
 # Add current directory to path
 sys.path.insert(0, '.')
 
-# Mock all dependencies before importing
-sys.modules['app'] = Mock()
-sys.modules['models'] = Mock()
-sys.modules['forms'] = Mock()
-sys.modules['auth_providers'] = Mock()
-sys.modules['text_function_runner'] = Mock()
-
-# Mock Flask imports
-flask_mock = Mock()
-flask_mock.render_template = Mock()
-flask_mock.flash = Mock()
-flask_mock.redirect = Mock()
-flask_mock.url_for = Mock()
-flask_mock.request = Mock()
-flask_mock.session = Mock()
-flask_mock.make_response = Mock()
-flask_mock.abort = Mock()
-sys.modules['flask'] = flask_mock
-
-# Mock flask_login
-flask_login_mock = Mock()
-sys.modules['flask_login'] = flask_login_mock
-
-# Import the functions we want to test
-from routes import user_variables, user_secrets  # noqa: E402
-from server_execution import build_request_args  # noqa: E402
+from routes import user_variables, user_secrets
+from server_execution import build_request_args
 
 class TestVariablesSecretsIssue(unittest.TestCase):
     """Test cases to demonstrate the variables and secrets serialization issue"""

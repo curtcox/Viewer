@@ -7,34 +7,11 @@ This test directly imports and tests the extract_filename_from_cid_path function
 import unittest
 import sys
 import os
-from unittest.mock import Mock
 
 # Add the current directory to the path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Mock all the dependencies before importing cid_utils
-# Mock Flask and other dependencies
-sys.modules['app'] = Mock()
-sys.modules['models'] = Mock()
-sys.modules['forms'] = Mock()
-sys.modules['auth_providers'] = Mock()
-sys.modules['text_function_runner'] = Mock()
-sys.modules['flask_login'] = Mock()
-
-# Mock Flask components
-flask_mock = Mock()
-flask_mock.render_template = Mock()
-flask_mock.flash = Mock()
-flask_mock.redirect = Mock()
-flask_mock.url_for = Mock()
-flask_mock.request = Mock()
-flask_mock.session = Mock()
-flask_mock.make_response = Mock()
-flask_mock.abort = Mock()
-sys.modules['flask'] = flask_mock
-
-# Now import the function we want to test
-from cid_utils import extract_filename_from_cid_path  # noqa: E402
+from cid_utils import extract_filename_from_cid_path
 
 
 class TestExtractFilenameFromCidPath(unittest.TestCase):
