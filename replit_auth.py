@@ -1,8 +1,6 @@
 import jwt
 import os
-import os
 import uuid
-import jwt
 from functools import wraps
 from urllib.parse import urlencode
 
