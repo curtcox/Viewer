@@ -11,12 +11,10 @@ import os
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Mock app before importing routes
-with patch('routes.app') as mock_app:
-    mock_app.config = {'SECRET_KEY': 'test'}
-    from routes import get_server_definition_history
-    import json
-    from datetime import datetime, timezone
+# Import route helper for testing
+from routes import get_server_definition_history
+import json
+from datetime import datetime, timezone
 
 class TestServerHistory(unittest.TestCase):
     """Test server definition history functionality"""

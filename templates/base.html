@@ -18,7 +18,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+            <a class="navbar-brand fw-bold" href="{{ url_for('main.index') }}">
                 <i class="fas fa-shield-alt me-2"></i>SecureApp
             </a>
 
@@ -30,46 +30,46 @@
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('profile') }}">
+                            <a class="nav-link" href="{{ url_for('main.profile') }}">
                                 <i class="fas fa-user me-1"></i>Profile
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('invitations') }}">
+                            <a class="nav-link" href="{{ url_for('main.invitations') }}">
                                 <i class="fas fa-users me-1"></i>Invitations
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('uploads') }}">
+                            <a class="nav-link" href="{{ url_for('main.uploads') }}">
                                 <i class="fas fa-upload me-1"></i>Uploads
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('history') }}">
+                            <a class="nav-link" href="{{ url_for('main.history') }}">
                                 <i class="fas fa-history me-1"></i>History
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('settings') }}">
+                            <a class="nav-link" href="{{ url_for('main.settings') }}">
                                 <i class="fas fa-cog me-1"></i>Settings
                             </a>
                         </li>
                         {% if current_user.has_access() %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('content') }}">
+                                <a class="nav-link" href="{{ url_for('main.content') }}">
                                     <i class="fas fa-lock me-1"></i>Content
                                 </a>
                             </li>
                         {% endif %}
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('plans') }}">Plans</a>
+                        <a class="nav-link" href="{{ url_for('main.plans') }}">Plans</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('terms') }}">Terms</a>
+                        <a class="nav-link" href="{{ url_for('main.terms') }}">Terms</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('privacy') }}">Privacy</a>
+                        <a class="nav-link" href="{{ url_for('main.privacy') }}">Privacy</a>
                     </li>
                 </ul>
 
@@ -80,7 +80,7 @@
                                 <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('profile') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">
                                     <i class="fas fa-user me-2"></i>Profile
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
@@ -133,8 +133,8 @@
                     <p class="text-muted">Secure content management platform</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <a href="{{ url_for('terms') }}" class="text-light text-decoration-none me-3">Terms</a>
-                    <a href="{{ url_for('privacy') }}" class="text-light text-decoration-none">Privacy</a>
+                    <a href="{{ url_for('main.terms') }}" class="text-light text-decoration-none me-3">Terms</a>
+                    <a href="{{ url_for('main.privacy') }}" class="text-light text-decoration-none">Privacy</a>
                 </div>
             </div>
             <hr class="my-3">

@@ -13,7 +13,8 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
-from app import app, db
+from app import create_app
+from database import db
 from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
 from cid_utils import generate_cid
 
@@ -23,17 +24,13 @@ class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        # Skip test if app is mocked (running with unittest discover)
-        from unittest.mock import Mock
-        if isinstance(app, Mock):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-
-        app.config['TESTING'] = True
-        app.config['WTF_CSRF_ENABLED'] = False
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-
-        self.app = app.test_client()
-        self.app_context = app.app_context()
+        self.app = create_app({
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'
+        })
+        self.client = self.app.test_client()
+        self.app_context = self.app.app_context()
         self.app_context.push()
 
         db.create_all()
@@ -62,7 +59,7 @@ class BaseTestCase(unittest.TestCase):
         if user is None:
             user = self.test_user
 
-        with self.app.session_transaction() as sess:
+        with self.client.session_transaction() as sess:
             sess['_user_id'] = user.id
             sess['_fresh'] = True
 
@@ -101,7 +98,7 @@ class TestContextProcessors(BaseTestCase):
         mock_auth_manager.get_login_url.return_value = "/login"
         mock_auth_manager.get_logout_url.return_value = "/logout"
 
-        response = self.app.get('/')
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
         # Verify auth manager methods were called
@@ -116,29 +113,29 @@ class TestPublicRoutes(BaseTestCase):
 
     def test_index_unauthenticated(self):
         """Test index page for unauthenticated users."""
-        response = self.app.get('/')
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
     def test_index_authenticated_redirects_to_dashboard(self):
         """Test index page redirects authenticated users to dashboard."""
         self.login_user()
-        response = self.app.get('/', follow_redirects=False)
+        response = self.client.get('/', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/dashboard', response.location)
 
     def test_plans_page(self):
         """Test plans page."""
-        response = self.app.get('/plans')
+        response = self.client.get('/plans')
         self.assertEqual(response.status_code, 200)
 
     def test_terms_page(self):
         """Test terms page."""
-        response = self.app.get('/terms')
+        response = self.client.get('/terms')
         self.assertEqual(response.status_code, 200)
 
     def test_privacy_page(self):
         """Test privacy page."""
-        response = self.app.get('/privacy')
+        response = self.client.get('/privacy')
         self.assertEqual(response.status_code, 200)
 
 
@@ -147,13 +144,13 @@ class TestAuthenticatedRoutes(BaseTestCase):
 
     def test_dashboard_redirects_unauthenticated(self):
         """Test dashboard redirects unauthenticated users."""
-        response = self.app.get('/dashboard', follow_redirects=False)
+        response = self.client.get('/dashboard', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
     def test_dashboard_with_access_redirects_to_content(self):
         """Test dashboard redirects users with access to content."""
         self.login_user()
-        response = self.app.get('/dashboard', follow_redirects=False)
+        response = self.client.get('/dashboard', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/content', response.location)
 
@@ -170,20 +167,20 @@ class TestAuthenticatedRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user(user_no_access)
-        response = self.app.get('/dashboard', follow_redirects=False)
+        response = self.client.get('/dashboard', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
 
     def test_profile_page(self):
         """Test profile page."""
         self.login_user()
-        response = self.app.get('/profile')
+        response = self.client.get('/profile')
         self.assertEqual(response.status_code, 200)
 
     def test_content_page_with_access(self):
         """Test content page for users with access."""
         self.login_user()
-        response = self.app.get('/content')
+        response = self.client.get('/content')
         self.assertEqual(response.status_code, 200)
 
     def test_content_page_without_access(self):
@@ -198,7 +195,7 @@ class TestAuthenticatedRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user(user_no_access)
-        response = self.app.get('/content', follow_redirects=False)
+        response = self.client.get('/content', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
 
@@ -209,13 +206,13 @@ class TestSubscriptionRoutes(BaseTestCase):
     def test_subscribe_get(self):
         """Test subscribe page GET request."""
         self.login_user()
-        response = self.app.get('/subscribe')
+        response = self.client.get('/subscribe')
         self.assertEqual(response.status_code, 200)
 
     def test_subscribe_post_annual_plan(self):
         """Test subscribing to annual plan."""
         self.login_user()
-        response = self.app.post('/subscribe', data={
+        response = self.client.post('/subscribe', data={
             'plan': 'annual',
             'submit': 'Subscribe'
         }, follow_redirects=True)
@@ -236,7 +233,7 @@ class TestSubscriptionRoutes(BaseTestCase):
     def test_subscribe_post_free_plan(self):
         """Test subscribing to free plan."""
         self.login_user()
-        response = self.app.post('/subscribe', data={
+        response = self.client.post('/subscribe', data={
             'plan': 'free',
             'submit': 'Subscribe'
         }, follow_redirects=True)
@@ -256,7 +253,7 @@ class TestTermsAcceptanceRoutes(BaseTestCase):
     def test_accept_terms_get(self):
         """Test accept terms page GET request."""
         self.login_user()
-        response = self.app.get('/accept-terms')
+        response = self.client.get('/accept-terms')
         self.assertEqual(response.status_code, 200)
 
     def test_accept_terms_post(self):
@@ -271,7 +268,7 @@ class TestTermsAcceptanceRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user(user)
-        response = self.app.post('/accept-terms', data={
+        response = self.client.post('/accept-terms', data={
             'accept_terms': True,
             'submit': 'Accept Terms'
         }, follow_redirects=True)
@@ -298,7 +295,7 @@ class TestTermsAcceptanceRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.post('/accept-terms', data={
+        response = self.client.post('/accept-terms', data={
             'accept_terms': True,
             'submit': 'Accept Terms'
         }, follow_redirects=True)
@@ -319,7 +316,7 @@ class TestFileUploadRoutes(BaseTestCase):
     def test_upload_get(self):
         """Test upload page GET request."""
         self.login_user()
-        response = self.app.get('/upload')
+        response = self.client.get('/upload')
         self.assertEqual(response.status_code, 200)
 
     def test_upload_post_success(self):
@@ -330,7 +327,7 @@ class TestFileUploadRoutes(BaseTestCase):
         test_data = b"Test file content"
         test_file = (BytesIO(test_data), 'test.txt')
 
-        response = self.app.post('/upload', data={
+        response = self.client.post('/upload', data={
             'file': test_file,
             'title': 'Test File',
             'description': 'Test description',
@@ -363,7 +360,7 @@ class TestFileUploadRoutes(BaseTestCase):
 
         # Try to upload same content
         test_file = (BytesIO(test_data), 'duplicate.txt')
-        response = self.app.post('/upload', data={
+        response = self.client.post('/upload', data={
             'file': test_file,
             'title': 'Duplicate File',
             'submit': 'Upload File'
@@ -389,7 +386,7 @@ class TestFileUploadRoutes(BaseTestCase):
         db.session.add(test_cid)
         db.session.commit()
 
-        response = self.app.get('/uploads')
+        response = self.client.get('/uploads')
         self.assertEqual(response.status_code, 200)
 
 
@@ -399,13 +396,13 @@ class TestInvitationRoutes(BaseTestCase):
     def test_invitations_list(self):
         """Test invitations list page."""
         self.login_user()
-        response = self.app.get('/invitations')
+        response = self.client.get('/invitations')
         self.assertEqual(response.status_code, 200)
 
     def test_create_invitation_get(self):
         """Test create invitation page GET request."""
         self.login_user()
-        response = self.app.get('/create-invitation')
+        response = self.client.get('/create-invitation')
         self.assertEqual(response.status_code, 200)
 
     def test_create_invitation_post(self):
@@ -413,7 +410,7 @@ class TestInvitationRoutes(BaseTestCase):
         self.login_user()
 
         # Test creating invitation with email
-        response = self.app.post('/create-invitation', data={
+        response = self.client.post('/create-invitation', data={
             'email': 'invited@example.com',
             'submit': 'Create Invitation'
         })
@@ -429,7 +426,7 @@ class TestInvitationRoutes(BaseTestCase):
         self.assertIsNotNone(invitation.invitation_code)
 
         # Test creating invitation without email
-        response = self.app.post('/create-invitation', data={
+        response = self.client.post('/create-invitation', data={
             'submit': 'Create Invitation'
         })
 
@@ -442,7 +439,7 @@ class TestInvitationRoutes(BaseTestCase):
 
     def test_require_invitation_get(self):
         """Test require invitation page GET request."""
-        response = self.app.get('/require-invitation')
+        response = self.client.get('/require-invitation')
         self.assertEqual(response.status_code, 200)
 
     def test_require_invitation_valid_code(self):
@@ -456,18 +453,18 @@ class TestInvitationRoutes(BaseTestCase):
         db.session.add(invitation)
         db.session.commit()
 
-        self.app.post('/require-invitation', data={
+        self.client.post('/require-invitation', data={
             'invitation_code': 'valid_code',
             'submit': 'Verify Invitation'
         }, follow_redirects=False)
 
         # Should store invitation code in session
-        with self.app.session_transaction() as sess:
+        with self.client.session_transaction() as sess:
             self.assertEqual(sess.get('invitation_code'), 'valid_code')
 
     def test_require_invitation_invalid_code(self):
         """Test require invitation with invalid code."""
-        response = self.app.post('/require-invitation', data={
+        response = self.client.post('/require-invitation', data={
             'invitation_code': 'invalid_code',
             'submit': 'Verify Invitation'
         }, follow_redirects=True)
@@ -484,16 +481,16 @@ class TestInvitationRoutes(BaseTestCase):
         db.session.add(invitation)
         db.session.commit()
 
-        response = self.app.get('/invite/direct_code', follow_redirects=False)
+        response = self.client.get('/invite/direct_code', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
         # Should store invitation code in session
-        with self.app.session_transaction() as sess:
+        with self.client.session_transaction() as sess:
             self.assertEqual(sess.get('invitation_code'), 'direct_code')
 
     def test_accept_invitation_invalid(self):
         """Test accepting invalid invitation."""
-        response = self.app.get('/invite/invalid_code', follow_redirects=False)
+        response = self.client.get('/invite/invalid_code', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/require-invitation', response.location)
 
@@ -524,7 +521,7 @@ class TestHistoryRoutes(BaseTestCase):
         db.session.add(page_view)
         db.session.commit()
 
-        response = self.app.get('/history')
+        response = self.client.get('/history')
         self.assertEqual(response.status_code, 200)
 
     @patch('routes.get_user_history_statistics')
@@ -540,7 +537,7 @@ class TestHistoryRoutes(BaseTestCase):
         mock_paginated.return_value = []
 
         self.login_user()
-        response = self.app.get('/history?page=2')
+        response = self.client.get('/history?page=2')
         self.assertEqual(response.status_code, 200)
 
 
@@ -554,19 +551,19 @@ class TestServerRoutes(BaseTestCase):
         mock_cid.return_value = 'test_cid_123'
 
         self.login_user()
-        response = self.app.get('/servers')
+        response = self.client.get('/servers')
         self.assertEqual(response.status_code, 200)
 
     def test_new_server_get(self):
         """Test new server page GET request."""
         self.login_user()
-        response = self.app.get('/servers/new')
+        response = self.client.get('/servers/new')
         self.assertEqual(response.status_code, 200)
 
     def test_new_server_post(self):
         """Test creating new server."""
         self.login_user()
-        response = self.app.post('/servers/new', data={
+        response = self.client.post('/servers/new', data={
             'name': 'test-server',
             'definition': 'Test server definition',
             'submit': 'Save Server'
@@ -591,7 +588,7 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.post('/servers/new', data={
+        response = self.client.post('/servers/new', data={
             'name': 'duplicate-server',
             'definition': 'New definition',
             'submit': 'Save Server'
@@ -614,13 +611,13 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.get('/servers/view-server')
+        response = self.client.get('/servers/view-server')
         self.assertEqual(response.status_code, 200)
 
     def test_view_nonexistent_server(self):
         """Test viewing nonexistent server."""
         self.login_user()
-        response = self.app.get('/servers/nonexistent')
+        response = self.client.get('/servers/nonexistent')
         self.assertEqual(response.status_code, 404)
 
     def test_edit_server_get(self):
@@ -634,7 +631,7 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.get('/servers/edit-server/edit')
+        response = self.client.get('/servers/edit-server/edit')
         self.assertEqual(response.status_code, 200)
 
     def test_edit_server_post(self):
@@ -648,7 +645,7 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.post('/servers/edit-server/edit', data={
+        response = self.client.post('/servers/edit-server/edit', data={
             'name': 'edited-server',
             'definition': 'Updated definition',
             'submit': 'Save Server'
@@ -672,7 +669,7 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.login_user()
-        response = self.app.post('/servers/delete-server/delete', follow_redirects=False)
+        response = self.client.post('/servers/delete-server/delete', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
         # Check server was deleted
@@ -686,13 +683,13 @@ class TestVariableRoutes(BaseTestCase):
     def test_variables_list(self):
         """Test variables list page."""
         self.login_user()
-        response = self.app.get('/variables')
+        response = self.client.get('/variables')
         self.assertEqual(response.status_code, 200)
 
     def test_new_variable_post(self):
         """Test creating new variable."""
         self.login_user()
-        response = self.app.post('/variables/new', data={
+        response = self.client.post('/variables/new', data={
             'name': 'test-variable',
             'definition': 'Test variable definition',
             'submit': 'Save Variable'
@@ -712,13 +709,13 @@ class TestSecretRoutes(BaseTestCase):
     def test_secrets_list(self):
         """Test secrets list page."""
         self.login_user()
-        response = self.app.get('/secrets')
+        response = self.client.get('/secrets')
         self.assertEqual(response.status_code, 200)
 
     def test_new_secret_post(self):
         """Test creating new secret."""
         self.login_user()
-        response = self.app.post('/secrets/new', data={
+        response = self.client.post('/secrets/new', data={
             'name': 'test-secret',
             'definition': 'Test secret definition',
             'submit': 'Save Secret'
@@ -738,7 +735,7 @@ class TestSettingsRoutes(BaseTestCase):
     def test_settings_page(self):
         """Test settings page."""
         self.login_user()
-        response = self.app.get('/settings')
+        response = self.client.get('/settings')
         self.assertEqual(response.status_code, 200)
 
 
@@ -747,7 +744,7 @@ class TestErrorHandlers(BaseTestCase):
 
     def test_404_handler_no_cid_content(self):
         """Test 404 handler when no CID content exists."""
-        response = self.app.get('/nonexistent-path')
+        response = self.client.get('/nonexistent-path')
         self.assertEqual(response.status_code, 404)
 
     def test_404_handler_with_cid_content(self):
@@ -763,7 +760,7 @@ class TestErrorHandlers(BaseTestCase):
         db.session.add(cid_content)
         db.session.commit()
 
-        response = self.app.get('/test-cid-path')
+        response = self.client.get('/test-cid-path')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, test_data)
         self.assertEqual(response.content_type, 'application/octet-stream')
@@ -783,13 +780,13 @@ class TestErrorHandlers(BaseTestCase):
         db.session.commit()
 
         # First request
-        response = self.app.get(f'/{cid}')
+        response = self.client.get(f'/{cid}')
         self.assertEqual(response.status_code, 200)
         etag = response.headers.get('ETag')
         self.assertIsNotNone(etag)
 
         # Second request with ETag
-        response = self.app.get(f'/{cid}', headers={'If-None-Match': etag})
+        response = self.client.get(f'/{cid}', headers={'If-None-Match': etag})
         self.assertEqual(response.status_code, 304)
 
     def test_404_handler_legacy_html_content(self):
@@ -802,7 +799,7 @@ class TestErrorHandlers(BaseTestCase):
         db.session.add(cid_content)
         db.session.commit()
 
-        response = self.app.get('/legacy-content')
+        response = self.client.get('/legacy-content')
         self.assertEqual(response.status_code, 200)
 
 
@@ -816,7 +813,7 @@ class TestPageViewTracking(BaseTestCase):
         mock_current_user.id = self.test_user.id
 
         # Make request that should be tracked
-        self.app.get('/profile')
+        self.client.get('/profile')
 
         # Check if page view was recorded
         PageView.query.filter_by(user_id=self.test_user.id, path='/profile').first()
@@ -831,7 +828,7 @@ class TestPageViewTracking(BaseTestCase):
         static_paths = ['/static/css/style.css', '/favicon.ico', '/robots.txt']
 
         for path in static_paths:
-            self.app.get(path)
+            self.client.get(path)
             # Even if 404, should not create page view
             page_view = PageView.query.filter_by(path=path).first()
             self.assertIsNone(page_view)

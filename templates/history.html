@@ -133,7 +133,7 @@
                                 <ul class="pagination justify-content-center">
                                     {% if page_views.has_prev %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('history', page=page_views.prev_num) }}">Previous</a>
+                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.prev_num) }}">Previous</a>
                                         </li>
                                     {% endif %}
                                     
@@ -141,7 +141,7 @@
                                         {% if page_num %}
                                             {% if page_num != page_views.page %}
                                                 <li class="page-item">
-                                                    <a class="page-link" href="{{ url_for('history', page=page_num) }}">{{ page_num }}</a>
+                                                    <a class="page-link" href="{{ url_for('main.history', page=page_num) }}">{{ page_num }}</a>
                                                 </li>
                                             {% else %}
                                                 <li class="page-item active">
@@ -157,7 +157,7 @@
                                     
                                     {% if page_views.has_next %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('history', page=page_views.next_num) }}">Next</a>
+                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.next_num) }}">Next</a>
                                         </li>
                                     {% endif %}
                                 </ul>

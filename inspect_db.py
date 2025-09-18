@@ -9,8 +9,10 @@ from datetime import datetime
 sys.path.insert(0, '.')
 
 # Import Flask app and models
-from app import app
+from app import create_app
 from models import User, CID, PageView, Server, Variable, Secret, Payment, TermsAcceptance, Invitation
+
+app = create_app()
 
 def inspect_database():
     """Inspect the database and show summary information"""

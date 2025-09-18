@@ -1,6 +1,8 @@
 import jwt
 import os
+import os
 import uuid
+import jwt
 from functools import wraps
 from urllib.parse import urlencode
 
@@ -16,10 +18,16 @@ from oauthlib.oauth2.rfc6749.errors import InvalidGrantError
 from sqlalchemy.exc import NoResultFound
 from werkzeug.local import LocalProxy
 
-from app import app, db
+from database import db
 from models import OAuth, User
 
-login_manager = LoginManager(app)
+login_manager = LoginManager()
+
+
+def init_login_manager(app):
+    """Initialize the Flask-Login manager for the given app."""
+    login_manager.init_app(app)
+    return login_manager
 
 
 @login_manager.user_loader
@@ -155,7 +163,7 @@ def logged_in(blueprint, token):
             # Store token temporarily and redirect to invitation page
             session['pending_token'] = token
             session['pending_user_claims'] = user_claims
-            return redirect(url_for('require_invitation'))
+            return redirect(url_for('main.require_invitation'))
 
         try:
             user = save_user(user_claims, invitation_code)
@@ -170,7 +178,7 @@ def logged_in(blueprint, token):
             session['invitation_error'] = str(e)
             session['pending_token'] = token
             session['pending_user_claims'] = user_claims
-            return redirect(url_for('require_invitation'))
+            return redirect(url_for('main.require_invitation'))
 
 
 @oauth_error.connect
@@ -190,7 +198,7 @@ def require_login(f):
             else:
                 from flask import flash
                 flash('Authentication not available in local development mode.', 'info')
-                return redirect(url_for('index'))
+                return redirect(url_for('main.index'))
 
         try:
             expires_in = replit.token.get('expires_in', 0)
@@ -208,7 +216,7 @@ def require_login(f):
                     else:
                         from flask import flash
                         flash('Authentication not available in local development mode.', 'info')
-                        return redirect(url_for('index'))
+                        return redirect(url_for('main.index'))
                 replit.token_updater(token)
         except (AttributeError, KeyError, TypeError):
             # If token doesn't exist or is invalid, redirect to login
@@ -218,7 +226,7 @@ def require_login(f):
             else:
                 from flask import flash
                 flash('Authentication not available in local development mode.', 'info')
-                return redirect(url_for('index'))
+                return redirect(url_for('main.index'))
 
         return f(*args, **kwargs)
 

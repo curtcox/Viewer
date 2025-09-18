@@ -126,10 +126,10 @@
 
                     <div class="text-center">
                         {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('accept_terms') }}" class="btn btn-primary btn-lg">
+                            <a href="{{ url_for('main.accept_terms') }}" class="btn btn-primary btn-lg">
                                 <i class="fas fa-check-circle me-2"></i>Accept These Terms
                             </a>
-                            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-lg ms-2">
+                            <a href="{{ url_for('main.profile') }}" class="btn btn-outline-secondary btn-lg ms-2">
                                 <i class="fas fa-arrow-left me-2"></i>Back to Profile
                             </a>
                         {% else %}
