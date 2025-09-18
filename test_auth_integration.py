@@ -1,268 +1,317 @@
 #!/usr/bin/env python3
-"""
-Integration tests for the complete authentication system.
-"""
+"""Integration tests for the complete authentication system."""
+
+from __future__ import annotations
+
+import contextlib
 import os
-import unittest
+from typing import Callable, Dict, Generator, List, Optional
 from unittest.mock import patch
-from app import app, db
+
+import pytest
+
+from app import create_app
 from auth_providers import auth_manager
+from database import db
 from models import User
+from flask import Flask
+
+TEST_APP_CONFIG: Dict[str, object] = {
+    "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+    "TESTING": True,
+    "WTF_CSRF_ENABLED": False,
+}
 
 
-class TestAuthIntegration(unittest.TestCase):
-    """Integration tests for the complete authentication system."""
+def build_test_app(config_override: Optional[Dict[str, object]] = None) -> Flask:
+    """Create a new Flask application instance configured for testing."""
+    config = TEST_APP_CONFIG.copy()
+    if config_override:
+        config.update(config_override)
+    return create_app(config)
 
-    def setUp(self):
-        """Set up test environment."""
-        # Use the actual app but with test database
-        self.app = app
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['TESTING'] = True
-        self.app.config['WTF_CSRF_ENABLED'] = False
 
-        with self.app.app_context():
-            db.create_all()
+def reset_auth_manager_state() -> None:
+    """Reset the auth manager to ensure provider detection runs fresh."""
+    auth_manager._active_provider = None
 
-    def tearDown(self):
-        """Clean up after each test."""
-        with self.app.app_context():
+    providers = getattr(auth_manager, "providers", {})
+    replit_provider = providers.get("replit")
+    if replit_provider is not None:
+        # Keep the blueprint state in sync with the current environment.
+        if not os.environ.get("REPL_ID"):
+            setattr(replit_provider, "blueprint", None)
+        elif hasattr(replit_provider, "_setup_blueprint"):
+            replit_provider._setup_blueprint()
+
+
+@pytest.fixture
+def app_factory() -> Generator[Callable[[Optional[Dict[str, object]]], Flask], None, None]:
+    """Provide a factory for creating isolated Flask app instances."""
+
+    created_apps: List[Flask] = []
+
+    def _factory(config_override: Optional[Dict[str, object]] = None) -> Flask:
+        reset_auth_manager_state()
+        app = build_test_app(config_override)
+        created_apps.append(app)
+        return app
+
+    yield _factory
+
+    for app in reversed(created_apps):
+        with app.app_context():
+            engine = db.engine
+            db.session.remove()
             db.drop_all()
-        # Reset auth manager state to prevent test interference
-        auth_manager._active_provider = None
+            engine.dispose()
 
-    def test_auth_manager_detection_local(self):
-        """Test that auth manager detects local environment correctly."""
-        with patch.dict(os.environ, {}, clear=True):
-            # Reset the active provider
-            auth_manager._active_provider = None
+    reset_auth_manager_state()
+
+
+@pytest.fixture
+def auth_app(app_factory):
+    """Create an isolated Flask app for the current test."""
+
+    return app_factory()
+
+
+@pytest.fixture
+def client(auth_app):
+    """Provide a Flask test client bound to the isolated app."""
+
+    with auth_app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def app_context(auth_app) -> Callable[[], contextlib.AbstractContextManager]:
+    """Return a callable that yields an application context for the app."""
+
+    @contextlib.contextmanager
+    def _context():
+        with auth_app.app_context():
+            yield
+
+    return _context
+
+
+@pytest.fixture
+def request_context(auth_app) -> Callable[..., contextlib.AbstractContextManager]:
+    """Return a callable that yields a request context for the app."""
+
+    @contextlib.contextmanager
+    def _context(*args, **kwargs):
+        with auth_app.test_request_context(*args, **kwargs):
+            yield
+
+    return _context
+
+
+@pytest.fixture
+def reset_auth_manager() -> Generator[Callable[[], None], None, None]:
+    """Provide a helper that clears cached provider state before/after tests."""
+
+    reset_auth_manager_state()
+    yield reset_auth_manager_state
+    reset_auth_manager_state()
+
+
+def test_auth_manager_detection_local(auth_app, reset_auth_manager):
+    """Test that auth manager detects local environment correctly."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        provider = auth_manager.get_active_provider()
+        assert provider is not None
+        assert provider.get_provider_name() == "Local Development"
+        assert auth_manager.is_authentication_available()
+
+
+def test_auth_manager_detection_replit(auth_app, reset_auth_manager):
+    """Test that auth manager detects Replit environment correctly."""
+
+    with patch.dict(
+        os.environ,
+        {
+            "REPL_ID": "test-repl-123",
+            "REPL_OWNER": "test-user",
+            "REPL_SLUG": "test-project",
+        },
+    ):
+        with patch.object(auth_manager.providers["replit"], "is_available", return_value=True):
+            reset_auth_manager()
 
             provider = auth_manager.get_active_provider()
-            self.assertIsNotNone(provider)
-            self.assertEqual(provider.get_provider_name(), "Local Development")
-            self.assertTrue(auth_manager.is_authentication_available())
+            assert provider.get_provider_name() == "Replit"
+            assert auth_manager.is_authentication_available()
 
-    def test_auth_manager_detection_replit(self):
-        """Test that auth manager detects Replit environment correctly."""
-        with patch.dict(os.environ, {
-            'REPL_ID': 'test-repl-123',
-            'REPL_OWNER': 'test-user',
-            'REPL_SLUG': 'test-project'
-        }):
-            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
-                # Reset the active provider to force re-detection
-                auth_manager._active_provider = None
 
+def test_local_auth_flow(auth_app, client, request_context, app_context, reset_auth_manager):
+    """Test complete local authentication flow."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        with request_context("/"):
+            login_url = auth_manager.get_login_url()
+            assert "/auth/login" in login_url
+
+        response = client.post("/auth/login")
+        assert response.status_code == 302
+        assert "/dashboard" in response.location
+
+        with app_context():
+            users = User.query.all()
+            assert len(users) == 1
+            user = users[0]
+            assert user.id.startswith("local_")
+            assert user.is_paid
+            assert user.current_terms_accepted
+
+
+def test_protected_route_access(auth_app, client, reset_auth_manager):
+    """Test that protected routes work with authentication."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        response = client.get("/dashboard")
+        assert response.status_code == 302
+        assert "/auth/login" in response.location
+
+        response = client.post("/auth/login")
+        assert response.status_code == 302
+
+        response = client.get("/dashboard")
+        assert response.status_code == 302  # Redirects to content
+        assert "/content" in response.location
+
+
+def test_logout_flow(auth_app, client, reset_auth_manager):
+    """Test complete logout flow."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        response = client.post("/auth/login")
+        assert response.status_code == 302
+
+        response = client.get("/auth/logout")
+        assert response.status_code == 302
+        assert "/" in response.location
+
+        response = client.get("/dashboard")
+        assert response.status_code == 302
+        assert "/auth/login" in response.location
+
+
+def test_registration_flow(auth_app, client, app_context, reset_auth_manager):
+    """Test complete registration flow."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        response = client.post(
+            "/auth/register",
+            data={
+                "email": "test@example.com",
+                "first_name": "Test",
+                "last_name": "User",
+            },
+        )
+        assert response.status_code == 302
+        assert "/dashboard" in response.location
+
+        with app_context():
+            users = User.query.all()
+            assert len(users) == 1
+            user = users[0]
+            assert user.email == "test@example.com"
+            assert user.first_name == "Test"
+            assert user.last_name == "User"
+
+
+def test_template_integration(auth_app, client, request_context, reset_auth_manager):
+    """Test that templates use the correct authentication URLs."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        response = client.get("/")
+        assert response.status_code == 200
+        assert b"/auth/login" in response.data
+
+        with request_context("/"):
+            assert b'href="/auth/login"' in response.data
+
+
+def test_switch_from_local_to_replit(auth_app, reset_auth_manager):
+    """Test switching from local to Replit authentication."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+        local_provider = auth_manager.get_active_provider()
+        assert local_provider.get_provider_name() == "Local Development"
+
+    with patch.dict(
+        os.environ,
+        {
+            "REPL_ID": "test-repl-456",
+            "REPL_OWNER": "test-user-2",
+            "REPL_SLUG": "test-project-2",
+        },
+    ):
+        with patch.object(auth_manager.providers["replit"], "is_available", return_value=True):
+            reset_auth_manager()
+            replit_provider = auth_manager.get_active_provider()
+            assert replit_provider.get_provider_name() == "Replit"
+
+
+def test_switch_from_replit_to_local(auth_app, reset_auth_manager):
+    """Test switching from Replit to local authentication."""
+
+    with patch.dict(
+        os.environ,
+        {
+            "REPL_ID": "test-repl-789",
+            "REPL_OWNER": "test-user-3",
+            "REPL_SLUG": "test-project-3",
+        },
+    ):
+        with patch.object(auth_manager.providers["replit"], "is_available", return_value=True):
+            reset_auth_manager()
+            replit_provider = auth_manager.get_active_provider()
+            assert replit_provider.get_provider_name() == "Replit"
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+        local_provider = auth_manager.get_active_provider()
+        assert local_provider.get_provider_name() == "Local Development"
+
+
+def test_auth_manager_no_providers_available(auth_app, reset_auth_manager):
+    """Test auth manager when no providers are available."""
+
+    with patch.dict(os.environ, {}, clear=True):
+        reset_auth_manager()
+
+        with patch.object(auth_manager.providers["replit"], "is_available", return_value=False):
+            with patch.object(auth_manager.providers["local"], "is_available", return_value=False):
                 provider = auth_manager.get_active_provider()
-                self.assertEqual(provider.get_provider_name(), "Replit")
-                self.assertTrue(auth_manager.is_authentication_available())
-
-    def test_local_auth_flow(self):
-        """Test complete local authentication flow."""
-        with patch.dict(os.environ, {}, clear=True):
-            # Reset the active provider
-            auth_manager._active_provider = None
-
-            with self.app.test_client() as client:
-                # Test that login URL is correct (may be full URL due to app config)
-                with self.app.test_request_context('/'):
-                    login_url = auth_manager.get_login_url()
-                    self.assertIn('/auth/login', login_url)
-
-                # Test login
-                response = client.post('/auth/login')
-                self.assertEqual(response.status_code, 302)
-                self.assertIn('/dashboard', response.location)
-
-                # Test that user was created
-                with self.app.app_context():
-                    users = User.query.all()
-                    self.assertEqual(len(users), 1)
-                    user = users[0]
-                    self.assertTrue(user.id.startswith("local_"))
-                    self.assertTrue(user.is_paid)
-                    self.assertTrue(user.current_terms_accepted)
-
-    def test_protected_route_access(self):
-        """Test that protected routes work with authentication."""
-        with patch.dict(os.environ, {}, clear=True):
-            with self.app.test_client() as client:
-                # First, try to access protected route without auth
-                response = client.get('/dashboard')
-                self.assertEqual(response.status_code, 302)
-                self.assertIn('/auth/login', response.location)
-
-                # Login
-                response = client.post('/auth/login')
-                self.assertEqual(response.status_code, 302)
-
-                # Now try to access protected route with auth
-                response = client.get('/dashboard')
-                self.assertEqual(response.status_code, 302)  # Redirects to content
-                self.assertIn('/content', response.location)
-
-    def test_logout_flow(self):
-        """Test complete logout flow."""
-        with patch.dict(os.environ, {}, clear=True):
-            with self.app.test_client() as client:
-                # Login first
-                response = client.post('/auth/login')
-                self.assertEqual(response.status_code, 302)
-
-                # Test logout
-                response = client.get('/auth/logout')
-                self.assertEqual(response.status_code, 302)
-                self.assertIn('/', response.location)
-
-                # Try to access protected route after logout
-                response = client.get('/dashboard')
-                self.assertEqual(response.status_code, 302)
-                self.assertIn('/auth/login', response.location)
-
-    def test_registration_flow(self):
-        """Test complete registration flow."""
-        with patch.dict(os.environ, {}, clear=True):
-            with self.app.test_client() as client:
-                # Test registration
-                response = client.post('/auth/register', data={
-                    'email': 'test@example.com',
-                    'first_name': 'Test',
-                    'last_name': 'User'
-                })
-                self.assertEqual(response.status_code, 302)
-                self.assertIn('/dashboard', response.location)
-
-                # Test that user was created with correct details
-                with self.app.app_context():
-                    users = User.query.all()
-                    self.assertEqual(len(users), 1)
-                    user = users[0]
-                    self.assertEqual(user.email, 'test@example.com')
-                    self.assertEqual(user.first_name, 'Test')
-                    self.assertEqual(user.last_name, 'User')
-
-    def test_template_integration(self):
-        """Test that templates use the correct authentication URLs."""
-        with patch.dict(os.environ, {}, clear=True):
-            # Reset the active provider
-            auth_manager._active_provider = None
-
-            with self.app.test_client() as client:
-                # Test home page
-                response = client.get('/')
-                self.assertEqual(response.status_code, 200)
-                self.assertIn(b'/auth/login', response.data)
-
-                # Test that login button points to correct URL
-                self.assertIn(b'href="/auth/login"', response.data)
+                assert provider is None
+                assert not auth_manager.is_authentication_available()
+                assert auth_manager.get_provider_name() == "None"
 
 
-class TestAuthProviderSwitching(unittest.TestCase):
-    """Test switching between authentication providers."""
+def test_invalid_login_url_when_no_provider(auth_app, request_context, reset_auth_manager):
+    """Test that login URL handling works when no provider is available."""
 
-    def setUp(self):
-        """Set up test environment."""
-        self.app = app
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['TESTING'] = True
-        self.app.config['WTF_CSRF_ENABLED'] = False
+    with request_context("/"):
+        with patch.object(auth_manager.providers["local"], "is_available", return_value=False):
+            with patch.object(auth_manager.providers["replit"], "is_available", return_value=False):
+                reset_auth_manager()
 
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self):
-        """Clean up after each test."""
-        with self.app.app_context():
-            db.drop_all()
-        # Reset auth manager state to prevent test interference
-        auth_manager._active_provider = None
-
-    def test_switch_from_local_to_replit(self):
-        """Test switching from local to Replit authentication."""
-        # Start with local environment (no REPL_ID)
-        with patch.dict(os.environ, {}, clear=True):
-            auth_manager._active_provider = None
-            local_provider = auth_manager.get_active_provider()
-            self.assertEqual(local_provider.get_provider_name(), "Local Development")
-
-        # Switch to Replit environment
-        with patch.dict(os.environ, {
-            'REPL_ID': 'test-repl-456',
-            'REPL_OWNER': 'test-user-2',
-            'REPL_SLUG': 'test-project-2'
-        }):
-            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
-                # Reset to force re-detection
-                auth_manager._active_provider = None
-                replit_provider = auth_manager.get_active_provider()
-                self.assertEqual(replit_provider.get_provider_name(), "Replit")
-
-    def test_switch_from_replit_to_local(self):
-        """Test switching from Replit to local authentication."""
-        # Start with Replit environment
-        with patch.dict(os.environ, {
-            'REPL_ID': 'test-repl-789',
-            'REPL_OWNER': 'test-user-3',
-            'REPL_SLUG': 'test-project-3'
-        }):
-            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=True):
-                auth_manager._active_provider = None
-                replit_provider = auth_manager.get_active_provider()
-                self.assertEqual(replit_provider.get_provider_name(), "Replit")
-
-        # Switch to local environment (clear REPL_ID)
-        with patch.dict(os.environ, {}, clear=True):
-            # Reset to force re-detection
-            auth_manager._active_provider = None
-            local_provider = auth_manager.get_active_provider()
-            self.assertEqual(local_provider.get_provider_name(), "Local Development")
-
-
-class TestAuthErrorHandling(unittest.TestCase):
-    """Test error handling in authentication system."""
-
-    def setUp(self):
-        """Set up test environment."""
-        self.app = app
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['TESTING'] = True
-        self.app.config['WTF_CSRF_ENABLED'] = False
-
-        with self.app.app_context():
-            db.create_all()
-
-    def tearDown(self):
-        """Clean up after each test."""
-        with self.app.app_context():
-            db.drop_all()
-        # Reset auth manager state to prevent test interference
-        auth_manager._active_provider = None
-
-    def test_auth_manager_no_providers_available(self):
-        """Test auth manager when no providers are available."""
-        with patch.dict(os.environ, {}, clear=True):
-            auth_manager._active_provider = None
-
-            # Mock both providers to be unavailable
-            with patch.object(auth_manager.providers['replit'], 'is_available', return_value=False):
-                with patch.object(auth_manager.providers['local'], 'is_available', return_value=False):
-                    provider = auth_manager.get_active_provider()
-                    self.assertIsNone(provider)
-                    self.assertFalse(auth_manager.is_authentication_available())
-                    self.assertEqual(auth_manager.get_provider_name(), "None")
-
-    def test_invalid_login_url_when_no_provider(self):
-        """Test that login URL handling works when no provider is available."""
-        with self.app.test_request_context('/'):
-            with patch.object(auth_manager.providers['local'], 'is_available', return_value=False):
-                with patch.object(auth_manager.providers['replit'], 'is_available', return_value=False):
-                    # Reset to force re-detection
-                    auth_manager._active_provider = None
-
-                    # Should fall back to index when no provider available
-                    login_url = auth_manager.get_login_url()
-                    self.assertIn('/', login_url)  # May be full URL due to app config
-
-
-if __name__ == '__main__':
-    unittest.main()
+                login_url = auth_manager.get_login_url()
+                assert "/" in login_url  # May be full URL due to app config
