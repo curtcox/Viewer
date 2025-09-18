@@ -4,7 +4,7 @@ import unittest
 import tempfile
 import os
 import json
-from app import app, db
+from app import create_app, db
 from models import User, Variable, CID
 from cid_utils import (
     generate_all_variable_definitions_json,
@@ -16,21 +16,22 @@ from routes import update_variable_definitions_cid
 class TestVariableDefinitionsCID(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
-        # Skip test if app is mocked (running with unittest discover)
-        from unittest.mock import Mock
-        if isinstance(app, Mock):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
         # Create a temporary database
-        self.db_fd, app.config['DATABASE'] = tempfile.mkstemp()
-        app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + app.config['DATABASE']
-        app.config['WTF_CSRF_ENABLED'] = False
-        
-        self.app = app.test_client()
-        self.app_context = app.app_context()
+        self.db_fd, temp_db_path = tempfile.mkstemp()
+        self.db_path = temp_db_path
+        config = {
+            'DATABASE': temp_db_path,
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{temp_db_path}',
+            'WTF_CSRF_ENABLED': False,
+        }
+
+        flask_app = create_app(config)
+
+        self.app = flask_app.test_client()
+        self.app_context = flask_app.app_context()
         self.app_context.push()
-        
+
         db.create_all()
         
         # Create test user
@@ -59,7 +60,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
         os.close(self.db_fd)
-        os.unlink(app.config['DATABASE'])
+        os.unlink(self.db_path)
 
     def test_generate_all_variable_definitions_json_with_variables(self):
         """Test JSON generation with existing variables"""

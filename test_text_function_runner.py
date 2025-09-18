@@ -1,33 +1,14 @@
+import importlib
 import unittest
-from unittest.mock import Mock
-import sys
-import os
-
-# Add the current directory to the path so we can import modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# Mock dependencies before importing
-sys.modules['models'] = Mock()
-
-# Import the actual function to test it
 
 
 class TestRunTextFunction(unittest.TestCase):
     """Test suite for run_text_function."""
-    
+
     def setUp(self):
-        """Ensure we're testing the actual run_text_function, not a mock."""
-        # Force reimport of the module to bypass any global mocks
-        import sys
-        if 'text_function_runner' in sys.modules:
-            del sys.modules['text_function_runner']
-        
-        # Mock only the models dependency
-        sys.modules['models'] = Mock()
-        
-        # Import fresh copy of the module
-        import text_function_runner
-        self.run_text_function = text_function_runner.run_text_function
+        """Ensure we're testing the actual run_text_function implementation."""
+        module = importlib.import_module('text_function_runner')
+        self.run_text_function = importlib.reload(module).run_text_function
 
     def test_basic_functionality(self):
         """Test basic function execution with simple arguments."""

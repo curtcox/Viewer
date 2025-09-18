@@ -6,7 +6,7 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 from flask import Flask
-from app import db
+from app import db, create_app
 from auth_providers import (
     AuthProvider, ReplitAuthProvider, LocalAuthProvider, AuthManager,
     create_local_user, save_user_from_claims, require_login
@@ -281,24 +281,19 @@ class TestRequireLoginDecorator(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        # Skip test if app is mocked (running with unittest discover)
-        from unittest.mock import Mock
-        from app import app
-        if isinstance(app, Mock):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
+        self.environ_patch = patch.dict(os.environ, {}, clear=True)
+        self.environ_patch.start()
+        self.addCleanup(self.environ_patch.stop)
 
-        # Use the actual app
-        self.app = app
-        self.app.config['TESTING'] = True
-        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app = create_app({
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'SECRET_KEY': 'test-secret',
+        })
 
     def test_require_login_authenticated_user(self):
         """Test require_login with authenticated user."""
-        # Skip test if running with unittest discover due to Flask-Login conflicts
-        import sys
-        if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-
         with self.app.test_request_context('/'):
             with patch('auth_providers.current_user') as mock_current_user:
                 # Mock authenticated user
@@ -314,11 +309,6 @@ class TestRequireLoginDecorator(unittest.TestCase):
 
     def test_require_login_unauthenticated_user(self):
         """Test require_login with unauthenticated user."""
-        # Skip test if running with unittest discover due to Flask-Login conflicts
-        import sys
-        if 'unittest' in sys.modules and hasattr(sys.modules['unittest'], '_main_module'):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-
         with self.app.test_request_context('/'):
             with patch('auth_providers.current_user') as mock_current_user:
                 # Mock unauthenticated user

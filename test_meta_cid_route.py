@@ -1,6 +1,5 @@
 import unittest
 import json
-from unittest.mock import Mock
 from app import app, db
 from models import CID, User
 
@@ -10,10 +9,6 @@ class TestMetaCIDRoute(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment"""
-        # Skip test if app is mocked (running with unittest discover)
-        if isinstance(app, Mock):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-
         self.app = app
         self.app.config['TESTING'] = True
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'

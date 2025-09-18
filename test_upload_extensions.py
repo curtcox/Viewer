@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 import io
-from app import app, db
+from app import create_app, db
 from models import User
 from cid_utils import process_file_upload
 
@@ -9,14 +9,12 @@ from cid_utils import process_file_upload
 class TestUploadExtensions(unittest.TestCase):
     def setUp(self):
         """Set up test environment"""
-        self.app = app
-        
-        # Skip tests when running with unittest discover due to Flask-Login conflicts
-        if isinstance(self.app, Mock):
-            self.skipTest("Skipping test due to Flask-Login conflicts when running with unittest discover")
-        
-        self.app.config['TESTING'] = True
-        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app = create_app({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'WTF_CSRF_ENABLED': False,
+        })
+
         self.client = self.app.test_client()
         
         with self.app.app_context():

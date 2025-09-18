@@ -1,42 +1,13 @@
 import unittest
 import json
-import sys
 from unittest.mock import Mock, patch
 
-# Mock all dependencies before importing
-sys.modules['app'] = Mock()
-sys.modules['models'] = Mock()
-sys.modules['forms'] = Mock()
-sys.modules['auth_providers'] = Mock()
-sys.modules['text_function_runner'] = Mock()
-
-# Mock Flask imports
-flask_mock = Mock()
-flask_mock.render_template = Mock()
-flask_mock.flash = Mock()
-flask_mock.redirect = Mock()
-flask_mock.url_for = Mock()
-flask_mock.request = Mock()
-flask_mock.session = Mock()
-flask_mock.make_response = Mock()
-flask_mock.abort = Mock()
-sys.modules['flask'] = flask_mock
-
-# Mock flask_login
-flask_login_mock = Mock()
-sys.modules['flask_login'] = flask_login_mock
-
-# Mock SQLAlchemy
-sqlalchemy_mock = Mock()
-sys.modules['sqlalchemy'] = sqlalchemy_mock
-
-# Now import the functions we want to test
-from cid_utils import (  # noqa: E402
+from cid_utils import (
     generate_all_server_definitions_json,
     store_server_definitions_cid,
     get_current_server_definitions_cid,
 )
-from routes import update_server_definitions_cid  # noqa: E402
+from routes import update_server_definitions_cid
 
 
 class TestServerDefinitionsCID(unittest.TestCase):
