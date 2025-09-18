@@ -12,7 +12,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import route helper for testing
-from routes import get_server_definition_history
+from routes.servers import get_server_definition_history
 import json
 from datetime import datetime, timezone
 

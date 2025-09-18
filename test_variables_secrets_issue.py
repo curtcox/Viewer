@@ -9,7 +9,8 @@ from unittest.mock import Mock, patch
 # Add current directory to path
 sys.path.insert(0, '.')
 
-from routes import user_variables, user_secrets
+from routes.variables import user_variables
+from routes.secrets import user_secrets
 from server_execution import build_request_args
 
 class TestVariablesSecretsIssue(unittest.TestCase):
@@ -23,8 +24,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         """Clean up test environment"""
         pass
     
-    @patch('routes.current_user')
-    @patch('routes.get_user_variables')
+    @patch('routes.variables.current_user')
+    @patch('routes.variables.get_user_variables')
     def test_user_variables_returns_model_objects(self, mock_get_vars, mock_current_user):
         """Test that user_variables() returns SQLAlchemy model objects, not serializable data"""
         # Mock current user
@@ -61,8 +62,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
     
-    @patch('routes.current_user')
-    @patch('routes.get_user_secrets')
+    @patch('routes.secrets.current_user')
+    @patch('routes.secrets.get_user_secrets')
     def test_user_secrets_returns_model_objects(self, mock_get_secrets, mock_current_user):
         """Test that user_secrets() returns SQLAlchemy model objects, not serializable data"""
         # Mock current user

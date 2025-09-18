@@ -7,7 +7,7 @@ from cid_utils import (
     store_server_definitions_cid,
     get_current_server_definitions_cid,
 )
-from routes import update_server_definitions_cid
+from routes.servers import update_server_definitions_cid
 
 
 class TestServerDefinitionsCID(unittest.TestCase):
@@ -104,7 +104,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         self.assertIsNotNone(cid_path)
         self.assertIsInstance(cid_path, str)
         
-    @patch('routes.store_server_definitions_cid')
+    @patch('routes.servers.store_server_definitions_cid')
     def test_update_server_definitions_cid(self, mock_store_cid):
         """Test updating server definitions CID when servers change"""
         # Mock the store function to return different CIDs

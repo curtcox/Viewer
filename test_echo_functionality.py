@@ -10,7 +10,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
 from app import app, db
 from models import Server, User
-from routes import not_found_error, get_existing_routes
+from routes.core import not_found_error, get_existing_routes
 from server_execution import try_server_execution, execute_server_code, is_potential_server_path
 
 
