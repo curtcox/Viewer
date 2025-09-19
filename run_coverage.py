@@ -1,179 +1,235 @@
 #!/usr/bin/env python3
-"""
-Coverage Analysis Script for Viewer Project
+"""Run the project's automated tests with coverage reporting.
 
-This script runs all tests with coverage analysis and generates reports.
-Usage:
-    python run_coverage.py [options]
+This script mirrors the configuration used in CI so developers can reproduce
+coverage runs locally.  Any additional arguments are forwarded directly to
+pytest.  For example::
 
-Options:
-    --html          Generate HTML coverage report
-    --xml           Generate XML coverage report  
-    --report        Show terminal coverage report (default)
-    --all           Generate all report types
-    --test PATTERN  Run specific test files matching pattern
-    --fail-under N  Fail if coverage is under N percent
-    --help          Show this help message
+    python run_coverage.py --xml --html
+    python run_coverage.py -- --maxfail=1 -k auth
 """
 
-import sys
-import os
-import subprocess
+from __future__ import annotations
+
 import argparse
-import glob
+import os
+import shutil
+import subprocess
+import sys
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Optional
 
-def find_test_files(pattern=None):
-    """Find all test files, optionally filtered by pattern."""
-    if pattern:
-        test_files = glob.glob(f"test_{pattern}*.py")
-        if not test_files:
-            test_files = glob.glob(f"*{pattern}*.py")
-            test_files = [f for f in test_files if f.startswith('test_')]
+ROOT_DIR = Path(__file__).resolve().parent
+HTML_REPORT_DIR = ROOT_DIR / "htmlcov"
+COVERAGE_DATA_FILE = ROOT_DIR / ".coverage"
+COVERAGE_XML_FILE = ROOT_DIR / "coverage.xml"
+
+DEFAULT_ENV = {
+    "DATABASE_URL": "sqlite:///:memory:",
+    "SESSION_SECRET": "test-secret-key",
+    "TESTING": "True",
+}
+
+
+def build_environment() -> dict[str, str]:
+    """Return the execution environment for running the test suite."""
+
+    env = os.environ.copy()
+    python_path = env.get("PYTHONPATH")
+    if python_path:
+        env["PYTHONPATH"] = os.pathsep.join([str(ROOT_DIR), python_path])
     else:
-        test_files = glob.glob("test_*.py")
-    
-    return sorted(test_files)
+        env["PYTHONPATH"] = str(ROOT_DIR)
 
-def run_command(cmd, description):
-    """Run a command and handle errors."""
-    print(f"\n{'='*60}")
-    print(f"Running: {description}")
-    print(f"Command: {' '.join(cmd)}")
-    print('='*60)
-    
-    try:
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        if result.stdout:
-            print(result.stdout)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error running {description}:")
-        print(f"Return code: {e.returncode}")
-        if e.stdout:
-            print("STDOUT:", e.stdout)
-        if e.stderr:
-            print("STDERR:", e.stderr)
-        return False
+    for key, value in DEFAULT_ENV.items():
+        env.setdefault(key, value)
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Run tests with coverage analysis",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+    return env
+
+
+def resolve_summary_path(path: Path) -> Path:
+    """Return an absolute path for the requested summary file."""
+
+    if not path.is_absolute():
+        path = ROOT_DIR / path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def erase_previous_data(env: dict[str, str], *, clean_html: bool, clean_xml: bool) -> None:
+    """Remove previous coverage output so fresh reports are generated."""
+
+    subprocess.run(
+        [sys.executable, "-m", "coverage", "erase"],
+        cwd=ROOT_DIR,
+        env=env,
+        check=False,
     )
-    
-    parser.add_argument('--html', action='store_true', 
-                       help='Generate HTML coverage report')
-    parser.add_argument('--xml', action='store_true',
-                       help='Generate XML coverage report')
-    parser.add_argument('--report', action='store_true', default=True,
-                       help='Show terminal coverage report (default)')
-    parser.add_argument('--all', action='store_true',
-                       help='Generate all report types')
-    parser.add_argument('--test', metavar='PATTERN',
-                       help='Run specific test files matching pattern')
-    parser.add_argument('--fail-under', type=int, metavar='N',
-                       help='Fail if coverage is under N percent')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Verbose output')
-    
-    args = parser.parse_args()
-    
-    # If --all is specified, enable all report types
+
+    if clean_html and HTML_REPORT_DIR.exists():
+        shutil.rmtree(HTML_REPORT_DIR)
+
+    if clean_xml and COVERAGE_XML_FILE.exists():
+        COVERAGE_XML_FILE.unlink()
+
+
+def run_coverage_report(env: dict[str, str], fail_under: Optional[float]) -> tuple[str, int]:
+    """Generate the textual coverage report and capture its output."""
+
+    command = [sys.executable, "-m", "coverage", "report"]
+    if fail_under is not None:
+        command.extend(["--fail-under", str(fail_under)])
+
+    completed = subprocess.run(
+        command,
+        cwd=ROOT_DIR,
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+
+    if completed.stdout:
+        print(completed.stdout, end="")
+    if completed.stderr:
+        print(completed.stderr, end="", file=sys.stderr)
+
+    return completed.stdout, completed.returncode
+
+
+def generate_xml_report(env: dict[str, str]) -> int:
+    """Create ``coverage.xml`` for consumption by other tools."""
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "coverage", "xml"],
+        cwd=ROOT_DIR,
+        env=env,
+    )
+
+    if completed.returncode == 0:
+        print(f"XML coverage report written to {COVERAGE_XML_FILE}")
+
+    return completed.returncode
+
+
+def generate_html_report(env: dict[str, str]) -> int:
+    """Create the HTML coverage report under ``htmlcov/``."""
+
+    completed = subprocess.run(
+        [sys.executable, "-m", "coverage", "html"],
+        cwd=ROOT_DIR,
+        env=env,
+    )
+
+    if completed.returncode == 0:
+        index_path = HTML_REPORT_DIR / "index.html"
+        print(f"HTML coverage report available at {index_path}")
+
+    return completed.returncode
+
+
+def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
+    """Parse command-line arguments and normalise defaults."""
+
+    parser = argparse.ArgumentParser(
+        description="Run pytest with coverage enabled",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("--html", action="store_true", help="Generate the HTML coverage report")
+    parser.add_argument("--xml", action="store_true", help="Generate the XML coverage report")
+    report_group = parser.add_mutually_exclusive_group()
+    report_group.add_argument("--report", dest="report", action="store_true", help="Show the text coverage report")
+    report_group.add_argument("--no-report", dest="report", action="store_false", help="Skip the text coverage report")
+    parser.set_defaults(report=True)
+    parser.add_argument("--all", action="store_true", help="Generate HTML, XML and text reports")
+    parser.add_argument(
+        "--fail-under",
+        type=float,
+        dest="fail_under",
+        help="Fail if total coverage falls below the given percentage",
+    )
+    parser.add_argument(
+        "--summary-file",
+        type=Path,
+        dest="summary_file",
+        help="Write the text coverage report to the specified file",
+    )
+    parser.add_argument(
+        "--no-clean",
+        action="store_true",
+        help="Do not erase existing coverage artefacts before running",
+    )
+    parser.add_argument(
+        "pytest_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments forwarded to pytest (prefix with --)",
+    )
+
+    args = parser.parse_args(argv)
+
+    if args.pytest_args and args.pytest_args[0] == "--":
+        args.pytest_args = args.pytest_args[1:]
+
     if args.all:
         args.html = True
         args.xml = True
         args.report = True
-    
-    # Find test files
-    test_files = find_test_files(args.test)
-    
-    if not test_files:
-        if args.test:
-            print(f"No test files found matching pattern: {args.test}")
-        else:
-            print("No test files found!")
-        return 1
-    
-    print(f"Found {len(test_files)} test files:")
-    for test_file in test_files:
-        print(f"  - {test_file}")
-    
-    # Clean up previous coverage data
-    print("\nCleaning up previous coverage data...")
-    for cleanup_file in ['.coverage', 'coverage.xml']:
-        if os.path.exists(cleanup_file):
-            os.remove(cleanup_file)
-    
-    if os.path.exists('htmlcov'):
-        import shutil
-        shutil.rmtree('htmlcov')
-    
-    # Run tests with coverage
-    coverage_cmd = ['python3', '-m', 'coverage', 'run']
-    
-    if args.verbose:
-        coverage_cmd.append('--debug=trace')
-    
-    # Add each test file
-    coverage_cmd.extend(['-m', 'unittest'])
-    
-    # Convert test files to module names
-    test_modules = []
-    for test_file in test_files:
-        if test_file.endswith('.py'):
-            module_name = test_file[:-3]  # Remove .py extension
-            test_modules.append(module_name)
-    
-    coverage_cmd.extend(test_modules)
-    
-    success = run_command(coverage_cmd, "Tests with coverage")
-    
-    if not success:
-        print("\nTests failed! Coverage analysis may be incomplete.")
-        # Continue anyway to show partial coverage
-    
-    # Generate reports
-    reports_generated = []
-    
-    if args.report:
-        cmd = ['python3', '-m', 'coverage', 'report']
-        if args.fail_under:
-            cmd.extend(['--fail-under', str(args.fail_under)])
-        
-        if run_command(cmd, "Coverage report"):
-            reports_generated.append("Terminal report")
-    
-    if args.html:
-        cmd = ['python3', '-m', 'coverage', 'html']
-        if run_command(cmd, "HTML coverage report"):
-            reports_generated.append("HTML report (htmlcov/index.html)")
-    
-    if args.xml:
-        cmd = ['python3', '-m', 'coverage', 'xml']
-        if run_command(cmd, "XML coverage report"):
-            reports_generated.append("XML report (coverage.xml)")
-    
-    # Summary
-    print(f"\n{'='*60}")
-    print("COVERAGE ANALYSIS COMPLETE")
-    print('='*60)
-    
-    if reports_generated:
-        print("Reports generated:")
-        for report in reports_generated:
-            print(f"  ✓ {report}")
-    
-    if args.html and os.path.exists('htmlcov/index.html'):
-        print(f"\nOpen HTML report: file://{os.path.abspath('htmlcov/index.html')}")
-    
-    print("\nUseful commands:")
-    print("  python run_coverage.py --html     # Generate HTML report")
-    print("  python run_coverage.py --all      # Generate all reports")
-    print("  python run_coverage.py --test auth # Run only auth-related tests")
-    print("  python run_coverage.py --fail-under 80 # Require 80% coverage")
-    
-    return 0 if success else 1
 
-if __name__ == '__main__':
-    sys.exit(main())
+    if args.summary_file is not None:
+        args.report = True
+
+    return args
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Entry point for command-line execution."""
+
+    if argv is None:
+        argv = sys.argv[1:]
+
+    args = parse_arguments(list(argv))
+    env = build_environment()
+
+    if not args.no_clean:
+        erase_previous_data(env, clean_html=args.html, clean_xml=args.xml)
+
+    coverage_cmd = [
+        sys.executable,
+        "-m",
+        "coverage",
+        "run",
+        "-m",
+        "pytest",
+        *args.pytest_args,
+    ]
+    tests_completed = subprocess.run(coverage_cmd, cwd=ROOT_DIR, env=env)
+    exit_code = tests_completed.returncode
+
+    if not COVERAGE_DATA_FILE.exists():
+        print("No coverage data was produced. Did the tests run successfully?", file=sys.stderr)
+        return exit_code or 1
+
+    summary_output = ""
+    if args.report:
+        summary_output, report_returncode = run_coverage_report(env, args.fail_under)
+        if args.summary_file is not None:
+            summary_path = resolve_summary_path(args.summary_file)
+            summary_path.write_text(summary_output)
+        if exit_code == 0 and report_returncode != 0:
+            exit_code = report_returncode
+
+    if args.xml:
+        xml_returncode = generate_xml_report(env)
+        if exit_code == 0 and xml_returncode != 0:
+            exit_code = xml_returncode
+
+    if args.html:
+        html_returncode = generate_html_report(env)
+        if exit_code == 0 and html_returncode != 0:
+            exit_code = html_returncode
+
+    return exit_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
