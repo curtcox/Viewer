@@ -156,8 +156,9 @@ class TestUploadExtensions(unittest.TestCase):
             
             # Should not have any extension in the view URL (no .txt, .pdf, etc.)
             response_text = response.data.decode('utf-8')
-            # The CID should appear without any extension
-            self.assertRegex(response_text, r'/bafybei[a-z0-9]+(?!")')  # CID without extension
+            # The CID should appear without any extension and match base64url 43 chars
+            # Ensure next character is not a dot (no extension), allow quotes or other delimiters
+            self.assertRegex(response_text, r'/[A-Za-z0-9_-]{43}(?!\.)')  # CID without extension
 
 
 if __name__ == '__main__':

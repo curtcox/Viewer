@@ -46,7 +46,7 @@ def test_server_cid_functionality():
         
         # Verify CID was generated
         assert cid1 is not None
-        assert cid1.startswith('bafybei')
+        assert len(cid1) == 43
         print(f"✓ CID generated: {cid1}")
         
         # Verify CID record was created in database
@@ -88,7 +88,7 @@ def test_server_cid_functionality():
         # Verify server was created with CID
         assert server.definition == "print('Server code')"
         assert server.definition_cid is not None
-        assert server.definition_cid.startswith('bafybei')
+        assert len(server.definition_cid) == 43
         print(f"✓ Server created with CID: {server.definition_cid}")
         
         # Verify CID record exists for server definition

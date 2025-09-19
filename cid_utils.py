@@ -54,8 +54,9 @@ def generate_cid(file_data):
     hasher.update(file_data)
     sha256_hash = hasher.digest()
 
-    encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
-    return f"bafybei{encoded[:52]}"  # Truncate to reasonable length
+    # Use URL-safe base64 without padding as the CID string
+    encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
+    return encoded
 
 
 def process_file_upload(form):

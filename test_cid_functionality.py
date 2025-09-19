@@ -48,9 +48,10 @@ class TestCIDFunctionality(unittest.TestCase):
         # Generate CID
         cid = generate_cid(file_data)
         
-        # Verify CID format
-        self.assertTrue(cid.startswith('bafybei'))
-        self.assertEqual(len(cid), 59)  # bafybei + 52 characters
+        # Verify CID format: 43-char base64url
+        self.assertEqual(len(cid), 43)
+        import re
+        self.assertRegex(cid, r'^[A-Za-z0-9_-]{43}$')
         
         # Verify CID is deterministic (same input = same output)
         cid2 = generate_cid(file_data)
@@ -69,8 +70,8 @@ class TestCIDFunctionality(unittest.TestCase):
         hasher = hashlib.sha256()
         hasher.update(file_data)
         sha256_hash = hasher.digest()
-        encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
-        expected_cid = f"bafybei{encoded[:52]}"
+        encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
+        expected_cid = encoded
         
         # Generate CID using function
         actual_cid = generate_cid(file_data)

@@ -72,8 +72,8 @@ class TestUtilityFunctions(BaseTestCase):
         test_data = b"Hello, World!"
         cid = generate_cid(test_data)
 
-        # Should start with 'bafybei'
-        self.assertTrue(cid.startswith('bafybei'))
+        # Should be base64url (no padding) and deterministic
+        self.assertEqual(len(cid), 43)
 
         # Should be deterministic
         cid2 = generate_cid(test_data)
@@ -83,8 +83,8 @@ class TestUtilityFunctions(BaseTestCase):
         different_cid = generate_cid(b"Different data")
         self.assertNotEqual(cid, different_cid)
 
-        # Should be reasonable length
-        self.assertLessEqual(len(cid), 60)
+        # Should be expected fixed length for SHA-256 base64url
+        self.assertEqual(len(cid), 43)
 
 
 class TestContextProcessors(BaseTestCase):

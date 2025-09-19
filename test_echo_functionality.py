@@ -150,8 +150,14 @@ class TestEchoFunctionality(unittest.TestCase):
                     # Check that it redirects to a CID URL with .html extension
                     location = result.headers.get('Location')
                     self.assertIsNotNone(location, "Should have a Location header")
-                    self.assertTrue(location.startswith('/bafybei'), "Should redirect to CID URL starting with /bafybei")
+                    self.assertTrue(location.startswith('/'), "Should redirect to a CID path")
                     self.assertTrue(location.endswith('.html'), "Should redirect to .html URL for text/html content")
+
+                    # Validate CID format (base64url without padding, length 43)
+                    cid_part = location.lstrip('/').split('.')[0]
+                    self.assertEqual(len(cid_part), 43)
+                    import re
+                    self.assertRegex(cid_part, r'^[A-Za-z0-9_-]{43}$')
 
 
 if __name__ == '__main__':

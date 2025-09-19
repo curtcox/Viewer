@@ -47,15 +47,12 @@ class TestCIDGeneration(unittest.TestCase):
         
         cid = generate_cid(content)
         
-        # Should start with 'bafybei'
-        self.assertTrue(cid.startswith('bafybei'))
+        # Should be exactly 43 characters (base64url of 32-byte SHA-256 without padding)
+        self.assertEqual(len(cid), 43)
         
-        # Should be exactly 59 characters (bafybei + 52 chars)
-        self.assertEqual(len(cid), 59)
-        
-        # Should only contain lowercase letters and numbers (base32)
+        # Should only contain URL-safe base64 characters
         import re
-        self.assertTrue(re.match(r'^bafybei[a-z2-7]+$', cid))
+        self.assertTrue(re.match(r'^[A-Za-z0-9_-]{43}$', cid))
 
     def test_empty_content(self):
         """Test CID generation with empty content"""
@@ -63,11 +60,9 @@ class TestCIDGeneration(unittest.TestCase):
         cid1 = generate_cid(b"")
         cid2 = generate_cid(b"")
         
-        # Empty content should still generate valid CIDs
-        self.assertTrue(cid1.startswith('bafybei'))
-        self.assertTrue(cid2.startswith('bafybei'))
-        self.assertEqual(len(cid1), 59)
-        self.assertEqual(len(cid2), 59)
+        # Empty content should still generate valid CIDs (length 43 base64url)
+        self.assertEqual(len(cid1), 43)
+        self.assertEqual(len(cid2), 43)
         
         # Same empty content should produce same CID
         self.assertEqual(cid1, cid2)
@@ -79,8 +74,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(content)
         
         # Should generate a valid CID
-        self.assertTrue(cid.startswith('bafybei'))
-        self.assertEqual(len(cid), 59)
+        self.assertEqual(len(cid), 43)
 
     def test_large_content(self):
         """Test CID generation with large content"""
@@ -90,8 +84,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(large_content)
         
         # Should still generate a valid CID
-        self.assertTrue(cid.startswith('bafybei'))
-        self.assertEqual(len(cid), 59)
+        self.assertEqual(len(cid), 43)
 
     def test_binary_content(self):
         """Test CID generation with binary content"""
@@ -100,8 +93,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(binary_content)
         
         # Should generate a valid CID
-        self.assertTrue(cid.startswith('bafybei'))
-        self.assertEqual(len(cid), 59)
+        self.assertEqual(len(cid), 43)
 
     def test_content_case_sensitivity(self):
         """Test that content case affects CID generation"""
@@ -150,9 +142,9 @@ class TestCIDGeneration(unittest.TestCase):
         hasher.update(content)
         sha256_hash = hasher.digest()
         
-        # Encode to base64 and create expected CID
-        encoded = base64.b32encode(sha256_hash).decode('ascii').lower().rstrip('=')
-        expected_cid = f"bafybei{encoded[:52]}"
+        # Encode to base64url (no padding) and create expected CID
+        encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
+        expected_cid = encoded
         
         self.assertEqual(actual_cid, expected_cid)
 
@@ -172,8 +164,7 @@ class TestCIDGeneration(unittest.TestCase):
                 cids.append(cid)
                 
                 # Verify format
-                self.assertTrue(cid.startswith('bafybei'))
-                self.assertEqual(len(cid), 59)
+                self.assertEqual(len(cid), 43)
         
         # All CIDs should be unique
         self.assertEqual(len(cids), len(set(cids)))
