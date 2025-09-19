@@ -10,6 +10,7 @@ The project includes simple helper scripts so you can get up and running quickly
 ./doctor    # verify your environment
 ./run       # start the development server on http://localhost:5000
 ./test      # run the full test suite
+python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
 The `install` script copies `.env.sample` to `.env` if it does not exist.  By default the application uses a local SQLite
@@ -21,6 +22,7 @@ file called `secureapp.db`.  Edit `.env` to change the configuration or to point
 * `run` – activate the environment and run the application.
 * `doctor` – check for common installation issues and suggest how to fix them.
 * `test` – execute the automated test suite via pytest.
+* `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 
 ## Requirements
 

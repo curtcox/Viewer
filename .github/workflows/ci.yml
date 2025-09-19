@@ -57,18 +57,15 @@ jobs:
       - name: Run tests with coverage
         id: run_tests
         run: |
-          python -m coverage run -m unittest discover -v
+          python run_coverage.py --xml --html --summary-file coverage-report.txt
         continue-on-error: true
 
-      - name: Generate coverage reports
+      - name: Publish coverage summary
         id: coverage
         if: always()
         run: |
-          if [ -f ".coverage" ]; then
-            python -m coverage report > coverage-report.txt
+          if [ -f "coverage-report.txt" ]; then
             cat coverage-report.txt
-            python -m coverage xml
-            python -m coverage html
             {
               echo "### Coverage summary"
               echo '```'
