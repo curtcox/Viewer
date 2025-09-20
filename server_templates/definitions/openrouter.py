@@ -7,7 +7,7 @@ if not API_KEY:
     return { 'output': 'Missing OPENROUTER_API_KEY' }
 
 url = "https://openrouter.ai/api/v1/chat/completions"
-message = request.get('form_data).get('message')
+message = request.get('form_data').get('message')
 headers = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json",
