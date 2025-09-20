@@ -179,33 +179,24 @@ def _attach_creation_sources(user_uploads):
     if not user_uploads:
         return
 
-    result_cids = {
-        upload.path.lstrip('/')
-        for upload in user_uploads
-        if getattr(upload, 'path', None)
-    }
-
-    if not result_cids:
-        for upload in user_uploads:
-            upload.creation_method = 'upload'
-            upload.server_invocation_link = None
-            upload.server_invocation_server_name = None
-        return
-
     invocations = (
         ServerInvocation.query
-        .filter(
-            ServerInvocation.user_id == current_user.id,
-            ServerInvocation.result_cid.in_(result_cids),
-        )
+        .filter(ServerInvocation.user_id == current_user.id)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
 
-    invocation_by_result = {}
+    invocation_by_cid = {}
     for invocation in invocations:
-        if invocation.result_cid and invocation.result_cid not in invocation_by_result:
-            invocation_by_result[invocation.result_cid] = invocation
+        for attr in (
+            'result_cid',
+            'invocation_cid',
+            'request_details_cid',
+            'servers_cid',
+        ):
+            cid_value = getattr(invocation, attr, None)
+            if cid_value and cid_value not in invocation_by_cid:
+                invocation_by_cid[cid_value] = invocation
 
     for upload in user_uploads:
         upload.creation_method = 'upload'
@@ -216,14 +207,12 @@ def _attach_creation_sources(user_uploads):
         if not cid:
             continue
 
-        invocation = invocation_by_result.get(cid)
-        if not invocation:
-            continue
-
-        upload.creation_method = 'server_event'
-        upload.server_invocation_server_name = invocation.server_name
-        if invocation.invocation_cid:
-            upload.server_invocation_link = f"/{invocation.invocation_cid}.json"
+        invocation = invocation_by_cid.get(cid)
+        if invocation:
+            upload.creation_method = 'server_event'
+            upload.server_invocation_server_name = invocation.server_name
+            if invocation.invocation_cid:
+                upload.server_invocation_link = f"/{invocation.invocation_cid}.json"
 
 
 @main_bp.route('/meta/<cid>')

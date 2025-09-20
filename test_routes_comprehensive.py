@@ -411,7 +411,12 @@ class TestFileUploadRoutes(BaseTestCase):
         manual_cid = generate_cid(manual_bytes)
         server_bytes = b"server output"
         server_result_cid = generate_cid(server_bytes)
-        invocation_cid = "I" * 43
+        request_payload = b"request payload"
+        request_cid = generate_cid(request_payload)
+        invocation_payload = b"invocation payload"
+        invocation_cid = generate_cid(invocation_payload)
+        servers_payload = b"servers snapshot"
+        servers_cid = generate_cid(servers_payload)
 
         manual_upload = CID(
             path=f"/{manual_cid}",
@@ -427,14 +432,44 @@ class TestFileUploadRoutes(BaseTestCase):
             uploaded_by_user_id=self.test_user.id,
         )
 
+        request_upload = CID(
+            path=f"/{request_cid}",
+            file_data=request_payload,
+            file_size=len(request_payload),
+            uploaded_by_user_id=self.test_user.id,
+        )
+
+        invocation_upload = CID(
+            path=f"/{invocation_cid}",
+            file_data=invocation_payload,
+            file_size=len(invocation_payload),
+            uploaded_by_user_id=self.test_user.id,
+        )
+
+        servers_upload = CID(
+            path=f"/{servers_cid}",
+            file_data=servers_payload,
+            file_size=len(servers_payload),
+            uploaded_by_user_id=self.test_user.id,
+        )
+
         invocation = ServerInvocation(
             user_id=self.test_user.id,
             server_name='test-server',
             result_cid=server_result_cid,
             invocation_cid=invocation_cid,
+            request_details_cid=request_cid,
+            servers_cid=servers_cid,
         )
 
-        db.session.add_all([manual_upload, server_upload, invocation])
+        db.session.add_all([
+            manual_upload,
+            server_upload,
+            request_upload,
+            invocation_upload,
+            servers_upload,
+            invocation,
+        ])
         db.session.commit()
 
         response = self.client.get('/uploads')
@@ -443,6 +478,9 @@ class TestFileUploadRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn(manual_cid, page)
         self.assertNotIn(server_result_cid, page)
+        self.assertNotIn(request_cid, page)
+        self.assertNotIn(invocation_cid, page)
+        self.assertNotIn(servers_cid, page)
         self.assertNotIn('Server: test-server', page)
         self.assertNotIn('View event JSON', page)
 
