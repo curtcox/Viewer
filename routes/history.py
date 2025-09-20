@@ -1,13 +1,14 @@
 """History-related routes."""
+import json
 import re
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from flask import render_template, request
 from flask_login import current_user
 
 from auth_providers import require_login
 from analytics import get_paginated_page_views, get_user_history_statistics
-from models import ServerInvocation
+from models import CID, ServerInvocation
 
 from . import main_bp
 
@@ -60,6 +61,77 @@ def _get_page_view_items(page_views: object) -> List:
     return list(items)
 
 
+def _normalize_header_value(value: object) -> str | None:
+    """Convert a header value into a string when possible."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            if isinstance(item, str):
+                return item
+        if value:
+            return str(value[0])
+        return None
+    if value is None:
+        return None
+    return str(value)
+
+
+def _extract_referer_from_headers(headers: object) -> str | None:
+    """Return the Referer value from a headers collection."""
+    if isinstance(headers, dict):
+        for key, value in headers.items():
+            if isinstance(key, str) and key.lower() == 'referer':
+                return _normalize_header_value(value)
+        return None
+
+    if isinstance(headers, (list, tuple)):
+        for item in headers:
+            if not isinstance(item, (list, tuple)) or len(item) < 2:
+                continue
+            key, value = item[0], item[1]
+            if isinstance(key, str) and key.lower() == 'referer':
+                return _normalize_header_value(value)
+
+    return None
+
+
+def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str, str]:
+    """Load referer URLs for the provided invocations keyed by request CID."""
+    request_cids = {
+        invocation.request_details_cid
+        for invocation in invocations
+        if getattr(invocation, 'request_details_cid', None)
+    }
+
+    if not request_cids:
+        return {}
+
+    cid_paths = [f"/{cid}" for cid in request_cids]
+    cid_records = (
+        CID.query
+        .filter(CID.path.in_(cid_paths))
+        .all()
+    )
+
+    referer_by_cid: Dict[str, str] = {}
+    for record in cid_records:
+        raw = getattr(record, 'file_data', None)
+        if not raw:
+            continue
+
+        try:
+            payload = json.loads(raw.decode('utf-8'))
+        except Exception:
+            continue
+
+        referer = _extract_referer_from_headers(payload.get('headers')) if isinstance(payload, dict) else None
+        if referer:
+            referer_by_cid[record.path.lstrip('/')] = referer
+
+    return referer_by_cid
+
+
 def _attach_server_event_links(page_views: object) -> None:
     """Annotate page view objects with links to their originating server events."""
     page_view_items = _get_page_view_items(page_views)
@@ -96,6 +168,8 @@ def _attach_server_event_links(page_views: object) -> None:
     if not invocation_by_result:
         return
 
+    referer_by_request_cid = _load_request_referers(invocation_by_result.values())
+
     for view in page_view_items:
         cid = _extract_result_cid(view.path)
         if not cid:
@@ -105,9 +179,17 @@ def _attach_server_event_links(page_views: object) -> None:
         if not invocation:
             continue
 
-        # Attach both the invocation object and a convenient link for templates.
+        # Attach both the invocation object and helpful links for templates.
         view.server_invocation = invocation
         view.server_invocation_link = f"/{invocation.invocation_cid}.json"
+
+        referer = None
+        request_cid = getattr(invocation, 'request_details_cid', None)
+        if request_cid:
+            referer = referer_by_request_cid.get(request_cid)
+
+        if referer:
+            view.server_invocation_referer = referer
 
 
 __all__ = ['history']
