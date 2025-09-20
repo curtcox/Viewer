@@ -403,8 +403,8 @@ class TestFileUploadRoutes(BaseTestCase):
         response = self.client.get('/uploads')
         self.assertEqual(response.status_code, 200)
 
-    def test_uploads_list_shows_creation_sources(self):
-        """Uploads list should indicate how each item was created."""
+    def test_uploads_list_excludes_server_events(self):
+        """Uploads list should only show manual uploads."""
         self.login_user()
 
         manual_bytes = b"manual content"
@@ -441,10 +441,55 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Server Event', page)
+        self.assertIn(manual_cid, page)
+        self.assertNotIn(server_result_cid, page)
+        self.assertNotIn('Server: test-server', page)
+        self.assertNotIn('View event JSON', page)
+
+    def test_server_events_page_shows_invocations(self):
+        """Server events page should list invocation details and required links."""
+        self.login_user()
+
+        result_cid = generate_cid(b"result")
+        invocation_cid = "I" * 43
+        servers_cid = "S" * 43
+
+        request_payload = json.dumps({
+            'headers': {
+                'Referer': 'https://example.com/origin'
+            }
+        }, indent=2, sort_keys=True).encode('utf-8')
+        request_cid = generate_cid(request_payload)
+
+        db.session.add(CID(
+            path=f'/{request_cid}',
+            file_data=request_payload,
+            file_size=len(request_payload),
+            uploaded_by_user_id=self.test_user.id,
+        ))
+
+        invocation = ServerInvocation(
+            user_id=self.test_user.id,
+            server_name='test-server',
+            result_cid=result_cid,
+            servers_cid=servers_cid,
+            request_details_cid=request_cid,
+            invocation_cid=invocation_cid,
+        )
+
+        db.session.add(invocation)
+        db.session.commit()
+
+        response = self.client.get('/server_events')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
         self.assertIn(f'/{invocation_cid}.json', page)
-        self.assertIn('Server: test-server', page)
-        self.assertIn('badge text-bg-primary">Upload</span>', page)
+        self.assertIn(f'/{request_cid}', page)
+        self.assertIn(f'/{result_cid}', page)
+        self.assertIn(f'/{servers_cid}', page)
+        self.assertIn('/servers/test-server', page)
+        self.assertIn('https://example.com/origin', page)
 
 
 class TestInvitationRoutes(BaseTestCase):

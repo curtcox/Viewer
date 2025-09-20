@@ -30,7 +30,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
         self.server_name = 'my_server'
 
     def test_is_potential_versioned_server_path(self):
-        existing = {'/servers', '/uploads'}
+        existing = {'/servers', '/uploads', '/server_events'}
         self.assertTrue(is_potential_versioned_server_path('/foo/abc', existing))
         self.assertFalse(is_potential_versioned_server_path('/', existing))
         self.assertFalse(is_potential_versioned_server_path('/foo', existing))  # only one segment

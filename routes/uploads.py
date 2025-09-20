@@ -1,5 +1,5 @@
 """Upload-related routes and helpers."""
-from flask import flash, jsonify, render_template
+from flask import flash, jsonify, render_template, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -16,6 +16,7 @@ from forms import FileUploadForm
 from upload_templates import get_upload_templates
 
 from . import main_bp
+from .history import _load_request_referers
 
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
@@ -80,6 +81,12 @@ def uploads():
 
     _attach_creation_sources(user_uploads)
 
+    user_uploads = [
+        upload
+        for upload in user_uploads
+        if getattr(upload, 'creation_method', 'upload') != 'server_event'
+    ]
+
     for upload in user_uploads:
         if upload.file_data:
             try:
@@ -97,6 +104,54 @@ def uploads():
         uploads=user_uploads,
         total_uploads=len(user_uploads),
         total_storage=total_storage,
+    )
+
+
+@main_bp.route('/server_events')
+@require_login
+def server_events():
+    """Display server invocation events for the current user."""
+    invocations = (
+        ServerInvocation.query
+        .filter(ServerInvocation.user_id == current_user.id)
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
+
+    referer_by_request = _load_request_referers(invocations)
+
+    for invocation in invocations:
+        invocation.invocation_link = (
+            f"/{invocation.invocation_cid}.json"
+            if getattr(invocation, 'invocation_cid', None)
+            else None
+        )
+        invocation.request_details_link = (
+            f"/{invocation.request_details_cid}"
+            if getattr(invocation, 'request_details_cid', None)
+            else None
+        )
+        invocation.result_link = (
+            f"/{invocation.result_cid}"
+            if getattr(invocation, 'result_cid', None)
+            else None
+        )
+        invocation.server_link = url_for(
+            'main.view_server',
+            server_name=invocation.server_name,
+        )
+        invocation.servers_cid_link = (
+            f"/{invocation.servers_cid}"
+            if getattr(invocation, 'servers_cid', None)
+            else None
+        )
+        request_cid = getattr(invocation, 'request_details_cid', None)
+        invocation.request_referer = referer_by_request.get(request_cid) if request_cid else None
+
+    return render_template(
+        'server_events.html',
+        events=invocations,
+        total_events=len(invocations),
     )
 
 
@@ -178,4 +233,4 @@ def meta_cid(cid):
     return jsonify(metadata)
 
 
-__all__ = ['meta_cid', 'upload', 'uploads']
+__all__ = ['meta_cid', 'server_events', 'upload', 'uploads']

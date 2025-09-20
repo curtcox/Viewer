@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Server Events{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-server me-2"></i>Server Events</h2>
+                <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
+                    <i class="fas fa-code me-1"></i>Manage Servers
+                </a>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="card-title mb-1">Total Events</h5>
+                                    <h3 class="mb-0">{{ total_events }}</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-history fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if events %}
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Invocation History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Invoked</th>
+                                    <th>Server</th>
+                                    <th>Invocation JSON</th>
+                                    <th>Request Details</th>
+                                    <th>Result CID</th>
+                                    <th>Servers CID</th>
+                                    <th>Referer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                <tr>
+                                    <td>
+                                        {% if event.invoked_at %}
+                                            {{ event.invoked_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ event.server_link }}" class="text-decoration-none">
+                                            {{ event.server_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if event.invocation_link %}
+                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                View JSON
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if event.request_details_link %}
+                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                {{ event.request_details_cid }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if event.result_link %}
+                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                <code class="small">{{ event.result_cid }}</code>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if event.servers_cid_link %}
+                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                {{ event.servers_cid }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-break">
+                                        {% if event.request_referer %}
+                                            <a href="{{ event.request_referer }}" target="_blank" rel="noopener" class="text-decoration-none">
+                                                {{ event.request_referer }}
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-robot text-muted mb-3" style="font-size: 3rem;"></i>
+                    <h4>No Server Events Yet</h4>
+                    <p class="text-muted">Run a server to see its invocation history here.</p>
+                    <a href="{{ url_for('main.servers') }}" class="btn btn-primary">
+                        <i class="fas fa-code me-1"></i>Create or Run a Server
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
