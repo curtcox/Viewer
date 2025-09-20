@@ -2,7 +2,12 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField, RadioField
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
+from urllib.parse import urlsplit
 import re
+
+
+def _strip_filter(value):
+    return value.strip() if isinstance(value, str) else value
 
 class PaymentForm(FlaskForm):
     plan = SelectField('Plan', choices=[
@@ -83,6 +88,37 @@ class VariableForm(FlaskForm):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Variable name contains invalid characters for URLs')
+
+class AliasForm(FlaskForm):
+    name = StringField(
+        'Alias Name',
+        validators=[
+            DataRequired(),
+            Regexp(
+                r'^[a-zA-Z0-9._-]+$',
+                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores'
+            ),
+        ],
+        filters=[_strip_filter],
+    )
+    target_path = StringField(
+        'Target Path',
+        validators=[DataRequired()],
+        filters=[_strip_filter],
+        render_kw={'placeholder': '/cid123 or /path?query=1'},
+    )
+    submit = SubmitField('Save Alias')
+
+    def validate_target_path(self, field):
+        target = field.data
+        if not target:
+            raise ValidationError('Target path is required.')
+        if target.startswith('//'):
+            raise ValidationError('Target path must stay within this application.')
+
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc:
+            raise ValidationError('Target path must stay within this application.')
 
 class SecretForm(FlaskForm):
     name = StringField('Secret Name', validators=[

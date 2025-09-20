@@ -160,6 +160,24 @@ class Server(db.Model):
     def __repr__(self):
         return f'<Server {self.name} by {self.user_id}>'
 
+
+class Alias(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, index=True)
+    target_path = db.Column(db.String(255), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    user = db.relationship('User', backref='aliases')
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
+
+    def __repr__(self):
+        return f'<Alias {self.name} -> {self.target_path}>'
+
+
 class Variable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)

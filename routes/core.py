@@ -12,6 +12,7 @@ from flask_login import current_user
 from auth_providers import require_login, auth_manager, save_user_from_claims
 from database import db
 from db_access import (
+    count_user_aliases,
     count_user_secrets,
     count_user_servers,
     count_user_variables,
@@ -36,6 +37,7 @@ from server_execution import (
     try_server_execution_with_partial,
 )
 from cid_utils import serve_cid_content
+from alias_routing import is_potential_alias_path, try_alias_redirect
 
 from . import main_bp
 
@@ -237,14 +239,15 @@ def accept_invitation(invitation_code):
 @main_bp.route('/settings')
 @require_login
 def settings():
-    """Settings page with links to servers, variables, and secrets."""
+    """Settings page with links to servers, variables, aliases, and secrets."""
     counts = get_user_settings_counts(current_user.id)
     return render_template('settings.html', **counts)
 
 
 def get_user_settings_counts(user_id):
-    """Get counts of user's servers, variables, and secrets for settings display."""
+    """Get counts of a user's saved resources for settings display."""
     return {
+        'alias_count': count_user_aliases(user_id),
         'server_count': count_user_servers(user_id),
         'variable_count': count_user_variables(user_id),
         'secret_count': count_user_secrets(user_id),
@@ -306,7 +309,7 @@ def get_existing_routes():
         '/', '/dashboard', '/profile', '/subscribe', '/accept-terms', '/content',
         '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
         '/require-invitation', '/uploads', '/history', '/servers', '/variables',
-        '/secrets', '/settings',
+        '/secrets', '/settings', '/aliases', '/aliases/new',
     }
 
 
@@ -315,6 +318,11 @@ def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content."""
     path = request.path
     existing_routes = get_existing_routes()
+
+    if is_potential_alias_path(path, existing_routes):
+        alias_result = try_alias_redirect(path)
+        if alias_result is not None:
+            return alias_result
 
     if is_potential_versioned_server_path(path, existing_routes):
         from .servers import get_server_definition_history
