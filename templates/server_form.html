@@ -37,6 +37,37 @@
                             {% endif %}
                         </div>
 
+                        {% if server_templates is defined and server_templates %}
+                        <div class="mb-3">
+                            <label for="server-template-select" class="form-label">Start from a Template</label>
+                            <div class="input-group">
+                                <select id="server-template-select" class="form-select" aria-label="Select a server template">
+                                    <option value="">Choose a template...</option>
+                                    {% for template in server_templates %}
+                                        <option value="{{ template.id }}">{{ template.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" id="apply-template-button">
+                                    <i class="fas fa-file-import me-1"></i>Use Template
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Selecting a template will replace the server definition below. You can still make changes after loading a template.
+                            </div>
+                            <div class="mt-3">
+                                {% for template in server_templates %}
+                                <details class="border rounded p-3 mb-2 bg-light">
+                                    <summary class="fw-semibold">{{ template.name }}</summary>
+                                    {% if template.description %}
+                                    <p class="text-muted small mb-2">{{ template.description }}</p>
+                                    {% endif %}
+                                    <pre class="mb-0" style="white-space: pre-wrap;">{{ template.definition }}</pre>
+                                </details>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="mb-3">
                             {{ form.definition.label(class="form-label") }}
                             {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
@@ -267,4 +298,47 @@ function loadHistoricalDefinition(index) {
     }
 }
 </script>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {% if server_templates is defined and server_templates %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const templateSelect = document.getElementById('server-template-select');
+            const applyButton = document.getElementById('apply-template-button');
+            const definitionField = document.getElementById('{{ form.definition.id }}');
+            const templates = {{ server_templates|tojson }};
+
+            if (!templateSelect || !applyButton || !definitionField) {
+                return;
+            }
+
+            const templateMap = {};
+            templates.forEach(function (template) {
+                templateMap[template.id] = template.definition;
+            });
+
+            applyButton.addEventListener('click', function () {
+                const selectedTemplate = templateSelect.value;
+                if (!selectedTemplate) {
+                    return;
+                }
+
+                const definition = templateMap[selectedTemplate];
+                if (typeof definition === 'undefined') {
+                    return;
+                }
+
+                if (definitionField.value && !window.confirm('Replace the current server definition with the selected template?')) {
+                    return;
+                }
+
+                definitionField.value = definition;
+                definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+                definitionField.focus();
+            });
+        });
+    </script>
+    {% endif %}
 {% endblock %}
