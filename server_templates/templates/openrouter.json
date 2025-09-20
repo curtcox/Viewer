@@ -1,0 +1,6 @@
+{
+  "id": "openrouter",
+  "name": "OpenRouter API call",
+  "description": "Call the OpenRouter chat completions API with a sample prompt.",
+  "definition_file": "definitions/openrouter.py"
+}

@@ -1,0 +1,6 @@
+{
+  "id": "echo",
+  "name": "Echo request context",
+  "description": "Render the incoming request and context as HTML for debugging.",
+  "definition_file": "definitions/echo.py"
+}
