@@ -1,5 +1,4 @@
 """Server management routes and helpers."""
-from textwrap import dedent
 
 from flask import abort, flash, redirect, render_template, url_for
 from flask_login import current_user
@@ -13,83 +12,10 @@ from cid_utils import (
 from db_access import delete_entity, get_server_by_name, get_user_servers
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
+from server_templates import get_server_templates
 
 from . import main_bp
 from .entities import create_entity, update_entity
-
-
-SERVER_TEMPLATES = [
-    {
-        'id': 'echo',
-        'name': 'Echo request context',
-        'description': 'Render the incoming request and context as HTML for debugging.',
-        'definition': dedent(
-            """
-            from html import escape
-
-            def dict_to_html_ul(data: dict) -> str:
-                if not isinstance(data, dict):
-                    raise TypeError("expects a dict at the top level")
-
-                def render(d: dict) -> str:
-                    items = d.items()
-
-                    lis = []
-                    for k, v in items:
-                        k_html = escape(str(k))
-                        if isinstance(v, dict):
-                            lis.append(f"<li>{k_html}{render(v)}</li>")
-                        else:
-                            v_html = "" if v is None else escape(str(v))
-                            lis.append(f"<li>{k_html}: {v_html}</li>")
-                    return "<ul>" + "".join(lis) + "</ul>"
-
-                return render(data)
-
-            out = {
-              'request': request,
-              'context': context
-            }
-
-            html = '<html><body>' + dict_to_html_ul(out) + '</body></html>'
-
-            return { 'output': html }
-            """
-        ).strip(),
-    },
-    {
-        'id': 'openrouter',
-        'name': 'OpenRouter API call',
-        'description': 'Call the OpenRouter chat completions API with a sample prompt.',
-        'definition': dedent(
-            """
-            import os
-            import requests
-
-            API_KEY = os.getenv("OPENROUTER_API_KEY")
-            if not API_KEY:
-                raise RuntimeError("Set the OPENROUTER_API_KEY environment variable.")
-
-            url = "https://openrouter.ai/api/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json",
-            }
-            data = {
-                "model": "nvidia/nemotron-nano-9b-v2:free",
-                "messages": [
-                    {"role": "user", "content": "What is the meaning of life?"}
-                ]
-            }
-
-            resp = requests.post(url, headers=headers, json=data, timeout=60)
-            resp.raise_for_status()
-
-            return { 'output': resp.json() }
-            """
-        ).strip(),
-    },
-]
 
 
 def get_server_definition_history(user_id, server_name):
@@ -187,7 +113,7 @@ def new_server():
         'server_form.html',
         form=form,
         title='Create New Server',
-        server_templates=SERVER_TEMPLATES,
+        server_templates=get_server_templates(),
     )
 
 

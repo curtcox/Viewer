@@ -15,8 +15,20 @@ os.environ['TESTING'] = 'True'
 
 from app import create_app
 from database import db
-from models import User, Payment, TermsAcceptance, CID, Invitation, PageView, Server, Variable, Secret, CURRENT_TERMS_VERSION
+from models import (
+    User,
+    Payment,
+    TermsAcceptance,
+    CID,
+    Invitation,
+    PageView,
+    Server,
+    Variable,
+    Secret,
+    CURRENT_TERMS_VERSION,
+)
 from cid_utils import generate_cid
+from server_templates import get_server_templates
 
 
 class BaseTestCase(unittest.TestCase):
@@ -559,6 +571,15 @@ class TestServerRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/servers/new')
         self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Start from a Template', page)
+        self.assertIn('server-template-select', page)
+
+        for template in get_server_templates():
+            self.assertIn(template['name'], page)
+            if template.get('description'):
+                self.assertIn(template['description'], page)
 
     def test_new_server_post(self):
         """Test creating new server."""
