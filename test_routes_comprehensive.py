@@ -485,11 +485,16 @@ class TestFileUploadRoutes(BaseTestCase):
 
         page = response.get_data(as_text=True)
         self.assertIn(f'/{invocation_cid}.json', page)
-        self.assertIn(f'/{request_cid}', page)
-        self.assertIn(f'/{result_cid}', page)
-        self.assertIn(f'/{servers_cid}', page)
+        self.assertIn(f'/{request_cid}.json', page)
+        self.assertIn(f'/{result_cid}.txt', page)
+        self.assertIn(f'/{servers_cid}.json', page)
         self.assertIn('/servers/test-server', page)
         self.assertIn('https://example.com/origin', page)
+
+        self.assertIn(f'{invocation_cid[:6]}...', page)
+        self.assertIn(f'{request_cid[:6]}...', page)
+        self.assertIn(f'{result_cid[:6]}...', page)
+        self.assertIn(f'{servers_cid[:6]}...', page)
 
 
 class TestInvitationRoutes(BaseTestCase):

@@ -19,6 +19,13 @@ from . import main_bp
 from .history import _load_request_referers
 
 
+def _shorten_cid(cid, length=6):
+    """Return a shortened CID label for display."""
+    if not cid:
+        return None
+    return f"{cid[:length]}..."
+
+
 @main_bp.route('/upload', methods=['GET', 'POST'])
 @require_login
 def upload():
@@ -126,24 +133,36 @@ def server_events():
             if getattr(invocation, 'invocation_cid', None)
             else None
         )
+        invocation.invocation_label = _shorten_cid(
+            getattr(invocation, 'invocation_cid', None)
+        )
         invocation.request_details_link = (
-            f"/{invocation.request_details_cid}"
+            f"/{invocation.request_details_cid}.json"
             if getattr(invocation, 'request_details_cid', None)
             else None
         )
+        invocation.request_details_label = _shorten_cid(
+            getattr(invocation, 'request_details_cid', None)
+        )
         invocation.result_link = (
-            f"/{invocation.result_cid}"
+            f"/{invocation.result_cid}.txt"
             if getattr(invocation, 'result_cid', None)
             else None
+        )
+        invocation.result_label = _shorten_cid(
+            getattr(invocation, 'result_cid', None)
         )
         invocation.server_link = url_for(
             'main.view_server',
             server_name=invocation.server_name,
         )
         invocation.servers_cid_link = (
-            f"/{invocation.servers_cid}"
+            f"/{invocation.servers_cid}.json"
             if getattr(invocation, 'servers_cid', None)
             else None
+        )
+        invocation.servers_cid_label = _shorten_cid(
+            getattr(invocation, 'servers_cid', None)
         )
         request_cid = getattr(invocation, 'request_details_cid', None)
         invocation.request_referer = referer_by_request.get(request_cid) if request_cid else None
