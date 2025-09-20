@@ -11,6 +11,7 @@ from cid_utils import (
     process_url_upload,
 )
 from db_access import create_cid_record, get_cid_by_path, get_user_uploads
+from models import ServerInvocation
 from forms import FileUploadForm
 from upload_templates import get_upload_templates
 
@@ -77,6 +78,8 @@ def uploads():
     """Display user's uploaded files."""
     user_uploads = get_user_uploads(current_user.id)
 
+    _attach_creation_sources(user_uploads)
+
     for upload in user_uploads:
         if upload.file_data:
             try:
@@ -95,6 +98,58 @@ def uploads():
         total_uploads=len(user_uploads),
         total_storage=total_storage,
     )
+
+
+def _attach_creation_sources(user_uploads):
+    """Annotate uploads with information about how they were created."""
+    if not user_uploads:
+        return
+
+    result_cids = {
+        upload.path.lstrip('/')
+        for upload in user_uploads
+        if getattr(upload, 'path', None)
+    }
+
+    if not result_cids:
+        for upload in user_uploads:
+            upload.creation_method = 'upload'
+            upload.server_invocation_link = None
+            upload.server_invocation_server_name = None
+        return
+
+    invocations = (
+        ServerInvocation.query
+        .filter(
+            ServerInvocation.user_id == current_user.id,
+            ServerInvocation.result_cid.in_(result_cids),
+        )
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
+
+    invocation_by_result = {}
+    for invocation in invocations:
+        if invocation.result_cid and invocation.result_cid not in invocation_by_result:
+            invocation_by_result[invocation.result_cid] = invocation
+
+    for upload in user_uploads:
+        upload.creation_method = 'upload'
+        upload.server_invocation_link = None
+        upload.server_invocation_server_name = None
+
+        cid = upload.path.lstrip('/') if getattr(upload, 'path', None) else None
+        if not cid:
+            continue
+
+        invocation = invocation_by_result.get(cid)
+        if not invocation:
+            continue
+
+        upload.creation_method = 'server_event'
+        upload.server_invocation_server_name = invocation.server_name
+        if invocation.invocation_cid:
+            upload.server_invocation_link = f"/{invocation.invocation_cid}.json"
 
 
 @main_bp.route('/meta/<cid>')

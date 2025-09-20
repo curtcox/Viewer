@@ -403,6 +403,49 @@ class TestFileUploadRoutes(BaseTestCase):
         response = self.client.get('/uploads')
         self.assertEqual(response.status_code, 200)
 
+    def test_uploads_list_shows_creation_sources(self):
+        """Uploads list should indicate how each item was created."""
+        self.login_user()
+
+        manual_bytes = b"manual content"
+        manual_cid = generate_cid(manual_bytes)
+        server_bytes = b"server output"
+        server_result_cid = generate_cid(server_bytes)
+        invocation_cid = "I" * 43
+
+        manual_upload = CID(
+            path=f"/{manual_cid}",
+            file_data=manual_bytes,
+            file_size=len(manual_bytes),
+            uploaded_by_user_id=self.test_user.id,
+        )
+
+        server_upload = CID(
+            path=f"/{server_result_cid}",
+            file_data=server_bytes,
+            file_size=len(server_bytes),
+            uploaded_by_user_id=self.test_user.id,
+        )
+
+        invocation = ServerInvocation(
+            user_id=self.test_user.id,
+            server_name='test-server',
+            result_cid=server_result_cid,
+            invocation_cid=invocation_cid,
+        )
+
+        db.session.add_all([manual_upload, server_upload, invocation])
+        db.session.commit()
+
+        response = self.client.get('/uploads')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Server Event', page)
+        self.assertIn(f'/{invocation_cid}.json', page)
+        self.assertIn('Server: test-server', page)
+        self.assertIn('badge text-bg-primary">Upload</span>', page)
+
 
 class TestInvitationRoutes(BaseTestCase):
     """Test invitation routes."""
