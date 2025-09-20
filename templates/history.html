@@ -119,6 +119,14 @@
                                                     </a>
                                                 </div>
                                                 {% endif %}
+                                                {% if view.server_invocation_referer %}
+                                                <div class="mt-1">
+                                                    <a href="{{ view.server_invocation_referer }}" target="_blank" rel="noopener" class="small text-decoration-none text-break">
+                                                        <i class="fas fa-link me-1 text-secondary"></i>
+                                                        Referer: {{ view.server_invocation_referer }}
+                                                    </a>
+                                                </div>
+                                                {% endif %}
                                             </td>
                                             <td>
                                                 <span class="badge {% if view.method == 'GET' %}bg-primary{% elif view.method == 'POST' %}bg-success{% else %}bg-secondary{% endif %}">

@@ -2,6 +2,7 @@
 """
 Comprehensive unit tests for routes.py
 """
+import json
 import os
 import unittest
 from unittest.mock import patch
@@ -527,11 +528,26 @@ class TestHistoryRoutes(BaseTestCase):
         self.login_user()
 
         # Create test page view
+        request_details = json.dumps({
+            'headers': {
+                'Referer': 'https://example.com/source'
+            }
+        }, indent=2, sort_keys=True).encode('utf-8')
+        request_cid = generate_cid(request_details)
+
+        db.session.add(CID(
+            path=f'/{request_cid}',
+            file_data=request_details,
+            file_size=len(request_details),
+            uploaded_by_user_id=self.test_user.id,
+        ))
+
         invocation = ServerInvocation(
             user_id=self.test_user.id,
             server_name='test-server',
             result_cid=result_cid,
             invocation_cid=invocation_cid,
+            request_details_cid=request_cid,
         )
         db.session.add(invocation)
 
@@ -551,6 +567,7 @@ class TestHistoryRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn(f'/{invocation_cid}.json', page)
         self.assertIn('Server event: test-server', page)
+        self.assertIn('Referer: https://example.com/source', page)
 
     @patch('routes.history.get_user_history_statistics')
     @patch('routes.history.get_paginated_page_views')
