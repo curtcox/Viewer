@@ -75,6 +75,21 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?download=1&format=html')
 
+    def test_try_alias_redirect_combines_existing_query_and_fragment(self):
+        self.create_alias(target='/cid123?existing=1#files')
+        with app.test_request_context('/latest?download=1'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/latest')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123?existing=1&download=1#files')
+
+    def test_try_alias_redirect_rejects_non_relative_target(self):
+        self.create_alias(target='https://example.com/cid123')
+        with app.test_request_context('/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/latest')
+                self.assertIsNone(response)
+
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest/anything'):
