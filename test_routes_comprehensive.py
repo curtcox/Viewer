@@ -23,6 +23,7 @@ from models import (
     Invitation,
     PageView,
     Server,
+    ServerInvocation,
     Variable,
     Secret,
     CURRENT_TERMS_VERSION,
@@ -513,19 +514,30 @@ class TestHistoryRoutes(BaseTestCase):
     @patch('routes.history.get_user_history_statistics')
     def test_history_page(self, mock_stats):
         """Test history page."""
+        result_cid = 'A' * 43
+        invocation_cid = 'B' * 43
+
         # Mock the statistics function to avoid SQLAlchemy func issues
         mock_stats.return_value = {
             'total_views': 1,
             'unique_paths': 1,
-            'popular_paths': [('/test-path', 1)]
+            'popular_paths': [(f'/{result_cid}', 1)]
         }
 
         self.login_user()
 
         # Create test page view
+        invocation = ServerInvocation(
+            user_id=self.test_user.id,
+            server_name='test-server',
+            result_cid=result_cid,
+            invocation_cid=invocation_cid,
+        )
+        db.session.add(invocation)
+
         page_view = PageView(
             user_id=self.test_user.id,
-            path='/test-path',
+            path=f'/{result_cid}',
             method='GET',
             user_agent='Test Agent',
             ip_address='127.0.0.1'
@@ -535,6 +547,10 @@ class TestHistoryRoutes(BaseTestCase):
 
         response = self.client.get('/history')
         self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn(f'/{invocation_cid}.json', page)
+        self.assertIn('Server event: test-server', page)
 
     @patch('routes.history.get_user_history_statistics')
     @patch('routes.history.get_paginated_page_views')
