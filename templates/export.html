@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Export Data{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-download me-2"></i>Export Data</h2>
+                <a href="{{ url_for('main.settings') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Settings
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Select Data to Export</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+
+                        <p class="text-muted">Choose the collections you want to include in the exported JSON file.</p>
+
+                        {% if form.include_aliases.errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.include_aliases.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="form-check mb-2">
+                            {{ form.include_aliases(class="form-check-input", id="include-aliases") }}
+                            <label class="form-check-label" for="include-aliases">
+                                <i class="fas fa-link me-1 text-info"></i>{{ form.include_aliases.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2">
+                            {{ form.include_servers(class="form-check-input", id="include-servers") }}
+                            <label class="form-check-label" for="include-servers">
+                                <i class="fas fa-server me-1 text-primary"></i>{{ form.include_servers.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-2">
+                            {{ form.include_variables(class="form-check-input", id="include-variables") }}
+                            <label class="form-check-label" for="include-variables">
+                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_variables.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.include_secrets(class="form-check-input", id="include-secrets") }}
+                            <label class="form-check-label" for="include-secrets">
+                                <i class="fas fa-key me-1 text-warning"></i>{{ form.include_secrets.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form.secret_key.label(class="form-label") }}
+                            {{ form.secret_key(class="form-control" + (" is-invalid" if form.secret_key.errors else "")) }}
+                            {% if form.secret_key.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.secret_key.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Secrets will be encrypted using this key. Keep it safe to decrypt them later.</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4" role="alert">
+                <i class="fas fa-lock me-2"></i>Secrets are encrypted with the key you provide. Share the key securely with anyone importing this export.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
