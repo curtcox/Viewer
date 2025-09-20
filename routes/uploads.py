@@ -12,6 +12,7 @@ from cid_utils import (
 )
 from db_access import create_cid_record, get_cid_by_path, get_user_uploads
 from forms import FileUploadForm
+from upload_templates import get_upload_templates
 
 from . import main_bp
 
@@ -21,6 +22,7 @@ from . import main_bp
 def upload():
     """File upload page with IPFS CID storage."""
     form = FileUploadForm()
+    upload_templates = get_upload_templates()
 
     if form.validate_on_submit():
         try:
@@ -35,7 +37,7 @@ def upload():
                 file_content, detected_mime_type = process_url_upload(form)
         except ValueError as exc:
             flash(str(exc), 'error')
-            return render_template('upload.html', form=form)
+            return render_template('upload.html', form=form, upload_templates=upload_templates)
 
         cid = generate_cid(file_content)
 
@@ -66,7 +68,7 @@ def upload():
             view_url_extension=view_url_extension,
         )
 
-    return render_template('upload.html', form=form)
+    return render_template('upload.html', form=form, upload_templates=upload_templates)
 
 
 @main_bp.route('/uploads')

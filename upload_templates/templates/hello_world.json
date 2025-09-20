@@ -1,0 +1,7 @@
+{
+  "id": "hello-world-html",
+  "name": "Hello World HTML page",
+  "description": "A minimal HTML page that renders a friendly greeting.",
+  "content_file": "contents/hello_world.html",
+  "suggested_filename": "hello-world.html"
+}

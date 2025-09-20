@@ -64,6 +64,36 @@
 
                         <!-- Text Input Section -->
                         <div id="textUploadSection" class="upload-section" style="display: none;">
+                            {% if upload_templates is defined and upload_templates %}
+                            <div class="mb-3">
+                                <label for="upload-template-select" class="form-label">Start from a Template</label>
+                                <div class="input-group">
+                                    <select id="upload-template-select" class="form-select" aria-label="Select an upload template">
+                                        <option value="">Choose a template...</option>
+                                        {% for template in upload_templates %}
+                                            <option value="{{ template.id }}">{{ template.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" id="apply-upload-template">
+                                        <i class="fas fa-file-import me-1"></i>Use Template
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Selecting a template will replace the text content field below. You can edit the content after loading a template.
+                                </div>
+                                <div class="mt-3">
+                                    {% for template in upload_templates %}
+                                    <details class="border rounded p-3 mb-2 bg-light">
+                                        <summary class="fw-semibold">{{ template.name }}</summary>
+                                        {% if template.description %}
+                                        <p class="text-muted small mb-2">{{ template.description }}</p>
+                                        {% endif %}
+                                        <pre class="mb-0" style="white-space: pre-wrap;">{{ template.content }}</pre>
+                                    </details>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
                             <div class="mb-3">
                                 {{ form.text_content.label(class="form-label") }}
                                 {{ form.text_content(class="form-control") }}
@@ -143,6 +173,45 @@ function toggleUploadMethod() {
 // Initialize the correct section on page load
 document.addEventListener('DOMContentLoaded', function() {
     toggleUploadMethod();
+    {% if upload_templates is defined and upload_templates %}
+    const templateSelect = document.getElementById('upload-template-select');
+    const applyButton = document.getElementById('apply-upload-template');
+    const textField = document.getElementById('{{ form.text_content.id }}');
+    const templates = {{ upload_templates|tojson }};
+
+    if (templateSelect && applyButton && textField) {
+        const templateMap = {};
+        templates.forEach(function(template) {
+            templateMap[template.id] = template.content;
+        });
+
+        applyButton.addEventListener('click', function() {
+            const selectedTemplate = templateSelect.value;
+            if (!selectedTemplate) {
+                return;
+            }
+
+            const templateContent = templateMap[selectedTemplate];
+            if (typeof templateContent === 'undefined') {
+                return;
+            }
+
+            if (textField.value && !window.confirm('Replace the current text content with the selected template?')) {
+                return;
+            }
+
+            const textRadio = document.getElementById('upload_type_text');
+            if (textRadio && !textRadio.checked) {
+                textRadio.checked = true;
+                toggleUploadMethod();
+            }
+
+            textField.value = templateContent;
+            textField.dispatchEvent(new Event('input', { bubbles: true }));
+            textField.focus();
+        });
+    }
+    {% endif %}
 });
 </script>
 {% endblock %}
