@@ -43,7 +43,7 @@ mock_runner.run_text_function = lambda code, args: {"output": "", "content_type"
 sys.modules.setdefault("text_function_runner", mock_runner)
 
 # Import the function under test after setting up mocks
-from server_execution import _encode_output
+from server_execution import _encode_output  # noqa: E402
 
 
 class TestServerExecutionOutputEncoding(unittest.TestCase):

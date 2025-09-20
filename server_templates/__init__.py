@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from typing import Iterable, Dict, Any
 import json
-import os
 from pathlib import Path
 
 def get_server_templates() -> list[dict[str, str]]:

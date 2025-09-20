@@ -50,7 +50,6 @@ class TestCIDFunctionality(unittest.TestCase):
         
         # Verify CID format: 43-char base64url
         self.assertEqual(len(cid), 43)
-        import re
         self.assertRegex(cid, r'^[A-Za-z0-9_-]{43}$')
         
         # Verify CID is deterministic (same input = same output)
