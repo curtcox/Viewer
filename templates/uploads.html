@@ -69,6 +69,7 @@
                                 <tr>
                                     <th>Size</th>
                                     <th>Uploaded</th>
+                                    <th>Created Via</th>
                                     <th>CID</th>
                                     <th>Content Preview</th>
                                     <th>Actions</th>
@@ -97,6 +98,21 @@
                                             {{ upload.created_at.strftime('%Y-%m-%d %H:%M') }}
                                         {% else %}
                                             -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if upload.creation_method == 'server_event' %}
+                                            <div class="d-flex flex-column gap-1">
+                                                <span class="badge text-bg-secondary align-self-start">Server Event</span>
+                                                {% if upload.server_invocation_server_name %}
+                                                    <span class="small text-muted">Server: {{ upload.server_invocation_server_name }}</span>
+                                                {% endif %}
+                                                {% if upload.server_invocation_link %}
+                                                    <a href="{{ upload.server_invocation_link }}" class="small">View event JSON</a>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="badge text-bg-primary">Upload</span>
                                         {% endif %}
                                     </td>
                                     <td>
