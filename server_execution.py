@@ -136,7 +136,43 @@ def _encode_output(output: Any) -> bytes:
         return output
     if isinstance(output, str):
         return output.encode("utf-8")
-    return bytes(output)
+    # Dicts -> JSON for human-friendly output instead of concatenated keys
+    if isinstance(output, dict):
+        try:
+            return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+        except Exception:
+            return str(output).encode("utf-8")
+    # If it's an iterable, try to handle common patterns gracefully
+    try:
+        from collections.abc import Iterable as _Iterable  # local import to avoid top changes
+        if isinstance(output, _Iterable):
+            items = list(output)
+            # If elements look JSON-serializable (e.g., list of dicts), prefer JSON
+            try:
+                if items and any(isinstance(x, (dict, list, tuple)) for x in items):
+                    return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            except Exception as json_err:
+                print(f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}")
+                print(f"[server_execution] Output type: {type(output).__name__}")
+                print(f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}...")
+                import traceback
+                traceback.print_exc()
+                # Continue to try other encodings
+            # List of ints -> bytes directly
+            if all(isinstance(x, int) for x in items):
+                return bytes(items)
+            # List of bytes -> concatenate
+            if all(isinstance(x, bytes) for x in items):
+                return b"".join(items)
+            # List of strings -> join then encode
+            if all(isinstance(x, str) for x in items):
+                return "".join(items).encode("utf-8")
+    except Exception:
+        # fall back below
+        pass
+
+    # Fallback: encode the string representation
+    return str(output).encode("utf-8")
 
 
 def execute_server_code(server, server_name: str):
@@ -148,6 +184,19 @@ def execute_server_code(server, server_name: str):
         result = run_text_function(code, args)
         output = result.get("output", "")
         content_type = result.get("content_type", "text/html")
+        # Debug info to console
+        try:
+            sample = repr(output)
+            if sample and len(sample) > 300:
+                sample = sample[:300] + "…"
+            print(
+                f"[server_execution] execute_server_code: output_type={type(output).__name__}, "
+                f"content_type={content_type}, sample={sample}"
+            )
+        except Exception as debug_err:
+            print(f"[server_execution] Debug output failed: {type(debug_err).__name__}: {debug_err}")
+            import traceback
+            traceback.print_exc()
 
         output_bytes = _encode_output(output)
         cid = generate_cid(output_bytes)
@@ -187,6 +236,19 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
         result = run_text_function(code, args)
         output = result.get("output", "")
         content_type = result.get("content_type", "text/html")
+        # Debug info to console
+        try:
+            sample = repr(output)
+            if sample and len(sample) > 300:
+                sample = sample[:300] + "…"
+            print(
+                f"[server_execution] execute_server_code_from_definition: output_type={type(output).__name__}, "
+                f"content_type={content_type}, sample={sample}"
+            )
+        except Exception as debug_err:
+            print(f"[server_execution] Debug output failed in _from_definition: {type(debug_err).__name__}: {debug_err}")
+            import traceback
+            traceback.print_exc()
 
         output_bytes = _encode_output(output)
         cid = generate_cid(output_bytes)
