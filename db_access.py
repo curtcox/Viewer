@@ -9,6 +9,7 @@ from models import (
     CURRENT_TERMS_VERSION,
     User,
     Server,
+    Alias,
     Variable,
     Secret,
     ServerInvocation,
@@ -84,6 +85,14 @@ def get_server_by_name(user_id: str, name: str):
     return Server.query.filter_by(user_id=user_id, name=name).first()
 
 
+def get_user_aliases(user_id: str):
+    return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
+
+
+def get_alias_by_name(user_id: str, name: str):
+    return Alias.query.filter_by(user_id=user_id, name=name).first()
+
+
 def get_user_variables(user_id: str):
     return Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
 
@@ -102,6 +111,10 @@ def get_secret_by_name(user_id: str, name: str):
 
 def count_user_servers(user_id: str) -> int:
     return Server.query.filter_by(user_id=user_id).count()
+
+
+def count_user_aliases(user_id: str) -> int:
+    return Alias.query.filter_by(user_id=user_id).count()
 
 
 def count_user_variables(user_id: str) -> int:

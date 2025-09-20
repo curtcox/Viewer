@@ -36,6 +36,7 @@ from server_execution import (
     try_server_execution_with_partial,
 )
 from cid_utils import serve_cid_content
+from alias_routing import is_potential_alias_path, try_alias_redirect
 
 from . import main_bp
 
@@ -315,6 +316,11 @@ def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content."""
     path = request.path
     existing_routes = get_existing_routes()
+
+    if is_potential_alias_path(path, existing_routes):
+        alias_result = try_alias_redirect(path)
+        if alias_result is not None:
+            return alias_result
 
     if is_potential_versioned_server_path(path, existing_routes):
         from .servers import get_server_definition_history
