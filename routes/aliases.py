@@ -1,0 +1,125 @@
+"""Routes for managing user-defined aliases."""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Optional
+
+from flask import abort, flash, redirect, render_template, url_for
+from flask_login import current_user
+
+from auth_providers import require_login
+from db_access import get_alias_by_name, get_user_aliases, save_entity
+from forms import AliasForm
+from models import Alias
+
+from . import main_bp
+from .core import get_existing_routes
+
+
+def _alias_name_conflicts_with_routes(name: str) -> bool:
+    if not name:
+        return False
+    return f"/{name}" in get_existing_routes()
+
+
+def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] = None) -> bool:
+    existing = get_alias_by_name(user_id, name)
+    if not existing:
+        return False
+    if exclude_id is not None and getattr(existing, "id", None) == exclude_id:
+        return False
+    return True
+
+
+@main_bp.route('/aliases')
+@require_login
+def aliases():
+    """Display the authenticated user's aliases."""
+    alias_list = get_user_aliases(current_user.id)
+    return render_template('aliases.html', aliases=alias_list)
+
+
+@main_bp.route('/aliases/new', methods=['GET', 'POST'])
+@require_login
+def new_alias():
+    """Create a new alias for the authenticated user."""
+    form = AliasForm()
+
+    if form.validate_on_submit():
+        name = form.name.data
+        target_path = form.target_path.data
+
+        if _alias_name_conflicts_with_routes(name):
+            flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
+        elif _alias_with_name_exists(current_user.id, name):
+            flash(f'An alias named "{name}" already exists.', 'danger')
+        else:
+            alias = Alias(name=name, target_path=target_path, user_id=current_user.id)
+            save_entity(alias)
+            flash(f'Alias "{name}" created successfully!', 'success')
+            return redirect(url_for('main.aliases'))
+
+    return render_template('alias_form.html', form=form, title='Create New Alias', alias=None)
+
+
+@main_bp.route('/aliases/<alias_name>')
+@require_login
+def view_alias(alias_name: str):
+    """View a single alias."""
+    alias = get_alias_by_name(current_user.id, alias_name)
+    if not alias:
+        abort(404)
+
+    return render_template('alias_view.html', alias=alias)
+
+
+@main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
+@require_login
+def edit_alias(alias_name: str):
+    """Edit an existing alias."""
+    alias = get_alias_by_name(current_user.id, alias_name)
+    if not alias:
+        abort(404)
+
+    form = AliasForm(obj=alias)
+
+    if form.validate_on_submit():
+        new_name = form.name.data
+        new_target = form.target_path.data
+
+        if new_name != alias.name:
+            if _alias_name_conflicts_with_routes(new_name):
+                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
+                return render_template(
+                    'alias_form.html',
+                    form=form,
+                    title=f'Edit Alias "{alias.name}"',
+                    alias=alias,
+                )
+
+            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
+                flash(f'An alias named "{new_name}" already exists.', 'danger')
+                return render_template(
+                    'alias_form.html',
+                    form=form,
+                    title=f'Edit Alias "{alias.name}"',
+                    alias=alias,
+                )
+
+        alias.name = new_name
+        alias.target_path = new_target
+        alias.updated_at = datetime.now(timezone.utc)
+        save_entity(alias)
+
+        flash(f'Alias "{alias.name}" updated successfully!', 'success')
+        return redirect(url_for('main.view_alias', alias_name=alias.name))
+
+    return render_template(
+        'alias_form.html',
+        form=form,
+        title=f'Edit Alias "{alias.name}"',
+        alias=alias,
+    )
+
+
+__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias']

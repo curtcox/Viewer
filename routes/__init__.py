@@ -10,5 +10,6 @@ from . import servers  # noqa: F401,E402
 from . import variables  # noqa: F401,E402
 from . import secrets  # noqa: F401,E402
 from . import history  # noqa: F401,E402
+from . import aliases  # noqa: F401,E402
 
 __all__ = ["main_bp"]

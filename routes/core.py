@@ -12,6 +12,7 @@ from flask_login import current_user
 from auth_providers import require_login, auth_manager, save_user_from_claims
 from database import db
 from db_access import (
+    count_user_aliases,
     count_user_secrets,
     count_user_servers,
     count_user_variables,
@@ -238,14 +239,15 @@ def accept_invitation(invitation_code):
 @main_bp.route('/settings')
 @require_login
 def settings():
-    """Settings page with links to servers, variables, and secrets."""
+    """Settings page with links to servers, variables, aliases, and secrets."""
     counts = get_user_settings_counts(current_user.id)
     return render_template('settings.html', **counts)
 
 
 def get_user_settings_counts(user_id):
-    """Get counts of user's servers, variables, and secrets for settings display."""
+    """Get counts of a user's saved resources for settings display."""
     return {
+        'alias_count': count_user_aliases(user_id),
         'server_count': count_user_servers(user_id),
         'variable_count': count_user_variables(user_id),
         'secret_count': count_user_secrets(user_id),
@@ -307,7 +309,7 @@ def get_existing_routes():
         '/', '/dashboard', '/profile', '/subscribe', '/accept-terms', '/content',
         '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
         '/require-invitation', '/uploads', '/history', '/servers', '/variables',
-        '/secrets', '/settings',
+        '/secrets', '/settings', '/aliases', '/aliases/new',
     }
 
 

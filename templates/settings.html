@@ -8,11 +8,38 @@
         <div class="col-12">
             <div class="mb-4">
                 <h2><i class="fas fa-cog me-2"></i>Settings</h2>
-                <p class="text-muted">Manage your servers, variables, secrets, and other configurations.</p>
+                <p class="text-muted">Manage your aliases, servers, variables, secrets, and other configurations.</p>
             </div>
 
             <div class="row">
-                <div class="col-lg-4 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-link me-2 text-info"></i>Aliases
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Create memorable shortcuts that redirect to content hosted on this server.</p>
+                            <div class="mb-3">
+                                <span class="badge bg-info text-dark fs-6">{{ alias_count }} alias{{ 'es' if alias_count != 1 else '' }}</span>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('main.aliases') }}" class="btn btn-info text-white">
+                                    <i class="fas fa-list me-1"></i>View All Aliases
+                                </a>
+                                <a href="{{ url_for('main.new_alias') }}" class="btn btn-outline-info">
+                                    <i class="fas fa-plus me-1"></i>Create New Alias
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Serve aliases directly at: <code>/{name}</code></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
@@ -39,7 +66,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
@@ -66,7 +93,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4 mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
@@ -106,21 +133,21 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <h6>URL-Safe Naming</h6>
-                                    <p class="small text-muted">All server, variable, and secret names must contain only letters, numbers, dots, hyphens, and underscores to ensure they work properly in URLs.</p>
+                                    <p class="small text-muted">All alias, server, variable, and secret names must contain only letters, numbers, dots, hyphens, and underscores to ensure they work properly in URLs.</p>
                                 </div>
                                 <div class="col-md-4">
-                                    <h6>Multi-line Definitions</h6>
-                                    <p class="small text-muted">Servers, variables, and secrets support multi-line text definitions, making them perfect for configurations, scripts, or any text content.</p>
+                                    <h6>Alias Targets</h6>
+                                    <p class="small text-muted">Aliases redirect to relative URLs on this application. Point them at CIDs, servers, or any other on-site resource without leaving the platform.</p>
                                 </div>
                                 <div class="col-md-4">
                                     <h6>Direct Access</h6>
-                                    <p class="small text-muted">Access your items directly via URLs: <code>/servers/{name}</code>, <code>/variables/{name}</code>, and <code>/secrets/{name}</code></p>
+                                    <p class="small text-muted">Access your items directly via URLs: <code>/{name}</code> for aliases, <code>/servers/{name}</code>, <code>/variables/{name}</code>, and <code>/secrets/{name}</code>.</p>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <h6>Personal Libraries</h6>
-                                    <p class="small text-muted">Each user maintains their own separate collections of servers, variables, and secrets with no conflicts.</p>
+                                    <p class="small text-muted">Each user maintains their own separate collections of aliases, servers, variables, and secrets with no conflicts.</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Secure Storage</h6>
