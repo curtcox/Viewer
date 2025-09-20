@@ -1,3 +1,5 @@
+# ruff: noqa: F821, F706
+# This template executes inside the Viewer runtime where `context` is provided.
 import requests
 
 API_KEY = context.get('secrets', {}).get("OPENROUTER_API_KEY")

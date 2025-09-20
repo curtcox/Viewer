@@ -156,7 +156,6 @@ class TestEchoFunctionality(unittest.TestCase):
                     # Validate CID format (base64url without padding, length 43)
                     cid_part = location.lstrip('/').split('.')[0]
                     self.assertEqual(len(cid_part), 43)
-                    import re
                     self.assertRegex(cid_part, r'^[A-Za-z0-9_-]{43}$')
 
 

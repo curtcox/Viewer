@@ -155,7 +155,6 @@ def _encode_output(output: Any) -> bytes:
                 print(f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}")
                 print(f"[server_execution] Output type: {type(output).__name__}")
                 print(f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}...")
-                import traceback
                 traceback.print_exc()
                 # Continue to try other encodings
             # List of ints -> bytes directly
@@ -195,7 +194,6 @@ def execute_server_code(server, server_name: str):
             )
         except Exception as debug_err:
             print(f"[server_execution] Debug output failed: {type(debug_err).__name__}: {debug_err}")
-            import traceback
             traceback.print_exc()
 
         output_bytes = _encode_output(output)
@@ -247,7 +245,6 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
             )
         except Exception as debug_err:
             print(f"[server_execution] Debug output failed in _from_definition: {type(debug_err).__name__}: {debug_err}")
-            import traceback
             traceback.print_exc()
 
         output_bytes = _encode_output(output)
