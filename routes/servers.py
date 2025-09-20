@@ -1,4 +1,5 @@
 """Server management routes and helpers."""
+
 from flask import abort, flash, redirect, render_template, url_for
 from flask_login import current_user
 
@@ -11,6 +12,7 @@ from cid_utils import (
 from db_access import delete_entity, get_server_by_name, get_user_servers
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
+from server_templates import get_server_templates
 
 from . import main_bp
 from .entities import create_entity, update_entity
@@ -107,7 +109,12 @@ def new_server():
         if create_entity(Server, form, current_user.id, 'server'):
             return redirect(url_for('main.servers'))
 
-    return render_template('server_form.html', form=form, title='Create New Server')
+    return render_template(
+        'server_form.html',
+        form=form,
+        title='Create New Server',
+        server_templates=get_server_templates(),
+    )
 
 
 @main_bp.route('/servers/<server_name>')
