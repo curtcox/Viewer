@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Import Data{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-import me-2"></i>Import Data</h2>
+                <a href="{{ url_for('main.settings') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Settings
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Provide Import Source</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+
+                        <p class="text-muted">Upload a previously exported JSON file, paste JSON directly, or fetch the data from a URL.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.import_source.label.text }}</label>
+                            {% for option in form.import_source %}
+                                <div class="form-check">
+                                    {{ option(class="form-check-input", id=option.id) }}
+                                    <label class="form-check-label" for="{{ option.id }}">{{ option.label.text }}</label>
+                                </div>
+                            {% endfor %}
+                            {% if form.import_source.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.import_source.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.import_file.label(class="form-label") }}
+                            {{ form.import_file(class="form-control" + (" is-invalid" if form.import_file.errors else "")) }}
+                            {% if form.import_file.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.import_file.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Upload a JSON export file from SecureApp.</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.import_text.label(class="form-label") }}
+                            {{ form.import_text(class="form-control" + (" is-invalid" if form.import_text.errors else ""), style="font-family: monospace;") }}
+                            {% if form.import_text.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.import_text.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Paste JSON content directly if you do not have a file.</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form.import_url.label(class="form-label") }}
+                            {{ form.import_url(class="form-control" + (" is-invalid" if form.import_url.errors else "")) }}
+                            {% if form.import_url.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.import_url.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Provide a URL that returns a SecureApp JSON export.</div>
+                            {% endif %}
+                        </div>
+
+                        {% if form.include_aliases.errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.include_aliases.errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <h5 class="mb-3">Select Data to Import</h5>
+                        <div class="form-check mb-2">
+                            {{ form.include_aliases(class="form-check-input", id="import-aliases") }}
+                            <label class="form-check-label" for="import-aliases">
+                                <i class="fas fa-link me-1 text-info"></i>{{ form.include_aliases.label.text }}
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            {{ form.include_servers(class="form-check-input", id="import-servers") }}
+                            <label class="form-check-label" for="import-servers">
+                                <i class="fas fa-server me-1 text-primary"></i>{{ form.include_servers.label.text }}
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            {{ form.include_variables(class="form-check-input", id="import-variables") }}
+                            <label class="form-check-label" for="import-variables">
+                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_variables.label.text }}
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            {{ form.include_secrets(class="form-check-input", id="import-secrets") }}
+                            <label class="form-check-label" for="import-secrets">
+                                <i class="fas fa-key me-1 text-warning"></i>{{ form.include_secrets.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form.secret_key.label(class="form-label") }}
+                            {{ form.secret_key(class="form-control" + (" is-invalid" if form.secret_key.errors else "")) }}
+                            {% if form.secret_key.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.secret_key.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Use the same key that was used to encrypt secrets during export.</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-warning mt-4" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>Existing items with the same name will be updated during import.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

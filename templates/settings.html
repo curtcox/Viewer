@@ -122,6 +122,32 @@
             </div>
 
             <div class="row">
+                <div class="col-lg-6 col-md-8 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-exchange-alt me-2 text-secondary"></i>Data Import &amp; Export
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Download your configuration as JSON or import shared data files. Choose what to include and supply an encryption key for secrets.</p>
+                            <div class="d-grid gap-2 d-md-flex">
+                                <a href="{{ url_for('main.export_data') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-download me-1"></i>Export JSON
+                                </a>
+                                <a href="{{ url_for('main.import_data') }}" class="btn btn-secondary">
+                                    <i class="fas fa-file-import me-1"></i>Import JSON
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Secrets are encrypted with your passphrase to keep them safe in transit.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">

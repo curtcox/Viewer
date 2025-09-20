@@ -132,3 +132,105 @@ class SecretForm(FlaskForm):
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Secret name contains invalid characters for URLs')
+
+
+class ExportForm(FlaskForm):
+    include_aliases = BooleanField('Aliases')
+    include_servers = BooleanField('Servers')
+    include_variables = BooleanField('Variables')
+    include_secrets = BooleanField('Secrets')
+    secret_key = StringField(
+        'Secret Encryption Key',
+        validators=[Optional()],
+        render_kw={'placeholder': 'Required when exporting secrets'},
+    )
+    submit = SubmitField('Download JSON Export')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators):
+            return False
+
+        if not any([
+            self.include_aliases.data,
+            self.include_servers.data,
+            self.include_variables.data,
+            self.include_secrets.data,
+        ]):
+            message = 'Select at least one data type to export.'
+            self.include_aliases.errors.append(message)
+            return False
+
+        if self.include_secrets.data and not (self.secret_key.data and self.secret_key.data.strip()):
+            self.secret_key.errors.append('Encryption key is required when exporting secrets.')
+            return False
+
+        return True
+
+
+class ImportForm(FlaskForm):
+    import_source = RadioField(
+        'Import Method',
+        choices=[
+            ('file', 'Upload JSON File'),
+            ('text', 'Paste JSON Text'),
+            ('url', 'Load JSON from URL'),
+        ],
+        default='file',
+        validators=[DataRequired()],
+    )
+    import_file = FileField('JSON File', validators=[Optional()])
+    import_text = TextAreaField(
+        'JSON Text',
+        validators=[Optional()],
+        render_kw={'rows': 10, 'placeholder': '{"aliases": []}'},
+    )
+    import_url = StringField(
+        'JSON URL',
+        validators=[Optional()],
+        render_kw={'placeholder': 'https://example.com/export.json'},
+    )
+    include_aliases = BooleanField('Aliases')
+    include_servers = BooleanField('Servers')
+    include_variables = BooleanField('Variables')
+    include_secrets = BooleanField('Secrets')
+    secret_key = StringField(
+        'Secret Decryption Key',
+        validators=[Optional()],
+        render_kw={'placeholder': 'Required when importing secrets'},
+    )
+    submit = SubmitField('Import Data')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators):
+            return False
+
+        if not any([
+            self.include_aliases.data,
+            self.include_servers.data,
+            self.include_variables.data,
+            self.include_secrets.data,
+        ]):
+            message = 'Select at least one data type to import.'
+            self.include_aliases.errors.append(message)
+            return False
+
+        source = self.import_source.data
+        if source == 'file':
+            file_storage = self.import_file.data
+            if not getattr(file_storage, 'filename', None):
+                self.import_file.errors.append('Choose a JSON file to upload.')
+                return False
+        elif source == 'text':
+            if not (self.import_text.data and self.import_text.data.strip()):
+                self.import_text.errors.append('Paste JSON content to import.')
+                return False
+        elif source == 'url':
+            if not (self.import_url.data and self.import_url.data.strip()):
+                self.import_url.errors.append('Provide a URL to download JSON from.')
+                return False
+
+        if self.include_secrets.data and not (self.secret_key.data and self.secret_key.data.strip()):
+            self.secret_key.errors.append('Decryption key is required when importing secrets.')
+            return False
+
+        return True
