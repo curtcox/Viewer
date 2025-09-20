@@ -57,9 +57,9 @@ _SERVER_TEMPLATES: tuple[dict[str, str], ...] = (
             import os
             import requests
 
-            API_KEY = os.getenv("OPENROUTER_API_KEY")
+            API_KEY = context.get('secrets').get("OPENROUTER_API_KEY")
             if not API_KEY:
-                raise RuntimeError("Set the OPENROUTER_API_KEY environment variable.")
+                return { 'output': 'Missing OPENROUTER_API_KEY' }
 
             url = "https://openrouter.ai/api/v1/chat/completions"
             headers = {
