@@ -535,6 +535,122 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIn(f'{servers_cid[:6]}...', page)
 
 
+class TestCidEditingRoutes(BaseTestCase):
+    """Tests for editing CID content via the edit page."""
+
+    def _create_cid_record(self, content: bytes, path: str = None) -> str:
+        if path is None:
+            cid_value = generate_cid(content)
+            cid_path = f'/{cid_value}'
+        else:
+            cid_path = path if path.startswith('/') else f'/{path}'
+            cid_value = cid_path.lstrip('/')
+
+        record = CID(
+            path=cid_path,
+            file_data=content,
+            file_size=len(content),
+            uploaded_by_user_id=self.test_user.id,
+        )
+        db.session.add(record)
+        db.session.commit()
+        return cid_value
+
+    def test_edit_requires_login(self):
+        cid_value = self._create_cid_record(b'needs auth')
+        response = self.client.get(f'/edit/{cid_value}', follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+
+    def test_edit_cid_get_full_match(self):
+        cid_value = self._create_cid_record(b'original content')
+        self.login_user()
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('original content', page)
+        self.assertIn(cid_value, page)
+
+    def test_edit_cid_get_unique_prefix(self):
+        cid_value = self._create_cid_record(b'unique prefix content')
+        self.login_user()
+        prefix = cid_value[:6]
+
+        response = self.client.get(f'/edit/{prefix}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn(cid_value, page)
+        self.assertIn('unique prefix content', page)
+
+    def test_edit_cid_multiple_matches(self):
+        self.login_user()
+        first = self._create_cid_record(b'first option', path='/shared123')
+        second = self._create_cid_record(b'second option', path='/shared456')
+
+        response = self.client.get('/edit/shared')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Multiple Matches Found', page)
+        self.assertIn(first, page)
+        self.assertIn(second, page)
+
+    def test_edit_cid_full_match_preferred_over_prefix(self):
+        self.login_user()
+        exact = self._create_cid_record(b'exact match', path='/shared')
+        self._create_cid_record(b'longer match', path='/shared123')
+
+        response = self.client.get('/edit/shared')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertNotIn('Multiple Matches Found', page)
+        self.assertIn(exact, page)
+        self.assertIn('exact match', page)
+
+    def test_edit_cid_not_found(self):
+        self.login_user()
+        response = self.client.get('/edit/missing')
+        self.assertEqual(response.status_code, 404)
+
+    def test_edit_cid_save_creates_new_record(self):
+        original_content = b'original text'
+        cid_value = self._create_cid_record(original_content)
+        self.login_user()
+
+        updated_text = 'updated text value'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={'text_content': updated_text, 'submit': 'Save Changes'},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        record = CID.query.filter_by(path=f'/{new_cid}').first()
+        self.assertIsNotNone(record)
+        self.assertEqual(record.file_data, updated_text.encode('utf-8'))
+
+        page = response.get_data(as_text=True)
+        self.assertIn(new_cid, page)
+
+    def test_edit_cid_save_existing_content(self):
+        content = b'repeated text content'
+        cid_value = self._create_cid_record(content)
+        self.login_user()
+
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={'text_content': content.decode('utf-8'), 'submit': 'Save Changes'},
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        count = CID.query.filter_by(path=f'/{cid_value}').count()
+        self.assertEqual(count, 1)
+
 class TestInvitationRoutes(BaseTestCase):
     """Test invitation routes."""
 

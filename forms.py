@@ -55,6 +55,15 @@ class FileUploadForm(FlaskForm):
 
         return True
 
+
+class EditCidForm(FlaskForm):
+    text_content = TextAreaField(
+        'CID Content',
+        validators=[DataRequired()],
+        render_kw={'rows': 15, 'placeholder': 'Update the CID content here...'},
+    )
+    submit = SubmitField('Save Changes')
+
 class InvitationForm(FlaskForm):
     email = StringField('Email (optional)', validators=[Optional()])
     submit = SubmitField('Create Invitation')
