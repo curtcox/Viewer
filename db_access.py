@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from database import db
 from models import (
@@ -162,6 +162,24 @@ def create_server_invocation(
 
 def get_cid_by_path(path: str) -> Optional[CID]:
     return CID.query.filter_by(path=path).first()
+
+
+def find_cids_by_prefix(prefix: str) -> List[CID]:
+    """Return CID records whose path matches the given CID prefix."""
+    if not prefix:
+        return []
+
+    normalized = prefix.split('.')[0].lstrip('/')
+    if not normalized:
+        return []
+
+    pattern = f"/{normalized}%"
+    return (
+        CID.query
+        .filter(CID.path.like(pattern))
+        .order_by(CID.path.asc())
+        .all()
+    )
 
 
 def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:

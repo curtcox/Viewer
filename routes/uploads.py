@@ -1,5 +1,5 @@
 """Upload-related routes and helpers."""
-from flask import flash, jsonify, render_template, url_for
+from flask import abort, flash, jsonify, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -10,9 +10,9 @@ from cid_utils import (
     process_text_upload,
     process_url_upload,
 )
-from db_access import create_cid_record, get_cid_by_path, get_user_uploads
+from db_access import create_cid_record, find_cids_by_prefix, get_cid_by_path, get_user_uploads
 from models import ServerInvocation
-from forms import FileUploadForm
+from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
 
 from . import main_bp
@@ -112,6 +112,59 @@ def uploads():
         total_uploads=len(user_uploads),
         total_storage=total_storage,
     )
+
+
+@main_bp.route('/edit/<cid_prefix>', methods=['GET', 'POST'])
+@require_login
+def edit_cid(cid_prefix):
+    """Allow users to edit existing CID content as text."""
+    normalized_prefix = cid_prefix.split('.')[0].lstrip('/') if cid_prefix else cid_prefix
+    matches = find_cids_by_prefix(normalized_prefix)
+
+    if not matches:
+        abort(404)
+
+    exact_match = next((match for match in matches if match.path.lstrip('/') == normalized_prefix), None)
+    if exact_match:
+        matches = [exact_match]
+
+    if len(matches) > 1:
+        match_values = [match.path.lstrip('/') for match in matches]
+        return render_template(
+            'edit_cid_choices.html',
+            cid_prefix=normalized_prefix,
+            matches=match_values,
+        )
+
+    cid_record = matches[0]
+    form = EditCidForm()
+    full_cid = cid_record.path.lstrip('/')
+
+    if form.validate_on_submit():
+        text_content = form.text_content.data or ''
+        file_content = text_content.encode('utf-8')
+        cid = generate_cid(file_content)
+        existing = get_cid_by_path(f"/{cid}")
+
+        if existing:
+            flash(f'Content with this hash already exists! CID: {cid}', 'warning')
+        else:
+            create_cid_record(cid, file_content, current_user.id)
+            flash(f'Content uploaded successfully! CID: {cid}', 'success')
+
+        return render_template(
+            'upload_success.html',
+            cid=cid,
+            file_size=len(file_content),
+            detected_mime_type='text/plain',
+            view_url_extension='txt',
+        )
+
+    if request.method == 'GET':
+        existing_text = cid_record.file_data.decode('utf-8', errors='replace')
+        form.text_content.data = existing_text
+
+    return render_template('edit_cid.html', form=form, cid=full_cid)
 
 
 @main_bp.route('/server_events')
