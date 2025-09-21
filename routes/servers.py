@@ -16,6 +16,8 @@ from server_templates import get_server_templates
 
 from . import main_bp
 from .entities import create_entity, update_entity
+from .history import _load_request_referers
+from .uploads import _shorten_cid
 
 
 def get_server_definition_history(user_id, server_name):
@@ -126,13 +128,14 @@ def view_server(server_name):
         abort(404)
 
     history = get_server_definition_history(current_user.id, server_name)
-    invocations = get_server_invocation_extremes(current_user.id, server_name)
+    invocations = get_server_invocation_history(current_user.id, server_name)
 
     return render_template(
         'server_view.html',
         server=server,
         definition_history=history,
         server_invocations=invocations,
+        server_invocation_count=len(invocations),
     )
 
 
@@ -147,7 +150,7 @@ def edit_server(server_name):
     form = ServerForm(obj=server)
 
     history = get_server_definition_history(current_user.id, server_name)
-    invocations = get_server_invocation_extremes(current_user.id, server_name)
+    invocations = get_server_invocation_history(current_user.id, server_name)
 
     if form.validate_on_submit():
         if update_entity(server, form, 'server'):
@@ -159,6 +162,7 @@ def edit_server(server_name):
             server=server,
             definition_history=history,
             server_invocations=invocations,
+            server_invocation_count=len(invocations),
         )
 
     return render_template(
@@ -168,6 +172,7 @@ def edit_server(server_name):
         server=server,
         definition_history=history,
         server_invocations=invocations,
+        server_invocation_count=len(invocations),
     )
 
 
@@ -188,54 +193,72 @@ def delete_server(server_name):
     return redirect(url_for('main.servers'))
 
 
-def _invocation_to_dict(inv):
-    return {
-        'result_cid': inv.result_cid,
-        'invoked_at': inv.invoked_at,
-        'servers_cid': inv.servers_cid,
-        'variables_cid': inv.variables_cid,
-        'secrets_cid': inv.secrets_cid,
-        'request_details_cid': getattr(inv, 'request_details_cid', None),
-        'invocation_cid': getattr(inv, 'invocation_cid', None),
-    }
+def get_server_invocation_history(user_id, server_name):
+    """Return invocation events for a specific server ordered from newest to oldest."""
+    invocations = (
+        ServerInvocation.query
+        .filter(
+            ServerInvocation.user_id == user_id,
+            ServerInvocation.server_name == server_name,
+        )
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
 
+    if not invocations:
+        return []
 
-def get_server_invocation_extremes(user_id, server_name):
-    """Return first 3 and last 3 invocations for a server name (by time)."""
-    base_query = ServerInvocation.query.filter_by(user_id=user_id, server_name=server_name)
-    total = base_query.count()
-    result = {'total_count': total}
+    referer_by_request = _load_request_referers(invocations)
 
-    if total == 0:
-        return result
+    for invocation in invocations:
+        invocation.invocation_link = (
+            f"/{invocation.invocation_cid}.json"
+            if getattr(invocation, 'invocation_cid', None)
+            else None
+        )
+        invocation.invocation_label = _shorten_cid(
+            getattr(invocation, 'invocation_cid', None)
+        )
+        invocation.request_details_link = (
+            f"/{invocation.request_details_cid}.json"
+            if getattr(invocation, 'request_details_cid', None)
+            else None
+        )
+        invocation.request_details_label = _shorten_cid(
+            getattr(invocation, 'request_details_cid', None)
+        )
+        invocation.result_link = (
+            f"/{invocation.result_cid}.txt"
+            if getattr(invocation, 'result_cid', None)
+            else None
+        )
+        invocation.result_label = _shorten_cid(
+            getattr(invocation, 'result_cid', None)
+        )
+        invocation.servers_cid_link = (
+            f"/{invocation.servers_cid}.json"
+            if getattr(invocation, 'servers_cid', None)
+            else None
+        )
+        invocation.servers_cid_label = _shorten_cid(
+            getattr(invocation, 'servers_cid', None)
+        )
 
-    if total < 7:
-        all_inv = base_query.order_by(
-            ServerInvocation.invoked_at.asc(),
-            ServerInvocation.id.asc(),
-        ).all()
-        result['all_invocations'] = [_invocation_to_dict(i) for i in all_inv]
-        return result
+        request_cid = getattr(invocation, 'request_details_cid', None)
+        invocation.request_referer = (
+            referer_by_request.get(request_cid)
+            if request_cid
+            else None
+        )
 
-    first_three = base_query.order_by(
-        ServerInvocation.invoked_at.asc(),
-        ServerInvocation.id.asc(),
-    ).limit(3).all()
-    last_three = base_query.order_by(
-        ServerInvocation.invoked_at.desc(),
-        ServerInvocation.id.desc(),
-    ).limit(3).all()
-
-    result['first_invocations'] = [_invocation_to_dict(i) for i in first_three]
-    result['last_invocations'] = [_invocation_to_dict(i) for i in last_three]
-    return result
+    return invocations
 
 
 __all__ = [
     'delete_server',
     'edit_server',
     'get_server_definition_history',
-    'get_server_invocation_extremes',
+    'get_server_invocation_history',
     'new_server',
     'servers',
     'update_server_definitions_cid',
