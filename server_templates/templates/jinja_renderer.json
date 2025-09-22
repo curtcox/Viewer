@@ -1,0 +1,6 @@
+{
+  "id": "jinja_renderer",
+  "name": "Jinja2 Template Renderer",
+  "description": "A Jinja2 template that renders request and context data in a clean, modern dashboard layout with syntax highlighting and responsive design.",
+  "definition_file": "definitions/jinja_renderer.py"
+}

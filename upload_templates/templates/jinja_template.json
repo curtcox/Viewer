@@ -1,0 +1,7 @@
+{
+    "id": "jinja-template",
+    "name": "Jinja Template",
+    "description": "A Jinja2 template that renders request and context data in a clean, modern dashboard layout with syntax highlighting and responsive design.",
+    "content_file": "contents/jinja_template.html",
+    "suggested_filename": "jinja_template.html"
+  }
