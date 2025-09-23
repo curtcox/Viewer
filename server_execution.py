@@ -174,106 +174,83 @@ def _encode_output(output: Any) -> bytes:
     return str(output).encode("utf-8")
 
 
-def execute_server_code(server, server_name: str):
-    """Execute server code and return a redirect to the resulting CID."""
-    code = server.definition
+def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, content_type: str) -> None:
+    """Log execution details while tolerating logging failures."""
+    try:
+        sample = repr(output)
+        if sample and len(sample) > 300:
+            sample = sample[:300] + "…"
+        print(
+            f"[server_execution] {debug_prefix}: output_type={type(output).__name__}, "
+            f"content_type={content_type}, sample={sample}"
+        )
+    except Exception as debug_err:
+        suffix = f" {error_suffix}" if error_suffix else ""
+        print(
+            f"[server_execution] Debug output failed{suffix}: "
+            f"{type(debug_err).__name__}: {debug_err}"
+        )
+        traceback.print_exc()
+
+
+def _handle_successful_execution(output: Any, content_type: str, server_name: str):
+    output_bytes = _encode_output(output)
+    cid = generate_cid(output_bytes)
+
+    existing = get_cid_by_path(f"/{cid}")
+    if not existing:
+        create_cid_record(cid, output_bytes, current_user.id)
+
+    create_server_invocation_record(current_user.id, server_name, cid)
+
+    extension = get_extension_from_mime_type(content_type)
+    if extension:
+        return redirect(f"/{cid}.{extension}")
+    return redirect(f"/{cid}")
+
+
+def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any]):
+    text = (
+        str(exc)
+        + "\n\n"
+        + traceback.format_exc()
+        + "\n\n"
+        + code
+        + "\n\n"
+        + str(args)
+    )
+    response = make_response(text)
+    response.headers["Content-Type"] = "text/plain"
+    response.status_code = 500
+    return response
+
+
+def _execute_server_code_common(code: str, server_name: str, debug_prefix: str, error_suffix: str):
     args = build_request_args()
 
     try:
         result = run_text_function(code, args)
         output = result.get("output", "")
         content_type = result.get("content_type", "text/html")
-        # Debug info to console
-        try:
-            sample = repr(output)
-            if sample and len(sample) > 300:
-                sample = sample[:300] + "…"
-            print(
-                f"[server_execution] execute_server_code: output_type={type(output).__name__}, "
-                f"content_type={content_type}, sample={sample}"
-            )
-        except Exception as debug_err:
-            print(f"[server_execution] Debug output failed: {type(debug_err).__name__}: {debug_err}")
-            traceback.print_exc()
-
-        output_bytes = _encode_output(output)
-        cid = generate_cid(output_bytes)
-
-        existing = get_cid_by_path(f"/{cid}")
-        if not existing:
-            create_cid_record(cid, output_bytes, current_user.id)
-
-        create_server_invocation_record(current_user.id, server_name, cid)
-
-        extension = get_extension_from_mime_type(content_type)
-        if extension:
-            return redirect(f"/{cid}.{extension}")
-        return redirect(f"/{cid}")
+        _log_server_output(debug_prefix, error_suffix, output, content_type)
+        return _handle_successful_execution(output, content_type, server_name)
     except Exception as exc:
-        text = (
-            str(exc)
-            + "\n\n"
-            + traceback.format_exc()
-            + "\n\n"
-            + code
-            + "\n\n"
-            + str(args)
-        )
-        response = make_response(text)
-        response.headers["Content-Type"] = "text/plain"
-        response.status_code = 500
-        return response
+        return _handle_execution_exception(exc, code, args)
+
+
+def execute_server_code(server, server_name: str):
+    """Execute server code and return a redirect to the resulting CID."""
+    return _execute_server_code_common(server.definition, server_name, "execute_server_code", "")
 
 
 def execute_server_code_from_definition(definition_text: str, server_name: str):
     """Execute server code from a supplied historical definition."""
-    code = definition_text
-    args = build_request_args()
-
-    try:
-        result = run_text_function(code, args)
-        output = result.get("output", "")
-        content_type = result.get("content_type", "text/html")
-        # Debug info to console
-        try:
-            sample = repr(output)
-            if sample and len(sample) > 300:
-                sample = sample[:300] + "…"
-            print(
-                f"[server_execution] execute_server_code_from_definition: output_type={type(output).__name__}, "
-                f"content_type={content_type}, sample={sample}"
-            )
-        except Exception as debug_err:
-            print(f"[server_execution] Debug output failed in _from_definition: {type(debug_err).__name__}: {debug_err}")
-            traceback.print_exc()
-
-        output_bytes = _encode_output(output)
-        cid = generate_cid(output_bytes)
-
-        existing = get_cid_by_path(f"/{cid}")
-        if not existing:
-            create_cid_record(cid, output_bytes, current_user.id)
-
-        create_server_invocation_record(current_user.id, server_name, cid)
-
-        extension = get_extension_from_mime_type(content_type)
-        if extension:
-            return redirect(f"/{cid}.{extension}")
-        return redirect(f"/{cid}")
-    except Exception as exc:
-        text = (
-            str(exc)
-            + "\n\n"
-            + traceback.format_exc()
-            + "\n\n"
-            + code
-            + "\n\n"
-            + str(args)
-        )
-        response = make_response(text)
-        response.headers["Content-Type"] = "text/plain"
-        response.status_code = 500
-        return response
+    return _execute_server_code_common(
+        definition_text,
+        server_name,
+        "execute_server_code_from_definition",
+        "in _from_definition",
+    )
 
 
 def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]) -> bool:
