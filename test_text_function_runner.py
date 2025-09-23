@@ -1,5 +1,7 @@
 import importlib
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 class TestRunTextFunction(unittest.TestCase):
@@ -144,6 +146,25 @@ return result
         # Function will use available parameters
         result = self.run_text_function(body, argmap)
         self.assertEqual(result, 2)  # x * 2 = 1 * 2 = 2
+
+    def test_save_stores_message_bytes_with_user_id(self):
+        """Ensure save() stores content using store_cid_from_bytes."""
+        body = (
+            "message = 'text of message'\n"
+            "return { 'output': save(message) }"
+        )
+        argmap = {"context": {}, "request": {}}
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            mock_store.return_value = 'cid-abc'
+            with patch(
+                'text_function_runner.current_user',
+                new=SimpleNamespace(id='user-123', is_authenticated=True),
+            ):
+                result = self.run_text_function(body, argmap)
+
+        mock_store.assert_called_once_with(b'text of message', 'user-123')
+        self.assertEqual(result, {'output': 'cid-abc'})
 
 
 if __name__ == '__main__':
