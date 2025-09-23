@@ -129,8 +129,8 @@ def save_server_definition_as_cid(definition, user_id):
     definition_bytes = definition.encode('utf-8')
     cid = generate_cid(definition_bytes)
 
-    existing_cid = get_cid_by_path(f"/{cid}")
-    if not existing_cid:
+    content = get_cid_by_path(f"/{cid}")
+    if not content:
         create_cid_record(cid, definition_bytes, user_id)
 
     return cid
@@ -138,16 +138,19 @@ def save_server_definition_as_cid(definition, user_id):
 
 def store_cid_from_json(json_content, user_id):
     """Store JSON content in a CID record and return the CID"""
-    _ensure_db_access()
     json_bytes = json_content.encode('utf-8')
-    cid = generate_cid(json_bytes)
+    return store_cid_from_bytes(json_bytes, user_id)
 
-    existing_cid = get_cid_by_path(f"/{cid}")
-    if not existing_cid:
-        create_cid_record(cid, json_bytes, user_id)
+def store_cid_from_bytes(bytes, user_id):
+    """Store content in a CID record and return the CID"""
+    _ensure_db_access()
+    cid = generate_cid(bytes)
+
+    content = get_cid_by_path(f"/{cid}")
+    if not content:
+        create_cid_record(cid, bytes, user_id)
 
     return cid
-
 
 # ============================================================================
 # DEFINITIONS CID HELPERS
@@ -177,11 +180,11 @@ def get_current_server_definitions_cid(user_id):
     _ensure_db_access()
     json_content = generate_all_server_definitions_json(user_id)
     json_bytes = json_content.encode('utf-8')
-    expected_cid = generate_cid(json_bytes)
+    cid = generate_cid(json_bytes)
 
-    existing_cid = get_cid_by_path(f"/{expected_cid}")
-    if existing_cid:
-        return expected_cid
+    content = get_cid_by_path(f"/{cid}")
+    if content:
+        return cid
     return store_server_definitions_cid(user_id)
 
 
@@ -209,11 +212,11 @@ def get_current_variable_definitions_cid(user_id):
     _ensure_db_access()
     json_content = generate_all_variable_definitions_json(user_id)
     json_bytes = json_content.encode('utf-8')
-    expected_cid = generate_cid(json_bytes)
+    cid = generate_cid(json_bytes)
 
-    existing_cid = get_cid_by_path(f"/{expected_cid}")
-    if existing_cid:
-        return expected_cid
+    content = get_cid_by_path(f"/{cid}")
+    if content:
+        return cid
     return store_variable_definitions_cid(user_id)
 
 
@@ -236,8 +239,8 @@ def store_secret_definitions_cid(user_id):
     json_bytes = json_content.encode('utf-8')
     cid = generate_cid(json_bytes)
 
-    existing_cid = get_cid_by_path(f"/{cid}")
-    if not existing_cid:
+    content = get_cid_by_path(f"/{cid}")
+    if not content:
         create_cid_record(cid, json_bytes, user_id)
 
     return cid
@@ -248,11 +251,12 @@ def get_current_secret_definitions_cid(user_id):
     _ensure_db_access()
     json_content = generate_all_secret_definitions_json(user_id)
     json_bytes = json_content.encode('utf-8')
-    expected_cid = generate_cid(json_bytes)
+    cid = generate_cid(json_bytes)
 
-    existing_cid = get_cid_by_path(f"/{expected_cid}")
-    if existing_cid:
-        return expected_cid
+    content = get_cid_by_path(f"/{cid}")
+    if content:
+        return cid
+
     return store_secret_definitions_cid(user_id)
 
 
