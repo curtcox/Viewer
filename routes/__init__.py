@@ -12,5 +12,6 @@ from . import secrets  # noqa: F401,E402
 from . import history  # noqa: F401,E402
 from . import aliases  # noqa: F401,E402
 from . import import_export  # noqa: F401,E402
+from . import source  # noqa: F401,E402
 
 __all__ = ["main_bp"]

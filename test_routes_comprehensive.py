@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from pathlib import Path
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -1173,6 +1174,43 @@ class TestPageViewTracking(BaseTestCase):
             # Even if 404, should not create page view
             page_view = PageView.query.filter_by(path=path).first()
             self.assertIsNone(page_view)
+
+
+class TestSourceRoutes(BaseTestCase):
+    """Test source browsing functionality."""
+
+    def test_source_index_lists_tracked_files(self):
+        """Root source page should list tracked files."""
+        response = self.client.get('/source')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('models.py', page)
+        self.assertIn('/source/models.py', page)
+
+    def test_source_serves_file_content(self):
+        """Requesting a tracked file should render its contents."""
+        response = self.client.get('/source/models.py')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('class User(UserMixin, db.Model)', page)
+
+    def test_source_rejects_untracked_files(self):
+        """Untracked files should not be served."""
+        temp_path = Path(self.app.root_path) / 'untracked_secret.txt'
+        temp_path.write_text('secret', encoding='utf-8')
+
+        try:
+            response = self.client.get('/source/untracked_secret.txt')
+            self.assertEqual(response.status_code, 404)
+        finally:
+            temp_path.unlink(missing_ok=True)
+
+    def test_source_rejects_path_traversal(self):
+        """Path traversal attempts should return 404."""
+        response = self.client.get('/source/../app.py')
+        self.assertEqual(response.status_code, 404)
 
 
 if __name__ == '__main__':
