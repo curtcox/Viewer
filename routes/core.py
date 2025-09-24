@@ -64,9 +64,7 @@ def index():
 @main_bp.route('/dashboard')
 @require_login
 def dashboard():
-    """User dashboard - redirects based on access level."""
-    if current_user.has_access():
-        return redirect(url_for('main.content'))
+    """User dashboard - directs members to their profile overview."""
     return redirect(url_for('main.profile'))
 
 
@@ -120,22 +118,6 @@ def accept_terms():
         form=form,
         terms_version=CURRENT_TERMS_VERSION,
     )
-
-
-@main_bp.route('/content')
-@require_login
-def content():
-    """Protected content area - displays HTTP request details."""
-    if not current_user.has_access():
-        flash(
-            'Access denied. Please ensure you have an active subscription and have '
-            'accepted the current terms and conditions.',
-            'warning',
-        )
-        return redirect(url_for('main.profile'))
-
-    request_info = gather_request_info()
-    return render_template('content.html', request_info=request_info)
 
 
 @main_bp.route('/plans')
@@ -254,32 +236,6 @@ def get_user_settings_counts(user_id):
     }
 
 
-def gather_request_info():
-    """Gather comprehensive HTTP request information."""
-    return {
-        'method': request.method,
-        'url': request.url,
-        'path': request.path,
-        'query_string': request.query_string.decode('utf-8'),
-        'remote_addr': request.remote_addr,
-        'user_agent': request.user_agent.string,
-        'headers': dict(request.headers),
-        'form_data': dict(request.form) if request.form else {},
-        'args': dict(request.args) if request.args else {},
-        'endpoint': request.endpoint,
-        'blueprint': request.blueprint,
-        'scheme': request.scheme,
-        'host': request.host,
-        'environ_vars': {
-            'HTTP_X_FORWARDED_FOR': request.environ.get('HTTP_X_FORWARDED_FOR'),
-            'HTTP_X_REAL_IP': request.environ.get('HTTP_X_REAL_IP'),
-            'HTTP_REFERER': request.environ.get('HTTP_REFERER'),
-            'HTTP_ACCEPT_LANGUAGE': request.environ.get('HTTP_ACCEPT_LANGUAGE'),
-            'HTTP_ACCEPT_ENCODING': request.environ.get('HTTP_ACCEPT_ENCODING'),
-        },
-    }
-
-
 def handle_pending_authentication(invitation_code):
     """Handle pending authentication with invitation code."""
     if 'pending_token' in session and 'pending_user_claims' in session:
@@ -306,7 +262,7 @@ def handle_pending_authentication(invitation_code):
 def get_existing_routes():
     """Get set of existing routes that should take precedence over server names."""
     return {
-        '/', '/dashboard', '/profile', '/subscribe', '/accept-terms', '/content',
+        '/', '/dashboard', '/profile', '/subscribe', '/accept-terms',
         '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
         '/require-invitation', '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings', '/aliases', '/aliases/new',
@@ -357,10 +313,8 @@ def internal_error(error):
 __all__ = [
     'accept_invitation',
     'accept_terms',
-    'content',
     'create_invitation',
     'dashboard',
-    'gather_request_info',
     'get_existing_routes',
     'get_user_settings_counts',
     'handle_pending_authentication',

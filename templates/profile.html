@@ -68,9 +68,9 @@
     {% if current_user.has_access() %}
         <div class="alert alert-success" role="alert">
             <i class="fas fa-check-circle me-2"></i>
-            <strong>Full Access Granted!</strong> You can now access all premium content.
-            <a href="{{ url_for('main.content') }}" class="btn btn-success btn-sm ms-2">
-                <i class="fas fa-arrow-right me-1"></i>Access Content
+            <strong>Full Access Granted!</strong> You're ready to use the workspace tools.
+            <a href="{{ url_for('main.uploads') }}" class="btn btn-success btn-sm ms-2">
+                <i class="fas fa-arrow-right me-1"></i>Go to Workspace
             </a>
         </div>
     {% else %}
