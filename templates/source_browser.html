@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Source Browser{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="fas fa-code me-2"></i>Source Browser</h2>
+    </div>
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            {% for crumb_path, crumb_label in breadcrumbs %}
+                {% if loop.last %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ crumb_label }}</li>
+                {% else %}
+                    {% if crumb_path %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.source_browser', requested_path=crumb_path) }}">{{ crumb_label }}</a></li>
+                    {% else %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.source_browser') }}">{{ crumb_label }}</a></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+
+    {% if file_content is not none %}
+        <div class="card">
+            <div class="card-header bg-light">
+                <strong>{{ current_path }}</strong>
+            </div>
+            <div class="card-body">
+                <pre class="mb-0"><code>{{ file_content | e }}</code></pre>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                {% if directories %}
+                    <h5>Directories</h5>
+                    <ul class="list-unstyled mb-4">
+                        {% for directory in directories %}
+                            <li>
+                                <i class="fas fa-folder me-2 text-warning"></i>
+                                <a href="{{ url_for('main.source_browser', requested_path=path_prefix + directory) }}">{{ directory }}/</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if files %}
+                    <h5>Files</h5>
+                    <ul class="list-unstyled mb-0">
+                        {% for file in files %}
+                            <li>
+                                <i class="fas fa-file-code me-2 text-primary"></i>
+                                <a href="{{ url_for('main.source_browser', requested_path=path_prefix + file) }}">{{ file }}</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                {% if not directories and not files %}
+                    <p class="text-muted mb-0">No tracked files in this directory.</p>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
