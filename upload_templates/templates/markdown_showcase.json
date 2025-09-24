@@ -1,0 +1,7 @@
+{
+  "id": "markdown-showcase",
+  "name": "Markdown showcase",
+  "description": "A feature-rich Markdown document demonstrating headings, code, tables, diagrams, and callouts.",
+  "content_file": "contents/markdown_showcase.md",
+  "suggested_filename": "showcase.md"
+}

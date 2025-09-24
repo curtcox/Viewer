@@ -1,10 +1,113 @@
 import base64
 import hashlib
+import html
 import json
+import re
+from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import requests
 from flask import make_response, request
+
+try:
+    import markdown  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover - exercised when dependency missing
+    def _fallback_inline(text):
+        text = html.escape(text)
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+        text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+        return text
+
+    def _render_list_item(content):
+        content = content.strip()
+        content = re.sub(r'^\[[ xX]\]\s*', '', content)
+        return _fallback_inline(content)
+
+    def _fallback_markdown(text, extensions=None, output_format=None):
+        lines = text.splitlines()
+        html_lines = []
+        paragraph_lines = []
+        in_list = False
+        in_code = False
+        code_lang = ''
+
+        def flush_paragraph():
+            nonlocal paragraph_lines
+            if paragraph_lines:
+                html_lines.append(f'<p>{_fallback_inline(" ".join(paragraph_lines))}</p>')
+                paragraph_lines = []
+
+        def flush_list():
+            nonlocal in_list
+            if in_list:
+                html_lines.append('</ul>')
+                in_list = False
+
+        def close_code_block():
+            nonlocal in_code
+            if in_code:
+                html_lines.append('</code></pre>')
+                in_code = False
+
+        for raw_line in lines:
+            line = raw_line.rstrip('\n')
+
+            if in_code:
+                if line.strip().startswith('```'):
+                    close_code_block()
+                else:
+                    html_lines.append(html.escape(raw_line))
+                continue
+
+            stripped = line.lstrip()
+
+            if not stripped:
+                flush_paragraph()
+                flush_list()
+                continue
+
+            if stripped.startswith('```'):
+                flush_paragraph()
+                flush_list()
+                code_lang = stripped.strip('`').strip()
+                lang = code_lang.split(None, 1)[0] if code_lang else ''
+                lang_attr = f' class="language-{lang}"' if lang else ''
+                html_lines.append(f'<pre><code{lang_attr}>')
+                in_code = True
+                continue
+
+            if stripped.startswith('#'):
+                flush_paragraph()
+                flush_list()
+                level = min(len(stripped.split(' ')[0]), 6)
+                content = stripped[level:].strip()
+                html_lines.append(f'<h{level}>{_fallback_inline(content)}</h{level}>')
+                continue
+
+            if stripped.startswith('>'):
+                flush_paragraph()
+                flush_list()
+                html_lines.append(f'<blockquote>{_fallback_inline(stripped[1:].strip())}</blockquote>')
+                continue
+
+            if stripped.startswith(('-', '*')) and len(stripped) > 2 and stripped[1] == ' ':
+                flush_paragraph()
+                if not in_list:
+                    html_lines.append('<ul>')
+                    in_list = True
+                html_lines.append(f'<li>{_render_list_item(stripped[2:])}</li>')
+                continue
+
+            paragraph_lines.append(line.strip())
+
+        close_code_block()
+        flush_paragraph()
+        flush_list()
+
+        return '\n'.join(html_lines)
+
+    markdown = SimpleNamespace(markdown=_fallback_markdown)
 
 try:
     from db_access import (
@@ -312,6 +415,181 @@ for ext, mime in EXTENSION_TO_MIME.items():
         MIME_TO_EXTENSION[mime] = ext
 
 
+_MARKDOWN_EXTENSIONS = [
+    'extra',
+    'admonition',
+    'sane_lists',
+]
+
+_MARKDOWN_INDICATOR_PATTERNS = [
+    re.compile(r'(^|\n)#{1,6}\s+\S'),
+    re.compile(r'(^|\n)(?:\*|-|\+)\s+\S'),
+    re.compile(r'(^|\n)\d+\.\s+\S'),
+    re.compile(r'(^|\n)>\s+\S'),
+    re.compile(r'```'),
+    re.compile(r'\[[^\]]+\]\([^\)]+\)'),
+    re.compile(r'!\[[^\]]*\]\([^\)]+\)'),
+    re.compile(r'(^|\n)[^\n]+\n[=-]{3,}\s*(\n|$)'),
+]
+
+_INLINE_BOLD_PATTERN = re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')
+_INLINE_ITALIC_PATTERN = re.compile(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)')
+_INLINE_CODE_PATTERN = re.compile(r'`[^`\n]+`')
+
+
+def _decode_text_safely(data):
+    """Decode bytes as UTF-8 if possible, returning None on failure."""
+    try:
+        return data.decode('utf-8')
+    except UnicodeDecodeError:
+        return None
+
+
+def _count_bullet_lines(lines):
+    return sum(1 for line in lines if line.lstrip().startswith(('- ', '* ', '+ ')))
+
+
+def _looks_like_markdown(text):
+    """Heuristically determine whether text is likely Markdown content."""
+    if not text or not text.strip():
+        return False
+
+    if '\x00' in text:
+        return False
+
+    indicator_hits = sum(1 for pattern in _MARKDOWN_INDICATOR_PATTERNS if pattern.search(text))
+
+    inline_format_score = sum(
+        1
+        for pattern in (_INLINE_BOLD_PATTERN, _INLINE_ITALIC_PATTERN, _INLINE_CODE_PATTERN)
+        if pattern.search(text)
+    )
+
+    if indicator_hits + inline_format_score >= 2:
+        return True
+
+    lines = text.strip().splitlines()
+    if not lines:
+        return False
+
+    if lines[0].startswith('# '):
+        return True
+
+    if len(lines) > 1 and set(lines[1].strip()) in ({'='}, {'-'}):
+        return True
+
+    if _count_bullet_lines(lines) >= 2:
+        return True
+
+    return False
+
+
+def _extract_markdown_title(text):
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith('#'):
+            return stripped.lstrip('#').strip() or 'Document'
+    return 'Document'
+
+
+def _render_markdown_document(text):
+    """Render Markdown text to a standalone HTML document."""
+    body = markdown.markdown(text, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
+    title = _extract_markdown_title(text)
+    return (
+        "<!DOCTYPE html>\n"
+        "<html lang=\"en\">\n"
+        "<head>\n"
+        "  <meta charset=\"utf-8\">\n"
+        f"  <title>{title}</title>\n"
+        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+        "  <style>\n"
+        "    body {\n"
+        "      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n"
+        "      margin: 0;\n"
+        "      padding: 2rem;\n"
+        "      background: #f7f7f8;\n"
+        "      color: #111827;\n"
+        "    }\n"
+        "    .markdown-body {\n"
+        "      max-width: 860px;\n"
+        "      margin: 0 auto;\n"
+        "      background: #fff;\n"
+        "      padding: 2rem 3rem;\n"
+        "      border-radius: 12px;\n"
+        "      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);\n"
+        "    }\n"
+        "    pre {\n"
+        "      background: #0f172a;\n"
+        "      color: #f8fafc;\n"
+        "      padding: 1rem;\n"
+        "      border-radius: 8px;\n"
+        "      overflow-x: auto;\n"
+        "    }\n"
+        "    code {\n"
+        "      background: rgba(15, 23, 42, 0.08);\n"
+        "      padding: 0.15rem 0.35rem;\n"
+        "      border-radius: 4px;\n"
+        "      font-size: 0.95em;\n"
+        "    }\n"
+        "    table {\n"
+        "      border-collapse: collapse;\n"
+        "      width: 100%;\n"
+        "      margin: 1.5rem 0;\n"
+        "    }\n"
+        "    th, td {\n"
+        "      border: 1px solid #e2e8f0;\n"
+        "      padding: 0.6rem 0.75rem;\n"
+        "      text-align: left;\n"
+        "    }\n"
+        "    blockquote {\n"
+        "      border-left: 4px solid #3b82f6;\n"
+        "      padding-left: 1rem;\n"
+        "      color: #1f2937;\n"
+        "      background: rgba(59, 130, 246, 0.08);\n"
+        "    }\n"
+        "    .admonition {\n"
+        "      border-left: 4px solid #7c3aed;\n"
+        "      background: rgba(124, 58, 237, 0.08);\n"
+        "      padding: 1rem 1.25rem;\n"
+        "      border-radius: 8px;\n"
+        "      margin: 1.5rem 0;\n"
+        "    }\n"
+        "    .admonition-title {\n"
+        "      font-weight: 600;\n"
+        "      margin-bottom: 0.5rem;\n"
+        "    }\n"
+        "    img, iframe {\n"
+        "      max-width: 100%;\n"
+        "      border-radius: 8px;\n"
+        "      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);\n"
+        "    }\n"
+        "  </style>\n"
+        "</head>\n"
+        "<body>\n"
+        "  <main class=\"markdown-body\">\n"
+        f"  {body}\n"
+        "  </main>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+
+def _maybe_render_markdown(data, *, path_has_extension):
+    if path_has_extension:
+        return data, False
+
+    text = _decode_text_safely(data)
+    if text is None:
+        return data, False
+
+    if not _looks_like_markdown(text):
+        return data, False
+
+    html_document = _render_markdown_document(text)
+    return html_document.encode('utf-8'), True
+
+
 def get_mime_type_from_extension(path):
     """Determine MIME type from file extension in URL path"""
     if '.' in path:
@@ -353,6 +631,14 @@ def serve_cid_content(cid_content, path):
     cid = path[1:] if path.startswith('/') else path
 
     content_type = get_mime_type_from_extension(path)
+    filename_part = path.rsplit('/', 1)[-1]
+    has_extension = '.' in filename_part
+
+    response_body = cid_content.file_data
+    if content_type == 'application/octet-stream':
+        response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
+        if rendered:
+            content_type = 'text/html'
 
     etag = f'"{cid.split(".")[0]}"'
     if request.headers.get('If-None-Match') == etag:
@@ -366,9 +652,9 @@ def serve_cid_content(cid_content, path):
         response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
         return response
 
-    response = make_response(cid_content.file_data)
+    response = make_response(response_body)
     response.headers['Content-Type'] = content_type
-    response.headers['Content-Length'] = len(cid_content.file_data)
+    response.headers['Content-Length'] = len(response_body)
 
     filename = extract_filename_from_cid_path(path)
     if filename:
