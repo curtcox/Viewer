@@ -1,5 +1,5 @@
 """Upload-related routes and helpers."""
-from flask import abort, flash, jsonify, render_template, request, url_for
+from flask import abort, flash, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
