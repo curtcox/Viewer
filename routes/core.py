@@ -266,7 +266,7 @@ def get_existing_routes():
         '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
         '/require-invitation', '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings', '/aliases', '/aliases/new',
-        '/edit',
+        '/edit', '/meta',
         '/export', '/import',
     }
 

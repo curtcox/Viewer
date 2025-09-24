@@ -268,30 +268,4 @@ def _attach_creation_sources(user_uploads):
                 upload.server_invocation_link = f"/{invocation.invocation_cid}.json"
 
 
-@main_bp.route('/meta/<cid>')
-def meta_cid(cid):
-    """Serve metadata about a CID as JSON."""
-    cid_record = get_cid_by_path(f"/{cid}")
-
-    if not cid_record:
-        return jsonify({'error': 'CID not found'}), 404
-
-    metadata = {
-        'cid': cid,
-        'path': cid_record.path,
-        'file_size': cid_record.file_size,
-        'created_at': cid_record.created_at.isoformat() if cid_record.created_at else None,
-        'uploaded_by_user_id': cid_record.uploaded_by_user_id,
-    }
-
-    if cid_record.uploaded_by:
-        metadata['uploaded_by'] = {
-            'user_id': cid_record.uploaded_by.id,
-            'username': cid_record.uploaded_by.username,
-            'email': cid_record.uploaded_by.email,
-        }
-
-    return jsonify(metadata)
-
-
-__all__ = ['meta_cid', 'server_events', 'upload', 'uploads']
+__all__ = ['server_events', 'upload', 'uploads']
