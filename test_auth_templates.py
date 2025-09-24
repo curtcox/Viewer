@@ -166,7 +166,8 @@ class TestAuthTemplateIntegration(unittest.TestCase):
 
                 # Should show login link (unauthenticated state)
                 self.assertIn(b'Login', response.data)
-                self.assertNotIn(b'dropdown-toggle', response.data)
+                self.assertIn(b'resourcesDropdown', response.data)
+                self.assertNotIn(b'accountDropdown', response.data)
 
 
 class TestAuthTemplateForms(unittest.TestCase):

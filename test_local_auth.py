@@ -31,10 +31,6 @@ def _create_main_stub_blueprint() -> Blueprint:
     def profile():
         return "Profile page"
 
-    @main_bp.route('/content')
-    def content():
-        return "Content page"
-
     @main_bp.route('/terms')
     def terms():
         return "Terms page"

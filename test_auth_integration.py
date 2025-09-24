@@ -185,8 +185,8 @@ def test_protected_route_access(auth_app, client, reset_auth_manager):
         assert response.status_code == 302
 
         response = client.get("/dashboard")
-        assert response.status_code == 302  # Redirects to content
-        assert "/content" in response.location
+        assert response.status_code == 302  # Redirects to profile overview
+        assert "/profile" in response.location
 
 
 def test_logout_flow(auth_app, client, reset_auth_manager):

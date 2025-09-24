@@ -235,8 +235,8 @@ class TestAuthSystemSimple(unittest.TestCase):
 
                 # Now try to access protected route with auth
                 response = client.get('/dashboard')
-                self.assertEqual(response.status_code, 302)  # Redirects to content
-                self.assertIn('/content', response.location)
+                self.assertEqual(response.status_code, 302)  # Redirects to profile overview
+                self.assertIn('/profile', response.location)
 
     def test_home_page_renders(self):
         """Test that home page renders correctly."""

@@ -29,67 +29,88 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.profile') }}">
-                                <i class="fas fa-user me-1"></i>Profile
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="workspaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-toolbox me-1"></i>Workspace
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="workspaceDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.uploads') }}">
+                                        <i class="fas fa-upload me-2 text-muted"></i>Uploads
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.server_events') }}">
+                                        <i class="fas fa-server me-2 text-muted"></i>Server Events
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.aliases') }}">
+                                        <i class="fas fa-link me-2 text-muted"></i>Aliases
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.history') }}">
+                                        <i class="fas fa-history me-2 text-muted"></i>History
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.export_data') }}">
+                                        <i class="fas fa-download me-2 text-muted"></i>Export Data
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.import_data') }}">
+                                        <i class="fas fa-file-import me-2 text-muted"></i>Import Data
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.invitations') }}">
-                                <i class="fas fa-users me-1"></i>Invitations
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-cog me-1"></i>Account
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="accountDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.profile') }}">
+                                        <i class="fas fa-id-badge me-2 text-muted"></i>Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.settings') }}">
+                                        <i class="fas fa-sliders-h me-2 text-muted"></i>Settings
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('main.invitations') }}">
+                                        <i class="fas fa-user-plus me-2 text-muted"></i>Invitations
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.uploads') }}">
-                                <i class="fas fa-upload me-1"></i>Uploads
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.server_events') }}">
-                                <i class="fas fa-server me-1"></i>Server Events
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.aliases') }}">
-                                <i class="fas fa-link me-1"></i>Aliases
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.history') }}">
-                                <i class="fas fa-history me-1"></i>History
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.export_data') }}">
-                                <i class="fas fa-download me-1"></i>Export
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.import_data') }}">
-                                <i class="fas fa-file-import me-1"></i>Import
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('main.settings') }}">
-                                <i class="fas fa-cog me-1"></i>Settings
-                            </a>
-                        </li>
-                        {% if current_user.has_access() %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('main.content') }}">
-                                    <i class="fas fa-lock me-1"></i>Content
+                    {% endif %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="resourcesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-book me-1"></i>Resources
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="resourcesDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('main.plans') }}">
+                                    <i class="fas fa-tags me-2 text-muted"></i>Plans
                                 </a>
                             </li>
-                        {% endif %}
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.plans') }}">Plans</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.terms') }}">Terms</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('main.privacy') }}">Privacy</a>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('main.terms') }}">
+                                    <i class="fas fa-file-contract me-2 text-muted"></i>Terms
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('main.privacy') }}">
+                                    <i class="fas fa-user-shield me-2 text-muted"></i>Privacy
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
 

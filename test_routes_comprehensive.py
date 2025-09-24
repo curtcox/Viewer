@@ -161,12 +161,12 @@ class TestAuthenticatedRoutes(BaseTestCase):
         response = self.client.get('/dashboard', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
-    def test_dashboard_with_access_redirects_to_content(self):
-        """Test dashboard redirects users with access to content."""
+    def test_dashboard_redirects_authenticated_users_to_profile(self):
+        """Dashboard should lead signed-in users to their profile overview."""
         self.login_user()
         response = self.client.get('/dashboard', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/content', response.location)
+        self.assertIn('/profile', response.location)
 
     def test_dashboard_without_access_redirects_to_profile(self):
         """Test dashboard redirects users without access to profile."""
@@ -191,27 +191,11 @@ class TestAuthenticatedRoutes(BaseTestCase):
         response = self.client.get('/profile')
         self.assertEqual(response.status_code, 200)
 
-    def test_content_page_with_access(self):
-        """Test content page for users with access."""
+    def test_content_route_returns_not_found(self):
+        """Legacy /content endpoint should be unavailable."""
         self.login_user()
-        response = self.client.get('/content')
-        self.assertEqual(response.status_code, 200)
-
-    def test_content_page_without_access(self):
-        """Test content page denies access to users without access."""
-        user_no_access = User(
-            id='no_access_user2',
-            email='noaccess2@example.com',
-            is_paid=False,
-            current_terms_accepted=False
-        )
-        db.session.add(user_no_access)
-        db.session.commit()
-
-        self.login_user(user_no_access)
         response = self.client.get('/content', follow_redirects=False)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/profile', response.location)
+        self.assertEqual(response.status_code, 404)
 
 
 class TestSubscriptionRoutes(BaseTestCase):
