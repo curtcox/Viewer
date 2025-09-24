@@ -4,7 +4,12 @@ import base64
 from unittest.mock import patch, MagicMock
 from app import app, db
 from models import CID, User
-from cid_utils import generate_cid, get_mime_type_from_extension, serve_cid_content
+from cid_utils import (
+    _looks_like_markdown,
+    generate_cid,
+    get_mime_type_from_extension,
+    serve_cid_content,
+)
 from db_access import create_cid_record
 
 
@@ -231,7 +236,77 @@ class TestCIDFunctionality(unittest.TestCase):
                 
                 # Verify default MIME type was set
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
-    
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_without_extension_plain_python_not_rendered(self, mock_make_response):
+        """Plain source files without Markdown cues should not be rendered."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                file_content = (
+                    "if __name__ == '__main__':\n"
+                    "    print('hello world')\n"
+                ).encode('utf-8')
+                cid = generate_cid(file_content)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}")
+
+                mock_make_response.assert_called_once_with(file_content)
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_without_extension_renders_markdown(self, mock_make_response):
+        """Markdown content without an extension should render to HTML."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                markdown_body = (
+                    "# Sample Document\n\n"
+                    "Welcome to the **CID Markdown renderer** showcase.\n\n"
+                    "- item one\n"
+                    "- item two\n\n"
+                    "```python\nprint('hello world')\n```\n"
+                ).encode('utf-8')
+                cid = generate_cid(markdown_body)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=markdown_body,
+                    file_size=len(markdown_body),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                path_without_extension = f"/{cid}"
+                serve_cid_content(cid_record, path_without_extension)
+
+                mock_make_response.assert_called_once()
+                rendered_bytes = mock_make_response.call_args[0][0]
+                self.assertIsInstance(rendered_bytes, bytes)
+                rendered_html = rendered_bytes.decode('utf-8')
+                self.assertIn('<h1', rendered_html)
+                self.assertIn('<ul>', rendered_html)
+                self.assertIn('class="language-python"', rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
+                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_bytes))
+
     @patch('cid_utils.make_response')
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
@@ -363,6 +438,14 @@ class TestCIDFunctionality(unittest.TestCase):
             # This should return None when cid_content is None
             result = serve_cid_content(None, "/bafybei123.txt")
             self.assertIsNone(result)
+
+    def test_markdown_heuristic_balances_inline_and_structural_cues(self):
+        text = "Intro paragraph.\n\n- first item\n- second item\n\nUse `code` with **bold** emphasis."
+        self.assertTrue(_looks_like_markdown(text))
+
+    def test_markdown_heuristic_ignores_plain_python_text(self):
+        text = "if __name__ == '__main__':\n    print('hello world')"
+        self.assertFalse(_looks_like_markdown(text))
 
 
 if __name__ == '__main__':
