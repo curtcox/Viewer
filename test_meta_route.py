@@ -72,6 +72,14 @@ class TestMetaRoute(unittest.TestCase):
             self.assertIn('error', data)
             self.assertEqual(data['error'], 'Path not found')
 
+    def test_meta_route_includes_template_source_links(self):
+        with self.app.app_context():
+            response = self.client.get('/meta/settings')
+            self.assertEqual(response.status_code, 200)
+
+            data = json.loads(response.data)
+            self.assertIn('/source/templates/settings.html', data['source_links'])
+
     def test_meta_route_includes_server_event_links_for_cid(self):
         with self.app.app_context():
             user = self._create_test_user()
@@ -113,6 +121,16 @@ class TestMetaRoute(unittest.TestCase):
 
             self.assertIn('/source/cid_utils.py', data['source_links'])
             self.assertIn('/source/server_execution.py', data['source_links'])
+
+    def test_meta_route_html_format_renders_links(self):
+        with self.app.app_context():
+            response = self.client.get('/meta/settings.html')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, 'text/html')
+
+            body = response.data.decode('utf-8')
+            self.assertIn('<a href="/settings"><code>/settings</code></a>', body)
+            self.assertIn('<a href="/source/templates/settings.html"><code>/source/templates/settings.html</code></a>', body)
 
 
 if __name__ == '__main__':
