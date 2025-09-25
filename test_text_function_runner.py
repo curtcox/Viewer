@@ -166,6 +166,104 @@ return result
         mock_store.assert_called_once_with(b'text of message', 'user-123')
         self.assertEqual(result, {'output': 'cid-abc'})
 
+    def test_save_uses_callable_id_attribute(self):
+        """save() should call an id attribute when it is callable."""
+        body = "return save(data)"
+        argmap = {"data": "payload"}
+
+        class CallableIdUser:
+            def __init__(self):
+                self.is_authenticated = True
+
+            def id(self):
+                return "callable-user"
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            mock_store.return_value = 'cid-callable'
+            with patch('text_function_runner.current_user', new=CallableIdUser()):
+                result = self.run_text_function(body, argmap)
+
+        mock_store.assert_called_once_with(b'payload', 'callable-user')
+        self.assertEqual(result, 'cid-callable')
+
+    def test_save_falls_back_to_get_id_when_id_call_fails(self):
+        """If the id attribute raises TypeError, fall back to get_id()."""
+        body = "return save(message)"
+        argmap = {"message": "hello"}
+
+        class InconsistentUser:
+            def __init__(self):
+                self.is_authenticated = True
+
+            def id(self, unexpected):  # pragma: no cover - exercised via TypeError
+                return "should-not-be-used"
+
+            def get_id(self):
+                return 77
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            mock_store.return_value = 'cid-77'
+            with patch('text_function_runner.current_user', new=InconsistentUser()):
+                result = self.run_text_function(body, argmap)
+
+        mock_store.assert_called_once_with(b'hello', '77')
+        self.assertEqual(result, 'cid-77')
+
+    def test_save_requires_user_identifier(self):
+        """save() should raise when no user identifier is available."""
+        body = "return save(payload)"
+        argmap = {"payload": "ignored"}
+
+        class AnonymousUser:
+            is_authenticated = False
+
+            def get_id(self):
+                return None
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            with patch('text_function_runner.current_user', new=AnonymousUser()):
+                with self.assertRaises(RuntimeError):
+                    self.run_text_function(body, argmap)
+
+        mock_store.assert_not_called()
+
+    def test_save_coerces_non_text_values_to_bytes(self):
+        """save() should coerce non-text values into UTF-8 bytes."""
+        body = "return save(value)"
+        argmap = {"value": 12345}
+
+        class NumericUser:
+            def __init__(self):
+                self.is_authenticated = True
+                self.id = 'numeric-user'
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            mock_store.return_value = 'cid-numeric'
+            with patch('text_function_runner.current_user', new=NumericUser()):
+                result = self.run_text_function(body, argmap)
+
+        mock_store.assert_called_once_with(b'12345', 'numeric-user')
+        self.assertEqual(result, 'cid-numeric')
+
+    def test_save_allows_preencoded_bytes(self):
+        """save() should pass bytes values to storage without re-encoding."""
+        body = "return save(blob)"
+        payload = b'\xffbinary data'
+        argmap = {"blob": payload}
+
+        class BinaryUser:
+            def __init__(self):
+                self.is_authenticated = True
+                self.id = 'binary-user'
+
+        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
+            mock_store.return_value = 'cid-bytes'
+            with patch('text_function_runner.current_user', new=BinaryUser()):
+                result = self.run_text_function(body, argmap)
+
+        mock_store.assert_called_once_with(payload, 'binary-user')
+        self.assertEqual(result, 'cid-bytes')
+
 
 if __name__ == '__main__':
     unittest.main()

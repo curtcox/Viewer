@@ -9,7 +9,13 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 from app import app, db
 from auth_providers import auth_manager
 from models import Alias, User
-from alias_routing import is_potential_alias_path, try_alias_redirect
+from alias_routing import (
+    _append_query_string,
+    _extract_alias_name,
+    _is_relative_target,
+    is_potential_alias_path,
+    try_alias_redirect,
+)
 from routes.core import get_existing_routes, not_found_error
 
 
@@ -61,12 +67,32 @@ class TestAliasRouting(unittest.TestCase):
         self.assertTrue(is_potential_alias_path('/latest/abc', routes))
         self.assertFalse(is_potential_alias_path('/servers/history', routes))
 
+    def test_extract_alias_name_invalid_inputs(self):
+        self.assertIsNone(_extract_alias_name(''))
+        self.assertIsNone(_extract_alias_name('latest'))
+        self.assertIsNone(_extract_alias_name('/'))
+        self.assertEqual(_extract_alias_name('/path/to/resource'), 'path')
+
+    def test_is_relative_target_filters_disallowed_forms(self):
+        self.assertFalse(_is_relative_target(''))
+        self.assertFalse(_is_relative_target('//example.com/file'))
+        self.assertFalse(_is_relative_target('https://example.com/file'))
+        self.assertTrue(_is_relative_target('/local/path'))
+
+    def test_append_query_string_with_empty_query(self):
+        self.assertEqual(_append_query_string('/cid123', ''), '/cid123')
+
     def test_try_alias_redirect_requires_authentication(self):
         self.create_alias()
         with app.test_request_context('/latest'):
             with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=False)):
                 result = try_alias_redirect('/latest')
                 self.assertIsNone(result)
+
+    def test_try_alias_redirect_requires_alias_name(self):
+        with app.test_request_context('/'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                self.assertIsNone(try_alias_redirect('/'))
 
     def test_try_alias_redirect_success(self):
         self.create_alias(target='/cid123')
