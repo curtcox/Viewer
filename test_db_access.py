@@ -109,8 +109,8 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
 
     def test_get_user_uploads_returns_latest_first(self):
-        first = create_cid_record('first', b'1', self.user.id)
-        second = create_cid_record('second', b'2', self.user.id)
+        create_cid_record('first', b'1', self.user.id)
+        create_cid_record('second', b'2', self.user.id)
 
         uploads = get_user_uploads(self.user.id)
         self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
