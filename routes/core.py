@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import traceback
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import (
     current_app,
@@ -61,6 +61,24 @@ def _extract_exception(error: Exception) -> Exception:
 def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
     """Build stack trace metadata with optional /source links."""
 
+    def _determine_relative_path(
+        absolute_path: Path,
+        root_path: Path,
+        tracked_paths: frozenset[str],
+    ) -> Optional[str]:
+        try:
+            return absolute_path.relative_to(root_path).as_posix()
+        except ValueError:
+            pass
+
+        normalized = absolute_path.as_posix()
+        best_match: Optional[str] = None
+        for tracked in tracked_paths:
+            if normalized.endswith(tracked):
+                if best_match is None or len(tracked) > len(best_match):
+                    best_match = tracked
+        return best_match
+
     exception = _extract_exception(error)
     traceback_obj = getattr(exception, "__traceback__", None)
     if traceback_obj is None:
@@ -85,15 +103,11 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
         source_link = None
         display_path = frame.filename
 
-        if root_path in absolute_path.parents or absolute_path == root_path:
-            try:
-                relative_path = absolute_path.relative_to(root_path).as_posix()
-            except ValueError:
-                relative_path = None
-            if relative_path:
-                display_path = relative_path
-                if not tracked_paths or relative_path in tracked_paths:
-                    source_link = f"/source/{relative_path}"
+        relative_path = _determine_relative_path(absolute_path, root_path, tracked_paths)
+        if relative_path:
+            display_path = relative_path
+            if not tracked_paths or relative_path in tracked_paths:
+                source_link = f"/source/{relative_path}"
 
         frames.append(
             {
