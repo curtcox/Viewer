@@ -633,9 +633,15 @@ def serve_cid_content(cid_content, path):
     content_type = get_mime_type_from_extension(path)
     filename_part = path.rsplit('/', 1)[-1]
     has_extension = '.' in filename_part
+    explicit_markdown_request = filename_part.lower().endswith('.md.html')
 
     response_body = cid_content.file_data
-    if content_type == 'application/octet-stream':
+    if explicit_markdown_request:
+        text = _decode_text_safely(response_body)
+        if text is not None:
+            response_body = _render_markdown_document(text).encode('utf-8')
+            content_type = 'text/html'
+    elif content_type == 'application/octet-stream':
         response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
         if rendered:
             content_type = 'text/html'

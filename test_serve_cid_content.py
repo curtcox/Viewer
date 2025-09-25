@@ -154,6 +154,20 @@ class TestServeCidContent(unittest.TestCase):
         self.assertIn('<h1>Heading</h1>', body)
         self.assertIn('<li>item one</li>', body)
 
+    def test_explicit_markdown_html_extension_renders_markdown(self):
+        path = "/bafybeihelloworld123456789012345678901234567890123456.notes.md.html"
+        markdown_content = SimpleNamespace(
+            file_data=b"Plain text rendered as markdown",
+            created_at=self.cid_content.created_at,
+        )
+
+        response = self._serve(path, content=markdown_content)
+        self.assertIsNotNone(response)
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        body = response.get_data(as_text=True)
+        self.assertIn('<main class="markdown-body">', body)
+        self.assertIn('Plain text rendered as markdown', body)
+
 
 if __name__ == "__main__":
     unittest.main()
