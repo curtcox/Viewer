@@ -12,10 +12,14 @@ from flask import make_response, request
 try:
     import markdown  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - exercised when dependency missing
+    _IMAGE_PATTERN = re.compile(
+        r'!\[(?P<alt>[^\]]*)\]\((?P<src>[^)\s]+)(?:\s+"(?P<title>[^"]*)")?\)'
+    )
+
     def _fallback_inline(text):
         text = html.escape(text)
-        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+        text = re.sub(r'\*\*(?=\S)(.+?)(?<=\S)\*\*', r'<strong>\1</strong>', text)
+        text = re.sub(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)', r'<em>\1</em>', text)
         text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
         return text
 
@@ -24,13 +28,56 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when dependency miss
         content = re.sub(r'^\[[ xX]\]\s*', '', content)
         return _fallback_inline(content)
 
+    def _normalize_table_line(line):
+        working = line.strip()
+        if working.startswith('|'):
+            working = working[1:]
+        if working.endswith('|'):
+            working = working[:-1]
+        return [segment.strip() for segment in working.split('|')]
+
+    def _is_table_separator(line):
+        segments = _normalize_table_line(line)
+        if len(segments) < 2:
+            return False
+        for segment in segments:
+            if not segment:
+                return False
+            if set(segment) - {'-', ':', ' '}:
+                return False
+        return True
+
+    def _is_table_row(line):
+        stripped = line.strip()
+        if not stripped or '|' not in stripped:
+            return False
+        return True
+
+    def _render_table_row(cells, *, header=False):
+        tag = 'th' if header else 'td'
+        return ''.join(f'<{tag}>{_fallback_inline(cell)}</{tag}>' for cell in cells)
+
+    def _render_table(header_cells, body_rows):
+        header_html = _render_table_row(header_cells, header=True)
+        body_html = ''.join(
+            f'<tr>{_render_table_row(row)}</tr>' for row in body_rows
+        )
+        return f'<table><thead><tr>{header_html}</tr></thead><tbody>{body_html}</tbody></table>'
+
+    def _render_image(match):
+        alt = html.escape(match.group('alt') or '')
+        src = html.escape(match.group('src') or '')
+        title = match.group('title')
+        title_attr = f' title="{html.escape(title)}"' if title else ''
+        return f'<p><img src="{src}" alt="{alt}"{title_attr}></p>'
+
     def _fallback_markdown(text, extensions=None, output_format=None):
         lines = text.splitlines()
         html_lines = []
         paragraph_lines = []
         in_list = False
         in_code = False
-        code_lang = ''
+        index = 0
 
         def flush_paragraph():
             nonlocal paragraph_lines
@@ -50,31 +97,42 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when dependency miss
                 html_lines.append('</code></pre>')
                 in_code = False
 
-        for raw_line in lines:
+        while index < len(lines):
+            raw_line = lines[index]
             line = raw_line.rstrip('\n')
+            stripped = line.lstrip()
 
             if in_code:
-                if line.strip().startswith('```'):
+                if stripped.startswith('```'):
                     close_code_block()
                 else:
                     html_lines.append(html.escape(raw_line))
+                index += 1
                 continue
-
-            stripped = line.lstrip()
 
             if not stripped:
                 flush_paragraph()
                 flush_list()
+                index += 1
+                continue
+
+            image_match = _IMAGE_PATTERN.fullmatch(stripped)
+            if image_match:
+                flush_paragraph()
+                flush_list()
+                html_lines.append(_render_image(image_match))
+                index += 1
                 continue
 
             if stripped.startswith('```'):
                 flush_paragraph()
                 flush_list()
-                code_lang = stripped.strip('`').strip()
-                lang = code_lang.split(None, 1)[0] if code_lang else ''
+                code_info = stripped.strip('`').strip()
+                lang = code_info.split(None, 1)[0] if code_info else ''
                 lang_attr = f' class="language-{lang}"' if lang else ''
                 html_lines.append(f'<pre><code{lang_attr}>')
                 in_code = True
+                index += 1
                 continue
 
             if stripped.startswith('#'):
@@ -83,12 +141,14 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when dependency miss
                 level = min(len(stripped.split(' ')[0]), 6)
                 content = stripped[level:].strip()
                 html_lines.append(f'<h{level}>{_fallback_inline(content)}</h{level}>')
+                index += 1
                 continue
 
             if stripped.startswith('>'):
                 flush_paragraph()
                 flush_list()
                 html_lines.append(f'<blockquote>{_fallback_inline(stripped[1:].strip())}</blockquote>')
+                index += 1
                 continue
 
             if stripped.startswith(('-', '*')) and len(stripped) > 2 and stripped[1] == ' ':
@@ -97,9 +157,30 @@ except ModuleNotFoundError:  # pragma: no cover - exercised when dependency miss
                     html_lines.append('<ul>')
                     in_list = True
                 html_lines.append(f'<li>{_render_list_item(stripped[2:])}</li>')
+                index += 1
+                continue
+
+            if (
+                _is_table_row(line)
+                and not _is_table_separator(line)
+                and index + 1 < len(lines)
+                and _is_table_separator(lines[index + 1])
+            ):
+                flush_paragraph()
+                flush_list()
+                header_cells = _normalize_table_line(line)
+                index += 2  # skip header and separator lines
+                body_rows = []
+                while index < len(lines) and _is_table_row(lines[index]):
+                    if _is_table_separator(lines[index]):
+                        break
+                    body_rows.append(_normalize_table_line(lines[index]))
+                    index += 1
+                html_lines.append(_render_table(header_cells, body_rows))
                 continue
 
             paragraph_lines.append(line.strip())
+            index += 1
 
         close_code_block()
         flush_paragraph()
