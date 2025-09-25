@@ -2,10 +2,12 @@ import unittest
 from unittest.mock import patch
 
 from traceback import FrameSummary
+from typing import Dict, List
 
 from app import create_app
 from database import db
 from routes.core import internal_error, _build_stack_trace
+from text_function_runner import run_text_function
 
 
 class TestInternalServerErrorPage(unittest.TestCase):
@@ -60,4 +62,42 @@ class TestInternalServerErrorPage(unittest.TestCase):
         frame = frames[0]
         self.assertEqual(frame['display_path'], 'server_execution.py')
         self.assertEqual(frame['source_link'], '/source/server_execution.py')
+
+    def test_stack_trace_for_syntax_error_uses_placeholder_filename(self):
+        captured = None
+        frames: List[Dict[str, object]] = []
+
+        with self.app.app_context():
+            try:
+                run_text_function('what?', {})
+            except Exception as exc:
+                captured = exc
+                frames = _build_stack_trace(exc)
+
+        self.assertIsInstance(captured, SyntaxError)
+        self.assertEqual(captured.filename, '<string>')
+
+        display_paths = [frame['display_path'] for frame in frames]
+        self.assertIn('test_error_pages.py', display_paths)
+        self.assertIn('text_function_runner.py', display_paths)
+        self.assertNotIn('<string>', display_paths)
+
+        runner_frame = next(
+            (f for f in frames if f['display_path'] == 'text_function_runner.py'),
+            None,
+        )
+        self.assertIsNotNone(runner_frame, 'missing text_function_runner frame')
+        self.assertEqual(runner_frame['source_link'], '/source/text_function_runner.py')
+
+    def test_error_page_for_syntax_error_has_no_source_links(self):
+        with self.app.test_request_context('/syntax-error'):
+            try:
+                run_text_function('what?', {})
+            except Exception as exc:
+                response, status = internal_error(exc)
+
+        self.assertEqual(status, 500)
+        self.assertIn('SyntaxError', response)
+        self.assertIn('&lt;string&gt;', response)
+        self.assertIn('href="/source/text_function_runner.py"', response)
 
