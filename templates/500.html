@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<div class="container py-4">
     <div class="row justify-content-center">
-        <div class="col-md-6 text-center">
-            <div class="card">
+        <div class="col-lg-10">
+            <div class="card mb-4 text-center">
                 <div class="card-body p-5">
                     <i class="fas fa-exclamation-circle text-danger mb-3" style="font-size: 4rem;"></i>
                     <h1 class="card-title">500 - Internal Server Error</h1>
@@ -16,6 +16,33 @@
                     </a>
                 </div>
             </div>
+
+            {% if stack_trace %}
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <strong>Exception:</strong> {{ exception_type }}{% if exception_message %}: {{ exception_message }}{% endif %}
+                    </div>
+                    <div class="card-body">
+                        <ol class="mb-0 ps-3">
+                            {% for frame in stack_trace %}
+                                <li class="mb-3">
+                                    <div class="mb-1">
+                                        {% if frame.source_link %}
+                                            <a href="{{ frame.source_link }}"><code>{{ frame.display_path }}</code></a>
+                                        {% else %}
+                                            <code>{{ frame.display_path }}</code>
+                                        {% endif %}
+                                        <span class="text-muted">in {{ frame.function }} at line {{ frame.lineno }}</span>
+                                    </div>
+                                    {% if frame.code %}
+                                        <pre class="bg-light p-2 rounded"><code>{{ frame.code | e }}</code></pre>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

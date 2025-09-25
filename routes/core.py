@@ -1,5 +1,12 @@
 """Core application routes and helpers."""
+from __future__ import annotations
+
+from pathlib import Path
+import traceback
+from typing import Any, Dict, List
+
 from flask import (
+    current_app,
     flash,
     redirect,
     render_template,
@@ -40,6 +47,65 @@ from cid_utils import serve_cid_content
 from alias_routing import is_potential_alias_path, try_alias_redirect
 
 from . import main_bp
+
+
+def _extract_exception(error: Exception) -> Exception:
+    """Return the underlying exception for Flask HTTP errors."""
+
+    original = getattr(error, "original_exception", None)
+    if isinstance(original, Exception):
+        return original
+    return error
+
+
+def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
+    """Build stack trace metadata with optional /source links."""
+
+    exception = _extract_exception(error)
+    traceback_obj = getattr(exception, "__traceback__", None)
+    if traceback_obj is None:
+        return []
+
+    root_path = Path(current_app.root_path).resolve()
+
+    try:
+        from .source import _get_tracked_paths
+
+        tracked_paths = _get_tracked_paths(current_app.root_path)
+    except Exception:  # pragma: no cover - defensive fallback when git unavailable
+        tracked_paths = frozenset()
+
+    frames: List[Dict[str, Any]] = []
+    for frame in traceback.extract_tb(traceback_obj):
+        try:
+            absolute_path = Path(frame.filename).resolve()
+        except OSError:
+            absolute_path = Path(frame.filename)
+
+        source_link = None
+        display_path = frame.filename
+
+        if root_path in absolute_path.parents or absolute_path == root_path:
+            try:
+                relative_path = absolute_path.relative_to(root_path).as_posix()
+            except ValueError:
+                relative_path = None
+            if relative_path:
+                display_path = relative_path
+                if not tracked_paths or relative_path in tracked_paths:
+                    source_link = f"/source/{relative_path}"
+
+        frames.append(
+            {
+                "display_path": display_path,
+                "lineno": frame.lineno,
+                "function": frame.name,
+                "code": frame.line,
+                "source_link": source_link,
+            }
+        )
+
+    return frames
 
 
 # Make authentication info available to all templates
@@ -307,7 +373,18 @@ def not_found_error(error):
 @main_bp.app_errorhandler(500)
 def internal_error(error):
     db.session.rollback()
-    return render_template('500.html'), 500
+    stack_trace = _build_stack_trace(error)
+    exception = _extract_exception(error)
+
+    return (
+        render_template(
+            '500.html',
+            stack_trace=stack_trace,
+            exception_type=type(exception).__name__,
+            exception_message=str(exception),
+        ),
+        500,
+    )
 
 
 __all__ = [
