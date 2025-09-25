@@ -132,6 +132,28 @@ class TestServeCidContent(unittest.TestCase):
         self.assertEqual(response.status_code, 304)
         self.assertEqual(response.headers.get("ETag"), etag_value)
 
+    def test_conditional_request_uses_if_modified_since_header(self):
+        path = "/bafybeihelloworld123456789012345678901234567890123456.note"
+        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2015 07:28:00 GMT'})
+        self.assertIsNotNone(response)
+        self.assertEqual(response.status_code, 304)
+        self.assertIn('Last-Modified', response.headers)
+        self.assertIn('ETag', response.headers)
+
+    def test_markdown_without_extension_renders_html_document(self):
+        path = "/bafybeihelloworld123456789012345678901234567890123456"
+        markdown_content = SimpleNamespace(
+            file_data=b"# Heading\n\n- item one\n- item two\n",
+            created_at=self.cid_content.created_at,
+        )
+
+        response = self._serve(path, content=markdown_content)
+        self.assertIsNotNone(response)
+        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        body = response.get_data(as_text=True)
+        self.assertIn('<h1>Heading</h1>', body)
+        self.assertIn('<li>item one</li>', body)
+
 
 if __name__ == "__main__":
     unittest.main()

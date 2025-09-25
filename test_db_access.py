@@ -21,6 +21,8 @@ from db_access import (
     create_server_invocation,
     create_cid_record,
     get_cid_by_path,
+    find_cids_by_prefix,
+    get_user_uploads,
 )
 
 
@@ -89,6 +91,30 @@ class TestDBAccess(unittest.TestCase):
         self.assertIsNotNone(get_cid_by_path('/cid1'))
         invocation = create_server_invocation(self.user.id, 'srv', 'cid1')
         self.assertIsNotNone(invocation.id)
+
+    def test_find_cids_by_prefix_filters_and_orders_matches(self):
+        # Prefix queries should ignore empty input and leading punctuation
+        self.assertEqual(find_cids_by_prefix(''), [])
+        self.assertEqual(find_cids_by_prefix('/'), [])
+
+        create_cid_record('alpha.one', b'a', self.user.id)
+        create_cid_record('alpha.two', b'b', self.user.id)
+        create_cid_record('beta.one', b'c', self.user.id)
+
+        matches = find_cids_by_prefix('alpha')
+        self.assertEqual([cid.path for cid in matches], ['/alpha.one', '/alpha.two'])
+
+        # Prefix lookups should stop at the dot separator when present
+        dotted_matches = find_cids_by_prefix('alpha.extra')
+        self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
+
+    def test_get_user_uploads_returns_latest_first(self):
+        create_cid_record('first', b'1', self.user.id)
+        create_cid_record('second', b'2', self.user.id)
+
+        uploads = get_user_uploads(self.user.id)
+        self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
+        self.assertEqual(uploads[0].file_size, len(b'2'))
 
 
 if __name__ == '__main__':
