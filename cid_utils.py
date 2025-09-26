@@ -398,9 +398,89 @@ def _extract_markdown_title(text):
     return 'Document'
 
 
+_GITHUB_RELATIVE_LINK_PATTERN = re.compile(r"\[\[([^\[\]]+)\]\]")
+
+_GITHUB_RELATIVE_LINK_PATH_SANITIZER = re.compile(r"[^A-Za-z0-9._/\-]+")
+_GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER = re.compile(r"[^a-z0-9\-]+")
+
+
+def _normalize_github_relative_link_target_v2(raw_target: str) -> str | None:
+    """Normalize GitHub-style relative link targets (version 2 semantics)."""
+
+    if not raw_target:
+        return None
+
+    target = raw_target.strip()
+    if not target:
+        return None
+
+    # Allow optional pipe syntax ``[[target|label]]`` and pick the first segment
+    primary = target.split('|', 1)[0].strip()
+    if not primary:
+        return None
+
+    page_part, _, anchor_part = primary.partition('#')
+
+    normalized_path = ""
+    if page_part:
+        prepared = re.sub(r"\s+", "-", page_part.strip())
+        cleaned = _GITHUB_RELATIVE_LINK_PATH_SANITIZER.sub('', prepared)
+        segments = [segment for segment in cleaned.split('/') if segment]
+        if not segments:
+            normalized_path = ""
+        else:
+            normalized_segments = [segment.lower() for segment in segments]
+            normalized_path = '/' + '/'.join(normalized_segments)
+            if '.' not in normalized_segments[-1]:
+                normalized_path += '/'
+
+    anchor_fragment = ""
+    if anchor_part:
+        anchor_slug = anchor_part.strip().lower()
+        anchor_slug = re.sub(r"\s+", '-', anchor_slug)
+        anchor_slug = _GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER.sub('', anchor_slug)
+        anchor_slug = anchor_slug.strip('-')
+        if anchor_slug:
+            anchor_fragment = f'#{anchor_slug}'
+
+    if normalized_path and anchor_fragment:
+        return f'{normalized_path}{anchor_fragment}'
+    if normalized_path:
+        return normalized_path
+    if anchor_fragment:
+        return anchor_fragment
+    return None
+
+
+def _convert_github_relative_links(text: str) -> str:
+    """Rewrite GitHub-style ``[[link]]`` syntax to standard Markdown links."""
+
+    def replacement(match: re.Match[str]) -> str:
+        inner = match.group(1)
+        if not inner:
+            return match.group(0)
+
+        label, target = inner, inner
+        if '|' in inner:
+            target, label = (part.strip() for part in inner.split('|', 1))
+        else:
+            label = inner.strip()
+            target = label
+
+        normalized_target = _normalize_github_relative_link_target_v2(target)
+        display_text = label.strip() or target.strip()
+        if not normalized_target or not display_text:
+            return match.group(0)
+
+        return f"[{display_text}]({normalized_target})"
+
+    return _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, text)
+
+
 def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
-    body = markdown.markdown(text, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
+    converted = _convert_github_relative_links(text)
+    body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     title = _extract_markdown_title(text)
     return (
         "<!DOCTYPE html>\n"
