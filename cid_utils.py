@@ -1,9 +1,7 @@
 import base64
 import hashlib
-import html
 import json
 import re
-from types import SimpleNamespace
 from urllib.parse import urlparse
 
 import requests
@@ -11,103 +9,11 @@ from flask import make_response, request
 
 try:
     import markdown  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover - exercised when dependency missing
-    def _fallback_inline(text):
-        text = html.escape(text)
-        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
-        text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
-        return text
-
-    def _render_list_item(content):
-        content = content.strip()
-        content = re.sub(r'^\[[ xX]\]\s*', '', content)
-        return _fallback_inline(content)
-
-    def _fallback_markdown(text, extensions=None, output_format=None):
-        lines = text.splitlines()
-        html_lines = []
-        paragraph_lines = []
-        in_list = False
-        in_code = False
-        code_lang = ''
-
-        def flush_paragraph():
-            nonlocal paragraph_lines
-            if paragraph_lines:
-                html_lines.append(f'<p>{_fallback_inline(" ".join(paragraph_lines))}</p>')
-                paragraph_lines = []
-
-        def flush_list():
-            nonlocal in_list
-            if in_list:
-                html_lines.append('</ul>')
-                in_list = False
-
-        def close_code_block():
-            nonlocal in_code
-            if in_code:
-                html_lines.append('</code></pre>')
-                in_code = False
-
-        for raw_line in lines:
-            line = raw_line.rstrip('\n')
-
-            if in_code:
-                if line.strip().startswith('```'):
-                    close_code_block()
-                else:
-                    html_lines.append(html.escape(raw_line))
-                continue
-
-            stripped = line.lstrip()
-
-            if not stripped:
-                flush_paragraph()
-                flush_list()
-                continue
-
-            if stripped.startswith('```'):
-                flush_paragraph()
-                flush_list()
-                code_lang = stripped.strip('`').strip()
-                lang = code_lang.split(None, 1)[0] if code_lang else ''
-                lang_attr = f' class="language-{lang}"' if lang else ''
-                html_lines.append(f'<pre><code{lang_attr}>')
-                in_code = True
-                continue
-
-            if stripped.startswith('#'):
-                flush_paragraph()
-                flush_list()
-                level = min(len(stripped.split(' ')[0]), 6)
-                content = stripped[level:].strip()
-                html_lines.append(f'<h{level}>{_fallback_inline(content)}</h{level}>')
-                continue
-
-            if stripped.startswith('>'):
-                flush_paragraph()
-                flush_list()
-                html_lines.append(f'<blockquote>{_fallback_inline(stripped[1:].strip())}</blockquote>')
-                continue
-
-            if stripped.startswith(('-', '*')) and len(stripped) > 2 and stripped[1] == ' ':
-                flush_paragraph()
-                if not in_list:
-                    html_lines.append('<ul>')
-                    in_list = True
-                html_lines.append(f'<li>{_render_list_item(stripped[2:])}</li>')
-                continue
-
-            paragraph_lines.append(line.strip())
-
-        close_code_block()
-        flush_paragraph()
-        flush_list()
-
-        return '\n'.join(html_lines)
-
-    markdown = SimpleNamespace(markdown=_fallback_markdown)
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised when dependency missing
+    raise RuntimeError(
+        "Missing optional dependency 'Markdown'. Run './install' or "
+        "'pip install -r requirements.txt' before running the application or tests."
+    ) from exc
 
 try:
     from db_access import (
