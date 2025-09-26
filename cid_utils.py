@@ -345,7 +345,7 @@ def _contains_formdown_markup(html_text: str) -> bool:
 
 
 def _expand_formdown_fences(text: str) -> str:
-    """Replace formdown code fences with raw embed markup."""
+    """Inline the contents of formdown code fences so Formdown can parse them."""
 
     def _replace(match: re.Match[str]) -> str:
         prefix = match.group(1)
@@ -485,6 +485,13 @@ def _normalize_github_relative_link_target_v2(raw_target: str) -> str | None:
 def _convert_github_relative_links(text: str) -> str:
     """Rewrite GitHub-style ``[[link]]`` syntax to standard Markdown links."""
 
+    preserved_fences: list[tuple[str, str]] = []
+
+    def _preserve_formdown(match: re.Match[str]) -> str:
+        placeholder = f"__FORMDOWN_BLOCK_{len(preserved_fences)}__"
+        preserved_fences.append((placeholder, match.group(0)))
+        return placeholder
+
     def replacement(match: re.Match[str]) -> str:
         inner = match.group(1)
         if not inner:
@@ -504,16 +511,21 @@ def _convert_github_relative_links(text: str) -> str:
 
         return f"[{display_text}]({normalized_target})"
 
-    return _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, text)
+    protected_text = _FORMDOWN_FENCE_PATTERN.sub(_preserve_formdown, text)
+    converted = _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, protected_text)
+    for placeholder, original in preserved_fences:
+        converted = converted.replace(placeholder, original, 1)
+    return converted
 
 
 def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
+    has_formdown_fence = bool(_FORMDOWN_FENCE_PATTERN.search(converted))
     converted = _expand_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     formdown_script_block = ""
-    if _contains_formdown_markup(body):
+    if has_formdown_fence or _contains_formdown_markup(body):
         formdown_script_block = (
             f"  <script src=\"{_FORMDOWN_SCRIPT_URL}\" async defer data-formdown-loader></script>\n"
         )

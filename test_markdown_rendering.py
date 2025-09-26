@@ -178,11 +178,28 @@ class TestFormIdeasAndDividers:
 
 
 class TestFormdownEmbeds:
-    def test_formdown_code_fence_renders_embed(self):
+    def test_formdown_code_fence_renders_form_markup(self):
         markdown_text = textwrap.dedent(
             """
             ```formdown
-            <formdown-form data-formdown-form="support"></formdown-form>
+            Signup to our club!
+
+            [[
+            --Your name--
+            T___firstName
+            #placeholder|First name
+            {r m5 M40}
+
+            T___lastName
+            #placeholder|Last name
+            {r m5 M40}
+            ]]
+
+            --Email address--
+            @___email
+            {r}
+
+            (submit|Sign up!)
             ```
             """
         ).strip()
@@ -190,7 +207,9 @@ class TestFormdownEmbeds:
         fragment = _render_fragment(markdown_text)
         html_document = _render_markdown_document(markdown_text)
 
-        assert "<formdown-form data-formdown-form=\"support\"></formdown-form>" in fragment
+        assert "Signup to our club!" in fragment
+        assert "[[" in fragment
+        assert "T___firstName" in fragment
         assert "<pre" not in fragment
         assert _FORMDOWN_SCRIPT_URL in html_document
 
@@ -233,15 +252,15 @@ class TestFormdownEmbeds:
 
         assert "```formdown" in markdown_text
 
-    def test_formdown_showcase_template_renders_with_embed(self):
+    def test_formdown_showcase_template_renders_with_formdown_markup(self):
         template_path = Path("upload_templates/contents/formdown_showcase.md")
         markdown_text = template_path.read_text(encoding="utf-8")
 
         html_document = _render_markdown_document(markdown_text)
 
         assert _FORMDOWN_SCRIPT_URL in html_document
-        assert "formdown/examples/upload" in html_document
-        assert "formdown-field" in html_document
+        assert "Share a support request" in html_document
+        assert "U___supportingFile" in html_document
         assert "<pre" not in html_document
 
 
