@@ -9,7 +9,7 @@ Below is a fully functional Formdown contact form. You can interact with the
 fields as-is, then replace the `data-formdown-form` value with the slug from one
 of your own forms when you are ready to publish.
 
-<div
+<formdown-form
   data-formdown-form="formdown/examples/upload"
   data-formdown-theme="system"
   data-formdown-label-style="floating"
@@ -19,7 +19,18 @@ of your own forms when you are ready to publish.
   data-formdown-upload="required"
   data-formdown-upload-label="Attach supporting file"
   data-formdown-upload-max-size="15"
-></div>
+>
+  <formdown-field data-formdown-field="name"></formdown-field>
+  <formdown-field data-formdown-field="email"></formdown-field>
+  <formdown-field data-formdown-field="message"></formdown-field>
+</formdown-form>
+
+<noscript>
+  <p>
+    Formdown forms require JavaScript to load. Enable JavaScript to interact with this
+    upload-enabled example, or replace the embed with your own form slug when publishing.
+  </p>
+</noscript>
 
 ### Common options
 

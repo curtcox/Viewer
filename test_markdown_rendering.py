@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import textwrap
 
+from pathlib import Path
+
 from cid_utils import _FORMDOWN_SCRIPT_URL, _render_markdown_document
 
 
@@ -189,6 +191,15 @@ class TestFormdownEmbeds:
         assert _FORMDOWN_SCRIPT_URL in html_document
         assert html_document.index('</main>') < html_document.index(_FORMDOWN_SCRIPT_URL)
 
+    def test_formdown_custom_element_injects_loader_script(self):
+        html_document = _render_markdown_document(
+            """
+            <formdown-form data-formdown-form=\"demo-support\"></formdown-form>
+            """
+        )
+
+        assert _FORMDOWN_SCRIPT_URL in html_document
+
     def test_unrelated_markdown_does_not_include_formdown_script(self):
         html_document = _render_markdown_document(
             """
@@ -199,6 +210,16 @@ class TestFormdownEmbeds:
         )
 
         assert _FORMDOWN_SCRIPT_URL not in html_document
+
+    def test_formdown_showcase_template_renders_with_embed(self):
+        template_path = Path("upload_templates/contents/formdown_showcase.md")
+        markdown_text = template_path.read_text(encoding="utf-8")
+
+        html_document = _render_markdown_document(markdown_text)
+
+        assert _FORMDOWN_SCRIPT_URL in html_document
+        assert "formdown/examples/upload" in html_document
+        assert "formdown-field" in html_document
 
 
 class TestGithubStyleLinks:
