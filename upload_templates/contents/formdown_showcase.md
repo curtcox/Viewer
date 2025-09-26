@@ -1,11 +1,11 @@
 # Formdown form demo
 
-Easily embed a [Formdown](https://formdown.dev/) form within a Markdown document.
+Easily embed a [Formdown](https://www.formdown.net/) form within a Markdown document.
 Replace the attribute values with the options from your workspace dashboard.
 
 ## Support request
 
-Below is a working Formdown.dev script that demonstrates the updated DSL syntax.
+Below is a working Formdown.net script that demonstrates the Vanilla JS embed.
 Publish this template as-is to try it out, then swap in the copy that matches
 your own workflow.
 
@@ -52,5 +52,5 @@ U___supportingFile
   side-by-side on larger screens.
 
 > **Tip:** Viewer automatically converts ` ```formdown` fences into live embeds
-> and appends the Formdown.dev loader script, so the published page renders the
-> interactive form rather than a static code sample.
+> and appends the Formdown.net Vanilla JS loader, so the published page renders
+> the interactive form rather than a static code sample.

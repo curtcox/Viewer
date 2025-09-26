@@ -27,12 +27,18 @@ def _render_formdown_form(markdown_text: str) -> tuple[str, str]:
     """Render markdown and return the HTML fragment plus formdown DSL body."""
 
     fragment = _render_fragment(markdown_text)
-    script_match = re.search(
-        r"<formdown-ui>\s*(?P<body>.*?)\s*</formdown-ui>",
+    container_match = re.search(
+        r"<div[^>]*data-formdown[^>]*>(?P<body>.*?)</div>",
         fragment,
         re.DOTALL,
     )
-    assert script_match is not None, "Expected a formdown-ui block in the output"
+    assert container_match is not None, "Expected a data-formdown container in the output"
+    script_match = re.search(
+        r"<script[^>]+type=\"text/formdown\"[^>]*>(?P<body>.*?)</script>",
+        container_match.group("body"),
+        re.DOTALL,
+    )
+    assert script_match is not None, "Expected a text/formdown script inside the container"
     script_body = textwrap.dedent(script_match.group("body")).strip()
     return fragment, script_body
 
@@ -222,7 +228,9 @@ class TestFormdownEmbeds:
         fragment, script_body = _render_formdown_form(markdown_text)
         html_document = _render_markdown_document(markdown_text)
 
-        assert "<formdown-ui" in fragment
+        assert "data-formdown" in fragment
+        assert "<script type=\"text/formdown\"" in fragment
+        assert "<formdown-ui" not in fragment
         assert "Signup to our club!" in script_body
         assert "[[" in script_body
         assert "T___firstName" in script_body
@@ -308,15 +316,15 @@ class TestFormdownEmbeds:
 
     def test_formdown_markup_injects_loader_script(self):
         html_document = _render_markdown_document(
-            "<formdown-ui form=\"support-request\" theme=\"system\"></formdown-ui>"
+            "<div data-formdown data-form=\"support-request\"></div>"
         )
 
         assert _FORMDOWN_SCRIPT_URL in html_document
         assert html_document.index('</main>') < html_document.index(_FORMDOWN_SCRIPT_URL)
 
-    def test_formdown_custom_element_injects_loader_script(self):
+    def test_formdown_script_tag_injects_loader_script(self):
         html_document = _render_markdown_document(
-            "<formdown-ui form=\"demo-support\"></formdown-ui>"
+            "<script type=\"text/formdown\">Demo</script>"
         )
 
         assert _FORMDOWN_SCRIPT_URL in html_document
@@ -345,11 +353,12 @@ class TestFormdownEmbeds:
         html_document = _render_markdown_document(markdown_text)
 
         assert _FORMDOWN_SCRIPT_URL in html_document
-        assert "<formdown-ui" in html_document
+        assert "data-formdown" in html_document
+        assert "<formdown-ui" not in html_document
         assert "Share a support request" in html_document
         assert "U___supportingFile" in html_document
         assert "<pre" not in html_document
-        assert "formdown.dev" in html_document
+        assert "formdown.net" in html_document
 
 
 class TestGithubStyleLinks:

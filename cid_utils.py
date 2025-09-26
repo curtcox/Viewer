@@ -328,9 +328,10 @@ _MARKDOWN_EXTENSIONS = [
     'sane_lists',
 ]
 
-_FORMDOWN_SCRIPT_URL = "https://unpkg.com/@formdown/ui@latest/dist/standalone.js"
+_FORMDOWN_SCRIPT_URL = "https://www.formdown.net/js/formdown.js"
 _FORMDOWN_MARKUP_PATTERNS = [
-    re.compile(r'<\s*formdown-', re.IGNORECASE),
+    re.compile(r'<\s*div[^>]*data-formdown', re.IGNORECASE),
+    re.compile(r'<\s*script[^>]+type\s*=\s*["\']text/formdown["\']', re.IGNORECASE),
 ]
 
 _FORMDOWN_FENCE_PATTERN = re.compile(
@@ -531,15 +532,17 @@ def _render_markdown_document(text):
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     for placeholder, embed_body in formdown_embeds:
         form_block = (
-            "<formdown-ui>\n"
+            "<div data-formdown>\n"
+            "  <script type=\"text/formdown\">\n"
             f"{embed_body}\n"
-            "</formdown-ui>"
+            "  </script>\n"
+            "</div>"
         )
         body = body.replace(placeholder, form_block)
     formdown_script_block = ""
     if has_formdown_fence or _contains_formdown_markup(body):
         formdown_script_block = (
-            f"  <script type=\"module\" src=\"{_FORMDOWN_SCRIPT_URL}\"></script>\n"
+            f"  <script src=\"{_FORMDOWN_SCRIPT_URL}\" defer></script>\n"
         )
     title = _extract_markdown_title(text)
     return (
