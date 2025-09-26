@@ -423,6 +423,7 @@ def _normalize_github_relative_link_target_v2(raw_target: str) -> str | None:
 
     normalized_path = ""
     if page_part:
+        preserve_trailing_slash = page_part.rstrip().endswith('/')
         prepared = re.sub(r"\s+", "-", page_part.strip())
         cleaned = _GITHUB_RELATIVE_LINK_PATH_SANITIZER.sub('', prepared)
         segments = [segment for segment in cleaned.split('/') if segment]
@@ -431,7 +432,7 @@ def _normalize_github_relative_link_target_v2(raw_target: str) -> str | None:
         else:
             normalized_segments = [segment.lower() for segment in segments]
             normalized_path = '/' + '/'.join(normalized_segments)
-            if '.' not in normalized_segments[-1]:
+            if preserve_trailing_slash:
                 normalized_path += '/'
 
     anchor_fragment = ""
