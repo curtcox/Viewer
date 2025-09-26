@@ -9,6 +9,7 @@ Below is a fully functional Formdown contact form. You can interact with the
 fields as-is, then replace the `data-formdown-form` value with the slug from one
 of your own forms when you are ready to publish.
 
+```formdown
 <formdown-form
   data-formdown-form="formdown/examples/upload"
   data-formdown-theme="system"
@@ -24,6 +25,7 @@ of your own forms when you are ready to publish.
   <formdown-field data-formdown-field="email"></formdown-field>
   <formdown-field data-formdown-field="message"></formdown-field>
 </formdown-form>
+```
 
 <noscript>
   <p>

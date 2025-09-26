@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import re
+import textwrap
 from urllib.parse import urlparse
 
 import requests
@@ -333,9 +334,27 @@ _FORMDOWN_MARKUP_PATTERNS = [
     re.compile(r'data-formdown', re.IGNORECASE),
 ]
 
+_FORMDOWN_FENCE_PATTERN = re.compile(
+    r"(^|\n)```formdown\s*\n(.*?)(?:\n```)(?=\s*(\n|$))",
+    re.IGNORECASE | re.DOTALL,
+)
+
 
 def _contains_formdown_markup(html_text: str) -> bool:
     return any(pattern.search(html_text) for pattern in _FORMDOWN_MARKUP_PATTERNS)
+
+
+def _expand_formdown_fences(text: str) -> str:
+    """Replace formdown code fences with raw embed markup."""
+
+    def _replace(match: re.Match[str]) -> str:
+        prefix = match.group(1)
+        body = textwrap.dedent(match.group(2)).strip()
+        if not body:
+            return prefix
+        return f"{prefix}{body}\n"
+
+    return _FORMDOWN_FENCE_PATTERN.sub(_replace, text)
 
 _MARKDOWN_INDICATOR_PATTERNS = [
     re.compile(r'(^|\n)#{1,6}\s+\S'),
@@ -491,6 +510,7 @@ def _convert_github_relative_links(text: str) -> str:
 def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
+    converted = _expand_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     formdown_script_block = ""
     if _contains_formdown_markup(body):
