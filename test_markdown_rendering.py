@@ -180,17 +180,17 @@ class TestGithubStyleLinks:
     def test_relative_link_renders_with_normalized_path(self):
         fragment = _render_fragment("Navigate to [[About]] for details.")
 
-        assert '<a href="/about/">About</a>' in fragment
+        assert '<a href="/about">About</a>' in fragment
 
     def test_relative_link_with_custom_label_uses_pipe_syntax(self):
         fragment = _render_fragment("Refer to [[Guides/Getting Started|the quickstart guide]].")
 
-        assert '<a href="/guides/getting-started/">the quickstart guide</a>' in fragment
+        assert '<a href="/guides/getting-started">the quickstart guide</a>' in fragment
 
     def test_relative_link_with_anchor_slugifies_target_heading(self):
         fragment = _render_fragment("See [[Guides/Getting Started#Deep Dive|the deep dive section]].")
 
-        assert '<a href="/guides/getting-started/#deep-dive">the deep dive section</a>' in fragment
+        assert '<a href="/guides/getting-started#deep-dive">the deep dive section</a>' in fragment
 
     def test_relative_anchor_only_link_targets_heading_on_same_page(self):
         fragment = _render_fragment("Jump to [[#Usage Notes]] for details.")
@@ -205,8 +205,18 @@ class TestGithubStyleLinks:
     def test_multiple_relative_links_convert_independently(self):
         fragment = _render_fragment("See [[About]] alongside [[Guides/Overview|the overview]].")
 
-        assert '<a href="/about/">About</a>' in fragment
-        assert '<a href="/guides/overview/">the overview</a>' in fragment
+        assert '<a href="/about">About</a>' in fragment
+        assert '<a href="/guides/overview">the overview</a>' in fragment
+
+    def test_relative_link_with_lowercase_name_preserves_label(self):
+        fragment = _render_fragment("Check out [[echo]] next.")
+
+        assert '<a href="/echo">echo</a>' in fragment
+
+    def test_relative_link_with_explicit_trailing_slash_is_preserved(self):
+        fragment = _render_fragment("Browse [[Guides/Deep Dive/|the deep dive index]].")
+
+        assert '<a href="/guides/deep-dive/">the deep dive index</a>' in fragment
 
     def test_invalid_relative_link_is_left_unchanged(self):
         fragment = _render_fragment("Avoid [[   |blank]] targets.")
