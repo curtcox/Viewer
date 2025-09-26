@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import textwrap
 
-from cid_utils import _render_markdown_document
+from cid_utils import _FORMDOWN_SCRIPT_URL, _render_markdown_document
 
 
 def _render_fragment(markdown_text: str) -> str:
@@ -159,7 +159,6 @@ class TestFormIdeasAndDividers:
         assert '<pre><code>' in fragment
         assert ':::form id=&quot;feature-request&quot;' in fragment
         assert '[priority] (select: low | medium | high)' in fragment
-
     def test_horizontal_rule_renders_between_sections(self):
         fragment = _render_fragment(
             """
@@ -174,6 +173,32 @@ class TestFormIdeasAndDividers:
         assert fragment.count("<p>") == 2
         assert "<hr>" in fragment
         assert fragment.index("First section") < fragment.index("<hr>") < fragment.index("Second section")
+
+
+class TestFormdownEmbeds:
+    def test_formdown_markup_injects_loader_script(self):
+        html_document = _render_markdown_document(
+            """
+            <div
+              data-formdown-form=\"support-request\"
+              data-formdown-theme=\"system\"
+            ></div>
+            """
+        )
+
+        assert _FORMDOWN_SCRIPT_URL in html_document
+        assert html_document.index('</main>') < html_document.index(_FORMDOWN_SCRIPT_URL)
+
+    def test_unrelated_markdown_does_not_include_formdown_script(self):
+        html_document = _render_markdown_document(
+            """
+            # Release notes
+
+            Welcome to the changelog.
+            """
+        )
+
+        assert _FORMDOWN_SCRIPT_URL not in html_document
 
 
 class TestGithubStyleLinks:

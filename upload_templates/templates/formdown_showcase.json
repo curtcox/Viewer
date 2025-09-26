@@ -1,0 +1,7 @@
+{
+  "id": "formdown-showcase",
+  "name": "Formdown form",
+  "description": "Markdown example that embeds a Formdown form and highlights common options.",
+  "content_file": "contents/formdown_showcase.md",
+  "suggested_filename": "formdown.md"
+}

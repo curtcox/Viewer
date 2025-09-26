@@ -327,6 +327,16 @@ _MARKDOWN_EXTENSIONS = [
     'sane_lists',
 ]
 
+_FORMDOWN_SCRIPT_URL = "https://www.formdown.net/js/formdown.js"
+_FORMDOWN_MARKUP_PATTERNS = [
+    re.compile(r'<\s*formdown-', re.IGNORECASE),
+    re.compile(r'data-formdown', re.IGNORECASE),
+]
+
+
+def _contains_formdown_markup(html_text: str) -> bool:
+    return any(pattern.search(html_text) for pattern in _FORMDOWN_MARKUP_PATTERNS)
+
 _MARKDOWN_INDICATOR_PATTERNS = [
     re.compile(r'(^|\n)#{1,6}\s+\S'),
     re.compile(r'(^|\n)(?:\*|-|\+)\s+\S'),
@@ -482,6 +492,11 @@ def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
+    formdown_script_block = ""
+    if _contains_formdown_markup(body):
+        formdown_script_block = (
+            f"  <script src=\"{_FORMDOWN_SCRIPT_URL}\" async defer data-formdown-loader></script>\n"
+        )
     title = _extract_markdown_title(text)
     return (
         "<!DOCTYPE html>\n"
@@ -557,6 +572,7 @@ def _render_markdown_document(text):
         "  <main class=\"markdown-body\">\n"
         f"  {body}\n"
         "  </main>\n"
+        f"{formdown_script_block}"
         "</body>\n"
         "</html>\n"
     )
