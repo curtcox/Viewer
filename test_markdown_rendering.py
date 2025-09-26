@@ -356,6 +356,7 @@ class TestFormdownEmbeds:
         assert "Share a support request" in html_document
         assert "U___supportingFile" in html_document
         assert "<pre" not in html_document
+        assert "formdown.dev" in html_document
 
 
 class TestGithubStyleLinks:

@@ -328,7 +328,7 @@ _MARKDOWN_EXTENSIONS = [
     'sane_lists',
 ]
 
-_FORMDOWN_SCRIPT_URL = "https://www.formdown.net/js/formdown.js"
+_FORMDOWN_SCRIPT_URL = "https://formdown.dev/js/formdown.js"
 _FORMDOWN_MARKUP_PATTERNS = [
     re.compile(r'<\s*formdown-', re.IGNORECASE),
     re.compile(r'data-formdown', re.IGNORECASE),
