@@ -13,6 +13,9 @@ The project includes simple helper scripts so you can get up and running quickly
 python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
+> **Note:** The automated tests require the [Markdown](https://python-markdown.github.io/) package. Run `./install` (or
+> `pip install -r requirements.txt`) before invoking the test suite so the dependency is available.
+
 ## Environment
 
 * Running `./install` copies `.env.sample` to `.env` the first time so you have a starting point for local configuration.
