@@ -354,11 +354,11 @@ def _expand_formdown_fences(text: str) -> str:
             return prefix
 
         form_block = (
-            "<formdown-form data-formdown-mode=\"dsl\">\n"
+            "<div data-formdown>\n"
             "  <script type=\"text/formdown\">\n"
             f"{body}\n"
             "  </script>\n"
-            "</formdown-form>\n"
+            "</div>\n"
         )
         return f"{prefix}{form_block}"
 

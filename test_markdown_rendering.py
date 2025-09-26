@@ -222,7 +222,7 @@ class TestFormdownEmbeds:
         fragment, script_body = _render_formdown_form(markdown_text)
         html_document = _render_markdown_document(markdown_text)
 
-        assert "<formdown-form" in fragment
+        assert "<div data-formdown" in fragment
         assert "Signup to our club!" in script_body
         assert "[[" in script_body
         assert "T___firstName" in script_body
@@ -310,6 +310,7 @@ class TestFormdownEmbeds:
         html_document = _render_markdown_document(
             """
             <div
+              data-formdown
               data-formdown-form=\"support-request\"
               data-formdown-theme=\"system\"
             ></div>
@@ -352,7 +353,7 @@ class TestFormdownEmbeds:
         html_document = _render_markdown_document(markdown_text)
 
         assert _FORMDOWN_SCRIPT_URL in html_document
-        assert "<formdown-form" in html_document
+        assert "<div data-formdown" in html_document
         assert "Share a support request" in html_document
         assert "U___supportingFile" in html_document
         assert "<pre" not in html_document
