@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import textwrap
 
 from pathlib import Path
@@ -20,6 +21,20 @@ def _render_fragment(markdown_text: str) -> str:
     fragment_with_tag = html_document[start:].split("</main>", 1)[0]
     fragment = fragment_with_tag.split('>', 1)[1]
     return fragment.strip()
+
+
+def _render_formdown_form(markdown_text: str) -> tuple[str, str]:
+    """Render markdown and return the HTML fragment plus formdown DSL body."""
+
+    fragment = _render_fragment(markdown_text)
+    script_match = re.search(
+        r"<script type=\"text/formdown\">\s*(?P<body>.*?)\s*</script>",
+        fragment,
+        re.DOTALL,
+    )
+    assert script_match is not None, "Expected a formdown script block in the output"
+    script_body = textwrap.dedent(script_match.group("body")).strip()
+    return fragment, script_body
 
 
 class TestHeadingsAndEmphasis:
@@ -204,14 +219,92 @@ class TestFormdownEmbeds:
             """
         ).strip()
 
-        fragment = _render_fragment(markdown_text)
+        fragment, script_body = _render_formdown_form(markdown_text)
         html_document = _render_markdown_document(markdown_text)
 
-        assert "Signup to our club!" in fragment
-        assert "[[" in fragment
-        assert "T___firstName" in fragment
+        assert "<formdown-form" in fragment
+        assert "Signup to our club!" in script_body
+        assert "[[" in script_body
+        assert "T___firstName" in script_body
         assert "<pre" not in fragment
         assert _FORMDOWN_SCRIPT_URL in html_document
+
+    def test_formdown_group_block_is_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            [[
+            --Group heading--
+            T___firstName
+            ]]
+            ```
+            """
+        )
+
+        assert script_body.startswith("[[\n--Group heading--")
+        assert script_body.endswith("]]"), script_body
+
+    def test_formdown_placeholder_directive_is_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            T___firstName
+            #placeholder|First name
+            ```
+            """
+        )
+
+        assert "#placeholder|First name" in script_body
+
+    def test_formdown_helper_directive_is_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            T___firstName
+            #helper|Share as it appears on your ID.
+            ```
+            """
+        )
+
+        assert "#helper|Share as it appears on your ID." in script_body
+
+    def test_formdown_required_and_length_constraints_are_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            T___firstName
+            {r m2 M40}
+            ```
+            """
+        )
+
+        assert "{r m2 M40}" in script_body
+
+    def test_formdown_upload_field_is_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            U___supportingFile
+            #helper|Optional upload, max 15 MB.
+            {M15}
+            ```
+            """
+        )
+
+        assert "U___supportingFile" in script_body
+        assert "#helper|Optional upload, max 15 MB." in script_body
+        assert "{M15}" in script_body
+
+    def test_formdown_submit_action_is_preserved(self):
+        _, script_body = _render_formdown_form(
+            """
+            ```formdown
+            (submit|Send request)
+            ```
+            """
+        )
+
+        assert "(submit|Send request)" in script_body
 
     def test_formdown_markup_injects_loader_script(self):
         html_document = _render_markdown_document(
@@ -259,6 +352,7 @@ class TestFormdownEmbeds:
         html_document = _render_markdown_document(markdown_text)
 
         assert _FORMDOWN_SCRIPT_URL in html_document
+        assert "<formdown-form" in html_document
         assert "Share a support request" in html_document
         assert "U___supportingFile" in html_document
         assert "<pre" not in html_document

@@ -345,14 +345,22 @@ def _contains_formdown_markup(html_text: str) -> bool:
 
 
 def _expand_formdown_fences(text: str) -> str:
-    """Inline the contents of formdown code fences so Formdown can parse them."""
+    """Convert formdown code fences into embeds that the loader understands."""
 
     def _replace(match: re.Match[str]) -> str:
         prefix = match.group(1)
         body = textwrap.dedent(match.group(2)).strip()
         if not body:
             return prefix
-        return f"{prefix}{body}\n"
+
+        form_block = (
+            "<formdown-form data-formdown-mode=\"dsl\">\n"
+            "  <script type=\"text/formdown\">\n"
+            f"{body}\n"
+            "  </script>\n"
+            "</formdown-form>\n"
+        )
+        return f"{prefix}{form_block}"
 
     return _FORMDOWN_FENCE_PATTERN.sub(_replace, text)
 
