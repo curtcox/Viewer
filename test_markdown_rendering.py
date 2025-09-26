@@ -175,3 +175,41 @@ class TestFormIdeasAndDividers:
         assert "<hr>" in fragment
         assert fragment.index("First section") < fragment.index("<hr>") < fragment.index("Second section")
 
+
+class TestGithubStyleLinks:
+    def test_relative_link_renders_with_normalized_path(self):
+        fragment = _render_fragment("Navigate to [[About]] for details.")
+
+        assert '<a href="/about/">About</a>' in fragment
+
+    def test_relative_link_with_custom_label_uses_pipe_syntax(self):
+        fragment = _render_fragment("Refer to [[Guides/Getting Started|the quickstart guide]].")
+
+        assert '<a href="/guides/getting-started/">the quickstart guide</a>' in fragment
+
+    def test_relative_link_with_anchor_slugifies_target_heading(self):
+        fragment = _render_fragment("See [[Guides/Getting Started#Deep Dive|the deep dive section]].")
+
+        assert '<a href="/guides/getting-started/#deep-dive">the deep dive section</a>' in fragment
+
+    def test_relative_anchor_only_link_targets_heading_on_same_page(self):
+        fragment = _render_fragment("Jump to [[#Usage Notes]] for details.")
+
+        assert '<a href="#usage-notes">#Usage Notes</a>' in fragment
+
+    def test_relative_link_to_markdown_file_preserves_extension(self):
+        fragment = _render_fragment("Read [[Docs/API.md|API reference]].")
+
+        assert '<a href="/docs/api.md">API reference</a>' in fragment
+
+    def test_multiple_relative_links_convert_independently(self):
+        fragment = _render_fragment("See [[About]] alongside [[Guides/Overview|the overview]].")
+
+        assert '<a href="/about/">About</a>' in fragment
+        assert '<a href="/guides/overview/">the overview</a>' in fragment
+
+    def test_invalid_relative_link_is_left_unchanged(self):
+        fragment = _render_fragment("Avoid [[   |blank]] targets.")
+
+        assert '[[   |blank]]' in fragment
+
