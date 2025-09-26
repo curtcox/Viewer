@@ -28,11 +28,11 @@ def _render_formdown_form(markdown_text: str) -> tuple[str, str]:
 
     fragment = _render_fragment(markdown_text)
     script_match = re.search(
-        r"<script type=\"text/formdown\">\s*(?P<body>.*?)\s*</script>",
+        r"<formdown-ui>\s*(?P<body>.*?)\s*</formdown-ui>",
         fragment,
         re.DOTALL,
     )
-    assert script_match is not None, "Expected a formdown script block in the output"
+    assert script_match is not None, "Expected a formdown-ui block in the output"
     script_body = textwrap.dedent(script_match.group("body")).strip()
     return fragment, script_body
 
@@ -222,7 +222,7 @@ class TestFormdownEmbeds:
         fragment, script_body = _render_formdown_form(markdown_text)
         html_document = _render_markdown_document(markdown_text)
 
-        assert "<div data-formdown" in fragment
+        assert "<formdown-ui" in fragment
         assert "Signup to our club!" in script_body
         assert "[[" in script_body
         assert "T___firstName" in script_body
@@ -308,13 +308,7 @@ class TestFormdownEmbeds:
 
     def test_formdown_markup_injects_loader_script(self):
         html_document = _render_markdown_document(
-            """
-            <div
-              data-formdown
-              data-formdown-form=\"support-request\"
-              data-formdown-theme=\"system\"
-            ></div>
-            """
+            "<formdown-ui form=\"support-request\" theme=\"system\"></formdown-ui>"
         )
 
         assert _FORMDOWN_SCRIPT_URL in html_document
@@ -322,9 +316,7 @@ class TestFormdownEmbeds:
 
     def test_formdown_custom_element_injects_loader_script(self):
         html_document = _render_markdown_document(
-            """
-            <formdown-form data-formdown-form=\"demo-support\"></formdown-form>
-            """
+            "<formdown-ui form=\"demo-support\"></formdown-ui>"
         )
 
         assert _FORMDOWN_SCRIPT_URL in html_document
@@ -353,7 +345,7 @@ class TestFormdownEmbeds:
         html_document = _render_markdown_document(markdown_text)
 
         assert _FORMDOWN_SCRIPT_URL in html_document
-        assert "<div data-formdown" in html_document
+        assert "<formdown-ui" in html_document
         assert "Share a support request" in html_document
         assert "U___supportingFile" in html_document
         assert "<pre" not in html_document

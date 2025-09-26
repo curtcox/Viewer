@@ -331,7 +331,6 @@ _MARKDOWN_EXTENSIONS = [
 _FORMDOWN_SCRIPT_URL = "https://unpkg.com/@formdown/ui@latest/dist/standalone.js"
 _FORMDOWN_MARKUP_PATTERNS = [
     re.compile(r'<\s*formdown-', re.IGNORECASE),
-    re.compile(r'data-formdown', re.IGNORECASE),
 ]
 
 _FORMDOWN_FENCE_PATTERN = re.compile(
@@ -344,8 +343,10 @@ def _contains_formdown_markup(html_text: str) -> bool:
     return any(pattern.search(html_text) for pattern in _FORMDOWN_MARKUP_PATTERNS)
 
 
-def _expand_formdown_fences(text: str) -> str:
-    """Convert formdown code fences into embeds that the loader understands."""
+def _expand_formdown_fences(text: str) -> tuple[str, list[tuple[str, str]]]:
+    """Convert formdown code fences into placeholders and capture their bodies."""
+
+    replacements: list[tuple[str, str]] = []
 
     def _replace(match: re.Match[str]) -> str:
         prefix = match.group(1)
@@ -353,16 +354,12 @@ def _expand_formdown_fences(text: str) -> str:
         if not body:
             return prefix
 
-        form_block = (
-            "<div data-formdown>\n"
-            "  <script type=\"text/formdown\">\n"
-            f"{body}\n"
-            "  </script>\n"
-            "</div>\n"
-        )
-        return f"{prefix}{form_block}"
+        placeholder = f"<!--FORMDOWN_EMBED_{len(replacements)}-->"
+        replacements.append((placeholder, body))
+        return f"{prefix}{placeholder}"
 
-    return _FORMDOWN_FENCE_PATTERN.sub(_replace, text)
+    converted_text = _FORMDOWN_FENCE_PATTERN.sub(_replace, text)
+    return converted_text, replacements
 
 _MARKDOWN_INDICATOR_PATTERNS = [
     re.compile(r'(^|\n)#{1,6}\s+\S'),
@@ -530,12 +527,19 @@ def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
     has_formdown_fence = bool(_FORMDOWN_FENCE_PATTERN.search(converted))
-    converted = _expand_formdown_fences(converted)
+    converted, formdown_embeds = _expand_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
+    for placeholder, embed_body in formdown_embeds:
+        form_block = (
+            "<formdown-ui>\n"
+            f"{embed_body}\n"
+            "</formdown-ui>"
+        )
+        body = body.replace(placeholder, form_block)
     formdown_script_block = ""
     if has_formdown_fence or _contains_formdown_markup(body):
         formdown_script_block = (
-            f"  <script src=\"{_FORMDOWN_SCRIPT_URL}\" async defer data-formdown-loader></script>\n"
+            f"  <script type=\"module\" src=\"{_FORMDOWN_SCRIPT_URL}\"></script>\n"
         )
     title = _extract_markdown_title(text)
     return (
