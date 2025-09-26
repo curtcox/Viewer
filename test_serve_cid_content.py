@@ -164,6 +164,7 @@ class TestServeCidContent(unittest.TestCase):
         response = self._serve(path, content=markdown_content)
         self.assertIsNotNone(response)
         self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        self.assertNotIn('Content-Disposition', response.headers)
         body = response.get_data(as_text=True)
         self.assertIn('<main class="markdown-body">', body)
         self.assertIn('Plain text rendered as markdown', body)

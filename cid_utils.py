@@ -569,7 +569,7 @@ def serve_cid_content(cid_content, path):
     response.headers['Content-Length'] = len(response_body)
 
     filename = extract_filename_from_cid_path(path)
-    if filename:
+    if filename and not explicit_markdown_request:
         response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
 
     response.headers['ETag'] = etag
