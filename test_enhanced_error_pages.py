@@ -2,15 +2,12 @@
 """Test script to verify enhanced error page functionality with comprehensive source links."""
 
 import unittest
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-import tempfile
-import os
+from unittest.mock import patch
 
 from app import create_app
 from database import db
 from routes.core import internal_error, _build_stack_trace
-from routes.source import _get_all_project_files, _get_comprehensive_paths
+from routes.source import _get_comprehensive_paths
 
 
 class TestEnhancedErrorPageIntegration(unittest.TestCase):

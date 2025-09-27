@@ -50,32 +50,30 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     app.register_blueprint(main_bp)
     app.register_blueprint(local_auth_bp, url_prefix="/auth")
-    
+
     # Register error handlers that work even in debug mode
     from routes.core import internal_error, not_found_error
-    
+
     # Force registration of custom error handlers even in debug mode
     # This ensures our enhanced error pages with source links always work
     app.register_error_handler(500, internal_error)
     app.register_error_handler(404, not_found_error)
-    
+
     # Override Flask's debug mode error handling to use our custom handlers
     # This is necessary because Flask's debug mode bypasses custom error handlers
     def force_custom_error_handling():
         """Force Flask to use our custom error handlers even in debug mode."""
-        original_handle_exception = app.handle_exception
-        
         def enhanced_handle_exception(e):
             # Always use our custom error handlers, even in debug mode
             if hasattr(e, 'code') and e.code == 404:
                 return not_found_error(e)
             else:
                 return internal_error(e)
-        
+
         # Only override in debug mode to preserve normal behavior in production
         if app.debug:
             app.handle_exception = enhanced_handle_exception
-    
+
     force_custom_error_handling()
 
     # Register Replit auth if available

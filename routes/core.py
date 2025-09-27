@@ -510,7 +510,6 @@ def internal_error(error):
     except Exception as trace_error:
         # If stack trace building fails, create a minimal fallback
         try:
-            import traceback
             import sys
             
             # Get the current exception info

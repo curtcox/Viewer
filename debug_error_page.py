@@ -18,9 +18,6 @@ def debug_error_page():
         with app.test_request_context('/debug-error'):
             try:
                 # Import some project modules to get them in traceback
-                from routes.core import _build_stack_trace
-                from routes.source import _get_comprehensive_paths
-                from routes.aliases import _alias_name_conflicts_with_routes
                 
                 # Create an error with a good traceback
                 raise RuntimeError('Debug error for examining HTML output')
