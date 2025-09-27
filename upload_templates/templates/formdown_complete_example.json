@@ -1,0 +1,7 @@
+{
+  "id": "formdown-showcase",
+  "name": "Formdown showcase",
+  "description": "A full-featured Formdown document showcasing personal info, selections, uploads, and actions.",
+  "content_file": "contents/formdown_showcase.formdown",
+  "suggested_filename": "formdown-showcase.formdown"
+}
