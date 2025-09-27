@@ -1,0 +1,7 @@
+{
+  "id": "formdown-complete-example",
+  "name": "Formdown complete example",
+  "description": "A full-featured Formdown document showcasing personal info, selections, uploads, and actions.",
+  "content_file": "contents/complete_formdown_example.formdown",
+  "suggested_filename": "complete-formdown-example.formdown"
+}
