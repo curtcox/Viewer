@@ -478,11 +478,39 @@ def _convert_github_relative_links(text: str) -> str:
     return _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, text)
 
 
+_FORMDOWN_FENCE_RE = re.compile(r"```formdown\s*\n(.*?)```", re.DOTALL)
+_FORMDOWN_PARAGRAPH_RE = re.compile(r"<p>\s*(<formdown-ui>.*?</formdown-ui>)\s*</p>", re.DOTALL)
+
+
+def _replace_formdown_fences(text):
+    """Replace ```formdown fences with <formdown-ui> blocks."""
+
+    found = False
+
+    def _replacement(match):
+        nonlocal found
+        found = True
+        inner = match.group(1)
+        inner = inner.rstrip("\n")
+        return f"<formdown-ui>\n{inner}\n</formdown-ui>"
+
+    converted = _FORMDOWN_FENCE_RE.sub(_replacement, text)
+    return converted, found
+
+
 def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
+    converted, has_formdown = _replace_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
+    if has_formdown:
+        body = _FORMDOWN_PARAGRAPH_RE.sub(r"\1", body)
     title = _extract_markdown_title(text)
+    formdown_script = (
+        "  <script type=\"module\" src=\"https://unpkg.com/@formdown/ui@latest/dist/standalone.js\"></script>\n"
+        if has_formdown
+        else ""
+    )
     return (
         "<!DOCTYPE html>\n"
         "<html lang=\"en\">\n"
@@ -490,6 +518,7 @@ def _render_markdown_document(text):
         "  <meta charset=\"utf-8\">\n"
         f"  <title>{title}</title>\n"
         "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+        f"{formdown_script}"
         "  <style>\n"
         "    body {\n"
         "      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n"
