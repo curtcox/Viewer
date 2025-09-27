@@ -47,8 +47,22 @@ class TestAliasRouting(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def create_alias(self, name='latest', target='/target'):
-        alias = Alias(name=name, target_path=target, user_id=self.test_user.id)
+    def create_alias(
+        self,
+        name='latest',
+        target='/target',
+        match_type='literal',
+        pattern=None,
+        ignore_case=False,
+    ):
+        alias = Alias(
+            name=name,
+            target_path=target,
+            user_id=self.test_user.id,
+            match_type=match_type,
+            match_pattern=pattern or f'/{name}',
+            ignore_case=ignore_case,
+        )
         db.session.add(alias)
         db.session.commit()
         return alias
@@ -126,6 +140,38 @@ class TestAliasRouting(unittest.TestCase):
                 response = try_alias_redirect('/latest')
                 self.assertIsNone(response)
 
+    def test_try_alias_redirect_literal_ignore_case(self):
+        self.create_alias(name='Latest', target='/cid123', pattern='/Latest', ignore_case=True)
+        with app.test_request_context('/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/latest')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123')
+
+    def test_try_alias_redirect_glob_pattern(self):
+        self.create_alias(name='glob', target='/cid123', match_type='glob', pattern='/release/*/latest')
+        with app.test_request_context('/release/v1.2/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/release/v1.2/latest')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123')
+
+    def test_try_alias_redirect_regex_pattern(self):
+        self.create_alias(name='regex', target='/cid123', match_type='regex', pattern=r'^/release-\d+$')
+        with app.test_request_context('/release-42'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/release-42')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123')
+
+    def test_try_alias_redirect_flask_pattern(self):
+        self.create_alias(name='flask', target='/cid123', match_type='flask', pattern='/users/<username>/profile')
+        with app.test_request_context('/users/alice/profile'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/users/alice/profile')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123')
+
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest/anything'):
@@ -147,6 +193,7 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'latest', response.data)
         self.assertIn(b'/cid123', response.data)
+        self.assertIn(b'/latest', response.data)
 
     def test_view_alias_page(self):
         self.create_alias(name='docs', target='/cid/docs')
@@ -161,7 +208,12 @@ class TestAliasRouting(unittest.TestCase):
 
         response = self.client.post(
             '/aliases/new',
-            data={'name': 'release', 'target_path': '/cid456'},
+            data={
+                'name': 'release',
+                'target_path': '/cid456',
+                'match_type': 'literal',
+                'match_pattern': '',
+            },
             follow_redirects=False,
         )
 
@@ -171,13 +223,43 @@ class TestAliasRouting(unittest.TestCase):
         created = Alias.query.filter_by(user_id=self.test_user.id, name='release').first()
         self.assertIsNotNone(created)
         self.assertEqual(created.target_path, '/cid456')
+        self.assertEqual(created.match_type, 'literal')
+        self.assertEqual(created.match_pattern, '/release')
+        self.assertFalse(created.ignore_case)
+
+    def test_create_alias_with_glob_match_type(self):
+        self.login()
+
+        response = self.client.post(
+            '/aliases/new',
+            data={
+                'name': 'release-pattern',
+                'target_path': '/cid789',
+                'match_type': 'glob',
+                'match_pattern': '/release/*/latest',
+                'ignore_case': 'y',
+            },
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 302)
+        created = Alias.query.filter_by(user_id=self.test_user.id, name='release-pattern').first()
+        self.assertIsNotNone(created)
+        self.assertEqual(created.match_type, 'glob')
+        self.assertEqual(created.match_pattern, '/release/*/latest')
+        self.assertTrue(created.ignore_case)
 
     def test_create_alias_rejects_conflicting_route(self):
         self.login()
 
         response = self.client.post(
             '/aliases/new',
-            data={'name': 'servers', 'target_path': '/cid789'},
+            data={
+                'name': 'servers',
+                'target_path': '/cid789',
+                'match_type': 'literal',
+                'match_pattern': '',
+            },
             follow_redirects=True,
         )
 
@@ -191,7 +273,12 @@ class TestAliasRouting(unittest.TestCase):
 
         response = self.client.post(
             f'/aliases/{alias.name}/edit',
-            data={'name': 'docs', 'target_path': '/docs'},
+            data={
+                'name': 'docs',
+                'target_path': '/docs',
+                'match_type': 'literal',
+                'match_pattern': '',
+            },
             follow_redirects=False,
         )
 
@@ -201,6 +288,7 @@ class TestAliasRouting(unittest.TestCase):
         updated = Alias.query.filter_by(user_id=self.test_user.id, name='docs').first()
         self.assertIsNotNone(updated)
         self.assertEqual(updated.target_path, '/docs')
+        self.assertEqual(updated.match_pattern, '/docs')
 
     def test_edit_alias_rejects_conflicting_route_name(self):
         alias = self.create_alias(name='latest', target='/cid123')
@@ -208,7 +296,12 @@ class TestAliasRouting(unittest.TestCase):
 
         response = self.client.post(
             f'/aliases/{alias.name}/edit',
-            data={'name': 'servers', 'target_path': '/cid456'},
+            data={
+                'name': 'servers',
+                'target_path': '/cid456',
+                'match_type': 'literal',
+                'match_pattern': '',
+            },
             follow_redirects=True,
         )
 
@@ -217,6 +310,26 @@ class TestAliasRouting(unittest.TestCase):
         persisted = db.session.get(Alias, alias.id)
         self.assertEqual(persisted.name, 'latest')
         self.assertEqual(persisted.target_path, '/cid123')
+
+    def test_test_pattern_button_displays_results_without_saving(self):
+        self.login()
+
+        response = self.client.post(
+            '/aliases/new',
+            data={
+                'name': 'preview',
+                'target_path': '/cid999',
+                'match_type': 'regex',
+                'match_pattern': r'^/preview-\d+$',
+                'test_strings': '/preview-1\n/preview-x',
+                'test_pattern': 'Test Pattern',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Test Results', response.data)
+        self.assertIsNone(Alias.query.filter_by(user_id=self.test_user.id, name='preview').first())
 
 
 if __name__ == '__main__':

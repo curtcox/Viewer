@@ -19,27 +19,70 @@
 
             {% if stack_trace %}
                 <div class="card">
-                    <div class="card-header bg-light">
-                        <strong>Exception:</strong> {{ exception_type }}{% if exception_message %}: {{ exception_message }}{% endif %}
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bug me-2"></i>
+                            <strong>Exception:</strong> {{ exception_type }}{% if exception_message %}: {{ exception_message }}{% endif %}
+                        </h5>
                     </div>
                     <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Stack trace with source links (most recent call last):
+                            </small>
+                        </div>
                         <ol class="mb-0 ps-3">
                             {% for frame in stack_trace %}
-                                <li class="mb-3">
-                                    <div class="mb-1">
-                                        {% if frame.source_link %}
-                                            <a href="{{ frame.source_link }}"><code>{{ frame.display_path }}</code></a>
-                                        {% else %}
-                                            <code>{{ frame.display_path }}</code>
+                                {% if frame.is_separator %}
+                                    <li class="mb-3 list-unstyled">
+                                        <div class="border-top pt-2 mt-2">
+                                            <div class="text-warning fw-bold">
+                                                <i class="fas fa-link me-1"></i>
+                                                {{ frame.display_path }}
+                                            </div>
+                                            <div class="text-muted small">{{ frame.function }}</div>
+                                            {% if frame.code %}
+                                                <div class="mt-1 text-warning small">{{ frame.code }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </li>
+                                {% else %}
+                                    <li class="mb-3">
+                                        <div class="mb-1">
+                                            {% if frame.source_link %}
+                                                <a href="{{ frame.source_link }}" class="text-decoration-none" target="_blank">
+                                                    <i class="fas fa-external-link-alt me-1 text-primary"></i>
+                                                    <code class="text-primary">{{ frame.display_path }}</code>
+                                                </a>
+                                            {% else %}
+                                                <code class="text-muted">{{ frame.display_path }}</code>
+                                            {% endif %}
+                                            <span class="text-muted ms-2">
+                                                in <strong>{{ frame.function }}</strong> at line <strong>{{ frame.lineno }}</strong>
+                                            </span>
+                                        </div>
+                                        {% if frame.code %}
+                                            <pre class="bg-light p-3 rounded border-start border-3 border-primary"><code>{{ frame.code | e }}</code></pre>
                                         {% endif %}
-                                        <span class="text-muted">in {{ frame.function }} at line {{ frame.lineno }}</span>
-                                    </div>
-                                    {% if frame.code %}
-                                        <pre class="bg-light p-2 rounded"><code>{{ frame.code | e }}</code></pre>
-                                    {% endif %}
-                                </li>
+                                    </li>
+                                {% endif %}
                             {% endfor %}
                         </ol>
+                        <div class="mt-4 p-3 bg-info bg-opacity-10 rounded">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-lightbulb text-info me-2 mt-1"></i>
+                                <div>
+                                    <strong class="text-info">Debugging Tips:</strong>
+                                    <ul class="mb-0 mt-1 small">
+                                        <li>Click the <i class="fas fa-external-link-alt"></i> links to view source code</li>
+                                        <li>The <code>>>> </code> marker shows the exact line where the error occurred</li>
+                                        <li>Exception chains show the full error propagation path</li>
+                                        <li>Check the most recent call (bottom of stack) first</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             {% endif %}

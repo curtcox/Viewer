@@ -1,14 +1,15 @@
 """Helpers for serving named alias redirects."""
 from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from urllib.parse import urlsplit
 
 from flask import redirect, request
 from flask_login import current_user
 
-from db_access import get_alias_by_name
+from alias_matching import alias_sort_key, matches_path
+from db_access import get_user_aliases
 
 
 def _extract_alias_name(path: str) -> Optional[str]:
@@ -65,16 +66,46 @@ def _append_query_string(target: str, query: str) -> str:
     return combined_base
 
 
-def try_alias_redirect(path: str):
-    """Return a redirect response for an alias if one matches the path."""
+def _effective_pattern_and_type(alias) -> Tuple[str, str]:
+    match_type = getattr(alias, "match_type", None) or "literal"
+    if hasattr(alias, "get_effective_pattern"):
+        pattern = alias.get_effective_pattern()
+    else:
+        pattern = getattr(alias, "match_pattern", None)
+        if not pattern:
+            name = getattr(alias, "name", "") or ""
+            pattern = f"/{name}" if name else "/"
+    return pattern, match_type
+
+
+def _sorted_aliases_for_user(user_id: str):
+    aliases = get_user_aliases(user_id)
+    decorated = []
+    for alias in aliases:
+        pattern, match_type = _effective_pattern_and_type(alias)
+        decorated.append((alias_sort_key(match_type, pattern), alias, pattern, match_type))
+    decorated.sort(key=lambda item: item[0])
+    for _, alias, pattern, match_type in decorated:
+        yield alias, match_type, pattern
+
+
+def find_matching_alias(path: str):
+    """Return the first alias belonging to the current user that matches the path."""
+
     if not getattr(current_user, "is_authenticated", False):
         return None
 
-    alias_name = _extract_alias_name(path)
-    if not alias_name:
-        return None
+    for alias, match_type, pattern in _sorted_aliases_for_user(current_user.id):
+        ignore_case = bool(getattr(alias, "ignore_case", False))
+        if matches_path(match_type, pattern, path, ignore_case):
+            return alias
+    return None
 
-    alias = get_alias_by_name(current_user.id, alias_name)
+
+def try_alias_redirect(path: str):
+    """Return a redirect response for an alias if one matches the path."""
+
+    alias = find_matching_alias(path)
     if not alias:
         return None
 
@@ -89,4 +120,4 @@ def try_alias_redirect(path: str):
     return redirect(target)
 
 
-__all__ = ["is_potential_alias_path", "try_alias_redirect"]
+__all__ = ["find_matching_alias", "is_potential_alias_path", "try_alias_redirect"]

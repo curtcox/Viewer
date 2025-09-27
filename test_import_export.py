@@ -50,7 +50,14 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
-            alias = Alias(name='alias-one', target_path='/demo', user_id=self.user_id)
+            alias = Alias(
+                name='alias-one',
+                target_path='/demo',
+                user_id=self.user_id,
+                match_type='glob',
+                match_pattern='/demo/*',
+                ignore_case=True,
+            )
             server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
             variable = Variable(name='var-one', definition='value', user_id=self.user_id)
             secret = Secret(name='secret-one', definition='super-secret', user_id=self.user_id)
@@ -75,6 +82,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         aliases = payload.get('aliases', [])
         self.assertEqual(len(aliases), 1)
         self.assertEqual(aliases[0]['name'], 'alias-one')
+        self.assertEqual(aliases[0]['match_type'], 'glob')
+        self.assertEqual(aliases[0]['match_pattern'], '/demo/*')
+        self.assertTrue(aliases[0]['ignore_case'])
 
         servers = payload.get('servers', [])
         self.assertEqual(servers[0]['definition'], 'print("hi")')
@@ -130,7 +140,15 @@ class ImportExportRoutesTestCase(unittest.TestCase):
     def test_successful_import_creates_entries(self):
         encrypted_secret = encrypt_secret_value('value', 'passphrase')
         payload = json.dumps({
-            'aliases': [{'name': 'alias-b', 'target_path': '/demo'}],
+            'aliases': [
+                {
+                    'name': 'alias-b',
+                    'target_path': '/demo',
+                    'match_type': 'regex',
+                    'match_pattern': r'^/demo$',
+                    'ignore_case': True,
+                }
+            ],
             'servers': [{'name': 'server-b', 'definition': 'print("hello")'}],
             'variables': [{'name': 'var-b', 'definition': '42'}],
             'secrets': {
@@ -163,6 +181,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             alias = Alias.query.filter_by(user_id=self.user_id, name='alias-b').first()
             self.assertIsNotNone(alias)
             self.assertEqual(alias.target_path, '/demo')
+            self.assertEqual(alias.match_type, 'regex')
+            self.assertEqual(alias.match_pattern, r'^/demo$')
+            self.assertTrue(alias.ignore_case)
 
             server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
             self.assertIsNotNone(server)

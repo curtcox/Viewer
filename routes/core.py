@@ -59,18 +59,21 @@ def _extract_exception(error: Exception) -> Exception:
 
 
 def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
-    """Build stack trace metadata with optional /source links."""
+    """Build comprehensive stack trace metadata with /source links for all project files."""
 
     def _determine_relative_path(
         absolute_path: Path,
         root_path: Path,
         tracked_paths: frozenset[str],
     ) -> Optional[str]:
+        # First try to get relative path from project root
         try:
-            return absolute_path.relative_to(root_path).as_posix()
+            relative = absolute_path.relative_to(root_path).as_posix()
+            return relative
         except ValueError:
             pass
 
+        # Fallback: check if path ends with any tracked path
         normalized = absolute_path.as_posix()
         best_match: Optional[str] = None
         for tracked in tracked_paths:
@@ -79,45 +82,150 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
                     best_match = tracked
         return best_match
 
-    exception = _extract_exception(error)
-    traceback_obj = getattr(exception, "__traceback__", None)
-    if traceback_obj is None:
-        return []
+    def _should_create_source_link(relative_path: str, root_path: Path) -> bool:
+        """Determine if we should create a source link for this file."""
+        if not relative_path:
+            return False
+        
+        # Create links for ALL files within the project directory, not just git-tracked ones
+        full_path = root_path / relative_path
+        try:
+            # Check if file exists and is within project bounds
+            resolved_path = full_path.resolve()
+            resolved_root = root_path.resolve()
+            if full_path.exists() and resolved_root in resolved_path.parents:
+                return True
+        except (OSError, ValueError):
+            pass
+        
+        return False
 
+    def _get_all_project_files(root_path: Path) -> frozenset[str]:
+        """Get all Python files in the project directory for comprehensive source linking."""
+        project_files = set()
+        try:
+            # Get all .py files recursively
+            for py_file in root_path.rglob("*.py"):
+                try:
+                    relative = py_file.relative_to(root_path).as_posix()
+                    project_files.add(relative)
+                except ValueError:
+                    continue
+            
+            # Also add other common source files
+            for pattern in ["*.html", "*.js", "*.css", "*.json", "*.md", "*.txt", "*.yml", "*.yaml"]:
+                for file in root_path.rglob(pattern):
+                    try:
+                        relative = file.relative_to(root_path).as_posix()
+                        project_files.add(relative)
+                    except ValueError:
+                        continue
+        except Exception:
+            pass
+        
+        return frozenset(project_files)
+
+    def _get_exception_chain(exc: Exception) -> List[Exception]:
+        """Get the full chain of exceptions including __cause__ and __context__."""
+        exceptions = []
+        current = exc
+        seen = set()
+        
+        while current and id(current) not in seen:
+            seen.add(id(current))
+            exceptions.append(current)
+            
+            # Follow __cause__ first (explicit chaining), then __context__ (implicit)
+            current = getattr(current, '__cause__', None) or getattr(current, '__context__', None)
+        
+        return exceptions
+
+    # Get the primary exception and build comprehensive trace
+    exception = _extract_exception(error)
+    exception_chain = _get_exception_chain(exception)
+    
     root_path = Path(current_app.root_path).resolve()
 
+    # Get both git-tracked paths and all project files for comprehensive coverage
     try:
         from .source import _get_tracked_paths
-
         tracked_paths = _get_tracked_paths(current_app.root_path)
     except Exception:  # pragma: no cover - defensive fallback when git unavailable
         tracked_paths = frozenset()
+    
+    # Get all project files to ensure comprehensive source link coverage
+    all_project_files = _get_all_project_files(root_path)
+    # Combine tracked and all project files
+    comprehensive_paths = tracked_paths | all_project_files
 
     frames: List[Dict[str, Any]] = []
-    for frame in traceback.extract_tb(traceback_obj):
-        try:
-            absolute_path = Path(frame.filename).resolve()
-        except OSError:
-            absolute_path = Path(frame.filename)
+    
+    # Process each exception in the chain
+    for exc_index, exc in enumerate(exception_chain):
+        traceback_obj = getattr(exc, "__traceback__", None)
+        if traceback_obj is None:
+            continue
+            
+        # Add separator for chained exceptions (except for the first one)
+        if exc_index > 0:
+            frames.append({
+                "display_path": "--- Exception Chain ---",
+                "lineno": 0,
+                "function": f"Caused by: {type(exc).__name__}",
+                "code": str(exc) if str(exc) else None,
+                "source_link": None,
+                "is_separator": True,
+            })
 
-        source_link = None
-        display_path = frame.filename
+        # Extract frames from this exception's traceback
+        for frame in traceback.extract_tb(traceback_obj):
+            try:
+                absolute_path = Path(frame.filename).resolve()
+            except OSError:
+                absolute_path = Path(frame.filename)
 
-        relative_path = _determine_relative_path(absolute_path, root_path, tracked_paths)
-        if relative_path:
-            display_path = relative_path
-            if not tracked_paths or relative_path in tracked_paths:
-                source_link = f"/source/{relative_path}"
+            source_link = None
+            display_path = frame.filename
 
-        frames.append(
-            {
-                "display_path": display_path,
-                "lineno": frame.lineno,
-                "function": frame.name,
-                "code": frame.line,
-                "source_link": source_link,
-            }
-        )
+            relative_path = _determine_relative_path(absolute_path, root_path, comprehensive_paths)
+            if relative_path:
+                display_path = relative_path
+                # Create source links for ALL project files, not just git-tracked ones
+                if _should_create_source_link(relative_path, root_path):
+                    source_link = f"/source/{relative_path}"
+
+            # Get more context around the error line if possible (5 lines instead of 2)
+            code_context = frame.line
+            try:
+                if frame.line and absolute_path.exists():
+                    # Try to get more lines of context around the error
+                    with open(absolute_path, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                        if 0 < frame.lineno <= len(lines):
+                            # Get 5 lines before and after for better context
+                            start_line = max(0, frame.lineno - 6)
+                            end_line = min(len(lines), frame.lineno + 5)
+                            context_lines = []
+                            for i in range(start_line, end_line):
+                                line_num = i + 1
+                                line_content = lines[i].rstrip()
+                                marker = ">>> " if line_num == frame.lineno else "    "
+                                context_lines.append(f"{marker}{line_num:4d}: {line_content}")
+                            code_context = "\n".join(context_lines)
+            except (OSError, UnicodeDecodeError, IndexError):
+                # Fall back to the original line if we can't read context
+                pass
+
+            frames.append(
+                {
+                    "display_path": display_path,
+                    "lineno": frame.lineno,
+                    "function": frame.name,
+                    "code": code_context,
+                    "source_link": source_link,
+                    "is_separator": False,
+                }
+            )
 
     return frames
 
@@ -208,8 +316,9 @@ def plans():
 
 @main_bp.route('/terms')
 def terms():
-    """Display terms and conditions."""
+    """Terms of service page."""
     return render_template('terms.html', current_version=CURRENT_TERMS_VERSION)
+
 
 
 @main_bp.route('/privacy')
@@ -351,7 +460,6 @@ def get_existing_routes():
     }
 
 
-@main_bp.app_errorhandler(404)
 def not_found_error(error):
     """Custom 404 handler that checks CID table and server names for content."""
     path = request.path
@@ -384,18 +492,62 @@ def not_found_error(error):
     return render_template('404.html', path=path), 404
 
 
-@main_bp.app_errorhandler(500)
 def internal_error(error):
+    """Enhanced 500 error handler with comprehensive stack trace reporting."""
     db.session.rollback()
-    stack_trace = _build_stack_trace(error)
-    exception = _extract_exception(error)
+    
+    # Always try to build a comprehensive stack trace
+    stack_trace = []
+    exception = None
+    exception_type = "Unknown Error"
+    exception_message = "An unexpected error occurred"
+    
+    try:
+        exception = _extract_exception(error)
+        exception_type = type(exception).__name__
+        exception_message = str(exception) if str(exception) else "No error message available"
+        stack_trace = _build_stack_trace(error)
+    except Exception as trace_error:
+        # If stack trace building fails, create a minimal fallback
+        try:
+            import sys
+            
+            # Get the current exception info
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            if exc_traceback:
+                # Create a basic stack trace as fallback
+                stack_trace = [{
+                    "display_path": "Error in stack trace generation",
+                    "lineno": 0,
+                    "function": "internal_error",
+                    "code": f"Stack trace generation failed: {trace_error}\n\nOriginal error: {error}",
+                    "source_link": None,
+                    "is_separator": False,
+                }]
+            
+            # Try to get basic info about the original error
+            if not exception:
+                exception = error
+                exception_type = type(error).__name__
+                exception_message = str(error) if str(error) else "Error occurred during error handling"
+                
+        except Exception:
+            # Ultimate fallback - just show basic error info
+            stack_trace = [{
+                "display_path": "Critical error handling failure",
+                "lineno": 0,
+                "function": "internal_error",
+                "code": f"Both original error and error handling failed.\nOriginal error: {error}",
+                "source_link": None,
+                "is_separator": False,
+            }]
 
     return (
         render_template(
             '500.html',
             stack_trace=stack_trace,
-            exception_type=type(exception).__name__,
-            exception_message=str(exception),
+            exception_type=exception_type,
+            exception_message=exception_message,
         ),
         500,
     )

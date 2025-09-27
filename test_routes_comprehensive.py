@@ -1196,16 +1196,29 @@ class TestSourceRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('class User(UserMixin, db.Model)', page)
 
-    def test_source_rejects_untracked_files(self):
-        """Untracked files should not be served."""
-        temp_path = Path(self.app.root_path) / 'untracked_secret.txt'
-        temp_path.write_text('secret', encoding='utf-8')
+    def test_source_serves_untracked_project_files(self):
+        """Enhanced source browser should serve untracked project files."""
+        temp_path = Path(self.app.root_path) / 'untracked_test.py'
+        temp_path.write_text('# Untracked Python file', encoding='utf-8')
 
         try:
-            response = self.client.get('/source/untracked_secret.txt')
-            self.assertEqual(response.status_code, 404)
+            # Clear any cached results to ensure fresh discovery
+            from routes.source import _get_all_project_files, _get_tracked_paths
+            _get_all_project_files.cache_clear()
+            _get_tracked_paths.cache_clear()
+            
+            response = self.client.get('/source/untracked_test.py')
+            # Should now serve untracked project files with enhanced functionality
+            self.assertEqual(response.status_code, 200)
+            page = response.get_data(as_text=True)
+            self.assertIn('Untracked Python file', page)
         finally:
             temp_path.unlink(missing_ok=True)
+
+    def test_source_rejects_files_outside_project(self):
+        """Files outside project directory should not be served."""
+        response = self.client.get('/source/../../../etc/passwd')
+        self.assertEqual(response.status_code, 404)
 
     def test_source_rejects_path_traversal(self):
         """Path traversal attempts should return 404."""

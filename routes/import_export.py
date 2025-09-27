@@ -10,6 +10,7 @@ from flask import current_app, flash, redirect, render_template, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
+from alias_matching import PatternError, normalise_pattern
 from cid_utils import save_server_definition_as_cid
 from db_access import (
     get_alias_by_name,
@@ -101,13 +102,33 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
             errors.append(f'Alias "{name}" conflicts with an existing route and was skipped.')
             continue
 
+        match_type = (entry.get('match_type') or 'literal').lower()
+        match_pattern = entry.get('match_pattern')
+        ignore_case = bool(entry.get('ignore_case', False))
+
+        try:
+            normalised_pattern = normalise_pattern(match_type, match_pattern, name)
+        except PatternError as exc:
+            errors.append(f'Alias "{name}" skipped: {exc}')
+            continue
+
         existing = get_alias_by_name(user_id, name)
         if existing:
             existing.target_path = target_path
+            existing.match_type = match_type
+            existing.match_pattern = normalised_pattern
+            existing.ignore_case = ignore_case
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
-            alias = Alias(name=name, target_path=target_path, user_id=user_id)
+            alias = Alias(
+                name=name,
+                target_path=target_path,
+                user_id=user_id,
+                match_type=match_type,
+                match_pattern=normalised_pattern,
+                ignore_case=ignore_case,
+            )
             save_entity(alias)
         imported += 1
 
@@ -263,6 +284,9 @@ def export_data():
                 {
                     'name': alias.name,
                     'target_path': alias.target_path,
+                    'match_type': alias.match_type,
+                    'match_pattern': alias.get_effective_pattern(),
+                    'ignore_case': bool(alias.ignore_case),
                 }
                 for alias in get_user_aliases(current_user.id)
             ]

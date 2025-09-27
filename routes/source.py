@@ -29,6 +29,40 @@ def _get_tracked_paths(root_path: str) -> frozenset[str]:
     return frozenset(files)
 
 
+@lru_cache(maxsize=4)
+def _get_all_project_files(root_path: str) -> frozenset[str]:
+    """Return all project files for comprehensive source browsing."""
+    root = Path(root_path)
+    project_files = set()
+    
+    try:
+        # Get all source files recursively, excluding common non-source directories
+        exclude_dirs = {'.git', '__pycache__', '.pytest_cache', 'venv', '.venv', 'node_modules', '.tox'}
+        
+        for pattern in ["*.py", "*.html", "*.js", "*.css", "*.json", "*.md", "*.txt", "*.yml", "*.yaml", "*.toml", "*.ini", "*.cfg"]:
+            for file_path in root.rglob(pattern):
+                try:
+                    # Skip files in excluded directories
+                    if any(excluded in file_path.parts for excluded in exclude_dirs):
+                        continue
+                    
+                    relative = file_path.relative_to(root).as_posix()
+                    project_files.add(relative)
+                except ValueError:
+                    continue
+    except Exception:
+        pass
+    
+    return frozenset(project_files)
+
+
+def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
+    """Get both git-tracked and all project files for comprehensive coverage."""
+    tracked = _get_tracked_paths(root_path)
+    all_files = _get_all_project_files(root_path)
+    return tracked | all_files
+
+
 def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     """Create breadcrumbs for the requested path."""
     breadcrumbs: List[Tuple[str, str]] = [("", "Source")]
@@ -117,15 +151,16 @@ def _is_tracked_directory(path: str, tracked_paths: frozenset[str]) -> bool:
 @main_bp.route("/source", defaults={"requested_path": ""}, strict_slashes=False)
 @main_bp.route("/source/<path:requested_path>")
 def source_browser(requested_path: str):
-    """Browse repository source files tracked by git."""
-    tracked_paths = _get_tracked_paths(current_app.root_path)
-    if not tracked_paths:
-        # When git is unavailable or no files are tracked, show an empty view.
-        return _render_directory("", tracked_paths)
+    """Browse all project source files with comprehensive coverage."""
+    # Get comprehensive paths (both git-tracked and all project files)
+    comprehensive_paths = _get_comprehensive_paths(current_app.root_path)
+    if not comprehensive_paths:
+        # When no files are available, show an empty view.
+        return _render_directory("", comprehensive_paths)
 
     normalized = requested_path.strip("/")
     if not normalized:
-        return _render_directory("", tracked_paths)
+        return _render_directory("", comprehensive_paths)
 
     safe_path = Path(normalized)
     if safe_path.is_absolute() or ".." in safe_path.parts:
@@ -134,10 +169,10 @@ def source_browser(requested_path: str):
     relative_path = safe_path.as_posix()
     repository_root = Path(current_app.root_path)
 
-    if relative_path in tracked_paths:
+    if relative_path in comprehensive_paths:
         return _render_file(relative_path, repository_root)
 
-    if _is_tracked_directory(relative_path, tracked_paths):
-        return _render_directory(relative_path, tracked_paths)
+    if _is_tracked_directory(relative_path, comprehensive_paths):
+        return _render_directory(relative_path, comprehensive_paths)
 
     abort(404)
