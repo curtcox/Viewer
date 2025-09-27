@@ -53,8 +53,23 @@ class TestMetaRoute(unittest.TestCase):
         db.session.commit()
         return record
 
-    def _create_alias(self, user: User, name: str = 'docs', target: str = '/docs'):
-        alias = Alias(name=name, target_path=target, user_id=user.id)
+    def _create_alias(
+        self,
+        user: User,
+        name: str = 'docs',
+        target: str = '/docs',
+        match_type: str = 'literal',
+        pattern: str | None = None,
+        ignore_case: bool = False,
+    ):
+        alias = Alias(
+            name=name,
+            target_path=target,
+            user_id=user.id,
+            match_type=match_type,
+            match_pattern=pattern or f'/{name}',
+            ignore_case=ignore_case,
+        )
         db.session.add(alias)
         db.session.commit()
         return alias

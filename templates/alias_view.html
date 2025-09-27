@@ -30,6 +30,15 @@
                         <dt class="col-sm-3">Redirect Path</dt>
                         <dd class="col-sm-9"><code>{{ alias.target_path }}</code></dd>
 
+                        <dt class="col-sm-3">Match Pattern</dt>
+                        <dd class="col-sm-9"><code>{{ alias.match_pattern }}</code></dd>
+
+                        <dt class="col-sm-3">Match Type</dt>
+                        <dd class="col-sm-9 text-capitalize">{{ alias.match_type }}</dd>
+
+                        <dt class="col-sm-3">Ignore Case</dt>
+                        <dd class="col-sm-9">{{ 'Yes' if alias.ignore_case else 'No' }}</dd>
+
                         <dt class="col-sm-3">Public URL</dt>
                         <dd class="col-sm-9"><code>{{ request.url_root }}{{ alias.name }}</code></dd>
                     </dl>

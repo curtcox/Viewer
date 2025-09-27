@@ -13,8 +13,8 @@ from sqlalchemy import or_
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
-from alias_routing import is_potential_alias_path, try_alias_redirect
-from db_access import get_alias_by_name, get_cid_by_path, get_server_by_name
+from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
+from db_access import get_cid_by_path, get_server_by_name
 from models import ServerInvocation
 from server_execution import (
     is_potential_server_path,
@@ -200,16 +200,11 @@ def _extract_alias_name(path: str) -> Optional[str]:
 
 def _resolve_alias_path(path: str) -> Optional[Dict[str, Any]]:
     """Return metadata for alias-based routes if applicable."""
-    alias_name = _extract_alias_name(path)
-    if not alias_name:
-        return None
-
     base_payload: Dict[str, Any] = {
         "path": path,
         "source_links": _dedupe_links(["/source/alias_routing.py", META_SOURCE_LINK]),
         "resolution": {
             "type": "alias_redirect",
-            "alias": alias_name,
             "requires_authentication": True,
         },
     }
@@ -217,9 +212,11 @@ def _resolve_alias_path(path: str) -> Optional[Dict[str, Any]]:
     if not getattr(current_user, "is_authenticated", False):
         return None
 
-    alias_obj = get_alias_by_name(current_user.id, alias_name)
+    alias_obj = find_matching_alias(path)
     if not alias_obj:
         return None
+
+    base_payload["resolution"]["alias"] = alias_obj.name
 
     redirect_response = try_alias_redirect(path)
     if redirect_response is None:
