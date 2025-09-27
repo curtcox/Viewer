@@ -176,6 +176,46 @@ class TestFormIdeasAndDividers:
         assert fragment.index("First section") < fragment.index("<hr>") < fragment.index("Second section")
 
 
+class TestFormdownIntegration:
+    def test_formdown_fence_renders_form_component(self):
+        fragment = _render_fragment(
+            """
+            ```formdown
+            @name: [text required]
+            @email: [email required]
+            @submit: [submit label="Send"]
+            ```
+            """
+        )
+
+        assert "<formdown-ui>" in fragment
+        assert "@name: [text required]" in fragment
+        assert "@submit: [submit label=\"Send\"]" in fragment
+        assert fragment.strip().endswith("</formdown-ui>")
+
+    def test_formdown_fence_includes_ui_script_in_head(self):
+        html_document = _render_markdown_document(
+            """
+            ```formdown
+            @feedback: [textarea]
+            ```
+            """
+        )
+
+        assert (
+            '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>'
+            in html_document
+        )
+
+    def test_plain_markdown_omits_formdown_script(self):
+        html_document = _render_markdown_document("Regular content with no forms.")
+
+        assert (
+            '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>'
+            not in html_document
+        )
+
+
 class TestGithubStyleLinks:
     def test_relative_link_renders_with_normalized_path(self):
         fragment = _render_fragment("Navigate to [[About]] for details.")
