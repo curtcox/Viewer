@@ -19,6 +19,7 @@
                     <thead class="table-light">
                         <tr>
                             <th scope="col">Name</th>
+                            <th scope="col">Match</th>
                             <th scope="col">Target</th>
                             <th scope="col" class="text-end">Actions</th>
                         </tr>
@@ -29,6 +30,10 @@
                             <td class="fw-semibold">
                                 <span class="badge bg-secondary me-2">/{{ alias.name }}</span>
                                 {{ alias.name }}
+                            </td>
+                            <td>
+                                <div><code>{{ alias.match_pattern }}</code></div>
+                                <div class="small text-muted text-capitalize">{{ alias.match_type }}{% if alias.ignore_case %} · ignore case{% endif %}</div>
                             </td>
                             <td><code>{{ alias.target_path }}</code></td>
                             <td class="text-end">

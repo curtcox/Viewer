@@ -5,6 +5,8 @@ from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 from urllib.parse import urlsplit
 import re
 
+from alias_matching import PatternError, evaluate_test_strings, normalise_pattern
+
 
 def _strip_filter(value):
     return value.strip() if isinstance(value, str) else value
@@ -116,7 +118,29 @@ class AliasForm(FlaskForm):
         filters=[_strip_filter],
         render_kw={'placeholder': '/cid123 or /path?query=1'},
     )
+    match_type = RadioField(
+        'Match Type',
+        choices=[
+            ('literal', 'Literal'),
+            ('glob', 'Glob'),
+            ('regex', 'Regular Expression'),
+            ('flask', 'Flask Route'),
+        ],
+        default='literal',
+        validators=[DataRequired()],
+    )
+    match_pattern = StringField(
+        'Match Pattern',
+        filters=[_strip_filter],
+        render_kw={'placeholder': '/latest or /users/<username>'},
+    )
+    ignore_case = BooleanField('Ignore Case')
+    test_strings = TextAreaField(
+        'Test Strings',
+        render_kw={'rows': 4, 'placeholder': '/users/alice'},
+    )
     submit = SubmitField('Save Alias')
+    test_pattern = SubmitField('Test Pattern')
 
     def validate_target_path(self, field):
         target = field.data
@@ -128,6 +152,31 @@ class AliasForm(FlaskForm):
         parsed = urlsplit(target)
         if parsed.scheme or parsed.netloc:
             raise ValidationError('Target path must stay within this application.')
+
+    def validate(self, extra_validators=None):
+        if not super().validate(extra_validators):
+            return False
+
+        match_type = self.match_type.data or 'literal'
+        try:
+            normalised = normalise_pattern(match_type, self.match_pattern.data, self.name.data)
+        except PatternError as exc:
+            self.match_pattern.errors.append(str(exc))
+            return False
+
+        self.match_pattern.data = normalised
+        return True
+
+    def evaluated_tests(self):
+        if not self.match_pattern.data:
+            return []
+        raw_values = (self.test_strings.data or '').splitlines()
+        return evaluate_test_strings(
+            self.match_type.data,
+            self.match_pattern.data,
+            raw_values,
+            ignore_case=bool(self.ignore_case.data),
+        )
 
 class SecretForm(FlaskForm):
     name = StringField('Secret Name', validators=[

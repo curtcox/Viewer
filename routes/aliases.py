@@ -44,22 +44,33 @@ def aliases():
 def new_alias():
     """Create a new alias for the authenticated user."""
     form = AliasForm()
+    test_results = None
 
     if form.validate_on_submit():
-        name = form.name.data
-        target_path = form.target_path.data
-
-        if _alias_name_conflicts_with_routes(name):
-            flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
-        elif _alias_with_name_exists(current_user.id, name):
-            flash(f'An alias named "{name}" already exists.', 'danger')
+        if form.test_pattern.data:
+            test_results = form.evaluated_tests()
         else:
-            alias = Alias(name=name, target_path=target_path, user_id=current_user.id)
-            save_entity(alias)
-            flash(f'Alias "{name}" created successfully!', 'success')
-            return redirect(url_for('main.aliases'))
+            name = form.name.data
+            target_path = form.target_path.data
 
-    return render_template('alias_form.html', form=form, title='Create New Alias', alias=None)
+            if _alias_name_conflicts_with_routes(name):
+                flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
+            elif _alias_with_name_exists(current_user.id, name):
+                flash(f'An alias named "{name}" already exists.', 'danger')
+            else:
+                alias = Alias(
+                    name=name,
+                    target_path=target_path,
+                    user_id=current_user.id,
+                    match_type=form.match_type.data,
+                    match_pattern=form.match_pattern.data,
+                    ignore_case=bool(form.ignore_case.data),
+                )
+                save_entity(alias)
+                flash(f'Alias "{name}" created successfully!', 'success')
+                return redirect(url_for('main.aliases'))
+
+    return render_template('alias_form.html', form=form, title='Create New Alias', alias=None, test_results=test_results)
 
 
 @main_bp.route('/aliases/<alias_name>')
@@ -82,43 +93,53 @@ def edit_alias(alias_name: str):
         abort(404)
 
     form = AliasForm(obj=alias)
+    test_results = None
 
     if form.validate_on_submit():
-        new_name = form.name.data
-        new_target = form.target_path.data
+        if form.test_pattern.data:
+            test_results = form.evaluated_tests()
+        else:
+            new_name = form.name.data
+            new_target = form.target_path.data
 
-        if new_name != alias.name:
-            if _alias_name_conflicts_with_routes(new_name):
-                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
-                return render_template(
-                    'alias_form.html',
-                    form=form,
-                    title=f'Edit Alias "{alias.name}"',
-                    alias=alias,
-                )
+            if new_name != alias.name:
+                if _alias_name_conflicts_with_routes(new_name):
+                    flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
+                    return render_template(
+                        'alias_form.html',
+                        form=form,
+                        title=f'Edit Alias "{alias.name}"',
+                        alias=alias,
+                        test_results=test_results,
+                    )
 
-            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
-                flash(f'An alias named "{new_name}" already exists.', 'danger')
-                return render_template(
-                    'alias_form.html',
-                    form=form,
-                    title=f'Edit Alias "{alias.name}"',
-                    alias=alias,
-                )
+                if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
+                    flash(f'An alias named "{new_name}" already exists.', 'danger')
+                    return render_template(
+                        'alias_form.html',
+                        form=form,
+                        title=f'Edit Alias "{alias.name}"',
+                        alias=alias,
+                        test_results=test_results,
+                    )
 
-        alias.name = new_name
-        alias.target_path = new_target
-        alias.updated_at = datetime.now(timezone.utc)
-        save_entity(alias)
+            alias.name = new_name
+            alias.target_path = new_target
+            alias.match_type = form.match_type.data
+            alias.match_pattern = form.match_pattern.data
+            alias.ignore_case = bool(form.ignore_case.data)
+            alias.updated_at = datetime.now(timezone.utc)
+            save_entity(alias)
 
-        flash(f'Alias "{alias.name}" updated successfully!', 'success')
-        return redirect(url_for('main.view_alias', alias_name=alias.name))
+            flash(f'Alias "{alias.name}" updated successfully!', 'success')
+            return redirect(url_for('main.view_alias', alias_name=alias.name))
 
     return render_template(
         'alias_form.html',
         form=form,
         title=f'Edit Alias "{alias.name}"',
         alias=alias,
+        test_results=test_results,
     )
 
 
