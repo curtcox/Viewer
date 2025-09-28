@@ -31,16 +31,38 @@ def iter_server_templates() -> Iterable[Dict[str, Any]]:
     for template_file in template_dir.glob("*.json"):
         with open(template_file, 'r', encoding='utf-8') as f:
             template = json.load(f)
+
+            # Filter any embedded definitions before attaching file-based overrides
+            definition = template.get("definition")
+            if isinstance(definition, str):
+                template["definition"] = _strip_ruff_control_lines(definition)
             
             # If the template has a definition file, load its content
             if 'definition_file' in template:
                 definition_path = base_dir / template['definition_file']
                 try:
                     with open(definition_path, 'r', encoding='utf-8') as def_file:
-                        template['definition'] = def_file.read()
+                        template['definition'] = _strip_ruff_control_lines(def_file.read())
                 except IOError as e:
                     print(f"Warning: Could not load definition file {definition_path}: {e}")
                     continue
             
             # Ensure we return a copy to prevent modification of the original
             yield dict(template)
+
+
+def _strip_ruff_control_lines(definition: str) -> str:
+    """Remove ruff control comments from the provided template definition."""
+
+    lines = definition.splitlines()
+    filtered_lines = [line for line in lines if not line.lstrip().startswith("# ruff")]
+
+    if not filtered_lines:
+        return ""
+
+    stripped_definition = "\n".join(filtered_lines)
+
+    if definition.endswith("\n"):
+        stripped_definition += "\n"
+
+    return stripped_definition
