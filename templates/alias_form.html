@@ -79,7 +79,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3" id="match-pattern-group">
                             {{ form.match_pattern.label(class="form-label") }}
                             {{ form.match_pattern(class="form-control" + (" is-invalid" if form.match_pattern.errors else "")) }}
                             {% if form.match_pattern.errors %}
@@ -100,14 +100,14 @@
                             {{ form.ignore_case.label(class="form-check-label") }}
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3" data-alias-testing>
                             {{ form.test_strings.label(class="form-label") }}
                             {{ form.test_strings(class="form-control") }}
                             <div class="form-text">Enter one path per line to try the current configuration without saving.</div>
                         </div>
 
                         {% if test_results %}
-                        <div class="mb-3">
+                        <div class="mb-3" data-alias-testing>
                             <div class="alert alert-secondary mb-0">
                                 <h6 class="alert-heading">Test Results</h6>
                                 <ul class="list-unstyled mb-0 small">
@@ -131,7 +131,9 @@
                                 <i class="fas fa-times me-1"></i>Cancel
                             </a>
                             <div class="d-flex gap-2">
-                                {{ form.test_pattern(class="btn btn-outline-primary") }}
+                                <div data-alias-testing>
+                                    {{ form.test_pattern(class="btn btn-outline-primary") }}
+                                </div>
                                 {{ form.submit(class="btn btn-primary") }}
                             </div>
                         </div>
@@ -161,4 +163,35 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var matchTypeName = {{ form.match_type.name|tojson }};
+    var matchTypeInputs = document.querySelectorAll('input[name="' + matchTypeName + '"]');
+    var patternGroup = document.getElementById('match-pattern-group');
+    var testingGroups = document.querySelectorAll('[data-alias-testing]');
+
+    function updateVisibility() {
+        var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
+        var isLiteral = selected && selected.value === 'literal';
+
+        if (patternGroup) {
+            patternGroup.classList.toggle('d-none', isLiteral);
+        }
+
+        testingGroups.forEach(function (element) {
+            element.classList.toggle('d-none', isLiteral);
+        });
+    }
+
+    matchTypeInputs.forEach(function (input) {
+        input.addEventListener('change', updateVisibility);
+    });
+
+    updateVisibility();
+});
+</script>
 {% endblock %}
