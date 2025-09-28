@@ -154,20 +154,53 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
         exceptions = []
         current = exc
         seen = set()
-        
+
         while current and id(current) not in seen:
             seen.add(id(current))
             exceptions.append(current)
-            
+
             # Follow __cause__ first (explicit chaining), then __context__ (implicit)
             current = getattr(current, '__cause__', None) or getattr(current, '__context__', None)
-        
+
         return exceptions
+
+    def _strip_project_root_prefix(path_str: str, root_path: Path) -> str:
+        """Remove redundant occurrences of the project root from a display path."""
+
+        if not path_str:
+            return path_str
+
+        project_fragment = root_path.as_posix().rstrip("/")
+        if not project_fragment:
+            return path_str
+
+        normalized = path_str.replace("\\", "/")
+        updated = normalized
+        changed = False
+
+        # Remove every occurrence of the absolute project root, even if repeated.
+        while project_fragment and project_fragment in updated:
+            changed = True
+            start_index = updated.find(project_fragment)
+            end_index = start_index + len(project_fragment)
+            prefix = updated[:start_index]
+            suffix = updated[end_index:]
+            if suffix.startswith("/"):
+                suffix = suffix[1:]
+            updated = (prefix + suffix).lstrip("/")
+
+        if not changed:
+            return normalized
+
+        if not updated:
+            return normalized or path_str
+
+        return updated
 
     # Get the primary exception and build comprehensive trace
     exception = _extract_exception(error)
     exception_chain = _get_exception_chain(exception)
-    
+
     root_path = Path(current_app.root_path).resolve()
 
     # Get both git-tracked paths and all project files for comprehensive coverage
@@ -217,6 +250,8 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
                 # Create source links for ALL project files, not just git-tracked ones
                 if _should_create_source_link(relative_path, root_path):
                     source_link = f"/source/{relative_path}"
+
+            display_path = _strip_project_root_prefix(display_path, root_path)
 
             # Get more context around the error line if possible (5 lines instead of 2)
             code_context = frame.line
