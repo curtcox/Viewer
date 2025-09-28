@@ -181,6 +181,87 @@ def test_auto_main_rejects_unsupported_signatures():
     assert any("*args" in reason for reason in payload["reasons"])
 
 
+def test_helper_function_routes_map_parameters():
+    definition = """
+ from html import escape
+
+ def render_row(label, value):
+     if value in (None, ""):
+         return ""
+     return f"<p><strong>{escape(str(label))}:</strong> {escape(str(value))}</p>"
+
+ def main(name):
+     return {"output": f"Hello, {name}", "content_type": "text/plain"}
+ """
+
+    with app.test_request_context("/greet/render_row?label=Name&value=Alice"):
+        result = server_execution.execute_server_function_from_definition(
+            definition, "greet", "render_row"
+        )
+
+    assert result["output"] == "<p><strong>Name:</strong> Alice</p>"
+    assert result["content_type"] == "text/html"
+    assert result["server_name"] == "greet"
+
+
+def test_helper_function_missing_parameter_returns_error():
+    definition = """
+ def helper(required_value):
+     return {"output": required_value, "content_type": "text/plain"}
+ """
+
+    with app.test_request_context("/helper/missing"):
+        response = server_execution.execute_server_function_from_definition(
+            definition, "helper", "helper"
+        )
+
+    assert response.status_code == 400
+    payload = response.get_json()
+    assert payload["error"] == "Missing required parameters for helper()"
+    assert payload["missing_parameters"][0]["name"] == "required_value"
+
+
+def test_try_server_execution_handles_helper_routes(monkeypatch):
+    definition = """
+ def helper(label):
+     return {"output": label, "content_type": "text/plain"}
+ """
+
+    server = SimpleNamespace(definition=definition)
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: server if name == "widget" else None,
+    )
+
+    with app.test_request_context("/widget/helper?label=Value"):
+        result = server_execution.try_server_execution("/widget/helper")
+
+    assert result["output"] == "Value"
+    assert result["server_name"] == "widget"
+
+
+def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
+    definition = """
+ def main():
+     return {"output": "ok", "content_type": "text/plain"}
+ """
+
+    server = SimpleNamespace(definition=definition)
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: server if name == "widget" else None,
+    )
+
+    with app.test_request_context("/widget/unknown"):
+        result = server_execution.try_server_execution("/widget/unknown")
+
+    assert result is None
+
+
 def test_server_templates_include_auto_main_definition():
     templates = get_server_templates()
     auto_templates = [template for template in templates if template["id"] == "auto-main"]
