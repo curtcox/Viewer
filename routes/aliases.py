@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from flask import abort, flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -13,7 +13,7 @@ from forms import AliasForm
 from models import Alias
 
 from . import main_bp
-from .core import get_existing_routes
+from .core import derive_name_from_path, get_existing_routes
 
 
 def _alias_name_conflicts_with_routes(name: str) -> bool:
@@ -45,6 +45,12 @@ def new_alias():
     """Create a new alias for the authenticated user."""
     form = AliasForm()
     test_results = None
+
+    if request.method == 'GET':
+        path_hint = request.args.get('path', '')
+        suggested_name = derive_name_from_path(path_hint)
+        if suggested_name and not form.name.data:
+            form.name.data = suggested_name
 
     if form.validate_on_submit():
         if form.test_pattern.data:

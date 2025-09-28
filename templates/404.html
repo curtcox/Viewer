@@ -24,6 +24,12 @@
                         <a href="{{ url_for('main.upload') }}" class="btn btn-success">
                             <i class="fas fa-upload me-2"></i>Upload File
                         </a>
+                        <a href="{{ url_for('main.new_alias', path=path) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-link me-2"></i>Define New Alias
+                        </a>
+                        <a href="{{ url_for('main.new_server', path=path) }}" class="btn btn-outline-success">
+                            <i class="fas fa-server me-2"></i>Define New Server
+                        </a>
                         {% if current_user.is_authenticated %}
                             <a href="{{ url_for('main.profile') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-user me-2"></i>Profile

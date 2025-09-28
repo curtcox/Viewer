@@ -153,6 +153,17 @@ class TestPublicRoutes(BaseTestCase):
         response = self.client.get('/privacy')
         self.assertEqual(response.status_code, 200)
 
+    def test_404_page_includes_creation_links(self):
+        """The 404 page should offer shortcuts for creating aliases or servers."""
+        missing_path = '/missing/path'
+
+        response = self.client.get(missing_path)
+        self.assertEqual(response.status_code, 404)
+
+        page = response.get_data(as_text=True)
+        self.assertIn(f"/aliases/new?path={missing_path}", page)
+        self.assertIn(f"/servers/new?path={missing_path}", page)
+
 
 class TestAuthenticatedRoutes(BaseTestCase):
     """Test routes that require authentication."""
@@ -845,6 +856,16 @@ class TestServerRoutes(BaseTestCase):
             self.assertIn(template['name'], page)
             if template.get('description'):
                 self.assertIn(template['description'], page)
+
+    def test_new_server_prefills_name_from_path_query(self):
+        """The server creation form should reuse the requested path for its name."""
+        self.login_user()
+
+        response = self.client.get('/servers/new?path=/docs/latest')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('value="docs"', page)
 
     def test_new_server_post(self):
         """Test creating new server."""
