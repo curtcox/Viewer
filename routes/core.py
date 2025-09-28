@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import traceback
 from typing import Any, Dict, List, Optional
 
@@ -56,6 +57,29 @@ def _extract_exception(error: Exception) -> Exception:
     if isinstance(original, Exception):
         return original
     return error
+
+
+_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def derive_name_from_path(path: str) -> Optional[str]:
+    """Return the first path segment when it is safe for use as a name."""
+
+    if not path:
+        return None
+
+    remainder = path.lstrip("/")
+    if not remainder:
+        return None
+
+    segment = remainder.split("/", 1)[0]
+    if not segment:
+        return None
+
+    if not _NAME_PATTERN.fullmatch(segment):
+        return None
+
+    return segment
 
 
 def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:

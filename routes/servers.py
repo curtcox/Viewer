@@ -1,6 +1,6 @@
 """Server management routes and helpers."""
 
-from flask import abort, flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -15,6 +15,7 @@ from models import CID, Server, ServerInvocation
 from server_templates import get_server_templates
 
 from . import main_bp
+from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
 from .uploads import _shorten_cid
@@ -106,6 +107,12 @@ def servers():
 def new_server():
     """Create a new server."""
     form = ServerForm()
+
+    if request.method == 'GET':
+        path_hint = request.args.get('path', '')
+        suggested_name = derive_name_from_path(path_hint)
+        if suggested_name and not form.name.data:
+            form.name.data = suggested_name
 
     if form.validate_on_submit():
         if create_entity(Server, form, current_user.id, 'server'):

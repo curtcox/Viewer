@@ -249,6 +249,15 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(created.match_pattern, '/release/*/latest')
         self.assertTrue(created.ignore_case)
 
+    def test_new_alias_prefills_name_from_path_query(self):
+        self.login()
+
+        response = self.client.get('/aliases/new?path=/docs/latest')
+
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('value="docs"', page)
+
     def test_create_alias_rejects_conflicting_route(self):
         self.login()
 
