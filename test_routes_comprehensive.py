@@ -1036,6 +1036,45 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.get('/servers/view-server')
         self.assertEqual(response.status_code, 200)
 
+    def test_view_server_includes_main_test_form(self):
+        """Server detail page should surface parameter inputs when main() is present."""
+        server = Server(
+            name='auto-test',
+            definition='def main(user, greeting="Hello"):\n    return {"output": greeting}',
+            user_id=self.test_user.id,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.get('/servers/auto-test')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('data-mode="main"', page)
+        self.assertIn('name="user"', page)
+        self.assertIn('name="greeting"', page)
+        self.assertIn('/auto-test', page)
+
+    def test_view_server_falls_back_to_query_test_form(self):
+        """When no main() exists a key/value textarea should be displayed."""
+        server = Server(
+            name='simple-test',
+            definition='print("hello")',
+            user_id=self.test_user.id,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.get('/servers/simple-test')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('data-mode="query"', page)
+        self.assertIn('Enter each parameter on a new line', page)
+        self.assertIn('/simple-test', page)
+
     def test_view_server_invocation_history_table(self):
         """Server detail page should show invocation events in table format."""
         server = Server(
@@ -1111,6 +1150,25 @@ class TestServerRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/servers/edit-server/edit')
         self.assertEqual(response.status_code, 200)
+
+    def test_edit_server_includes_test_form(self):
+        """Edit page should expose the testing controls based on main() parameters."""
+        server = Server(
+            name='edit-test',
+            definition='def main(token):\n    return {"output": token}',
+            user_id=self.test_user.id,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.get('/servers/edit-test/edit')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('data-mode="main"', page)
+        self.assertIn('name="token"', page)
+        self.assertIn('/edit-test', page)
 
     def test_edit_server_post(self):
         """Test editing server."""

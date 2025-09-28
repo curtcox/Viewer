@@ -94,6 +94,10 @@
                 </div>
             </div>
 
+            {% if server_test_config is defined and server_test_config %}
+            {% include "_server_test_card.html" %}
+            {% endif %}
+
             {% if definition_history %}
             <div class="card mt-4">
                 <div class="card-header">

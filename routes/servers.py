@@ -1,5 +1,7 @@
 """Server management routes and helpers."""
 
+from typing import Optional
+
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
@@ -12,6 +14,7 @@ from cid_utils import (
 from db_access import delete_entity, get_server_by_name, get_user_servers
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
+from server_execution import describe_main_function_parameters
 from server_templates import get_server_templates
 
 from . import main_bp
@@ -19,6 +22,28 @@ from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
 from .uploads import _shorten_cid
+
+
+def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
+    """Create the context needed to render the server test form."""
+
+    if not server_name:
+        return None
+
+    action_path = f"/{server_name}"
+    description = describe_main_function_parameters(definition or "")
+
+    if description:
+        return {
+            'mode': 'main',
+            'action': action_path,
+            'parameters': description.get('parameters', []),
+        }
+
+    return {
+        'mode': 'query',
+        'action': action_path,
+    }
 
 
 def get_server_definition_history(user_id, server_name):
@@ -136,6 +161,7 @@ def view_server(server_name):
 
     history = get_server_definition_history(current_user.id, server_name)
     invocations = get_server_invocation_history(current_user.id, server_name)
+    test_config = _build_server_test_config(server.name, server.definition)
 
     return render_template(
         'server_view.html',
@@ -143,6 +169,7 @@ def view_server(server_name):
         definition_history=history,
         server_invocations=invocations,
         server_invocation_count=len(invocations),
+        server_test_config=test_config,
     )
 
 
@@ -158,6 +185,8 @@ def edit_server(server_name):
 
     history = get_server_definition_history(current_user.id, server_name)
     invocations = get_server_invocation_history(current_user.id, server_name)
+    definition_text = form.definition.data if form.definition.data is not None else server.definition
+    test_config = _build_server_test_config(server.name, definition_text)
 
     if form.validate_on_submit():
         if update_entity(server, form, 'server'):
@@ -170,6 +199,7 @@ def edit_server(server_name):
             definition_history=history,
             server_invocations=invocations,
             server_invocation_count=len(invocations),
+            server_test_config=test_config,
         )
 
     return render_template(
@@ -180,6 +210,7 @@ def edit_server(server_name):
         definition_history=history,
         server_invocations=invocations,
         server_invocation_count=len(invocations),
+        server_test_config=test_config,
     )
 
 
