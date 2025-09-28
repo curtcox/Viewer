@@ -6,6 +6,7 @@ import inspect
 import os
 import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from urllib.parse import urlsplit
 
 from flask import Response, current_app, jsonify, url_for
 from flask_login import current_user
@@ -14,7 +15,7 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
-from db_access import get_cid_by_path, get_server_by_name
+from db_access import get_cid_by_path, get_server_by_name, get_user_aliases
 from models import ServerInvocation
 from server_execution import (
     is_potential_server_path,
@@ -198,7 +199,78 @@ def _extract_alias_name(path: str) -> Optional[str]:
     return remainder.split("/", 1)[0]
 
 
-def _resolve_alias_path(path: str) -> Optional[Dict[str, Any]]:
+def _normalize_alias_target_path(target: Optional[str]) -> Optional[str]:
+    """Return a normalized local path for an alias target if available."""
+    if not target:
+        return None
+
+    stripped = target.strip()
+    if not stripped:
+        return None
+
+    parsed = urlsplit(stripped)
+    if parsed.scheme or parsed.netloc:
+        return None
+
+    candidate = parsed.path or ""
+    if not candidate:
+        return None
+
+    if not candidate.startswith("/"):
+        candidate = f"/{candidate}"
+
+    return candidate
+
+
+def _serialize_alias(alias) -> Dict[str, Any]:
+    """Return a JSON-serializable representation of an alias."""
+    effective_pattern = (
+        alias.get_effective_pattern()
+        if hasattr(alias, "get_effective_pattern")
+        else getattr(alias, "match_pattern", None)
+    )
+
+    return {
+        "id": getattr(alias, "id", None),
+        "name": getattr(alias, "name", None),
+        "match_type": getattr(alias, "match_type", None),
+        "match_pattern": effective_pattern,
+        "ignore_case": bool(getattr(alias, "ignore_case", False)),
+        "target_path": getattr(alias, "target_path", None),
+    }
+
+
+def _aliases_targeting_path(path: str) -> List[Dict[str, Any]]:
+    """Return aliases owned by the current user that target the supplied path."""
+    if not getattr(current_user, "is_authenticated", False):
+        return []
+
+    normalized = _normalize_target_path(path)
+    aliases = []
+    for alias in get_user_aliases(current_user.id):
+        target_path = _normalize_alias_target_path(getattr(alias, "target_path", None))
+        if not target_path:
+            continue
+        if target_path != normalized:
+            continue
+
+        serialized = _serialize_alias(alias)
+        serialized["meta_link"] = f"/meta/{serialized['name']}" if serialized.get("name") else None
+        aliases.append(serialized)
+
+    return aliases
+
+
+def _attach_alias_targeting_metadata(metadata: Dict[str, Any], path: str) -> None:
+    """Annotate metadata with aliases targeting the supplied path."""
+    aliases = _aliases_targeting_path(path)
+    if not aliases:
+        return
+
+    metadata["aliases_targeting_path"] = aliases
+
+
+def _resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> Optional[Dict[str, Any]]:
     """Return metadata for alias-based routes if applicable."""
     base_payload: Dict[str, Any] = {
         "path": path,
@@ -223,13 +295,55 @@ def _resolve_alias_path(path: str) -> Optional[Dict[str, Any]]:
         return None
 
     base_payload["status_code"] = redirect_response.status_code
+    target_path = getattr(alias_obj, "target_path", None)
     base_payload["resolution"].update(
         {
             "available": True,
-            "target_path": getattr(alias_obj, "target_path", None),
+            "target_path": target_path,
             "redirect_location": redirect_response.location,
         }
     )
+
+    if not include_target_metadata:
+        return base_payload
+
+    normalized_target = _normalize_alias_target_path(target_path)
+    target_metadata: Dict[str, Any] = {
+        "path": normalized_target or target_path,
+    }
+
+    if not normalized_target:
+        target_metadata.update({"available": False, "reason": "external_or_invalid"})
+        base_payload["resolution"]["target_metadata"] = target_metadata
+        return base_payload
+
+    if normalized_target == path:
+        target_metadata.update({"available": False, "reason": "self_referential"})
+        base_payload["resolution"]["target_metadata"] = target_metadata
+        return base_payload
+
+    target_metadata["meta_link"] = f"/meta/{normalized_target.lstrip('/')}"
+
+    nested_metadata, status_code = _gather_metadata(
+        normalized_target,
+        include_alias_relations=False,
+        include_alias_target_metadata=False,
+    )
+
+    if nested_metadata:
+        target_metadata.update(
+            {
+                "available": True,
+                "status_code": nested_metadata.get("status_code", status_code),
+                "resolution": nested_metadata.get("resolution"),
+                "source_links": nested_metadata.get("source_links"),
+                "path": nested_metadata.get("path", normalized_target),
+            }
+        )
+    else:
+        target_metadata.update({"available": False})
+
+    base_payload["resolution"]["target_metadata"] = target_metadata
     return base_payload
 
 
@@ -515,12 +629,16 @@ def _render_metadata_html(metadata: Dict[str, Any]) -> str:
     return f"""<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Meta Inspector</title><style>{styles}</style></head><body><h1>Meta inspector</h1>{body}</body></html>"""
 
 
-def _handle_not_found(path: str) -> Tuple[Optional[Dict[str, Any]], int]:
+def _handle_not_found(
+    path: str,
+    *,
+    include_alias_target_metadata: bool,
+) -> Tuple[Optional[Dict[str, Any]], int]:
     """Return metadata for paths that fall through to the 404 handler."""
     existing_routes = get_existing_routes()
 
     if is_potential_alias_path(path, existing_routes):
-        alias_metadata = _resolve_alias_path(path)
+        alias_metadata = _resolve_alias_path(path, include_target_metadata=include_alias_target_metadata)
         if alias_metadata:
             return alias_metadata, _metadata_status(alias_metadata)
 
@@ -541,7 +659,12 @@ def _handle_not_found(path: str) -> Tuple[Optional[Dict[str, Any]], int]:
     return None, 404
 
 
-def _gather_metadata(path: str) -> Tuple[Optional[Dict[str, Any]], int]:
+def _gather_metadata(
+    path: str,
+    *,
+    include_alias_relations: bool = True,
+    include_alias_target_metadata: bool = True,
+) -> Tuple[Optional[Dict[str, Any]], int]:
     """Return metadata for the requested application path."""
     adapter = current_app.url_map.bind("")
     try:
@@ -556,6 +679,8 @@ def _gather_metadata(path: str) -> Tuple[Optional[Dict[str, Any]], int]:
             },
             "source_links": [META_SOURCE_LINK],
         }
+        if include_alias_relations:
+            _attach_alias_targeting_metadata(metadata, metadata.get("path", path))
         return metadata, 200
     except MethodNotAllowed as exc:
         allowed = sorted(exc.valid_methods or [])
@@ -579,11 +704,21 @@ def _gather_metadata(path: str) -> Tuple[Optional[Dict[str, Any]], int]:
                 },
                 "source_links": _dedupe_links(metadata["source_links"] + route_metadata["source_links"]),
             })
+        if include_alias_relations:
+            _attach_alias_targeting_metadata(metadata, metadata.get("path", path))
         return metadata, 200
     except NotFound:
-        return _handle_not_found(path)
+        metadata, status = _handle_not_found(
+            path,
+            include_alias_target_metadata=include_alias_target_metadata,
+        )
+        if metadata and include_alias_relations:
+            _attach_alias_targeting_metadata(metadata, metadata.get("path", path))
+        return metadata, status
 
     metadata = _build_route_resolution(path, rule, values)
+    if metadata and include_alias_relations:
+        _attach_alias_targeting_metadata(metadata, metadata.get("path", path))
     return metadata, 200
 
 
