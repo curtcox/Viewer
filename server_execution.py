@@ -1,8 +1,11 @@
 """Helper functions for executing user-defined servers."""
 
+import ast
 import json
+import textwrap
 import traceback
-from typing import Any, Callable, Dict, Iterable, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from flask import jsonify, make_response, redirect, render_template, request
 from flask_login import current_user
@@ -25,6 +28,254 @@ from db_access import (
     save_entity,
 )
 from text_function_runner import run_text_function
+
+AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
+AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
+
+
+@dataclass
+class MainFunctionDetails:
+    """Extracted metadata about an auto-invoked ``main`` function."""
+
+    parameter_order: List[str]
+    required_parameters: List[str]
+    optional_parameters: List[str]
+    unsupported_reasons: List[str]
+
+
+class _AutoMainAnalyzer(ast.NodeVisitor):
+    """Inspect a wrapped server definition for main() compatibility."""
+
+    def __init__(self):
+        self.function_depth = 0
+        self.main_node: Optional[ast.FunctionDef] = None
+        self.has_outer_return = False
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pragma: no cover - exercised indirectly
+        self.function_depth += 1
+        try:
+            if self.function_depth == 2 and node.name == "main":
+                self.main_node = node
+            self.generic_visit(node)
+        finally:
+            self.function_depth -= 1
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_Return(self, node: ast.Return) -> None:  # pragma: no cover - exercised indirectly
+        if self.function_depth == 1:
+            self.has_outer_return = True
+        self.generic_visit(node)
+
+
+class MissingParameterError(Exception):
+    """Raised when a required parameter cannot be resolved from the request."""
+
+    def __init__(self, missing: List[str], available: Dict[str, List[str]]):
+        message = ", ".join(sorted(missing))
+        super().__init__(f"Missing required parameters: {message}")
+        self.missing = missing
+        self.available = available
+
+
+def _parse_main_function_details(node: ast.FunctionDef) -> MainFunctionDetails:
+    positional = [arg.arg for arg in node.args.args]
+    defaults = list(node.args.defaults) if node.args.defaults else []
+    num_required = len(positional) - len(defaults)
+    required_params = positional[:num_required]
+    optional_params = positional[num_required:]
+
+    kwonly_args = [arg.arg for arg in node.args.kwonlyargs]
+    kw_defaults = node.args.kw_defaults or []
+    for index, arg in enumerate(kwonly_args):
+        default_value = kw_defaults[index] if index < len(kw_defaults) else None
+        if default_value is None:
+            required_params.append(arg)
+        else:
+            optional_params.append(arg)
+
+    parameter_order = positional + kwonly_args
+
+    unsupported: List[str] = []
+    if getattr(node.args, "posonlyargs", []):
+        unsupported.append("positional-only parameters are not supported")
+    if node.args.vararg is not None:
+        unsupported.append("var positional parameters (*args) are not supported")
+    if node.args.kwarg is not None:
+        unsupported.append("arbitrary keyword parameters (**kwargs) are not supported")
+
+    return MainFunctionDetails(
+        parameter_order=parameter_order,
+        required_parameters=required_params,
+        optional_parameters=optional_params,
+        unsupported_reasons=unsupported,
+    )
+
+
+def _analyze_server_definition_for_main(code: str) -> Optional[MainFunctionDetails]:
+    wrapper_src = "def __viewer_wrapper__():\n" + textwrap.indent(code, "    ")
+    try:
+        tree = ast.parse(wrapper_src)
+    except SyntaxError:
+        return None
+
+    wrapper_fn = tree.body[0]
+    if not isinstance(wrapper_fn, ast.FunctionDef):  # pragma: no cover - defensive
+        return None
+
+    analyzer = _AutoMainAnalyzer()
+    analyzer.visit(wrapper_fn)
+
+    if analyzer.main_node is None or analyzer.has_outer_return:
+        return None
+
+    return _parse_main_function_details(analyzer.main_node)
+
+
+def _extract_request_body_values() -> Dict[str, Any]:
+    body: Dict[str, Any] = {}
+
+    try:
+        json_payload = request.get_json(silent=True)
+    except Exception:  # pragma: no cover - defensive
+        json_payload = None
+
+    if isinstance(json_payload, dict):
+        body.update(json_payload)
+
+    if request.form:
+        body.update(request.form.to_dict(flat=True))
+
+    return body
+
+
+def _resolve_main_parameters(
+    details: MainFunctionDetails,
+    base_args: Dict[str, Any],
+) -> Dict[str, Any]:
+    required = set(details.required_parameters)
+    resolved: Dict[str, Any] = {}
+    missing: List[str] = []
+
+    query_values = request.args.to_dict(flat=True) if request.args else {}
+    body_values = _extract_request_body_values()
+    header_values = {k.lower(): v for k, v in request.headers.items()}
+    available = {
+        "query_string": sorted(query_values.keys()),
+        "request_body": sorted(body_values.keys()),
+        "headers": sorted({k for k in request.headers.keys()}),
+    }
+
+    def _lookup_header(name: str) -> Optional[Any]:
+        lowered = name.lower()
+        if lowered in header_values:
+            return header_values[lowered]
+        dashed = name.replace("_", "-").lower()
+        if dashed in header_values:
+            return header_values[dashed]
+        return None
+
+    for name in details.parameter_order:
+        if name in query_values:
+            resolved[name] = query_values[name]
+            continue
+
+        if name in body_values:
+            resolved[name] = body_values[name]
+            continue
+
+        header_value = _lookup_header(name)
+        if header_value is not None:
+            resolved[name] = header_value
+            continue
+
+        if name in base_args:
+            resolved[name] = base_args[name]
+            continue
+
+        if name in required:
+            missing.append(name)
+
+    if missing:
+        raise MissingParameterError(missing, available)
+
+    return resolved
+
+
+def _build_missing_parameter_response(error: MissingParameterError):
+    payload = {
+        "error": "Missing required parameters for main()",
+        "missing_parameters": [
+            {
+                "name": name,
+                "detail": (
+                    "Provide the parameter via the query string, request body, or HTTP headers."
+                ),
+            }
+            for name in sorted(error.missing)
+        ],
+        "available_keys": error.available,
+    }
+    response = jsonify(payload)
+    response.status_code = 400
+    return response
+
+
+def _build_unsupported_signature_response(details: MainFunctionDetails):
+    payload = {
+        "error": "Unsupported main() signature for automatic request mapping",
+        "reasons": details.unsupported_reasons,
+        "resolution": (
+            "Use only standard positional or keyword parameters, or provide an explicit return outside main()."
+        ),
+    }
+    response = jsonify(payload)
+    response.status_code = 400
+    return response
+
+
+def _prepare_main_invocation(
+    code: str, base_args: Dict[str, Any]
+) -> Any:
+    details = _analyze_server_definition_for_main(code)
+    if not details:
+        return code, base_args
+
+    if details.unsupported_reasons:
+        return _build_unsupported_signature_response(details)
+
+    try:
+        resolved = _resolve_main_parameters(details, base_args)
+    except MissingParameterError as error:
+        return _build_missing_parameter_response(error)
+
+    new_args = dict(base_args)
+    new_args[AUTO_MAIN_PARAMS_NAME] = resolved
+
+    snippet = textwrap.dedent(
+        f"""
+        {AUTO_MAIN_RESULT_NAME} = main(**{AUTO_MAIN_PARAMS_NAME})
+        return {AUTO_MAIN_RESULT_NAME}
+        """
+    ).strip()
+
+    base_indent = ""
+    for line in code.splitlines():
+        stripped = line.lstrip()
+        if stripped:
+            base_indent = line[: len(line) - len(stripped)]
+            break
+
+    if base_indent:
+        snippet = textwrap.indent(snippet, base_indent)
+
+    combined = code.rstrip()
+    if combined:
+        combined = f"{combined}\n\n{snippet}\n"
+    else:
+        combined = f"{snippet}\n"
+
+    return combined, new_args
 
 
 def model_as_dict(model_objects: Optional[Iterable[Any]]) -> Dict[str, Any]:
@@ -228,8 +479,14 @@ def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any])
 def _execute_server_code_common(code: str, server_name: str, debug_prefix: str, error_suffix: str):
     args = build_request_args()
 
+    prepared = _prepare_main_invocation(code, args)
+    if isinstance(prepared, tuple):
+        code_to_run, args_to_use = prepared
+    else:
+        return prepared
+
     try:
-        result = run_text_function(code, args)
+        result = run_text_function(code_to_run, args_to_use)
         output = result.get("output", "")
         content_type = result.get("content_type", "text/html")
         _log_server_output(debug_prefix, error_suffix, output, content_type)

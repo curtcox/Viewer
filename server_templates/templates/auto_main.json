@@ -1,0 +1,6 @@
+{
+  "id": "auto-main",
+  "name": "Automatic main() mapping",
+  "description": "Demonstrates automatic request parameter mapping to a main() function.",
+  "definition_file": "definitions/auto_main.py"
+}
