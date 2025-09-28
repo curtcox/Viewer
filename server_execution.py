@@ -502,18 +502,43 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
     return redirect(f"/{cid}")
 
 
-def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any]):
-    text = (
-        str(exc)
-        + "\n\n"
-        + traceback.format_exc()
-        + "\n\n"
-        + code
-        + "\n\n"
-        + str(args)
+def _render_execution_error_html(exc: Exception, code: str, args: Dict[str, Any]) -> str:
+    """Render an HTML error page for exceptions raised during server execution."""
+
+    from routes.core import _build_stack_trace, _extract_exception
+
+    exception = _extract_exception(exc)
+    exception_type = type(exception).__name__
+    raw_message = str(exception)
+    message = raw_message if raw_message else "No error message available"
+    stack_trace = _build_stack_trace(exc)
+
+    return render_template(
+        "500.html",
+        stack_trace=stack_trace,
+        exception_type=exception_type,
+        exception_message=message,
     )
-    response = make_response(text)
-    response.headers["Content-Type"] = "text/plain"
+
+
+def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any]):
+    try:
+        html_content = _render_execution_error_html(exc, code, args)
+        response = make_response(html_content)
+        response.headers["Content-Type"] = "text/html; charset=utf-8"
+    except Exception:
+        text = (
+            str(exc)
+            + "\n\n"
+            + traceback.format_exc()
+            + "\n\n"
+            + code
+            + "\n\n"
+            + str(args)
+        )
+        response = make_response(text)
+        response.headers["Content-Type"] = "text/plain"
+
     response.status_code = 500
     return response
 

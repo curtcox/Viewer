@@ -1,0 +1,136 @@
+"""Integration tests for server execution error pages."""
+from __future__ import annotations
+
+from html.parser import HTMLParser
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+import unittest
+
+from app import create_app
+from database import db
+from models import Server, User
+
+
+class _SourceLinkParser(HTMLParser):
+    """Collect ``/source`` hyperlink label pairs from rendered HTML."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._collect = False
+        self._current_href: str | None = None
+        self._buffer: list[str] = []
+        self.links: list[tuple[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href and href.startswith("/source/"):
+                self._current_href = href
+        elif tag == "code" and self._current_href:
+            self._collect = True
+
+    def handle_data(self, data: str) -> None:
+        if self._collect:
+            self._buffer.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "code" and self._collect:
+            self._collect = False
+        elif tag == "a" and self._current_href:
+            label = "".join(self._buffer).strip()
+            if label:
+                self.links.append((self._current_href, label))
+            self._current_href = None
+            self._buffer = []
+
+
+class TestServerExecutionErrorPages(unittest.TestCase):
+    """Ensure server execution failures render enhanced error pages."""
+
+    def setUp(self) -> None:
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+        self.user = User(
+            id="user-1",
+            email="user@example.com",
+            is_paid=True,
+            current_terms_accepted=True,
+            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+        )
+        db.session.add(self.user)
+
+        template_path = (
+            Path(self.app.root_path)
+            / "server_templates"
+            / "definitions"
+            / "jinja_renderer.py"
+        )
+        definition = template_path.read_text(encoding="utf-8")
+        self.server = Server(
+            name="jinja_renderer",
+            definition=definition,
+            user_id=self.user.id,
+        )
+        db.session.add(self.server)
+        db.session.commit()
+
+        self.client = self.app.test_client()
+        with self.client.session_transaction() as session:
+            session["_user_id"] = self.user.id
+            session["_fresh"] = True
+
+    def tearDown(self) -> None:
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    def test_error_page_strips_project_root_and_links_sources(self) -> None:
+        response = self.client.get("/jinja_renderer")
+
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("text/html", response.headers["Content-Type"])
+
+        html = response.get_data(as_text=True)
+        normalized = html.replace("\\", "/")
+        root_fragment = Path(self.app.root_path).resolve().as_posix()
+        self.assertNotIn(
+            root_fragment,
+            normalized,
+            msg="Error page should not include redundant absolute project prefixes",
+        )
+
+        parser = _SourceLinkParser()
+        parser.feed(html)
+        self.assertGreater(
+            len(parser.links),
+            0,
+            msg="Stack trace should include at least one source hyperlink",
+        )
+
+        for href, label in parser.links:
+            self.assertTrue(href.startswith("/source/"))
+            expected_label = href[len("/source/") :]
+            self.assertEqual(
+                label,
+                expected_label,
+                msg="Source link label should match its /source relative path",
+            )
+
+        self.assertIn(
+            "server_execution.py",
+            {label for _, label in parser.links},
+            msg="Server execution frame should expose a /source link",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
