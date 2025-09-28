@@ -54,7 +54,13 @@ class TestEchoFunctionality(unittest.TestCase):
         existing_routes = get_existing_routes()
         result = is_potential_server_path('/echo', existing_routes)
         self.assertTrue(result, "/echo should be identified as a potential server path")
-    
+
+    def test_is_potential_server_path_for_helper(self):
+        """Test that /echo/helper is identified as a potential server path"""
+        existing_routes = get_existing_routes()
+        result = is_potential_server_path('/echo/helper', existing_routes)
+        self.assertTrue(result, "/echo/helper should be identified as a potential server path")
+
     def test_try_server_execution_without_authentication(self):
         """Test that server execution fails without authentication"""
         with app.test_request_context('/echo'):

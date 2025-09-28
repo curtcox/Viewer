@@ -494,16 +494,16 @@ def not_found_error(error):
         if alias_result is not None:
             return alias_result
 
+    if is_potential_server_path(path, existing_routes):
+        server_result = try_server_execution(path)
+        if server_result is not None:
+            return server_result
+
     if is_potential_versioned_server_path(path, existing_routes):
         from .servers import get_server_definition_history
 
         server_result = try_server_execution_with_partial(path, get_server_definition_history)
         if server_result is not None:
-            return server_result
-
-    if is_potential_server_path(path, existing_routes):
-        server_result = try_server_execution(path)
-        if server_result:
             return server_result
 
     base_path = path.split('.')[0] if '.' in path else path

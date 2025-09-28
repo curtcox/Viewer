@@ -35,7 +35,8 @@ class TestVersionedServerInvocation(unittest.TestCase):
         self.assertFalse(is_potential_versioned_server_path('/', existing))
         self.assertFalse(is_potential_versioned_server_path('/foo', existing))  # only one segment
         self.assertFalse(is_potential_versioned_server_path('/servers/abc', existing))  # collides with existing route root
-        self.assertFalse(is_potential_versioned_server_path('/a/b/c', existing))  # too many segments
+        self.assertTrue(is_potential_versioned_server_path('/foo/abc/helper', existing))
+        self.assertFalse(is_potential_versioned_server_path('/a/b/c/d', existing))  # too many segments
 
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
@@ -100,6 +101,30 @@ class TestVersionedServerInvocation(unittest.TestCase):
         result = try_server_execution_with_partial(f'/{self.server_name}/abc', history_fetcher)
         self.assertEqual(result, 'EXECUTED')
         mock_execute.assert_called_once()
+
+    @patch('server_execution.execute_server_function_from_definition')
+    @patch('server_execution.get_server_by_name')
+    @patch('server_execution.current_user')
+    def test_try_partial_helper_executes(self, mock_current_user, mock_get_server_by_name, mock_execute_helper):
+        mock_current_user.is_authenticated = True
+        mock_get_server_by_name.return_value = object()
+        history_entry = {
+            'definition_cid': 'abc123',
+            'snapshot_cid': 'snapcid',
+            'definition': "def helper(label):\n    return {'output': label, 'content_type': 'text/plain'}\n",
+            'created_at': None,
+        }
+        history_fetcher = Mock(return_value=[history_entry])
+        mock_execute_helper.return_value = 'HELPER'
+
+        result = try_server_execution_with_partial(
+            f'/{self.server_name}/abc/helper', history_fetcher
+        )
+
+        self.assertEqual(result, 'HELPER')
+        mock_execute_helper.assert_called_once_with(
+            history_entry['definition'], self.server_name, 'helper'
+        )
 
 
 if __name__ == '__main__':

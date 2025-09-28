@@ -34,8 +34,8 @@ AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 
 
 @dataclass
-class MainFunctionDetails:
-    """Extracted metadata about an auto-invoked ``main`` function."""
+class FunctionDetails:
+    """Extracted metadata about an auto-invoked function."""
 
     parameter_order: List[str]
     required_parameters: List[str]
@@ -43,19 +43,20 @@ class MainFunctionDetails:
     unsupported_reasons: List[str]
 
 
-class _AutoMainAnalyzer(ast.NodeVisitor):
-    """Inspect a wrapped server definition for main() compatibility."""
+class _FunctionAnalyzer(ast.NodeVisitor):
+    """Inspect a wrapped server definition for function compatibility."""
 
-    def __init__(self):
+    def __init__(self, target_name: str):
         self.function_depth = 0
-        self.main_node: Optional[ast.FunctionDef] = None
+        self.target_name = target_name
+        self.target_node: Optional[ast.FunctionDef] = None
         self.has_outer_return = False
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pragma: no cover - exercised indirectly
         self.function_depth += 1
         try:
-            if self.function_depth == 2 and node.name == "main":
-                self.main_node = node
+            if self.function_depth == 2 and node.name == self.target_name:
+                self.target_node = node
             self.generic_visit(node)
         finally:
             self.function_depth -= 1
@@ -78,7 +79,7 @@ class MissingParameterError(Exception):
         self.available = available
 
 
-def _parse_main_function_details(node: ast.FunctionDef) -> MainFunctionDetails:
+def _parse_function_details(node: ast.FunctionDef) -> FunctionDetails:
     positional = [arg.arg for arg in node.args.args]
     defaults = list(node.args.defaults) if node.args.defaults else []
     num_required = len(positional) - len(defaults)
@@ -104,7 +105,7 @@ def _parse_main_function_details(node: ast.FunctionDef) -> MainFunctionDetails:
     if node.args.kwarg is not None:
         unsupported.append("arbitrary keyword parameters (**kwargs) are not supported")
 
-    return MainFunctionDetails(
+    return FunctionDetails(
         parameter_order=parameter_order,
         required_parameters=required_params,
         optional_parameters=optional_params,
@@ -112,7 +113,9 @@ def _parse_main_function_details(node: ast.FunctionDef) -> MainFunctionDetails:
     )
 
 
-def _analyze_server_definition_for_main(code: str) -> Optional[MainFunctionDetails]:
+def _analyze_server_definition_for_function(
+    code: str, function_name: str
+) -> Optional[FunctionDetails]:
     wrapper_src = "def __viewer_wrapper__():\n" + textwrap.indent(code, "    ")
     try:
         tree = ast.parse(wrapper_src)
@@ -123,19 +126,21 @@ def _analyze_server_definition_for_main(code: str) -> Optional[MainFunctionDetai
     if not isinstance(wrapper_fn, ast.FunctionDef):  # pragma: no cover - defensive
         return None
 
-    analyzer = _AutoMainAnalyzer()
+    analyzer = _FunctionAnalyzer(function_name)
     analyzer.visit(wrapper_fn)
 
-    if analyzer.main_node is None or analyzer.has_outer_return:
+    if analyzer.target_node is None or analyzer.has_outer_return:
         return None
 
-    return _parse_main_function_details(analyzer.main_node)
+    return _parse_function_details(analyzer.target_node)
 
 
-def describe_main_function_parameters(code: str) -> Optional[Dict[str, Any]]:
-    """Return a simplified description of ``main`` parameters for UI helpers."""
+def describe_function_parameters(
+    code: str, function_name: str
+) -> Optional[Dict[str, Any]]:
+    """Return a simplified description of function parameters for UI helpers."""
 
-    details = _analyze_server_definition_for_main(code or "")
+    details = _analyze_server_definition_for_function(code or "", function_name)
     if not details or details.unsupported_reasons:
         return None
 
@@ -150,6 +155,12 @@ def describe_main_function_parameters(code: str) -> Optional[Dict[str, Any]]:
         "required_parameters": details.required_parameters,
         "optional_parameters": details.optional_parameters,
     }
+
+
+def describe_main_function_parameters(code: str) -> Optional[Dict[str, Any]]:
+    """Return a simplified description of ``main`` parameters for UI helpers."""
+
+    return describe_function_parameters(code, "main")
 
 
 def _extract_request_body_values() -> Dict[str, Any]:
@@ -169,8 +180,8 @@ def _extract_request_body_values() -> Dict[str, Any]:
     return body
 
 
-def _resolve_main_parameters(
-    details: MainFunctionDetails,
+def _resolve_function_parameters(
+    details: FunctionDetails,
     base_args: Dict[str, Any],
 ) -> Dict[str, Any]:
     required = set(details.required_parameters)
@@ -222,9 +233,11 @@ def _resolve_main_parameters(
     return resolved
 
 
-def _build_missing_parameter_response(error: MissingParameterError):
+def _build_missing_parameter_response(
+    function_name: str, error: MissingParameterError
+):
     payload = {
-        "error": "Missing required parameters for main()",
+        "error": f"Missing required parameters for {function_name}()",
         "missing_parameters": [
             {
                 "name": name,
@@ -241,12 +254,14 @@ def _build_missing_parameter_response(error: MissingParameterError):
     return response
 
 
-def _build_unsupported_signature_response(details: MainFunctionDetails):
+def _build_unsupported_signature_response(
+    function_name: str, details: FunctionDetails
+):
     payload = {
-        "error": "Unsupported main() signature for automatic request mapping",
+        "error": f"Unsupported {function_name}() signature for automatic request mapping",
         "reasons": details.unsupported_reasons,
         "resolution": (
-            "Use only standard positional or keyword parameters, or provide an explicit return outside main()."
+            f"Use only standard positional or keyword parameters, or provide an explicit return outside {function_name}()."
         ),
     }
     response = jsonify(payload)
@@ -254,27 +269,34 @@ def _build_unsupported_signature_response(details: MainFunctionDetails):
     return response
 
 
-def _prepare_main_invocation(
-    code: str, base_args: Dict[str, Any]
+def _prepare_invocation(
+    code: str,
+    base_args: Dict[str, Any],
+    *,
+    function_name: Optional[str],
+    allow_fallback: bool,
 ) -> Any:
-    details = _analyze_server_definition_for_main(code)
-    if not details:
+    if not function_name:
         return code, base_args
 
+    details = _analyze_server_definition_for_function(code, function_name)
+    if not details:
+        return (code, base_args) if allow_fallback else None
+
     if details.unsupported_reasons:
-        return _build_unsupported_signature_response(details)
+        return _build_unsupported_signature_response(function_name, details)
 
     try:
-        resolved = _resolve_main_parameters(details, base_args)
+        resolved = _resolve_function_parameters(details, base_args)
     except MissingParameterError as error:
-        return _build_missing_parameter_response(error)
+        return _build_missing_parameter_response(function_name, error)
 
     new_args = dict(base_args)
     new_args[AUTO_MAIN_PARAMS_NAME] = resolved
 
     snippet = textwrap.dedent(
         f"""
-        {AUTO_MAIN_RESULT_NAME} = main(**{AUTO_MAIN_PARAMS_NAME})
+        {AUTO_MAIN_RESULT_NAME} = {function_name}(**{AUTO_MAIN_PARAMS_NAME})
         return {AUTO_MAIN_RESULT_NAME}
         """
     ).strip()
@@ -496,10 +518,23 @@ def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any])
     return response
 
 
-def _execute_server_code_common(code: str, server_name: str, debug_prefix: str, error_suffix: str):
+def _execute_server_code_common(
+    code: str,
+    server_name: str,
+    debug_prefix: str,
+    error_suffix: str,
+    *,
+    function_name: Optional[str] = "main",
+    allow_fallback: bool = True,
+):
     args = build_request_args()
 
-    prepared = _prepare_main_invocation(code, args)
+    prepared = _prepare_invocation(
+        code, args, function_name=function_name, allow_fallback=allow_fallback
+    )
+    if prepared is None:
+        return None
+
     if isinstance(prepared, tuple):
         code_to_run, args_to_use = prepared
     else:
@@ -507,8 +542,14 @@ def _execute_server_code_common(code: str, server_name: str, debug_prefix: str, 
 
     try:
         result = run_text_function(code_to_run, args_to_use)
-        output = result.get("output", "")
-        content_type = result.get("content_type", "text/html")
+        if isinstance(result, dict):
+            output = result.get("output", "")
+            content_type = result.get("content_type", "text/html")
+        elif isinstance(result, tuple) and len(result) == 2:
+            output, content_type = result
+        else:
+            output = result
+            content_type = "text/html"
         _log_server_output(debug_prefix, error_suffix, output, content_type)
         return _handle_successful_execution(output, content_type, server_name)
     except Exception as exc:
@@ -517,7 +558,14 @@ def _execute_server_code_common(code: str, server_name: str, debug_prefix: str, 
 
 def execute_server_code(server, server_name: str):
     """Execute server code and return a redirect to the resulting CID."""
-    return _execute_server_code_common(server.definition, server_name, "execute_server_code", "")
+    return _execute_server_code_common(
+        server.definition,
+        server_name,
+        "execute_server_code",
+        "",
+        function_name="main",
+        allow_fallback=True,
+    )
 
 
 def execute_server_code_from_definition(definition_text: str, server_name: str):
@@ -527,15 +575,45 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
         server_name,
         "execute_server_code_from_definition",
         "in _from_definition",
+        function_name="main",
+        allow_fallback=True,
+    )
+
+
+def execute_server_function(server, server_name: str, function_name: str):
+    """Execute a named helper function within a server definition."""
+
+    return _execute_server_code_common(
+        server.definition,
+        server_name,
+        "execute_server_function",
+        f" for {function_name}",
+        function_name=function_name,
+        allow_fallback=False,
+    )
+
+
+def execute_server_function_from_definition(
+    definition_text: str, server_name: str, function_name: str
+):
+    """Execute a helper function from a supplied historical definition."""
+
+    return _execute_server_code_common(
+        definition_text,
+        server_name,
+        "execute_server_function_from_definition",
+        f" in _from_definition for {function_name}",
+        function_name=function_name,
+        allow_fallback=False,
     )
 
 
 def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]) -> bool:
-    """Return True if path could represent /{server}/{partial_cid}."""
+    """Return True if path could represent /{server}/{partial_cid}[/function]."""
     if not path or not path.startswith("/"):
         return False
     parts = [segment for segment in path.split("/") if segment]
-    if len(parts) != 2:
+    if len(parts) not in {2, 3}:
         return False
     if f"/{parts[0]}" in existing_routes:
         return False
@@ -551,9 +629,10 @@ def try_server_execution_with_partial(
         return None
 
     parts = [segment for segment in path.split("/") if segment]
-    if len(parts) != 2:
+    if len(parts) not in {2, 3}:
         return None
-    server_name, partial = parts
+    server_name, partial = parts[0], parts[1]
+    function_name = parts[2] if len(parts) == 3 else None
 
     server = get_server_by_name(current_user.id, server_name)
     if not server:
@@ -582,12 +661,33 @@ def try_server_execution_with_partial(
         return jsonify(payload), 400
 
     definition_text = matches[0].get("definition", "")
+    if function_name:
+        return execute_server_function_from_definition(
+            definition_text, server_name, function_name
+        )
     return execute_server_code_from_definition(definition_text, server_name)
 
 
 def is_potential_server_path(path: str, existing_routes: Iterable[str]) -> bool:
-    """Return True if path could map to a server name."""
-    return path.startswith("/") and path.count("/") == 1 and path not in existing_routes
+    """Return True if path could map to a server name or helper function."""
+
+    if not path or not path.startswith("/"):
+        return False
+
+    if path in existing_routes:
+        return False
+
+    parts = [segment for segment in path.split("/") if segment]
+    if not parts:
+        return False
+
+    if f"/{parts[0]}" in existing_routes:
+        return False
+
+    if len(parts) > 2:
+        return False
+
+    return True
 
 
 def try_server_execution(path: str):
@@ -595,8 +695,17 @@ def try_server_execution(path: str):
     if not getattr(current_user, "is_authenticated", False):
         return None
 
-    potential_server_name = path[1:]
-    server = get_server_by_name(current_user.id, potential_server_name)
-    if server:
-        return execute_server_code(server, potential_server_name)
-    return None
+    parts = [segment for segment in path.split("/") if segment]
+    if not parts:
+        return None
+
+    server_name = parts[0]
+    server = get_server_by_name(current_user.id, server_name)
+    if not server:
+        return None
+
+    if len(parts) == 1:
+        return execute_server_code(server, server_name)
+
+    function_name = parts[1]
+    return execute_server_function(server, server_name, function_name)

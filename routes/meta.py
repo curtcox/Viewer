@@ -349,7 +349,12 @@ def _resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> O
 
 def _resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
     """Return metadata for server execution paths."""
-    server_name = path.lstrip("/")
+    parts = [segment for segment in path.strip("/").split("/") if segment]
+    if not parts:
+        return None
+
+    server_name = parts[0]
+    function_name = parts[1] if len(parts) > 1 else None
     payload: Dict[str, Any] = {
         "path": path,
         "source_links": _dedupe_links([
@@ -358,11 +363,16 @@ def _resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
             META_SOURCE_LINK,
         ]),
         "resolution": {
-            "type": "server_execution",
+            "type": "server_function_execution"
+            if function_name
+            else "server_execution",
             "server_name": server_name,
             "requires_authentication": True,
         },
     }
+
+    if function_name:
+        payload["resolution"]["function_name"] = function_name
 
     if not getattr(current_user, "is_authenticated", False):
         return None
@@ -370,6 +380,22 @@ def _resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
     server = get_server_by_name(current_user.id, server_name)
     if not server:
         return None
+
+    if function_name:
+        from server_execution import describe_function_parameters
+
+        details = describe_function_parameters(server.definition, function_name)
+        if not details:
+            return None
+
+        payload["status_code"] = 302
+        payload["resolution"].update(
+            {
+                "available": True,
+                "function_parameters": details.get("parameters"),
+            }
+        )
+        return payload
 
     payload["status_code"] = 302
     payload["resolution"].update({"available": True})
@@ -379,10 +405,11 @@ def _resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
 def _resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
     """Return metadata for versioned server execution paths."""
     parts = [segment for segment in path.strip("/").split("/") if segment]
-    if len(parts) != 2:
+    if len(parts) not in {2, 3}:
         return None
 
-    server_name, partial_cid = parts
+    server_name, partial_cid = parts[0], parts[1]
+    function_name = parts[2] if len(parts) == 3 else None
     payload: Dict[str, Any] = {
         "path": path,
         "source_links": _dedupe_links([
@@ -392,12 +419,17 @@ def _resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
             META_SOURCE_LINK,
         ]),
         "resolution": {
-            "type": "server_version_execution",
+            "type": "versioned_server_function_execution"
+            if function_name
+            else "versioned_server_execution",
             "server_name": server_name,
             "partial_cid": partial_cid,
             "requires_authentication": True,
         },
     }
+
+    if function_name:
+        payload["resolution"]["function_name"] = function_name
 
     if not getattr(current_user, "is_authenticated", False):
         return None
@@ -438,15 +470,35 @@ def _resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
         return payload
 
     match = matches[0]
+    base_details = {
+        "definition_cid": match.get("definition_cid"),
+        "snapshot_cid": match.get("snapshot_cid"),
+        "created_at": match.get("created_at").isoformat()
+        if match.get("created_at")
+        else None,
+    }
+
+    if function_name:
+        from server_execution import describe_function_parameters
+
+        details = describe_function_parameters(match.get("definition", ""), function_name)
+        if not details:
+            payload["status_code"] = 404
+            payload["resolution"].update({"available": False, **base_details})
+            return payload
+
+        payload["status_code"] = 302
+        payload["resolution"].update(
+            {
+                "available": True,
+                **base_details,
+                "function_parameters": details.get("parameters"),
+            }
+        )
+        return payload
+
     payload["status_code"] = 302
-    payload["resolution"].update(
-        {
-            "available": True,
-            "definition_cid": match.get("definition_cid"),
-            "snapshot_cid": match.get("snapshot_cid"),
-            "created_at": match.get("created_at").isoformat() if match.get("created_at") else None,
-        }
-    )
+    payload["resolution"].update({"available": True, **base_details})
     return payload
 
 
@@ -642,15 +694,15 @@ def _handle_not_found(
         if alias_metadata:
             return alias_metadata, _metadata_status(alias_metadata)
 
-    if is_potential_versioned_server_path(path, existing_routes):
-        versioned_metadata = _resolve_versioned_server_path(path)
-        if versioned_metadata:
-            return versioned_metadata, _metadata_status(versioned_metadata)
-
     if is_potential_server_path(path, existing_routes):
         server_metadata = _resolve_server_path(path)
         if server_metadata:
             return server_metadata, _metadata_status(server_metadata)
+
+    if is_potential_versioned_server_path(path, existing_routes):
+        versioned_metadata = _resolve_versioned_server_path(path)
+        if versioned_metadata:
+            return versioned_metadata, _metadata_status(versioned_metadata)
 
     cid_metadata = _resolve_cid_path(path)
     if cid_metadata:

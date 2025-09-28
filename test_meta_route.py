@@ -299,6 +299,42 @@ class TestMetaRoute(unittest.TestCase):
             self.assertEqual(data['resolution']['snapshot_cid'], 'snap-final')
             self.assertIn('2024-02-01T12:30:00+00:00', data['resolution']['created_at'])
 
+    def test_meta_route_reports_versioned_helper_function_details(self):
+        definition = """
+ def render_row(label):
+     return {"output": label, "content_type": "text/plain"}
+
+ def main(label):
+     return render_row(label)
+ """
+
+        with self.app.app_context():
+            user = self._create_test_user()
+            self._create_server(user, name='pipeline', definition=definition)
+            self._login(user)
+
+            history = [
+                {
+                    'definition_cid': 'xyz789',
+                    'snapshot_cid': 'snap-final',
+                    'definition': definition,
+                    'created_at': datetime(2024, 2, 1, 12, 30, tzinfo=timezone.utc),
+                }
+            ]
+
+            with patch('routes.servers.get_server_definition_history', return_value=history):
+                response = self.client.get('/meta/pipeline/xyz789/render_row')
+
+            self.assertEqual(response.status_code, 200)
+            data = json.loads(response.data)
+            self.assertEqual(data['status_code'], 302)
+            self.assertTrue(data['resolution']['available'])
+            self.assertEqual(data['resolution']['type'], 'versioned_server_function_execution')
+            self.assertEqual(data['resolution']['function_name'], 'render_row')
+            parameters = data['resolution'].get('function_parameters')
+            self.assertIsInstance(parameters, list)
+            self.assertEqual(parameters[0]['name'], 'label')
+
     def test_meta_route_reports_redirect_metadata_for_trailing_slash(self):
         with self.app.app_context():
             user = self._create_test_user()
