@@ -157,7 +157,10 @@ class AliasForm(FlaskForm):
         if not super().validate(extra_validators):
             return False
 
-        match_type = self.match_type.data or 'literal'
+        match_type = (self.match_type.data or 'literal').lower()
+
+        if match_type == 'literal':
+            self.match_pattern.data = self.name.data
         try:
             normalised = normalise_pattern(match_type, self.match_pattern.data, self.name.data)
         except PatternError as exc:

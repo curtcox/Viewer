@@ -212,7 +212,7 @@ class TestAliasRouting(unittest.TestCase):
                 'name': 'release',
                 'target_path': '/cid456',
                 'match_type': 'literal',
-                'match_pattern': '',
+                'match_pattern': '/custom-pattern',
             },
             follow_redirects=False,
         )
@@ -277,7 +277,7 @@ class TestAliasRouting(unittest.TestCase):
                 'name': 'docs',
                 'target_path': '/docs',
                 'match_type': 'literal',
-                'match_pattern': '',
+                'match_pattern': '/custom-pattern',
             },
             follow_redirects=False,
         )
