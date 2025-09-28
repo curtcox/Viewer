@@ -1,9 +1,11 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import server_execution
 from app import app
+import server_templates
 from server_templates import get_server_templates
 
 
@@ -262,10 +264,30 @@ def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
     assert result is None
 
 
-def test_server_templates_include_auto_main_definition():
+def test_server_templates_strip_internal_ruff_controls():
     templates = get_server_templates()
+    assert templates, "At least one server template should be registered"
+
+    for template in templates:
+        definition = template.get("definition", "")
+        assert "# ruff" not in definition
+
     auto_templates = [template for template in templates if template["id"] == "auto-main"]
     assert auto_templates, "auto-main template should be registered"
     definition = auto_templates[0]["definition"]
     assert "def main(" in definition
     assert "Automatic main() mapping" in definition
+
+
+def test_server_template_sources_retain_ruff_controls():
+    base_dir = Path(server_templates.__file__).parent
+    definitions_dir = base_dir / "definitions"
+    definition_files = sorted(definitions_dir.glob("*.py"))
+
+    assert definition_files, "Server template definition files should exist"
+
+    for definition_path in definition_files:
+        content = definition_path.read_text(encoding="utf-8")
+        assert any(line.lstrip().startswith("# ruff") for line in content.splitlines()), (
+            f"Expected {definition_path.name} to keep ruff control comments"
+        )
