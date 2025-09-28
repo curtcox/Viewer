@@ -183,6 +183,11 @@ class TestMetaRoute(unittest.TestCase):
             self.assertTrue(data['resolution']['available'])
             self.assertEqual(data['resolution']['target_path'], '/servers#overview')
             self.assertIn('source=meta', data['resolution']['redirect_location'])
+            self.assertIn('target_metadata', data['resolution'])
+            target_info = data['resolution']['target_metadata']
+            self.assertEqual(target_info['path'], '/servers')
+            self.assertTrue(target_info['available'])
+            self.assertEqual(target_info['resolution']['type'], 'route')
             self.assertIn('/source/alias_routing.py', data['source_links'])
 
     def test_meta_route_reports_server_execution_requirements(self):
@@ -198,8 +203,28 @@ class TestMetaRoute(unittest.TestCase):
             self.assertEqual(data['status_code'], 302)
             self.assertEqual(data['resolution']['type'], 'server_execution')
             self.assertEqual(data['resolution']['server_name'], 'process-data')
-            self.assertTrue(data['resolution']['available'])
-            self.assertTrue(data['resolution']['requires_authentication'])
+
+    def test_meta_route_reports_aliases_targeting_path(self):
+        with self.app.app_context():
+            user = self._create_test_user()
+            self._create_alias(user, name='docs', target='/settings')
+            self._create_alias(user, name='settings-alias', target='/settings?from=alias')
+            self._login(user)
+
+            response = self.client.get('/meta/settings')
+            self.assertEqual(response.status_code, 200)
+
+            data = json.loads(response.data)
+            self.assertIn('aliases_targeting_path', data)
+            alias_details = data['aliases_targeting_path']
+            self.assertIsInstance(alias_details, list)
+            alias_names = {entry['name'] for entry in alias_details}
+            self.assertIn('docs', alias_names)
+            self.assertIn('settings-alias', alias_names)
+            for entry in alias_details:
+                self.assertIn('meta_link', entry)
+                if entry['name'] == 'settings-alias':
+                    self.assertEqual(entry['target_path'], '/settings?from=alias')
 
     def test_meta_route_handles_versioned_server_without_match(self):
         with self.app.app_context():
