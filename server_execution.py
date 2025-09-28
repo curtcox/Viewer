@@ -132,6 +132,26 @@ def _analyze_server_definition_for_main(code: str) -> Optional[MainFunctionDetai
     return _parse_main_function_details(analyzer.main_node)
 
 
+def describe_main_function_parameters(code: str) -> Optional[Dict[str, Any]]:
+    """Return a simplified description of ``main`` parameters for UI helpers."""
+
+    details = _analyze_server_definition_for_main(code or "")
+    if not details or details.unsupported_reasons:
+        return None
+
+    required = set(details.required_parameters)
+    parameters = [
+        {"name": name, "required": name in required}
+        for name in details.parameter_order
+    ]
+
+    return {
+        "parameters": parameters,
+        "required_parameters": details.required_parameters,
+        "optional_parameters": details.optional_parameters,
+    }
+
+
 def _extract_request_body_values() -> Dict[str, Any]:
     body: Dict[str, Any] = {}
 

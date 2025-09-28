@@ -1,0 +1,123 @@
+<div class="card mt-4" id="server-test-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0"><i class="fas fa-vial me-2"></i>Test Server</h5>
+        <span class="badge bg-light text-dark">Preview</span>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-3">
+            Simulate a request to <code>{{ server_test_config.action }}</code> using this server's current definition.
+            Results open in a new tab so you can continue editing.
+        </p>
+
+        <form id="server-test-form"
+              class="server-test-form"
+              data-mode="{{ server_test_config.mode }}"
+              data-action="{{ server_test_config.action }}"
+              onsubmit="submitServerTestForm(event)">
+            {% if server_test_config.mode == 'main' %}
+            <div class="row g-3">
+                {% for parameter in server_test_config.parameters|default([]) %}
+                <div class="col-md-6">
+                    <label for="server-test-param-{{ loop.index0 }}" class="form-label">
+                        {{ parameter.name }}
+                        {% if parameter.required %}
+                        <span class="badge bg-danger ms-2">Required</span>
+                        {% else %}
+                        <span class="badge bg-secondary ms-2">Optional</span>
+                        {% endif %}
+                    </label>
+                    <input type="text"
+                           class="form-control"
+                           id="server-test-param-{{ loop.index0 }}"
+                           name="{{ parameter.name }}"
+                           placeholder="Value for {{ parameter.name }}">
+                </div>
+                {% endfor %}
+            </div>
+            {% if server_test_config.parameters|length == 0 %}
+            <p class="text-muted mt-3">
+                This <code>main()</code> function does not accept parameters. Run the test to execute it directly.
+            </p>
+            {% endif %}
+            {% else %}
+            <div class="mb-3">
+                <label for="server-test-query" class="form-label">Query Parameters</label>
+                <textarea class="form-control"
+                          id="server-test-query"
+                          rows="4"
+                          placeholder="key=value"></textarea>
+                <div class="form-text">
+                    Enter each parameter on a new line in <code>key=value</code> format. Empty lines are ignored.
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-play me-1"></i>Run Test
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="resetServerTestForm(this.form)">
+                    <i class="fas fa-undo me-1"></i>Clear Inputs
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+if (!window.submitServerTestForm) {
+    window.submitServerTestForm = function(event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const mode = form.dataset.mode || 'query';
+        const action = form.dataset.action || '/';
+        const params = new URLSearchParams();
+
+        if (mode === 'main') {
+            const inputs = form.querySelectorAll('input[name]');
+            inputs.forEach((input) => {
+                const value = input.value.trim();
+                if (value !== '') {
+                    params.append(input.name, value);
+                }
+            });
+        } else {
+            const textarea = form.querySelector('textarea');
+            if (textarea) {
+                textarea.value
+                    .split(/\r?\n/)
+                    .map((line) => line.trim())
+                    .filter((line) => line.length > 0)
+                    .forEach((line) => {
+                        const parts = line.split('=');
+                        const key = parts.shift();
+                        const value = parts.join('=');
+                        if (key) {
+                            params.append(key.trim(), value.trim());
+                        }
+                    });
+            }
+        }
+
+        const query = params.toString();
+        const url = query ? `${action}?${query}` : action;
+        window.open(url, '_blank', 'noopener');
+    };
+}
+
+if (!window.resetServerTestForm) {
+    window.resetServerTestForm = function(form) {
+        if (!form) {
+            return;
+        }
+        form.querySelectorAll('input').forEach((input) => {
+            input.value = '';
+        });
+        const textarea = form.querySelector('textarea');
+        if (textarea) {
+            textarea.value = '';
+        }
+    };
+}
+</script>

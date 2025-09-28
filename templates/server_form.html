@@ -91,13 +91,17 @@
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
                     </form>
-                </div>
             </div>
+        </div>
 
-            {% if server %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Current Server Info</h5>
+        {% if server_test_config is defined and server_test_config %}
+        {% include "_server_test_card.html" %}
+        {% endif %}
+
+        {% if server %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Current Server Info</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
