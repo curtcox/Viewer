@@ -30,11 +30,33 @@
                                 </div>
                             {% endif %}
                             <small class="form-text text-muted">
-                                Update the text below and click "Save Changes" to store the edited content as a new CID entry.
+                                Update the text below and click "{{ submit_label }}" to store the edited content as a new CID entry.
                             </small>
                         </div>
+                        {% if not show_alias_field and current_alias_name %}
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-link me-1"></i>
+                                Saving will update the <strong>{{ current_alias_name }}</strong> alias to point at the new CID.
+                            </div>
+                        {% endif %}
+                        {% if show_alias_field %}
+                            <div class="mb-3">
+                                {{ form.alias_name.label(class="form-label") }}
+                                {{ form.alias_name(class="form-control" + (" is-invalid" if form.alias_name.errors else "")) }}
+                                {% if form.alias_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.alias_name.errors %}
+                                            <div>{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Optionally supply a new alias to point at the saved content. Alias names are case sensitive.
+                                </small>
+                            </div>
+                        {% endif %}
                         <div class="d-flex gap-2">
-                            {{ form.submit(class="btn btn-primary") }}
+                            {{ form.submit(class="btn btn-primary", value=submit_label) }}
                             <a href="/{{ cid }}" class="btn btn-outline-secondary" target="_blank">
                                 <i class="fas fa-external-link-alt me-1"></i>View Original
                             </a>

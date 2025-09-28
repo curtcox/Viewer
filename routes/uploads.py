@@ -10,8 +10,16 @@ from cid_utils import (
     process_text_upload,
     process_url_upload,
 )
-from db_access import create_cid_record, find_cids_by_prefix, get_cid_by_path, get_user_uploads
-from models import ServerInvocation
+from db_access import (
+    create_cid_record,
+    find_cids_by_prefix,
+    get_alias_by_name,
+    get_alias_by_target_path,
+    get_cid_by_path,
+    get_user_uploads,
+    save_entity,
+)
+from models import Alias, ServerInvocation
 from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
 
@@ -137,10 +145,28 @@ def edit_cid(cid_prefix):
         )
 
     cid_record = matches[0]
-    form = EditCidForm()
     full_cid = cid_record.path.lstrip('/')
+    alias_for_cid = get_alias_by_target_path(current_user.id, cid_record.path)
+    form = EditCidForm()
+    submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
     if form.validate_on_submit():
+        alias_name_input = ''
+        if not alias_for_cid:
+            alias_name_input = form.alias_name.data or ''
+            if alias_name_input:
+                existing_alias = get_alias_by_name(current_user.id, alias_name_input)
+                if existing_alias:
+                    form.alias_name.errors.append('Alias with this name already exists.')
+                    return render_template(
+                        'edit_cid.html',
+                        form=form,
+                        cid=full_cid,
+                        submit_label=submit_label,
+                        current_alias_name=getattr(alias_for_cid, 'name', None),
+                        show_alias_field=alias_for_cid is None,
+                    )
+
         text_content = form.text_content.data or ''
         file_content = text_content.encode('utf-8')
         cid = generate_cid(file_content)
@@ -151,6 +177,20 @@ def edit_cid(cid_prefix):
         else:
             create_cid_record(cid, file_content, current_user.id)
             flash(f'Content uploaded successfully! CID: {cid}', 'success')
+
+        new_target_path = f"/{cid}"
+        if alias_for_cid:
+            alias_for_cid.target_path = new_target_path
+            save_entity(alias_for_cid)
+        elif alias_name_input:
+            new_alias = Alias(
+                name=alias_name_input,
+                target_path=new_target_path,
+                user_id=current_user.id,
+                match_type='literal',
+                ignore_case=False,
+            )
+            save_entity(new_alias)
 
         return render_template(
             'upload_success.html',
@@ -164,7 +204,14 @@ def edit_cid(cid_prefix):
         existing_text = cid_record.file_data.decode('utf-8', errors='replace')
         form.text_content.data = existing_text
 
-    return render_template('edit_cid.html', form=form, cid=full_cid)
+    return render_template(
+        'edit_cid.html',
+        form=form,
+        cid=full_cid,
+        submit_label=submit_label,
+        current_alias_name=getattr(alias_for_cid, 'name', None),
+        show_alias_field=alias_for_cid is None,
+    )
 
 
 @main_bp.route('/server_events')

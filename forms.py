@@ -64,6 +64,17 @@ class EditCidForm(FlaskForm):
         validators=[DataRequired()],
         render_kw={'rows': 15, 'placeholder': 'Update the CID content here...'},
     )
+    alias_name = StringField(
+        'Alias Name (optional)',
+        validators=[
+            Optional(),
+            Regexp(
+                r'^[a-zA-Z0-9._-]+$',
+                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores',
+            ),
+        ],
+        filters=[_strip_filter],
+    )
     submit = SubmitField('Save Changes')
 
 class InvitationForm(FlaskForm):
