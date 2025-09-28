@@ -4,18 +4,19 @@ This sample demonstrates the most commonly used form field types in Formdown.
 
 ```formdown
 ## Personal Information
+@form[id="echo" action="/echo"]
 
-@name(Full Name): [text required placeholder="Enter your full name"]
-@email(Email Address): [email required placeholder="user@example.com"]
+@name(Full Name): [text placeholder="Enter your full name"]
+@email(Email Address): [email placeholder="user@example.com"]
 @phone(Phone Number): [tel placeholder="+1 (555) 123-4567"]
-@age(Age): [number min=18 max=120 required]
-@birth_date(Date of Birth): [date required]
+@age(Age): [number min=18 max=120]
+@birth_date(Date of Birth): [date]
 
 ## Selection Fields
 
-@gender(Gender): [radio required options="Male,Female,Non-binary,Prefer not to say"]
+@gender(Gender): [radio options="Male,Female,Non-binary,Prefer not to say"]
 @skills(Technical Skills): [checkbox options="JavaScript,Python,React,Node.js,Database Design"]
-@country(Country): [select required options="United States,Canada,United Kingdom,Germany,France,Japan,Australia,Other"]
+@country(Country): [select options="United States,Canada,United Kingdom,Germany,France,Japan,Australia,Other"]
 @experience(Experience Level): [select options="Beginner,Intermediate,Advanced,Expert"]
 
 ### Vertical Layout Example
@@ -30,7 +31,7 @@ This sample demonstrates the most commonly used form field types in Formdown.
 
 ## File Upload
 
-@resume(Resume): [file accept=".pdf,.doc,.docx" required]
+@resume(Resume): [file accept=".pdf,.doc,.docx"]
 @portfolio(Portfolio): [file accept="image/*,.pdf" multiple]
 
 ## Form Actions
