@@ -81,6 +81,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         self.original_generate_cid = server_execution.generate_cid
         self.original_get_extension = server_execution.get_extension_from_mime_type
         self.original_current_user = server_execution.current_user
+        self.original_render_error_html = server_execution._render_execution_error_html
         server_execution.current_user = types.SimpleNamespace(
             is_authenticated=True, id="user-123"
         )
@@ -99,6 +100,9 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
             headers={}, status_code=200, data=text
         )
         server_execution.redirect = lambda url: ("redirect", url)
+        server_execution._render_execution_error_html = (
+            lambda exc, code, args: "<html>Error</html>"
+        )
 
     def tearDown(self):
         server_execution.run_text_function = self.original_run_text_function
@@ -111,6 +115,9 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         server_execution.generate_cid = self.original_generate_cid
         server_execution.get_extension_from_mime_type = self.original_get_extension
         server_execution.current_user = self.original_current_user
+        server_execution._render_execution_error_html = (
+            self.original_render_error_html
+        )
 
     def test_execute_functions_share_success_flow(self):
         calls = []
@@ -146,8 +153,12 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
         self.assertEqual(first_response.status_code, 500)
         self.assertEqual(second_response.status_code, 500)
-        self.assertEqual(first_response.headers["Content-Type"], "text/plain")
-        self.assertEqual(second_response.headers["Content-Type"], "text/plain")
+        self.assertEqual(
+            first_response.headers["Content-Type"], "text/html; charset=utf-8"
+        )
+        self.assertEqual(
+            second_response.headers["Content-Type"], "text/html; charset=utf-8"
+        )
         self.assertEqual(first_response.data, second_response.data)
 
 
