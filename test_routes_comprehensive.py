@@ -160,12 +160,16 @@ class TestPublicRoutes(BaseTestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
-    def test_index_authenticated_redirects_to_dashboard(self):
-        """Test index page redirects authenticated users to dashboard."""
+    def test_index_authenticated_shows_observability(self):
+        """Authenticated users should still see the landing page observability details."""
         self.login_user()
-        response = self.client.get('/', follow_redirects=False)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/dashboard', response.location)
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Observability', page)
+        self.assertIn('Logfire', page)
+        self.assertIn('LangSmith', page)
 
     def test_plans_page(self):
         """Test plans page."""

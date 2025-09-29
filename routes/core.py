@@ -317,9 +317,7 @@ def inject_observability_info():
 
 @main_bp.route('/')
 def index():
-    """Landing page - shows different content based on user status."""
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+    """Landing page with marketing and observability information."""
     return render_template('index.html')
 
 

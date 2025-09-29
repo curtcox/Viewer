@@ -13,7 +13,11 @@
                 Get detailed insights into your web interactions with comprehensive HTTP request tracking.
             </p>
             <div class="d-flex gap-3">
-                {% if AUTH_AVAILABLE %}
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('main.profile') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-gauge-high me-2"></i>Go to Dashboard
+                </a>
+                {% elif AUTH_AVAILABLE %}
                 <a href="{{ LOGIN_URL }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-plus me-2"></i>Get Started
                 </a>
@@ -164,7 +168,11 @@
         <div class="col-12">
             <h3 class="mb-3">Ready to Get Started?</h3>
             <p class="lead mb-4">Join thousands of users who trust SecureApp for their content management needs.</p>
-            {% if AUTH_AVAILABLE %}
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('main.profile') }}" class="btn btn-primary btn-lg me-3">
+                <i class="fas fa-gauge-high me-2"></i>View Dashboard
+            </a>
+            {% elif AUTH_AVAILABLE %}
             <a href="{{ LOGIN_URL }}" class="btn btn-primary btn-lg me-3">
                 <i class="fas fa-rocket me-2"></i>Start Free Trial
             </a>
