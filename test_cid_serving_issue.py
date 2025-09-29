@@ -9,26 +9,28 @@ The fact that the user got redirected to a specific CID URL means:
 
 def test_cid_url_analysis():
     """Analyze the CID URL that user was redirected to"""
-    
+
     # The CID URL the user was redirected to
     cid_url = "bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.html"
-    
+
     print("=== CID URL Analysis ===")
     print(f"Full CID URL: /{cid_url}")
-    
+
     # Extract base CID (without extension)
     base_cid = cid_url.split('.')[0]
     print(f"Base CID: {base_cid}")
-    
+
     # Extract extension
     extension = cid_url.split('.')[-1] if '.' in cid_url else None
     print(f"Extension: {extension}")
-    
-    return base_cid, extension
+
+    # Assertions instead of returns
+    assert base_cid == "bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
+    assert extension == "html"
 
 def test_cid_serving_logic():
     """Test the CID serving logic from routes.py"""
-    
+
     print("\n=== CID Serving Logic ===")
     print("When user visits /bafybei...html:")
     print("1. Flask routes don't match (no explicit route)")
@@ -40,28 +42,31 @@ def test_cid_serving_logic():
 
 def test_cid_path_storage_mismatch():
     """Test potential mismatch between CID storage and serving"""
-    
+
     print("\n=== Potential CID Storage/Serving Mismatch ===")
-    
+
     # From execute_server_code, CID is stored with path like this:
     base_cid = "bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
     stored_path = f"/{base_cid}"  # CID stored without extension
     requested_path = f"/{base_cid}.html"  # User redirected to URL with extension
-    
+
     print(f"CID stored in DB with path: {stored_path}")
     print(f"User requesting path: {requested_path}")
     print(f"Paths match: {stored_path == requested_path}")
-    
+
     print("\n❌ ISSUE IDENTIFIED: Path mismatch!")
     print("- CID is stored in database with path like '/bafybei...' (no extension)")
     print("- User is redirected to '/bafybei....html' (with extension)")
     print("- CID lookup fails because paths don't match")
-    
-    return stored_path, requested_path
+
+    # Assertions instead of returns
+    assert stored_path == "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
+    assert requested_path == "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.html"
+    assert stored_path != requested_path
 
 def test_serve_cid_content_logic():
     """Analyze the serve_cid_content function logic"""
-    
+
     print("\n=== serve_cid_content Logic Analysis ===")
     print("From routes.py line ~679:")
     print("1. serve_cid_content(cid_content, path) is called")
@@ -75,31 +80,31 @@ def test_serve_cid_content_logic():
 
 def create_failing_test():
     """Create a test that demonstrates the failing behavior"""
-    
+
     print("\n=== Failing Test Scenario ===")
-    
+
     # Simulate the database lookup that's failing
     base_cid = "bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
-    
+
     # What's stored in database (from execute_server_code)
     stored_records = [
         {"path": f"/{base_cid}", "file_data": b"<h1>Hello World</h1>"}
     ]
-    
+
     # What's being looked up (from not_found_error)
     lookup_path = f"/{base_cid}.html"
-    
+
     # Simulate the query
     found_record = None
     for record in stored_records:
         if record["path"] == lookup_path:
             found_record = record
             break
-    
+
     print(f"Stored records: {[r['path'] for r in stored_records]}")
     print(f"Looking up path: {lookup_path}")
     print(f"Record found: {found_record is not None}")
-    
+
     # This should fail
     assert found_record is None, "Expected lookup to fail due to path mismatch"
     print("✓ Test confirms: CID lookup fails due to path mismatch")
@@ -111,7 +116,7 @@ if __name__ == "__main__":
         stored_path, requested_path = test_cid_path_storage_mismatch()
         test_serve_cid_content_logic()
         create_failing_test()
-        
+
         print("\n=== FINAL DIAGNOSIS ===")
         print("ROOT CAUSE: Path mismatch between CID storage and lookup")
         print("")
@@ -125,7 +130,7 @@ if __name__ == "__main__":
         print("7. 404 is returned")
         print("")
         print("The echo functionality IS working - the issue is in CID URL handling.")
-        
+
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback

@@ -127,7 +127,18 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        app.config["OBSERVABILITY_STATUS"] = getenv("LOGFIRE_SEND_TO_LOGFIRE")
+        # Set up observability status for template context
+        logfire_enabled = bool(getenv("LOGFIRE_SEND_TO_LOGFIRE"))
+        langsmith_enabled = bool(getenv("LANGSMITH_API_KEY"))
+
+        app.config["OBSERVABILITY_STATUS"] = {
+            "logfire_available": logfire_enabled,
+            "logfire_project_url": getenv("LOGFIRE_PROJECT_URL") if logfire_enabled else None,
+            "logfire_reason": None if logfire_enabled else "LOGFIRE_SEND_TO_LOGFIRE not set",
+            "langsmith_available": langsmith_enabled,
+            "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL") if langsmith_enabled else None,
+            "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
+        }
 
     return app
 
