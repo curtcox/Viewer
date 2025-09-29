@@ -6,7 +6,7 @@ import importlib
 import inspect
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from flask import Flask
 
@@ -17,6 +17,11 @@ except ImportError:  # pragma: no cover - SQLAlchemy is part of requirements
 
 
 ObservabilityStatus = Dict[str, Any]
+
+_LOGFIRE_DEPENDENCIES: tuple[tuple[str, str], ...] = (
+    ("opentelemetry.instrumentation.flask", "opentelemetry-instrumentation-flask"),
+    ("opentelemetry.instrumentation.sqlalchemy", "opentelemetry-instrumentation-sqlalchemy"),
+)
 
 
 def _call_with_supported_kwargs(func: Any, candidate_kwargs: Dict[str, Any]) -> Any:
@@ -78,9 +83,19 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
         _record_langsmith_disabled(status, logger, "Logfire is not configured")
         return status
 
+    missing_dependency_reason = _ensure_dependencies(logger, _LOGFIRE_DEPENDENCIES)
+    if missing_dependency_reason:
+        status["logfire_reason"] = missing_dependency_reason
+        _record_langsmith_disabled(
+            status,
+            logger,
+            "Logfire dependencies missing",
+        )
+        return status
+
     try:
         logfire_module = importlib.import_module("logfire")
-    except ImportError as exc:  # pragma: no cover - depends on environment
+    except ImportError:  # pragma: no cover - depends on environment
         status["logfire_reason"] = "logfire package is not installed"
         logger.info("Logfire support disabled: %s", status["logfire_reason"])
         _record_langsmith_disabled(status, logger, "Logfire package missing")
@@ -126,6 +141,26 @@ def _record_langsmith_disabled(status: ObservabilityStatus, logger: logging.Logg
     status["langsmith_reason"] = reason
     if reason:
         logger.info("LangSmith support disabled: %s", reason)
+
+
+def _ensure_dependencies(logger: logging.Logger, dependencies: Iterable[tuple[str, str]]) -> Optional[str]:
+    """Verify optional dependencies are importable.
+
+    Returns a formatted error message when a dependency is missing so callers can
+    surface the details alongside general availability status.
+    """
+
+    for module_name, package_hint in dependencies:
+        try:
+            importlib.import_module(module_name)
+        except ImportError:
+            message = (
+                f"Missing Logfire dependency '{module_name}'. "
+                f"Install the '{package_hint}' package to enable instrumentation."
+            )
+            logger.info("Logfire support disabled: %s", message)
+            return message
+    return None
 
 
 def _instrument_flask(logfire_module: Any, app: Flask, logger: logging.Logger) -> None:

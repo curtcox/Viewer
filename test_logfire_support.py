@@ -32,11 +32,34 @@ class LogfireSupportTests(unittest.TestCase):
 
     def test_initialize_observability_handles_missing_package(self):
         with patch.dict(os.environ, {"LOGFIRE_API_KEY": "abc"}, clear=True):
-            with patch("logfire_support.importlib.import_module", side_effect=ImportError("missing")):
+            def fake_import(name, *_, **__):
+                if name == "logfire":
+                    raise ImportError("missing")
+                return SimpleNamespace()
+
+            with patch("logfire_support.importlib.import_module", side_effect=fake_import):
                 status = initialize_observability(self.app)
 
         self.assertFalse(status["logfire_available"])
         self.assertIn("not installed", status["logfire_reason"])
+
+    def test_initialize_observability_reports_missing_dependencies(self):
+        with patch.dict(os.environ, {"LOGFIRE_API_KEY": "abc"}, clear=True):
+
+            def fake_import(name, *_, **__):
+                if name == "opentelemetry.instrumentation.flask":
+                    raise ImportError("missing flask instrumentation")
+                if name == "logfire":
+                    return SimpleNamespace()
+                return SimpleNamespace()
+
+            with patch("logfire_support.importlib.import_module", side_effect=fake_import):
+                status = initialize_observability(self.app)
+
+        self.assertFalse(status["logfire_available"])
+        self.assertIn("opentelemetry.instrumentation.flask", status["logfire_reason"])
+        self.assertFalse(status["langsmith_available"])
+        self.assertIn("dependencies", status["langsmith_reason"])
 
     def test_initialize_observability_configures_logfire_and_langsmith(self):
         fake_logfire = SimpleNamespace(
@@ -49,6 +72,8 @@ class LogfireSupportTests(unittest.TestCase):
         def fake_import(name, *_, **__):
             if name == "logfire":
                 return fake_logfire
+            if name.startswith("opentelemetry.instrumentation"):
+                return SimpleNamespace()
             raise ImportError(name)
 
         env = {

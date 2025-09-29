@@ -58,6 +58,7 @@ execute every `test_*.py` module in the repository.
 
 SecureApp now ships with Logfire support (including LangSmith instrumentation) so local development mirrors production
 tracing.  Install dependencies with `./install`, set your `LOGFIRE_*` and `LANGSMITH_*` values in `.env`, and then use `./run`
-to start the server.  When keys are present, the home page provides quick links to both observability dashboards; otherwise the
-buttons note that the integrations are disabled.  Detailed reasons for any disabled integration appear in the application log
-at startup.
+to start the server.  The `./install` script installs the required OpenTelemetry instrumentations (`opentelemetry-
+instrumentation-flask` and `opentelemetry-instrumentation-sqlalchemy`) so Logfire can attach to the framework automatically.
+When keys are present, the home page provides quick links to both observability dashboards; otherwise the buttons note that
+the integrations are disabled.  Detailed reasons for any disabled integration appear in the application log at startup.

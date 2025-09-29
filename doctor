@@ -30,14 +30,14 @@ missing=()
 if [ -d "venv" ]; then
   # Use virtual environment python
   venv_python="venv/bin/python"
-  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy logfire langsmith; do
+  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy logfire langsmith opentelemetry.instrumentation.flask opentelemetry.instrumentation.sqlalchemy; do
     if ! $venv_python -c "import ${pkg//-/_}" >/dev/null 2>&1; then
       missing+=("$pkg")
     fi
   done
 else
   # Use system python
-  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy logfire langsmith; do
+  for pkg in flask flask_sqlalchemy flask_login flask_wtf flask_dance wtforms werkzeug psycopg2 email_validator oauthlib jwt gunicorn sqlalchemy logfire langsmith opentelemetry.instrumentation.flask opentelemetry.instrumentation.sqlalchemy; do
     if ! $python_cmd -c "import ${pkg//-/_}" >/dev/null 2>&1; then
       missing+=("$pkg")
     fi

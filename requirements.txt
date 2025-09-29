@@ -17,4 +17,6 @@ requests>=2.31.0
 Markdown>=3.6
 pytest>=8.2.0
 logfire[langchain]
+opentelemetry-instrumentation-flask>=0.48b0
+opentelemetry-instrumentation-sqlalchemy>=0.48b0
 langsmith>=0.1.0
