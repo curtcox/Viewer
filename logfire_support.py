@@ -6,7 +6,6 @@ import importlib
 import inspect
 import logging
 import os
-from functools import wraps
 from typing import Any, Callable, Dict, Iterable, Optional, TypeVar
 
 from flask import Flask
@@ -21,12 +20,64 @@ ObservabilityStatus = Dict[str, Any]
 
 T = TypeVar("T")
 
-_LOGFIRE_INSTRUMENT: Optional[Callable[..., Any]] = None
-
 _LOGFIRE_DEPENDENCIES: tuple[tuple[str, str], ...] = (
     ("opentelemetry.instrumentation.flask", "opentelemetry-instrumentation-flask"),
     ("opentelemetry.instrumentation.sqlalchemy", "opentelemetry-instrumentation-sqlalchemy"),
 )
+
+
+class _LogfireFacade:
+    """Proxy exposing a Logfire-like interface with graceful degradation."""
+
+    def __init__(self) -> None:
+        self._module: Optional[Any] = None
+
+    def set_module(self, module: Optional[Any]) -> None:
+        self._module = module
+
+    def instrument(
+        self,
+        func: Optional[Callable[..., T]] = None,
+        *,
+        span_name: Optional[str] = None,
+        log_args: bool = False,
+        log_result: bool = False,
+        message: Optional[str] = None,
+    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
+        """Return a decorator that instruments *func* if Logfire is configured."""
+
+        def decorator(target: Callable[..., T]) -> Callable[..., T]:
+            resolved_span = span_name or getattr(target, "__name__", "anonymous")
+            resolved_message = message or resolved_span
+            instrument_impl = None
+            if self._module is not None:
+                instrument_impl = getattr(self._module, "instrument", None)
+
+            if callable(instrument_impl):
+                wrapped = _instrument_function(
+                    instrument_impl,
+                    target,
+                    resolved_span,
+                    log_args=log_args,
+                    log_result=log_result,
+                    message=resolved_message,
+                )
+                if wrapped:
+                    return wrapped
+
+            return target
+
+        if func is not None and callable(func) and span_name is None and not log_args and not log_result and message is None:
+            return decorator(func)
+
+        return decorator
+
+
+_LOGFIRE_FACADE = _LogfireFacade()
+
+# Public proxy used throughout the application so instrumentation gracefully
+# becomes a no-op when Logfire is unavailable.
+logfire = _LOGFIRE_FACADE
 
 
 def _call_with_supported_kwargs(func: Any, candidate_kwargs: Dict[str, Any]) -> Any:
@@ -79,7 +130,7 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
     """
 
     logger = app.logger if app else logging.getLogger(__name__)
-    _set_logfire_instrument(None)
+    _set_logfire_module(None)
     status = _initial_status()
 
     api_key = os.getenv("LOGFIRE_API_KEY")
@@ -134,9 +185,9 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
 
     instrument = getattr(logfire_module, "instrument", None)
     if callable(instrument):
-        _set_logfire_instrument(instrument)
+        _set_logfire_module(logfire_module)
     else:
-        _set_logfire_instrument(None)
+        _set_logfire_module(None)
         logger.debug("Logfire instrumentation decorator not available")
 
     _instrument_flask(logfire_module, app, logger)
@@ -147,31 +198,65 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
     return status
 
 
-def _set_logfire_instrument(instrument: Optional[Callable[..., Any]]) -> None:
-    """Store the active Logfire instrumentation decorator factory."""
+def _set_logfire_module(module: Optional[Any]) -> None:
+    """Store the active Logfire module for runtime instrumentation."""
 
-    global _LOGFIRE_INSTRUMENT
-    _LOGFIRE_INSTRUMENT = instrument
+    _LOGFIRE_FACADE.set_module(module)
 
 
 def _instrument_function(
     instrument: Callable[..., Any],
     func: Callable[..., T],
-    span_name: str,
+    span_name: Optional[str],
+    *,
+    log_args: bool,
+    log_result: bool,
+    message: Optional[str],
 ) -> Optional[Callable[..., T]]:
     """Attempt to wrap *func* with Logfire instrumentation."""
 
-    attempts = (
-        lambda: instrument(span_name=span_name, log_args=True, log_result=True)(func),
-        lambda: instrument(span_name=span_name, log_args=True, log_return=True)(func),
-        lambda: instrument(span_name=span_name, record_args=True, record_result=True)(func),
-        lambda: instrument(func, span_name=span_name, log_args=True, log_result=True),
-        lambda: instrument(func, span_name=span_name, log_args=True, log_return=True),
-        lambda: instrument(func, span_name=span_name, record_args=True, record_result=True),
-        lambda: instrument(span_name=span_name)(func),
-        lambda: instrument(func, span_name=span_name),
-        lambda: instrument(func),
-    )
+    span_kwargs = {"span_name": span_name} if span_name else {}
+
+    log_combinations: tuple[dict[str, Any], ...]
+    if log_args and log_result:
+        log_combinations = (
+            {"log_args": True, "log_result": True},
+            {"log_args": True, "log_return": True},
+            {"record_args": True, "record_result": True},
+        )
+    elif log_args:
+        log_combinations = (
+            {"log_args": True},
+            {"record_args": True},
+        )
+    elif log_result:
+        log_combinations = (
+            {"log_result": True},
+            {"log_return": True},
+            {"record_result": True},
+        )
+    else:
+        log_combinations = ({},)
+
+    message_combinations: tuple[dict[str, Any], ...]
+    if message:
+        message_combinations = (
+            {"message": message},
+            {"message_name": message},
+            {"event_name": message},
+            {},
+        )
+    else:
+        message_combinations = ({},)
+
+    attempts: list[Callable[[], Callable[..., T]]] = []
+    for log_kwargs in log_combinations:
+        for message_kwargs in message_combinations:
+            kwargs = {**span_kwargs, **log_kwargs, **message_kwargs}
+            attempts.append(lambda kwargs=kwargs: instrument(**kwargs)(func))
+            attempts.append(lambda kwargs=kwargs: instrument(func, **kwargs))
+
+    attempts.append(lambda: instrument(func))
 
     for attempt in attempts:
         try:
@@ -181,28 +266,6 @@ def _instrument_function(
         if callable(wrapped):
             return wrapped
     return None
-
-
-def observability_instrument(*, span_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """Decorate functions so Logfire records parameters and return values."""
-
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        nonlocal span_name
-        resolved_span_name = span_name or getattr(func, "__name__", "anonymous")
-        instrumented: Optional[Callable[..., T]] = None
-
-        @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> T:
-            nonlocal instrumented
-            instrument = _LOGFIRE_INSTRUMENT
-            if instrument and instrumented is None:
-                instrumented = _instrument_function(instrument, func, resolved_span_name)
-            target = instrumented or func
-            return target(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 def _record_langsmith_disabled(status: ObservabilityStatus, logger: logging.Logger, reason: str) -> None:
@@ -325,5 +388,5 @@ def _configure_langsmith(logfire_module: Any, status: ObservabilityStatus, logge
 __all__ = [
     "initialize_observability",
     "ObservabilityStatus",
-    "observability_instrument",
+    "logfire",
 ]

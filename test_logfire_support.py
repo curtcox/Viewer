@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from flask import Flask
 
 import logfire_support
-from logfire_support import initialize_observability, observability_instrument
+from logfire_support import initialize_observability, logfire
 
 
 class DummyApp(Flask):
@@ -98,12 +98,14 @@ class LogfireSupportTests(unittest.TestCase):
         self.assertEqual(status["logfire_project_url"], env["LOGFIRE_PROJECT_URL"])
         self.assertEqual(status["langsmith_project_url"], env["LANGSMITH_PROJECT_URL"])
 
-    def test_observability_instrument_records_arguments_and_result(self):
-        logfire_support._set_logfire_instrument(None)
+    def test_logfire_instrument_records_arguments_result_and_message(self):
+        logfire_support._set_logfire_module(None)
         captured = []
+        decorator_kwargs = []
 
         class FakeInstrument:
             def __call__(self, func=None, **kwargs):
+                decorator_kwargs.append(kwargs)
                 span = kwargs.get("span_name")
                 log_args_flag = kwargs.get("log_args") or kwargs.get("record_args") or False
                 log_result_flag = (
@@ -111,6 +113,11 @@ class LogfireSupportTests(unittest.TestCase):
                     or kwargs.get("log_return")
                     or kwargs.get("record_result")
                     or False
+                )
+                message_value = (
+                    kwargs.get("message")
+                    or kwargs.get("message_name")
+                    or kwargs.get("event_name")
                 )
 
                 def decorator(target):
@@ -122,6 +129,7 @@ class LogfireSupportTests(unittest.TestCase):
                                 "log_result": bool(log_result_flag),
                                 "args": args,
                                 "kwargs": inner_kwargs,
+                                "message": message_value,
                             }
                         )
                         result = target(*args, **inner_kwargs)
@@ -158,7 +166,12 @@ class LogfireSupportTests(unittest.TestCase):
             with patch("logfire_support.importlib.import_module", side_effect=fake_import):
                 initialize_observability(self.app)
 
-        @observability_instrument(span_name="test.span")
+        @logfire.instrument(
+            span_name="test.span",
+            log_args=True,
+            log_result=True,
+            message="test.span",
+        )
         def sample_function(a, b):
             return a + b
 
@@ -173,8 +186,12 @@ class LogfireSupportTests(unittest.TestCase):
         self.assertEqual(call["args"], (2, 3))
         self.assertEqual(call["kwargs"], {})
         self.assertEqual(call["result"], 5)
+        self.assertEqual(call["message"], "test.span")
 
-        logfire_support._set_logfire_instrument(None)
+        # Ensure the decorator attempted to include message metadata in kwargs.
+        self.assertTrue(any("message" in kwargs or "message_name" in kwargs or "event_name" in kwargs for kwargs in decorator_kwargs))
+
+        logfire_support._set_logfire_module(None)
 
 
 if __name__ == "__main__":
