@@ -11,7 +11,7 @@ from auth_providers import require_login
 from db_access import get_alias_by_name, get_user_aliases, save_entity
 from forms import AliasForm
 from models import Alias
-from logfire_support import logfire
+import logfire
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
@@ -32,12 +32,7 @@ def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] =
     return True
 
 
-@logfire.instrument(
-    span_name="definitions.alias.persist",
-    log_args=True,
-    log_result=True,
-    message="definitions.alias.persist",
-)
+@logfire.instrument("aliases._persist_alias({alias=})", extract_args=True, record_return=True)
 def _persist_alias(alias: Alias) -> Alias:
     """Persist alias changes while capturing observability metadata."""
 

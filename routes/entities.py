@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Any, Type
 
 from flask import flash
+import logfire
 
 from db_access import (
     get_secret_by_name,
@@ -11,7 +12,6 @@ from db_access import (
     save_entity,
 )
 from cid_utils import save_server_definition_as_cid
-from logfire_support import logfire
 
 
 def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:
@@ -30,12 +30,7 @@ def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_i
     return entity is not None
 
 
-@logfire.instrument(
-    span_name="definitions.create_entity",
-    log_args=True,
-    log_result=True,
-    message="definitions.create_entity",
-)
+@logfire.instrument("entities.create_entity({model_class=}, {form=}, {user_id=}, {entity_type=})", extract_args=True, record_return=True)
 def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) -> bool:
     """Generic function to create a new entity (server, variable, or secret)."""
     if check_name_exists(model_class, form.name.data, user_id):
@@ -72,12 +67,7 @@ def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) 
     return True
 
 
-@logfire.instrument(
-    span_name="definitions.update_entity",
-    log_args=True,
-    log_result=True,
-    message="definitions.update_entity",
-)
+@logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
 def update_entity(entity, form, entity_type: str) -> bool:
     """Generic function to update an entity (server, variable, or secret)."""
     if form.name.data != entity.name:

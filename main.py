@@ -1,7 +1,6 @@
 import signal
 import sys
 from app import app
-import routes  # noqa: F401
 
 def signal_handler(sig, frame):
     print('\nShutting down gracefully...')

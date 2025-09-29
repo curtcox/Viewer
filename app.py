@@ -1,4 +1,5 @@
 import os
+from os import getenv
 import logging
 from typing import Optional
 
@@ -6,8 +7,9 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
+import logfire
+
 from database import db, init_db
-from logfire_support import initialize_observability
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,6 +19,31 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def create_app(config_override: Optional[dict] = None) -> Flask:
+
+    logger = logging.getLogger(__name__)
+
+    if getenv("LOGFIRE_SEND_TO_LOGFIRE"):
+
+        logger.info("Logfire is enabled")
+
+        logfire.configure(
+            code_source=logfire.CodeSource(
+                repository='https://github.com/curtcox/Viewer',
+                revision=getenv("REVISION"),
+            )
+        )
+
+        # logfire.instrument_fastapi(app = FastAPI())
+        logfire.instrument_requests()
+        logfire.instrument_aiohttp_client()
+        logfire.instrument_pydantic()
+
+        logger.info("Logfire configured")
+
+    else:
+
+        logger.warning("Logfire is not enabled, skipping logfire instrumentation")
+
     """Application factory for creating configured Flask instances."""
     app = Flask(__name__)
 
@@ -100,7 +127,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        app.config["OBSERVABILITY_STATUS"] = initialize_observability(app, db.engine)
+        app.config["OBSERVABILITY_STATUS"] = getenv("LOGFIRE_SEND_TO_LOGFIRE")
 
     return app
 

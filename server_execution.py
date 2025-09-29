@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from flask import jsonify, make_response, redirect, render_template, request
 from flask_login import current_user
+import logfire
 
 from cid_utils import (
     generate_cid,
@@ -27,7 +28,6 @@ from db_access import (
     get_user_variables,
     save_entity,
 )
-from logfire_support import logfire
 from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
@@ -582,12 +582,7 @@ def _execute_server_code_common(
         return _handle_execution_exception(exc, code, args)
 
 
-@logfire.instrument(
-    span_name="server.execute_code",
-    log_args=True,
-    log_result=True,
-    message="server.execute_code",
-)
+@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code(server, server_name: str):
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -600,12 +595,7 @@ def execute_server_code(server, server_name: str):
     )
 
 
-@logfire.instrument(
-    span_name="server.execute_code_from_definition",
-    log_args=True,
-    log_result=True,
-    message="server.execute_code_from_definition",
-)
+@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code_from_definition(definition_text: str, server_name: str):
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
@@ -618,12 +608,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
     )
 
 
-@logfire.instrument(
-    span_name="server.execute_function",
-    log_args=True,
-    log_result=True,
-    message="server.execute_function",
-)
+@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function(server, server_name: str, function_name: str):
     """Execute a named helper function within a server definition."""
 
@@ -637,12 +622,7 @@ def execute_server_function(server, server_name: str, function_name: str):
     )
 
 
-@logfire.instrument(
-    span_name="server.execute_function_from_definition",
-    log_args=True,
-    log_result=True,
-    message="server.execute_function_from_definition",
-)
+@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ):

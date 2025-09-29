@@ -22,11 +22,10 @@ from db_access import (
 from models import Alias, ServerInvocation
 from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
-from logfire_support import logfire
 
 from . import main_bp
 from .history import _load_request_referers
-
+import logfire
 
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""
@@ -35,12 +34,7 @@ def _shorten_cid(cid, length=6):
     return f"{cid[:length]}..."
 
 
-@logfire.instrument(
-    span_name="definitions.alias.update_from_upload",
-    log_args=True,
-    log_result=True,
-    message="definitions.alias.update_from_upload",
-)
+@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
 def _persist_alias_from_upload(alias: Alias) -> Alias:
     """Persist alias changes that originate from upload workflows."""
 
