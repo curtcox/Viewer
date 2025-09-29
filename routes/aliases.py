@@ -11,6 +11,7 @@ from auth_providers import require_login
 from db_access import get_alias_by_name, get_user_aliases, save_entity
 from forms import AliasForm
 from models import Alias
+import logfire
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
@@ -29,6 +30,14 @@ def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] =
     if exclude_id is not None and getattr(existing, "id", None) == exclude_id:
         return False
     return True
+
+
+@logfire.instrument("aliases._persist_alias({alias=})", extract_args=True, record_return=True)
+def _persist_alias(alias: Alias) -> Alias:
+    """Persist alias changes while capturing observability metadata."""
+
+    save_entity(alias)
+    return alias
 
 
 @main_bp.route('/aliases')
@@ -72,7 +81,7 @@ def new_alias():
                     match_pattern=form.match_pattern.data,
                     ignore_case=bool(form.ignore_case.data),
                 )
-                save_entity(alias)
+                _persist_alias(alias)
                 flash(f'Alias "{name}" created successfully!', 'success')
                 return redirect(url_for('main.aliases'))
 
@@ -135,7 +144,7 @@ def edit_alias(alias_name: str):
             alias.match_pattern = form.match_pattern.data
             alias.ignore_case = bool(form.ignore_case.data)
             alias.updated_at = datetime.now(timezone.utc)
-            save_entity(alias)
+            _persist_alias(alias)
 
             flash(f'Alias "{alias.name}" updated successfully!', 'success')
             return redirect(url_for('main.view_alias', alias_name=alias.name))

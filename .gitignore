@@ -8,6 +8,7 @@ env/
 .env
 .env.local
 .env.production
+.envrc
 
 # Python cache
 __pycache__/

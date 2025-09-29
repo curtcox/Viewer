@@ -25,13 +25,21 @@ from upload_templates import get_upload_templates
 
 from . import main_bp
 from .history import _load_request_referers
-
+import logfire
 
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""
     if not cid:
         return None
     return f"{cid[:length]}..."
+
+
+@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
+def _persist_alias_from_upload(alias: Alias) -> Alias:
+    """Persist alias changes that originate from upload workflows."""
+
+    save_entity(alias)
+    return alias
 
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
@@ -181,7 +189,7 @@ def edit_cid(cid_prefix):
         new_target_path = f"/{cid}"
         if alias_for_cid:
             alias_for_cid.target_path = new_target_path
-            save_entity(alias_for_cid)
+            _persist_alias_from_upload(alias_for_cid)
         elif alias_name_input:
             new_alias = Alias(
                 name=alias_name_input,
@@ -190,7 +198,7 @@ def edit_cid(cid_prefix):
                 match_type='literal',
                 ignore_case=False,
             )
-            save_entity(new_alias)
+            _persist_alias_from_upload(new_alias)
 
         return render_template(
             'upload_success.html',

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
- <head><meta charset="utf-8"><title>{{ site.title }} – {{ user.name }}</title></head>
+ <head><meta charset="utf-8"><title>{{ site.title }} - {{ user.name }}</title></head>
  <body>
   <h1>Hello {{ user.name }}!</h1>
   <p>Today: {{ date }}</p>
-  <ul>{% for item in items %}<li>{{ item.name }} — ${{ '%.2f' % item.price }}</li>{% endfor %}</ul>
+  <ul>{% for item in items %}<li>{{ item.name }} - ${{ '%.2f' % item.price }}</li>{% endfor %}</ul>
   <p>Total items: {{ items|length }}</p>
  </body>
 </html>

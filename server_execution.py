@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from flask import jsonify, make_response, redirect, render_template, request
 from flask_login import current_user
+import logfire
 
 from cid_utils import (
     generate_cid,
@@ -581,6 +582,7 @@ def _execute_server_code_common(
         return _handle_execution_exception(exc, code, args)
 
 
+@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code(server, server_name: str):
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -593,6 +595,7 @@ def execute_server_code(server, server_name: str):
     )
 
 
+@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code_from_definition(definition_text: str, server_name: str):
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
@@ -605,6 +608,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
     )
 
 
+@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function(server, server_name: str, function_name: str):
     """Execute a named helper function within a server definition."""
 
@@ -618,6 +622,7 @@ def execute_server_function(server, server_name: str, function_name: str):
     )
 
 
+@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ):

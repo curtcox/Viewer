@@ -28,6 +28,10 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
     PostgreSQL or another database supported by SQLAlchemy.
   * `SESSION_SECRET` – Flask's secret key used to sign sessions.  Replace the sample value with a secure random string
     for any shared or production deployment.
+  * `LOGFIRE_API_KEY` – enables Logfire tracing and activates a link to the configured project on the home page.
+  * `LOGFIRE_PROJECT_URL` – the share link to your Logfire project so the home page can deep-link directly to it.
+  * `LANGSMITH_API_KEY` – enables Logfire's LangSmith bridge so language workflows are captured automatically.
+  * `LANGSMITH_PROJECT_URL` – optional link shown on the home page when the LangSmith integration is active.
 
 ## Scripts
 
@@ -48,4 +52,13 @@ After changing the configuration or dependencies re‑run `./doctor` to ensure y
  the development server started with `./run`.
 
 Run `pytest` (or the `./test` wrapper) before opening a pull request so you catch regressions locally.  The test runner will
- execute every `test_*.py` module in the repository.
+execute every `test_*.py` module in the repository.
+
+### Observability
+
+SecureApp now ships with Logfire support (including LangSmith instrumentation) so local development mirrors production
+tracing.  Install dependencies with `./install`, set your `LOGFIRE_*` and `LANGSMITH_*` values in `.env`, and then use `./run`
+to start the server.  The `./install` script installs the required OpenTelemetry instrumentations (`opentelemetry-
+instrumentation-flask` and `opentelemetry-instrumentation-sqlalchemy`) so Logfire can attach to the framework automatically.
+When keys are present, the home page provides quick links to both observability dashboards; otherwise the buttons note that
+the integrations are disabled.  Detailed reasons for any disabled integration appear in the application log at startup.

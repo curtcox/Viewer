@@ -9,7 +9,7 @@ class MockVariable:
         self.name = name
         self.definition = definition
         self.user_id = user_id
-    
+
     def __repr__(self):
         return f'<Variable {self.name} by {self.user_id}>'
 
@@ -19,7 +19,7 @@ class MockSecret:
         self.name = name
         self.definition = definition
         self.user_id = user_id
-    
+
     def __repr__(self):
         return f'<Secret {self.name} by {self.user_id}>'
 
@@ -28,17 +28,17 @@ def test_current_behavior():
     print("=" * 60)
     print("CURRENT BEHAVIOR - Model Objects")
     print("=" * 60)
-    
+
     # This is what user_variables() and user_secrets() currently return
     variables = [
         MockVariable('test_var1', 'value1', 'user123'),
         MockVariable('test_var2', 'value2', 'user123')
     ]
-    
+
     secrets = [
         MockSecret('test_secret1', 'secret_value1', 'user123')
     ]
-    
+
     # This is what gets passed to the echo1 server
     args = {
         'path': '/echo1',
@@ -51,39 +51,41 @@ def test_current_behavior():
         'variables': variables,
         'secrets': secrets
     }
-    
+
     print(f"Variables: {variables}")
     print(f"Secrets: {secrets}")
     print(f"Type of variables[0]: {type(variables[0])}")
     print(f"Type of secrets[0]: {type(secrets[0])}")
-    
+
     # When the echo1 server does str(args), this is what happens:
     args_str = str(args)
     print("\nString representation (what echo1 sees):")
     print(args_str)
-    
+
     # The variables and secrets show as model representations, not their data
     print(f"\nVariables in string: {str(variables)}")
     print(f"Secrets in string: {str(secrets)}")
-    
-    return args
+
+    # Assertions instead of return
+    assert len(variables) == 2
+    assert len(secrets) == 1
 
 def test_expected_behavior():
     """Test what should happen with variables and secrets"""
     print("\n" + "=" * 60)
     print("EXPECTED BEHAVIOR - Serializable Data")
     print("=" * 60)
-    
+
     # This is what should be passed to servers
     variables = [
         {'name': 'test_var1', 'definition': 'value1'},
         {'name': 'test_var2', 'definition': 'value2'}
     ]
-    
+
     secrets = [
         {'name': 'test_secret1', 'definition': 'secret_value1'}
     ]
-    
+
     args = {
         'path': '/echo1',
         'query_string': '',
@@ -95,48 +97,50 @@ def test_expected_behavior():
         'variables': variables,
         'secrets': secrets
     }
-    
+
     print(f"Variables: {variables}")
     print(f"Secrets: {secrets}")
     print(f"Type of variables[0]: {type(variables[0])}")
     print(f"Type of secrets[0]: {type(secrets[0])}")
-    
+
     # When the echo1 server does str(args), this shows meaningful data:
     args_str = str(args)
     print("\nString representation (what echo1 should see):")
     print(args_str)
-    
+
     # The variables and secrets show actual data
     print(f"\nVariables in string: {str(variables)}")
     print(f"Secrets in string: {str(secrets)}")
-    
-    return args
+
+    # Assertions instead of return
+    assert len(variables) == 2
+    assert len(secrets) == 1
 
 def demonstrate_issue():
     """Demonstrate the core issue"""
     print("\n" + "=" * 60)
     print("ISSUE DEMONSTRATION")
     print("=" * 60)
-    
+
     current_args = test_current_behavior()
     expected_args = test_expected_behavior()
-    
+
     print("\n" + "=" * 60)
     print("COMPARISON")
     print("=" * 60)
-    
+
     print("Current variables output:")
     print(f"  {current_args['variables']}")
-    
+
     print("Expected variables output:")
     print(f"  {expected_args['variables']}")
-    
+
     print("\nCurrent secrets output:")
     print(f"  {current_args['secrets']}")
-    
+
     print("Expected secrets output:")
     print(f"  {expected_args['secrets']}")
-    
+
     print("\n" + "=" * 60)
     print("ROOT CAUSE")
     print("=" * 60)
