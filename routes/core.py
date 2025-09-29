@@ -300,6 +300,21 @@ def inject_auth_info():
     )
 
 
+@main_bp.app_context_processor
+def inject_observability_info():
+    """Expose Logfire and LangSmith availability to all templates."""
+
+    status = current_app.config.get("OBSERVABILITY_STATUS") or {}
+    return dict(
+        LOGFIRE_AVAILABLE=bool(status.get("logfire_available")),
+        LOGFIRE_PROJECT_URL=status.get("logfire_project_url"),
+        LOGFIRE_UNAVAILABLE_REASON=status.get("logfire_reason"),
+        LANGSMITH_AVAILABLE=bool(status.get("langsmith_available")),
+        LANGSMITH_PROJECT_URL=status.get("langsmith_project_url"),
+        LANGSMITH_UNAVAILABLE_REASON=status.get("langsmith_reason"),
+    )
+
+
 @main_bp.route('/')
 def index():
     """Landing page - shows different content based on user status."""
@@ -622,6 +637,7 @@ __all__ = [
     'handle_pending_authentication',
     'index',
     'inject_auth_info',
+    'inject_observability_info',
     'invitations',
     'not_found_error',
     'plans',

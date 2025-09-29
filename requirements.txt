@@ -16,3 +16,5 @@ coverage>=7.0.0
 requests>=2.31.0
 Markdown>=3.6
 pytest>=8.2.0
+logfire[langchain]
+langsmith>=0.1.0

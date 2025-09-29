@@ -7,6 +7,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 from database import db, init_db
+from logfire_support import initialize_observability
 
 # Load environment variables from .env file
 load_dotenv()
@@ -98,6 +99,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
         db.create_all()
         logging.info("Database tables created")
+
+        app.config["OBSERVABILITY_STATUS"] = initialize_observability(app, db.engine)
 
     return app
 

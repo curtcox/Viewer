@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
 
+from flask import current_app
+
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SESSION_SECRET'] = 'test-secret-key'
@@ -122,6 +124,32 @@ class TestContextProcessors(BaseTestCase):
         mock_auth_manager.get_provider_name.assert_called()
         mock_auth_manager.get_login_url.assert_called()
         mock_auth_manager.get_logout_url.assert_called()
+
+
+    def test_inject_observability_info(self):
+        """Ensure observability context values mirror application status."""
+
+        from routes.core import inject_observability_info
+
+        with self.app.app_context():
+            current_app.config["OBSERVABILITY_STATUS"] = {
+                "logfire_available": False,
+                "logfire_project_url": None,
+                "logfire_reason": "missing api key",
+                "langsmith_available": True,
+                "langsmith_project_url": "https://langsmith.example/project",
+                "langsmith_reason": None,
+            }
+
+            context = inject_observability_info()
+
+        self.assertFalse(context["LOGFIRE_AVAILABLE"])
+        self.assertEqual(context["LOGFIRE_UNAVAILABLE_REASON"], "missing api key")
+        self.assertTrue(context["LANGSMITH_AVAILABLE"])
+        self.assertEqual(
+            context["LANGSMITH_PROJECT_URL"],
+            "https://langsmith.example/project",
+        )
 
 
 class TestPublicRoutes(BaseTestCase):

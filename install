@@ -25,3 +25,4 @@ fi
 chmod +x install run doctor
 
 echo "Installation finished. Use ./doctor to verify and ./run to start the app."
+echo "Configure LOGFIRE_* and LANGSMITH_* values in .env to enable observability links."
