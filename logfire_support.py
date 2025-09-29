@@ -6,7 +6,8 @@ import importlib
 import inspect
 import logging
 import os
-from typing import Any, Dict, Iterable, Optional
+from functools import wraps
+from typing import Any, Callable, Dict, Iterable, Optional, TypeVar
 
 from flask import Flask
 
@@ -17,6 +18,10 @@ except ImportError:  # pragma: no cover - SQLAlchemy is part of requirements
 
 
 ObservabilityStatus = Dict[str, Any]
+
+T = TypeVar("T")
+
+_LOGFIRE_INSTRUMENT: Optional[Callable[..., Any]] = None
 
 _LOGFIRE_DEPENDENCIES: tuple[tuple[str, str], ...] = (
     ("opentelemetry.instrumentation.flask", "opentelemetry-instrumentation-flask"),
@@ -74,6 +79,7 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
     """
 
     logger = app.logger if app else logging.getLogger(__name__)
+    _set_logfire_instrument(None)
     status = _initial_status()
 
     api_key = os.getenv("LOGFIRE_API_KEY")
@@ -126,12 +132,77 @@ def initialize_observability(app: Flask, engine: Optional[Engine] = None) -> Obs
     status["logfire_reason"] = None
     logger.info("Logfire support enabled for service '%s'", configure_kwargs["service_name"])
 
+    instrument = getattr(logfire_module, "instrument", None)
+    if callable(instrument):
+        _set_logfire_instrument(instrument)
+    else:
+        _set_logfire_instrument(None)
+        logger.debug("Logfire instrumentation decorator not available")
+
     _instrument_flask(logfire_module, app, logger)
     _instrument_sqlalchemy(logfire_module, engine, logger)
 
     _configure_langsmith(logfire_module, status, logger)
 
     return status
+
+
+def _set_logfire_instrument(instrument: Optional[Callable[..., Any]]) -> None:
+    """Store the active Logfire instrumentation decorator factory."""
+
+    global _LOGFIRE_INSTRUMENT
+    _LOGFIRE_INSTRUMENT = instrument
+
+
+def _instrument_function(
+    instrument: Callable[..., Any],
+    func: Callable[..., T],
+    span_name: str,
+) -> Optional[Callable[..., T]]:
+    """Attempt to wrap *func* with Logfire instrumentation."""
+
+    attempts = (
+        lambda: instrument(span_name=span_name, log_args=True, log_result=True)(func),
+        lambda: instrument(span_name=span_name, log_args=True, log_return=True)(func),
+        lambda: instrument(span_name=span_name, record_args=True, record_result=True)(func),
+        lambda: instrument(func, span_name=span_name, log_args=True, log_result=True),
+        lambda: instrument(func, span_name=span_name, log_args=True, log_return=True),
+        lambda: instrument(func, span_name=span_name, record_args=True, record_result=True),
+        lambda: instrument(span_name=span_name)(func),
+        lambda: instrument(func, span_name=span_name),
+        lambda: instrument(func),
+    )
+
+    for attempt in attempts:
+        try:
+            wrapped = attempt()
+        except TypeError:
+            continue
+        if callable(wrapped):
+            return wrapped
+    return None
+
+
+def observability_instrument(*, span_name: Optional[str] = None) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """Decorate functions so Logfire records parameters and return values."""
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        nonlocal span_name
+        resolved_span_name = span_name or getattr(func, "__name__", "anonymous")
+        instrumented: Optional[Callable[..., T]] = None
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            nonlocal instrumented
+            instrument = _LOGFIRE_INSTRUMENT
+            if instrument and instrumented is None:
+                instrumented = _instrument_function(instrument, func, resolved_span_name)
+            target = instrumented or func
+            return target(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def _record_langsmith_disabled(status: ObservabilityStatus, logger: logging.Logger, reason: str) -> None:
@@ -251,4 +322,8 @@ def _configure_langsmith(logfire_module: Any, status: ObservabilityStatus, logge
         logger.exception("Failed to enable LangSmith integration via Logfire")
 
 
-__all__ = ["initialize_observability", "ObservabilityStatus"]
+__all__ = [
+    "initialize_observability",
+    "ObservabilityStatus",
+    "observability_instrument",
+]

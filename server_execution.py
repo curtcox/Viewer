@@ -27,6 +27,7 @@ from db_access import (
     get_user_variables,
     save_entity,
 )
+from logfire_support import observability_instrument
 from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
@@ -581,6 +582,7 @@ def _execute_server_code_common(
         return _handle_execution_exception(exc, code, args)
 
 
+@observability_instrument(span_name="server.execute_code")
 def execute_server_code(server, server_name: str):
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -593,6 +595,7 @@ def execute_server_code(server, server_name: str):
     )
 
 
+@observability_instrument(span_name="server.execute_code_from_definition")
 def execute_server_code_from_definition(definition_text: str, server_name: str):
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
@@ -605,6 +608,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
     )
 
 
+@observability_instrument(span_name="server.execute_function")
 def execute_server_function(server, server_name: str, function_name: str):
     """Execute a named helper function within a server definition."""
 
@@ -618,6 +622,7 @@ def execute_server_function(server, server_name: str, function_name: str):
     )
 
 
+@observability_instrument(span_name="server.execute_function_from_definition")
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ):

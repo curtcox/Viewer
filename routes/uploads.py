@@ -22,6 +22,7 @@ from db_access import (
 from models import Alias, ServerInvocation
 from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
+from logfire_support import observability_instrument
 
 from . import main_bp
 from .history import _load_request_referers
@@ -32,6 +33,14 @@ def _shorten_cid(cid, length=6):
     if not cid:
         return None
     return f"{cid[:length]}..."
+
+
+@observability_instrument(span_name="definitions.alias.update_from_upload")
+def _persist_alias_from_upload(alias: Alias) -> Alias:
+    """Persist alias changes that originate from upload workflows."""
+
+    save_entity(alias)
+    return alias
 
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
@@ -181,7 +190,7 @@ def edit_cid(cid_prefix):
         new_target_path = f"/{cid}"
         if alias_for_cid:
             alias_for_cid.target_path = new_target_path
-            save_entity(alias_for_cid)
+            _persist_alias_from_upload(alias_for_cid)
         elif alias_name_input:
             new_alias = Alias(
                 name=alias_name_input,
@@ -190,7 +199,7 @@ def edit_cid(cid_prefix):
                 match_type='literal',
                 ignore_case=False,
             )
-            save_entity(new_alias)
+            _persist_alias_from_upload(new_alias)
 
         return render_template(
             'upload_success.html',

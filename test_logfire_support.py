@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 
 from flask import Flask
 
-from logfire_support import initialize_observability
+import logfire_support
+from logfire_support import initialize_observability, observability_instrument
 
 
 class DummyApp(Flask):
@@ -96,6 +97,84 @@ class LogfireSupportTests(unittest.TestCase):
         self.assertTrue(status["langsmith_available"])
         self.assertEqual(status["logfire_project_url"], env["LOGFIRE_PROJECT_URL"])
         self.assertEqual(status["langsmith_project_url"], env["LANGSMITH_PROJECT_URL"])
+
+    def test_observability_instrument_records_arguments_and_result(self):
+        logfire_support._set_logfire_instrument(None)
+        captured = []
+
+        class FakeInstrument:
+            def __call__(self, func=None, **kwargs):
+                span = kwargs.get("span_name")
+                log_args_flag = kwargs.get("log_args") or kwargs.get("record_args") or False
+                log_result_flag = (
+                    kwargs.get("log_result")
+                    or kwargs.get("log_return")
+                    or kwargs.get("record_result")
+                    or False
+                )
+
+                def decorator(target):
+                    def wrapped(*args, **inner_kwargs):
+                        captured.append(
+                            {
+                                "span_name": span or target.__name__,
+                                "log_args": bool(log_args_flag),
+                                "log_result": bool(log_result_flag),
+                                "args": args,
+                                "kwargs": inner_kwargs,
+                            }
+                        )
+                        result = target(*args, **inner_kwargs)
+                        captured[-1]["result"] = result
+                        return result
+
+                    return wrapped
+
+                if callable(func):
+                    return decorator(func)
+                return decorator
+
+        fake_logfire = SimpleNamespace(
+            configure=MagicMock(),
+            instrument=FakeInstrument(),
+            instrument_flask=MagicMock(),
+            instrument_sqlalchemy=MagicMock(),
+            instrument_langchain=MagicMock(),
+        )
+
+        def fake_import(name, *_, **__):
+            if name == "logfire":
+                return fake_logfire
+            if name.startswith("opentelemetry.instrumentation"):
+                return SimpleNamespace()
+            raise ImportError(name)
+
+        env = {
+            "LOGFIRE_API_KEY": "logfire-key",
+            "LANGSMITH_API_KEY": "langsmith-key",
+        }
+
+        with patch.dict(os.environ, env, clear=True):
+            with patch("logfire_support.importlib.import_module", side_effect=fake_import):
+                initialize_observability(self.app)
+
+        @observability_instrument(span_name="test.span")
+        def sample_function(a, b):
+            return a + b
+
+        result = sample_function(2, 3)
+
+        self.assertEqual(result, 5)
+        self.assertEqual(len(captured), 1)
+        call = captured[0]
+        self.assertEqual(call["span_name"], "test.span")
+        self.assertTrue(call["log_args"])
+        self.assertTrue(call["log_result"])
+        self.assertEqual(call["args"], (2, 3))
+        self.assertEqual(call["kwargs"], {})
+        self.assertEqual(call["result"], 5)
+
+        logfire_support._set_logfire_instrument(None)
 
 
 if __name__ == "__main__":

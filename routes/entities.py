@@ -11,6 +11,7 @@ from db_access import (
     save_entity,
 )
 from cid_utils import save_server_definition_as_cid
+from logfire_support import observability_instrument
 
 
 def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:
@@ -29,6 +30,7 @@ def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_i
     return entity is not None
 
 
+@observability_instrument(span_name="definitions.create_entity")
 def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) -> bool:
     """Generic function to create a new entity (server, variable, or secret)."""
     if check_name_exists(model_class, form.name.data, user_id):
@@ -65,6 +67,7 @@ def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) 
     return True
 
 
+@observability_instrument(span_name="definitions.update_entity")
 def update_entity(entity, form, entity_type: str) -> bool:
     """Generic function to update an entity (server, variable, or secret)."""
     if form.name.data != entity.name:
