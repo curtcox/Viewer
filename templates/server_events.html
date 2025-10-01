@@ -67,7 +67,7 @@
                                     </td>
                                     <td>
                                         {% if event.invocation_link %}
-                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.invocation_cid }}">
+                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.invocation_cid) }}">
                                                 <code class="small">{{ event.invocation_label }}</code>
                                             </a>
                                         {% else %}
@@ -76,7 +76,7 @@
                                     </td>
                                     <td>
                                         {% if event.request_details_link %}
-                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.request_details_cid }}">
+                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.request_details_cid) }}">
                                                 <code class="small">{{ event.request_details_label }}</code>
                                             </a>
                                         {% else %}
@@ -85,7 +85,7 @@
                                     </td>
                                     <td>
                                         {% if event.result_link %}
-                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.result_cid }}">
+                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.result_cid) }}">
                                                 <code class="small">{{ event.result_label }}</code>
                                             </a>
                                         {% else %}
@@ -94,7 +94,7 @@
                                     </td>
                                     <td>
                                         {% if event.servers_cid_link %}
-                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.servers_cid }}">
+                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.servers_cid) }}">
                                                 <code class="small">{{ event.servers_cid_label }}</code>
                                             </a>
                                         {% else %}

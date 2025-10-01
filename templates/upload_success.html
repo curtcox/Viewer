@@ -39,8 +39,8 @@
                             <div class="bg-light p-3 rounded">
                                 <label class="form-label fw-bold">IPFS CID:</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control font-monospace" value="{{ cid }}" readonly>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ cid }}')">
+                                    <input type="text" class="form-control font-monospace" value="{{ format_cid(cid) }}" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ format_cid(cid) }}')">
                                         <i class="fas fa-copy"></i>
                                     </button>
                                 </div>
@@ -56,8 +56,9 @@
                             </h6>
                             <p>Your file is now accessible at the following URL and will be served with the correct MIME type:</p>
                             <div class="input-group">
-                                <input type="text" class="form-control" value="{{ request.url_root[:-1] }}/{{ cid }}{% if view_url_extension %}.{{ view_url_extension }}{% endif %}" readonly>
-                                <a href="/{{ cid }}{% if view_url_extension %}.{{ view_url_extension }}{% endif %}" class="btn btn-primary" target="_blank">
+                                <input type="text" class="form-control" value="{{ cid_full_url(request.url_root, cid, view_url_extension) or '' }}" readonly>
+                                {% set view_link = cid_path(cid, view_url_extension) %}
+                                <a href="{{ view_link or '#' }}" class="btn btn-primary" target="_blank">
                                     <i class="fas fa-external-link-alt me-1"></i>View/Download
                                 </a>
                             </div>

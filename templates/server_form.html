@@ -143,13 +143,15 @@
                                             {{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                         </h6>
                                         <div class="ms-auto">
-                                            <a href="/{{ entry.definition_cid }}.txt" target="_blank" class="btn btn-outline-primary btn-sm me-2">
+                                            {% set entry_definition_link = cid_path(entry.definition_cid, 'txt') %}
+                                            <a href="{{ entry_definition_link or '#' }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
                                                 <i class="fas fa-external-link-alt me-1"></i>View as Text
                                             </a>
                                             <button class="btn btn-outline-secondary btn-sm me-2" onclick="copyHistoricalDefinition('{{ loop.index0 }}')">
                                                 <i class="fas fa-copy me-1"></i>Copy
                                             </button>
-                                            <a href="/{{ entry.snapshot_cid }}.json" target="_blank" class="btn btn-outline-info btn-sm me-2">
+                                            {% set snapshot_link = cid_path(entry.snapshot_cid, 'json') %}
+                                            <a href="{{ snapshot_link or '#' }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
                                                 <i class="fas fa-code me-1"></i>View JSON
                                             </a>
                                             <button class="btn btn-outline-info btn-sm" onclick="loadHistoricalDefinition('{{ loop.index0 }}')">
@@ -158,7 +160,7 @@
                                         </div>
                                     </div>
                                     <div class="text-muted small mb-2">
-                                        Definition CID: <code>{{ entry.definition_cid }}</code>
+                                        Definition CID: <code>{{ format_cid(entry.definition_cid) }}</code>
                                     </div>
                                     <div class="collapse" id="definition-{{ loop.index0 }}">
                                         <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition }}</pre>
@@ -208,7 +210,7 @@
                                     </td>
                                     <td>
                                         {% if event.invocation_link %}
-                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.invocation_cid }}">
+                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.invocation_cid) }}">
                                                 <code class="small">{{ event.invocation_label }}</code>
                                             </a>
                                         {% else %}
@@ -217,7 +219,7 @@
                                     </td>
                                     <td>
                                         {% if event.request_details_link %}
-                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.request_details_cid }}">
+                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.request_details_cid) }}">
                                                 <code class="small">{{ event.request_details_label }}</code>
                                             </a>
                                         {% else %}
@@ -226,7 +228,7 @@
                                     </td>
                                     <td>
                                         {% if event.result_link %}
-                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.result_cid }}">
+                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.result_cid) }}">
                                                 <code class="small">{{ event.result_label }}</code>
                                             </a>
                                         {% else %}
@@ -235,7 +237,7 @@
                                     </td>
                                     <td>
                                         {% if event.servers_cid_link %}
-                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ event.servers_cid }}">
+                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.servers_cid) }}">
                                                 <code class="small">{{ event.servers_cid_label }}</code>
                                             </a>
                                         {% else %}

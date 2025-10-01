@@ -8,6 +8,7 @@ from flask_login import current_user
 
 from auth_providers import require_login
 from analytics import get_paginated_page_views, get_user_history_statistics
+from cid_presenter import cid_path, format_cid
 from models import CID, ServerInvocation
 
 from . import main_bp
@@ -107,7 +108,11 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
     if not request_cids:
         return {}
 
-    cid_paths = [f"/{cid}" for cid in request_cids]
+    cid_paths = []
+    for cid in request_cids:
+        path = cid_path(cid)
+        if path:
+            cid_paths.append(path)
     cid_records = (
         CID.query
         .filter(CID.path.in_(cid_paths))
@@ -127,7 +132,7 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
 
         referer = _extract_referer_from_headers(payload.get('headers')) if isinstance(payload, dict) else None
         if referer:
-            referer_by_cid[record.path.lstrip('/')] = referer
+            referer_by_cid[format_cid(record.path)] = referer
 
     return referer_by_cid
 
@@ -138,11 +143,11 @@ def _attach_server_event_links(page_views: object) -> None:
     if not page_view_items:
         return
 
-    result_cids = {
-        cid
-        for cid in (_extract_result_cid(view.path) for view in page_view_items)
-        if cid
-    }
+    result_cids = set()
+    for view in page_view_items:
+        cid_value = format_cid(_extract_result_cid(view.path))
+        if cid_value:
+            result_cids.add(cid_value)
 
     if not result_cids:
         return
@@ -162,8 +167,9 @@ def _attach_server_event_links(page_views: object) -> None:
     for invocation in invocations:
         if not invocation.invocation_cid:
             continue
-        if invocation.result_cid not in invocation_by_result:
-            invocation_by_result[invocation.result_cid] = invocation
+        cid_key = format_cid(getattr(invocation, 'result_cid', None))
+        if cid_key and cid_key not in invocation_by_result:
+            invocation_by_result[cid_key] = invocation
 
     if not invocation_by_result:
         return
@@ -171,7 +177,7 @@ def _attach_server_event_links(page_views: object) -> None:
     referer_by_request_cid = _load_request_referers(invocation_by_result.values())
 
     for view in page_view_items:
-        cid = _extract_result_cid(view.path)
+        cid = format_cid(_extract_result_cid(view.path))
         if not cid:
             continue
 
@@ -181,7 +187,7 @@ def _attach_server_event_links(page_views: object) -> None:
 
         # Attach both the invocation object and helpful links for templates.
         view.server_invocation = invocation
-        view.server_invocation_link = f"/{invocation.invocation_cid}.json"
+        view.server_invocation_link = cid_path(invocation.invocation_cid, 'json')
 
         referer = None
         request_cid = getattr(invocation, 'request_details_cid', None)

@@ -3,6 +3,7 @@ from flask import abort, flash, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
+from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
     generate_cid,
     get_extension_from_mime_type,
@@ -29,9 +30,7 @@ import logfire
 
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""
-    if not cid:
-        return None
-    return f"{cid[:length]}..."
+    return format_cid_short(cid, length)
 
 
 @logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
@@ -64,14 +63,21 @@ def upload():
             flash(str(exc), 'error')
             return render_template('upload.html', form=form, upload_templates=upload_templates)
 
-        cid = generate_cid(file_content)
+        cid_value = format_cid(generate_cid(file_content))
 
-        existing = get_cid_by_path(f"/{cid}")
+        cid_record_path = cid_path(cid_value)
+        existing = get_cid_by_path(cid_record_path) if cid_record_path else None
         if existing:
-            flash(f'Content with this hash already exists! CID: {cid}', 'warning')
+            flash(
+                f"Content with this hash already exists! CID: {format_cid(cid_value)}",
+                'warning',
+            )
         else:
-            create_cid_record(cid, file_content, current_user.id)
-            flash(f'Content uploaded successfully! CID: {cid}', 'success')
+            create_cid_record(cid_value, file_content, current_user.id)
+            flash(
+                f"Content uploaded successfully! CID: {format_cid(cid_value)}",
+                'success',
+            )
 
         view_url_extension = ""
 
@@ -87,7 +93,7 @@ def upload():
 
         return render_template(
             'upload_success.html',
-            cid=cid,
+            cid=format_cid(cid_value),
             file_size=len(file_content),
             detected_mime_type=detected_mime_type,
             view_url_extension=view_url_extension,
@@ -134,18 +140,25 @@ def uploads():
 @require_login
 def edit_cid(cid_prefix):
     """Allow users to edit existing CID content as text."""
-    normalized_prefix = cid_prefix.split('.')[0].lstrip('/') if cid_prefix else cid_prefix
+    normalized_prefix = format_cid(cid_prefix.split('.')[0] if cid_prefix else cid_prefix)
     matches = find_cids_by_prefix(normalized_prefix)
 
     if not matches:
         abort(404)
 
-    exact_match = next((match for match in matches if match.path.lstrip('/') == normalized_prefix), None)
+    exact_match = next(
+        (
+            match
+            for match in matches
+            if format_cid(match.path) == normalized_prefix
+        ),
+        None,
+    )
     if exact_match:
         matches = [exact_match]
 
     if len(matches) > 1:
-        match_values = [match.path.lstrip('/') for match in matches]
+        match_values = [format_cid(match.path) for match in matches]
         return render_template(
             'edit_cid_choices.html',
             cid_prefix=normalized_prefix,
@@ -153,7 +166,7 @@ def edit_cid(cid_prefix):
         )
 
     cid_record = matches[0]
-    full_cid = cid_record.path.lstrip('/')
+    full_cid = format_cid(cid_record.path)
     alias_for_cid = get_alias_by_target_path(current_user.id, cid_record.path)
     form = EditCidForm()
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
@@ -177,16 +190,23 @@ def edit_cid(cid_prefix):
 
         text_content = form.text_content.data or ''
         file_content = text_content.encode('utf-8')
-        cid = generate_cid(file_content)
-        existing = get_cid_by_path(f"/{cid}")
+        cid_value = format_cid(generate_cid(file_content))
+        cid_record_path = cid_path(cid_value)
+        existing = get_cid_by_path(cid_record_path) if cid_record_path else None
 
         if existing:
-            flash(f'Content with this hash already exists! CID: {cid}', 'warning')
+            flash(
+                f"Content with this hash already exists! CID: {format_cid(cid_value)}",
+                'warning',
+            )
         else:
-            create_cid_record(cid, file_content, current_user.id)
-            flash(f'Content uploaded successfully! CID: {cid}', 'success')
+            create_cid_record(cid_value, file_content, current_user.id)
+            flash(
+                f"Content uploaded successfully! CID: {format_cid(cid_value)}",
+                'success',
+            )
 
-        new_target_path = f"/{cid}"
+        new_target_path = cid_path(cid_value)
         if alias_for_cid:
             alias_for_cid.target_path = new_target_path
             _persist_alias_from_upload(alias_for_cid)
@@ -202,7 +222,7 @@ def edit_cid(cid_prefix):
 
         return render_template(
             'upload_success.html',
-            cid=cid,
+            cid=format_cid(cid_value),
             file_size=len(file_content),
             detected_mime_type='text/plain',
             view_url_extension='txt',
@@ -236,26 +256,23 @@ def server_events():
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        invocation.invocation_link = (
-            f"/{invocation.invocation_cid}.json"
-            if getattr(invocation, 'invocation_cid', None)
-            else None
+        invocation.invocation_link = cid_path(
+            getattr(invocation, 'invocation_cid', None),
+            'json',
         )
         invocation.invocation_label = _shorten_cid(
             getattr(invocation, 'invocation_cid', None)
         )
-        invocation.request_details_link = (
-            f"/{invocation.request_details_cid}.json"
-            if getattr(invocation, 'request_details_cid', None)
-            else None
+        invocation.request_details_link = cid_path(
+            getattr(invocation, 'request_details_cid', None),
+            'json',
         )
         invocation.request_details_label = _shorten_cid(
             getattr(invocation, 'request_details_cid', None)
         )
-        invocation.result_link = (
-            f"/{invocation.result_cid}.txt"
-            if getattr(invocation, 'result_cid', None)
-            else None
+        invocation.result_link = cid_path(
+            getattr(invocation, 'result_cid', None),
+            'txt',
         )
         invocation.result_label = _shorten_cid(
             getattr(invocation, 'result_cid', None)
@@ -264,10 +281,9 @@ def server_events():
             'main.view_server',
             server_name=invocation.server_name,
         )
-        invocation.servers_cid_link = (
-            f"/{invocation.servers_cid}.json"
-            if getattr(invocation, 'servers_cid', None)
-            else None
+        invocation.servers_cid_link = cid_path(
+            getattr(invocation, 'servers_cid', None),
+            'json',
         )
         invocation.servers_cid_label = _shorten_cid(
             getattr(invocation, 'servers_cid', None)
@@ -303,15 +319,16 @@ def _attach_creation_sources(user_uploads):
             'servers_cid',
         ):
             cid_value = getattr(invocation, attr, None)
-            if cid_value and cid_value not in invocation_by_cid:
-                invocation_by_cid[cid_value] = invocation
+            cid_key = format_cid(cid_value)
+            if cid_key and cid_key not in invocation_by_cid:
+                invocation_by_cid[cid_key] = invocation
 
     for upload in user_uploads:
         upload.creation_method = 'upload'
         upload.server_invocation_link = None
         upload.server_invocation_server_name = None
 
-        cid = upload.path.lstrip('/') if getattr(upload, 'path', None) else None
+        cid = format_cid(getattr(upload, 'path', None)) if getattr(upload, 'path', None) else None
         if not cid:
             continue
 
@@ -320,7 +337,10 @@ def _attach_creation_sources(user_uploads):
             upload.creation_method = 'server_event'
             upload.server_invocation_server_name = invocation.server_name
             if invocation.invocation_cid:
-                upload.server_invocation_link = f"/{invocation.invocation_cid}.json"
+                upload.server_invocation_link = cid_path(
+                    invocation.invocation_cid,
+                    'json',
+                )
 
 
 __all__ = ['server_events', 'upload', 'uploads']

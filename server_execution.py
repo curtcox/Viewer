@@ -11,6 +11,7 @@ from flask import jsonify, make_response, redirect, render_template, request
 from flask_login import current_user
 import logfire
 
+from cid_presenter import cid_path, format_cid
 from cid_utils import (
     generate_cid,
     get_current_secret_definitions_cid,
@@ -383,9 +384,11 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
     try:
         req_json = json.dumps(request_details(), indent=2, sort_keys=True)
         req_bytes = req_json.encode("utf-8")
-        req_cid = generate_cid(req_bytes)
-        if not get_cid_by_path(f"/{req_cid}"):
-            create_cid_record(req_cid, req_bytes, user_id)
+        req_cid_value = format_cid(generate_cid(req_bytes))
+        req_cid_path = cid_path(req_cid_value)
+        if req_cid_path and not get_cid_by_path(req_cid_path):
+            create_cid_record(req_cid_value, req_bytes, user_id)
+        req_cid = req_cid_value if req_cid_path else None
     except Exception:
         req_cid = None
 
@@ -413,11 +416,12 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
         }
         inv_json = json.dumps(inv_payload, indent=2, sort_keys=True)
         inv_bytes = inv_json.encode("utf-8")
-        inv_cid = generate_cid(inv_bytes)
-        if not get_cid_by_path(f"/{inv_cid}"):
-            create_cid_record(inv_cid, inv_bytes, user_id)
+        inv_cid_value = format_cid(generate_cid(inv_bytes))
+        inv_cid_path = cid_path(inv_cid_value)
+        if inv_cid_path and not get_cid_by_path(inv_cid_path):
+            create_cid_record(inv_cid_value, inv_bytes, user_id)
 
-        invocation.invocation_cid = inv_cid
+        invocation.invocation_cid = inv_cid_value if inv_cid_path else None
         save_entity(invocation)
     except Exception:
         pass
@@ -489,18 +493,23 @@ def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, conten
 
 def _handle_successful_execution(output: Any, content_type: str, server_name: str):
     output_bytes = _encode_output(output)
-    cid = generate_cid(output_bytes)
+    cid_value = format_cid(generate_cid(output_bytes))
 
-    existing = get_cid_by_path(f"/{cid}")
-    if not existing:
-        create_cid_record(cid, output_bytes, current_user.id)
+    cid_record_path = cid_path(cid_value)
+    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+    if not existing and cid_record_path:
+        create_cid_record(cid_value, output_bytes, current_user.id)
 
-    create_server_invocation_record(current_user.id, server_name, cid)
+    create_server_invocation_record(current_user.id, server_name, cid_value)
 
     extension = get_extension_from_mime_type(content_type)
-    if extension:
-        return redirect(f"/{cid}.{extension}")
-    return redirect(f"/{cid}")
+    if extension and cid_record_path:
+        redirect_path = cid_path(cid_value, extension)
+        if redirect_path:
+            return redirect(redirect_path)
+    if cid_record_path:
+        return redirect(cid_record_path)
+    return redirect('/')
 
 
 def _render_execution_error_html(exc: Exception, code: str, args: Dict[str, Any]) -> str:

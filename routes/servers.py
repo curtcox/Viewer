@@ -6,6 +6,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
+from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
     generate_cid,
     get_current_server_definitions_cid,
@@ -21,7 +22,6 @@ from . import main_bp
 from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
-from .uploads import _shorten_cid
 
 
 def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
@@ -76,16 +76,17 @@ def get_server_definition_history(user_id, server_name):
                 if isinstance(server_definitions, dict) and server_name in server_definitions:
                     definition_text = server_definitions[server_name]
                     definition_bytes = definition_text.encode('utf-8')
-                    per_server_cid = generate_cid(definition_bytes)
+                    per_server_cid = format_cid(generate_cid(definition_bytes))
 
-                    snapshot_cid_no_slash = cid.path[1:] if cid.path.startswith('/') else cid.path
+                    snapshot_cid = format_cid(cid.path)
+                    snapshot_path = cid_path(snapshot_cid) if snapshot_cid else None
 
                     history.append(
                         {
                             'definition': definition_text,
                             'definition_cid': per_server_cid,
-                            'snapshot_cid': snapshot_cid_no_slash,
-                            'snapshot_path': cid.path,
+                            'snapshot_cid': snapshot_cid,
+                            'snapshot_path': snapshot_path,
                             'created_at': cid.created_at,
                             'is_current': False,
                         }
@@ -118,7 +119,9 @@ def servers():
     servers_list = user_servers()
     server_definitions_cid = None
     if servers_list:
-        server_definitions_cid = get_current_server_definitions_cid(current_user.id)
+        server_definitions_cid = format_cid(
+            get_current_server_definitions_cid(current_user.id)
+        )
 
     return render_template(
         'servers.html',
@@ -249,36 +252,32 @@ def get_server_invocation_history(user_id, server_name):
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        invocation.invocation_link = (
-            f"/{invocation.invocation_cid}.json"
-            if getattr(invocation, 'invocation_cid', None)
-            else None
+        invocation.invocation_link = cid_path(
+            getattr(invocation, 'invocation_cid', None),
+            'json',
         )
-        invocation.invocation_label = _shorten_cid(
+        invocation.invocation_label = format_cid_short(
             getattr(invocation, 'invocation_cid', None)
         )
-        invocation.request_details_link = (
-            f"/{invocation.request_details_cid}.json"
-            if getattr(invocation, 'request_details_cid', None)
-            else None
+        invocation.request_details_link = cid_path(
+            getattr(invocation, 'request_details_cid', None),
+            'json',
         )
-        invocation.request_details_label = _shorten_cid(
+        invocation.request_details_label = format_cid_short(
             getattr(invocation, 'request_details_cid', None)
         )
-        invocation.result_link = (
-            f"/{invocation.result_cid}.txt"
-            if getattr(invocation, 'result_cid', None)
-            else None
+        invocation.result_link = cid_path(
+            getattr(invocation, 'result_cid', None),
+            'txt',
         )
-        invocation.result_label = _shorten_cid(
+        invocation.result_label = format_cid_short(
             getattr(invocation, 'result_cid', None)
         )
-        invocation.servers_cid_link = (
-            f"/{invocation.servers_cid}.json"
-            if getattr(invocation, 'servers_cid', None)
-            else None
+        invocation.servers_cid_link = cid_path(
+            getattr(invocation, 'servers_cid', None),
+            'json',
         )
-        invocation.servers_cid_label = _shorten_cid(
+        invocation.servers_cid_label = format_cid_short(
             getattr(invocation, 'servers_cid', None)
         )
 

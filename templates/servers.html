@@ -10,10 +10,11 @@
                 <h2><i class="fas fa-server me-2"></i>My Servers</h2>
                 <div class="btn-group">
                     {% if server_definitions_cid %}
-                    <a href="/{{ server_definitions_cid }}.json" class="btn btn-outline-info me-1" target="_blank">
+                    {% set server_defs_link = cid_path(server_definitions_cid, 'json') %}
+                    <a href="{{ server_defs_link or '#' }}" class="btn btn-outline-info me-1" target="_blank">
                         <i class="fas fa-eye me-1"></i>View JSON
                     </a>
-                    <a href="/{{ server_definitions_cid }}.json" class="btn btn-outline-secondary me-2" download="server-definitions.json">
+                    <a href="{{ server_defs_link or '#' }}" class="btn btn-outline-secondary me-2" download="server-definitions.json">
                         <i class="fas fa-download me-1"></i>Download JSON
                     </a>
                     {% endif %}
