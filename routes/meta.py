@@ -15,6 +15,7 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
+from cid_presenter import cid_path, format_cid
 from db_access import get_cid_by_path, get_server_by_name, get_user_aliases
 from models import ServerInvocation
 from server_execution import (
@@ -550,8 +551,13 @@ def _server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
             value = getattr(invocation, field, None)
             if not value:
                 continue
-            related_cids[label] = value
-            related_meta_links.append(f"/meta/{value}")
+            formatted_value = format_cid(value)
+            if not formatted_value:
+                continue
+            related_cids[label] = formatted_value
+            related_meta_links.append(
+                url_for("main.meta_route", requested_path=formatted_value)
+            )
 
         events.append(
             {
@@ -572,14 +578,18 @@ def _resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
     if not base_path.startswith("/"):
         return None
 
-    cid_record = get_cid_by_path(base_path)
+    cid_value = format_cid(base_path)
+    cid_record_path = cid_path(cid_value)
+    if not cid_record_path:
+        return None
+
+    cid_record = get_cid_by_path(cid_record_path)
     if not cid_record:
         return None
 
-    cid_value = base_path.lstrip("/")
     record: Dict[str, Any] = {
         "cid": cid_value,
-        "path": cid_record.path,
+        "path": cid_record_path,
         "file_size": cid_record.file_size,
         "created_at": cid_record.created_at.isoformat() if cid_record.created_at else None,
         "uploaded_by_user_id": cid_record.uploaded_by_user_id,

@@ -15,7 +15,7 @@
                 <div class="card-body">
                     <p class="text-muted">
                         You are editing the content stored for CID:
-                        <span class="font-monospace">{{ cid }}</span>
+                        <span class="font-monospace">{{ format_cid(cid) }}</span>
                     </p>
                     <form method="POST">
                         {{ form.hidden_tag() }}
@@ -57,7 +57,7 @@
                         {% endif %}
                         <div class="d-flex gap-2">
                             {{ form.submit(class="btn btn-primary", value=submit_label) }}
-                            <a href="/{{ cid }}" class="btn btn-outline-secondary" target="_blank">
+                            <a href="{{ cid_path(cid) or '#' }}" class="btn btn-outline-secondary" target="_blank">
                                 <i class="fas fa-external-link-alt me-1"></i>View Original
                             </a>
                         </div>
