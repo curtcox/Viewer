@@ -55,11 +55,9 @@
                                 </small>
                             </div>
                         {% endif %}
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
                             {{ form.submit(class="btn btn-primary", value=submit_label) }}
-                            <a href="{{ cid_path(cid) or '#' }}" class="btn btn-outline-secondary" target="_blank">
-                                <i class="fas fa-external-link-alt me-1"></i>View Original
-                            </a>
+                            {{ render_cid_link(cid) }}
                         </div>
                     </form>
                 </div>

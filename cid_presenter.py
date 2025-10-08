@@ -46,8 +46,8 @@ def render_cid_link(value: Optional[str]) -> Markup:
     if not normalized:
         return Markup("")
 
+    base_path = cid_path(normalized) or ""
     text_path = cid_path(normalized, "txt") or ""
-    base_path = text_path
     markdown_path = cid_path(normalized, "md") or ""
     html_path = cid_path(normalized, "html") or ""
     json_path = cid_path(normalized, "json") or ""
@@ -55,6 +55,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
     jpg_path = cid_path(normalized, "jpg") or ""
     edit_path = f"/edit/{normalized}"
     meta_path = f"/meta/{normalized}"
+    copy_path = base_path or text_path
 
     label = _cid_label(normalized)
 
@@ -83,12 +84,19 @@ def render_cid_link(value: Optional[str]) -> Markup:
         <li><a class="dropdown-item" href="{jpg_href}"><i class="fas fa-file-image text-muted me-2"></i>View as JPG</a></li>
         <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
         <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <button type="button" class="dropdown-item cid-copy-action" data-copy-path="{copy_path}">
+                <i class="fas fa-copy text-muted me-2"></i>Copy link
+            </button>
+        </li>
     </ul>
 </span>
 """.format(
             base_href=escape(base_path),
             title=escape(normalized),
             label=escape(label),
+            copy_path=escape(copy_path or ""),
             text_href=escape(text_path),
             markdown_href=escape(markdown_path),
             html_href=escape(html_path),
