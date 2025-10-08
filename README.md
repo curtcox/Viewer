@@ -32,6 +32,8 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
   * `LOGFIRE_PROJECT_URL` – the share link to your Logfire project so the home page can deep-link directly to it.
   * `LANGSMITH_API_KEY` – enables Logfire's LangSmith bridge so language workflows are captured automatically.
   * `LANGSMITH_PROJECT_URL` – optional link shown on the home page when the LangSmith integration is active.
+  * `SCREENSHOT_MODE` – when set to `1`, exposes the `/_screenshot/cid-demo` route for capturing consistent CID layout
+    screenshots without authentication.
 
 ## Scripts
 

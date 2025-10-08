@@ -38,11 +38,14 @@
                             <h6>IPFS Information:</h6>
                             <div class="bg-light p-3 rounded">
                                 <label class="form-label fw-bold">IPFS CID:</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control font-monospace" value="{{ format_cid(cid) }}" readonly>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ format_cid(cid) }}')">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
+                                <div class="d-flex flex-column gap-2">
+                                    {{ render_cid_link(cid) }}
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" value="{{ cid }}" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ cid }}')">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <small class="text-muted">This unique identifier can be used to access your file.</small>
                             </div>

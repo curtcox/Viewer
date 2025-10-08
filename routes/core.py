@@ -7,6 +7,7 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 from flask import (
+    abort,
     current_app,
     flash,
     redirect,
@@ -479,6 +480,25 @@ def accept_invitation(invitation_code):
     return redirect(url_for('main.require_invitation'))
 
 
+@main_bp.route('/_screenshot/cid-demo')
+def screenshot_cid_demo():
+    """Render a stable CID showcase for screenshot-based verification during testing."""
+    if not current_app.config.get('SCREENSHOT_MODE'):
+        abort(404)
+
+    sample_cids = [
+        'bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq',
+        'bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku',
+        'bafybeiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    ]
+
+    return render_template(
+        'screenshot_cid_demo.html',
+        title='CID Screenshot Demo',
+        sample_cids=sample_cids,
+    )
+
+
 @main_bp.route('/settings')
 @require_login
 def settings():
@@ -642,6 +662,7 @@ __all__ = [
     'privacy',
     'profile',
     'require_invitation',
+    'screenshot_cid_demo',
     'settings',
     'subscribe',
     'terms',

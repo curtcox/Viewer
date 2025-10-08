@@ -82,13 +82,10 @@
                         </div>
                     </div>
                     {% if server.definition_cid %}
-                    {% set definition_link = cid_path(server.definition_cid, 'txt') %}
                     <div class="row mt-3">
                         <div class="col-md-12">
                             <strong>Definition CID:</strong><br>
-                            <a href="{{ definition_link or '#' }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-external-link-alt me-1"></i>View as Text ({{ format_cid(server.definition_cid) }})
-                            </a>
+                            {{ render_cid_link(server.definition_cid) }}
                         </div>
                     </div>
                     {% endif %}
@@ -135,7 +132,7 @@
                                         </div>
                                     </div>
                                     <div class="text-muted small mb-2">
-                                        Definition CID: <code>{{ format_cid(entry.definition_cid) }}</code>
+                                        Definition CID: {{ render_cid_link(entry.definition_cid) }}
                                     </div>
                                     <div class="collapse" id="definition-{{ loop.index0 }}">
                                         <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition }}</pre>
@@ -184,37 +181,29 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if event.invocation_link %}
-                                            <a href="{{ event.invocation_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.invocation_cid) }}">
-                                                <code class="small">{{ event.invocation_label }}</code>
-                                            </a>
+                                        {% if event.invocation_cid %}
+                                            {{ render_cid_link(event.invocation_cid) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if event.request_details_link %}
-                                            <a href="{{ event.request_details_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.request_details_cid) }}">
-                                                <code class="small">{{ event.request_details_label }}</code>
-                                            </a>
+                                        {% if event.request_details_cid %}
+                                            {{ render_cid_link(event.request_details_cid) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if event.result_link %}
-                                            <a href="{{ event.result_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.result_cid) }}">
-                                                <code class="small">{{ event.result_label }}</code>
-                                            </a>
+                                        {% if event.result_cid %}
+                                            {{ render_cid_link(event.result_cid) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if event.servers_cid_link %}
-                                            <a href="{{ event.servers_cid_link }}" target="_blank" rel="noopener" class="text-decoration-none" title="{{ format_cid(event.servers_cid) }}">
-                                                <code class="small">{{ event.servers_cid_label }}</code>
-                                            </a>
+                                        {% if event.servers_cid %}
+                                            {{ render_cid_link(event.servers_cid) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
