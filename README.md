@@ -35,6 +35,8 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
   * `SCREENSHOT_MODE` – when set to `1`, exposes the `/_screenshot/cid-demo` route for capturing consistent CID layout
     screenshots without authentication.
 
+> When implementing or updating UI features, enable screenshot mode so you can capture verification images from `/_screenshot/cid-demo` without needing an authenticated session.
+
 ## Scripts
 
 * `install` – create a virtual environment and install the required Python packages.

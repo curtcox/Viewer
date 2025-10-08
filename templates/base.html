@@ -209,8 +209,8 @@
             trigger.classList.add('disabled');
 
             const dropdownToggle = trigger.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
-            if (dropdownToggle && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                const dropdownInstance = bootstrap.Dropdown.getInstance(dropdownToggle) || new bootstrap.Dropdown(dropdownToggle);
+            if (dropdownToggle && window.bootstrap && window.bootstrap.Dropdown) {
+                const dropdownInstance = window.bootstrap.Dropdown.getInstance(dropdownToggle) || new window.bootstrap.Dropdown(dropdownToggle);
                 dropdownInstance.hide();
             }
 
