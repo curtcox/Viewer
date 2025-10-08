@@ -143,17 +143,6 @@
                                             {{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                         </h6>
                                         <div class="ms-auto">
-                                            {% set entry_definition_link = cid_path(entry.definition_cid, 'txt') %}
-                                            <a href="{{ entry_definition_link or '#' }}" target="_blank" class="btn btn-outline-primary btn-sm me-2">
-                                                <i class="fas fa-external-link-alt me-1"></i>View as Text
-                                            </a>
-                                            <button class="btn btn-outline-secondary btn-sm me-2" onclick="copyHistoricalDefinition('{{ loop.index0 }}')">
-                                                <i class="fas fa-copy me-1"></i>Copy
-                                            </button>
-                                            {% set snapshot_link = cid_path(entry.snapshot_cid, 'json') %}
-                                            <a href="{{ snapshot_link or '#' }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
-                                                <i class="fas fa-code me-1"></i>View JSON
-                                            </a>
                                             <button class="btn btn-outline-info btn-sm" onclick="loadHistoricalDefinition('{{ loop.index0 }}')">
                                                 <i class="fas fa-arrow-up me-1"></i>Load into Editor
                                             </button>
@@ -162,6 +151,11 @@
                                     <div class="text-muted small mb-2">
                                         Definition CID: {{ render_cid_link(entry.definition_cid) }}
                                     </div>
+                                    {% if entry.snapshot_cid %}
+                                    <div class="text-muted small mb-2">
+                                        Snapshot CID: {{ render_cid_link(entry.snapshot_cid) }}
+                                    </div>
+                                    {% endif %}
                                     <div class="collapse" id="definition-{{ loop.index0 }}">
                                         <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition }}</pre>
                                     </div>
@@ -259,22 +253,6 @@
 </div>
 
 <script>
-function copyHistoricalDefinition(index) {
-    const definitionElement = document.querySelector(`#definition-${index} .historical-definition`);
-    if (definitionElement) {
-        const definition = definitionElement.textContent;
-        navigator.clipboard.writeText(definition).then(function() {
-            // Show temporary success feedback
-            const button = event.target.closest('button');
-            const originalContent = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
-            setTimeout(() => {
-                button.innerHTML = originalContent;
-            }, 2000);
-        });
-    }
-}
-
 function loadHistoricalDefinition(index) {
     const definitionElement = document.querySelector(`#definition-${index} .historical-definition`);
     if (definitionElement) {

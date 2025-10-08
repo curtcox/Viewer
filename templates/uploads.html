@@ -72,7 +72,6 @@
                                     <th>Created Via</th>
                                     <th>CID</th>
                                     <th>Content Preview</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -125,16 +124,6 @@
                                     <td>
                                         <span class="text-muted small font-monospace">{{ upload.content_preview }}{% if upload.content_preview|length == 20 %}...{% endif %}</span>
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="{{ upload.path }}.txt" target="_blank" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-external-link-alt me-1"></i>View
-                                            </a>
-                                            <button class="btn btn-outline-secondary btn-sm" onclick="copyLink('{{ upload.path }}')">
-                                                <i class="fas fa-copy me-1"></i>Copy
-                                            </button>
-                                        </div>
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -160,18 +149,4 @@
     </div>
 </div>
 
-<script>
-function copyLink(path) {
-    const link = `${window.location.origin}${path}`;
-    navigator.clipboard.writeText(link).then(function() {
-        // Show temporary success feedback
-        const button = event.target.closest('button');
-        const originalContent = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
-        setTimeout(() => {
-            button.innerHTML = originalContent;
-        }, 2000);
-    });
-}
-</script>
 {% endblock %}
