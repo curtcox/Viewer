@@ -10,7 +10,13 @@ from dotenv import load_dotenv
 import logfire
 
 from database import db, init_db
-from cid_presenter import cid_full_url, cid_path, format_cid, format_cid_short
+from cid_presenter import (
+    cid_full_url,
+    cid_path,
+    format_cid,
+    format_cid_short,
+    render_cid_link,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -70,6 +76,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         cid_path=cid_path,
         format_cid=format_cid,
         format_cid_short=format_cid_short,
+        render_cid_link=render_cid_link,
     )
 
     # Initialize database

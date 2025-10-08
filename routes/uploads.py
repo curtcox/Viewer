@@ -3,7 +3,9 @@ from flask import abort, flash, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
-from cid_presenter import cid_path, format_cid, format_cid_short
+from markupsafe import Markup
+
+from cid_presenter import cid_path, format_cid, format_cid_short, render_cid_link
 from cid_utils import (
     generate_cid,
     get_extension_from_mime_type,
@@ -69,13 +71,17 @@ def upload():
         existing = get_cid_by_path(cid_record_path) if cid_record_path else None
         if existing:
             flash(
-                f"Content with this hash already exists! CID: {format_cid(cid_value)}",
+                Markup(
+                    f"Content with this hash already exists! {render_cid_link(cid_value)}"
+                ),
                 'warning',
             )
         else:
             create_cid_record(cid_value, file_content, current_user.id)
             flash(
-                f"Content uploaded successfully! CID: {format_cid(cid_value)}",
+                Markup(
+                    f"Content uploaded successfully! {render_cid_link(cid_value)}"
+                ),
                 'success',
             )
 
@@ -93,7 +99,7 @@ def upload():
 
         return render_template(
             'upload_success.html',
-            cid=format_cid(cid_value),
+            cid=cid_value,
             file_size=len(file_content),
             detected_mime_type=detected_mime_type,
             view_url_extension=view_url_extension,
@@ -196,13 +202,17 @@ def edit_cid(cid_prefix):
 
         if existing:
             flash(
-                f"Content with this hash already exists! CID: {format_cid(cid_value)}",
+                Markup(
+                    f"Content with this hash already exists! {render_cid_link(cid_value)}"
+                ),
                 'warning',
             )
         else:
             create_cid_record(cid_value, file_content, current_user.id)
             flash(
-                f"Content uploaded successfully! CID: {format_cid(cid_value)}",
+                Markup(
+                    f"Content uploaded successfully! {render_cid_link(cid_value)}"
+                ),
                 'success',
             )
 
@@ -222,7 +232,7 @@ def edit_cid(cid_prefix):
 
         return render_template(
             'upload_success.html',
-            cid=format_cid(cid_value),
+            cid=cid_value,
             file_size=len(file_content),
             detected_mime_type='text/plain',
             view_url_extension='txt',

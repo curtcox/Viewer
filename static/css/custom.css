@@ -109,6 +109,37 @@ code {
     color: #e83e8c;
 }
 
+/* CID link presentation */
+.cid-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.cid-display .cid-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.cid-display .cid-link:hover,
+.cid-display .cid-link:focus {
+    text-decoration: underline;
+}
+
+.cid-display .cid-menu-btn {
+    padding: 0.125rem 0.4rem;
+    line-height: 1;
+}
+
+.cid-display .dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Status indicators */
 .status-indicator {
     display: inline-block;

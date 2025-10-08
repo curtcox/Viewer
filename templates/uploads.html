@@ -116,7 +116,11 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <code class="small">{{ upload.path[1:] if upload.path.startswith('/') else upload.path }}</code>
+                                        {% if upload.path %}
+                                            {{ render_cid_link(upload.path) }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <span class="text-muted small font-monospace">{{ upload.content_preview }}{% if upload.content_preview|length == 20 %}...{% endif %}</span>

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from markupsafe import Markup, escape
+
 
 def _normalize_value(value: Optional[str]) -> str:
     """Return a normalized CID value without leading slashes or surrounding whitespace."""
@@ -28,6 +30,56 @@ def format_cid_short(value: Optional[str], length: int = 6) -> Optional[str]:
     if len(normalized) <= length:
         return normalized
     return f"{normalized[:length]}..."
+
+
+def _cid_label(normalized: str) -> str:
+    """Return the standardized label text for a CID link."""
+    if not normalized:
+        return ""
+    prefix = normalized[:9]
+    return f"#{prefix}..."
+
+
+def render_cid_link(value: Optional[str]) -> Markup:
+    """Return markup for displaying a CID with navigation and quick actions."""
+    normalized = _normalize_value(value)
+    if not normalized:
+        return Markup("")
+
+    base_path = cid_path(normalized) or ""
+    text_path = cid_path(normalized, "txt") or ""
+    markdown_path = cid_path(normalized, "md") or ""
+    edit_path = f"/edit/{normalized}"
+    meta_path = f"/meta/{normalized}"
+
+    label = _cid_label(normalized)
+
+    return Markup(
+        """
+<span class="cid-display">
+    <a class="cid-link" href="{base_href}" title="{title}">{label}</a>
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-sm btn-outline-secondary cid-menu-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More options for CID {title}">
+            <i class="fas fa-ellipsis-vertical"></i>
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="{text_href}"><i class="fas fa-file-alt text-muted me-2"></i>View as text</a></li>
+            <li><a class="dropdown-item" href="{markdown_href}"><i class="fas fa-file-code text-muted me-2"></i>View as markdown</a></li>
+            <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
+            <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
+        </ul>
+    </div>
+</span>
+""".format(
+            base_href=escape(base_path),
+            title=escape(normalized),
+            label=escape(label),
+            text_href=escape(text_path),
+            markdown_href=escape(markdown_path),
+            edit_href=escape(edit_path),
+            meta_href=escape(meta_path),
+        )
+    )
 
 
 def cid_path(value: Optional[str], extension: Optional[str] = None) -> Optional[str]:
@@ -59,4 +111,5 @@ __all__ = [
     "cid_path",
     "format_cid",
     "format_cid_short",
+    "render_cid_link",
 ]
