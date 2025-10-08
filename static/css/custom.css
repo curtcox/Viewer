@@ -111,16 +111,13 @@ code {
 
 /* CID link presentation */
 .cid-display {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
     font-size: 0.875rem;
     white-space: nowrap;
-}
-
-.cid-display .dropdown {
-    display: inline-flex;
 }
 
 .cid-display .cid-link {

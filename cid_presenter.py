@@ -56,27 +56,27 @@ def render_cid_link(value: Optional[str]) -> Markup:
 
     return Markup(
         """
-<span class="cid-display">
+<div class="cid-display dropdown">
     <a class="cid-link" href="{base_href}" title="{title}">{label}</a>
-    <span class="dropdown">
-        <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            aria-haspopup="true"
-            aria-label="More options for CID {title}"
-        >
-            <i class="fas fa-ellipsis-vertical"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{text_href}"><i class="fas fa-file-alt text-muted me-2"></i>View as text</a></li>
-            <li><a class="dropdown-item" href="{markdown_href}"><i class="fas fa-file-code text-muted me-2"></i>View as markdown</a></li>
-            <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
-            <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
-        </ul>
-    </span>
-</span>
+    <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"
+        data-bs-toggle="dropdown"
+        data-bs-display="static"
+        data-bs-offset="0,8"
+        aria-expanded="false"
+        aria-haspopup="true"
+        aria-label="More options for CID {title}"
+    >
+        <i class="fas fa-ellipsis-vertical"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{text_href}"><i class="fas fa-file-alt text-muted me-2"></i>View as text</a></li>
+        <li><a class="dropdown-item" href="{markdown_href}"><i class="fas fa-file-code text-muted me-2"></i>View as markdown</a></li>
+        <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
+        <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
+    </ul>
+</div>
 """.format(
             base_href=escape(base_path),
             title=escape(normalized),

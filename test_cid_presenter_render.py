@@ -13,6 +13,7 @@ def test_render_cid_link_includes_expected_elements():
     cid = "bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq"
     rendered = str(render_cid_link(cid))
 
+    assert '<div class="cid-display dropdown">' in rendered
     assert f'href="/{cid}"' in rendered
     assert f'title="{cid}"' in rendered
     assert f">#{cid[:9]}...<" in rendered
@@ -21,6 +22,8 @@ def test_render_cid_link_includes_expected_elements():
     assert f'href="/edit/{cid}"' in rendered
     assert f'href="/meta/{cid}"' in rendered
     assert 'class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"' in rendered
+    assert 'data-bs-display="static"' in rendered
+    assert 'data-bs-offset="0,8"' in rendered
     assert 'class="dropdown-menu dropdown-menu-end"' in rendered
 
 
