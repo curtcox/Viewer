@@ -46,9 +46,13 @@ def render_cid_link(value: Optional[str]) -> Markup:
     if not normalized:
         return Markup("")
 
-    base_path = cid_path(normalized) or ""
     text_path = cid_path(normalized, "txt") or ""
+    base_path = text_path
     markdown_path = cid_path(normalized, "md") or ""
+    html_path = cid_path(normalized, "html") or ""
+    json_path = cid_path(normalized, "json") or ""
+    png_path = cid_path(normalized, "png") or ""
+    jpg_path = cid_path(normalized, "jpg") or ""
     edit_path = f"/edit/{normalized}"
     meta_path = f"/meta/{normalized}"
 
@@ -73,6 +77,10 @@ def render_cid_link(value: Optional[str]) -> Markup:
     <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="{text_href}"><i class="fas fa-file-alt text-muted me-2"></i>View as text</a></li>
         <li><a class="dropdown-item" href="{markdown_href}"><i class="fas fa-file-code text-muted me-2"></i>View as markdown</a></li>
+        <li><a class="dropdown-item" href="{html_href}"><i class="fas fa-file-code text-muted me-2"></i>View as HTML</a></li>
+        <li><a class="dropdown-item" href="{json_href}"><i class="fas fa-code text-muted me-2"></i>View as JSON</a></li>
+        <li><a class="dropdown-item" href="{png_href}"><i class="fas fa-file-image text-muted me-2"></i>View as PNG</a></li>
+        <li><a class="dropdown-item" href="{jpg_href}"><i class="fas fa-file-image text-muted me-2"></i>View as JPG</a></li>
         <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
         <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
     </ul>
@@ -83,6 +91,10 @@ def render_cid_link(value: Optional[str]) -> Markup:
             label=escape(label),
             text_href=escape(text_path),
             markdown_href=escape(markdown_path),
+            html_href=escape(html_path),
+            json_href=escape(json_path),
+            png_href=escape(png_path),
+            jpg_href=escape(jpg_path),
             edit_href=escape(edit_path),
             meta_href=escape(meta_path),
         )
