@@ -84,6 +84,20 @@
                                         {% for view in page_views.items %}
                                         <tr>
                                             <td>
+                                                {% set cid_link = view.cid_link if view.cid_link is defined else None %}
+                                                {% if cid_link %}
+                                                <div class="d-flex align-items-center mb-1">
+                                                    <i class="fas fa-hashtag me-2 text-primary"></i>
+                                                    <div>{{ cid_link.link_markup }}</div>
+                                                    {% if cid_link.extension %}
+                                                    <span class="badge bg-light text-muted border ms-2">.{{ cid_link.extension }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted text-break">
+                                                    Visited:
+                                                    <a href="{{ cid_link.visited_href }}" class="text-decoration-none">{{ cid_link.visited_label }}</a>
+                                                </small>
+                                                {% else %}
                                                 <a href="{{ view.path }}" class="text-decoration-none">
                                                     <div class="d-flex align-items-center">
                                                         {% if view.path == '/' %}
@@ -108,6 +122,7 @@
                                                     </div>
                                                     <small class="text-muted">{{ view.path }}</small>
                                                 </a>
+                                                {% endif %}
                                                 {% if view.server_invocation_link %}
                                                 <div class="mt-1">
                                                     <a href="{{ view.server_invocation_link }}" target="_blank" rel="noopener" class="small text-decoration-none">
@@ -196,21 +211,36 @@
                         </div>
                         <div class="card-body">
                             {% if popular_paths %}
-                                {% for path, count in popular_paths %}
+                                {% for entry in popular_paths %}
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <div class="flex-grow-1">
-                                        <a href="{{ path }}" class="text-decoration-none">
-                                            <div class="fw-bold">
-                                                {% if path == '/' %}
-                                                    <i class="fas fa-home me-1"></i> Home
-                                                {% else %}
-                                                    <i class="fas fa-file me-1"></i> {{ path }}
+                                        {% set cid_link = entry.cid_link if entry.cid_link is defined else None %}
+                                        {% if cid_link %}
+                                            <div class="fw-bold d-flex align-items-center mb-1">
+                                                <i class="fas fa-hashtag me-2 text-primary"></i>
+                                                <div>{{ cid_link.link_markup }}</div>
+                                                {% if cid_link.extension %}
+                                                <span class="badge bg-light text-muted border ms-2">.{{ cid_link.extension }}</span>
                                                 {% endif %}
                                             </div>
-                                            <small class="text-muted">{{ path }}</small>
-                                        </a>
+                                            <small class="text-muted text-break">
+                                                Visited:
+                                                <a href="{{ cid_link.visited_href }}" class="text-decoration-none">{{ cid_link.visited_label }}</a>
+                                            </small>
+                                        {% else %}
+                                            <a href="{{ entry.path }}" class="text-decoration-none">
+                                                <div class="fw-bold">
+                                                    {% if entry.path == '/' %}
+                                                        <i class="fas fa-home me-1"></i> Home
+                                                    {% else %}
+                                                        <i class="fas fa-file me-1"></i> {{ entry.path }}
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">{{ entry.path }}</small>
+                                            </a>
+                                        {% endif %}
                                     </div>
-                                    <span class="badge bg-primary">{{ count }}</span>
+                                    <span class="badge bg-primary">{{ entry.count }}</span>
                                 </div>
                                 {% endfor %}
                             {% else %}

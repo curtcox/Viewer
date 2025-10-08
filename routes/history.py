@@ -1,14 +1,15 @@
 """History-related routes."""
 import json
 import re
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
+from types import SimpleNamespace
 
 from flask import render_template, request
 from flask_login import current_user
 
 from auth_providers import require_login
 from analytics import get_paginated_page_views, get_user_history_statistics
-from cid_presenter import cid_path, format_cid
+from cid_presenter import cid_path, format_cid, render_cid_link
 from models import CID, ServerInvocation
 
 from . import main_bp
@@ -23,7 +24,9 @@ def history():
 
     page_views = get_paginated_page_views(current_user.id, page, per_page)
     _attach_server_event_links(page_views)
+    _attach_cid_links(page_views)
     stats = get_user_history_statistics(current_user.id)
+    stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
 
     return render_template('history.html', page_views=page_views, **stats)
 
@@ -47,6 +50,36 @@ def _extract_result_cid(path: str) -> str | None:
     return cid_part
 
 
+def _extract_cid_components(path: Optional[str]) -> tuple[str, Optional[str]] | None:
+    """Return the CID and optional extension portion of a history path."""
+    if not path or not path.startswith('/'):
+        return None
+
+    slug = path[1:]
+    if not slug:
+        return None
+
+    # Remove any query string or fragment identifiers.
+    slug = slug.split('?', 1)[0]
+    slug = slug.split('#', 1)[0]
+    if not slug:
+        return None
+
+    if '/' in slug:
+        return None
+
+    cid_part = slug
+    extension = None
+    if '.' in slug:
+        cid_part, extension = slug.split('.', 1)
+        extension = extension or None
+
+    if not cid_part or not _CID_PATTERN.match(cid_part):
+        return None
+
+    return cid_part, extension
+
+
 def _get_page_view_items(page_views: object) -> List:
     """Extract a list of page view objects from pagination or list input."""
     if page_views is None:
@@ -60,6 +93,90 @@ def _get_page_view_items(page_views: object) -> List:
 
     # Ensure we always return a list instance for consistent downstream use.
     return list(items)
+
+
+def _build_cid_link_details(path: Optional[str]) -> Optional[SimpleNamespace]:
+    """Return CID presentation helpers for a given history path."""
+    components = _extract_cid_components(path)
+    if not components:
+        return None
+
+    cid_value, extension = components
+    link_markup = render_cid_link(cid_value)
+    if not link_markup:
+        return None
+
+    normalized_href = cid_path(cid_value, extension) if extension else cid_path(cid_value)
+
+    fallback_path = normalized_href or f"/{cid_value}"
+    visited_href = path or fallback_path
+    visited_label = path or fallback_path
+
+    return SimpleNamespace(
+        value=cid_value,
+        extension=extension,
+        link_markup=link_markup,
+        visited_href=visited_href,
+        visited_label=visited_label,
+        normalized_href=fallback_path,
+    )
+
+
+def _attach_cid_links(page_views: object) -> None:
+    """Annotate page view objects with CID link helpers when applicable."""
+    page_view_items = _get_page_view_items(page_views)
+    if not page_view_items:
+        return
+
+    for view in page_view_items:
+        cid_link = _build_cid_link_details(getattr(view, 'path', None))
+        if cid_link:
+            view.cid_link = cid_link
+
+
+def _normalize_popular_paths(popular_paths: object) -> List[SimpleNamespace]:
+    """Normalize the popular paths collection for template rendering."""
+    if not popular_paths:
+        return []
+
+    normalized: List[SimpleNamespace] = []
+    for entry in popular_paths:
+        path_value: Optional[str] = None
+        count_value: int = 0
+
+        if isinstance(entry, (list, tuple)):
+            if not entry:
+                continue
+            path_value = entry[0]
+            if len(entry) > 1 and isinstance(entry[1], int):
+                count_value = entry[1]
+            elif len(entry) > 1:
+                try:
+                    count_value = int(entry[1])
+                except (TypeError, ValueError):
+                    count_value = 0
+        else:
+            path_value = getattr(entry, 'path', None)
+            count_raw = getattr(entry, 'count', None)
+            if isinstance(count_raw, int):
+                count_value = count_raw
+            elif count_raw is not None:
+                try:
+                    count_value = int(count_raw)
+                except (TypeError, ValueError):
+                    count_value = 0
+
+        if path_value is None:
+            continue
+
+        cid_link = _build_cid_link_details(path_value)
+        normalized.append(SimpleNamespace(
+            path=path_value,
+            count=count_value,
+            cid_link=cid_link,
+        ))
+
+    return normalized
 
 
 def _normalize_header_value(value: object) -> str | None:
