@@ -1,5 +1,8 @@
 """Upload-related routes and helpers."""
-from flask import abort, flash, render_template, request, url_for
+from datetime import datetime
+from types import SimpleNamespace
+
+from flask import abort, current_app, flash, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -138,6 +141,43 @@ def uploads():
         'uploads.html',
         uploads=user_uploads,
         total_uploads=len(user_uploads),
+        total_storage=total_storage,
+    )
+
+
+@main_bp.route('/_screenshot/uploads')
+def screenshot_uploads_demo():
+    """Render a representative uploads view for screenshot verification."""
+    if not current_app.config.get('SCREENSHOT_MODE'):
+        abort(404)
+
+    sample_uploads = [
+        SimpleNamespace(
+            file_size=43,
+            created_at=datetime(2025, 10, 8, 20, 11),
+            creation_method='upload',
+            server_invocation_server_name=None,
+            server_invocation_link=None,
+            path='/bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq',
+            content_preview='Sample CID text cont',
+        ),
+        SimpleNamespace(
+            file_size=5 * 1024,
+            created_at=datetime(2025, 9, 28, 9, 30),
+            creation_method='upload',
+            server_invocation_server_name=None,
+            server_invocation_link=None,
+            path='/bafybeiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            content_preview='Markdown sample text',
+        ),
+    ]
+
+    total_storage = sum(upload.file_size or 0 for upload in sample_uploads)
+
+    return render_template(
+        'uploads.html',
+        uploads=sample_uploads,
+        total_uploads=len(sample_uploads),
         total_storage=total_storage,
     )
 
@@ -308,6 +348,42 @@ def server_events():
     )
 
 
+@main_bp.route('/_screenshot/server-events')
+def screenshot_server_events_demo():
+    """Render a representative server events view for screenshot verification."""
+    if not current_app.config.get('SCREENSHOT_MODE'):
+        abort(404)
+
+    sample_events = [
+        SimpleNamespace(
+            invoked_at=datetime(2025, 10, 8, 14, 30),
+            server_name='billing-reporter',
+            server_link='#',
+            invocation_cid='bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq',
+            request_details_cid='bafybeif2cpw5j7z6g2dqqmrcebyi7siu6z5n2p3z7vwxnu4n6q2ueg54py',
+            result_cid='bafybeibwzif3zx6szdvgv2a2yqap5yfmsq5fhj4gwyxwjs5x7yw7u4qu4e',
+            servers_cid='bafybeiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            request_referer='https://secureapp.example/reports',
+        ),
+        SimpleNamespace(
+            invoked_at=datetime(2025, 10, 7, 9, 5),
+            server_name='analytics-digest',
+            server_link='#',
+            invocation_cid='bafybeid5y7v4znbzsas3lq7g7v5eq4pl7kq5b6mr4uxk5qf7f4q23yyeuq',
+            request_details_cid='bafybeidz5vq4mmzmlfdi53w4g6g5vq4jdcm3or3gjzucdlgv6hpeo2ivte',
+            result_cid='bafybeifpnn4xazuxbqk5n4sm2fry7p2fk4x67fnsaqv6r5jg5uztxl4iue',
+            servers_cid='bafybeibaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            request_referer=None,
+        ),
+    ]
+
+    return render_template(
+        'server_events.html',
+        events=sample_events,
+        total_events=len(sample_events),
+    )
+
+
 def _attach_creation_sources(user_uploads):
     """Annotate uploads with information about how they were created."""
     if not user_uploads:
@@ -353,4 +429,10 @@ def _attach_creation_sources(user_uploads):
                 )
 
 
-__all__ = ['server_events', 'upload', 'uploads']
+__all__ = [
+    'server_events',
+    'upload',
+    'uploads',
+    'screenshot_server_events_demo',
+    'screenshot_uploads_demo',
+]
