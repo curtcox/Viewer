@@ -66,6 +66,12 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         },
     )
 
+    screenshot_flag = os.environ.get("SCREENSHOT_MODE")
+    if screenshot_flag is not None:
+        app.config["SCREENSHOT_MODE"] = screenshot_flag.lower() in ("1", "true", "yes", "on")
+    else:
+        app.config.setdefault("SCREENSHOT_MODE", False)
+
     if config_override:
         app.config.update(config_override)
 

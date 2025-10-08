@@ -56,13 +56,13 @@ def render_cid_link(value: Optional[str]) -> Markup:
 
     return Markup(
         """
-<div class="cid-display dropdown">
+<span class="cid-display dropdown">
     <a class="cid-link" href="{base_href}" title="{title}">{label}</a>
     <button
         type="button"
         class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"
         data-bs-toggle="dropdown"
-        data-bs-display="static"
+        data-bs-boundary="viewport"
         data-bs-offset="0,8"
         aria-expanded="false"
         aria-haspopup="true"
@@ -76,7 +76,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
         <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
         <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
     </ul>
-</div>
+</span>
 """.format(
             base_href=escape(base_path),
             title=escape(normalized),
