@@ -23,17 +23,6 @@
         }
     }
 
-    function summariseContext(context) {
-        if (!context || typeof context !== 'object') {
-            return null;
-        }
-        var keys = Object.keys(context);
-        if (keys.length === 0) {
-            return null;
-        }
-        return 'Context keys: ' + keys.join(', ');
-    }
-
     function collectFormData(form) {
         if (!form) {
             return null;
@@ -57,31 +46,6 @@
         }
     }
 
-    function buildStubResponse(config) {
-        var requestText = config.requestText || '';
-        var originalText = config.originalText || '';
-        var separator = '';
-        if (originalText && requestText) {
-            separator = originalText.endsWith('\n') ? '' : '\n';
-        }
-        var updatedText = originalText + separator + requestText;
-        var targetLabel = config.targetLabel || 'the text';
-        var message = 'OK I changed ' + targetLabel + ' by ' + requestText;
-        var contextSummary = summariseContext(config.contextData) || '';
-        if (config.formSummary) {
-            var formKeys = Object.keys(config.formSummary);
-            if (formKeys.length > 0) {
-                var formSummary = 'Form fields captured: ' + formKeys.join(', ');
-                contextSummary = contextSummary ? contextSummary + '\n' + formSummary : formSummary;
-            }
-        }
-        return {
-            updatedText: updatedText,
-            message: message,
-            contextSummary: contextSummary
-        };
-    }
-
     function AiAssistant(root, target, requestField, outputField) {
         this.root = root;
         this.target = target;
@@ -89,9 +53,106 @@
         this.outputField = outputField;
         this.contextData = parseContext(root);
         this.targetLabel = root.getAttribute('data-ai-target-label') || 'the text';
+        this.isRunning = false;
+        this.triggerButtons = [];
     }
 
+    AiAssistant.prototype.setLoadingState = function (isLoading) {
+        this.isRunning = isLoading;
+        this.triggerButtons.forEach(function (button) {
+            button.disabled = isLoading;
+        });
+        if (this.outputField && isLoading) {
+            this.outputField.classList.remove('d-none');
+            this.outputField.classList.remove('alert-danger');
+            this.outputField.classList.add('alert-info');
+            this.outputField.textContent = 'Contacting AI stub…';
+        }
+    };
+
+    AiAssistant.prototype._ensureOutputField = function () {
+        if (!this.outputField) {
+            return;
+        }
+        this.outputField.classList.remove('d-none');
+        this.outputField.classList.remove('alert-danger');
+        this.outputField.classList.add('alert-info');
+        this.outputField.innerHTML = '';
+    };
+
+    AiAssistant.prototype._appendMessage = function (message) {
+        if (!this.outputField) {
+            return;
+        }
+        var heading = document.createElement('strong');
+        heading.textContent = 'AI Response:';
+        this.outputField.appendChild(heading);
+
+        var messageElement = document.createElement('div');
+        messageElement.textContent = message || '';
+        this.outputField.appendChild(messageElement);
+    };
+
+    AiAssistant.prototype._appendSummary = function (summary) {
+        if (!this.outputField || !summary) {
+            return;
+        }
+        var summaryElement = document.createElement('div');
+        summaryElement.classList.add('small', 'text-muted', 'mt-1');
+        summaryElement.textContent = summary;
+        this.outputField.appendChild(summaryElement);
+    };
+
+    AiAssistant.prototype._displayError = function (error) {
+        if (!this.outputField) {
+            return;
+        }
+        this.outputField.classList.remove('d-none');
+        this.outputField.classList.remove('alert-info');
+        this.outputField.classList.add('alert-danger');
+        this.outputField.textContent = error;
+    };
+
+    AiAssistant.prototype._handleSuccess = function (result) {
+        if (!result || typeof result !== 'object') {
+            this._displayError('AI stub returned an unexpected response.');
+            return;
+        }
+
+        var updatedText = result.updated_text || '';
+        var message = result.message || '';
+        var contextSummary = result.context_summary || '';
+
+        if (this.target) {
+            this.target.value = updatedText;
+            this.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        this._ensureOutputField();
+        this._appendMessage(message);
+        this._appendSummary(contextSummary);
+
+        if (this.target) {
+            this.target.focus();
+        }
+    };
+
+    AiAssistant.prototype._handleFailure = function (error) {
+        var message = 'AI request failed.';
+        if (error) {
+            message += ' ' + error;
+        }
+        this._displayError(message);
+        if (this.target) {
+            this.target.focus();
+        }
+    };
+
     AiAssistant.prototype.run = function () {
+        if (this.isRunning) {
+            return;
+        }
+
         if (!this.target || !this.requestField) {
             return;
         }
@@ -102,40 +163,40 @@
         var contextData = this.contextData || {};
         var formSummary = collectFormData(form);
 
-        var result = buildStubResponse({
-            requestText: requestText,
-            originalText: originalText,
-            targetLabel: this.targetLabel,
-            contextData: contextData,
-            formSummary: formSummary
-        });
+        var payload = {
+            request_text: requestText,
+            original_text: originalText,
+            target_label: this.targetLabel,
+            context_data: contextData,
+            form_summary: formSummary
+        };
 
-        this.target.value = result.updatedText;
-        this.target.dispatchEvent(new Event('input', { bubbles: true }));
+        var self = this;
+        this.setLoadingState(true);
 
-        if (this.outputField) {
-            this.outputField.classList.remove('d-none');
-            this.outputField.classList.remove('alert-danger');
-            this.outputField.classList.add('alert-info');
-            this.outputField.innerHTML = '';
-
-            var heading = document.createElement('strong');
-            heading.textContent = 'AI Response:';
-            this.outputField.appendChild(heading);
-
-            var message = document.createElement('div');
-            message.textContent = result.message;
-            this.outputField.appendChild(message);
-
-            if (result.contextSummary) {
-                var summary = document.createElement('div');
-                summary.classList.add('small', 'text-muted', 'mt-1');
-                summary.textContent = result.contextSummary;
-                this.outputField.appendChild(summary);
+        fetch('/ai', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            if (!response.ok) {
+                return response.text().then(function (text) {
+                    var errorDetail = text ? text.trim() : response.statusText;
+                    throw new Error(errorDetail || 'Unexpected status ' + response.status);
+                });
             }
-        }
-
-        this.target.focus();
+            return response.json();
+        }).then(function (data) {
+            self._handleSuccess(data);
+        }).catch(function (error) {
+            self._handleFailure(error && error.message ? error.message : '');
+        }).finally(function () {
+            self.setLoadingState(false);
+        });
     };
 
     function initialiseAssistants() {
@@ -161,8 +222,10 @@
                 return;
             }
             normaliseButtonClasses(button);
+            var assistant = assistantMap.get(targetId);
+            assistant.triggerButtons.push(button);
             button.addEventListener('click', function () {
-                assistantMap.get(targetId).run();
+                assistant.run();
             });
         });
     }

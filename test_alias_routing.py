@@ -117,6 +117,15 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location, '/cid123')
 
+    def test_try_alias_redirect_preserves_method_for_post(self):
+        self.create_alias(target='/cid123')
+        with app.test_request_context('/latest', method='POST'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+                response = try_alias_redirect('/latest')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.status_code, 307)
+                self.assertEqual(response.location, '/cid123')
+
     def test_try_alias_redirect_preserves_query(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest?download=1&format=html'):
