@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Tuple
 
 import requests
-from flask import current_app, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
 from alias_matching import PatternError, normalise_pattern
-from cid_utils import save_server_definition_as_cid
+from cid_presenter import cid_path
+from cid_utils import save_server_definition_as_cid, store_cid_from_json
 from db_access import (
     get_alias_by_name,
     get_secret_by_name,
@@ -26,7 +27,7 @@ from db_access import (
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
-from models import Alias, Secret, Server, Variable
+from models import Alias, EntityInteraction, Secret, Server, Variable
 
 from . import main_bp
 from .core import get_existing_routes
@@ -270,6 +271,155 @@ def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> Tuple[int, list
     return imported, errors
 
 
+def _serialise_interaction_history(user_id: str, entity_type: str, entity_name: str) -> list[dict[str, str]]:
+    interactions = (
+        EntityInteraction.query
+        .filter_by(user_id=user_id, entity_type=entity_type, entity_name=entity_name)
+        .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())
+        .all()
+    )
+
+    history: list[dict[str, str]] = []
+    for interaction in interactions:
+        timestamp = interaction.created_at
+        if timestamp is None:
+            continue
+        aware = timestamp if timestamp.tzinfo else timestamp.replace(tzinfo=timezone.utc)
+        aware = aware.astimezone(timezone.utc)
+        history.append(
+            {
+                'timestamp': aware.isoformat(),
+                'message': (interaction.message or '').strip(),
+                'action': (interaction.action or '').strip() or 'save',
+            }
+        )
+
+    return history
+
+
+def _gather_change_history(user_id: str) -> dict[str, dict[str, list[dict[str, str]]]]:
+    """Return change history grouped by entity collection."""
+
+    collections: dict[str, tuple[str, Iterable[str]]] = {
+        'aliases': ('alias', (alias.name for alias in get_user_aliases(user_id))),
+        'servers': ('server', (server.name for server in get_user_servers(user_id))),
+        'variables': ('variable', (variable.name for variable in get_user_variables(user_id))),
+        'secrets': ('secret', (secret.name for secret in get_user_secrets(user_id))),
+    }
+
+    history_payload: dict[str, dict[str, list[dict[str, str]]]] = {}
+
+    for key, (entity_type, names) in collections.items():
+        collection_history: dict[str, list[dict[str, str]]] = {}
+        for name in names:
+            events = _serialise_interaction_history(user_id, entity_type, name)
+            if events:
+                collection_history[name] = events
+        if collection_history:
+            history_payload[key] = collection_history
+
+    return history_payload
+
+
+def _parse_history_timestamp(value: str) -> datetime | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.endswith('Z'):
+        cleaned = f"{cleaned[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(cleaned)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[str]]:
+    """Import change history events."""
+
+    if raw_history is None:
+        return 0, ['No change history data found in import file.']
+    if not isinstance(raw_history, dict):
+        return 0, ['Change history in import file must be an object mapping collections to events.']
+
+    collection_map = {
+        'aliases': 'alias',
+        'servers': 'server',
+        'variables': 'variable',
+        'secrets': 'secret',
+    }
+
+    errors: list[str] = []
+    imported = 0
+
+    for key, entity_type in collection_map.items():
+        entries = raw_history.get(key)
+        if entries is None:
+            continue
+        if not isinstance(entries, dict):
+            errors.append(f'{key.title()} history must map item names to event lists.')
+            continue
+
+        for raw_name, raw_events in entries.items():
+            if not isinstance(raw_name, str) or not raw_name.strip():
+                errors.append(f'{key.title()} history entry must include a valid item name.')
+                continue
+            if not isinstance(raw_events, list):
+                errors.append(f'History for "{raw_name}" must be a list of events.')
+                continue
+
+            name = raw_name.strip()
+            for raw_event in raw_events:
+                if not isinstance(raw_event, dict):
+                    errors.append(f'History events for "{name}" must be objects.')
+                    continue
+
+                timestamp_raw = raw_event.get('timestamp')
+                timestamp = _parse_history_timestamp(timestamp_raw or '')
+                if timestamp is None:
+                    errors.append(f'History event for "{name}" has an invalid timestamp.')
+                    continue
+
+                action_raw = raw_event.get('action')
+                action = (action_raw if isinstance(action_raw, str) else '').strip() or 'save'
+                message_raw = raw_event.get('message')
+                message = (message_raw if isinstance(message_raw, str) else '').strip()
+                if len(message) > 500:
+                    message = message[:497] + '…'
+                content_raw = raw_event.get('content')
+                content = (content_raw if isinstance(content_raw, str) else '').strip()
+
+                existing = (
+                    EntityInteraction.query
+                    .filter_by(
+                        user_id=user_id,
+                        entity_type=entity_type,
+                        entity_name=name,
+                        action=action,
+                        message=message,
+                    )
+                    .filter(EntityInteraction.created_at == timestamp)
+                    .first()
+                )
+                if existing:
+                    continue
+
+                record_entity_interaction(
+                    user_id,
+                    entity_type,
+                    name,
+                    action,
+                    message,
+                    content,
+                    created_at=timestamp,
+                )
+                imported += 1
+
+    return imported, errors
+
+
 @main_bp.route('/export', methods=['GET', 'POST'])
 @require_login
 def export_data():
@@ -277,7 +427,7 @@ def export_data():
     form = ExportForm()
     if form.validate_on_submit():
         payload: dict[str, Any] = {
-            'version': 1,
+            'version': 2,
             'generated_at': datetime.now(timezone.utc).isoformat(),
         }
 
@@ -324,10 +474,20 @@ def export_data():
                 ],
             }
 
+        if form.include_history.data:
+            history_payload = _gather_change_history(current_user.id)
+            if history_payload:
+                payload['change_history'] = history_payload
+
         json_payload = json.dumps(payload, indent=2, sort_keys=True)
-        response = current_app.response_class(json_payload, mimetype='application/json')
-        response.headers['Content-Disposition'] = 'attachment; filename=secureapp-export.json'
-        return response
+        cid_value = store_cid_from_json(json_payload, current_user.id)
+        download_path = cid_path(cid_value, 'json') or ''
+        return render_template(
+            'export_result.html',
+            cid_value=cid_value,
+            download_path=download_path,
+            json_payload=json_payload,
+        )
 
     return render_template('export.html', form=form)
 
@@ -406,6 +566,15 @@ def import_data():
             if imported_secrets:
                 label = 'secrets' if imported_secrets != 1 else 'secret'
                 summaries.append(f'{imported_secrets} {label}')
+
+        imported_history = 0
+        history_errors: list[str] = []
+        if form.include_history.data:
+            imported_history, history_errors = _import_change_history(user_id, data.get('change_history'))
+            errors.extend(history_errors)
+            if imported_history:
+                label = 'history events' if imported_history != 1 else 'history event'
+                summaries.append(f'{imported_history} {label}')
 
         for message in errors:
             flash(message, 'danger')

@@ -52,10 +52,17 @@
                             </label>
                         </div>
 
-                        <div class="form-check mb-3">
+                        <div class="form-check mb-2">
                             {{ form.include_secrets(class="form-check-input", id="include-secrets") }}
                             <label class="form-check-label" for="include-secrets">
                                 <i class="fas fa-key me-1 text-warning"></i>{{ form.include_secrets.label.text }}
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.include_history(class="form-check-input", id="include-history") }}
+                            <label class="form-check-label" for="include-history">
+                                <i class="fas fa-clock me-1 text-secondary"></i>{{ form.include_history.label.text }}
                             </label>
                         </div>
 
@@ -84,7 +91,7 @@
             </div>
 
             <div class="alert alert-info mt-4" role="alert">
-                <i class="fas fa-lock me-2"></i>Secrets are encrypted with the key you provide. Share the key securely with anyone importing this export.
+                <i class="fas fa-info-circle me-2"></i>Exports are saved as a CID-backed JSON file. Secrets are encrypted with the key you provide—share it securely with anyone importing this export.
             </div>
         </div>
     </div>
