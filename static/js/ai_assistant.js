@@ -53,9 +53,187 @@
         this.outputField = outputField;
         this.contextData = parseContext(root);
         this.targetLabel = root.getAttribute('data-ai-target-label') || 'the text';
+        this.entityType = root.getAttribute('data-ai-entity-type') || '';
+        this.entityName = root.getAttribute('data-ai-entity-name') || '';
+        this.entityNameFieldId = root.getAttribute('data-ai-entity-name-field') || '';
+        var historyLimitValue = parseInt(root.getAttribute('data-ai-history-limit') || '10', 10);
+        this.historyLimit = isNaN(historyLimitValue) ? 10 : historyLimitValue;
+        this.historyList = root.querySelector('[data-ai-history-list]');
+        this.historyEmpty = root.querySelector('[data-ai-history-empty]');
+        this.changeField = root.querySelector('[data-change-message-store]');
         this.isRunning = false;
         this.triggerButtons = [];
+        this.lastRequestText = '';
+
+        var form = (this.target && this.target.form) || root.closest('form');
+        if (form && this.changeField) {
+            var self = this;
+            form.addEventListener('submit', function () {
+                if (self.requestField) {
+                    self.changeField.value = self.requestField.value || '';
+                }
+                var resolvedName = self._resolveEntityName();
+                if (resolvedName) {
+                    self.entityName = resolvedName;
+                }
+            });
+        }
     }
+
+    AiAssistant.prototype._resolveEntityName = function () {
+        if (this.entityName && this.entityName.trim() !== '') {
+            return this.entityName.trim();
+        }
+        if (!this.entityNameFieldId) {
+            return '';
+        }
+        var nameField = document.getElementById(this.entityNameFieldId);
+        if (!nameField || typeof nameField.value !== 'string') {
+            return '';
+        }
+        return nameField.value.trim();
+    };
+
+    AiAssistant.prototype._bindHistoryItems = function () {
+        if (!this.historyList) {
+            return;
+        }
+        var self = this;
+        this.historyList.querySelectorAll('[data-ai-interaction]').forEach(function (button) {
+            var payload = button.getAttribute('data-interaction');
+            if (!payload) {
+                return;
+            }
+            try {
+                var data = JSON.parse(payload);
+                button.addEventListener('click', function () {
+                    self.applyInteraction(data);
+                });
+            } catch (error) {
+                console.warn('Unable to parse interaction payload:', error);
+            }
+        });
+    };
+
+    AiAssistant.prototype.applyInteraction = function (interaction) {
+        if (!interaction) {
+            return;
+        }
+        if (this.target && Object.prototype.hasOwnProperty.call(interaction, 'content')) {
+            this.target.value = interaction.content || '';
+            this.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (this.requestField && Object.prototype.hasOwnProperty.call(interaction, 'message')) {
+            this.requestField.value = interaction.message || '';
+        }
+        if (this.changeField && Object.prototype.hasOwnProperty.call(interaction, 'message')) {
+            this.changeField.value = interaction.message || '';
+        }
+        if (this.target) {
+            this.target.focus();
+        } else if (this.requestField) {
+            this.requestField.focus();
+        }
+    };
+
+    AiAssistant.prototype.updateHistory = function (items) {
+        if (!this.historyList) {
+            return;
+        }
+
+        this.historyList.innerHTML = '';
+        var hasItems = Array.isArray(items) && items.length > 0;
+        if (!hasItems) {
+            if (this.historyEmpty) {
+                this.historyEmpty.classList.remove('d-none');
+            }
+            return;
+        }
+
+        if (this.historyEmpty) {
+            this.historyEmpty.classList.add('d-none');
+        }
+
+        var self = this;
+        items.slice(0, this.historyLimit).forEach(function (item) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'list-group-item list-group-item-action';
+            button.setAttribute('data-ai-interaction', '');
+            try {
+                button.setAttribute('data-interaction', JSON.stringify(item));
+            } catch (error) {
+                button.removeAttribute('data-interaction');
+            }
+
+            var header = document.createElement('div');
+            header.className = 'd-flex justify-content-between align-items-center mb-1';
+
+            var badge = document.createElement('span');
+            badge.className = 'badge bg-light text-dark border';
+            badge.textContent = item.action_display || '';
+            header.appendChild(badge);
+
+            var timestamp = document.createElement('small');
+            timestamp.className = 'text-muted';
+            timestamp.textContent = item.timestamp || '';
+            header.appendChild(timestamp);
+
+            var preview = document.createElement('div');
+            preview.className = 'text-truncate';
+            preview.textContent = item.preview || '';
+
+            button.appendChild(header);
+            button.appendChild(preview);
+            button.addEventListener('click', function () {
+                self.applyInteraction(item);
+            });
+
+            self.historyList.appendChild(button);
+        });
+    };
+
+    AiAssistant.prototype._logInteraction = function (action, message, content) {
+        if (!this.entityType) {
+            return;
+        }
+        var resolvedName = this._resolveEntityName();
+        if (!resolvedName) {
+            return;
+        }
+
+        this.entityName = resolvedName;
+
+        var payload = {
+            entity_type: this.entityType,
+            entity_name: resolvedName,
+            action: action,
+            message: message || '',
+            content: content || ''
+        };
+
+        var self = this;
+        fetch('/api/interactions', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('Unable to record interaction');
+            }
+            return response.json();
+        }).then(function (data) {
+            if (data && Array.isArray(data.interactions)) {
+                self.updateHistory(data.interactions);
+            }
+        }).catch(function () {
+            /* Ignore interaction logging errors to avoid interrupting the UI flow. */
+        });
+    };
 
     AiAssistant.prototype.setLoadingState = function (isLoading) {
         this.isRunning = isLoading;
@@ -132,9 +310,15 @@
         this._appendMessage(message);
         this._appendSummary(contextSummary);
 
+        if (this.changeField && this.requestField) {
+            this.changeField.value = this.requestField.value || '';
+        }
+
         if (this.target) {
             this.target.focus();
         }
+
+        this._logInteraction('ai', this.lastRequestText || '', updatedText);
     };
 
     AiAssistant.prototype._handleFailure = function (error) {
@@ -162,6 +346,12 @@
         var form = this.target.form || this.root.closest('form');
         var contextData = this.contextData || {};
         var formSummary = collectFormData(form);
+
+        this.lastRequestText = requestText;
+        var resolvedName = this._resolveEntityName();
+        if (resolvedName) {
+            this.entityName = resolvedName;
+        }
 
         var payload = {
             request_text: requestText,
@@ -213,6 +403,7 @@
                 return;
             }
             var assistant = new AiAssistant(root, target, requestField, outputField);
+            assistant._bindHistoryItems();
             assistantMap.set(targetId, assistant);
         });
 

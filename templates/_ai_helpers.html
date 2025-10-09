@@ -1,21 +1,47 @@
-{% macro ai_text_controls(target_id, target_label, request_label=None, helper_text=None, context=None, rows=3) %}
+{% macro ai_text_controls(target_id, target_label, request_label=None, helper_text=None, context=None, rows=3, entity_type=None, entity_name=None, entity_name_field=None, interactions=None, history_label='Recent activity', history_limit=10) %}
     {% set request_id = target_id ~ '-ai-input' %}
     {% set output_id = target_id ~ '-ai-output' %}
+    {% set interactions = interactions or [] %}
     <div class="mb-3 ai-text-assistant"
          data-ai-target-id="{{ target_id }}"
          data-ai-target-label="{{ target_label }}"
+         data-ai-history-limit="{{ history_limit }}"
+         {% if entity_type %}data-ai-entity-type="{{ entity_type }}"{% endif %}
+         {% if entity_name %}data-ai-entity-name="{{ entity_name }}"{% endif %}
+         {% if entity_name_field %}data-ai-entity-name-field="{{ entity_name_field }}"{% endif %}
          {% if context is not none %}data-ai-context='{{ context | tojson }}'{% endif %}>
-        <label for="{{ request_id }}" class="form-label">{{ request_label or ('Ask AI to edit the ' ~ target_label) }}</label>
+        <label for="{{ request_id }}" class="form-label">{{ request_label or ('Describe the change or AI request for the ' ~ target_label) }}</label>
         <textarea id="{{ request_id }}"
                   class="form-control"
                   rows="{{ rows }}"
                   data-ai-input
-                  placeholder="Describe the changes you would like the AI to make."></textarea>
-        <div class="form-text">{{ helper_text or ('Tell the AI how you would like the ' ~ target_label ~ ' to change.') }}</div>
+                  placeholder="Share instructions for AI or summarise manual edits to the {{ target_label }}."></textarea>
+        <div class="form-text">{{ helper_text or ('Use this field to instruct the AI or to describe the changes you made manually before saving.') }}</div>
+        <input type="hidden" name="change_message" data-change-message-store>
         <div class="alert alert-info d-none mt-3"
              id="{{ output_id }}"
              data-ai-output
              role="status"></div>
+        <div class="mt-3">
+            <label class="form-label small text-uppercase fw-semibold">{{ history_label }}</label>
+            <div class="list-group list-group-flush border rounded" data-ai-history-list>
+                {% for item in interactions %}
+                <button type="button"
+                        class="list-group-item list-group-item-action"
+                        data-ai-interaction
+                        data-interaction='{{ item | tojson }}'>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge bg-light text-dark border">{{ item.action_display }}</span>
+                        <small class="text-muted">{{ item.timestamp }}</small>
+                    </div>
+                    <div class="text-truncate">{{ item.preview }}</div>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="text-muted small mt-2 {% if interactions %}d-none{% endif %}" data-ai-history-empty>
+                No interactions yet.
+            </div>
+        </div>
     </div>
 {% endmacro %}
 

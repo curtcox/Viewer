@@ -23,11 +23,13 @@ from db_access import (
     get_alias_by_target_path,
     get_cid_by_path,
     get_user_uploads,
+    record_entity_interaction,
     save_entity,
 )
 from models import Alias, ServerInvocation
 from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
+from interaction_log import load_interaction_history
 
 from . import main_bp
 from .history import _load_request_referers
@@ -53,6 +55,17 @@ def upload():
     form = FileUploadForm()
     upload_templates = get_upload_templates()
 
+    change_message = (request.form.get('change_message') or '').strip()
+
+    def _render_form():
+        interactions = load_interaction_history(current_user.id, 'upload', 'text')
+        return render_template(
+            'upload.html',
+            form=form,
+            upload_templates=upload_templates,
+            upload_interactions=interactions,
+        )
+
     if form.validate_on_submit():
         try:
             detected_mime_type = None
@@ -66,7 +79,7 @@ def upload():
                 file_content, detected_mime_type = process_url_upload(form)
         except ValueError as exc:
             flash(str(exc), 'error')
-            return render_template('upload.html', form=form, upload_templates=upload_templates)
+            return _render_form()
 
         cid_value = format_cid(generate_cid(file_content))
 
@@ -92,6 +105,14 @@ def upload():
 
         if form.upload_type.data == 'text':
             view_url_extension = "txt"
+            record_entity_interaction(
+                current_user.id,
+                'upload',
+                'text',
+                'save',
+                change_message,
+                form.text_content.data or '',
+            )
         elif form.upload_type.data == 'file' and original_filename:
             if '.' in original_filename:
                 view_url_extension = original_filename.rsplit('.', 1)[1].lower()
@@ -108,7 +129,7 @@ def upload():
             view_url_extension=view_url_extension,
         )
 
-    return render_template('upload.html', form=form, upload_templates=upload_templates)
+    return _render_form()
 
 
 @main_bp.route('/uploads')
@@ -217,6 +238,8 @@ def edit_cid(cid_prefix):
     form = EditCidForm()
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
+    interaction_history = load_interaction_history(current_user.id, 'cid', full_cid)
+
     if form.validate_on_submit():
         alias_name_input = ''
         if not alias_for_cid:
@@ -232,9 +255,11 @@ def edit_cid(cid_prefix):
                         submit_label=submit_label,
                         current_alias_name=getattr(alias_for_cid, 'name', None),
                         show_alias_field=alias_for_cid is None,
+                        interaction_history=interaction_history,
                     )
 
         text_content = form.text_content.data or ''
+        change_message = (request.form.get('change_message') or '').strip()
         file_content = text_content.encode('utf-8')
         cid_value = format_cid(generate_cid(file_content))
         cid_record_path = cid_path(cid_value)
@@ -270,6 +295,15 @@ def edit_cid(cid_prefix):
             )
             _persist_alias_from_upload(new_alias)
 
+        record_entity_interaction(
+            current_user.id,
+            'cid',
+            full_cid,
+            'save',
+            change_message,
+            text_content,
+        )
+
         return render_template(
             'upload_success.html',
             cid=cid_value,
@@ -289,6 +323,7 @@ def edit_cid(cid_prefix):
         submit_label=submit_label,
         current_alias_name=getattr(alias_for_cid, 'name', None),
         show_alias_field=alias_for_cid is None,
+        interaction_history=interaction_history,
     )
 
 

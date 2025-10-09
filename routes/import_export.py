@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Tuple
 
 import requests
-from flask import current_app, flash, redirect, render_template, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -21,6 +21,7 @@ from db_access import (
     get_user_servers,
     get_user_variables,
     get_variable_by_name,
+    record_entity_interaction,
     save_entity,
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
@@ -32,6 +33,7 @@ from .core import get_existing_routes
 from .secrets import update_secret_definitions_cid
 from .servers import update_server_definitions_cid
 from .variables import update_variable_definitions_cid
+from interaction_log import load_interaction_history
 
 
 def _load_import_payload(form: ImportForm) -> str | None:
@@ -335,25 +337,31 @@ def export_data():
 def import_data():
     """Allow users to import data collections from JSON content."""
     form = ImportForm()
+    change_message = (request.form.get('change_message') or '').strip()
+
+    def _render_import_form():
+        interactions = load_interaction_history(current_user.id, 'import', 'json')
+        return render_template('import.html', form=form, import_interactions=interactions)
+
     if form.validate_on_submit():
         raw_payload = _load_import_payload(form)
         if raw_payload is None:
-            return render_template('import.html', form=form)
+            return _render_import_form()
 
         raw_payload = raw_payload.strip()
         if not raw_payload:
             flash('Import data was empty.', 'danger')
-            return render_template('import.html', form=form)
+            return _render_import_form()
 
         try:
             data = json.loads(raw_payload)
         except json.JSONDecodeError as exc:
             flash(f'Failed to parse JSON: {exc}', 'danger')
-            return render_template('import.html', form=form)
+            return _render_import_form()
 
         if not isinstance(data, dict):
             flash('Import file must contain a JSON object.', 'danger')
-            return render_template('import.html', form=form)
+            return _render_import_form()
 
         user_id = current_user.id
         errors: list[str] = []
@@ -407,9 +415,19 @@ def import_data():
             flash(f'Imported {summary_text}.', 'success')
 
         if errors or summaries:
+            record_entity_interaction(
+                user_id,
+                'import',
+                'json',
+                'save',
+                change_message,
+                raw_payload,
+            )
+
+        if errors or summaries:
             return redirect(url_for('main.import_data'))
 
-    return render_template('import.html', form=form)
+    return _render_import_form()
 
 
 __all__ = ['export_data', 'import_data']

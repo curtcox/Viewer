@@ -1,5 +1,5 @@
 """Secret management routes and helpers."""
-from flask import abort, flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -10,6 +10,7 @@ from cid_utils import (
 from db_access import delete_entity, get_secret_by_name, get_user_secrets
 from forms import SecretForm
 from models import Secret
+from interaction_log import load_interaction_history
 
 from . import main_bp
 from .entities import create_entity, update_entity
@@ -45,11 +46,32 @@ def new_secret():
     """Create a new secret."""
     form = SecretForm()
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text = form.definition.data or ''
+
     if form.validate_on_submit():
-        if create_entity(Secret, form, current_user.id, 'secret'):
+        if create_entity(
+            Secret,
+            form,
+            current_user.id,
+            'secret',
+            change_message=change_message,
+            content_text=definition_text,
+        ):
             return redirect(url_for('main.secrets'))
 
-    return render_template('secret_form.html', form=form, title='Create New Secret')
+    entity_name_hint = (form.name.data or '').strip()
+    interaction_history = load_interaction_history(current_user.id, 'secret', entity_name_hint)
+
+    return render_template(
+        'secret_form.html',
+        form=form,
+        title='Create New Secret',
+        secret=None,
+        interaction_history=interaction_history,
+        ai_entity_name=entity_name_hint,
+        ai_entity_name_field=form.name.id,
+    )
 
 
 @main_bp.route('/secrets/<secret_name>')
@@ -73,14 +95,28 @@ def edit_secret(secret_name):
 
     form = SecretForm(obj=secret)
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text = form.definition.data or secret.definition or ''
+
+    interaction_history = load_interaction_history(current_user.id, 'secret', secret.name)
+
     if form.validate_on_submit():
-        if update_entity(secret, form, 'secret'):
+        if update_entity(
+            secret,
+            form,
+            'secret',
+            change_message=change_message,
+            content_text=definition_text,
+        ):
             return redirect(url_for('main.view_secret', secret_name=secret.name))
         return render_template(
             'secret_form.html',
             form=form,
             title=f'Edit Secret "{secret.name}"',
             secret=secret,
+            interaction_history=interaction_history,
+            ai_entity_name=secret.name,
+            ai_entity_name_field=form.name.id,
         )
 
     return render_template(
@@ -88,6 +124,9 @@ def edit_secret(secret_name):
         form=form,
         title=f'Edit Secret "{secret.name}"',
         secret=secret,
+        interaction_history=interaction_history,
+        ai_entity_name=secret.name,
+        ai_entity_name_field=form.name.id,
     )
 
 

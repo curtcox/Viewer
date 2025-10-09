@@ -17,6 +17,7 @@ from forms import ServerForm
 from models import CID, Server, ServerInvocation
 from server_execution import describe_main_function_parameters
 from server_templates import get_server_templates
+from interaction_log import load_interaction_history
 
 from . import main_bp
 from .core import derive_name_from_path
@@ -142,15 +143,33 @@ def new_server():
         if suggested_name and not form.name.data:
             form.name.data = suggested_name
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text = form.definition.data or ''
+
     if form.validate_on_submit():
-        if create_entity(Server, form, current_user.id, 'server'):
+        if create_entity(
+            Server,
+            form,
+            current_user.id,
+            'server',
+            change_message=change_message,
+            content_text=definition_text,
+        ):
             return redirect(url_for('main.servers'))
+
+    entity_name_hint = (form.name.data or '').strip()
+    interaction_history = load_interaction_history(current_user.id, 'server', entity_name_hint)
 
     return render_template(
         'server_form.html',
         form=form,
         title='Create New Server',
         server_templates=get_server_templates(),
+        server=None,
+        interaction_history=interaction_history,
+        ai_entity_name=entity_name_hint,
+        ai_entity_name_field=form.name.id,
+        server_test_interactions=[],
     )
 
 
@@ -166,6 +185,14 @@ def view_server(server_name):
     invocations = get_server_invocation_history(current_user.id, server_name)
     test_config = _build_server_test_config(server.name, server.definition)
 
+    test_interactions = []
+    if test_config and test_config.get('action'):
+        test_interactions = load_interaction_history(
+            current_user.id,
+            'server-test',
+            test_config.get('action'),
+        )
+
     return render_template(
         'server_view.html',
         server=server,
@@ -173,6 +200,7 @@ def view_server(server_name):
         server_invocations=invocations,
         server_invocation_count=len(invocations),
         server_test_config=test_config,
+        server_test_interactions=test_interactions,
     )
 
 
@@ -191,8 +219,26 @@ def edit_server(server_name):
     definition_text = form.definition.data if form.definition.data is not None else server.definition
     test_config = _build_server_test_config(server.name, definition_text)
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text_current = form.definition.data or server.definition or ''
+
+    server_interactions = load_interaction_history(current_user.id, 'server', server.name)
+    test_interactions = []
+    if test_config and test_config.get('action'):
+        test_interactions = load_interaction_history(
+            current_user.id,
+            'server-test',
+            test_config.get('action'),
+        )
+
     if form.validate_on_submit():
-        if update_entity(server, form, 'server'):
+        if update_entity(
+            server,
+            form,
+            'server',
+            change_message=change_message,
+            content_text=definition_text_current,
+        ):
             return redirect(url_for('main.view_server', server_name=server.name))
         return render_template(
             'server_form.html',
@@ -203,6 +249,10 @@ def edit_server(server_name):
             server_invocations=invocations,
             server_invocation_count=len(invocations),
             server_test_config=test_config,
+            interaction_history=server_interactions,
+            ai_entity_name=server.name,
+            ai_entity_name_field=form.name.id,
+            server_test_interactions=test_interactions,
         )
 
     return render_template(
@@ -214,6 +264,10 @@ def edit_server(server_name):
         server_invocations=invocations,
         server_invocation_count=len(invocations),
         server_test_config=test_config,
+        interaction_history=server_interactions,
+        ai_entity_name=server.name,
+        ai_entity_name_field=form.name.id,
+        server_test_interactions=test_interactions,
     )
 
 

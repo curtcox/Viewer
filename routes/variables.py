@@ -1,5 +1,5 @@
 """Variable management routes and helpers."""
-from flask import abort, flash, redirect, render_template, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -10,6 +10,7 @@ from cid_utils import (
 from db_access import delete_entity, get_user_variables, get_variable_by_name
 from forms import VariableForm
 from models import Variable
+from interaction_log import load_interaction_history
 
 from . import main_bp
 from .entities import create_entity, update_entity
@@ -45,11 +46,32 @@ def new_variable():
     """Create a new variable."""
     form = VariableForm()
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text = form.definition.data or ''
+
     if form.validate_on_submit():
-        if create_entity(Variable, form, current_user.id, 'variable'):
+        if create_entity(
+            Variable,
+            form,
+            current_user.id,
+            'variable',
+            change_message=change_message,
+            content_text=definition_text,
+        ):
             return redirect(url_for('main.variables'))
 
-    return render_template('variable_form.html', form=form, title='Create New Variable')
+    entity_name_hint = (form.name.data or '').strip()
+    interaction_history = load_interaction_history(current_user.id, 'variable', entity_name_hint)
+
+    return render_template(
+        'variable_form.html',
+        form=form,
+        title='Create New Variable',
+        variable=None,
+        interaction_history=interaction_history,
+        ai_entity_name=entity_name_hint,
+        ai_entity_name_field=form.name.id,
+    )
 
 
 @main_bp.route('/variables/<variable_name>')
@@ -73,14 +95,28 @@ def edit_variable(variable_name):
 
     form = VariableForm(obj=variable)
 
+    change_message = (request.form.get('change_message') or '').strip()
+    definition_text = form.definition.data or variable.definition or ''
+
+    interaction_history = load_interaction_history(current_user.id, 'variable', variable.name)
+
     if form.validate_on_submit():
-        if update_entity(variable, form, 'variable'):
+        if update_entity(
+            variable,
+            form,
+            'variable',
+            change_message=change_message,
+            content_text=definition_text,
+        ):
             return redirect(url_for('main.view_variable', variable_name=variable.name))
         return render_template(
             'variable_form.html',
             form=form,
             title=f'Edit Variable "{variable.name}"',
             variable=variable,
+            interaction_history=interaction_history,
+            ai_entity_name=variable.name,
+            ai_entity_name_field=form.name.id,
         )
 
     return render_template(
@@ -88,6 +124,9 @@ def edit_variable(variable_name):
         form=form,
         title=f'Edit Variable "{variable.name}"',
         variable=variable,
+        interaction_history=interaction_history,
+        ai_entity_name=variable.name,
+        ai_entity_name_field=form.name.id,
     )
 
 

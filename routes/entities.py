@@ -9,6 +9,7 @@ from db_access import (
     get_secret_by_name,
     get_server_by_name,
     get_variable_by_name,
+    record_entity_interaction,
     save_entity,
 )
 from cid_utils import save_server_definition_as_cid
@@ -31,7 +32,14 @@ def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_i
 
 
 @logfire.instrument("entities.create_entity({model_class=}, {form=}, {user_id=}, {entity_type=})", extract_args=True, record_return=True)
-def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) -> bool:
+def create_entity(
+    model_class: Type[Any],
+    form,
+    user_id: str,
+    entity_type: str,
+    change_message: str | None = None,
+    content_text: str | None = None,
+) -> bool:
     """Generic function to create a new entity (server, variable, or secret)."""
     if check_name_exists(model_class, form.name.data, user_id):
         flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
@@ -49,6 +57,22 @@ def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) 
 
     entity = model_class(**entity_data)
     save_entity(entity)
+
+    if content_text is None:
+        content_text = getattr(form, 'definition', None)
+        if content_text is not None:
+            content_text = content_text.data or ''
+        else:
+            content_text = ''
+
+    record_entity_interaction(
+        user_id,
+        entity_type,
+        form.name.data,
+        'save',
+        change_message or '',
+        content_text,
+    )
 
     if model_class.__name__ == 'Server':
         from .servers import update_server_definitions_cid
@@ -68,7 +92,13 @@ def create_entity(model_class: Type[Any], form, user_id: str, entity_type: str) 
 
 
 @logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
-def update_entity(entity, form, entity_type: str) -> bool:
+def update_entity(
+    entity,
+    form,
+    entity_type: str,
+    change_message: str | None = None,
+    content_text: str | None = None,
+) -> bool:
     """Generic function to update an entity (server, variable, or secret)."""
     if form.name.data != entity.name:
         if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
@@ -85,6 +115,22 @@ def update_entity(entity, form, entity_type: str) -> bool:
     entity.updated_at = datetime.now(timezone.utc)
 
     save_entity(entity)
+
+    if content_text is None:
+        content_text = getattr(form, 'definition', None)
+        if content_text is not None:
+            content_text = content_text.data or ''
+        else:
+            content_text = ''
+
+    record_entity_interaction(
+        entity.user_id,
+        entity_type,
+        entity.name,
+        'save',
+        change_message or '',
+        content_text,
+    )
 
     if type(entity).__name__ == 'Server':
         from .servers import update_server_definitions_cid

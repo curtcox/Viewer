@@ -198,6 +198,29 @@ class Alias(db.Model):
         return f'<Alias {self.name} -> {self.target_path}>'
 
 
+class EntityInteraction(db.Model):
+    __tablename__ = 'entity_interactions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    entity_type = db.Column(db.String(50), nullable=False, index=True)
+    entity_name = db.Column(db.String(255), nullable=False, index=True)
+    action = db.Column(db.String(20), nullable=False)
+    message = db.Column(db.String(500), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+    )
+
+    user = db.relationship('User', backref='entity_interactions')
+
+    def __repr__(self):
+        return f'<EntityInteraction {self.entity_type}:{self.entity_name} {self.action}>'
+
+
 class Variable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
