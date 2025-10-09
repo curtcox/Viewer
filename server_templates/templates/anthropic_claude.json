@@ -1,0 +1,6 @@
+{
+  "id": "anthropic_claude",
+  "name": "Anthropic Claude API call",
+  "description": "Call the Anthropic Claude Messages API with a sample prompt.",
+  "definition_file": "definitions/anthropic_claude.py"
+}
