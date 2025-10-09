@@ -1,3 +1,4 @@
+{% from "_ai_helpers.html" import ai_text_controls, ai_action_button %}
 <div class="card mt-4" id="server-test-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0"><i class="fas fa-vial me-2"></i>Test Server</h5>
@@ -50,12 +51,16 @@
                     Enter each parameter on a new line in <code>key=value</code> format. Empty lines are ignored.
                 </div>
             </div>
+            {{ ai_text_controls('server-test-query', 'query parameters', request_label='Ask AI to edit the query parameters', helper_text='Describe how the AI should adjust the query parameters before running the test.', context={'form': 'server_test_card'}) }}
             {% endif %}
 
-            <div class="d-flex gap-2 mt-3">
+            <div class="d-flex gap-2 mt-3 flex-wrap">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-play me-1"></i>Run Test
                 </button>
+                {% if server_test_config.mode != 'main' %}
+                {{ ai_action_button('server-test-query', button_label='AI', extra_classes='btn-outline-primary') }}
+                {% endif %}
                 <button type="button" class="btn btn-outline-secondary" onclick="resetServerTestForm(this.form)">
                     <i class="fas fa-undo me-1"></i>Clear Inputs
                 </button>

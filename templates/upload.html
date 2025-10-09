@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_ai_helpers.html" import ai_text_controls, ai_action_button %}
 
 {% block title %}Upload Content{% endblock %}
 
@@ -108,6 +109,7 @@
                                     Paste or type your text content here. A unique IPFS CID will be generated based on the content.
                                 </small>
                             </div>
+                            {{ ai_text_controls(form.text_content.id, 'text content', request_label='Ask AI to edit the text content', helper_text='Describe how the AI should adjust your text before uploading.', context={'form': 'upload_text'}) }}
                         </div>
 
                         <!-- URL Upload Section -->
@@ -129,8 +131,9 @@
                         </div>
 
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
                             {{ form.submit(class="btn btn-success") }}
+                            {{ ai_action_button(form.text_content.id, button_label='AI', extra_classes='btn-outline-primary') }}
                             <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
                         </div>
                     </form>
@@ -154,6 +157,8 @@ function toggleUploadMethod() {
     const fileSection = document.getElementById('fileUploadSection');
     const textSection = document.getElementById('textUploadSection');
     const urlSection = document.getElementById('urlUploadSection');
+    const aiButton = document.querySelector('[data-ai-trigger][data-ai-target-id="{{ form.text_content.id }}"]');
+    const aiAssistant = document.querySelector('.ai-text-assistant[data-ai-target-id="{{ form.text_content.id }}"]');
 
     if (fileRadio.checked) {
         fileSection.style.display = 'block';
@@ -167,6 +172,13 @@ function toggleUploadMethod() {
         fileSection.style.display = 'none';
         textSection.style.display = 'none';
         urlSection.style.display = 'block';
+    }
+
+    if (aiButton) {
+        aiButton.classList.toggle('d-none', !textRadio.checked);
+    }
+    if (aiAssistant) {
+        aiAssistant.classList.toggle('d-none', !textRadio.checked);
     }
 }
 

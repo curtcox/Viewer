@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_ai_helpers.html" import ai_text_controls, ai_action_button %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -52,12 +53,16 @@
                                 </div>
                             {% endif %}
                         </div>
+                        {{ ai_text_controls(form.definition.id, 'variable definition', request_label='Ask AI to edit the variable definition', helper_text='Describe how the AI should adjust the variable definition before saving.', context={'form': 'variable_form'}) }}
 
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ url_for('main.variables') }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i>Cancel
                             </a>
-                            {{ form.submit(class="btn btn-primary") }}
+                            <div class="d-flex gap-2 flex-wrap">
+                                {{ ai_action_button(form.definition.id, button_label='AI', extra_classes='btn-outline-primary') }}
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
                         </div>
                     </form>
                 </div>

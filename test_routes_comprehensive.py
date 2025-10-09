@@ -362,6 +362,10 @@ class TestFileUploadRoutes(BaseTestCase):
         response = self.client.get('/upload')
         self.assertEqual(response.status_code, 200)
 
+        page = response.get_data(as_text=True)
+        self.assertIn('text_content-ai-input', page)
+        self.assertIn('data-ai-target-id="text_content"', page)
+
     def test_upload_post_success(self):
         """Test successful file upload."""
         self.login_user()
@@ -619,6 +623,8 @@ class TestCidEditingRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('original content', page)
         self.assertIn(cid_value, page)
+        self.assertIn('text_content-ai-input', page)
+        self.assertIn('data-ai-target-id="text_content"', page)
 
     def test_edit_cid_get_without_alias_shows_alias_field(self):
         cid_value = self._create_cid_record(b'no alias yet')
@@ -1006,6 +1012,8 @@ class TestServerRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('Start from a Template', page)
         self.assertIn('server-template-select', page)
+        self.assertIn('definition-ai-input', page)
+        self.assertIn('data-ai-target-id="definition"', page)
 
         for template in get_server_templates():
             self.assertIn(template['name'], page)
@@ -1114,6 +1122,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('data-mode="query"', page)
         self.assertIn('Enter each parameter on a new line', page)
         self.assertIn('/simple-test', page)
+        self.assertIn('server-test-query-ai-input', page)
+        self.assertIn('data-ai-target-id="server-test-query"', page)
 
     def test_view_server_invocation_history_table(self):
         """Server detail page should show invocation events in table format."""
@@ -1284,6 +1294,16 @@ class TestVariableRoutes(BaseTestCase):
         self.assertIsNotNone(variable)
         self.assertEqual(variable.definition, 'Test variable definition')
 
+    def test_new_variable_form_includes_ai_controls(self):
+        """Variable form should expose AI helper controls."""
+        self.login_user()
+        response = self.client.get('/variables/new')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('definition-ai-input', page)
+        self.assertIn('Ask AI to edit the variable definition', page)
+
 
 class TestSecretRoutes(BaseTestCase):
     """Test secret management routes."""
@@ -1310,6 +1330,31 @@ class TestSecretRoutes(BaseTestCase):
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
 
+    def test_new_secret_form_includes_ai_controls(self):
+        """Secret form should expose AI helper controls."""
+        self.login_user()
+        response = self.client.get('/secrets/new')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('definition-ai-input', page)
+        self.assertIn('Ask AI to edit the secret definition', page)
+
+
+class TestAliasRoutes(BaseTestCase):
+    """Test alias management AI helpers."""
+
+    def test_new_alias_form_includes_ai_controls(self):
+        """Alias form should expose AI helper controls."""
+        self.login_user()
+        response = self.client.get('/aliases/new')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('test_strings-ai-input', page)
+        self.assertIn('data-ai-target-id="test_strings"', page)
+        self.assertIn('Ask AI to edit the test paths', page)
+
 
 class TestSettingsRoutes(BaseTestCase):
     """Test settings routes."""
@@ -1319,6 +1364,16 @@ class TestSettingsRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/settings')
         self.assertEqual(response.status_code, 200)
+
+    def test_import_form_includes_ai_controls(self):
+        """Import form should expose AI helper controls."""
+        self.login_user()
+        response = self.client.get('/import')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('import_text-ai-input', page)
+        self.assertIn('data-ai-target-id="import_text"', page)
 
 
 class TestErrorHandlers(BaseTestCase):
