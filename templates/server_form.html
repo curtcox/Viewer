@@ -40,8 +40,8 @@
 
                         {% if server_templates is defined and server_templates %}
                         <div class="mb-3">
-                            <label class="form-label">Start from a Template</label>
-                            <div class="d-flex flex-wrap gap-2" role="group" aria-label="Server templates">
+                            <label class="form-label" for="server-template-select">Start from a Template</label>
+                            <div id="server-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Server templates">
                                 {% for template in server_templates %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-server-template-id="{{ template.id }}">
                                     {{ template.name }}
