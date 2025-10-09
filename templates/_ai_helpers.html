@@ -1,0 +1,33 @@
+{% macro ai_text_controls(target_id, target_label, request_label=None, helper_text=None, context=None, rows=3) %}
+    {% set request_id = target_id ~ '-ai-input' %}
+    {% set output_id = target_id ~ '-ai-output' %}
+    <div class="mb-3 ai-text-assistant"
+         data-ai-target-id="{{ target_id }}"
+         data-ai-target-label="{{ target_label }}"
+         {% if context is not none %}data-ai-context='{{ context | tojson }}'{% endif %}>
+        <label for="{{ request_id }}" class="form-label">{{ request_label or ('Ask AI to edit the ' ~ target_label) }}</label>
+        <textarea id="{{ request_id }}"
+                  class="form-control"
+                  rows="{{ rows }}"
+                  data-ai-input
+                  placeholder="Describe the changes you would like the AI to make."></textarea>
+        <div class="form-text">{{ helper_text or ('Tell the AI how you would like the ' ~ target_label ~ ' to change.') }}</div>
+        <div class="alert alert-info d-none mt-3"
+             id="{{ output_id }}"
+             data-ai-output
+             role="status"></div>
+    </div>
+{% endmacro %}
+
+{% macro ai_action_button(target_id, button_label='AI', extra_classes='btn-outline-primary btn') %}
+    {% set classes = extra_classes.split(' ') %}
+    {% if 'btn' not in classes %}
+        {% set classes = ['btn'] + classes %}
+    {% endif %}
+    <button type="button"
+            class="{{ classes | join(' ') }}"
+            data-ai-trigger
+            data-ai-target-id="{{ target_id }}">
+        <i class="fas fa-robot me-1"></i>{{ button_label }}
+    </button>
+{% endmacro %}

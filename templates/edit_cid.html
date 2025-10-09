@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_ai_helpers.html" import ai_text_controls, ai_action_button %}
 
 {% block title %}Edit CID{% endblock %}
 
@@ -33,6 +34,7 @@
                                 Update the text below and click "{{ submit_label }}" to store the edited content as a new CID entry.
                             </small>
                         </div>
+                        {{ ai_text_controls(form.text_content.id, 'CID content', request_label='Ask AI to update the CID content', helper_text='Describe how you want the AI to adjust the CID content before saving.', context={'form': 'edit_cid'}) }}
                         {% if not show_alias_field and current_alias_name %}
                             <div class="alert alert-info" role="alert">
                                 <i class="fas fa-link me-1"></i>
@@ -57,6 +59,7 @@
                         {% endif %}
                         <div class="d-flex gap-2 align-items-center flex-wrap">
                             {{ form.submit(class="btn btn-primary", value=submit_label) }}
+                            {{ ai_action_button(form.text_content.id, button_label='AI', extra_classes='btn-outline-primary') }}
                             {{ render_cid_link(cid) }}
                         </div>
                     </form>
