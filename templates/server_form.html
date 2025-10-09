@@ -51,17 +51,6 @@
                             <div class="form-text">
                                 Click a template to replace the server definition below. You can still make changes after loading a template.
                             </div>
-                            <div class="mt-3">
-                                {% for template in server_templates %}
-                                <details class="border rounded p-3 mb-2 bg-light">
-                                    <summary class="fw-semibold">{{ template.name }}</summary>
-                                    {% if template.description %}
-                                    <p class="text-muted small mb-2">{{ template.description }}</p>
-                                    {% endif %}
-                                    <pre class="mb-0" style="white-space: pre-wrap;">{{ template.definition }}</pre>
-                                </details>
-                                {% endfor %}
-                            </div>
                         </div>
                         {% endif %}
 

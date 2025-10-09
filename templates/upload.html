@@ -78,17 +78,6 @@
                                 <div class="form-text">
                                     Click a template to replace the text content field below. You can edit the content after loading a template.
                                 </div>
-                                <div class="mt-3">
-                                    {% for template in upload_templates %}
-                                    <details class="border rounded p-3 mb-2 bg-light">
-                                        <summary class="fw-semibold">{{ template.name }}</summary>
-                                        {% if template.description %}
-                                        <p class="text-muted small mb-2">{{ template.description }}</p>
-                                        {% endif %}
-                                        <pre class="mb-0" style="white-space: pre-wrap;">{{ template.content }}</pre>
-                                    </details>
-                                    {% endfor %}
-                                </div>
                             </div>
                             {% endif %}
                             <div class="mb-3">
