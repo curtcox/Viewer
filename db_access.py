@@ -217,6 +217,8 @@ def record_entity_interaction(
     action: str,
     message: str | None,
     content: str,
+    *,
+    created_at: datetime | None = None,
 ):
     """Persist a change or AI interaction for later recall."""
 
@@ -228,6 +230,31 @@ def record_entity_interaction(
     if len(message_value) > 500:
         message_value = message_value[:497] + '…'
 
+    created_at_value = created_at
+    if created_at_value is not None:
+        if created_at_value.tzinfo is None:
+            created_at_value = created_at_value.replace(tzinfo=timezone.utc)
+        else:
+            created_at_value = created_at_value.astimezone(timezone.utc)
+
+        existing = (
+            EntityInteraction.query
+            .filter_by(
+                user_id=user_id,
+                entity_type=entity_type,
+                entity_name=entity_name,
+                action=action_value,
+                message=message_value,
+            )
+            .filter(EntityInteraction.created_at == created_at_value)
+            .first()
+        )
+        if existing:
+            if content and content != existing.content:
+                existing.content = content
+                db.session.commit()
+            return existing
+
     interaction = EntityInteraction(
         user_id=user_id,
         entity_type=entity_type,
@@ -235,6 +262,7 @@ def record_entity_interaction(
         action=action_value,
         message=message_value,
         content=content or '',
+        created_at=created_at_value,
     )
     db.session.add(interaction)
     db.session.commit()

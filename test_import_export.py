@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 from app import create_app, db
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
-from models import Alias, Secret, Server, User, Variable
+from datetime import datetime, timezone
+from models import Alias, CID, EntityInteraction, Secret, Server, User, Variable
 
 
 class ImportExportRoutesTestCase(unittest.TestCase):
@@ -70,13 +71,21 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 'include_servers': 'y',
                 'include_variables': 'y',
                 'include_secrets': 'y',
+                'include_history': 'y',
                 'secret_key': 'passphrase',
                 'submit': True,
             })
 
         self.assertEqual(response.status_code, 200)
-        payload = json.loads(response.data)
-        self.assertEqual(payload['version'], 1)
+        self.assertIn(b'Your export is ready', response.data)
+
+        with self.app.app_context():
+            cid_record = CID.query.first()
+            self.assertIsNotNone(cid_record)
+            payload = json.loads(cid_record.file_data.decode('utf-8'))
+            cid_value = cid_record.path.lstrip('/')
+
+        self.assertEqual(payload['version'], 2)
         self.assertIn('generated_at', payload)
 
         aliases = payload.get('aliases', [])
@@ -96,6 +105,11 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(secrets_section.get('encryption'), SECRET_ENCRYPTION_SCHEME)
         ciphertext = secrets_section['items'][0]['ciphertext']
         self.assertEqual(decrypt_secret_value(ciphertext, 'passphrase'), 'super-secret')
+
+        self.assertNotIn('change_history', payload)
+
+        download_path = f"/{cid_value}.json"
+        self.assertIn(download_path.encode('utf-8'), response.data)
 
     def test_import_reports_missing_selected_content(self):
         payload = json.dumps({'aliases': [{'name': 'alias-a', 'target_path': '/path'}]})
@@ -196,6 +210,53 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             secret = Secret.query.filter_by(user_id=self.user_id, name='secret-b').first()
             self.assertIsNotNone(secret)
             self.assertEqual(secret.definition, 'value')
+
+    def test_import_change_history_creates_events(self):
+        timestamp = datetime(2024, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
+        payload = json.dumps({
+            'change_history': {
+                'aliases': {
+                    'alias-b': [
+                        {
+                            'timestamp': timestamp.isoformat(),
+                            'message': 'Created alias',
+                            'action': 'save',
+                        }
+                    ]
+                }
+            }
+        })
+
+        with self.app.app_context():
+            alias = Alias(name='alias-b', target_path='/demo', user_id=self.user_id)
+            db.session.add(alias)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_history': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Imported 1 history event', response.data)
+
+        with self.app.app_context():
+            interactions = EntityInteraction.query.filter_by(
+                user_id=self.user_id,
+                entity_type='alias',
+                entity_name='alias-b',
+            ).all()
+            self.assertEqual(len(interactions), 1)
+            self.assertEqual(interactions[0].message, 'Created alias')
+            created_at = interactions[0].created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            else:
+                created_at = created_at.astimezone(timezone.utc)
+            self.assertEqual(created_at, timestamp)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Export Ready{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-primary shadow-sm" data-export-cid="{{ cid_value }}">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-download me-2"></i>Your export is ready
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">The selected data has been saved as a CID-backed JSON file.</p>
+
+                    <div class="mb-4">
+                        <h5 class="mb-2">Export CID</h5>
+                        <div class="bg-light p-3 rounded border">
+                            {{ render_cid_link(cid_value) }}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                            <div><i class="fas fa-link me-2"></i>Download link:</div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="{{ cid_full_url(request.url_root, cid_value, 'json') }}" readonly>
+                                <a class="btn btn-primary" href="{{ download_path }}" target="_blank" rel="noopener">Download JSON</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <details class="mt-3">
+                        <summary class="fw-semibold">View exported JSON</summary>
+                        <pre class="mt-3 bg-dark text-light p-3 rounded" style="max-height: 24rem; overflow:auto;">{{ json_payload }}</pre>
+                    </details>
+
+                    <div class="d-flex gap-2 mt-4 flex-wrap">
+                        <a href="{{ url_for('main.export_data') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Export
+                        </a>
+                        <a href="{{ url_for('main.settings') }}" class="btn btn-secondary">
+                            <i class="fas fa-cog me-1"></i>Return to Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

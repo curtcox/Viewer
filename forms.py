@@ -211,12 +211,13 @@ class ExportForm(FlaskForm):
     include_servers = BooleanField('Servers')
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
+    include_history = BooleanField('Change History')
     secret_key = StringField(
         'Secret Encryption Key',
         validators=[Optional()],
         render_kw={'placeholder': 'Required when exporting secrets'},
     )
-    submit = SubmitField('Download JSON Export')
+    submit = SubmitField('Generate JSON Export')
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators):
@@ -227,6 +228,7 @@ class ExportForm(FlaskForm):
             self.include_servers.data,
             self.include_variables.data,
             self.include_secrets.data,
+            self.include_history.data,
         ]):
             message = 'Select at least one data type to export.'
             self.include_aliases.errors.append(message)
@@ -265,6 +267,7 @@ class ImportForm(FlaskForm):
     include_servers = BooleanField('Servers')
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
+    include_history = BooleanField('Change History')
     secret_key = StringField(
         'Secret Decryption Key',
         validators=[Optional()],
@@ -281,6 +284,7 @@ class ImportForm(FlaskForm):
             self.include_servers.data,
             self.include_variables.data,
             self.include_secrets.data,
+            self.include_history.data,
         ]):
             message = 'Select at least one data type to import.'
             self.include_aliases.errors.append(message)
