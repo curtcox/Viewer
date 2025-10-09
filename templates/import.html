@@ -68,7 +68,17 @@
                                 <div class="form-text">Paste JSON content directly if you do not have a file.</div>
                             {% endif %}
                         </div>
-                        {{ ai_text_controls(form.import_text.id, 'import JSON', request_label='Ask AI to prepare the import JSON', helper_text='Describe how the AI should adjust the JSON content before importing.', context={'form': 'import_form'}) }}
+                        {{ ai_text_controls(
+                            form.import_text.id,
+                            'import JSON',
+                            request_label='Ask AI to prepare the import JSON',
+                            helper_text='Describe how the AI should adjust the JSON content before importing.',
+                            context={'form': 'import_form'},
+                            entity_type='import',
+                            entity_name='json',
+                            interactions=import_interactions|default([]),
+                            history_label='Recent imports and requests'
+                        ) }}
 
                         <div class="mb-4">
                             {{ form.import_url.label(class="form-label") }}

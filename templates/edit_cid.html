@@ -34,7 +34,17 @@
                                 Update the text below and click "{{ submit_label }}" to store the edited content as a new CID entry.
                             </small>
                         </div>
-                        {{ ai_text_controls(form.text_content.id, 'CID content', request_label='Ask AI to update the CID content', helper_text='Describe how you want the AI to adjust the CID content before saving.', context={'form': 'edit_cid'}) }}
+                        {{ ai_text_controls(
+                            form.text_content.id,
+                            'CID content',
+                            request_label='Ask AI to update the CID content',
+                            helper_text='Describe how you want the AI to adjust the CID content before saving.',
+                            context={'form': 'edit_cid'},
+                            entity_type='cid',
+                            entity_name=cid,
+                            interactions=interaction_history|default([]),
+                            history_label='Recent edits and requests'
+                        ) }}
                         {% if not show_alias_field and current_alias_name %}
                             <div class="alert alert-info" role="alert">
                                 <i class="fas fa-link me-1"></i>

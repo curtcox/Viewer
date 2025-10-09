@@ -69,7 +69,18 @@
                                 </div>
                             {% endif %}
                         </div>
-                        {{ ai_text_controls(form.definition.id, 'server definition', request_label='Ask AI to edit the server definition', helper_text='Describe how the AI should adjust the server definition before saving.', context={'form': 'server_form'}) }}
+                        {{ ai_text_controls(
+                            form.definition.id,
+                            'server definition',
+                            request_label='Ask AI to edit the server definition',
+                            helper_text='Describe how the AI should adjust the server definition before saving.',
+                            context={'form': 'server_form'},
+                            entity_type='server',
+                            entity_name=ai_entity_name|default(''),
+                            entity_name_field=ai_entity_name_field|default(''),
+                            interactions=interaction_history|default([]),
+                            history_label='Recent edits and requests'
+                        ) }}
 
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">

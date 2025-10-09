@@ -107,7 +107,18 @@
                             <div class="form-text">Enter one path per line to try the current configuration without saving.</div>
                         </div>
                         <div data-alias-testing>
-                        {{ ai_text_controls(form.test_strings.id, 'test strings', request_label='Ask AI to edit the test paths', helper_text='Describe how the AI should update the test paths before trying them.', context={'form': 'alias_form'}) }}
+                        {{ ai_text_controls(
+                            form.test_strings.id,
+                            'test strings',
+                            request_label='Ask AI to edit the test paths',
+                            helper_text='Describe how the AI should update the test paths before trying them.',
+                            context={'form': 'alias_form'},
+                            entity_type='alias',
+                            entity_name=ai_entity_name|default(''),
+                            entity_name_field=ai_entity_name_field|default(''),
+                            interactions=interaction_history|default([]),
+                            history_label='Recent alias edits and requests'
+                        ) }}
                         </div>
 
                         {% if test_results %}

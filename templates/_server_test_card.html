@@ -51,7 +51,17 @@
                     Enter each parameter on a new line in <code>key=value</code> format. Empty lines are ignored.
                 </div>
             </div>
-            {{ ai_text_controls('server-test-query', 'query parameters', request_label='Ask AI to edit the query parameters', helper_text='Describe how the AI should adjust the query parameters before running the test.', context={'form': 'server_test_card'}) }}
+            {{ ai_text_controls(
+                'server-test-query',
+                'query parameters',
+                request_label='Ask AI to edit the query parameters',
+                helper_text='Describe how the AI should adjust the query parameters before running the test.',
+                context={'form': 'server_test_card'},
+                entity_type='server-test',
+                entity_name=server_test_config.action|default(''),
+                interactions=server_test_interactions|default([]),
+                history_label='Recent test runs'
+            ) }}
             {% endif %}
 
             <div class="d-flex gap-2 mt-3 flex-wrap">

@@ -14,6 +14,7 @@ from models import (
     Secret,
     ServerInvocation,
     CID,
+    EntityInteraction,
 )
 
 
@@ -207,3 +208,57 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
 
 def get_user_uploads(user_id: str):
     return CID.query.filter_by(uploaded_by_user_id=user_id).order_by(CID.created_at.desc()).all()
+
+
+def record_entity_interaction(
+    user_id: str,
+    entity_type: str,
+    entity_name: str,
+    action: str,
+    message: str | None,
+    content: str,
+):
+    """Persist a change or AI interaction for later recall."""
+
+    if not user_id or not entity_type or not entity_name:
+        return None
+
+    action_value = (action or '').strip() or 'save'
+    message_value = (message or '').strip()
+    if len(message_value) > 500:
+        message_value = message_value[:497] + '…'
+
+    interaction = EntityInteraction(
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_name=entity_name,
+        action=action_value,
+        message=message_value,
+        content=content or '',
+    )
+    db.session.add(interaction)
+    db.session.commit()
+    return interaction
+
+
+def get_recent_entity_interactions(
+    user_id: str,
+    entity_type: str,
+    entity_name: str,
+    limit: int = 10,
+):
+    """Fetch the most recent interactions for an entity."""
+
+    if not user_id or not entity_type or not entity_name:
+        return []
+
+    query = (
+        EntityInteraction.query
+        .filter_by(user_id=user_id, entity_type=entity_type, entity_name=entity_name)
+        .order_by(EntityInteraction.created_at.desc(), EntityInteraction.id.desc())
+    )
+
+    if limit:
+        query = query.limit(limit)
+
+    return list(query.all())

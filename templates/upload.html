@@ -94,7 +94,17 @@
                                     Paste or type your text content here. A unique IPFS CID will be generated based on the content.
                                 </small>
                             </div>
-                            {{ ai_text_controls(form.text_content.id, 'text content', request_label='Ask AI to edit the text content', helper_text='Describe how the AI should adjust your text before uploading.', context={'form': 'upload_text'}) }}
+                            {{ ai_text_controls(
+                                form.text_content.id,
+                                'text content',
+                                request_label='Ask AI to edit the text content',
+                                helper_text='Describe how the AI should adjust your text before uploading.',
+                                context={'form': 'upload_text'},
+                                entity_type='upload',
+                                entity_name='text',
+                                interactions=upload_interactions|default([]),
+                                history_label='Recent uploads and requests'
+                            ) }}
                         </div>
 
                         <!-- URL Upload Section -->
