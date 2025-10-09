@@ -1,0 +1,6 @@
+{
+  "id": "google_gemini",
+  "name": "Google Gemini API call",
+  "description": "Call the Google Gemini Generative Language API with a sample prompt.",
+  "definition_file": "definitions/google_gemini.py"
+}

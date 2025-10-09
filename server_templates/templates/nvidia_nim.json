@@ -1,0 +1,6 @@
+{
+  "id": "nvidia_nim",
+  "name": "NVIDIA NIM API call",
+  "description": "Call the NVIDIA hosted NIM chat completions API with a sample prompt.",
+  "definition_file": "definitions/nvidia_nim.py"
+}

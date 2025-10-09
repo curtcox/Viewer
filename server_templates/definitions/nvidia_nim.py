@@ -3,28 +3,30 @@
 import requests
 
 secrets = context.get('secrets') or {}
-api_key = secrets.get("OPENROUTER_API_KEY")
+api_key = secrets.get("NVIDIA_API_KEY")
 if not api_key:
-    return {'output': 'Missing OPENROUTER_API_KEY'}
+    return {'output': 'Missing NVIDIA_API_KEY'}
 
 form_data = request.get('form_data') or {}
 message = form_data.get('message') or "Hello from Viewer!"
 
-url = "https://openrouter.ai/api/v1/chat/completions"
+url = "https://integrate.api.nvidia.com/v1/chat/completions"
 headers = {
     "Authorization": f"Bearer {api_key}",
     "Content-Type": "application/json",
-    "HTTP-Referer": "https://viewer.app",
-    "X-Title": "Viewer Demo",
 }
 payload = {
-    "model": "openrouter/auto",
+    "model": "meta/llama-3.1-8b-instruct",
     "messages": [
         {"role": "user", "content": message},
     ],
+    "temperature": 0.6,
+    "max_tokens": 512,
 }
 
 response = requests.post(url, headers=headers, json=payload, timeout=60)
 response.raise_for_status()
 
-return {'output': response.json()}
+data = response.json()
+
+return {'output': data}
