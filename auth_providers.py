@@ -10,6 +10,7 @@ from flask import session, redirect, url_for, request, flash
 from flask_login import current_user
 from database import db
 from models import User, Invitation
+from ai_defaults import ensure_ai_stub_for_user
 
 
 class AuthProvider(ABC):
@@ -210,6 +211,8 @@ def create_local_user(email: str = None, first_name: str = None, last_name: str 
     db.session.add(user)
     db.session.commit()
 
+    ensure_ai_stub_for_user(user.id)
+
     return user
 
 
@@ -256,6 +259,7 @@ def save_user_from_claims(user_claims: Dict[str, Any], invitation_code: str = No
 
     try:
         db.session.commit()
+        ensure_ai_stub_for_user(user.id)
         return user
     except Exception as e:
         db.session.rollback()

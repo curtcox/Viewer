@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import logfire
 
 from database import db, init_db
+from ai_defaults import ensure_ai_stub_for_all_users
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -160,6 +161,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL") if langsmith_enabled else None,
             "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
         }
+
+        ensure_ai_stub_for_all_users()
 
     return app
 

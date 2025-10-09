@@ -1,0 +1,6 @@
+{
+  "id": "ai_stub",
+  "name": "AI stub",
+  "description": "Mimics the legacy in-browser AI helper by echoing edits on the server.",
+  "definition_file": "definitions/ai_stub.py"
+}

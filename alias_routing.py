@@ -117,7 +117,10 @@ def try_alias_redirect(path: str):
     if query:
         target = _append_query_string(target, query)
 
-    return redirect(target)
+    status_code = 302
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
+        status_code = 307
+    return redirect(target, code=status_code)
 
 
 __all__ = ["find_matching_alias", "is_potential_alias_path", "try_alias_redirect"]
