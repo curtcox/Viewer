@@ -1,0 +1,6 @@
+{
+  "id": "proxy",
+  "name": "HTTP proxy server",
+  "description": "Forward requests to another base URL, preserving the path and query string.",
+  "definition_file": "definitions/proxy.py"
+}
