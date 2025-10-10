@@ -66,36 +66,12 @@
                             </label>
                         </div>
 
-                        <div class="border-top pt-3 mt-4">
-                            <h6 class="text-uppercase text-muted small mb-3">Application Source Files</h6>
-
-                            <div class="form-check mb-2">
-                                {{ form.include_source_python(class="form-check-input", id="include-source-python") }}
-                                <label class="form-check-label" for="include-source-python">
-                                    <i class="fas fa-code me-1 text-success"></i>{{ form.include_source_python.label.text }}
-                                </label>
-                            </div>
-
-                            <div class="form-check mb-2">
-                                {{ form.include_source_templates(class="form-check-input", id="include-source-templates") }}
-                                <label class="form-check-label" for="include-source-templates">
-                                    <i class="fas fa-file-code me-1 text-primary"></i>{{ form.include_source_templates.label.text }}
-                                </label>
-                            </div>
-
-                            <div class="form-check mb-2">
-                                {{ form.include_source_static(class="form-check-input", id="include-source-static") }}
-                                <label class="form-check-label" for="include-source-static">
-                                    <i class="fas fa-images me-1 text-info"></i>{{ form.include_source_static.label.text }}
-                                </label>
-                            </div>
-
-                            <div class="form-check mb-3">
-                                {{ form.include_source_other(class="form-check-input", id="include-source-other") }}
-                                <label class="form-check-label" for="include-source-other">
-                                    <i class="fas fa-file-alt me-1 text-secondary"></i>{{ form.include_source_other.label.text }}
-                                </label>
-                            </div>
+                        <div class="form-check mb-3">
+                            {{ form.include_source(class="form-check-input", id="include-source") }}
+                            <label class="form-check-label" for="include-source">
+                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_source.label.text }}
+                                <span class="d-block text-muted small">Includes Python, templates, static assets, and other files needed to run the app.</span>
+                            </label>
                         </div>
 
                         <div class="form-check mb-4">

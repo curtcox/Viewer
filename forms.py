@@ -212,10 +212,7 @@ class ExportForm(FlaskForm):
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
     include_history = BooleanField('Change History')
-    include_source_python = BooleanField('Python Source Files')
-    include_source_templates = BooleanField('Templates')
-    include_source_static = BooleanField('Static Files')
-    include_source_other = BooleanField('Other App Files')
+    include_source = BooleanField('Application Source Files')
     include_cid_map = BooleanField('CID Content Map', default=True)
     secret_key = StringField(
         'Secret Encryption Key',
@@ -234,10 +231,7 @@ class ExportForm(FlaskForm):
             self.include_variables.data,
             self.include_secrets.data,
             self.include_history.data,
-            self.include_source_python.data,
-            self.include_source_templates.data,
-            self.include_source_static.data,
-            self.include_source_other.data,
+            self.include_source.data,
         ]):
             message = 'Select at least one data type to export.'
             self.include_aliases.errors.append(message)
@@ -277,10 +271,7 @@ class ImportForm(FlaskForm):
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
     include_history = BooleanField('Change History')
-    include_source_python = BooleanField('Python Source Files')
-    include_source_templates = BooleanField('Templates')
-    include_source_static = BooleanField('Static Files')
-    include_source_other = BooleanField('Other App Files')
+    include_source = BooleanField('Application Source Files')
     process_cid_map = BooleanField('Process CID Map', default=True)
     secret_key = StringField(
         'Secret Decryption Key',
@@ -299,10 +290,7 @@ class ImportForm(FlaskForm):
             self.include_variables.data,
             self.include_secrets.data,
             self.include_history.data,
-            self.include_source_python.data,
-            self.include_source_templates.data,
-            self.include_source_static.data,
-            self.include_source_other.data,
+            self.include_source.data,
         ]):
             message = 'Select at least one data type to import.'
             self.include_aliases.errors.append(message)

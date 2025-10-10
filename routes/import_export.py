@@ -154,12 +154,12 @@ _APP_SOURCE_OTHER_FILES: tuple[Path, ...] = (
 _PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {'test', 'tests', '__pycache__'}
 _PYTHON_SOURCE_EXCLUDED_FILENAMES: set[str] = {'run_coverage.py', 'run_auth_tests.py'}
 
-_APP_SOURCE_CATEGORY_FIELDS: dict[str, str] = {
-    'python': 'include_source_python',
-    'templates': 'include_source_templates',
-    'static': 'include_source_static',
-    'other': 'include_source_other',
-}
+_APP_SOURCE_CATEGORIES: tuple[tuple[str, str], ...] = (
+    ('python', 'Python Source Files'),
+    ('templates', 'Templates'),
+    ('static', 'Static Files'),
+    ('other', 'Other App Files'),
+)
 
 
 def _app_root_path() -> Path:
@@ -846,32 +846,29 @@ def export_data():
                 payload['change_history'] = history_payload
 
         app_source_payload: dict[str, list[dict[str, str]]] = {}
-        for category, field_name in _APP_SOURCE_CATEGORY_FIELDS.items():
-            field = getattr(form, field_name, None)
-            if not field or not field.data:
-                continue
-
-            collector = _APP_SOURCE_COLLECTORS.get(category)
-            if not collector:
-                continue
-
-            entries: list[dict[str, str]] = []
-            for relative_path in collector():
-                absolute_path = base_path / relative_path
-                try:
-                    content_bytes = absolute_path.read_bytes()
-                except OSError:
+        if form.include_source.data:
+            for category, _label in _APP_SOURCE_CATEGORIES:
+                collector = _APP_SOURCE_COLLECTORS.get(category)
+                if not collector:
                     continue
 
-                cid_value = store_cid_from_bytes(content_bytes, current_user.id)
-                _record_cid_value(cid_value, content_bytes)
-                entries.append({
-                    'path': relative_path.as_posix(),
-                    'cid': cid_value,
-                })
+                entries: list[dict[str, str]] = []
+                for relative_path in collector():
+                    absolute_path = base_path / relative_path
+                    try:
+                        content_bytes = absolute_path.read_bytes()
+                    except OSError:
+                        continue
 
-            if entries:
-                app_source_payload[category] = entries
+                    cid_value = store_cid_from_bytes(content_bytes, current_user.id)
+                    _record_cid_value(cid_value, content_bytes)
+                    entries.append({
+                        'path': relative_path.as_posix(),
+                        'cid': cid_value,
+                    })
+
+                if entries:
+                    app_source_payload[category] = entries
 
         if app_source_payload:
             payload['app_source'] = app_source_payload
@@ -998,10 +995,8 @@ def import_data():
                 summaries.append(f'{imported_history} {label}')
 
         selected_source_categories: list[tuple[str, str]] = []
-        for category, field_name in _APP_SOURCE_CATEGORY_FIELDS.items():
-            field = getattr(form, field_name, None)
-            if field and field.data:
-                selected_source_categories.append((category, field.label.text))
+        if form.include_source.data:
+            selected_source_categories = list(_APP_SOURCE_CATEGORIES)
 
         if selected_source_categories:
             _verify_import_source_files(

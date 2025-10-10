@@ -204,10 +204,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
     def test_export_includes_app_source_cids(self):
         with self.logged_in():
             response = self.client.post('/export', data={
-                'include_source_python': 'y',
-                'include_source_templates': 'y',
-                'include_source_static': 'y',
-                'include_source_other': 'y',
+                'include_source': 'y',
                 'include_cid_map': 'y',
                 'submit': True,
             })
@@ -261,7 +258,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             response = self.client.post('/import', data={
                 'import_source': 'text',
                 'import_text': payload,
-                'include_source_python': 'y',
+                'include_source': 'y',
                 'submit': True,
             }, follow_redirects=True)
 
@@ -285,7 +282,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             response = self.client.post('/import', data={
                 'import_source': 'text',
                 'import_text': payload,
-                'include_source_python': 'y',
+                'include_source': 'y',
                 'submit': True,
             }, follow_redirects=True)
 
