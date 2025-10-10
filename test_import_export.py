@@ -2,6 +2,7 @@ import json
 import unittest
 from contextlib import ExitStack, contextmanager
 from html import escape
+from pathlib import Path
 from unittest.mock import patch
 
 from app import create_app, db
@@ -103,7 +104,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             payload = json.loads(export_record.file_data.decode('utf-8'))
             cid_value = export_record.path.lstrip('/')
 
-        self.assertEqual(payload['version'], 3)
+        self.assertEqual(payload['version'], 4)
         self.assertIn('generated_at', payload)
 
         aliases = payload.get('aliases', [])
@@ -199,6 +200,97 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             f'Server "server-c" definition with CID "{server_cid}" was not included in the import.'
         )
         self.assert_flash_present(expected_error, response.data)
+
+    def test_export_includes_app_source_cids(self):
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_source_python': 'y',
+                'include_source_templates': 'y',
+                'include_source_static': 'y',
+                'include_source_other': 'y',
+                'include_cid_map': 'y',
+                'submit': True,
+            })
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            export_record = next(
+                (record for record in CID.query.all() if b'"app_source"' in record.file_data),
+                None,
+            )
+
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+
+        app_source = payload.get('app_source')
+        self.assertIsInstance(app_source, dict)
+        for section in ('python', 'templates', 'static', 'other'):
+            self.assertIn(section, app_source)
+            self.assertTrue(app_source[section])
+
+        python_entry = app_source['python'][0]
+        self.assertIn('path', python_entry)
+        self.assertIn('cid', python_entry)
+
+        base_path = Path(self.app.root_path)
+        python_path = base_path / python_entry['path']
+        self.assertTrue(python_path.exists())
+        expected_cid = format_cid(generate_cid(python_path.read_bytes()))
+        self.assertEqual(python_entry['cid'], expected_cid)
+
+        cid_values = payload.get('cid_values', {})
+        self.assertIn(python_entry['cid'], cid_values)
+
+    def test_import_verifies_app_source_matches(self):
+        base_path = Path(self.app.root_path)
+        python_file = base_path / 'app.py'
+        expected_cid = format_cid(generate_cid(python_file.read_bytes()))
+        payload = json.dumps({
+            'app_source': {
+                'python': [
+                    {
+                        'path': 'app.py',
+                        'cid': expected_cid,
+                    }
+                ]
+            }
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_source_python': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assert_flash_present('All python source files match the export.', response.data)
+
+    def test_import_reports_mismatched_app_source(self):
+        mismatched_cid = format_cid(generate_cid(b'invalid'))
+        payload = json.dumps({
+            'app_source': {
+                'python': [
+                    {
+                        'path': 'app.py',
+                        'cid': mismatched_cid,
+                    }
+                ]
+            }
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_source_python': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assert_flash_present('Source file "app.py" differs from the export.', response.data)
 
     def test_import_rejects_mismatched_cid_map_entry(self):
         server_definition = 'print("hello")'
