@@ -1,9 +1,11 @@
 """Routes for exporting and importing user configuration data."""
 from __future__ import annotations
 
-import json
 import base64
 import binascii
+import json
+import platform
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Tuple
@@ -151,7 +153,7 @@ _APP_SOURCE_OTHER_FILES: tuple[Path, ...] = (
     Path('replit.md'),
 )
 
-_PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {'test', 'tests', '__pycache__'}
+_PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {'test', 'tests', '__pycache__', 'venv', '.venv'}
 _PYTHON_SOURCE_EXCLUDED_FILENAMES: set[str] = {'run_coverage.py', 'run_auth_tests.py'}
 
 _APP_SOURCE_CATEGORIES: tuple[tuple[str, str], ...] = (
@@ -243,6 +245,16 @@ _APP_SOURCE_COLLECTORS: dict[str, Callable[[], list[Path]]] = {
     'static': _gather_static_paths,
     'other': _gather_other_app_files,
 }
+
+
+def _build_runtime_section() -> dict[str, dict[str, str]]:
+    return {
+        'python': {
+            'implementation': platform.python_implementation(),
+            'version': platform.python_version(),
+            'executable': sys.executable or '',
+        }
+    }
 
 
 def _verify_import_source_category(
@@ -774,6 +786,7 @@ def export_data():
         payload: dict[str, Any] = {
             'version': 4,
             'generated_at': datetime.now(timezone.utc).isoformat(),
+            'runtime': _build_runtime_section(),
         }
 
         cid_map_entries: dict[str, dict[str, str]] = {}
