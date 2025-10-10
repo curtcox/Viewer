@@ -1520,6 +1520,29 @@ class TestSourceRoutes(BaseTestCase):
         response = self.client.get('/source/../app.py')
         self.assertEqual(response.status_code, 404)
 
+    def test_source_htmlcov_serves_raw_content(self):
+        """Coverage reports should be served without additional templating."""
+        htmlcov_dir = Path(self.app.root_path) / 'htmlcov'
+        created_dir = not htmlcov_dir.exists()
+        htmlcov_dir.mkdir(exist_ok=True)
+        html_file = htmlcov_dir / 'index.html'
+        html_content = '<html><body>Coverage report</body></html>'
+        html_file.write_text(html_content, encoding='utf-8')
+
+        try:
+            from routes.source import _get_all_project_files, _get_tracked_paths
+
+            _get_all_project_files.cache_clear()
+            _get_tracked_paths.cache_clear()
+
+            response = self.client.get('/source/htmlcov/index.html')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_data(as_text=True), html_content)
+        finally:
+            html_file.unlink(missing_ok=True)
+            if created_dir:
+                htmlcov_dir.rmdir()
+
 
 if __name__ == '__main__':
     unittest.main()
