@@ -123,6 +123,11 @@ def _render_file(path: str, root_path: Path):
     if not file_path.is_file() or repository_root not in file_path.parents:
         abort(404)
 
+    # Coverage HTML reports already contain full HTML documents. Serve them
+    # directly so the content is not wrapped in the source browser template.
+    if path.startswith("htmlcov/"):
+        return send_file(file_path)
+
     try:
         file_content = file_path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
