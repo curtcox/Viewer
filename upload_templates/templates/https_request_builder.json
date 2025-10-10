@@ -1,0 +1,7 @@
+{
+  "id": "https-request-builder",
+  "name": "HTTPS request builder",
+  "description": "Formdown interface for composing HTTPS requests routed through a proxy server path.",
+  "content_file": "contents/https_request_builder.formdown",
+  "suggested_filename": "https-request-builder.formdown"
+}
