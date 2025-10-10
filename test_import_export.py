@@ -1,9 +1,12 @@
 import json
 import unittest
 from contextlib import ExitStack, contextmanager
+from html import escape
 from unittest.mock import patch
 
 from app import create_app, db
+from cid_presenter import format_cid
+from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from datetime import datetime, timezone
 from models import Alias, CID, EntityInteraction, Secret, Server, User, Variable
@@ -49,6 +52,15 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 self._login_patch(mock_user)
             yield
 
+    def assert_flash_present(self, message: str, response_data: bytes):
+        text = response_data.decode('utf-8')
+        html_message = escape(message, quote=True)
+        numeric_html_message = message.replace('"', '&#34;')
+        self.assertTrue(
+            message in text or html_message in text or numeric_html_message in text,
+            f'Expected flash message "{message}" in response: {text}',
+        )
+
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
             alias = Alias(
@@ -72,6 +84,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 'include_variables': 'y',
                 'include_secrets': 'y',
                 'include_history': 'y',
+                'include_cid_map': 'y',
                 'secret_key': 'passphrase',
                 'submit': True,
             })
@@ -80,12 +93,17 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn(b'Your export is ready', response.data)
 
         with self.app.app_context():
-            cid_record = CID.query.first()
-            self.assertIsNotNone(cid_record)
-            payload = json.loads(cid_record.file_data.decode('utf-8'))
-            cid_value = cid_record.path.lstrip('/')
+            cid_records = CID.query.all()
+            export_record = next(
+                (record for record in cid_records if b'"version"' in record.file_data),
+                None,
+            )
 
-        self.assertEqual(payload['version'], 2)
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+            cid_value = export_record.path.lstrip('/')
+
+        self.assertEqual(payload['version'], 3)
         self.assertIn('generated_at', payload)
 
         aliases = payload.get('aliases', [])
@@ -96,7 +114,16 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertTrue(aliases[0]['ignore_case'])
 
         servers = payload.get('servers', [])
-        self.assertEqual(servers[0]['definition'], 'print("hi")')
+        self.assertEqual(len(servers), 1)
+        self.assertIn('definition_cid', servers[0])
+        self.assertNotIn('definition', servers[0])
+
+        cid_values = payload.get('cid_values', {})
+        self.assertIn(servers[0]['definition_cid'], cid_values)
+        self.assertEqual(
+            cid_values[servers[0]['definition_cid']],
+            {'encoding': 'utf-8', 'value': 'print("hi")'},
+        )
 
         variables = payload.get('variables', [])
         self.assertEqual(variables[0]['definition'], 'value')
@@ -111,6 +138,32 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         download_path = f"/{cid_value}.json"
         self.assertIn(download_path.encode('utf-8'), response.data)
 
+    def test_export_without_cid_map_excludes_section(self):
+        with self.app.app_context():
+            server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
+            db.session.add(server)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_servers': 'y',
+                'submit': True,
+            })
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            cid_records = CID.query.all()
+            export_record = next(
+                (record for record in cid_records if b'"version"' in record.file_data),
+                None,
+            )
+
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+
+        self.assertNotIn('cid_values', payload)
+
     def test_import_reports_missing_selected_content(self):
         payload = json.dumps({'aliases': [{'name': 'alias-a', 'target_path': '/path'}]})
 
@@ -123,7 +176,56 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             }, follow_redirects=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'No server data found in import file.', response.data)
+        self.assert_flash_present('No server data found in import file.', response.data)
+
+    def test_import_reports_missing_cid_content(self):
+        server_definition = 'print("hello")'
+        server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
+        payload = json.dumps({
+            'servers': [{'name': 'server-c', 'definition_cid': server_cid}],
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_servers': 'y',
+                'process_cid_map': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        expected_error = (
+            f'Server "server-c" definition with CID "{server_cid}" was not included in the import.'
+        )
+        self.assert_flash_present(expected_error, response.data)
+
+    def test_import_rejects_mismatched_cid_map_entry(self):
+        server_definition = 'print("hello")'
+        mismatched_cid = format_cid(generate_cid(b'other'))
+        payload = json.dumps({
+            'servers': [{'name': 'server-c', 'definition_cid': mismatched_cid}],
+            'cid_values': {
+                mismatched_cid: {'encoding': 'utf-8', 'value': server_definition}
+            },
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_servers': 'y',
+                'process_cid_map': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        mismatch_error = f'CID "{mismatched_cid}" content did not match its hash and was skipped.'
+        self.assert_flash_present(mismatch_error, response.data)
+        missing_error = (
+            f'Server "server-c" definition with CID "{mismatched_cid}" was not included in the import.'
+        )
+        self.assert_flash_present(missing_error, response.data)
 
     def test_import_rejects_invalid_secret_key(self):
         encrypted = encrypt_secret_value('secret', 'correct-key')
@@ -149,10 +251,12 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             }, follow_redirects=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Invalid decryption key for secrets.', response.data)
+        self.assert_flash_present('Invalid decryption key for secrets.', response.data)
 
     def test_successful_import_creates_entries(self):
         encrypted_secret = encrypt_secret_value('value', 'passphrase')
+        server_definition = 'print("hello")'
+        server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
         payload = json.dumps({
             'aliases': [
                 {
@@ -163,13 +267,16 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     'ignore_case': True,
                 }
             ],
-            'servers': [{'name': 'server-b', 'definition': 'print("hello")'}],
+            'servers': [{'name': 'server-b', 'definition_cid': server_cid}],
             'variables': [{'name': 'var-b', 'definition': '42'}],
             'secrets': {
                 'encryption': SECRET_ENCRYPTION_SCHEME,
                 'items': [
                     {'name': 'secret-b', 'ciphertext': encrypted_secret}
                 ],
+            },
+            'cid_values': {
+                server_cid: {'encoding': 'utf-8', 'value': server_definition}
             },
         })
 
@@ -181,6 +288,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 'include_servers': 'y',
                 'include_variables': 'y',
                 'include_secrets': 'y',
+                'process_cid_map': 'y',
                 'secret_key': 'passphrase',
                 'submit': True,
             }, follow_redirects=True)

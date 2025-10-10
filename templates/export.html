@@ -66,6 +66,14 @@
                             </label>
                         </div>
 
+                        <div class="form-check mb-4">
+                            {{ form.include_cid_map(class="form-check-input", id="include-cid-map") }}
+                            <label class="form-check-label" for="include-cid-map">
+                                <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
+                                <span class="d-block text-muted small">Include the CID to content map so other environments can load referenced definitions.</span>
+                            </label>
+                        </div>
+
                         <div class="mb-4">
                             {{ form.secret_key.label(class="form-label") }}
                             {{ form.secret_key(class="form-control" + (" is-invalid" if form.secret_key.errors else "")) }}
