@@ -1,14 +1,17 @@
 """Routes for exporting and importing user configuration data."""
 from __future__ import annotations
 
-import json
 import base64
 import binascii
+import json
+import platform
+import sys
 from datetime import datetime, timezone
-from typing import Any, Iterable, Tuple
+from pathlib import Path
+from typing import Any, Callable, Iterable, Tuple
 
 import requests
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -128,6 +131,230 @@ def _load_cid_bytes(cid_value: str, cid_map: dict[str, bytes]) -> bytes | None:
         return bytes(record.file_data)
 
     return None
+
+
+_APP_SOURCE_TEMPLATE_DIRECTORIES: tuple[str, ...] = (
+    'templates',
+    'server_templates',
+    'upload_templates',
+)
+
+_APP_SOURCE_STATIC_DIRECTORIES: tuple[str, ...] = ('static',)
+
+_APP_SOURCE_OTHER_FILES: tuple[Path, ...] = (
+    Path('pyproject.toml'),
+    Path('requirements.txt'),
+    Path('uv.lock'),
+    Path('.env.sample'),
+    Path('run'),
+    Path('install'),
+    Path('doctor'),
+    Path('README.md'),
+    Path('replit.md'),
+)
+
+_PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {'test', 'tests', '__pycache__', 'venv', '.venv'}
+_PYTHON_SOURCE_EXCLUDED_FILENAMES: set[str] = {'run_coverage.py', 'run_auth_tests.py'}
+
+_APP_SOURCE_CATEGORIES: tuple[tuple[str, str], ...] = (
+    ('python', 'Python Source Files'),
+    ('templates', 'Templates'),
+    ('static', 'Static Files'),
+    ('other', 'Other App Files'),
+)
+
+
+def _app_root_path() -> Path:
+    return Path(current_app.root_path)
+
+
+def _should_include_python_source(relative_path: Path) -> bool:
+    if relative_path.suffix != '.py':
+        return False
+
+    if any(part in _PYTHON_SOURCE_EXCLUDED_DIRS for part in relative_path.parts):
+        return False
+
+    if relative_path.name.startswith('test_'):
+        return False
+
+    if relative_path.name in _PYTHON_SOURCE_EXCLUDED_FILENAMES:
+        return False
+
+    return True
+
+
+def _gather_python_source_paths() -> list[Path]:
+    base_path = _app_root_path()
+    python_files: list[Path] = []
+
+    for path in base_path.rglob('*.py'):
+        try:
+            relative_path = path.relative_to(base_path)
+        except ValueError:
+            continue
+
+        if _should_include_python_source(relative_path):
+            python_files.append(relative_path)
+
+    python_files.sort(key=lambda item: item.as_posix())
+    return python_files
+
+
+def _gather_files_from_directories(relative_directories: Iterable[str]) -> list[Path]:
+    base_path = _app_root_path()
+    collected: list[Path] = []
+
+    for relative in relative_directories:
+        directory_path = base_path / relative
+        if not directory_path.exists() or not directory_path.is_dir():
+            continue
+
+        for file_path in directory_path.rglob('*'):
+            if file_path.is_file():
+                collected.append(file_path.relative_to(base_path))
+
+    collected.sort(key=lambda item: item.as_posix())
+    return collected
+
+
+def _gather_template_paths() -> list[Path]:
+    return _gather_files_from_directories(_APP_SOURCE_TEMPLATE_DIRECTORIES)
+
+
+def _gather_static_paths() -> list[Path]:
+    return _gather_files_from_directories(_APP_SOURCE_STATIC_DIRECTORIES)
+
+
+def _gather_other_app_files() -> list[Path]:
+    base_path = _app_root_path()
+    other_files: list[Path] = []
+
+    for relative in _APP_SOURCE_OTHER_FILES:
+        candidate = base_path / relative
+        if candidate.exists() and candidate.is_file():
+            other_files.append(relative)
+
+    other_files.sort(key=lambda item: item.as_posix())
+    return other_files
+
+
+_APP_SOURCE_COLLECTORS: dict[str, Callable[[], list[Path]]] = {
+    'python': _gather_python_source_paths,
+    'templates': _gather_template_paths,
+    'static': _gather_static_paths,
+    'other': _gather_other_app_files,
+}
+
+
+def _build_runtime_section() -> dict[str, dict[str, str]]:
+    return {
+        'python': {
+            'implementation': platform.python_implementation(),
+            'version': platform.python_version(),
+            'executable': sys.executable or '',
+        }
+    }
+
+
+def _verify_import_source_category(
+    entries: Any,
+    label_text: str,
+    warnings: list[str],
+    info_messages: list[str],
+) -> None:
+    lower_label = label_text.lower()
+
+    if entries is None:
+        warnings.append(f'No {lower_label} were included in the import data.')
+        return
+
+    if not isinstance(entries, list):
+        warnings.append(f'{label_text} section must be a list of file entries.')
+        return
+
+    base_path = _app_root_path()
+    base_resolved = base_path.resolve()
+    checked_any = False
+    mismatches_found = False
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            warnings.append(f'{label_text} entry must include "path" and "cid" fields.')
+            mismatches_found = True
+            continue
+
+        raw_path = entry.get('path')
+        expected_cid = _normalise_cid(entry.get('cid'))
+        if not isinstance(raw_path, str) or not expected_cid:
+            warnings.append(f'{label_text} entry must include valid "path" and "cid" values.')
+            mismatches_found = True
+            continue
+
+        candidate_path = Path(raw_path)
+        if candidate_path.is_absolute() or '..' in candidate_path.parts:
+            warnings.append(f'Source file "{raw_path}" used an invalid path.')
+            mismatches_found = True
+            continue
+
+        absolute_path = (base_path / candidate_path).resolve()
+        try:
+            absolute_path.relative_to(base_resolved)
+        except ValueError:
+            warnings.append(f'Source file "{raw_path}" used an invalid path.')
+            mismatches_found = True
+            continue
+
+        if not absolute_path.exists():
+            warnings.append(f'Source file "{raw_path}" is missing locally.')
+            mismatches_found = True
+            continue
+
+        if not absolute_path.is_file():
+            warnings.append(f'Source path "{raw_path}" is not a file locally.')
+            mismatches_found = True
+            continue
+
+        checked_any = True
+        try:
+            local_bytes = absolute_path.read_bytes()
+        except OSError:
+            warnings.append(f'Source file "{raw_path}" could not be read locally.')
+            mismatches_found = True
+            continue
+
+        local_cid = format_cid(generate_cid(local_bytes))
+        if _normalise_cid(expected_cid) != local_cid:
+            warnings.append(f'Source file "{raw_path}" differs from the export.')
+            mismatches_found = True
+
+    if checked_any and not mismatches_found:
+        info_messages.append(f'All {lower_label} match the export.')
+    elif not checked_any:
+        warnings.append(f'No valid {lower_label} were found in the import data.')
+
+
+def _verify_import_source_files(
+    raw_section: Any,
+    selected_categories: list[tuple[str, str]],
+    warnings: list[str],
+    info_messages: list[str],
+) -> None:
+    if not selected_categories:
+        return
+
+    if raw_section is None:
+        for _, label_text in selected_categories:
+            warnings.append(f'No {label_text.lower()} were included in the import data.')
+        return
+
+    if not isinstance(raw_section, dict):
+        warnings.append('App source files section must be an object mapping categories to file entries.')
+        return
+
+    for category_key, label_text in selected_categories:
+        entries = raw_section.get(category_key)
+        _verify_import_source_category(entries, label_text, warnings, info_messages)
 
 
 def _load_import_payload(form: ImportForm) -> str | None:
@@ -557,11 +784,13 @@ def export_data():
     form = ExportForm()
     if form.validate_on_submit():
         payload: dict[str, Any] = {
-            'version': 3,
+            'version': 4,
             'generated_at': datetime.now(timezone.utc).isoformat(),
+            'runtime': _build_runtime_section(),
         }
 
         cid_map_entries: dict[str, dict[str, str]] = {}
+        base_path = _app_root_path()
 
         def _record_cid_value(cid_value: str, content: bytes) -> None:
             if not form.include_cid_map.data:
@@ -629,6 +858,34 @@ def export_data():
             if history_payload:
                 payload['change_history'] = history_payload
 
+        app_source_payload: dict[str, list[dict[str, str]]] = {}
+        if form.include_source.data:
+            for category, _label in _APP_SOURCE_CATEGORIES:
+                collector = _APP_SOURCE_COLLECTORS.get(category)
+                if not collector:
+                    continue
+
+                entries: list[dict[str, str]] = []
+                for relative_path in collector():
+                    absolute_path = base_path / relative_path
+                    try:
+                        content_bytes = absolute_path.read_bytes()
+                    except OSError:
+                        continue
+
+                    cid_value = store_cid_from_bytes(content_bytes, current_user.id)
+                    _record_cid_value(cid_value, content_bytes)
+                    entries.append({
+                        'path': relative_path.as_posix(),
+                        'cid': cid_value,
+                    })
+
+                if entries:
+                    app_source_payload[category] = entries
+
+        if app_source_payload:
+            payload['app_source'] = app_source_payload
+
         if form.include_cid_map.data and cid_map_entries:
             payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
 
@@ -678,6 +935,8 @@ def import_data():
 
         user_id = current_user.id
         errors: list[str] = []
+        warnings: list[str] = []
+        info_messages: list[str] = []
         summaries: list[str] = []
         cid_lookup: dict[str, bytes] = {}
 
@@ -748,14 +1007,32 @@ def import_data():
                 label = 'history events' if imported_history != 1 else 'history event'
                 summaries.append(f'{imported_history} {label}')
 
+        selected_source_categories: list[tuple[str, str]] = []
+        if form.include_source.data:
+            selected_source_categories = list(_APP_SOURCE_CATEGORIES)
+
+        if selected_source_categories:
+            _verify_import_source_files(
+                data.get('app_source'),
+                selected_source_categories,
+                warnings,
+                info_messages,
+            )
+
         for message in errors:
             flash(message, 'danger')
+
+        for message in warnings:
+            flash(message, 'warning')
 
         if summaries:
             summary_text = ', '.join(summaries)
             flash(f'Imported {summary_text}.', 'success')
 
-        if errors or summaries:
+        for message in info_messages:
+            flash(message, 'success')
+
+        if errors or warnings or summaries:
             record_entity_interaction(
                 user_id,
                 'import',
@@ -765,7 +1042,7 @@ def import_data():
                 raw_payload,
             )
 
-        if errors or summaries:
+        if errors or warnings or summaries:
             return redirect(url_for('main.import_data'))
 
     return _render_import_form()

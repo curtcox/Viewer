@@ -135,6 +135,14 @@
                             </label>
                         </div>
 
+                        <div class="form-check mb-3">
+                            {{ form.include_source(class="form-check-input", id="import-source") }}
+                            <label class="form-check-label" for="import-source">
+                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_source.label.text }}
+                                <span class="d-block text-muted small">Checks Python, templates, static assets, and other files needed to run the app.</span>
+                            </label>
+                        </div>
+
                         <div class="form-check mb-4">
                             {{ form.process_cid_map(class="form-check-input", id="import-cid-map") }}
                             <label class="form-check-label" for="import-cid-map">
