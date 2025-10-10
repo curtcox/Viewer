@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import base64
+import binascii
 from datetime import datetime, timezone
 from typing import Any, Iterable, Tuple
 
@@ -11,10 +13,11 @@ from flask_login import current_user
 
 from auth_providers import require_login
 from alias_matching import PatternError, normalise_pattern
-from cid_presenter import cid_path
-from cid_utils import save_server_definition_as_cid, store_cid_from_json
+from cid_presenter import cid_path, format_cid
+from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
 from db_access import (
     get_alias_by_name,
+    get_cid_by_path,
     get_secret_by_name,
     get_server_by_name,
     get_user_aliases,
@@ -35,6 +38,96 @@ from .secrets import update_secret_definitions_cid
 from .servers import update_server_definitions_cid
 from .variables import update_variable_definitions_cid
 from interaction_log import load_interaction_history
+
+
+def _normalise_cid(value: Any) -> str:
+    if not isinstance(value, str):
+        return ''
+    cleaned = value.strip()
+    if not cleaned:
+        return ''
+    cleaned = cleaned.split('.')[0]
+    return cleaned.lstrip('/')
+
+
+def _serialise_cid_value(content: bytes) -> dict[str, str]:
+    try:
+        return {'encoding': 'utf-8', 'value': content.decode('utf-8')}
+    except UnicodeDecodeError:
+        return {'encoding': 'base64', 'value': base64.b64encode(content).decode('ascii')}
+
+
+def _deserialise_cid_value(raw_value: Any) -> tuple[bytes | None, str | None]:
+    if isinstance(raw_value, dict):
+        encoding = (raw_value.get('encoding') or 'utf-8').strip().lower()
+        value = raw_value.get('value')
+    else:
+        encoding = 'utf-8'
+        value = raw_value
+
+    if not isinstance(value, str):
+        return None, 'CID map values must be strings or objects with a "value" field.'
+
+    if encoding in ('utf-8', 'text', 'utf8'):
+        return value.encode('utf-8'), None
+
+    if encoding == 'base64':
+        try:
+            return base64.b64decode(value.encode('ascii')), None
+        except (binascii.Error, ValueError):
+            return None, 'CID map entry used invalid base64 encoding.'
+
+    try:
+        return value.encode(encoding), None
+    except LookupError:
+        return None, f'CID map entry specified unsupported encoding "{encoding}".'
+
+
+def _parse_cid_values_section(raw_map: Any) -> tuple[dict[str, bytes], list[str]]:
+    if raw_map is None:
+        return {}, []
+    if not isinstance(raw_map, dict):
+        return {}, ['CID map must be an object mapping CID values to content.']
+
+    cid_values: dict[str, bytes] = {}
+    errors: list[str] = []
+
+    for raw_key, raw_value in raw_map.items():
+        cid_value = _normalise_cid(raw_key)
+        if not cid_value:
+            errors.append('CID map entries must use non-empty string keys.')
+            continue
+
+        content_bytes, error = _deserialise_cid_value(raw_value)
+        if error:
+            errors.append(f'CID "{cid_value}" entry invalid: {error}')
+            continue
+        if content_bytes is None:
+            errors.append(f'CID "{cid_value}" entry did not include decodable content.')
+            continue
+
+        cid_values[cid_value] = content_bytes
+
+    return cid_values, errors
+
+
+def _load_cid_bytes(cid_value: str, cid_map: dict[str, bytes]) -> bytes | None:
+    normalised = _normalise_cid(cid_value)
+    if not normalised:
+        return None
+
+    if normalised in cid_map:
+        return cid_map[normalised]
+
+    path = cid_path(normalised)
+    if not path:
+        return None
+
+    record = get_cid_by_path(path)
+    if record and record.file_data is not None:
+        return bytes(record.file_data)
+
+    return None
 
 
 def _load_import_payload(form: ImportForm) -> str | None:
@@ -138,7 +231,11 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
     return imported, errors
 
 
-def _import_servers(user_id: str, raw_servers: Any) -> Tuple[int, list[str]]:
+def _import_servers(
+    user_id: str,
+    raw_servers: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> Tuple[int, list[str]]:
     """Import server definitions from JSON data."""
     if raw_servers is None:
         return 0, ['No server data found in import file.']
@@ -147,29 +244,62 @@ def _import_servers(user_id: str, raw_servers: Any) -> Tuple[int, list[str]]:
 
     errors: list[str] = []
     imported = 0
+    cid_map = cid_map or {}
 
     for entry in raw_servers:
         if not isinstance(entry, dict):
-            errors.append('Server entries must be objects with name and definition.')
+            errors.append('Server entries must be objects with name and definition details.')
             continue
 
-        name = entry.get('name')
-        definition = entry.get('definition')
-        if not name or definition is None:
-            errors.append('Server entry must include both name and definition.')
+        name_raw = entry.get('name')
+        if not isinstance(name_raw, str) or not name_raw.strip():
+            errors.append('Server entry must include a valid name.')
             continue
 
-        definition_cid = save_server_definition_as_cid(definition, user_id)
+        name = name_raw.strip()
+
+        definition_text: str | None = None
+        raw_definition = entry.get('definition')
+        if isinstance(raw_definition, str):
+            definition_text = raw_definition
+        elif raw_definition is not None:
+            errors.append(f'Server "{name}" definition must be text.')
+            continue
+
+        definition_cid = _normalise_cid(entry.get('definition_cid'))
+
+        if definition_text is None and definition_cid:
+            cid_bytes = _load_cid_bytes(definition_cid, cid_map)
+            if cid_bytes is None:
+                errors.append(
+                    f'Server "{name}" definition with CID "{definition_cid}" was not included in the import.'
+                )
+                continue
+            try:
+                definition_text = cid_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                errors.append(
+                    f'Server "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
+                )
+                continue
+
+        if definition_text is None:
+            errors.append(
+                f'Server "{name}" entry must include either a definition or a definition_cid.'
+            )
+            continue
+
+        definition_cid = save_server_definition_as_cid(definition_text, user_id)
         existing = get_server_by_name(user_id, name)
         if existing:
-            existing.definition = definition
+            existing.definition = definition_text
             existing.definition_cid = definition_cid
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             server = Server(
                 name=name,
-                definition=definition,
+                definition=definition_text,
                 user_id=user_id,
                 definition_cid=definition_cid,
             )
@@ -427,9 +557,19 @@ def export_data():
     form = ExportForm()
     if form.validate_on_submit():
         payload: dict[str, Any] = {
-            'version': 2,
+            'version': 3,
             'generated_at': datetime.now(timezone.utc).isoformat(),
         }
+
+        cid_map_entries: dict[str, dict[str, str]] = {}
+
+        def _record_cid_value(cid_value: str, content: bytes) -> None:
+            if not form.include_cid_map.data:
+                return
+            normalised = _normalise_cid(cid_value)
+            if not normalised or normalised in cid_map_entries:
+                return
+            cid_map_entries[normalised] = _serialise_cid_value(content)
 
         if form.include_aliases.data:
             payload['aliases'] = [
@@ -444,13 +584,23 @@ def export_data():
             ]
 
         if form.include_servers.data:
-            payload['servers'] = [
-                {
-                    'name': server.name,
-                    'definition': server.definition,
-                }
-                for server in get_user_servers(current_user.id)
-            ]
+            servers_payload: list[dict[str, str]] = []
+            for server in get_user_servers(current_user.id):
+                definition_text = server.definition or ''
+                definition_bytes = definition_text.encode('utf-8')
+                definition_cid = server.definition_cid or save_server_definition_as_cid(
+                    definition_text,
+                    current_user.id,
+                )
+                servers_payload.append(
+                    {
+                        'name': server.name,
+                        'definition_cid': definition_cid,
+                    }
+                )
+                _record_cid_value(definition_cid, definition_bytes)
+            if servers_payload:
+                payload['servers'] = servers_payload
 
         if form.include_variables.data:
             payload['variables'] = [
@@ -478,6 +628,9 @@ def export_data():
             history_payload = _gather_change_history(current_user.id)
             if history_payload:
                 payload['change_history'] = history_payload
+
+        if form.include_cid_map.data and cid_map_entries:
+            payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
 
         json_payload = json.dumps(payload, indent=2, sort_keys=True)
         cid_value = store_cid_from_json(json_payload, current_user.id)
@@ -526,6 +679,21 @@ def import_data():
         user_id = current_user.id
         errors: list[str] = []
         summaries: list[str] = []
+        cid_lookup: dict[str, bytes] = {}
+
+        if form.process_cid_map.data:
+            parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
+            errors.extend(cid_map_errors)
+
+            for cid_value, content_bytes in parsed_cids.items():
+                expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
+                if expected_cid and cid_value != expected_cid:
+                    errors.append(
+                        f'CID "{cid_value}" content did not match its hash and was skipped.'
+                    )
+                    continue
+                store_cid_from_bytes(content_bytes, user_id)
+                cid_lookup[cid_value] = content_bytes
 
         imported_aliases = 0
         alias_errors: list[str] = []
@@ -539,7 +707,11 @@ def import_data():
         imported_servers = 0
         server_errors: list[str] = []
         if form.include_servers.data:
-            imported_servers, server_errors = _import_servers(user_id, data.get('servers'))
+            imported_servers, server_errors = _import_servers(
+                user_id,
+                data.get('servers'),
+                cid_lookup,
+            )
             errors.extend(server_errors)
             if imported_servers:
                 label = 'servers' if imported_servers != 1 else 'server'

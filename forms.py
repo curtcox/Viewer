@@ -212,6 +212,7 @@ class ExportForm(FlaskForm):
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
     include_history = BooleanField('Change History')
+    include_cid_map = BooleanField('CID Content Map', default=True)
     secret_key = StringField(
         'Secret Encryption Key',
         validators=[Optional()],
@@ -268,6 +269,7 @@ class ImportForm(FlaskForm):
     include_variables = BooleanField('Variables')
     include_secrets = BooleanField('Secrets')
     include_history = BooleanField('Change History')
+    process_cid_map = BooleanField('Process CID Map', default=True)
     secret_key = StringField(
         'Secret Decryption Key',
         validators=[Optional()],
