@@ -8,6 +8,8 @@ from typing import Iterable, List, Tuple
 
 from flask import abort, current_app, render_template, send_file
 
+from syntax_highlighting import highlight_source
+
 from . import main_bp
 
 
@@ -62,7 +64,6 @@ def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
     all_files = _get_all_project_files(root_path)
     return tracked | all_files
 
-
 def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     """Create breadcrumbs for the requested path."""
     breadcrumbs: List[Tuple[str, str]] = [("", "Source")]
@@ -110,6 +111,8 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
         directories=directories,
         files=files,
         file_content=None,
+        highlighted_content=None,
+        syntax_css=None,
         is_file=False,
         path_prefix=f"{path}/" if path else "",
     )
@@ -135,6 +138,11 @@ def _render_file(path: str, root_path: Path):
 
     breadcrumbs = _build_breadcrumbs(path)
 
+    highlighted_content, syntax_css = highlight_source(
+        file_content,
+        filename=path,
+    )
+
     return render_template(
         "source_browser.html",
         breadcrumbs=breadcrumbs,
@@ -142,6 +150,8 @@ def _render_file(path: str, root_path: Path):
         directories=[],
         files=[],
         file_content=file_content,
+        highlighted_content=highlighted_content,
+        syntax_css=syntax_css,
         is_file=True,
         path_prefix=f"{path}/" if path else "",
     )

@@ -3,6 +3,9 @@
 {% block title %}Server: {{ server.name }}{% endblock %}
 
 {% block content %}
+{% if syntax_css %}
+<style>{{ syntax_css | safe }}</style>
+{% endif %}
 <div class="container">
     <div class="row">
         <div class="col-12">
@@ -34,7 +37,13 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <pre id="server-definition" class="border rounded p-3 bg-light" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ server.definition }}</pre>
+                    {% if highlighted_definition %}
+                        <div class="codehilite border rounded" style="max-height: 500px; overflow: auto;">
+                            <pre id="server-definition" class="mb-0 px-3 py-2" style="overflow:auto;">{{ highlighted_definition | safe }}</pre>
+                        </div>
+                    {% else %}
+                        <pre id="server-definition" class="border rounded p-3 bg-light" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ server.definition | e }}</pre>
+                    {% endif %}
                 </div>
                 <div class="card-footer text-muted">
                     <div class="row">
@@ -127,7 +136,13 @@
                                     </div>
                                     {% endif %}
                                     <div class="collapse" id="definition-{{ loop.index0 }}">
-                                        <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition }}</pre>
+                                        {% if entry.highlighted_definition %}
+                                            <div class="codehilite border rounded historical-definition" style="max-height: 300px; overflow: auto;">
+                                                <pre class="mb-0 px-3 py-2" style="overflow:auto;">{{ entry.highlighted_definition | safe }}</pre>
+                                            </div>
+                                        {% else %}
+                                            <pre class="border rounded p-3 bg-light historical-definition" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto;">{{ entry.definition | e }}</pre>
+                                        {% endif %}
                                     </div>
                                     <button class="btn btn-link btn-sm p-0" type="button" data-bs-toggle="collapse" data-bs-target="#definition-{{ loop.index0 }}" aria-expanded="false">
                                         <i class="fas fa-chevron-down me-1"></i>Show/Hide Definition
