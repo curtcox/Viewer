@@ -16,6 +16,7 @@ from db_access import delete_entity, get_server_by_name, get_user_servers
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
 from server_execution import analyze_server_definition, describe_main_function_parameters
+from syntax_highlighting import highlight_source
 from server_templates import get_server_templates
 from interaction_log import load_interaction_history
 
@@ -45,6 +46,32 @@ def _build_server_test_config(server_name: Optional[str], definition: Optional[s
         'mode': 'query',
         'action': action_path,
     }
+
+
+def _highlight_definition_content(definition: Optional[str], history, server_name: str):
+    """Return highlighted content for the current definition and history entries."""
+
+    highlighted_definition = None
+    syntax_css = None
+
+    if definition:
+        highlighted_definition, syntax_css = highlight_source(
+            definition,
+            filename=f"{server_name}.py",
+            fallback_lexer='python',
+        )
+
+    for entry in history or []:
+        highlighted, css = highlight_source(
+            entry.get('definition'),
+            filename=f"{server_name}.py",
+            fallback_lexer='python',
+        )
+        entry['highlighted_definition'] = highlighted
+        if not syntax_css and css:
+            syntax_css = css
+
+    return highlighted_definition, syntax_css
 
 
 @main_bp.route('/servers/validate-definition', methods=['POST'])
@@ -206,6 +233,12 @@ def view_server(server_name):
     invocations = get_server_invocation_history(current_user.id, server_name)
     test_config = _build_server_test_config(server.name, server.definition)
 
+    highlighted_definition, syntax_css = _highlight_definition_content(
+        server.definition,
+        history,
+        server.name,
+    )
+
     test_interactions = []
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
@@ -222,6 +255,8 @@ def view_server(server_name):
         server_invocation_count=len(invocations),
         server_test_config=test_config,
         server_test_interactions=test_interactions,
+        highlighted_definition=highlighted_definition,
+        syntax_css=syntax_css,
     )
 
 
@@ -239,6 +274,12 @@ def edit_server(server_name):
     invocations = get_server_invocation_history(current_user.id, server_name)
     definition_text = form.definition.data if form.definition.data is not None else server.definition
     test_config = _build_server_test_config(server.name, definition_text)
+
+    _, syntax_css = _highlight_definition_content(
+        server.definition,
+        history,
+        server.name,
+    )
 
     change_message = (request.form.get('change_message') or '').strip()
     definition_text_current = form.definition.data or server.definition or ''
@@ -274,6 +315,7 @@ def edit_server(server_name):
             ai_entity_name=server.name,
             ai_entity_name_field=form.name.id,
             server_test_interactions=test_interactions,
+            syntax_css=syntax_css,
         )
 
     return render_template(
@@ -289,6 +331,7 @@ def edit_server(server_name):
         ai_entity_name=server.name,
         ai_entity_name_field=form.name.id,
         server_test_interactions=test_interactions,
+        syntax_css=syntax_css,
     )
 
 

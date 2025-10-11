@@ -7,11 +7,8 @@ from pathlib import Path
 from typing import Iterable, List, Tuple
 
 from flask import abort, current_app, render_template, send_file
-from pygments import highlight
-from pygments.formatters import HtmlFormatter
-from pygments.lexers import get_lexer_for_filename
-from pygments.lexers.special import TextLexer
-from pygments.util import ClassNotFound
+
+from syntax_highlighting import highlight_source
 
 from . import main_bp
 
@@ -66,20 +63,6 @@ def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
     tracked = _get_tracked_paths(root_path)
     all_files = _get_all_project_files(root_path)
     return tracked | all_files
-
-
-def _highlight_source(path: str, content: str) -> tuple[str | None, str | None]:
-    """Return highlighted HTML and CSS for the provided source content."""
-    try:
-        lexer = get_lexer_for_filename(path, content)
-    except ClassNotFound:
-        lexer = TextLexer()
-
-    formatter = HtmlFormatter(style="default", nowrap=True)
-    highlighted = highlight(content, lexer, formatter)
-    css = formatter.get_style_defs(".codehilite")
-    return highlighted, css
-
 
 def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     """Create breadcrumbs for the requested path."""
@@ -155,7 +138,10 @@ def _render_file(path: str, root_path: Path):
 
     breadcrumbs = _build_breadcrumbs(path)
 
-    highlighted_content, syntax_css = _highlight_source(path, file_content)
+    highlighted_content, syntax_css = highlight_source(
+        file_content,
+        filename=path,
+    )
 
     return render_template(
         "source_browser.html",
