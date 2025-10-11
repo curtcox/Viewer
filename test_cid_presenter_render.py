@@ -14,11 +14,11 @@ def test_render_cid_link_includes_expected_elements():
     rendered = str(render_cid_link(cid))
 
     assert '<span class="cid-display dropdown">' in rendered
-    assert f'href="/{cid}"' in rendered
+    assert f'href="/{cid}.txt"' in rendered
     assert f'title="{cid}"' in rendered
     assert f">#{cid[:9]}...<" in rendered
     assert 'class="dropdown-item cid-copy-action"' in rendered
-    assert f'data-copy-path="/{cid}"' in rendered
+    assert f'data-copy-path="/{cid}.txt"' in rendered
     assert f'href="/{cid}.txt"' in rendered
     assert f'href="/{cid}.md"' in rendered
     assert f'href="/{cid}.html"' in rendered
@@ -37,5 +37,5 @@ def test_render_cid_link_strips_leading_slash():
     cid = "/bafybeigdyr"
     rendered = str(render_cid_link(cid))
 
-    assert 'href="/bafybeigdyr"' in rendered
+    assert 'href="/bafybeigdyr.txt"' in rendered
     assert '>#bafybeigd...<' in rendered

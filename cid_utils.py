@@ -658,6 +658,7 @@ def serve_cid_content(cid_content, path):
     filename_part = path.rsplit('/', 1)[-1]
     has_extension = '.' in filename_part
     explicit_markdown_request = filename_part.lower().endswith('.md.html')
+    is_text_extension_request = filename_part.lower().endswith('.txt')
 
     response_body = cid_content.file_data
     if explicit_markdown_request:
@@ -669,6 +670,23 @@ def serve_cid_content(cid_content, path):
         response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
         if rendered:
             content_type = 'text/html'
+        elif not has_extension:
+            text = _decode_text_safely(response_body)
+            if text is not None:
+                response_body = text.encode('utf-8')
+                content_type = 'text/plain; charset=utf-8'
+    elif is_text_extension_request:
+        text = _decode_text_safely(response_body)
+        if text is not None:
+            response_body = text.encode('utf-8')
+            content_type = 'text/plain; charset=utf-8'
+        else:
+            content_type = 'application/octet-stream'
+    elif content_type == 'text/plain':
+        text = _decode_text_safely(response_body)
+        if text is not None:
+            response_body = text.encode('utf-8')
+            content_type = 'text/plain; charset=utf-8'
 
     etag = f'"{cid.split(".")[0]}"'
     if request.headers.get('If-None-Match') == etag:

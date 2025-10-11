@@ -1400,7 +1400,7 @@ class TestErrorHandlers(BaseTestCase):
         response = self.client.get('/test-cid-path')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, test_data)
-        self.assertEqual(response.content_type, 'application/octet-stream')
+        self.assertEqual(response.content_type, 'text/plain; charset=utf-8')
 
     def test_404_handler_with_etag_caching(self):
         """Test 404 handler ETag caching."""
