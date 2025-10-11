@@ -1,0 +1,61 @@
+# HTTPS Request Builder
+
+Compose and submit HTTPS requests routed through a proxy server that you provision at a `/{servername}` path.
+
+```formdown
+@form[id="https-request" action="/proxy/request"]
+
+## Target
+
+@proxy_route(Server proxy path): [text placeholder="/example-service" help="Specify the /{servername} route configured by the proxy template."]
+@resource_path(Resource path): [text placeholder="/api/v1/resource" help="Path appended to the proxy server route. Leave empty to call the root."]
+@http_method(HTTP method): [select options="GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS"]
+@http_version(HTTP version): [select options="HTTP/1.1,HTTP/2" value="HTTP/2" help="HTTPS requests default to HTTP/2 but can downgrade if necessary."]
+
+## Query Parameters
+
+@query_mode(Query input style): [radio options="Key/Value pairs,Raw query string" value="Key/Value pairs"]
+@query_pairs(Query parameters as key=value pairs): [textarea rows=4 placeholder="limit=25\nsort=created_at" help="Enter one key=value pair per line when using the Key/Value mode."]
+@raw_query(Raw query string): [text placeholder="limit=25&sort=created_at" help="Used when Query input style is Raw query string."]
+
+## Headers
+
+@header_style(Header entry mode): [radio options="List headers,Import curl-style" value="List headers"]
+@headers(HTTP headers): [textarea rows=6 placeholder="Accept: application/json\nX-Custom-Header: value" help="Enter one header per line in Name: Value format."]
+@curl_headers(curl header block): [textarea rows=6 placeholder="-H 'Accept: application/json'\n-H 'X-Trace: 1234'" help="Paste header flags copied from curl commands when using Import mode."]
+@content_type(Content-Type header): [select options="application/json,application/xml,text/plain,application/x-www-form-urlencoded,multipart/form-data" help="Select a Content-Type to add when the request includes a body."]
+
+## Authentication
+
+@auth_type(Authentication type): [select options="None,Basic Auth,Bearer Token,API Key header,Mutual TLS" value="None"]
+@username(Username): [text placeholder="api-user" help="Used for Basic Auth."]
+@password(Password or API secret): [password help="Used for Basic Auth or API key header."]
+@bearer_token(Bearer token): [textarea rows=3 placeholder="eyJhbGciOiJIUzI1NiIs..." help="Paste OAuth or JWT tokens."]
+@api_key_header(API key header name): [text placeholder="X-API-Key" help="Specify the header name when using API Key header auth."]
+@api_key_value(API key value): [text placeholder="abcd1234" help="Value inserted into the API key header."]
+@client_cert(Client certificate (PEM)): [textarea rows=6 placeholder="-----BEGIN CERTIFICATE-----" help="Provide when using mutual TLS."]
+@client_key(Client private key (PEM)): [textarea rows=6 placeholder="-----BEGIN PRIVATE KEY-----" help="Provide when using mutual TLS."]
+
+## Body
+
+@body_mode(Body format): [select options="None,Raw text,JSON object,Form URL-encoded,Multipart form-data" value="None"]
+@raw_body(Raw body content): [textarea rows=10 placeholder="{\n  \"name\": \"demo\"\n}" help="Paste raw payloads for text-based bodies."]
+@form_fields(Form fields key=value): [textarea rows=6 placeholder="name=demo\nactive=true" help="One field per line for form submissions."]
+@multipart_notes(Multipart form notes): [textarea rows=4 placeholder="file=@/path/to/file.txt" help="Describe files or form parts to attach when using multipart."]
+
+## Request Options
+
+@follow_redirects(Follow redirects automatically): [checkbox]
+@verify_tls(Verify HTTPS certificates): [checkbox checked help="Ensure certificate validation remains enabled."]
+@timeout_seconds(Timeout (seconds)): [number min=1 max=300 value=30]
+@max_redirects(Max redirects): [number min=0 max=10 value=3]
+@verbose(Enable verbose logging): [checkbox]
+
+## Execution
+
+@notes(Request notes): [textarea rows=4 placeholder="Document the purpose of this call or expected response."]
+@submit_request: [submit label="Send HTTPS request"]
+@reset_form: [reset label="Reset form"]
+```
+
+Only HTTPS requests are supported. The proxy server must expose the desired upstream at a `/{servername}` route, which you can configure using the proxy server template.
