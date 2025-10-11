@@ -206,7 +206,7 @@ class TestCIDFunctionality(unittest.TestCase):
     
     @patch('cid_utils.make_response')
     def test_serve_cid_content_without_extension(self, mock_make_response):
-        """Test serving CID content without extension (should use application/octet-stream)"""
+        """Test serving CID content without extension defaults to UTF-8 text when possible."""
         with self.app.app_context():
             test_user = self._create_test_user()
             with self.app.test_request_context():
@@ -230,12 +230,39 @@ class TestCIDFunctionality(unittest.TestCase):
                 # Test serving without extension
                 path_without_extension = f"/{cid}"
                 serve_cid_content(cid_record, path_without_extension)
-                
+
                 # Verify response was created with correct content
                 mock_make_response.assert_called_once_with(file_content)
-                
-                # Verify default MIME type was set
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
+
+                # Verify default MIME type was set for decoded text
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_with_txt_extension(self, mock_make_response):
+        """CID content requested with .txt extension should render as UTF-8 text when possible."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                file_content = "Line one\nLine two".encode('utf-8')
+                cid = generate_cid(file_content)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                path_with_txt = f"/{cid}.txt"
+                serve_cid_content(cid_record, path_with_txt)
+
+                mock_make_response.assert_called_once_with(file_content)
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
 
     @patch('cid_utils.make_response')
     def test_serve_cid_content_without_extension_plain_python_not_rendered(self, mock_make_response):
@@ -264,7 +291,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 serve_cid_content(cid_record, f"/{cid}")
 
                 mock_make_response.assert_called_once_with(file_content)
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'application/octet-stream')
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
 
     @patch('cid_utils.make_response')
     def test_serve_cid_content_without_extension_renders_markdown(self, mock_make_response):

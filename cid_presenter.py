@@ -46,7 +46,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
     if not normalized:
         return Markup("")
 
-    base_path = cid_path(normalized) or ""
+    raw_path = cid_path(normalized) or ""
     text_path = cid_path(normalized, "txt") or ""
     markdown_path = cid_path(normalized, "md") or ""
     html_path = cid_path(normalized, "html") or ""
@@ -55,7 +55,8 @@ def render_cid_link(value: Optional[str]) -> Markup:
     jpg_path = cid_path(normalized, "jpg") or ""
     edit_path = f"/edit/{normalized}"
     meta_path = f"/meta/{normalized}"
-    copy_path = base_path or text_path
+    primary_path = text_path or raw_path
+    copy_path = primary_path
 
     label = _cid_label(normalized)
 
@@ -93,7 +94,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
     </ul>
 </span>
 """.format(
-            base_href=escape(base_path),
+            base_href=escape(primary_path or ""),
             title=escape(normalized),
             label=escape(label),
             copy_path=escape(copy_path or ""),
