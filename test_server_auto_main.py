@@ -116,6 +116,46 @@ def test_auto_main_missing_required_parameter_returns_detailed_error():
     assert payload["available_keys"]["query_string"] == []
     assert payload["available_keys"]["request_body"] == []
     assert isinstance(payload["available_keys"]["headers"], list)
+    assert payload["available_keys"]["context_variables"] == []
+    assert payload["available_keys"]["context_secrets"] == []
+
+
+def test_auto_main_falls_back_to_context_variables(monkeypatch):
+    definition = """
+ def main(name):
+     return {"output": name, "content_type": "text/plain"}
+ """
+
+    monkeypatch.setattr(
+        server_execution,
+        "_load_user_context",
+        lambda: {"variables": {"name": "Variable Name"}, "secrets": {}, "servers": {}},
+    )
+
+    with app.test_request_context("/variable"):
+        result = server_execution.execute_server_code_from_definition(definition, "variable")
+
+    assert result["output"] == "Variable Name"
+    assert result["content_type"] == "text/plain"
+
+
+def test_auto_main_uses_secrets_when_variables_missing(monkeypatch):
+    definition = """
+ def main(token):
+     return {"output": token, "content_type": "text/plain"}
+ """
+
+    monkeypatch.setattr(
+        server_execution,
+        "_load_user_context",
+        lambda: {"variables": {}, "secrets": {"token": "secret-token"}, "servers": {}},
+    )
+
+    with app.test_request_context("/secret"):
+        result = server_execution.execute_server_code_from_definition(definition, "secret")
+
+    assert result["output"] == "secret-token"
+    assert result["content_type"] == "text/plain"
 
 
 def test_auto_main_honors_optional_defaults():

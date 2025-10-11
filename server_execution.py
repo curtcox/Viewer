@@ -193,10 +193,25 @@ def _resolve_function_parameters(
     query_values = request.args.to_dict(flat=True) if request.args else {}
     body_values = _extract_request_body_values()
     header_values = {k.lower(): v for k, v in request.headers.items()}
+
+    context = base_args.get("context") if isinstance(base_args, dict) else None
+    if isinstance(context, dict):
+        context_variables = context.get("variables")
+        if not isinstance(context_variables, dict):
+            context_variables = {}
+        context_secrets = context.get("secrets")
+        if not isinstance(context_secrets, dict):
+            context_secrets = {}
+    else:
+        context_variables = {}
+        context_secrets = {}
+
     available = {
         "query_string": sorted(query_values.keys()),
         "request_body": sorted(body_values.keys()),
         "headers": sorted({k for k in request.headers.keys()}),
+        "context_variables": sorted(context_variables.keys()),
+        "context_secrets": sorted(context_secrets.keys()),
     }
 
     def _lookup_header(name: str) -> Optional[Any]:
@@ -226,6 +241,14 @@ def _resolve_function_parameters(
             resolved[name] = base_args[name]
             continue
 
+        if name in context_variables:
+            resolved[name] = context_variables[name]
+            continue
+
+        if name in context_secrets:
+            resolved[name] = context_secrets[name]
+            continue
+
         if name in required:
             missing.append(name)
 
@@ -244,7 +267,7 @@ def _build_missing_parameter_response(
             {
                 "name": name,
                 "detail": (
-                    "Provide the parameter via the query string, request body, or HTTP headers."
+                    "Provide the parameter via the query string, request body, HTTP headers, saved variables, or saved secrets."
                 ),
             }
             for name in sorted(error.missing)
