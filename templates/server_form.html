@@ -57,6 +57,7 @@
                         <div class="mb-3">
                             {{ form.definition.label(class="form-label") }}
                             {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
+                            <input type="hidden" id="server-definition-validate-url" value="{{ url_for('main.validate_server_definition') }}">
                             {% if form.definition.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.definition.errors %}
@@ -68,6 +69,7 @@
                                     Enter the server configuration or definition. This can be any text content you want to associate with this server.
                                 </div>
                             {% endif %}
+                            <div id="server-definition-errors" class="alert alert-danger mt-3 d-none" role="alert"></div>
                         </div>
                         {{ ai_text_controls(
                             form.definition.id,
@@ -283,6 +285,7 @@ function loadHistoricalDefinition(index) {
 
 {% block scripts %}
     {{ super() }}
+    <script src="{{ url_for('static', filename='js/server_form.js') }}"></script>
     {% if server_templates is defined and server_templates %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {

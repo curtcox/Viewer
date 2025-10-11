@@ -1,7 +1,9 @@
 import builtins
 import hashlib
 import textwrap
-from typing import Dict
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
+
+import typing
 
 from cid_utils import store_cid_from_bytes
 from flask_login import current_user
@@ -47,6 +49,22 @@ def _save_content(value):
     content = _coerce_to_bytes(value)
     return store_cid_from_bytes(content, user_id)
 
+_SAFE_TYPING_GLOBALS = {
+    "typing": typing,
+    "Any": Any,
+    "Callable": typing.Callable,
+    "Dict": Dict,
+    "Iterable": Iterable,
+    "List": List,
+    "Mapping": Mapping,
+    "Optional": Optional,
+    "Sequence": Sequence,
+    "Set": Set,
+    "Tuple": Tuple,
+    "Union": Union,
+}
+
+
 def run_text_function(
     body_text: str,
     arg_map: Dict[str, object],
@@ -78,6 +96,7 @@ def run_text_function(
 
     # Global namespace with all builtins available plus helper utilities
     ns = {"__builtins__": builtins, "save": _save_content}
+    ns.update(_SAFE_TYPING_GLOBALS)
 
     # Define and run
     exec(src, ns, ns)  # defines ns[fn_name]

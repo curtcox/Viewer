@@ -165,6 +165,52 @@ def describe_main_function_parameters(code: str) -> Optional[Dict[str, Any]]:
     return describe_function_parameters(code, "main")
 
 
+def analyze_server_definition(code: str) -> Dict[str, Any]:
+    """Inspect a server definition and summarise auto main compatibility."""
+
+    result: Dict[str, Any] = {
+        "is_valid": True,
+        "errors": [],
+        "auto_main": False,
+        "auto_main_errors": [],
+        "parameters": [],
+        "has_main": False,
+        "mode": "query",
+    }
+
+    try:
+        ast.parse(code or "", mode="exec")
+    except SyntaxError as exc:
+        result["is_valid"] = False
+        message = exc.msg or "Invalid syntax"
+        error_info = {
+            "message": message,
+            "line": exc.lineno,
+            "column": exc.offset,
+        }
+        if isinstance(exc.text, str):
+            error_info["text"] = exc.text.strip()
+        result["errors"].append(error_info)
+        return result
+
+    details = _analyze_server_definition_for_function(code or "", "main")
+    if details is None:
+        return result
+
+    result["has_main"] = True
+    if details.unsupported_reasons:
+        result["auto_main_errors"] = list(details.unsupported_reasons)
+        return result
+
+    result["auto_main"] = True
+    result["parameters"] = [
+        {"name": name, "required": name in set(details.required_parameters)}
+        for name in details.parameter_order
+    ]
+    result["mode"] = "main"
+    return result
+
+
 def _extract_request_body_values() -> Dict[str, Any]:
     body: Dict[str, Any] = {}
 

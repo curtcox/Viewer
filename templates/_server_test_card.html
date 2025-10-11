@@ -15,62 +15,64 @@
               data-mode="{{ server_test_config.mode }}"
               data-action="{{ server_test_config.action }}"
               onsubmit="submitServerTestForm(event)">
-            {% if server_test_config.mode == 'main' %}
-            <div class="row g-3">
-                {% for parameter in server_test_config.parameters|default([]) %}
-                <div class="col-md-6">
-                    <label for="server-test-param-{{ loop.index0 }}" class="form-label">
-                        {{ parameter.name }}
-                        {% if parameter.required %}
-                        <span class="badge bg-danger ms-2">Required</span>
-                        {% else %}
-                        <span class="badge bg-secondary ms-2">Optional</span>
-                        {% endif %}
-                    </label>
-                    <input type="text"
-                           class="form-control"
-                           id="server-test-param-{{ loop.index0 }}"
-                           name="{{ parameter.name }}"
-                           placeholder="Value for {{ parameter.name }}">
+            <div id="server-test-result" class="alert mt-3 d-none" role="alert"></div>
+
+            <div id="server-test-main-section" class="{% if server_test_config.mode != 'main' %}d-none{% endif %}">
+                <div class="row g-3" id="server-test-parameters">
+                    {% for parameter in server_test_config.parameters|default([]) %}
+                    <div class="col-md-6">
+                        <label for="server-test-param-{{ loop.index0 }}" class="form-label">
+                            {{ parameter.name }}
+                            {% if parameter.required %}
+                            <span class="badge bg-danger ms-2">Required</span>
+                            {% else %}
+                            <span class="badge bg-secondary ms-2">Optional</span>
+                            {% endif %}
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="server-test-param-{{ loop.index0 }}"
+                               name="{{ parameter.name }}"
+                               placeholder="Value for {{ parameter.name }}">
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
+                <p id="server-test-no-parameters" class="text-muted mt-3 {% if server_test_config.parameters|length != 0 %}d-none{% endif %}">
+                    This <code>main()</code> function does not accept parameters. Run the test to execute it directly.
+                </p>
             </div>
-            {% if server_test_config.parameters|length == 0 %}
-            <p class="text-muted mt-3">
-                This <code>main()</code> function does not accept parameters. Run the test to execute it directly.
-            </p>
-            {% endif %}
-            {% else %}
-            <div class="mb-3">
-                <label for="server-test-query" class="form-label">Query Parameters</label>
-                <textarea class="form-control"
-                          id="server-test-query"
-                          rows="4"
-                          placeholder="key=value"></textarea>
-                <div class="form-text">
-                    Enter each parameter on a new line in <code>key=value</code> format. Empty lines are ignored.
+
+            <div id="server-test-query-section" class="{% if server_test_config.mode == 'main' %}d-none{% endif %}">
+                <div class="mb-3">
+                    <label for="server-test-query" class="form-label">Query Parameters</label>
+                    <textarea class="form-control"
+                              id="server-test-query"
+                              rows="4"
+                              placeholder="key=value"></textarea>
+                    <div class="form-text">
+                        Enter each parameter on a new line in <code>key=value</code> format. Empty lines are ignored.
+                    </div>
                 </div>
+                {{ ai_text_controls(
+                    'server-test-query',
+                    'query parameters',
+                    request_label='Ask AI to edit the query parameters',
+                    helper_text='Describe how the AI should adjust the query parameters before running the test.',
+                    context={'form': 'server_test_card'},
+                    entity_type='server-test',
+                    entity_name=server_test_config.action|default(''),
+                    interactions=server_test_interactions|default([]),
+                    history_label='Recent test runs'
+                ) }}
             </div>
-            {{ ai_text_controls(
-                'server-test-query',
-                'query parameters',
-                request_label='Ask AI to edit the query parameters',
-                helper_text='Describe how the AI should adjust the query parameters before running the test.',
-                context={'form': 'server_test_card'},
-                entity_type='server-test',
-                entity_name=server_test_config.action|default(''),
-                interactions=server_test_interactions|default([]),
-                history_label='Recent test runs'
-            ) }}
-            {% endif %}
 
             <div class="d-flex gap-2 mt-3 flex-wrap">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-play me-1"></i>Run Test
                 </button>
-                {% if server_test_config.mode != 'main' %}
-                {{ ai_action_button('server-test-query', button_label='AI', extra_classes='btn-outline-primary') }}
-                {% endif %}
+                <div id="server-test-ai-wrapper" class="{% if server_test_config.mode == 'main' %}d-none{% endif %}">
+                    {{ ai_action_button('server-test-query', button_label='AI', extra_classes='btn-outline-primary') }}
+                </div>
                 <button type="button" class="btn btn-outline-secondary" onclick="resetServerTestForm(this.form)">
                     <i class="fas fa-undo me-1"></i>Clear Inputs
                 </button>
@@ -80,8 +82,141 @@
 </div>
 
 <script>
+function _escapeServerTestHtml(value) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function _extractServerTestFailure(body, contentType) {
+    if (typeof body !== 'string' || body.length === 0) {
+        return {};
+    }
+
+    const result = { sourceLink: undefined };
+
+    if (contentType && contentType.includes('html')) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(body, 'text/html');
+            const header = doc.querySelector('.card-header.bg-danger');
+            const message = header ? header.textContent.trim().replace(/\s+/g, ' ') : null;
+
+            const codeBlocks = doc.querySelectorAll('pre code');
+            for (const block of codeBlocks) {
+                const lines = block.textContent.split('\n');
+                const highlightIndex = lines.findIndex((line) => line.trim().startsWith('>>>'));
+                if (highlightIndex !== -1) {
+                    const start = Math.max(0, highlightIndex - 2);
+                    const end = Math.min(lines.length, highlightIndex + 3);
+                    const snippet = lines.slice(start, end).join('\n').trimEnd();
+                    result.message = message;
+                    result.snippet = snippet;
+                    break;
+                }
+            }
+
+            if (!result.snippet && message) {
+                const fallback = doc.body ? doc.body.textContent : '';
+                const match = fallback ? fallback.match(/>>>[^\n]*/) : null;
+                if (match) {
+                    result.message = message;
+                    result.snippet = match[0];
+                } else {
+                    result.message = message;
+                }
+            }
+
+            const containsServerFrame = Array.from(doc.querySelectorAll('ol code')).some((codeEl) => {
+                const text = codeEl.textContent || '';
+                return text.includes('<string>');
+            });
+
+            if (!containsServerFrame) {
+                const linkEl = doc.querySelector('ol a[href^="/source/"]');
+                if (linkEl) {
+                    const href = linkEl.getAttribute('href');
+                    if (typeof href === 'string' && href.startsWith('/source/')) {
+                        const label = linkEl.textContent ? linkEl.textContent.trim().replace(/\s+/g, ' ') : '';
+                        result.sourceLink = {
+                            href,
+                            label: label || href,
+                        };
+                    }
+                }
+            }
+
+            return result;
+        } catch (error) {
+            // Fall back to plain-text handling below.
+        }
+    }
+
+    const snippetMatch = body.match(/>>>[^\n]*/);
+    const messageLine = body.split('\n').find((line) => line.trim().length > 0);
+    return {
+        message: messageLine ? messageLine.trim() : undefined,
+        snippet: snippetMatch ? snippetMatch[0] : undefined,
+        sourceLink: undefined,
+    };
+}
+
+function _prepareServerTestResult(container) {
+    if (!container) {
+        return;
+    }
+    container.classList.remove('d-none');
+    container.classList.remove('alert-danger', 'alert-success', 'alert-info', 'alert-warning');
+    container.classList.add('alert');
+    container.classList.add('mt-3');
+}
+
+function _renderServerTestFailure(container, body, contentType) {
+    if (!container) {
+        return;
+    }
+    _prepareServerTestResult(container);
+    container.classList.add('alert-danger');
+
+    const details = _extractServerTestFailure(body, contentType || '');
+    let html = '<strong>Server test failed.</strong>';
+
+    if (details.message) {
+        html += `<div class="mt-2">${_escapeServerTestHtml(details.message)}</div>`;
+    }
+
+    if (details.snippet) {
+        html += `<pre class="mt-3 mb-0"><code>${_escapeServerTestHtml(details.snippet)}</code></pre>`;
+    }
+
+    if (details.sourceLink && details.sourceLink.href) {
+        const linkLabel = details.sourceLink.label
+            ? _escapeServerTestHtml(details.sourceLink.label)
+            : 'View related source';
+        html += `<div class="mt-3"><a class="link-light" href="${details.sourceLink.href}" target="_blank" rel="noopener">${linkLabel}</a></div>`;
+    }
+
+    container.innerHTML = html;
+}
+
+function _renderServerTestNetworkError(container, error) {
+    if (!container) {
+        return;
+    }
+    _prepareServerTestResult(container);
+    container.classList.add('alert-warning');
+    const message = error && error.message ? error.message : 'Network request failed';
+    container.innerHTML = `<strong>Unable to run server test.</strong><div class="mt-2">${_escapeServerTestHtml(message)}</div>`;
+}
+
 if (!window.submitServerTestForm) {
-    window.submitServerTestForm = function(event) {
+    window.submitServerTestForm = async function(event) {
         event.preventDefault();
 
         const form = event.target;
@@ -117,7 +252,83 @@ if (!window.submitServerTestForm) {
 
         const query = params.toString();
         const url = query ? `${action}?${query}` : action;
-        window.open(url, '_blank', 'noopener');
+
+        if (typeof window.clearServerTestResult === 'function') {
+            window.clearServerTestResult();
+        }
+
+        const resultContainer = document.getElementById('server-test-result');
+
+        let popup = null;
+        try {
+            popup = window.open('', '_blank');
+        } catch (error) {
+            popup = null;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+
+                if (popup) {
+                    const objectUrl = URL.createObjectURL(blob);
+                    popup.location.replace(objectUrl);
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+                }
+
+                if (resultContainer) {
+                    _prepareServerTestResult(resultContainer);
+                    resultContainer.classList.add('alert-success');
+                    let html = '<strong>Server test ran successfully.</strong>';
+
+                    if (popup) {
+                        html += ' The result opened in a new tab.';
+                    } else {
+                        const objectUrl = URL.createObjectURL(blob);
+                        const linkId = `server-test-result-link-${Date.now()}`;
+                        html += ` Your browser blocked pop-ups. <a id="${linkId}" href="${objectUrl}" target="_blank" rel="noopener">Open the result</a>.`;
+                        setTimeout(() => URL.revokeObjectURL(objectUrl), 120000);
+                    }
+
+                    resultContainer.innerHTML = html;
+
+                    if (!popup) {
+                        const link = resultContainer.querySelector('a[target="_blank"]');
+                        if (link) {
+                            link.addEventListener('click', () => {
+                                const href = link.getAttribute('href');
+                                if (href) {
+                                    setTimeout(() => URL.revokeObjectURL(href), 60000);
+                                }
+                            }, { once: true });
+                        }
+                    }
+                }
+
+                if (!popup) {
+                    return;
+                }
+            } else {
+                if (popup) {
+                    popup.close();
+                }
+                const text = await response.text();
+                _renderServerTestFailure(resultContainer, text, response.headers.get('Content-Type'));
+            }
+        } catch (error) {
+            if (popup) {
+                popup.close();
+            }
+            _renderServerTestNetworkError(resultContainer, error);
+        }
     };
 }
 
@@ -132,6 +343,9 @@ if (!window.resetServerTestForm) {
         const textarea = form.querySelector('textarea');
         if (textarea) {
             textarea.value = '';
+        }
+        if (typeof window.clearServerTestResult === 'function') {
+            window.clearServerTestResult();
         }
     };
 }

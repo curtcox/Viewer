@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 
 from auth_providers import require_login
@@ -15,7 +15,7 @@ from cid_utils import (
 from db_access import delete_entity, get_server_by_name, get_user_servers
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
-from server_execution import describe_main_function_parameters
+from server_execution import analyze_server_definition, describe_main_function_parameters
 from server_templates import get_server_templates
 from interaction_log import load_interaction_history
 
@@ -45,6 +45,27 @@ def _build_server_test_config(server_name: Optional[str], definition: Optional[s
         'mode': 'query',
         'action': action_path,
     }
+
+
+@main_bp.route('/servers/validate-definition', methods=['POST'])
+@require_login
+def validate_server_definition():
+    """Validate a server definition and report auto main compatibility."""
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        response = jsonify({'error': 'Request body must be JSON.'})
+        response.status_code = 400
+        return response
+
+    definition = payload.get('definition')
+    if not isinstance(definition, str):
+        response = jsonify({'error': 'Definition must be provided as a string.'})
+        response.status_code = 400
+        return response
+
+    analysis = analyze_server_definition(definition)
+    return jsonify(analysis)
 
 
 def get_server_definition_history(user_id, server_name):
@@ -355,4 +376,5 @@ __all__ = [
     'update_server_definitions_cid',
     'user_servers',
     'view_server',
+    'validate_server_definition',
 ]
