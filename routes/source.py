@@ -7,6 +7,11 @@ from pathlib import Path
 from typing import Iterable, List, Tuple
 
 from flask import abort, current_app, render_template, send_file
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import get_lexer_for_filename
+from pygments.lexers.special import TextLexer
+from pygments.util import ClassNotFound
 
 from . import main_bp
 
@@ -63,6 +68,19 @@ def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
     return tracked | all_files
 
 
+def _highlight_source(path: str, content: str) -> tuple[str | None, str | None]:
+    """Return highlighted HTML and CSS for the provided source content."""
+    try:
+        lexer = get_lexer_for_filename(path, content)
+    except ClassNotFound:
+        lexer = TextLexer()
+
+    formatter = HtmlFormatter(style="default", nowrap=True)
+    highlighted = highlight(content, lexer, formatter)
+    css = formatter.get_style_defs(".codehilite")
+    return highlighted, css
+
+
 def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     """Create breadcrumbs for the requested path."""
     breadcrumbs: List[Tuple[str, str]] = [("", "Source")]
@@ -110,6 +128,8 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
         directories=directories,
         files=files,
         file_content=None,
+        highlighted_content=None,
+        syntax_css=None,
         is_file=False,
         path_prefix=f"{path}/" if path else "",
     )
@@ -135,6 +155,8 @@ def _render_file(path: str, root_path: Path):
 
     breadcrumbs = _build_breadcrumbs(path)
 
+    highlighted_content, syntax_css = _highlight_source(path, file_content)
+
     return render_template(
         "source_browser.html",
         breadcrumbs=breadcrumbs,
@@ -142,6 +164,8 @@ def _render_file(path: str, root_path: Path):
         directories=[],
         files=[],
         file_content=file_content,
+        highlighted_content=highlighted_content,
+        syntax_css=syntax_css,
         is_file=True,
         path_prefix=f"{path}/" if path else "",
     )

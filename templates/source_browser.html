@@ -30,7 +30,16 @@
                 <strong>{{ current_path }}</strong>
             </div>
             <div class="card-body">
-                <pre class="mb-0"><code>{{ file_content | e }}</code></pre>
+                {% if syntax_css %}
+                    <style>{{ syntax_css | safe }}</style>
+                {% endif %}
+                {% if highlighted_content %}
+                    <div class="codehilite border rounded">
+                        <pre class="mb-0 px-3 py-2" style="overflow:auto;">{{ highlighted_content | safe }}</pre>
+                    </div>
+                {% else %}
+                    <pre class="mb-0"><code>{{ file_content | e }}</code></pre>
+                {% endif %}
             </div>
         </div>
     {% else %}
