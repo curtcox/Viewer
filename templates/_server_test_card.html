@@ -99,6 +99,8 @@ function _extractServerTestFailure(body, contentType) {
         return {};
     }
 
+    const result = { sourceLink: undefined };
+
     if (contentType && contentType.includes('html')) {
         try {
             const parser = new DOMParser();
@@ -114,17 +116,43 @@ function _extractServerTestFailure(body, contentType) {
                     const start = Math.max(0, highlightIndex - 2);
                     const end = Math.min(lines.length, highlightIndex + 3);
                     const snippet = lines.slice(start, end).join('\n').trimEnd();
-                    return { message, snippet };
+                    result.message = message;
+                    result.snippet = snippet;
+                    break;
                 }
             }
 
-            const fallback = doc.body ? doc.body.textContent : '';
-            const match = fallback ? fallback.match(/>>>[^\n]*/) : null;
-            if (match) {
-                return { message, snippet: match[0] };
+            if (!result.snippet && message) {
+                const fallback = doc.body ? doc.body.textContent : '';
+                const match = fallback ? fallback.match(/>>>[^\n]*/) : null;
+                if (match) {
+                    result.message = message;
+                    result.snippet = match[0];
+                } else {
+                    result.message = message;
+                }
             }
 
-            return { message };
+            const containsServerFrame = Array.from(doc.querySelectorAll('ol code')).some((codeEl) => {
+                const text = codeEl.textContent || '';
+                return text.includes('<string>');
+            });
+
+            if (!containsServerFrame) {
+                const linkEl = doc.querySelector('ol a[href^="/source/"]');
+                if (linkEl) {
+                    const href = linkEl.getAttribute('href');
+                    if (typeof href === 'string' && href.startsWith('/source/')) {
+                        const label = linkEl.textContent ? linkEl.textContent.trim().replace(/\s+/g, ' ') : '';
+                        result.sourceLink = {
+                            href,
+                            label: label || href,
+                        };
+                    }
+                }
+            }
+
+            return result;
         } catch (error) {
             // Fall back to plain-text handling below.
         }
@@ -135,6 +163,7 @@ function _extractServerTestFailure(body, contentType) {
     return {
         message: messageLine ? messageLine.trim() : undefined,
         snippet: snippetMatch ? snippetMatch[0] : undefined,
+        sourceLink: undefined,
     };
 }
 
@@ -164,6 +193,13 @@ function _renderServerTestFailure(container, body, contentType) {
 
     if (details.snippet) {
         html += `<pre class="mt-3 mb-0"><code>${_escapeServerTestHtml(details.snippet)}</code></pre>`;
+    }
+
+    if (details.sourceLink && details.sourceLink.href) {
+        const linkLabel = details.sourceLink.label
+            ? _escapeServerTestHtml(details.sourceLink.label)
+            : 'View related source';
+        html += `<div class="mt-3"><a class="link-light" href="${details.sourceLink.href}" target="_blank" rel="noopener">${linkLabel}</a></div>`;
     }
 
     container.innerHTML = html;

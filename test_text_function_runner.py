@@ -128,6 +128,20 @@ return result
         result2 = self.run_text_function(body, {"x": 5})
         self.assertEqual(result2, 15)  # 5 + 10
 
+    def test_typing_aliases_available_without_import(self):
+        """Common typing aliases should be preloaded for convenience."""
+
+        body = """
+def typed_echo(payload: Dict[str, Optional[int]]) -> Dict[str, Optional[int]]:
+    return payload
+
+value = typed_echo({"number": x})
+return value["number"]
+"""
+
+        result = self.run_text_function(body, {"x": 7})
+        self.assertEqual(result, 7)
+
     def test_type_error_body_text_not_string(self):
         """Test TypeError when body_text is not a string."""
         with self.assertRaises(TypeError):
