@@ -188,12 +188,15 @@ class TestFormdownIntegration:
             """
         )
 
-        assert "<formdown-ui>" in fragment
-        assert "@name: [text required]" in fragment
-        assert "@submit: [submit label=\"Send\"]" in fragment
-        assert fragment.strip().endswith("</formdown-ui>")
+        assert '<div class="formdown-document">' in fragment
+        assert '<form' in fragment and '</form>' in fragment
+        assert '<input' in fragment
+        assert 'type="text"' in fragment
+        assert 'name="name"' in fragment
+        assert 'required' in fragment
+        assert '<button' in fragment and 'Send</button>' in fragment
 
-    def test_formdown_fence_includes_ui_script_in_head(self):
+    def test_formdown_document_renders_without_client_script(self):
         html_document = _render_markdown_document(
             """
             ```formdown
@@ -202,18 +205,28 @@ class TestFormdownIntegration:
             """
         )
 
-        assert (
-            '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>'
-            in html_document
-        )
+        assert '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>' not in html_document
+        assert '<form ' in html_document
 
-    def test_plain_markdown_omits_formdown_script(self):
+    def test_plain_markdown_has_no_formdown_markup(self):
         html_document = _render_markdown_document("Regular content with no forms.")
 
-        assert (
-            '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>'
-            not in html_document
+        assert '<div class="formdown-document">' not in html_document
+
+    def test_formdown_file_fields_enable_multipart_submission(self):
+        fragment = _render_fragment(
+            """
+            ```formdown
+            @form[action="/upload" method="post"]
+            @resume: [file]
+            @submit: [submit]
+            ```
+            """
         )
+
+        assert '<form action="/upload"' in fragment
+        assert 'enctype="multipart/form-data"' in fragment
+        assert 'type="file"' in fragment
 
 
 class TestGithubStyleLinks:
