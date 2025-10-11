@@ -6,7 +6,7 @@ import html
 import re
 import shlex
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 
 _FIELD_PATTERN = re.compile(
