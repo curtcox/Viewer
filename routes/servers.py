@@ -1,6 +1,7 @@
 """Server management routes and helpers."""
 
-from typing import Optional
+import re
+from typing import Dict, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
@@ -12,7 +13,13 @@ from cid_utils import (
     get_current_server_definitions_cid,
     store_server_definitions_cid,
 )
-from db_access import delete_entity, get_server_by_name, get_user_servers
+from db_access import (
+    create_cid_record,
+    delete_entity,
+    get_cid_by_path,
+    get_server_by_name,
+    get_user_servers,
+)
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
 from server_execution import analyze_server_definition, describe_main_function_parameters
@@ -46,6 +53,102 @@ def _build_server_test_config(server_name: Optional[str], definition: Optional[s
         'mode': 'query',
         'action': action_path,
     }
+
+
+def _sanitize_formdown_identifier(value: str) -> str:
+    """Return a safe identifier for formdown form IDs."""
+
+    candidate = (value or '').strip()
+    if not candidate:
+        return 'server-test-form'
+
+    sanitized = re.sub(r'[^a-zA-Z0-9_-]+', '-', candidate)
+    sanitized = re.sub(r'-{2,}', '-', sanitized).strip('-')
+    return sanitized or 'server-test-form'
+
+
+def _escape_formdown_attribute(value: str) -> str:
+    """Escape attribute values for inclusion in formdown markup."""
+
+    if value is None:
+        return ''
+
+    text = str(value)
+    text = text.replace('\\', '\\\\').replace('"', '\\"')
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    return text.replace('\n', '\\n')
+
+
+def _render_server_test_formdown(server: Server, config: Dict[str, object], defaults: Dict[str, str]) -> str:
+    """Build the formdown document that mirrors the inline server test form."""
+
+    if not server or not config:
+        return ''
+
+    action = str(config.get('action') or f'/{server.name}')
+    mode = (config.get('mode') or 'query').lower()
+    form_id = _sanitize_formdown_identifier(f"{server.name}-test-page")
+
+    normalized_defaults: Dict[str, str] = {}
+    for key, value in (defaults or {}).items():
+        if value is None:
+            continue
+        normalized_defaults[str(key)] = str(value)
+
+    lines = [
+        f"# Test page for /{server.name}",
+        '',
+        "This page mirrors the inline test form so you can save or reuse the same inputs later.",
+        '',
+        '```formdown',
+        f"@form[id=\"{form_id}\" action=\"{_escape_formdown_attribute(action)}\" method=\"get\"]",
+        '',
+    ]
+
+    if mode == 'main':
+        parameters = config.get('parameters') or []
+        if parameters:
+            lines.extend(['## Parameters', ''])
+        for parameter in parameters:
+            if not isinstance(parameter, dict):
+                continue
+            name = parameter.get('name')
+            if not name:
+                continue
+            label = str(name)
+            placeholder = f"Value for {label}"
+            value_attr = ''
+            existing_value = normalized_defaults.get(str(name), '')
+            if existing_value != '':
+                value_attr = f' value=\"{_escape_formdown_attribute(existing_value)}\"'
+            help_text = 'Required parameter.' if parameter.get('required') else 'Optional parameter.'
+            attributes = (
+                f'text placeholder=\"{_escape_formdown_attribute(placeholder)}\"'
+                f'{value_attr} help=\"{_escape_formdown_attribute(help_text)}\"'
+            )
+            lines.append(f"@{name}({label}): [{attributes}]")
+    else:
+        lines.extend(['## Query Parameters', ''])
+        query_value = normalized_defaults.get('query', '')
+        value_attr = ''
+        if query_value != '':
+            value_attr = f' value=\"{_escape_formdown_attribute(query_value)}\"'
+        textarea_attributes = (
+            f'textarea rows=4 placeholder=\"key=value\"{value_attr} '
+            f'help=\"Enter one key=value pair per line.\"'
+        )
+        lines.append(f"@query_parameters(Query parameters): [{textarea_attributes}]")
+
+    lines.extend([
+        '',
+        '@submit_test: [submit label="Run Test"]',
+        '@reset_form: [reset label="Clear Inputs"]',
+        '```',
+        '',
+        f"Submitting this form sends a GET request to `{action}` using your server's current definition.",
+    ])
+
+    return '\n'.join(lines).strip() + '\n'
 
 
 def _highlight_definition_content(definition: Optional[str], history, server_name: str):
@@ -93,6 +196,66 @@ def validate_server_definition():
 
     analysis = analyze_server_definition(definition)
     return jsonify(analysis)
+
+
+@main_bp.route('/servers/<server_name>/upload-test-page', methods=['POST'])
+@require_login
+def upload_server_test_page(server_name):
+    """Persist a formdown page that mirrors the inline server test form."""
+
+    server = get_server_by_name(current_user.id, server_name)
+    if not server:
+        abort(404)
+
+    test_config = _build_server_test_config(server.name, server.definition)
+    if not test_config:
+        response = jsonify({'error': 'Test form is not available for this server.'})
+        response.status_code = 400
+        return response
+
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+
+    defaults: Dict[str, str] = {}
+    values = payload.get('values')
+    if isinstance(values, dict):
+        for key, value in values.items():
+            if value is None:
+                continue
+            defaults[str(key)] = str(value)
+
+    mode = (test_config.get('mode') or 'query').lower()
+    if mode == 'main':
+        allowed_names = {
+            str(parameter.get('name'))
+            for parameter in test_config.get('parameters') or []
+            if isinstance(parameter, dict) and parameter.get('name')
+        }
+        defaults = {key: value for key, value in defaults.items() if key in allowed_names}
+    else:
+        query_value = ''
+        if isinstance(values, dict) and 'query' in values and values.get('query') is not None:
+            query_value = str(values.get('query'))
+        defaults = {'query': query_value}
+
+    document = _render_server_test_formdown(server, test_config, defaults)
+    if not document:
+        response = jsonify({'error': 'Unable to generate formdown content.'})
+        response.status_code = 400
+        return response
+
+    content_bytes = document.encode('utf-8')
+    cid_value = format_cid(generate_cid(content_bytes))
+    record_path = cid_path(cid_value)
+    existing = get_cid_by_path(record_path) if record_path else None
+    if not existing:
+        create_cid_record(cid_value, content_bytes, current_user.id)
+
+    redirect_url = cid_path(cid_value, 'md.html')
+    response = jsonify({'redirect_url': redirect_url, 'cid': cid_value})
+    response.status_code = 200
+    return response
 
 
 def get_server_definition_history(user_id, server_name):
@@ -293,6 +456,8 @@ def edit_server(server_name):
             test_config.get('action'),
         )
 
+    upload_url = url_for('main.upload_server_test_page', server_name=server.name)
+
     if form.validate_on_submit():
         if update_entity(
             server,
@@ -316,6 +481,7 @@ def edit_server(server_name):
             ai_entity_name_field=form.name.id,
             server_test_interactions=test_interactions,
             syntax_css=syntax_css,
+            server_test_upload_url=upload_url,
         )
 
     return render_template(
@@ -332,6 +498,7 @@ def edit_server(server_name):
         ai_entity_name_field=form.name.id,
         server_test_interactions=test_interactions,
         syntax_css=syntax_css,
+        server_test_upload_url=upload_url,
     )
 
 
@@ -419,5 +586,6 @@ __all__ = [
     'update_server_definitions_cid',
     'user_servers',
     'view_server',
+    'upload_server_test_page',
     'validate_server_definition',
 ]

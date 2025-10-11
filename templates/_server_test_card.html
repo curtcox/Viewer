@@ -14,6 +14,9 @@
               class="server-test-form"
               data-mode="{{ server_test_config.mode }}"
               data-action="{{ server_test_config.action }}"
+              {% if server_test_upload_url is defined and server_test_upload_url %}
+              data-upload-url="{{ server_test_upload_url }}"
+              {% endif %}
               onsubmit="submitServerTestForm(event)">
             <div id="server-test-result" class="alert mt-3 d-none" role="alert"></div>
 
@@ -76,6 +79,11 @@
                 <button type="button" class="btn btn-outline-secondary" onclick="resetServerTestForm(this.form)">
                     <i class="fas fa-undo me-1"></i>Clear Inputs
                 </button>
+                {% if server_test_upload_url is defined and server_test_upload_url %}
+                <button type="button" class="btn btn-outline-primary" onclick="uploadServerTestForm(this)">
+                    <i class="fas fa-upload me-1"></i>Upload test page
+                </button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -328,6 +336,78 @@ if (!window.submitServerTestForm) {
                 popup.close();
             }
             _renderServerTestNetworkError(resultContainer, error);
+        }
+    };
+}
+
+if (!window.uploadServerTestForm) {
+    window.uploadServerTestForm = async function(trigger) {
+        const button = trigger instanceof HTMLElement ? trigger : null;
+        const form = button ? button.closest('form') : null;
+        if (!form) {
+            return;
+        }
+
+        const uploadUrl = form.dataset.uploadUrl;
+        if (!uploadUrl) {
+            return;
+        }
+
+        const values = {};
+        const mode = form.dataset.mode || 'query';
+        if (mode === 'main') {
+            form.querySelectorAll('input[name]').forEach((input) => {
+                values[input.name] = input.value;
+            });
+        } else {
+            const textarea = form.querySelector('textarea');
+            if (textarea) {
+                values.query = textarea.value;
+            }
+        }
+
+        const resultContainer = document.getElementById('server-test-result');
+        const originalContent = button ? button.innerHTML : '';
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Uploading…';
+        }
+
+        try {
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ values }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Unable to upload test page.');
+            }
+
+            const data = await response.json();
+            if (data && data.redirect_url) {
+                window.location.assign(data.redirect_url);
+                return;
+            }
+
+            throw new Error('Upload response did not include a redirect URL.');
+        } catch (error) {
+            if (resultContainer) {
+                _prepareServerTestResult(resultContainer);
+                resultContainer.classList.add('alert-danger');
+                const message = error && error.message ? error.message : 'Unable to upload test page.';
+                resultContainer.innerHTML = `<strong>Unable to upload test page.</strong><div class="mt-2">${_escapeServerTestHtml(message)}</div>`;
+            }
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            }
         }
     };
 }
