@@ -136,7 +136,9 @@ def test_formdown_showcase_fields_are_parsed_with_attributes():
 
     field_map = _fields_by_name(fields)
     assert field_map["name"].type == "text"
+    assert field_map["name"].attributes["placeholder"] == "Enter your full name"
     assert field_map["bio"].type == "textarea"
+    assert field_map["bio"].attributes["placeholder"] == "Tell us about yourself"
     assert field_map["skills"].type == "checkbox"
     assert field_map["resume"].is_file_input
 
