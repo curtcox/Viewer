@@ -5,6 +5,7 @@ import re
 from urllib.parse import urlparse
 
 from cid_presenter import cid_path, format_cid
+from formdown_renderer import render_formdown_html
 
 import requests
 from flask import make_response, request
@@ -486,21 +487,23 @@ def _convert_github_relative_links(text: str) -> str:
     return _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, text)
 
 
-_FORMDOWN_FENCE_RE = re.compile(r"```formdown\s*\n(.*?)```", re.DOTALL)
-_FORMDOWN_PARAGRAPH_RE = re.compile(r"<p>\s*(<formdown-ui>.*?</formdown-ui>)\s*</p>", re.DOTALL)
+_FORMDOWN_FENCE_RE = re.compile(r"(^|\n)[ \t]*```formdown\s*\n(.*?)```", re.DOTALL)
 
 
 def _replace_formdown_fences(text):
-    """Replace ```formdown fences with <formdown-ui> blocks."""
+    """Replace ```formdown fences with rendered HTML forms."""
 
     found = False
 
     def _replacement(match):
         nonlocal found
         found = True
-        inner = match.group(1)
-        inner = inner.rstrip("\n")
-        return f"<formdown-ui>\n{inner}\n</formdown-ui>"
+        prefix = match.group(1)
+        inner = match.group(2).rstrip("\n")
+        html = render_formdown_html(inner)
+        if prefix:
+            return f"{prefix}{html}"
+        return html
 
     converted = _FORMDOWN_FENCE_RE.sub(_replacement, text)
     return converted, found
@@ -511,14 +514,8 @@ def _render_markdown_document(text):
     converted = _convert_github_relative_links(text)
     converted, has_formdown = _replace_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
-    if has_formdown:
-        body = _FORMDOWN_PARAGRAPH_RE.sub(r"\1", body)
     title = _extract_markdown_title(text)
-    formdown_script = (
-        "  <script type=\"module\" src=\"https://unpkg.com/@formdown/ui@latest/dist/standalone.js\"></script>\n"
-        if has_formdown
-        else ""
-    )
+    formdown_script = ""
     return (
         "<!DOCTYPE html>\n"
         "<html lang=\"en\">\n"
@@ -587,6 +584,106 @@ def _render_markdown_document(text):
         "      max-width: 100%;\n"
         "      border-radius: 8px;\n"
         "      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);\n"
+        "    }\n"
+        "    .formdown-document {\n"
+        "      margin: 2rem 0;\n"
+        "      display: flex;\n"
+        "      flex-direction: column;\n"
+        "      gap: 1.5rem;\n"
+        "    }\n"
+        "    .formdown-form {\n"
+        "      display: flex;\n"
+        "      flex-direction: column;\n"
+        "      gap: 1.5rem;\n"
+        "      padding: 1.5rem;\n"
+        "      border: 1px solid rgba(148, 163, 184, 0.35);\n"
+        "      border-radius: 12px;\n"
+        "      background: #f8fafc;\n"
+        "    }\n"
+        "    .formdown-field {\n"
+        "      display: flex;\n"
+        "      flex-direction: column;\n"
+        "      gap: 0.5rem;\n"
+        "    }\n"
+        "    .formdown-field--choices {\n"
+        "      gap: 0.75rem;\n"
+        "    }\n"
+        "    .formdown-heading {\n"
+        "      font-weight: 600;\n"
+        "      color: #0f172a;\n"
+        "    }\n"
+        "    .formdown-heading--form {\n"
+        "      margin-bottom: 0;\n"
+        "    }\n"
+        "    .formdown-paragraph {\n"
+        "      color: #475569;\n"
+        "    }\n"
+        "    .formdown-paragraph--form {\n"
+        "      margin: 0;\n"
+        "    }\n"
+        "    .formdown-label {\n"
+        "      font-weight: 600;\n"
+        "      color: #0f172a;\n"
+        "    }\n"
+        "    .formdown-input {\n"
+        "      display: block;\n"
+        "      width: 100%;\n"
+        "      padding: 0.5rem 0.75rem;\n"
+        "      border-radius: 8px;\n"
+        "      border: 1px solid rgba(148, 163, 184, 0.5);\n"
+        "      font-size: 1rem;\n"
+        "      color: #0f172a;\n"
+        "      background: #fff;\n"
+        "    }\n"
+        "    .formdown-input:focus {\n"
+        "      outline: 2px solid #3b82f6;\n"
+        "      outline-offset: 1px;\n"
+        "    }\n"
+        "    .formdown-options {\n"
+        "      display: flex;\n"
+        "      flex-wrap: wrap;\n"
+        "      gap: 0.75rem;\n"
+        "    }\n"
+        "    .formdown-options--vertical {\n"
+        "      flex-direction: column;\n"
+        "    }\n"
+        "    .formdown-option {\n"
+        "      display: inline-flex;\n"
+        "      align-items: center;\n"
+        "      gap: 0.5rem;\n"
+        "      font-weight: 500;\n"
+        "      color: #0f172a;\n"
+        "    }\n"
+        "    .formdown-option-label {\n"
+        "      display: inline-block;\n"
+        "    }\n"
+        "    .formdown-help {\n"
+        "      font-size: 0.875rem;\n"
+        "      color: #64748b;\n"
+        "    }\n"
+        "    .formdown-separator {\n"
+        "      border: none;\n"
+        "      border-top: 1px solid rgba(148, 163, 184, 0.35);\n"
+        "      margin: 0;\n"
+        "    }\n"
+        "    .formdown-button {\n"
+        "      display: inline-flex;\n"
+        "      align-items: center;\n"
+        "      justify-content: center;\n"
+        "      gap: 0.5rem;\n"
+        "      border-radius: 8px;\n"
+        "      padding: 0.5rem 1.25rem;\n"
+        "      font-weight: 600;\n"
+        "      cursor: pointer;\n"
+        "      border: none;\n"
+        "    }\n"
+        "    .formdown-button--submit {\n"
+        "      background: #2563eb;\n"
+        "      color: #f8fafc;\n"
+        "    }\n"
+        "    .formdown-button--reset {\n"
+        "      background: #e2e8f0;\n"
+        "      color: #0f172a;\n"
         "    }\n"
         "  </style>\n"
         "</head>\n"

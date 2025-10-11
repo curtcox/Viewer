@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 from urllib.parse import parse_qs, urlencode
 
+from formdown_renderer import render_formdown_html
+
 
 REPO_ROOT = Path(__file__).resolve().parent
 FORMDOWN_SHOWCASE_PATH = (
@@ -199,32 +201,21 @@ def test_formdown_showcase_detects_multivalue_fields():
     assert parsed.get("preferences") == ["Email Notifications", "Weekly Digest"]
 
 
-# Hand-recorded from a manual submission of the showcase form where the
-# "Full Name" text input and "About You" textarea were both filled with the
-# literal value "Ada Lovelace" before submitting the GET form rendered by the
-# Formdown UI component. Only the textarea value survives in the query string.
-OBSERVED_TEXT_VS_TEXTAREA_QUERY = "bio=Ada+Lovelace"
+def _render_showcase_form_html() -> str:
+    document = FORMDOWN_SHOWCASE_PATH.read_text(encoding="utf-8")
+    match = re.search(r"```formdown\s*\n(.*?)```", document, re.DOTALL)
+    assert match, "Expected the showcase document to include a formdown fence"
+    return render_formdown_html(match.group(1).strip())
 
 
-def test_formdown_showcase_text_input_missing_from_observed_submission():
-    """Regress the real-world bug where text fields drop out of the query string."""
+def test_formdown_showcase_renders_text_and_textarea_inputs():
+    """Ensure the rendered HTML includes both text and textarea fields."""
 
-    fields = _load_formdown_fields()
-    field_map = _fields_by_name(fields)
+    html = _render_showcase_form_html()
 
-    assert field_map["name"].type == "text"
-    assert field_map["bio"].type == "textarea"
-
-    expected_entries = _build_query_entries(fields, _sample_form_values())
-    assert any(name == "name" for name, _ in expected_entries)
-    assert any(name == "bio" for name, _ in expected_entries)
-
-    observed = parse_qs(OBSERVED_TEXT_VS_TEXTAREA_QUERY, keep_blank_values=True)
-
-    assert "bio" in observed, "Textarea value should survive the GET submission"
-    assert observed["bio"] == ["Ada Lovelace"]
-    assert "name" not in observed, (
-        "Expected text inputs to be missing per the regression report. "
-        "If this starts passing we should update the template or remove this characterization."
-    )
+    assert 'type="text"' in html
+    assert 'name="name"' in html
+    assert '<textarea' in html
+    assert 'name="bio"' in html
+    assert 'enctype="multipart/form-data"' in html
 
