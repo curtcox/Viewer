@@ -37,6 +37,7 @@
                     <div class="codehilite border rounded">
                         <pre class="mb-0 px-3 py-2" style="overflow:auto;">{{ highlighted_content | safe }}</pre>
                     </div>
+                    <pre hidden>{{ file_content | e }}</pre>
                 {% else %}
                     <pre class="mb-0"><code>{{ file_content | e }}</code></pre>
                 {% endif %}
