@@ -1,6 +1,5 @@
 """History-related routes."""
 import json
-import re
 from typing import Dict, Iterable, List, Optional
 from types import SimpleNamespace
 
@@ -10,6 +9,7 @@ from flask_login import current_user
 from auth_providers import require_login
 from analytics import get_paginated_page_views, get_user_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
+from cid_utils import is_strict_cid_candidate, split_cid_path
 from models import CID, ServerInvocation
 
 from . import main_bp
@@ -31,20 +31,17 @@ def history():
     return render_template('history.html', page_views=page_views, **stats)
 
 
-_CID_PATTERN = re.compile(r'^[A-Za-z0-9_-]{30,}$')
-
-
 def _extract_result_cid(path: str) -> str | None:
     """Return the CID portion of a path if it looks like server output."""
-    if not path or not path.startswith('/'):
+    if not path:
         return None
 
-    slug = path[1:]
-    if not slug or '/' in slug:
+    components = split_cid_path(path)
+    if not components:
         return None
 
-    cid_part = slug.split('.')[0]
-    if not cid_part or not _CID_PATTERN.match(cid_part):
+    cid_part, _ = components
+    if not is_strict_cid_candidate(cid_part):
         return None
 
     return cid_part
@@ -52,32 +49,7 @@ def _extract_result_cid(path: str) -> str | None:
 
 def _extract_cid_components(path: Optional[str]) -> tuple[str, Optional[str]] | None:
     """Return the CID and optional extension portion of a history path."""
-    if not path or not path.startswith('/'):
-        return None
-
-    slug = path[1:]
-    if not slug:
-        return None
-
-    # Remove any query string or fragment identifiers.
-    slug = slug.split('?', 1)[0]
-    slug = slug.split('#', 1)[0]
-    if not slug:
-        return None
-
-    if '/' in slug:
-        return None
-
-    cid_part = slug
-    extension = None
-    if '.' in slug:
-        cid_part, extension = slug.split('.', 1)
-        extension = extension or None
-
-    if not cid_part or not _CID_PATTERN.match(cid_part):
-        return None
-
-    return cid_part, extension
+    return split_cid_path(path)
 
 
 def _get_page_view_items(page_views: object) -> List:

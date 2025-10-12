@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import io
 from app import create_app, db
 from models import User
-from cid_utils import process_file_upload
+from cid_utils import CID_LENGTH, process_file_upload
 
 
 class TestUploadExtensions(unittest.TestCase):
@@ -156,9 +156,9 @@ class TestUploadExtensions(unittest.TestCase):
             
             # Should not have any extension in the view URL (no .txt, .pdf, etc.)
             response_text = response.data.decode('utf-8')
-            # The CID should appear without any extension and match base64url 43 chars
-            # Ensure next character is not a dot (no extension), allow quotes or other delimiters
-            self.assertRegex(response_text, r'/[A-Za-z0-9_-]{43}(?!\.)')  # CID without extension
+            # The CID should appear without any extension and match the canonical length
+            cid_pattern = rf'/[A-Za-z0-9_-]{{{CID_LENGTH}}}(?!\.)'
+            self.assertRegex(response_text, cid_pattern)  # CID without extension
 
 
 if __name__ == '__main__':

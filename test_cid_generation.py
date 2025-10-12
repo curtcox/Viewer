@@ -1,7 +1,16 @@
 import unittest
 import hashlib
 import base64
-from cid_utils import generate_cid
+
+from cid_utils import (
+    CID_LENGTH,
+    CID_NORMALIZED_PATTERN,
+    generate_cid,
+    is_normalized_cid,
+    is_probable_cid_component,
+    is_strict_cid_candidate,
+    split_cid_path,
+)
 
 
 class TestCIDGeneration(unittest.TestCase):
@@ -47,12 +56,11 @@ class TestCIDGeneration(unittest.TestCase):
         
         cid = generate_cid(content)
         
-        # Should be exactly 43 characters (base64url of 32-byte SHA-256 without padding)
-        self.assertEqual(len(cid), 43)
-        
-        # Should only contain URL-safe base64 characters
-        import re
-        self.assertTrue(re.match(r'^[A-Za-z0-9_-]{43}$', cid))
+        # Should be the expected canonical length for generated CIDs
+        self.assertEqual(len(cid), CID_LENGTH)
+
+        # Should only contain characters defined for generated CIDs
+        self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid))
 
     def test_empty_content(self):
         """Test CID generation with empty content"""
@@ -60,9 +68,9 @@ class TestCIDGeneration(unittest.TestCase):
         cid1 = generate_cid(b"")
         cid2 = generate_cid(b"")
         
-        # Empty content should still generate valid CIDs (length 43 base64url)
-        self.assertEqual(len(cid1), 43)
-        self.assertEqual(len(cid2), 43)
+        # Empty content should still generate valid CIDs at the canonical length
+        self.assertEqual(len(cid1), CID_LENGTH)
+        self.assertEqual(len(cid2), CID_LENGTH)
         
         # Same empty content should produce same CID
         self.assertEqual(cid1, cid2)
@@ -74,7 +82,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(content)
         
         # Should generate a valid CID
-        self.assertEqual(len(cid), 43)
+        self.assertEqual(len(cid), CID_LENGTH)
 
     def test_large_content(self):
         """Test CID generation with large content"""
@@ -84,7 +92,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(large_content)
         
         # Should still generate a valid CID
-        self.assertEqual(len(cid), 43)
+        self.assertEqual(len(cid), CID_LENGTH)
 
     def test_binary_content(self):
         """Test CID generation with binary content"""
@@ -93,7 +101,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid = generate_cid(binary_content)
         
         # Should generate a valid CID
-        self.assertEqual(len(cid), 43)
+        self.assertEqual(len(cid), CID_LENGTH)
 
     def test_content_case_sensitivity(self):
         """Test that content case affects CID generation"""
@@ -133,7 +141,7 @@ class TestCIDGeneration(unittest.TestCase):
     def test_manual_hash_verification(self):
         """Test that the CID matches expected hash calculation"""
         content = b"Manual verification test"
-        
+
         # Generate CID using our function
         actual_cid = generate_cid(content)
         
@@ -164,10 +172,33 @@ class TestCIDGeneration(unittest.TestCase):
                 cids.append(cid)
                 
                 # Verify format
-                self.assertEqual(len(cid), 43)
+                self.assertEqual(len(cid), CID_LENGTH)
         
         # All CIDs should be unique
         self.assertEqual(len(cids), len(set(cids)))
+
+    def test_cid_helper_utilities(self):
+        """Test helper functions that validate and parse CID values."""
+        cid = generate_cid(b"helper utilities")
+
+        # Validation helpers should recognise generated CIDs
+        self.assertTrue(is_normalized_cid(cid))
+        self.assertTrue(is_probable_cid_component(cid))
+        self.assertTrue(is_strict_cid_candidate(cid))
+
+        # Short or malformed values should fail validation
+        self.assertFalse(is_probable_cid_component("short"))
+        self.assertFalse(is_normalized_cid(f"{cid}extra"))
+
+        # Path splitting should handle raw CIDs, extensions, and query parameters
+        self.assertEqual(split_cid_path(f"/{cid}"), (cid, None))
+        self.assertEqual(split_cid_path(f"/{cid}.json"), (cid, "json"))
+        self.assertEqual(split_cid_path(f"/{cid}.html?download=1"), (cid, "html"))
+        self.assertEqual(split_cid_path(f"/{cid}.txt#section"), (cid, "txt"))
+
+        # Invalid paths should return None
+        self.assertIsNone(split_cid_path("/not/a/cid"))
+        self.assertIsNone(split_cid_path(""))
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import re
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from cid_presenter import cid_path, format_cid
@@ -9,6 +10,19 @@ from formdown_renderer import render_formdown_html
 
 import requests
 from flask import make_response, request
+
+
+CID_CHARACTER_CLASS = "A-Za-z0-9_-"
+CID_LENGTH = 43
+CID_MIN_REFERENCE_LENGTH = 6
+CID_STRICT_MIN_LENGTH = 30
+
+CID_NORMALIZED_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_LENGTH}}}$")
+CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
+CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LENGTH},}}$")
+CID_PATH_CAPTURE_PATTERN = re.compile(
+    rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
+)
 
 try:
     import markdown  # type: ignore
@@ -55,6 +69,75 @@ def _ensure_db_access():
             get_user_variables = _get_user_variables
         if get_user_secrets is None:
             get_user_secrets = _get_user_secrets
+
+
+def _normalize_component(value: Optional[str]) -> str:
+    """Return a normalized CID component without leading slashes or whitespace."""
+    if value is None:
+        return ""
+    normalized = value.strip()
+    if not normalized:
+        return ""
+    normalized = normalized.lstrip("/")
+    if "/" in normalized:
+        return ""
+    return normalized
+
+
+def is_probable_cid_component(value: Optional[str]) -> bool:
+    """Return True if the value could be a CID or CID prefix."""
+    normalized = _normalize_component(value)
+    if not normalized or "." in normalized:
+        return False
+    return bool(CID_REFERENCE_PATTERN.fullmatch(normalized))
+
+
+def is_strict_cid_candidate(value: Optional[str]) -> bool:
+    """Return True if the value is a strong candidate for a generated CID."""
+    normalized = _normalize_component(value)
+    if not normalized or "." in normalized:
+        return False
+    return bool(CID_STRICT_PATTERN.fullmatch(normalized))
+
+
+def is_normalized_cid(value: Optional[str]) -> bool:
+    """Return True if the value is exactly formatted like a generated CID."""
+    normalized = _normalize_component(value)
+    if not normalized or "." in normalized:
+        return False
+    return bool(CID_NORMALIZED_PATTERN.fullmatch(normalized))
+
+
+def split_cid_path(value: Optional[str]) -> Optional[Tuple[str, Optional[str]]]:
+    """Return the CID value and optional extension extracted from a path."""
+    if value is None:
+        return None
+
+    slug = value.strip()
+    if not slug:
+        return None
+
+    slug = slug.split("?", 1)[0]
+    slug = slug.split("#", 1)[0]
+    if not slug:
+        return None
+
+    if slug.startswith("/"):
+        slug = slug[1:]
+
+    if not slug or "/" in slug:
+        return None
+
+    cid_part = slug
+    extension: Optional[str] = None
+    if "." in slug:
+        cid_part, extension = slug.split(".", 1)
+        extension = extension or None
+
+    if not is_probable_cid_component(cid_part):
+        return None
+
+    return cid_part, extension
 
 # ============================================================================
 # CID GENERATION AND STORAGE HELPERS

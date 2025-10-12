@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from flask import url_for
 
 from cid_presenter import cid_path, format_cid
+from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
     get_alias_by_name,
     get_user_aliases,
@@ -21,7 +22,6 @@ from models import CID
 ReferenceMap = Dict[str, List[Dict[str, str]]]
 
 _NAME_BOUNDARY = r"(?![A-Za-z0-9._-])"
-_CID_PATTERN = re.compile(r"/([A-Za-z0-9_-]{6,})(?:\.[A-Za-z0-9]+)?")
 _MAX_SCAN_LENGTH = 100_000
 
 
@@ -124,7 +124,11 @@ def _discover_server_references(text: str, servers: Sequence[str]) -> List[Dict[
 
 
 def _discover_cid_references(text: str) -> List[Dict[str, str]]:
-    candidates = {format_cid(match.group(1)) for match in _CID_PATTERN.finditer(text)}
+    candidates = {
+        format_cid(match.group(1))
+        for match in CID_PATH_CAPTURE_PATTERN.finditer(text)
+        if is_probable_cid_component(match.group(1))
+    }
     candidates = {value for value in candidates if value}
     if not candidates:
         return []

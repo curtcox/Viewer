@@ -34,7 +34,7 @@ from models import (
     CURRENT_TERMS_VERSION,
     Alias,
 )
-from cid_utils import generate_cid
+from cid_utils import CID_LENGTH, generate_cid
 from server_templates import get_server_templates
 from routes.core import _build_cross_reference_data
 
@@ -92,8 +92,8 @@ class TestUtilityFunctions(BaseTestCase):
         test_data = b"Hello, World!"
         cid = generate_cid(test_data)
 
-        # Should be base64url (no padding) and deterministic
-        self.assertEqual(len(cid), 43)
+        # Should be the canonical length and deterministic
+        self.assertEqual(len(cid), CID_LENGTH)
 
         # Should be deterministic
         cid2 = generate_cid(test_data)
@@ -103,8 +103,8 @@ class TestUtilityFunctions(BaseTestCase):
         different_cid = generate_cid(b"Different data")
         self.assertNotEqual(cid, different_cid)
 
-        # Should be expected fixed length for SHA-256 base64url
-        self.assertEqual(len(cid), 43)
+        # Should be expected fixed length for generated CIDs
+        self.assertEqual(len(cid), CID_LENGTH)
 
 
 class TestContextProcessors(BaseTestCase):
@@ -715,8 +715,8 @@ class TestFileUploadRoutes(BaseTestCase):
         self.login_user()
 
         result_cid = generate_cid(b"result")
-        invocation_cid = "I" * 43
-        servers_cid = "S" * 43
+        invocation_cid = "I" * CID_LENGTH
+        servers_cid = "S" * CID_LENGTH
 
         request_payload = json.dumps({
             'headers': {
@@ -1128,8 +1128,8 @@ class TestHistoryRoutes(BaseTestCase):
     @patch('routes.history.get_user_history_statistics')
     def test_history_page(self, mock_stats):
         """Test history page."""
-        result_cid = 'A' * 43
-        invocation_cid = 'B' * 43
+        result_cid = 'A' * CID_LENGTH
+        invocation_cid = 'B' * CID_LENGTH
 
         # Mock the statistics function to avoid SQLAlchemy func issues
         mock_stats.return_value = {
@@ -1366,8 +1366,8 @@ class TestServerRoutes(BaseTestCase):
         db.session.add(server)
 
         result_cid = generate_cid(b"result")
-        invocation_cid = "I" * 43
-        servers_cid = "S" * 43
+        invocation_cid = "I" * CID_LENGTH
+        servers_cid = "S" * CID_LENGTH
 
         request_payload = json.dumps({
             'headers': {
