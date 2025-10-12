@@ -101,6 +101,57 @@
                 </div>
             </div>
 
+            {% set refs = definition_references or {} %}
+            {% if refs.aliases or refs.servers or refs.cids %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Referenced Entities</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row gy-3">
+                        {% if refs.servers %}
+                        <div class="col-md-4">
+                            <h6 class="text-uppercase text-muted small mb-2">Servers</h6>
+                            <ul class="list-unstyled mb-0">
+                                {% for ref in refs.servers %}
+                                <li class="mb-1">
+                                    <a href="{{ ref.url }}" class="text-decoration-none">
+                                        <i class="fas fa-server me-2 text-primary"></i>{{ ref.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% if refs.aliases %}
+                        <div class="col-md-4">
+                            <h6 class="text-uppercase text-muted small mb-2">Aliases</h6>
+                            <ul class="list-unstyled mb-0">
+                                {% for ref in refs.aliases %}
+                                <li class="mb-1">
+                                    <a href="{{ ref.url }}" class="text-decoration-none">
+                                        <i class="fas fa-link me-2 text-secondary"></i>{{ ref.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% if refs.cids %}
+                        <div class="col-md-4">
+                            <h6 class="text-uppercase text-muted small mb-2">CIDs</h6>
+                            <ul class="list-unstyled mb-0">
+                                {% for ref in refs.cids %}
+                                <li class="mb-1">{{ render_cid_link(ref.cid) }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             {% if server_test_config is defined and server_test_config %}
             {% include "_server_test_card.html" %}
             {% endif %}

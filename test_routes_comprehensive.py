@@ -435,6 +435,9 @@ class TestFileUploadRoutes(BaseTestCase):
 
         response = self.client.get('/uploads')
         self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('References', page)
+        self.assertIn('None', page)
 
     def test_uploads_list_excludes_server_events(self):
         """Uploads list should only show manual uploads."""
@@ -616,12 +619,28 @@ class TestCidEditingRoutes(BaseTestCase):
 
     def test_edit_cid_get_full_match(self):
         cid_value = self._create_cid_record(b'original content')
+        alias = Alias(
+            name='docs',
+            target_path='/docs',
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+        )
+        server = Server(name='ref-server', definition='return None', user_id=self.test_user.id)
+        db.session.add_all([alias, server])
+        db.session.commit()
+        cid_record = CID.query.filter_by(path=f'/{cid_value}').first()
+        cid_record.file_data = b'Use /docs with /servers/ref-server'
+        db.session.commit()
+
         self.login_user()
         response = self.client.get(f'/edit/{cid_value}')
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('original content', page)
+        self.assertIn('Referenced Entities', page)
+        self.assertIn('docs', page)
+        self.assertIn('ref-server', page)
         self.assertIn(cid_value, page)
         self.assertIn('text_content-ai-input', page)
         self.assertIn('data-ai-target-id="text_content"', page)
@@ -1072,17 +1091,39 @@ class TestServerRoutes(BaseTestCase):
 
     def test_view_server(self):
         """Test viewing specific server."""
+        helper_server = Server(name='helper', definition='print("helper")', user_id=self.test_user.id)
+        alias = Alias(
+            name='docs-link',
+            target_path='/docs',
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+        )
+        cid_value = 'cidserver123456'
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'server reference',
+            file_size=16,
+            uploaded_by_user_id=self.test_user.id,
+        )
         server = Server(
             name='view-server',
-            definition='Server to view',
+            definition=(
+                f'print("Use /{alias.name} and /servers/{helper_server.name} and /{cid_value}")'
+            ),
             user_id=self.test_user.id
         )
-        db.session.add(server)
+        db.session.add_all([helper_server, alias, cid_record, server])
         db.session.commit()
 
         self.login_user()
         response = self.client.get('/servers/view-server')
         self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('Referenced Entities', page)
+        self.assertIn(alias.name, page)
+        self.assertIn(helper_server.name, page)
+        self.assertIn(f'/meta/{cid_value}', page)
 
     def test_view_server_includes_main_test_form(self):
         """Server detail page should surface parameter inputs when main() is present."""

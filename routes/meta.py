@@ -16,6 +16,7 @@ from werkzeug.routing import RequestRedirect
 
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
 from cid_presenter import cid_path, format_cid
+from entity_references import extract_references_from_bytes
 from db_access import get_cid_by_path, get_server_by_name, get_user_aliases
 from models import ServerInvocation
 from server_execution import (
@@ -623,6 +624,14 @@ def _resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
     if server_events:
         metadata["server_events"] = server_events
         metadata["source_links"] = _dedupe_links(metadata["source_links"] + ["/source/server_execution.py"])
+
+    user_id = current_user.id if getattr(current_user, "is_authenticated", False) else None
+    references = extract_references_from_bytes(
+        getattr(cid_record, "file_data", None),
+        user_id,
+    )
+    if any(references.values()):
+        metadata["referenced_entities"] = references
 
     return metadata
 

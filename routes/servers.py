@@ -20,6 +20,7 @@ from db_access import (
     get_server_by_name,
     get_user_servers,
 )
+from entity_references import extract_references_from_text
 from forms import ServerForm
 from models import CID, Server, ServerInvocation
 from server_execution import analyze_server_definition, describe_main_function_parameters
@@ -402,6 +403,11 @@ def view_server(server_name):
         server.name,
     )
 
+    definition_references = extract_references_from_text(
+        getattr(server, 'definition', ''),
+        current_user.id,
+    )
+
     test_interactions = []
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
@@ -420,6 +426,7 @@ def view_server(server_name):
         server_test_interactions=test_interactions,
         highlighted_definition=highlighted_definition,
         syntax_css=syntax_css,
+        definition_references=definition_references,
     )
 
 

@@ -119,6 +119,11 @@ class TestMetaRoute(unittest.TestCase):
         with self.app.app_context():
             user = self._create_test_user()
             self._create_cid('cid-result', b'result', user)
+            self._create_server(user, name='demo-server')
+            self._create_alias(user, name='docs', target='/docs')
+            record = CID.query.filter_by(path='/cid-result').first()
+            record.file_data = b'Check /docs /servers/demo-server and /cid-inv'
+            db.session.commit()
 
             related_cids = ['cid-inv', 'cid-request', 'cid-servers', 'cid-vars', 'cid-secrets']
             for cid in related_cids:
@@ -137,6 +142,7 @@ class TestMetaRoute(unittest.TestCase):
             db.session.add(invocation)
             db.session.commit()
 
+            self._login(user)
             response = self.client.get('/meta/cid-result')
             self.assertEqual(response.status_code, 200)
 
@@ -156,6 +162,11 @@ class TestMetaRoute(unittest.TestCase):
 
             self.assertIn('/source/cid_utils.py', data['source_links'])
             self.assertIn('/source/server_execution.py', data['source_links'])
+            self.assertIn('referenced_entities', data)
+            refs = data['referenced_entities']
+            self.assertTrue(any(ref['name'] == 'docs' for ref in refs.get('aliases', [])))
+            self.assertTrue(any(ref['name'] == 'demo-server' for ref in refs.get('servers', [])))
+            self.assertTrue(any(ref['cid'] == 'cid-inv' for ref in refs.get('cids', [])))
 
     def test_meta_route_html_format_renders_links(self):
         with self.app.app_context():

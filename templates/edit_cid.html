@@ -18,6 +18,52 @@
                         You are editing the content stored for CID:
                         {{ render_cid_link(cid) }}
                     </p>
+                    {% set refs = content_references or {} %}
+                    {% if refs.aliases or refs.servers or refs.cids %}
+                    <div class="alert alert-secondary" role="alert">
+                        <h6 class="alert-heading mb-2">Referenced Entities</h6>
+                        <div class="row gy-2">
+                            {% if refs.aliases %}
+                            <div class="col-md-4">
+                                <span class="text-uppercase text-muted small d-block mb-1">Aliases</span>
+                                <ul class="list-unstyled mb-0">
+                                    {% for ref in refs.aliases %}
+                                    <li class="mb-1">
+                                        <a href="{{ ref.url }}" class="text-decoration-none">
+                                            <i class="fas fa-link me-2 text-secondary"></i>{{ ref.name }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                            {% if refs.servers %}
+                            <div class="col-md-4">
+                                <span class="text-uppercase text-muted small d-block mb-1">Servers</span>
+                                <ul class="list-unstyled mb-0">
+                                    {% for ref in refs.servers %}
+                                    <li class="mb-1">
+                                        <a href="{{ ref.url }}" class="text-decoration-none">
+                                            <i class="fas fa-server me-2 text-primary"></i>{{ ref.name }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                            {% if refs.cids %}
+                            <div class="col-md-4">
+                                <span class="text-uppercase text-muted small d-block mb-1">CIDs</span>
+                                <ul class="list-unstyled mb-0">
+                                    {% for ref in refs.cids %}
+                                    <li class="mb-1">{{ render_cid_link(ref.cid) }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <form method="POST">
                         {{ form.hidden_tag() }}
                         <div class="mb-3">

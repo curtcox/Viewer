@@ -71,6 +71,7 @@
                                     <th>Uploaded</th>
                                     <th>Created Via</th>
                                     <th>CID</th>
+                                    <th>References</th>
                                     <th>Content Preview</th>
                                 </tr>
                             </thead>
@@ -119,6 +120,28 @@
                                             {{ render_cid_link(upload.path) }}
                                         {% else %}
                                             <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set refs = upload.referenced_entities or {} %}
+                                        {% set has_refs = refs.aliases or refs.servers or refs.cids %}
+                                        {% if has_refs %}
+                                            <div class="d-flex flex-column gap-1">
+                                                {% for ref in refs.aliases %}
+                                                    <a href="{{ ref.url }}" class="badge text-bg-secondary text-decoration-none">Alias: {{ ref.name }}</a>
+                                                {% endfor %}
+                                                {% for ref in refs.servers %}
+                                                    <a href="{{ ref.url }}" class="badge text-bg-primary text-decoration-none">Server: {{ ref.name }}</a>
+                                                {% endfor %}
+                                                {% for ref in refs.cids %}
+                                                    <div class="small d-flex align-items-center gap-1">
+                                                        <span class="badge text-bg-dark">CID</span>
+                                                        {{ render_cid_link(ref.cid) }}
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">None</span>
                                         {% endif %}
                                     </td>
                                     <td>
