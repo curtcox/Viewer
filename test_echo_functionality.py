@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
+from cid_utils import CID_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
 from app import app, db
 from models import Server, User
 from routes.core import not_found_error, get_existing_routes
@@ -159,10 +160,11 @@ class TestEchoFunctionality(unittest.TestCase):
                     self.assertTrue(location.startswith('/'), "Should redirect to a CID path")
                     self.assertTrue(location.endswith('.html'), "Should redirect to .html URL for text/html content")
 
-                    # Validate CID format (base64url without padding, length 43)
+                    # Validate CID format using the canonical helpers
                     cid_part = location.lstrip('/').split('.')[0]
-                    self.assertEqual(len(cid_part), 43)
-                    self.assertRegex(cid_part, r'^[A-Za-z0-9_-]{43}$')
+                    self.assertEqual(len(cid_part), CID_LENGTH)
+                    self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid_part))
+                    self.assertTrue(is_normalized_cid(cid_part))
 
 
 if __name__ == '__main__':

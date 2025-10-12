@@ -5,9 +5,12 @@ from unittest.mock import patch, MagicMock
 from app import app, db
 from models import CID, User
 from cid_utils import (
+    CID_LENGTH,
+    CID_NORMALIZED_PATTERN,
     _looks_like_markdown,
     generate_cid,
     get_mime_type_from_extension,
+    is_normalized_cid,
     serve_cid_content,
 )
 from db_access import create_cid_record
@@ -53,9 +56,10 @@ class TestCIDFunctionality(unittest.TestCase):
         # Generate CID
         cid = generate_cid(file_data)
         
-        # Verify CID format: 43-char base64url
-        self.assertEqual(len(cid), 43)
-        self.assertRegex(cid, r'^[A-Za-z0-9_-]{43}$')
+        # Verify CID format matches the canonical specification
+        self.assertEqual(len(cid), CID_LENGTH)
+        self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid))
+        self.assertTrue(is_normalized_cid(cid))
         
         # Verify CID is deterministic (same input = same output)
         cid2 = generate_cid(file_data)
