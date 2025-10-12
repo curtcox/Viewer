@@ -1109,7 +1109,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='view-server',
             definition=(
-                f'print("Use /{alias.name} and /servers/{helper_server.name} and /{cid_value}")'
+                f'print("Use /{alias.name} and /servers/{helper_server.name} and /{helper_server.name} and /{cid_value}")'
             ),
             user_id=self.test_user.id
         )

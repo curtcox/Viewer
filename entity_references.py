@@ -114,8 +114,11 @@ def _discover_alias_references(text: str, aliases: Sequence[str]) -> List[Dict[s
 def _discover_server_references(text: str, servers: Sequence[str]) -> List[Dict[str, str]]:
     matches: List[Dict[str, str]] = []
     for name in servers:
-        pattern = re.compile(rf"/servers/{re.escape(name)}{_NAME_BOUNDARY}")
-        if pattern.search(text):
+        patterns = [
+            re.compile(rf"/servers/{re.escape(name)}{_NAME_BOUNDARY}"),
+            re.compile(rf"/{re.escape(name)}{_NAME_BOUNDARY}"),
+        ]
+        if any(pattern.search(text) for pattern in patterns):
             matches.append(_build_server_reference(name))
     return _dedupe(matches, "name")
 
@@ -199,10 +202,14 @@ def extract_references_from_target(target_path: Optional[str], user_id: Optional
 
 
 def _server_name_from_path(path: str) -> Optional[str]:
-    segments = path.split("/")
-    if len(segments) >= 3 and segments[1] == "servers" and segments[2]:
-        return segments[2]
-    return None
+    segments = [segment for segment in path.split("/") if segment]
+    if not segments:
+        return None
+
+    if segments[0] == "servers" and len(segments) >= 2:
+        return segments[1]
+
+    return segments[0]
 
 
 def _cid_reference_from_path(path: str) -> Optional[Dict[str, str]]:

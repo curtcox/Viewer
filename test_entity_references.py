@@ -100,14 +100,16 @@ class TestEntityReferences(unittest.TestCase):
 
         with self.app.test_request_context('/'):
             server_refs = extract_references_from_target(f'/servers/{server_name}', self.user_id)
+            server_exec_refs = extract_references_from_target(f'/{server_name}', self.user_id)
             cid_refs = extract_references_from_target(f'/{cid_value}', self.user_id)
 
         self.assertEqual(server_refs['servers'][0]['name'], server_name)
+        self.assertEqual(server_exec_refs['servers'][0]['name'], server_name)
         self.assertEqual(cid_refs['cids'][0]['cid'], cid_value)
 
     def test_extract_references_from_bytes(self):
         alias_name = self._create_alias('landing', '/landing')
-        content = f"Route /{alias_name} forwards to /servers/updates".encode('utf-8')
+        content = f"Route /{alias_name} forwards to /servers/updates then /updates".encode('utf-8')
         self._create_server('updates', 'return {}')
         self._create_cid('contentcid', content)
 

@@ -122,7 +122,7 @@ class TestMetaRoute(unittest.TestCase):
             self._create_server(user, name='demo-server')
             self._create_alias(user, name='docs', target='/docs')
             record = CID.query.filter_by(path='/cid-result').first()
-            record.file_data = b'Check /docs /servers/demo-server and /cid-inv'
+            record.file_data = b'Check /docs /servers/demo-server /demo-server and /cid-inv'
             db.session.commit()
 
             related_cids = ['cid-inv', 'cid-request', 'cid-servers', 'cid-vars', 'cid-secrets']
