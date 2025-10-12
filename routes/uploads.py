@@ -16,6 +16,9 @@ from cid_utils import (
     process_text_upload,
     process_url_upload,
 )
+from entity_references import (
+    extract_references_from_bytes,
+)
 from db_access import (
     create_cid_record,
     find_cids_by_prefix,
@@ -156,6 +159,11 @@ def uploads():
         else:
             upload.content_preview = ""
 
+        upload.referenced_entities = extract_references_from_bytes(
+            getattr(upload, 'file_data', None),
+            current_user.id,
+        )
+
     total_storage = sum(upload.file_size or 0 for upload in user_uploads)
 
     return render_template(
@@ -181,6 +189,7 @@ def screenshot_uploads_demo():
             server_invocation_link=None,
             path='/bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq',
             content_preview='Sample CID text cont',
+            referenced_entities={'aliases': [], 'servers': [], 'cids': []},
         ),
         SimpleNamespace(
             file_size=5 * 1024,
@@ -190,6 +199,7 @@ def screenshot_uploads_demo():
             server_invocation_link=None,
             path='/bafybeiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             content_preview='Markdown sample text',
+            referenced_entities={'aliases': [], 'servers': [], 'cids': []},
         ),
     ]
 
@@ -239,6 +249,10 @@ def edit_cid(cid_prefix):
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
     interaction_history = load_interaction_history(current_user.id, 'cid', full_cid)
+    content_references = extract_references_from_bytes(
+        getattr(cid_record, 'file_data', None),
+        current_user.id,
+    )
 
     if form.validate_on_submit():
         alias_name_input = ''
@@ -256,6 +270,7 @@ def edit_cid(cid_prefix):
                         current_alias_name=getattr(alias_for_cid, 'name', None),
                         show_alias_field=alias_for_cid is None,
                         interaction_history=interaction_history,
+                        content_references=content_references,
                     )
 
         text_content = form.text_content.data or ''
@@ -324,6 +339,7 @@ def edit_cid(cid_prefix):
         current_alias_name=getattr(alias_for_cid, 'name', None),
         show_alias_field=alias_for_cid is None,
         interaction_history=interaction_history,
+        content_references=content_references,
     )
 
 

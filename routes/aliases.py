@@ -9,6 +9,7 @@ from flask_login import current_user
 
 from auth_providers import require_login
 from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
+from entity_references import extract_references_from_target
 from forms import AliasForm
 from models import Alias
 import logfire
@@ -118,7 +119,16 @@ def view_alias(alias_name: str):
     if not alias:
         abort(404)
 
-    return render_template('alias_view.html', alias=alias)
+    target_references = extract_references_from_target(
+        getattr(alias, "target_path", None),
+        current_user.id,
+    )
+
+    return render_template(
+        'alias_view.html',
+        alias=alias,
+        target_references=target_references,
+    )
 
 
 @main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])

@@ -8,7 +8,7 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
 from auth_providers import auth_manager
-from models import Alias, User
+from models import Alias, CID, User
 from alias_routing import (
     _append_query_string,
     _extract_alias_name,
@@ -205,12 +205,24 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn(b'/latest', response.data)
 
     def test_view_alias_page(self):
-        self.create_alias(name='docs', target='/cid/docs')
+        cid_value = 'cidtarget123456'
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'document',
+            file_size=8,
+            uploaded_by_user_id=self.test_user.id,
+        )
+        db.session.add(cid_record)
+        db.session.commit()
+
+        self.create_alias(name='docs', target=f'/{cid_value}')
         self.login()
 
         response = self.client.get('/aliases/docs')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'/cid/docs', response.data)
+        page = response.get_data(as_text=True)
+        self.assertIn('Referenced Targets', page)
+        self.assertIn(cid_value, page)
 
     def test_create_alias_via_form(self):
         self.login()
