@@ -1,5 +1,6 @@
-# ruff: noqa: F401, F821
-# This template executes inside the Viewer runtime where `request` and `load` are provided.
+# ruff: noqa: F401, F706, F821
+# This template runs inside the Viewer runtime where helpers such as `request`
+# and `load` are provided by the execution sandbox.
 from html import escape
 
 from syntax_highlighting import highlight_source
