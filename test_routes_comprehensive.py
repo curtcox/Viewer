@@ -160,16 +160,56 @@ class TestPublicRoutes(BaseTestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
-    def test_index_authenticated_shows_observability(self):
-        """Authenticated users should still see the landing page observability details."""
+    def test_index_authenticated_shows_cross_reference_dashboard(self):
+        """Authenticated users should see the workspace cross reference overview."""
         self.login_user()
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Observability', page)
-        self.assertIn('Logfire', page)
-        self.assertIn('LangSmith', page)
+        self.assertIn('Workspace Cross Reference', page)
+        self.assertIn('data-crossref-container', page)
+
+    def test_index_cross_reference_lists_entities_and_relationships(self):
+        """Cross reference dashboard should include aliases, servers, CIDs, and references."""
+        self.login_user()
+
+        cid_value = generate_cid(b'CID: /alpha -> /servers/beta')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'CID: /alpha -> /servers/beta',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        alias_server = Alias(name='alpha', target_path='/servers/beta', user_id=self.test_user.id)
+        alias_cid = Alias(name='bravo', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        server_definition = f"""
+def main(request):
+    return "Use /bravo and /{cid_value}"
+""".strip()
+        server = Server(
+            name='beta',
+            definition=server_definition,
+            user_id=self.test_user.id,
+            definition_cid=f'/{cid_value}',
+        )
+
+        db.session.add_all([cid_record, alias_server, alias_cid, server])
+        db.session.commit()
+
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Workspace Cross Reference', page)
+        self.assertIn('/aliases/alpha', page)
+        self.assertIn('/aliases/bravo', page)
+        self.assertIn('/servers/beta', page)
+        self.assertIn(f'#{cid_value[:9]}', page)
+        self.assertIn('CID: /alpha', page)
+        self.assertNotIn('No aliases yet', page)
+        self.assertNotIn('No CIDs referenced', page)
+        self.assertNotIn('No references detected', page)
+        self.assertIn('crossref-reference', page)
 
     def test_plans_page(self):
         """Test plans page."""

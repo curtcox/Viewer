@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import re
 import traceback
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from flask import (
     abort,
@@ -28,7 +30,9 @@ from db_access import (
     create_payment_record,
     create_terms_acceptance_record,
     get_cid_by_path,
+    get_user_aliases,
     get_user_profile_data,
+    get_user_servers,
     validate_invitation_code,
 )
 from forms import (
@@ -37,7 +41,13 @@ from forms import (
     PaymentForm,
     TermsAcceptanceForm,
 )
-from models import Invitation, CURRENT_TERMS_VERSION
+from cid_presenter import cid_path, format_cid, format_cid_short
+from entity_references import (
+    extract_references_from_bytes,
+    extract_references_from_target,
+    extract_references_from_text,
+)
+from models import CID, Invitation, CURRENT_TERMS_VERSION
 from secrets import token_urlsafe as secrets_token_urlsafe
 from server_execution import (
     is_potential_server_path,
@@ -61,6 +71,272 @@ def _extract_exception(error: Exception) -> Exception:
 
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+_TYPE_LABELS = {
+    'alias': 'Alias',
+    'server': 'Server',
+    'cid': 'CID',
+}
+
+
+def _make_dom_id(prefix: str, value: Optional[str]) -> str:
+    """Return a stable DOM identifier combining a slug and hash suffix."""
+
+    text = (value or '').strip()
+    slug = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+    digest_source = text or prefix
+    digest = hashlib.sha1(digest_source.encode('utf-8')).hexdigest()[:8]
+    if slug:
+        return f"{prefix}-{slug}-{digest}"
+    return f"{prefix}-{digest}"
+
+
+def _entity_key(entity_type: str, identifier: Optional[str]) -> str:
+    """Return a unique DOM key for the given entity descriptor."""
+
+    return _make_dom_id(entity_type, identifier or entity_type)
+
+
+def _reference_key(source_key: str, target_key: str) -> str:
+    """Return a DOM key representing a directed relationship."""
+
+    return _make_dom_id('ref', f"{source_key}->{target_key}")
+
+
+def _preview_text_from_bytes(data: Optional[bytes]) -> Tuple[str, bool]:
+    """Return a compact preview and whether it was truncated."""
+
+    if not data:
+        return '', False
+
+    try:
+        snippet = data.decode('utf-8', errors='replace')
+        preview = snippet[:20].replace('\n', ' ').replace('\r', ' ')
+        return preview, len(snippet) > 20
+    except Exception:
+        hex_preview = data[:10].hex()
+        return hex_preview, len(data or b'') > 10
+
+
+def _entity_url(entity_type: str, identifier: str) -> Optional[str]:
+    """Return the canonical URL for viewing the given entity."""
+
+    if not identifier:
+        return None
+
+    if entity_type == 'alias':
+        return url_for('main.view_alias', alias_name=identifier)
+    if entity_type == 'server':
+        return url_for('main.view_server', server_name=identifier)
+    if entity_type == 'cid':
+        normalized = format_cid(identifier)
+        if not normalized:
+            return None
+        return url_for('main.meta_route', requested_path=normalized)
+    return None
+
+
+def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
+    """Assemble alias, server, CID, and relationship data for the homepage."""
+
+    aliases = get_user_aliases(user_id)
+    servers = get_user_servers(user_id)
+
+    entity_implied: Dict[str, Set[str]] = defaultdict(set)
+    entity_outgoing_refs: Dict[str, Set[str]] = defaultdict(set)
+    entity_incoming_refs: Dict[str, Set[str]] = defaultdict(set)
+    referenced_cids: Set[str] = set()
+
+    def _record_cid_metadata(entry: Optional[Dict[str, Any]]) -> Optional[str]:
+        if not entry:
+            return None
+
+        cid_value = format_cid(entry.get('cid'))
+        if not cid_value:
+            return None
+
+        referenced_cids.add(cid_value)
+        return cid_value
+
+    references: List[Dict[str, Any]] = []
+    reference_seen: Set[Tuple[str, str, str, str]] = set()
+
+    def _register_reference(
+        source_type: str,
+        source_identifier: str,
+        target_type: str,
+        target_identifier: str,
+    ) -> None:
+        if not source_identifier or not target_identifier:
+            return
+
+        source_key = _entity_key(source_type, source_identifier)
+        target_key = _entity_key(target_type, target_identifier)
+        dedupe_key = (source_type, source_identifier, target_type, target_identifier)
+        if dedupe_key in reference_seen:
+            return
+        reference_seen.add(dedupe_key)
+
+        ref_key = _reference_key(source_key, target_key)
+
+        references.append(
+            {
+                'key': ref_key,
+                'source_key': source_key,
+                'target_key': target_key,
+                'source_type': source_type,
+                'target_type': target_type,
+                'source_label': _TYPE_LABELS.get(source_type, source_type.title()),
+                'target_label': _TYPE_LABELS.get(target_type, target_type.title()),
+                'source_name': source_identifier,
+                'target_name': target_identifier,
+                'source_url': _entity_url(source_type, source_identifier),
+                'target_url': _entity_url(target_type, target_identifier),
+                'source_cid_short': format_cid_short(source_identifier)
+                if source_type == 'cid'
+                else None,
+                'target_cid_short': format_cid_short(target_identifier)
+                if target_type == 'cid'
+                else None,
+            }
+        )
+
+        entity_implied[source_key].add(target_key)
+        entity_outgoing_refs[source_key].add(ref_key)
+        entity_incoming_refs[target_key].add(ref_key)
+
+    def _handle_alias_references(alias_obj) -> None:
+        refs = extract_references_from_target(getattr(alias_obj, 'target_path', None), user_id)
+        for ref in refs.get('aliases', []):
+            target_name = ref.get('name')
+            if target_name:
+                _register_reference('alias', alias_obj.name, 'alias', target_name)
+
+        for ref in refs.get('servers', []):
+            target_name = ref.get('name')
+            if target_name:
+                _register_reference('alias', alias_obj.name, 'server', target_name)
+
+        for ref in refs.get('cids', []):
+            cid_value = _record_cid_metadata(ref)
+            if cid_value:
+                _register_reference('alias', alias_obj.name, 'cid', cid_value)
+
+    def _handle_server_references(server_obj) -> None:
+        refs = extract_references_from_text(getattr(server_obj, 'definition', ''), user_id)
+        for ref in refs.get('aliases', []):
+            target_name = ref.get('name')
+            if target_name:
+                _register_reference('server', server_obj.name, 'alias', target_name)
+
+        for ref in refs.get('servers', []):
+            target_name = ref.get('name')
+            if target_name:
+                _register_reference('server', server_obj.name, 'server', target_name)
+
+        for ref in refs.get('cids', []):
+            cid_value = _record_cid_metadata(ref)
+            if cid_value:
+                _register_reference('server', server_obj.name, 'cid', cid_value)
+
+        if getattr(server_obj, 'definition_cid', None):
+            cid_value = format_cid(server_obj.definition_cid)
+            if cid_value:
+                referenced_cids.add(cid_value)
+                _register_reference('server', server_obj.name, 'cid', cid_value)
+
+    alias_entries: List[Dict[str, Any]] = []
+    for alias in aliases:
+        alias_entries.append(
+            {
+                'type': 'alias',
+                'name': alias.name,
+                'url': url_for('main.view_alias', alias_name=alias.name),
+                'entity_key': _entity_key('alias', alias.name),
+                'target_path': getattr(alias, 'target_path', ''),
+            }
+        )
+        _handle_alias_references(alias)
+
+    server_entries: List[Dict[str, Any]] = []
+    for server in servers:
+        server_entries.append(
+            {
+                'type': 'server',
+                'name': server.name,
+                'url': url_for('main.view_server', server_name=server.name),
+                'entity_key': _entity_key('server', server.name),
+                'definition_cid': format_cid(getattr(server, 'definition_cid', '')),
+            }
+        )
+        _handle_server_references(server)
+
+    cid_paths = [cid_path(value) for value in referenced_cids if cid_path(value)]
+    cid_records: Sequence[CID] = []
+    if cid_paths:
+        cid_records = CID.query.filter(CID.path.in_(cid_paths)).all()
+
+    records_by_cid = {
+        format_cid(getattr(record, 'path', '')): record
+        for record in cid_records
+        if getattr(record, 'path', None)
+    }
+
+    cid_entries: List[Dict[str, Any]] = []
+    for cid_value in sorted(referenced_cids):
+        record = records_by_cid.get(cid_value)
+        file_data = getattr(record, 'file_data', None) if record else None
+        preview, truncated = _preview_text_from_bytes(file_data)
+
+        cid_entry = {
+            'type': 'cid',
+            'cid': cid_value,
+            'entity_key': _entity_key('cid', cid_value),
+            'preview': preview,
+            'preview_truncated': truncated,
+            'short_label': format_cid_short(cid_value),
+            'meta_url': _entity_url('cid', cid_value),
+        }
+
+        if file_data:
+            refs = extract_references_from_bytes(file_data, user_id)
+            for ref in refs.get('aliases', []):
+                target_name = ref.get('name')
+                if target_name:
+                    _register_reference('cid', cid_value, 'alias', target_name)
+
+            for ref in refs.get('servers', []):
+                target_name = ref.get('name')
+                if target_name:
+                    _register_reference('cid', cid_value, 'server', target_name)
+
+            for ref in refs.get('cids', []):
+                target_cid = format_cid(ref.get('cid'))
+                if target_cid and target_cid in referenced_cids:
+                    _register_reference('cid', cid_value, 'cid', target_cid)
+
+        cid_entries.append(cid_entry)
+
+    for entry in alias_entries + server_entries + cid_entries:
+        key = entry['entity_key']
+        entry['implied_keys'] = sorted(entity_implied.get(key, []))
+        entry['outgoing_refs'] = sorted(entity_outgoing_refs.get(key, []))
+        entry['incoming_refs'] = sorted(entity_incoming_refs.get(key, []))
+
+    references.sort(key=lambda item: (
+        item['source_label'],
+        item['source_name'],
+        item['target_label'],
+        item['target_name'],
+    ))
+
+    return {
+        'aliases': alias_entries,
+        'servers': server_entries,
+        'cids': cid_entries,
+        'references': references,
+    }
 
 
 def derive_name_from_path(path: str) -> Optional[str]:
@@ -319,7 +595,11 @@ def inject_observability_info():
 @main_bp.route('/')
 def index():
     """Landing page with marketing and observability information."""
-    return render_template('index.html')
+    cross_reference = None
+    if current_user.is_authenticated:
+        cross_reference = _build_cross_reference_data(current_user.id)
+
+    return render_template('index.html', cross_reference=cross_reference)
 
 
 @main_bp.route('/dashboard')
