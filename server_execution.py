@@ -866,4 +866,7 @@ def try_server_execution(path: str):
         return execute_server_code(server, server_name)
 
     function_name = parts[1]
+    if not function_name.isidentifier():
+        return execute_server_code(server, server_name)
+
     return execute_server_function(server, server_name, function_name)

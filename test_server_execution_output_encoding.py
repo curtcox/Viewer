@@ -101,7 +101,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         )
         server_execution.redirect = lambda url: ("redirect", url)
         server_execution._render_execution_error_html = (
-            lambda exc, code, args: "<html>Error</html>"
+            lambda exc, code, args, server_name: "<html>Error</html>"
         )
 
     def tearDown(self):

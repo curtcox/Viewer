@@ -278,6 +278,41 @@ return value["number"]
         mock_store.assert_called_once_with(payload, 'binary-user')
         self.assertEqual(result, 'cid-bytes')
 
+    def test_load_returns_text_content(self):
+        """load() should retrieve CID content and decode to text by default."""
+        body = "return load(cid)"
+        argmap = {"cid": "bafy123"}
+
+        with patch('text_function_runner.get_cid_by_path') as mock_get:
+            mock_get.return_value = SimpleNamespace(file_data=b'print(\"hi\")')
+            result = self.run_text_function(body, argmap)
+
+        mock_get.assert_called_once_with('/bafy123')
+        self.assertEqual(result, 'print("hi")')
+
+    def test_load_supports_binary_mode(self):
+        """load() should return raw bytes when encoding is disabled."""
+        body = "return load(cid, encoding=None)"
+        blob = b"\x00\x01\x02"
+        argmap = {"cid": "binary"}
+
+        with patch('text_function_runner.get_cid_by_path') as mock_get:
+            mock_get.return_value = SimpleNamespace(file_data=blob)
+            result = self.run_text_function(body, argmap)
+
+        mock_get.assert_called_once_with('/binary')
+        self.assertEqual(result, blob)
+
+    def test_load_raises_for_missing_records(self):
+        """load() should raise a ValueError when the CID cannot be found."""
+        body = "return load(cid)"
+        argmap = {"cid": "missing"}
+
+        with patch('text_function_runner.get_cid_by_path') as mock_get:
+            mock_get.return_value = None
+            with self.assertRaises(ValueError):
+                self.run_text_function(body, argmap)
+
 
 if __name__ == '__main__':
     unittest.main()
