@@ -26,6 +26,7 @@ from db_access import (
     get_user_aliases,
     get_user_secrets,
     get_user_servers,
+    get_user_uploads,
     get_user_variables,
     get_variable_by_name,
     record_entity_interaction,
@@ -885,6 +886,16 @@ def export_data():
 
         if app_source_payload:
             payload['app_source'] = app_source_payload
+
+        if form.include_cid_map.data and form.include_unreferenced_cid_data.data:
+            for record in get_user_uploads(current_user.id):
+                normalised = _normalise_cid(record.path)
+                if not normalised or normalised in cid_map_entries:
+                    continue
+                file_content = record.file_data
+                if file_content is None:
+                    continue
+                cid_map_entries[normalised] = _serialise_cid_value(bytes(file_content))
 
         if form.include_cid_map.data and cid_map_entries:
             payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
