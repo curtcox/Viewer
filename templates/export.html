@@ -84,6 +84,15 @@
                                 <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
                                 <span class="d-block text-muted small">Include the CID to content map so other environments can load referenced definitions.</span>
                             </label>
+                            <div class="ms-4 mt-3">
+                                <div class="form-check">
+                                    {{ form.include_unreferenced_cid_data(class="form-check-input", id="include-unreferenced-cid-data") }}
+                                    <label class="form-check-label" for="include-unreferenced-cid-data">
+                                        {{ form.include_unreferenced_cid_data.label.text }}
+                                        <span class="d-block text-muted small">Add CID content that is not referenced by other exported items.</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-4">

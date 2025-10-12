@@ -194,6 +194,85 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertNotIn('cid_values', payload)
 
+    def test_export_excludes_unreferenced_cids_by_default(self):
+        server_definition = 'print("hi")'
+        unreferenced_content = b'unreferenced data'
+        unreferenced_cid = format_cid(generate_cid(unreferenced_content))
+
+        with self.app.app_context():
+            server = Server(name='server-one', definition=server_definition, user_id=self.user_id)
+            unreferenced_record = CID(
+                path=f'/{unreferenced_cid}',
+                file_data=unreferenced_content,
+                file_size=len(unreferenced_content),
+                uploaded_by_user_id=self.user_id,
+            )
+            db.session.add_all([server, unreferenced_record])
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_servers': 'y',
+                'include_cid_map': 'y',
+                'submit': True,
+            })
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            export_record = next(
+                (record for record in CID.query.all() if b'"cid_values"' in record.file_data),
+                None,
+            )
+
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+
+        cid_values = payload.get('cid_values', {})
+        expected_server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
+        self.assertIn(expected_server_cid, cid_values)
+        self.assertNotIn(unreferenced_cid, cid_values)
+
+    def test_export_includes_unreferenced_cids_when_requested(self):
+        unreferenced_content = b'unreferenced data'
+        unreferenced_cid = format_cid(generate_cid(unreferenced_content))
+
+        with self.app.app_context():
+            unreferenced_record = CID(
+                path=f'/{unreferenced_cid}',
+                file_data=unreferenced_content,
+                file_size=len(unreferenced_content),
+                uploaded_by_user_id=self.user_id,
+            )
+            db.session.add(unreferenced_record)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_aliases': 'y',
+                'include_cid_map': 'y',
+                'include_unreferenced_cid_data': 'y',
+                'submit': True,
+            })
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            export_record = next(
+                (record for record in CID.query.all() if b'"cid_values"' in record.file_data),
+                None,
+            )
+
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+
+        cid_values = payload.get('cid_values', {})
+        self.assertIn(unreferenced_cid, cid_values)
+        self.assertEqual(
+            cid_values[unreferenced_cid],
+            {'encoding': 'utf-8', 'value': unreferenced_content.decode('utf-8')},
+        )
+
     def test_import_reports_missing_selected_content(self):
         payload = json.dumps({'aliases': [{'name': 'alias-a', 'target_path': '/path'}]})
 

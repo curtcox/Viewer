@@ -214,6 +214,7 @@ class ExportForm(FlaskForm):
     include_history = BooleanField('Change History')
     include_source = BooleanField('Application Source Files')
     include_cid_map = BooleanField('CID Content Map', default=True)
+    include_unreferenced_cid_data = BooleanField('Include Unreferenced CID Content')
     secret_key = StringField(
         'Secret Encryption Key',
         validators=[Optional()],
