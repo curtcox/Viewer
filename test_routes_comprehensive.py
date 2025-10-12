@@ -172,6 +172,17 @@ class TestPublicRoutes(BaseTestCase):
         self.assertIn('Workspace Cross Reference', page)
         self.assertIn('data-crossref-container', page)
 
+    def test_index_cross_reference_shortcuts_link_to_entity_lists(self):
+        """The dashboard shortcut badges should link to the list views."""
+        self.login_user()
+
+        response = self.client.get('/')
+        page = response.get_data(as_text=True)
+
+        self.assertIn('href="/aliases"', page)
+        self.assertIn('href="/servers"', page)
+        self.assertIn('href="/uploads"', page)
+
     def test_index_cross_reference_lists_entities_and_relationships(self):
         """Cross reference dashboard should include aliases, servers, CIDs, and references."""
         self.login_user()
