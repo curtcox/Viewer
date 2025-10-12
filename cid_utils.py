@@ -1,4 +1,5 @@
 import base64
+import binascii
 import hashlib
 import json
 import re
@@ -13,9 +14,15 @@ from flask import make_response, request
 
 
 CID_CHARACTER_CLASS = "A-Za-z0-9_-"
-CID_LENGTH = 43
+CID_LENGTH_PREFIX_BYTES = 6
+CID_LENGTH_PREFIX_CHARS = 8
+SHA512_DIGEST_SIZE = hashlib.sha512().digest_size
+CID_SHA512_CHARS = 86
+CID_LENGTH = CID_LENGTH_PREFIX_CHARS + CID_SHA512_CHARS
 CID_MIN_REFERENCE_LENGTH = 6
 CID_STRICT_MIN_LENGTH = 30
+
+MAX_CONTENT_LENGTH = (1 << (CID_LENGTH_PREFIX_BYTES * 8)) - 1
 
 CID_NORMALIZED_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_LENGTH}}}$")
 CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
@@ -143,15 +150,73 @@ def split_cid_path(value: Optional[str]) -> Optional[Tuple[str, Optional[str]]]:
 # CID GENERATION AND STORAGE HELPERS
 # ============================================================================
 
-def generate_cid(file_data):
-    """Generate a simple CID-like hash from file data only"""
-    hasher = hashlib.sha256()
-    hasher.update(file_data)
-    sha256_hash = hasher.digest()
+def _base64url_encode(data: bytes) -> str:
+    """Return URL-safe base64 representation without padding."""
 
-    # Use URL-safe base64 without padding as the CID string
-    encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
+    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
+
+
+def _base64url_decode(data: str) -> bytes:
+    """Decode URL-safe base64 data that may omit padding."""
+
+    padding = "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(data + padding)
+
+
+def encode_cid_length(length: int) -> str:
+    """Encode the content length into the CID prefix."""
+
+    if length < 0 or length > MAX_CONTENT_LENGTH:
+        raise ValueError(
+            f"CID content length must be between 0 and {MAX_CONTENT_LENGTH} bytes"
+        )
+
+    encoded = _base64url_encode(length.to_bytes(CID_LENGTH_PREFIX_BYTES, "big"))
+    if len(encoded) != CID_LENGTH_PREFIX_CHARS:
+        raise ValueError("Encoded length prefix must be 8 characters long")
     return encoded
+
+
+def parse_cid_components(cid: str) -> Tuple[int, bytes]:
+    """Return the encoded content length and SHA-512 digest for a CID.
+
+    Raises ValueError if the CID is malformed or not in the normalized format.
+    """
+
+    normalized = _normalize_component(cid)
+    if len(normalized) != CID_LENGTH:
+        raise ValueError("CID must be normalized to 94 characters")
+
+    length_part = normalized[:CID_LENGTH_PREFIX_CHARS]
+    digest_part = normalized[CID_LENGTH_PREFIX_CHARS:]
+
+    try:
+        length_bytes = _base64url_decode(length_part)
+        digest_bytes = _base64url_decode(digest_part)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("CID contains invalid base64 encoding") from exc
+
+    if len(length_bytes) != CID_LENGTH_PREFIX_BYTES:
+        raise ValueError("CID length prefix has an unexpected size")
+    if len(digest_bytes) != SHA512_DIGEST_SIZE:
+        raise ValueError("CID digest has an unexpected size")
+
+    return int.from_bytes(length_bytes, "big"), digest_bytes
+
+
+def generate_cid(file_data):
+    """Generate a CID consisting of a length prefix and SHA-512 digest."""
+
+    content_length = len(file_data)
+    length_part = encode_cid_length(content_length)
+
+    digest = hashlib.sha512(file_data).digest()
+    digest_part = _base64url_encode(digest)
+
+    if len(digest_part) != CID_SHA512_CHARS:
+        raise ValueError("SHA-512 digest must encode to 86 characters")
+
+    return f"{length_part}{digest_part}"
 
 
 def process_file_upload(form):

@@ -1,14 +1,19 @@
-import unittest
-import hashlib
 import base64
+import hashlib
+import os
+import unittest
 
 from cid_utils import (
     CID_LENGTH,
+    CID_LENGTH_PREFIX_CHARS,
+    CID_SHA512_CHARS,
     CID_NORMALIZED_PATTERN,
+    encode_cid_length,
     generate_cid,
     is_normalized_cid,
     is_probable_cid_component,
     is_strict_cid_candidate,
+    parse_cid_components,
     split_cid_path,
 )
 
@@ -16,10 +21,18 @@ from cid_utils import (
 class TestCIDGeneration(unittest.TestCase):
     """Unit tests for CID generation functionality"""
 
+    def _assert_round_trip(self, content: bytes) -> None:
+        cid = generate_cid(content)
+        length, digest = parse_cid_components(cid)
+        self.assertEqual(length, len(content))
+        self.assertEqual(digest, hashlib.sha512(content).digest())
+        self.assertEqual(len(cid), CID_LENGTH)
+        self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid))
+
     def test_same_content_same_cid(self):
         """Test that same content produces the same CID (content type no longer affects CID)"""
         content = b"Hello, World!"
-        
+
         cid1 = generate_cid(content)
         cid2 = generate_cid(content)
         cid3 = generate_cid(content)
@@ -53,7 +66,7 @@ class TestCIDGeneration(unittest.TestCase):
     def test_cid_format(self):
         """Test that generated CIDs have the correct format"""
         content = b"Sample content for format testing"
-        
+
         cid = generate_cid(content)
         
         # Should be the expected canonical length for generated CIDs
@@ -144,17 +157,42 @@ class TestCIDGeneration(unittest.TestCase):
 
         # Generate CID using our function
         actual_cid = generate_cid(content)
-        
-        # Calculate expected hash manually (only content, no content type)
-        hasher = hashlib.sha256()
-        hasher.update(content)
-        sha256_hash = hasher.digest()
-        
-        # Encode to base64url (no padding) and create expected CID
-        encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
-        expected_cid = encoded
-        
+
+        # Calculate expected CID manually
+        length_prefix = encode_cid_length(len(content))
+        digest = hashlib.sha512(content).digest()
+        digest_part = base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
+        self.assertEqual(len(length_prefix), CID_LENGTH_PREFIX_CHARS)
+        self.assertEqual(len(digest_part), CID_SHA512_CHARS)
+        expected_cid = f"{length_prefix}{digest_part}"
+
         self.assertEqual(actual_cid, expected_cid)
+
+    def test_round_trip_all_lengths(self):
+        """Ensure every content length from 0-512 bytes round-trips the CID metadata."""
+
+        for size in range(0, 513):
+            for pattern in (b"\x00", bytes(range(256))):
+                with self.subTest(size=size, pattern="zeros" if pattern == b"\x00" else "range"):
+                    content = (pattern * (size // len(pattern) + 1))[:size]
+                    self._assert_round_trip(content)
+
+    def test_round_trip_repository_files(self):
+        """Round-trip CID metadata for representative files in the repository."""
+
+        file_paths = [
+            "README.md",
+            "cid_utils.py",
+            os.path.join("templates", "base.html"),
+            os.path.join("static", "css", "custom.css"),
+        ]
+
+        for path in file_paths:
+            with self.subTest(path=path):
+                self.assertTrue(os.path.exists(path), f"Test fixture file missing: {path}")
+                with open(path, "rb") as handle:
+                    content = handle.read()
+                self._assert_round_trip(content)
 
     def test_real_world_scenarios(self):
         """Test CID generation with real-world content scenarios"""
