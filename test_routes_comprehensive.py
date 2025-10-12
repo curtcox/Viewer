@@ -283,6 +283,84 @@ def main(request):
         incoming_values = set(incoming_match.group(1).split())
         self.assertTrue(incoming_values >= incoming_reference_keys)
 
+    def test_index_cross_reference_skips_cids_without_named_alias(self):
+        """Orphaned CIDs from aliases without names should not appear in the dashboard."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Alias without a name referencing this CID')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'nameless alias content',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        nameless_alias = Alias(name='', target_path=f'/{cid_value}', user_id=self.test_user.id)
+
+        db.session.add_all([cid_record, nameless_alias])
+        db.session.commit()
+
+        response = self.client.get('/')
+        page = response.get_data(as_text=True)
+
+        self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
+
+        with self.app.test_request_context('/'):
+            cross_reference = _build_cross_reference_data(self.test_user.id)
+
+        self.assertFalse(
+            any(entry['cid'] == cid_value for entry in cross_reference['cids']),
+            'CID referenced only by a nameless alias should be filtered out',
+        )
+        self.assertFalse(
+            any(
+                ref['target_type'] == 'cid' and ref['target_name'] == cid_value
+                for ref in cross_reference['references']
+            ),
+            'References column should not include entries for the filtered CID',
+        )
+
+    def test_index_cross_reference_skips_cids_without_named_server(self):
+        """Servers lacking a name should not introduce orphan CID entries."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Server without a name referencing this CID')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'nameless server content',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        nameless_server = Server(
+            name='',
+            definition="""
+def main(request):
+    return "Hello"
+""".strip(),
+            user_id=self.test_user.id,
+            definition_cid=f'/{cid_value}',
+        )
+
+        db.session.add_all([cid_record, nameless_server])
+        db.session.commit()
+
+        response = self.client.get('/')
+        page = response.get_data(as_text=True)
+
+        self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
+
+        with self.app.test_request_context('/'):
+            cross_reference = _build_cross_reference_data(self.test_user.id)
+
+        self.assertFalse(
+            any(entry['cid'] == cid_value for entry in cross_reference['cids']),
+            'CID referenced only by a nameless server should be filtered out',
+        )
+        self.assertFalse(
+            any(
+                ref['target_type'] == 'cid' and ref['target_name'] == cid_value
+                for ref in cross_reference['references']
+            ),
+            'References column should not include entries for the filtered CID',
+        )
+
     def test_plans_page(self):
         """Test plans page."""
         response = self.client.get('/plans')

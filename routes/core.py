@@ -261,6 +261,8 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         )
         _handle_alias_references(alias)
 
+    alias_keys = {entry['entity_key'] for entry in alias_entries}
+
     server_entries: List[Dict[str, Any]] = []
     for server in servers:
         server_entries.append(
@@ -274,6 +276,8 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         )
         _handle_server_references(server)
 
+    server_keys = {entry['entity_key'] for entry in server_entries}
+
     cid_paths = [cid_path(value) for value in referenced_cids if cid_path(value)]
     cid_records: Sequence[CID] = []
     if cid_paths:
@@ -285,7 +289,7 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         if getattr(record, 'path', None)
     }
 
-    cid_entries: List[Dict[str, Any]] = []
+    cid_candidates: List[Dict[str, Any]] = []
     for cid_value in sorted(referenced_cids):
         record = records_by_cid.get(cid_value)
         file_data = getattr(record, 'file_data', None) if record else None
@@ -318,13 +322,41 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
                 if target_cid and target_cid in referenced_cids:
                     _register_reference('cid', cid_value, 'cid', target_cid)
 
+        cid_candidates.append(cid_entry)
+
+    named_entity_keys = alias_keys | server_keys
+    cid_entries: List[Dict[str, Any]] = []
+
+    for cid_entry in cid_candidates:
+        cid_key = cid_entry['entity_key']
+        related_keys = entity_implied.get(cid_key, set())
+        has_named_relation = any(key in named_entity_keys for key in related_keys)
+        related_reference_keys = entity_outgoing_refs.get(cid_key, set()) | entity_incoming_refs.get(cid_key, set())
+
+        if not has_named_relation or not related_reference_keys:
+            continue
+
         cid_entries.append(cid_entry)
+
+    all_entity_keys = alias_keys | server_keys | {entry['entity_key'] for entry in cid_entries}
+
+    filtered_references: List[Dict[str, Any]] = []
+    reference_keys_by_source: Dict[str, Set[str]] = defaultdict(set)
+    reference_keys_by_target: Dict[str, Set[str]] = defaultdict(set)
+    for ref in references:
+        if ref['source_key'] not in all_entity_keys or ref['target_key'] not in all_entity_keys:
+            continue
+        filtered_references.append(ref)
+        reference_keys_by_source[ref['source_key']].add(ref['key'])
+        reference_keys_by_target[ref['target_key']].add(ref['key'])
+
+    references = filtered_references
 
     for entry in alias_entries + server_entries + cid_entries:
         key = entry['entity_key']
-        entry['implied_keys'] = sorted(entity_implied.get(key, []))
-        entry['outgoing_refs'] = sorted(entity_outgoing_refs.get(key, []))
-        entry['incoming_refs'] = sorted(entity_incoming_refs.get(key, []))
+        entry['implied_keys'] = sorted(key_value for key_value in entity_implied.get(key, []) if key_value in all_entity_keys)
+        entry['outgoing_refs'] = sorted(reference_keys_by_source.get(key, []))
+        entry['incoming_refs'] = sorted(reference_keys_by_target.get(key, []))
 
     references.sort(key=lambda item: (
         item['source_label'],
