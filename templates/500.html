@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% if syntax_css %}
+<style>{{ syntax_css | safe }}</style>
+{% endif %}
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-10">
@@ -16,6 +19,59 @@
                     </a>
                 </div>
             </div>
+
+            {% if server_name or server_definition_url or server_args_json %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-server me-2"></i>
+                            Server invocation details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if server_name %}
+                            <p class="mb-3">
+                                <strong>Server:</strong>
+                                {% if server_definition_url %}
+                                    <a href="{{ server_definition_url }}" class="text-decoration-none">
+                                        <i class="fas fa-external-link-alt me-1"></i>{{ server_name }}
+                                    </a>
+                                {% else %}
+                                    <code>{{ server_name }}</code>
+                                {% endif %}
+                            </p>
+                        {% endif %}
+                        {% if server_args_json %}
+                            <div>
+                                <h6 class="text-uppercase text-muted small">Arguments passed to server</h6>
+                                <pre class="bg-light p-3 rounded border"><code>{{ server_args_json }}</code></pre>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if highlighted_server_code or server_definition %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-code me-2"></i>
+                            Server source code
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if highlighted_server_code %}
+                            <div class="codehilite border rounded" style="max-height: 500px; overflow: auto;">
+                                <pre class="mb-0 px-3 py-2" style="overflow:auto;">{{ highlighted_server_code | safe }}</pre>
+                            </div>
+                        {% elif server_definition %}
+                            <pre class="bg-light p-3 rounded border" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ server_definition | e }}</pre>
+                        {% else %}
+                            <p class="text-muted mb-0">Server definition was empty.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
 
             {% if stack_trace %}
                 <div class="card">

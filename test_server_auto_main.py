@@ -88,6 +88,27 @@ def test_auto_main_reads_headers_when_query_and_body_missing():
     assert result["output"] == "HeaderUA"
 
 
+def test_auto_main_error_page_includes_debug_details():
+    definition = """
+ def main(name):
+     raise RuntimeError(f"failure for {name}")
+ """
+
+    with app.test_request_context("/boom?name=Auto"):
+        response = server_execution.execute_server_code_from_definition(definition, "boom")
+
+    assert response.status_code == 500
+
+    html = response.get_data(as_text=True)
+
+    assert "Server source code" in html
+    assert "codehilite" in html
+    assert "Arguments passed to server" in html
+    assert "/servers/boom" in html
+    assert "Stack trace with source links" in html
+    assert "Auto" in html
+
+
 def test_auto_main_matches_hyphenated_headers():
     definition = """
  def main(x_custom_token):
