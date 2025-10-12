@@ -5,7 +5,9 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 
 import typing
 
+from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes
+from db_access import get_cid_by_path
 from flask_login import current_user
 
 
@@ -48,6 +50,30 @@ def _save_content(value):
 
     content = _coerce_to_bytes(value)
     return store_cid_from_bytes(content, user_id)
+
+
+def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict"):
+    """Return the stored CID content, optionally decoding it as text."""
+
+    if not isinstance(cid_value, str):
+        raise TypeError("cid must be provided as a string")
+
+    normalized_path = cid_path(cid_value)
+    if not normalized_path:
+        raise ValueError("cid must not be empty")
+
+    record = get_cid_by_path(normalized_path)
+    if record is None:
+        raise ValueError(f"CID {cid_value!r} does not exist")
+
+    data = getattr(record, "file_data", b"")
+    if not isinstance(data, (bytes, bytearray)):
+        data = _coerce_to_bytes(data)
+
+    if encoding is None:
+        return bytes(data)
+
+    return bytes(data).decode(encoding, errors)
 
 _SAFE_TYPING_GLOBALS = {
     "typing": typing,
@@ -95,7 +121,11 @@ def run_text_function(
     src = f"def {fn_name}({', '.join(param_names)}):\n{textwrap.indent(body_text, '    ')}"
 
     # Global namespace with all builtins available plus helper utilities
-    ns = {"__builtins__": builtins, "save": _save_content}
+    ns = {
+        "__builtins__": builtins,
+        "save": _save_content,
+        "load": _load_content,
+    }
     ns.update(_SAFE_TYPING_GLOBALS)
 
     # Define and run

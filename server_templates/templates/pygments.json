@@ -1,0 +1,6 @@
+{
+  "id": "pygments",
+  "name": "Pygments code viewer",
+  "description": "Render CID-backed source files with syntax highlighting.",
+  "definition_file": "definitions/pygments.py"
+}
