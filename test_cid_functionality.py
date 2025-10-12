@@ -8,6 +8,7 @@ from cid_utils import (
     CID_LENGTH,
     CID_NORMALIZED_PATTERN,
     _looks_like_markdown,
+    encode_cid_length,
     generate_cid,
     get_mime_type_from_extension,
     is_normalized_cid,
@@ -74,12 +75,11 @@ class TestCIDFunctionality(unittest.TestCase):
         """Test that CID generation produces expected hash"""
         file_data = b"test content"
         
-        # Calculate expected hash manually
-        hasher = hashlib.sha256()
-        hasher.update(file_data)
-        sha256_hash = hasher.digest()
-        encoded = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
-        expected_cid = encoded
+        # Calculate expected CID manually
+        length_prefix = encode_cid_length(len(file_data))
+        digest = hashlib.sha512(file_data).digest()
+        digest_part = base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
+        expected_cid = f"{length_prefix}{digest_part}"
         
         # Generate CID using function
         actual_cid = generate_cid(file_data)
