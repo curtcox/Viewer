@@ -34,28 +34,32 @@
                         <div class="form-check mb-2">
                             {{ form.include_aliases(class="form-check-input", id="include-aliases") }}
                             <label class="form-check-label" for="include-aliases">
-                                <i class="fas fa-link me-1 text-info"></i>{{ form.include_aliases.label.text }}
+                                <i class="fas fa-link me-1 text-info"></i>
+                                <a class="text-reset text-decoration-none" href="{{ url_for('main.aliases') }}">{{ form.include_aliases.label.text }}</a>
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             {{ form.include_servers(class="form-check-input", id="include-servers") }}
                             <label class="form-check-label" for="include-servers">
-                                <i class="fas fa-server me-1 text-primary"></i>{{ form.include_servers.label.text }}
+                                <i class="fas fa-server me-1 text-primary"></i>
+                                <a class="text-reset text-decoration-none" href="{{ url_for('main.servers') }}">{{ form.include_servers.label.text }}</a>
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             {{ form.include_variables(class="form-check-input", id="include-variables") }}
                             <label class="form-check-label" for="include-variables">
-                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_variables.label.text }}
+                                <i class="fas fa-code me-1 text-success"></i>
+                                <a class="text-reset text-decoration-none" href="{{ url_for('main.variables') }}">{{ form.include_variables.label.text }}</a>
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             {{ form.include_secrets(class="form-check-input", id="include-secrets") }}
                             <label class="form-check-label" for="include-secrets">
-                                <i class="fas fa-key me-1 text-warning"></i>{{ form.include_secrets.label.text }}
+                                <i class="fas fa-key me-1 text-warning"></i>
+                                <a class="text-reset text-decoration-none" href="{{ url_for('main.secrets') }}">{{ form.include_secrets.label.text }}</a>
                             </label>
                         </div>
 
