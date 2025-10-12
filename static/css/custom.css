@@ -311,3 +311,57 @@ footer a:hover {
         box-shadow: none !important;
     }
 }
+
+/* Cross reference dashboard */
+.crossref-board .list-group-item {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.crossref-board .crossref-entity,
+.crossref-board .crossref-reference {
+    cursor: pointer;
+}
+
+.crossref-board .crossref-entity:focus,
+.crossref-board .crossref-reference:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.crossref-board.is-hovering .crossref-entity,
+.crossref-board.is-hovering .crossref-reference {
+    opacity: 0.35;
+}
+
+.crossref-board .is-highlighted {
+    opacity: 1 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 0.75rem 1.5rem rgba(13, 110, 253, 0.2);
+    border-color: rgba(13, 110, 253, 0.35);
+}
+
+.crossref-board .is-related,
+.crossref-board .is-reference {
+    opacity: 0.85 !important;
+}
+
+.crossref-board .is-reference {
+    border-color: rgba(108, 117, 125, 0.35);
+}
+
+.crossref-board .is-dimmed {
+    opacity: 0.2 !important;
+}
+
+.crossref-board .badge.text-bg-dark {
+    letter-spacing: 0.04em;
+}
+
+.crossref-board .crossref-reference .badge {
+    letter-spacing: 0.05em;
+}
+
+.crossref-board .font-monospace {
+    font-size: 0.85rem;
+}
