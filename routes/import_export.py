@@ -5,12 +5,15 @@ import base64
 import binascii
 import json
 import platform
+import re
 import sys
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Tuple
 
 import requests
+from importlib import metadata
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
@@ -248,13 +251,93 @@ _APP_SOURCE_COLLECTORS: dict[str, Callable[[], list[Path]]] = {
 }
 
 
+_REQUIREMENT_NAME_PATTERN = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]*')
+
+
+def _parse_dependency_name(raw_value: Any) -> str | None:
+    if not isinstance(raw_value, str):
+        return None
+
+    text = raw_value.strip()
+    if not text or text.startswith('#'):
+        return None
+
+    for prefix in ('-e ', '--', 'git+', 'http://', 'https://'):
+        if text.startswith(prefix):
+            return None
+
+    text = text.split(';', 1)[0].strip()
+    bracket_index = text.find('[')
+    if bracket_index != -1:
+        text = text[:bracket_index]
+
+    for separator in ('===', '==', '>=', '<=', '!=', '~=', '>', '<'):
+        if separator in text:
+            text = text.split(separator, 1)[0]
+            break
+
+    match = _REQUIREMENT_NAME_PATTERN.match(text)
+    if not match:
+        return None
+
+    return match.group(0).lower()
+
+
+def _collect_project_dependencies() -> set[str]:
+    base_path = _app_root_path()
+    dependency_names: set[str] = set()
+
+    pyproject_path = base_path / 'pyproject.toml'
+    if pyproject_path.exists():
+        try:
+            data = tomllib.loads(pyproject_path.read_text('utf-8'))
+        except (OSError, tomllib.TOMLDecodeError):
+            data = None
+        if isinstance(data, dict):
+            project_section = data.get('project')
+            if isinstance(project_section, dict):
+                raw_dependencies = project_section.get('dependencies', [])
+                if isinstance(raw_dependencies, list):
+                    for entry in raw_dependencies:
+                        name = _parse_dependency_name(entry)
+                        if name:
+                            dependency_names.add(name)
+
+    requirements_path = base_path / 'requirements.txt'
+    if requirements_path.exists():
+        try:
+            raw_requirements = requirements_path.read_text('utf-8').splitlines()
+        except OSError:
+            raw_requirements = []
+        for entry in raw_requirements:
+            name = _parse_dependency_name(entry)
+            if name:
+                dependency_names.add(name)
+
+    return dependency_names
+
+
+def _gather_dependency_versions() -> dict[str, dict[str, str]]:
+    dependency_versions: dict[str, dict[str, str]] = {}
+
+    for name in sorted(_collect_project_dependencies(), key=lambda item: item.lower()):
+        try:
+            version = metadata.version(name)
+        except metadata.PackageNotFoundError:
+            continue
+        dependency_versions[name] = {'version': version}
+
+    return dependency_versions
+
+
 def _build_runtime_section() -> dict[str, dict[str, str]]:
     return {
         'python': {
             'implementation': platform.python_implementation(),
             'version': platform.python_version(),
             'executable': sys.executable or '',
-        }
+        },
+        'dependencies': _gather_dependency_versions(),
     }
 
 
@@ -800,6 +883,21 @@ def export_data():
             if not normalised or normalised in cid_map_entries:
                 return
             cid_map_entries[normalised] = _serialise_cid_value(content)
+
+        project_files_payload: dict[str, dict[str, str]] = {}
+        for relative_name in ('pyproject.toml', 'requirements.txt'):
+            absolute_path = base_path / relative_name
+            try:
+                file_content = absolute_path.read_bytes()
+            except OSError:
+                continue
+
+            cid_value = store_cid_from_bytes(file_content, current_user.id)
+            _record_cid_value(cid_value, file_content)
+            project_files_payload[relative_name] = {'cid': cid_value}
+
+        if project_files_payload:
+            payload['project_files'] = project_files_payload
 
         if form.include_aliases.data:
             payload['aliases'] = [
