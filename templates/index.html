@@ -190,7 +190,7 @@
                 Experience secure, premium content with our advanced access control system.
                 Get detailed insights into your web interactions with comprehensive HTTP request tracking.
             </p>
-            <div class="d-flex gap-3">
+            <div class="d-flex flex-wrap gap-3">
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('main.profile') }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-gauge-high me-2"></i>Go to Dashboard
@@ -199,9 +199,15 @@
                 <a href="{{ LOGIN_URL }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-plus me-2"></i>Get Started
                 </a>
+                <a href="{{ LOGIN_URL }}" class="btn btn-success btn-lg">
+                    <i class="fas fa-rocket me-2"></i>Start Free Trial
+                </a>
                 {% else %}
                 <a href="#" onclick="alert('Authentication not available.'); return false;" class="btn btn-primary btn-lg">
                     <i class="fas fa-user-plus me-2"></i>Get Started
+                </a>
+                <a href="#" onclick="alert('Authentication not available.'); return false;" class="btn btn-success btn-lg">
+                    <i class="fas fa-rocket me-2"></i>Start Free Trial
                 </a>
                 {% endif %}
                 <a href="{{ url_for('main.plans') }}" class="btn btn-outline-secondary btn-lg">
