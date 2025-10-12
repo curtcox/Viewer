@@ -29,6 +29,7 @@
                          data-entity-type="alias"
                          data-entity-key="{{ alias.entity_key }}"
                          data-implies="{{ alias.implied_keys|join(' ') }}"
+                         data-incoming-refs="{{ alias.incoming_refs|join(' ') }}"
                          data-outgoing-refs="{{ alias.outgoing_refs|join(' ') }}"
                          tabindex="0">
                         <div class="d-flex align-items-center justify-content-between">
@@ -62,6 +63,7 @@
                          data-entity-type="server"
                          data-entity-key="{{ server.entity_key }}"
                          data-implies="{{ server.implied_keys|join(' ') }}"
+                         data-incoming-refs="{{ server.incoming_refs|join(' ') }}"
                          data-outgoing-refs="{{ server.outgoing_refs|join(' ') }}"
                          tabindex="0">
                         <div class="d-flex align-items-center justify-content-between">
@@ -98,6 +100,7 @@
                          data-entity-type="cid"
                          data-entity-key="{{ cid.entity_key }}"
                          data-implies="{{ cid.implied_keys|join(' ') }}"
+                         data-incoming-refs="{{ cid.incoming_refs|join(' ') }}"
                          data-outgoing-refs="{{ cid.outgoing_refs|join(' ') }}"
                          tabindex="0">
                         <div class="d-flex flex-column gap-2">
@@ -409,6 +412,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const refKeys = (element.getAttribute('data-outgoing-refs') || '').split(/\s+/).filter(Boolean);
             refKeys.forEach((key) => highlightReference(key, 'is-reference'));
+
+            const incomingRefKeys = (element.getAttribute('data-incoming-refs') || '').split(/\s+/).filter(Boolean);
+            incomingRefKeys.forEach((key) => highlightReference(key, 'is-reference'));
         }
 
         markDimmed();

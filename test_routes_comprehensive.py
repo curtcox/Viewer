@@ -4,6 +4,7 @@ Comprehensive unit tests for routes.py
 """
 import json
 import os
+import re
 import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,7 @@ from models import (
 )
 from cid_utils import generate_cid
 from server_templates import get_server_templates
+from routes.core import _build_cross_reference_data
 
 
 class BaseTestCase(unittest.TestCase):
@@ -210,6 +212,65 @@ def main(request):
         self.assertNotIn('No CIDs referenced', page)
         self.assertNotIn('No references detected', page)
         self.assertIn('crossref-reference', page)
+
+
+    def test_index_cross_reference_cids_include_incoming_highlight_metadata(self):
+        """CID entries should carry metadata linking back to referencing aliases or servers."""
+        self.login_user()
+
+        cid_value = generate_cid(b'CID referenced by alias and server')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'Use /aliases/linked and /servers/linked',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        alias_to_cid = Alias(name='linked', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        server_definition = """
+def main(request):
+    return "See /aliases/linked"
+""".strip()
+        server = Server(
+            name='linked',
+            definition=server_definition,
+            user_id=self.test_user.id,
+            definition_cid=f'/{cid_value}',
+        )
+
+        db.session.add_all([cid_record, alias_to_cid, server])
+        db.session.commit()
+
+        response = self.client.get('/')
+        page = response.get_data(as_text=True)
+
+        with self.app.test_request_context('/'):
+            cross_reference = _build_cross_reference_data(self.test_user.id)
+        cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
+        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'linked')
+        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'linked')
+
+        cid_key = cid_entry['entity_key']
+        alias_key = alias_entry['entity_key']
+        server_key = server_entry['entity_key']
+
+        incoming_reference_keys = set(cid_entry['incoming_refs'])
+        self.assertTrue(incoming_reference_keys, 'CID should report at least one incoming reference key')
+
+        element_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(cid_key)}"[^>]*>')
+        cid_match = element_pattern.search(page)
+        self.assertIsNotNone(cid_match, 'CID entry should be rendered with a data-entity-key attribute')
+
+        cid_tag = cid_match.group(0)
+
+        implies_match = re.search(r'data-implies="([^"]*)"', cid_tag)
+        self.assertIsNotNone(implies_match, 'CID entry should expose implied entity keys')
+        implies_values = implies_match.group(1).split()
+        self.assertIn(alias_key, implies_values)
+        self.assertIn(server_key, implies_values)
+
+        incoming_match = re.search(r'data-incoming-refs="([^"]*)"', cid_tag)
+        self.assertIsNotNone(incoming_match, 'CID entry should expose incoming reference keys')
+        incoming_values = set(incoming_match.group(1).split())
+        self.assertTrue(incoming_values >= incoming_reference_keys)
 
     def test_plans_page(self):
         """Test plans page."""

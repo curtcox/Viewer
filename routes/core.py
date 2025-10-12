@@ -203,6 +203,8 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         )
 
         entity_implied[source_key].add(target_key)
+        if source_key != target_key:
+            entity_implied[target_key].add(source_key)
         entity_outgoing_refs[source_key].add(ref_key)
         entity_incoming_refs[target_key].add(ref_key)
 
