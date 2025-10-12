@@ -131,6 +131,29 @@ class TestServerExecutionErrorPages(unittest.TestCase):
             msg="Server execution frame should expose a /source link",
         )
 
+    def test_error_page_includes_server_details_and_arguments(self) -> None:
+        self.server.definition = """
+def main(request):
+    raise ValueError("boom")
+"""
+        db.session.commit()
+
+        response = self.client.get("/jinja_renderer?color=blue")
+
+        self.assertEqual(response.status_code, 500)
+
+        html = response.get_data(as_text=True)
+
+        self.assertIn("Server source code", html)
+        self.assertIn("codehilite", html)
+        self.assertIn("ValueError", html)
+        self.assertIn("Arguments passed to server", html)
+        self.assertIn("/servers/jinja_renderer", html)
+        self.assertIn("Stack trace with source links", html)
+
+        # Arguments section should include the provided query parameter.
+        self.assertIn("color", html)
+
 
 if __name__ == "__main__":
     unittest.main()

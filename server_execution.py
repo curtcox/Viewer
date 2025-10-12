@@ -7,7 +7,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
-from flask import jsonify, make_response, redirect, render_template, request
+from flask import jsonify, make_response, redirect, render_template, request, url_for
 from flask_login import current_user
 import logfire
 
@@ -30,6 +30,7 @@ from db_access import (
     save_entity,
 )
 from text_function_runner import run_text_function
+from syntax_highlighting import highlight_source
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
@@ -581,7 +582,12 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
     return redirect('/')
 
 
-def _render_execution_error_html(exc: Exception, code: str, args: Dict[str, Any]) -> str:
+def _render_execution_error_html(
+    exc: Exception,
+    code: str,
+    args: Dict[str, Any],
+    server_name: Optional[str],
+) -> str:
     """Render an HTML error page for exceptions raised during server execution."""
 
     from routes.core import _build_stack_trace, _extract_exception
@@ -592,17 +598,61 @@ def _render_execution_error_html(exc: Exception, code: str, args: Dict[str, Any]
     message = raw_message if raw_message else "No error message available"
     stack_trace = _build_stack_trace(exc)
 
+    code_text = code if isinstance(code, str) else ""
+    highlighted_code = None
+    syntax_css = None
+    if code_text:
+        highlighted_code, syntax_css = highlight_source(
+            code_text,
+            filename=f"{server_name or 'server'}.py",
+            fallback_lexer="python",
+        )
+
+    server_definition_url: Optional[str]
+    if server_name:
+        try:
+            server_definition_url = url_for("main.view_server", server_name=server_name)
+        except Exception:
+            server_definition_url = None
+    else:
+        server_definition_url = None
+
+    def _stringify(value: Any) -> str:
+        try:
+            return str(value)
+        except Exception:
+            return repr(value)
+
+    try:
+        args_json = json.dumps(
+            args,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+            default=_stringify,
+        )
+    except Exception:
+        args_json = _stringify(args)
+
     return render_template(
         "500.html",
         stack_trace=stack_trace,
         exception_type=exception_type,
         exception_message=message,
+        highlighted_server_code=highlighted_code,
+        server_definition=code_text,
+        syntax_css=syntax_css,
+        server_args_json=args_json,
+        server_name=server_name,
+        server_definition_url=server_definition_url,
     )
 
 
-def _handle_execution_exception(exc: Exception, code: str, args: Dict[str, Any]):
+def _handle_execution_exception(
+    exc: Exception, code: str, args: Dict[str, Any], server_name: Optional[str]
+):
     try:
-        html_content = _render_execution_error_html(exc, code, args)
+        html_content = _render_execution_error_html(exc, code, args, server_name)
         response = make_response(html_content)
         response.headers["Content-Type"] = "text/html; charset=utf-8"
     except Exception:
@@ -657,7 +707,7 @@ def _execute_server_code_common(
         _log_server_output(debug_prefix, error_suffix, output, content_type)
         return _handle_successful_execution(output, content_type, server_name)
     except Exception as exc:
-        return _handle_execution_exception(exc, code, args)
+        return _handle_execution_exception(exc, code, args, server_name)
 
 
 @logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
