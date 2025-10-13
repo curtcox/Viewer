@@ -226,18 +226,6 @@ class ExportForm(FlaskForm):
         if not super().validate(extra_validators):
             return False
 
-        if not any([
-            self.include_aliases.data,
-            self.include_servers.data,
-            self.include_variables.data,
-            self.include_secrets.data,
-            self.include_history.data,
-            self.include_source.data,
-        ]):
-            message = 'Select at least one data type to export.'
-            self.include_aliases.errors.append(message)
-            return False
-
         if self.include_secrets.data and not (self.secret_key.data and self.secret_key.data.strip()):
             self.secret_key.errors.append('Encryption key is required when exporting secrets.')
             return False

@@ -8,6 +8,8 @@ from html import escape
 from pathlib import Path
 from unittest.mock import patch
 
+from importlib import metadata
+
 from app import create_app, db
 from cid_presenter import format_cid
 from cid_utils import generate_cid
@@ -110,6 +112,12 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(payload['version'], 4)
         self.assertIn('generated_at', payload)
 
+        project_files = payload.get('project_files', {})
+        self.assertIn('pyproject.toml', project_files)
+        self.assertIn('requirements.txt', project_files)
+        for entry in project_files.values():
+            self.assertIn('cid', entry)
+
         aliases = payload.get('aliases', [])
         self.assertEqual(len(aliases), 1)
         self.assertEqual(aliases[0]['name'], 'alias-one')
@@ -128,6 +136,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             cid_values[servers[0]['definition_cid']],
             {'encoding': 'utf-8', 'value': 'print("hi")'},
         )
+        for entry in project_files.values():
+            self.assertIn(entry['cid'], cid_values)
 
         variables = payload.get('variables', [])
         self.assertEqual(variables[0]['definition'], 'value')
@@ -167,6 +177,40 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(python_info.get('version'), platform.python_version())
         self.assertEqual(python_info.get('implementation'), platform.python_implementation())
         self.assertEqual(python_info.get('executable'), sys.executable or '')
+        dependencies = runtime_section.get('dependencies')
+        self.assertIsInstance(dependencies, dict)
+        flask_info = dependencies.get('flask')
+        self.assertIsInstance(flask_info, dict)
+        self.assertEqual(flask_info.get('version'), metadata.version('flask'))
+
+        project_files = payload.get('project_files', {})
+        self.assertIn('pyproject.toml', project_files)
+        self.assertIn('requirements.txt', project_files)
+
+    def test_export_allows_runtime_only(self):
+        with self.logged_in():
+            response = self.client.post('/export', data={'submit': True})
+
+        self.assertEqual(response.status_code, 200)
+
+        with self.app.app_context():
+            export_record = next(
+                (record for record in CID.query.all() if b'"runtime"' in record.file_data),
+                None,
+            )
+
+            self.assertIsNotNone(export_record)
+            payload = json.loads(export_record.file_data.decode('utf-8'))
+
+        self.assertIn('runtime', payload)
+        self.assertIn('project_files', payload)
+        self.assertNotIn('aliases', payload)
+        self.assertNotIn('servers', payload)
+        self.assertNotIn('variables', payload)
+        self.assertNotIn('secrets', payload)
+        self.assertNotIn('change_history', payload)
+        self.assertNotIn('app_source', payload)
+        self.assertNotIn('cid_values', payload)
 
     def test_export_without_cid_map_excludes_section(self):
         with self.app.app_context():
@@ -192,6 +236,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             self.assertIsNotNone(export_record)
             payload = json.loads(export_record.file_data.decode('utf-8'))
 
+        project_files = payload.get('project_files', {})
+        self.assertIn('pyproject.toml', project_files)
+        self.assertIn('requirements.txt', project_files)
         self.assertNotIn('cid_values', payload)
 
     def test_export_excludes_unreferenced_cids_by_default(self):
