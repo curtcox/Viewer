@@ -339,6 +339,42 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_bytes))
 
     @patch('cid_utils.make_response')
+    def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response):
+        """Requests with a .qr extension should render a QR code landing page."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                file_content = b"QR content placeholder"
+                cid = generate_cid(file_content)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}.qr")
+
+                mock_make_response.assert_called_once()
+                rendered_payload = mock_make_response.call_args[0][0]
+                self.assertIsInstance(rendered_payload, (bytes, bytearray))
+                rendered_html = rendered_payload.decode('utf-8')
+
+                self.assertIn('View CID as QR Code', rendered_html)
+                self.assertIn('<img', rendered_html)
+                self.assertIn('https://chart.googleapis.com/', rendered_html)
+                self.assertIn(f"https%3A%2F%2F256t.org%2F{cid}", rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_payload))
+
+    @patch('cid_utils.make_response')
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
         with self.app.app_context():

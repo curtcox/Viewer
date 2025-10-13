@@ -4,13 +4,13 @@ import hashlib
 import json
 import re
 from typing import Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from cid_presenter import cid_path, format_cid
 from formdown_renderer import render_formdown_html
 
 import requests
-from flask import make_response, request
+from flask import make_response, render_template, request
 
 
 CID_CHARACTER_CLASS = "A-Za-z0-9_-"
@@ -843,7 +843,6 @@ def _render_markdown_document(text):
         "</html>\n"
     )
 
-
 def _maybe_render_markdown(data, *, path_has_extension):
     if path_has_extension:
         return data, False
@@ -904,9 +903,29 @@ def serve_cid_content(cid_content, path):
     has_extension = '.' in filename_part
     explicit_markdown_request = filename_part.lower().endswith('.md.html')
     is_text_extension_request = filename_part.lower().endswith('.txt')
+    is_qr_request = filename_part.lower().endswith('.qr')
+
+    normalized_cid = (cid_content.path or '').lstrip('/')
+    etag_source = normalized_cid or cid.split('.')[0]
 
     response_body = cid_content.file_data
-    if explicit_markdown_request:
+    if is_qr_request and normalized_cid:
+        qr_target_url = f"https://256t.org/{normalized_cid}"
+        qr_image_url = (
+            "https://chart.googleapis.com/chart"
+            f"?cht=qr&chs=512x512&chl={quote(qr_target_url, safe='')}"
+        )
+        html = render_template(
+            'cid_qr.html',
+            title='CID QR Code',
+            cid=normalized_cid,
+            qr_value=qr_target_url,
+            qr_image_url=qr_image_url,
+            cid_href=cid_path(normalized_cid),
+        )
+        response_body = html.encode('utf-8')
+        content_type = 'text/html; charset=utf-8'
+    elif explicit_markdown_request:
         text = _decode_text_safely(response_body)
         if text is not None:
             response_body = _render_markdown_document(text).encode('utf-8')
@@ -933,7 +952,7 @@ def serve_cid_content(cid_content, path):
             response_body = text.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
 
-    etag = f'"{cid.split(".")[0]}"'
+    etag = f'"{etag_source}"'
     if request.headers.get('If-None-Match') == etag:
         response = make_response('', 304)
         response.headers['ETag'] = etag

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-6 fw-semibold mb-3">View CID as QR Code</h1>
+            <p class="lead text-muted mb-4">
+                Scan this code to open <code>{{ qr_value }}</code>
+            </p>
+            <div class="cid-qr-panel bg-white p-4 rounded shadow-sm d-inline-block">
+                <img class="cid-qr-image" src="{{ qr_image_url }}" alt="QR code for {{ qr_value }}" loading="lazy">
+            </div>
+            <div class="mt-4 d-flex flex-column gap-2 align-items-center">
+                <a class="btn btn-primary px-4" href="{{ cid_href }}">
+                    <i class="fas fa-arrow-left me-2"></i>Back to CID
+                </a>
+                <a class="text-muted small" href="{{ qr_value }}" target="_blank" rel="noopener">Open target URL</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.cid-qr-image {
+    width: min(20rem, 100%);
+    height: auto;
+    display: block;
+}
+</style>
+{% endblock %}

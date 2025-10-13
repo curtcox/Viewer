@@ -53,6 +53,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
     json_path = cid_path(normalized, "json") or ""
     png_path = cid_path(normalized, "png") or ""
     jpg_path = cid_path(normalized, "jpg") or ""
+    qr_path = cid_path(normalized, "qr") or ""
     edit_path = f"/edit/{normalized}"
     meta_path = f"/meta/{normalized}"
     primary_path = text_path or raw_path
@@ -83,6 +84,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
         <li><a class="dropdown-item" href="{json_href}"><i class="fas fa-code text-muted me-2"></i>View as JSON</a></li>
         <li><a class="dropdown-item" href="{png_href}"><i class="fas fa-file-image text-muted me-2"></i>View as PNG</a></li>
         <li><a class="dropdown-item" href="{jpg_href}"><i class="fas fa-file-image text-muted me-2"></i>View as JPG</a></li>
+        <li><a class="dropdown-item" href="{qr_href}"><i class="fas fa-qrcode text-muted me-2"></i>View as QR</a></li>
         <li><a class="dropdown-item" href="{edit_href}"><i class="fas fa-edit text-muted me-2"></i>Edit</a></li>
         <li><a class="dropdown-item" href="{meta_href}"><i class="fas fa-circle-info text-muted me-2"></i>View metadata</a></li>
         <li><hr class="dropdown-divider"></li>
@@ -104,6 +106,7 @@ def render_cid_link(value: Optional[str]) -> Markup:
             json_href=escape(json_path),
             png_href=escape(png_path),
             jpg_href=escape(jpg_path),
+            qr_href=escape(qr_path),
             edit_href=escape(edit_path),
             meta_href=escape(meta_path),
         )
