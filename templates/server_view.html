@@ -6,29 +6,72 @@
 {% if syntax_css %}
 <style>{{ syntax_css | safe }}</style>
 {% endif %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-server me-2"></i>{{ server.name }}</h2>
-                <div class="btn-group">
-                    <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Servers
-                    </a>
-                    <a href="{{ url_for('main.edit_server', server_name=server.name) }}" class="btn btn-primary">
-                        <i class="fas fa-edit me-1"></i>Edit Server
-                    </a>
-                </div>
-            </div>
+{% set refs = definition_references or {} %}
+{% set has_refs = refs.aliases or refs.servers or refs.cids %}
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="fas fa-server me-2"></i>{{ server.name }}</h2>
+        <div class="btn-group flex-wrap">
+            <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Servers
+            </a>
+            <a href="{{ url_for('main.edit_server', server_name=server.name) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Edit Server
+            </a>
+        </div>
+    </div>
 
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
+    <ul class="nav nav-tabs" id="server-view-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="server-view-definition-tab" data-bs-toggle="tab" data-bs-target="#server-view-definition" type="button" role="tab" aria-controls="server-view-definition" aria-selected="true">
+                <i class="fas fa-code me-1"></i>Definition
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-details-tab" data-bs-toggle="tab" data-bs-target="#server-view-details" type="button" role="tab" aria-controls="server-view-details" aria-selected="false">
+                <i class="fas fa-info-circle me-1"></i>Details
+            </button>
+        </li>
+        {% if has_refs %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-references-tab" data-bs-toggle="tab" data-bs-target="#server-view-references" type="button" role="tab" aria-controls="server-view-references" aria-selected="false">
+                <i class="fas fa-project-diagram me-1"></i>References
+            </button>
+        </li>
+        {% endif %}
+        {% if server_test_config is defined and server_test_config %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-test-tab" data-bs-toggle="tab" data-bs-target="#server-view-test" type="button" role="tab" aria-controls="server-view-test" aria-selected="false">
+                <i class="fas fa-vial me-1"></i>Test
+            </button>
+        </li>
+        {% endif %}
+        {% if definition_history %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-history-tab" data-bs-toggle="tab" data-bs-target="#server-view-history" type="button" role="tab" aria-controls="server-view-history" aria-selected="false">
+                <i class="fas fa-history me-1"></i>History
+            </button>
+        </li>
+        {% endif %}
+        {% if server_invocation_count|default(0) > 0 %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-invocations-tab" data-bs-toggle="tab" data-bs-target="#server-view-invocations" type="button" role="tab" aria-controls="server-view-invocations" aria-selected="false">
+                <i class="fas fa-terminal me-1"></i>Invocations
+            </button>
+        </li>
+        {% endif %}
+    </ul>
+
+    <div class="tab-content py-4" id="server-view-tabs-content">
+        <div class="tab-pane fade show active" id="server-view-definition" role="tabpanel" aria-labelledby="server-view-definition-tab">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="card-title mb-0">Server Definition</h5>
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-secondary btn-sm" onclick="copyDefinition()">
                             <i class="fas fa-copy me-1"></i>Copy
                         </button>
-                        <form method="POST" action="{{ url_for('main.delete_server', server_name=server.name) }}" 
+                        <form method="POST" action="{{ url_for('main.delete_server', server_name=server.name) }}"
                               onsubmit="return confirm('Are you sure you want to delete server {{ server.name }}?')" class="d-inline">
                             <button type="submit" class="btn btn-outline-danger btn-sm">
                                 <i class="fas fa-trash me-1"></i>Delete
@@ -64,53 +107,52 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card mt-4">
+        <div class="tab-pane fade" id="server-view-details" role="tabpanel" aria-labelledby="server-view-details-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Server Information</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
                             <strong>Server Name:</strong><br>
                             <code>{{ server.name }}</code>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-lg-6">
                             <strong>Direct URL:</strong><br>
                             <code>{{ request.url_root }}servers/{{ server.name }}</code>
                         </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-6">
+                        <div class="col-lg-6">
                             <strong>Definition Length:</strong><br>
                             {{ server.definition|length }} characters
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-lg-6">
                             <strong>Line Count:</strong><br>
                             {{ server.definition.split('\n')|length }} lines
                         </div>
-                    </div>
-                    {% if server.definition_cid %}
-                    <div class="row mt-3">
-                        <div class="col-md-12">
+                        {% if server.definition_cid %}
+                        <div class="col-12">
                             <strong>Definition CID:</strong><br>
                             {{ render_cid_link(server.definition_cid) }}
                         </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
+        </div>
 
-            {% set refs = definition_references or {} %}
-            {% if refs.aliases or refs.servers or refs.cids %}
-            <div class="card mt-4">
+        {% if has_refs %}
+        <div class="tab-pane fade" id="server-view-references" role="tabpanel" aria-labelledby="server-view-references-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Referenced Entities</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row gy-3">
+                    <div class="row gy-4">
                         {% if refs.servers %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">Servers</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.servers %}
@@ -124,7 +166,7 @@
                         </div>
                         {% endif %}
                         {% if refs.aliases %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">Aliases</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.aliases %}
@@ -138,7 +180,7 @@
                         </div>
                         {% endif %}
                         {% if refs.cids %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">CIDs</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.cids %}
@@ -150,14 +192,18 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if server_test_config is defined and server_test_config %}
+        {% if server_test_config is defined and server_test_config %}
+        <div class="tab-pane fade" id="server-view-test" role="tabpanel" aria-labelledby="server-view-test-tab">
             {% include "_server_test_card.html" %}
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if definition_history %}
-            <div class="card mt-4">
+        {% if definition_history %}
+        <div class="tab-pane fade" id="server-view-history" role="tabpanel" aria-labelledby="server-view-history-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-history me-2"></i>Definition History
@@ -205,15 +251,17 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if server_invocation_count|default(0) > 0 %}
-            <div class="card mt-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+        {% if server_invocation_count|default(0) > 0 %}
+        <div class="tab-pane fade" id="server-view-invocations" role="tabpanel" aria-labelledby="server-view-invocations-tab">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-terminal me-2"></i>Invocation History
-                        <span class="badge bg-secondary ms-2">{{ server_invocation_count }} total</span>
                     </h5>
+                    <span class="badge bg-secondary ms-auto">{{ server_invocation_count }} total</span>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -235,7 +283,7 @@
                                         {% if event.invoked_at %}
                                             {{ event.invoked_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                         {% else %}
-                                            -
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -268,9 +316,7 @@
                                     </td>
                                     <td class="text-break">
                                         {% if event.request_referer %}
-                                            <a href="{{ event.request_referer }}" target="_blank" rel="noopener" class="text-decoration-none">
-                                                {{ event.request_referer }}
-                                            </a>
+                                            <a href="{{ event.request_referer }}" target="_blank" rel="noopener" class="text-decoration-none">{{ event.request_referer }}</a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -282,8 +328,8 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -291,7 +337,6 @@
 function copyDefinition() {
     const definition = document.getElementById('server-definition').textContent;
     navigator.clipboard.writeText(definition).then(function() {
-        // Show temporary success feedback
         const button = event.target.closest('button');
         const originalContent = button.innerHTML;
         button.innerHTML = '<i class="fas fa-check text-success"></i> Copied!';
