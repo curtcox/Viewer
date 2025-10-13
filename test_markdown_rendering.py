@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import textwrap
+from unittest.mock import patch
 
-from cid_utils import _render_markdown_document
+from cid_utils import MermaidRenderLocation, _render_markdown_document
 
 
 def _render_fragment(markdown_text: str) -> str:
@@ -129,19 +130,26 @@ class TestImagesAndEmbeds:
         assert 'src="https://placehold.co/960x360"' in fragment
         assert 'title="Embed screenshots or generated charts"' in fragment
 
-    def test_mermaid_fenced_block_identifies_language(self):
-        fragment = _render_fragment(
-            """
-            ```mermaid
-            sequenceDiagram
-                participant User
-            ```
-            """
-        )
+    def test_mermaid_fenced_block_renders_to_svg_image(self):
+        svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+        with (
+            patch('cid_utils._mermaid_renderer._fetch_svg', return_value=svg_bytes),
+            patch(
+                'cid_utils._mermaid_renderer._store_svg',
+                return_value=MermaidRenderLocation(is_cid=True, value='diagramcid123'),
+            ),
+        ):
+            fragment = _render_fragment(
+                """
+                ```mermaid
+                sequenceDiagram
+                    participant User
+                ```
+                """
+            )
 
-        assert '<pre><code class="language-mermaid">' in fragment
-        assert "sequenceDiagram" in fragment
-        assert "participant User" in fragment
+        assert '<figure class="mermaid-diagram"' in fragment
+        assert 'src="/diagramcid123.svg"' in fragment
 
 
 class TestFormIdeasAndDividers:
