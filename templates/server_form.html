@@ -7,25 +7,60 @@
 {% if syntax_css %}
 <style>{{ syntax_css | safe }}</style>
 {% endif %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-server me-2"></i>{{ title }}</h2>
-                <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Servers
-                </a>
-            </div>
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="fas fa-server me-2"></i>{{ title }}</h2>
+        <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Servers
+        </a>
+    </div>
 
-            <div class="card">
+    <ul class="nav nav-tabs" id="server-form-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="server-form-definition-tab" data-bs-toggle="tab" data-bs-target="#server-form-definition" type="button" role="tab" aria-controls="server-form-definition" aria-selected="true">
+                <i class="fas fa-pen-to-square me-1"></i>Definition
+            </button>
+        </li>
+        {% if server_test_config is defined and server_test_config %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-form-test-tab" data-bs-toggle="tab" data-bs-target="#server-form-test" type="button" role="tab" aria-controls="server-form-test" aria-selected="false">
+                <i class="fas fa-vial me-1"></i>Test
+            </button>
+        </li>
+        {% endif %}
+        {% if server %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-form-current-tab" data-bs-toggle="tab" data-bs-target="#server-form-current" type="button" role="tab" aria-controls="server-form-current" aria-selected="false">
+                <i class="fas fa-circle-info me-1"></i>Current Server
+            </button>
+        </li>
+        {% endif %}
+        {% if definition_history %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-form-history-tab" data-bs-toggle="tab" data-bs-target="#server-form-history" type="button" role="tab" aria-controls="server-form-history" aria-selected="false">
+                <i class="fas fa-history me-1"></i>History
+            </button>
+        </li>
+        {% endif %}
+        {% if server_invocation_count|default(0) > 0 %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-form-invocations-tab" data-bs-toggle="tab" data-bs-target="#server-form-invocations" type="button" role="tab" aria-controls="server-form-invocations" aria-selected="false">
+                <i class="fas fa-terminal me-1"></i>Invocations
+            </button>
+        </li>
+        {% endif %}
+    </ul>
+
+    <div class="tab-content py-4" id="server-form-tabs-content">
+        <div class="tab-pane fade show active" id="server-form-definition" role="tabpanel" aria-labelledby="server-form-definition-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Server Configuration</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" class="row g-4">
                         {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
+                        <div class="col-12">
                             {{ form.name.label(class="form-label") }}
                             {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
                             {% if form.name.errors %}
@@ -42,7 +77,7 @@
                         </div>
 
                         {% if server_templates is defined and server_templates %}
-                        <div class="mb-3">
+                        <div class="col-12">
                             <label class="form-label" for="server-template-select">Start from a Template</label>
                             <div id="server-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Server templates">
                                 {% for template in server_templates %}
@@ -57,7 +92,7 @@
                         </div>
                         {% endif %}
 
-                        <div class="mb-3">
+                        <div class="col-12">
                             {{ form.definition.label(class="form-label") }}
                             {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
                             <input type="hidden" id="server-definition-validate-url" value="{{ url_for('main.validate_server_definition') }}">
@@ -74,20 +109,23 @@
                             {% endif %}
                             <div id="server-definition-errors" class="alert alert-danger mt-3 d-none" role="alert"></div>
                         </div>
-                        {{ ai_text_controls(
-                            form.definition.id,
-                            'server definition',
-                            request_label='Ask AI to edit the server definition',
-                            helper_text='Describe how the AI should adjust the server definition before saving.',
-                            context={'form': 'server_form'},
-                            entity_type='server',
-                            entity_name=ai_entity_name|default(''),
-                            entity_name_field=ai_entity_name_field|default(''),
-                            interactions=interaction_history|default([]),
-                            history_label='Recent edits and requests'
-                        ) }}
 
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="col-12">
+                            {{ ai_text_controls(
+                                form.definition.id,
+                                'server definition',
+                                request_label='Ask AI to edit the server definition',
+                                helper_text='Describe how the AI should adjust the server definition before saving.',
+                                context={'form': 'server_form'},
+                                entity_type='server',
+                                entity_name=ai_entity_name|default(''),
+                                entity_name_field=ai_entity_name_field|default(''),
+                                interactions=interaction_history|default([]),
+                                history_label='Recent edits and requests'
+                            ) }}
+                        </div>
+
+                        <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <a href="{{ url_for('main.servers') }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i>Cancel
                             </a>
@@ -97,20 +135,24 @@
                             </div>
                         </div>
                     </form>
+                </div>
             </div>
         </div>
 
         {% if server_test_config is defined and server_test_config %}
-        {% include "_server_test_card.html" %}
+        <div class="tab-pane fade" id="server-form-test" role="tabpanel" aria-labelledby="server-form-test-tab">
+            {% include "_server_test_card.html" %}
+        </div>
         {% endif %}
 
         {% if server %}
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Current Server Info</h5>
+        <div class="tab-pane fade" id="server-form-current" role="tabpanel" aria-labelledby="server-form-current-tab">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Current Server Info</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-4">
                         <div class="col-md-6">
                             <strong>Current Server Name:</strong><br>
                             <code>{{ server.name }}</code>
@@ -122,9 +164,12 @@
                     </div>
                 </div>
             </div>
+        </div>
+        {% endif %}
 
-            {% if definition_history %}
-            <div class="card mt-4">
+        {% if definition_history %}
+        <div class="tab-pane fade" id="server-form-history" role="tabpanel" aria-labelledby="server-form-history-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-history me-2"></i>Definition History
@@ -181,15 +226,17 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            {% if server_invocation_count|default(0) > 0 %}
-            <div class="card mt-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+        {% if server_invocation_count|default(0) > 0 %}
+        <div class="tab-pane fade" id="server-form-invocations" role="tabpanel" aria-labelledby="server-form-invocations-tab">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-terminal me-2"></i>Invocation History
-                        <span class="badge bg-secondary ms-2">{{ server_invocation_count }} total</span>
                     </h5>
+                    <span class="badge bg-secondary ms-auto">{{ server_invocation_count }} total</span>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -211,7 +258,7 @@
                                         {% if event.invoked_at %}
                                             {{ event.invoked_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                         {% else %}
-                                            -
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -244,9 +291,7 @@
                                     </td>
                                     <td class="text-break">
                                         {% if event.request_referer %}
-                                            <a href="{{ event.request_referer }}" target="_blank" rel="noopener" class="text-decoration-none">
-                                                {{ event.request_referer }}
-                                            </a>
+                                            <a href="{{ event.request_referer }}" target="_blank" rel="noopener" class="text-decoration-none">{{ event.request_referer }}</a>
                                         {% else %}
                                             <span class="text-muted">-</span>
                                         {% endif %}
@@ -258,9 +303,8 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -273,12 +317,9 @@ function loadHistoricalDefinition(index) {
         if (textarea) {
             if (confirm('This will replace the current definition in the editor. Are you sure?')) {
                 textarea.value = definition;
-                // Scroll to the textarea
                 textarea.scrollIntoView({ behavior: 'smooth' });
-                // Focus on the textarea
                 textarea.focus();
-                
-                // Show success feedback
+
                 const button = event.target.closest('button');
                 const originalContent = button.innerHTML;
                 button.innerHTML = '<i class="fas fa-check text-success"></i> Loaded!';
