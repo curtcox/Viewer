@@ -933,20 +933,22 @@ def serve_cid_content(cid_content, path):
     is_text_extension_request = filename_part.lower().endswith('.txt')
     is_qr_request = filename_part.lower().endswith('.qr')
 
-    normalized_cid = (cid_content.path or '').lstrip('/')
+    cid_path_attr = getattr(cid_content, 'path', None)
+    normalized_cid = (cid_path_attr or '').lstrip('/')
+    qr_cid = normalized_cid or (cid.rsplit('.qr', 1)[0] if is_qr_request else '')
     etag_source = normalized_cid or cid.split('.')[0]
 
     response_body = cid_content.file_data
-    if is_qr_request and normalized_cid:
-        qr_target_url = f"https://256t.org/{normalized_cid}"
+    if is_qr_request and qr_cid:
+        qr_target_url = f"https://256t.org/{qr_cid}"
         qr_image_url = _generate_qr_data_url(qr_target_url)
         html = render_template(
             'cid_qr.html',
             title='CID QR Code',
-            cid=normalized_cid,
+            cid=qr_cid,
             qr_value=qr_target_url,
             qr_image_url=qr_image_url,
-            cid_href=cid_path(normalized_cid),
+            cid_href=cid_path(qr_cid),
         )
         response_body = html.encode('utf-8')
         content_type = 'text/html; charset=utf-8'
