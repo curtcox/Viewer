@@ -1,9 +1,13 @@
 import unittest
 import hashlib
 import base64
+import re
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from app import app, db
 from models import CID, User
+import cid_utils
+
 from cid_utils import (
     CID_LENGTH,
     CID_NORMALIZED_PATTERN,
@@ -337,6 +341,102 @@ class TestCIDFunctionality(unittest.TestCase):
 
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_bytes))
+
+    @patch('cid_utils._generate_qr_data_url')
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response, mock_generate_qr_data_url):
+        """Requests with a .qr extension should render a QR code landing page."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                file_content = b"QR content placeholder"
+                cid = generate_cid(file_content)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=file_content,
+                    file_size=len(file_content),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+                sample_png_base64 = (
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+                )
+                mock_generate_qr_data_url.return_value = f"data:image/png;base64,{sample_png_base64}"
+
+                serve_cid_content(cid_record, f"/{cid}.qr")
+
+                mock_make_response.assert_called_once()
+                rendered_payload = mock_make_response.call_args[0][0]
+                self.assertIsInstance(rendered_payload, (bytes, bytearray))
+                rendered_html = rendered_payload.decode('utf-8')
+
+                self.assertIn('View CID as QR Code', rendered_html)
+                self.assertIn('<img', rendered_html)
+                self.assertIn('data:image/png;base64,', rendered_html)
+                data_url_match = re.search(r'src=\"(data:image/png;base64,[^\"]+)\"', rendered_html)
+                self.assertIsNotNone(data_url_match)
+                _, encoded = data_url_match.group(1).split(',', 1)
+                image_bytes = base64.b64decode(encoded)
+                self.assertTrue(image_bytes.startswith(b'\x89PNG\r\n\x1a\n'))
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_payload))
+
+    def test_generate_qr_data_url_uses_qrcode_module(self):
+        """The QR code helper should build PNG data using the qrcode library API."""
+
+        sample_png_base64 = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+        )
+        sample_png_bytes = base64.b64decode(sample_png_base64)
+        call_log = {}
+
+        class FakeImage:
+            def save(self, buffer, format):
+                call_log['format'] = format
+                buffer.write(sample_png_bytes)
+
+        class FakeQRCode:
+            def __init__(self, *, box_size=12, border=4):
+                call_log['init'] = {'box_size': box_size, 'border': border}
+
+            def add_data(self, value):
+                call_log['data'] = value
+
+            def make(self, fit=True):
+                call_log['fit'] = fit
+
+            def make_image(self, *, fill_color="black", back_color="white"):
+                call_log['colors'] = {'fill': fill_color, 'back': back_color}
+                return FakeImage()
+
+        fake_module = SimpleNamespace(QRCode=FakeQRCode)
+
+        target_url = 'https://256t.org/example'
+
+        with patch('cid_utils.qrcode', fake_module), patch('cid_utils._qrcode_import_error', None):
+            data_url = cid_utils._generate_qr_data_url(target_url)
+
+        self.assertEqual(
+            call_log['init'],
+            {'box_size': 12, 'border': 4},
+        )
+        self.assertEqual(call_log['data'], target_url)
+        self.assertTrue(call_log['fit'])
+        self.assertEqual(
+            call_log['colors'],
+            {'fill': 'black', 'back': 'white'},
+        )
+        self.assertEqual(call_log['format'], 'PNG')
+        self.assertEqual(
+            data_url,
+            f'data:image/png;base64,{sample_png_base64}',
+        )
 
     @patch('cid_utils.make_response')
     def test_serve_cid_content_caching_headers(self, mock_make_response):

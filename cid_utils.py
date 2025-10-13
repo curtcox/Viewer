@@ -1,16 +1,25 @@
 import base64
 import binascii
+import io
 import hashlib
 import json
 import re
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
+import requests
+from flask import make_response, render_template, request
+
+try:
+    import qrcode  # type: ignore[import-not-found]
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised when dependency missing
+    qrcode = None  # type: ignore[assignment]
+    _qrcode_import_error = exc
+else:
+    _qrcode_import_error = None
+
 from cid_presenter import cid_path, format_cid
 from formdown_renderer import render_formdown_html
-
-import requests
-from flask import make_response, request
 
 
 CID_CHARACTER_CLASS = "A-Za-z0-9_-"
@@ -843,7 +852,6 @@ def _render_markdown_document(text):
         "</html>\n"
     )
 
-
 def _maybe_render_markdown(data, *, path_has_extension):
     if path_has_extension:
         return data, False
@@ -892,6 +900,25 @@ def extract_filename_from_cid_path(path):
     return filename
 
 
+def _generate_qr_data_url(target_url: str) -> str:
+    """Return a data URL representing a QR code that encodes ``target_url``."""
+
+    if qrcode is None:
+        raise RuntimeError(
+            "Missing optional dependency 'qrcode'. Run './install' or "
+            "'pip install qrcode[pil]' before generating QR codes."
+        ) from _qrcode_import_error
+
+    qr_code = qrcode.QRCode(box_size=12, border=4)
+    qr_code.add_data(target_url)
+    qr_code.make(fit=True)
+    qr_image = qr_code.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    qr_image.save(buffer, format="PNG")
+    qr_png_bytes = buffer.getvalue()
+    return "data:image/png;base64," + base64.b64encode(qr_png_bytes).decode("ascii")
+
+
 def serve_cid_content(cid_content, path):
     """Serve CID content with appropriate headers and caching"""
     if cid_content is None or cid_content.file_data is None:
@@ -904,9 +931,28 @@ def serve_cid_content(cid_content, path):
     has_extension = '.' in filename_part
     explicit_markdown_request = filename_part.lower().endswith('.md.html')
     is_text_extension_request = filename_part.lower().endswith('.txt')
+    is_qr_request = filename_part.lower().endswith('.qr')
+
+    cid_path_attr = getattr(cid_content, 'path', None)
+    normalized_cid = (cid_path_attr or '').lstrip('/')
+    qr_cid = normalized_cid or (cid.rsplit('.qr', 1)[0] if is_qr_request else '')
+    etag_source = normalized_cid or cid.split('.')[0]
 
     response_body = cid_content.file_data
-    if explicit_markdown_request:
+    if is_qr_request and qr_cid:
+        qr_target_url = f"https://256t.org/{qr_cid}"
+        qr_image_url = _generate_qr_data_url(qr_target_url)
+        html = render_template(
+            'cid_qr.html',
+            title='CID QR Code',
+            cid=qr_cid,
+            qr_value=qr_target_url,
+            qr_image_url=qr_image_url,
+            cid_href=cid_path(qr_cid),
+        )
+        response_body = html.encode('utf-8')
+        content_type = 'text/html; charset=utf-8'
+    elif explicit_markdown_request:
         text = _decode_text_safely(response_body)
         if text is not None:
             response_body = _render_markdown_document(text).encode('utf-8')
@@ -933,7 +979,7 @@ def serve_cid_content(cid_content, path):
             response_body = text.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
 
-    etag = f'"{cid.split(".")[0]}"'
+    etag = f'"{etag_source}"'
     if request.headers.get('If-None-Match') == etag:
         response = make_response('', 304)
         response.headers['ETag'] = etag

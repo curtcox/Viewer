@@ -25,6 +25,7 @@ def test_render_cid_link_includes_expected_elements():
     assert f'href="/{cid}.json"' in rendered
     assert f'href="/{cid}.png"' in rendered
     assert f'href="/{cid}.jpg"' in rendered
+    assert f'href="/{cid}.qr"' in rendered
     assert f'href="/edit/{cid}"' in rendered
     assert f'href="/meta/{cid}"' in rendered
     assert 'class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"' in rendered
