@@ -1,10 +1,12 @@
 import base64
 import binascii
+import html
 import io
 import hashlib
 import json
 import re
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -645,6 +647,118 @@ def _convert_github_relative_links(text: str) -> str:
 
 
 _FORMDOWN_FENCE_RE = re.compile(r"(^|\n)[ \t]*```formdown\s*\n(.*?)```", re.DOTALL)
+_MERMAID_FENCE_RE = re.compile(r"(^|\n)([ \t]*)```mermaid\s*\n(.*?)```", re.DOTALL)
+
+
+class MermaidRenderingError(RuntimeError):
+    """Raised when a Mermaid diagram cannot be rendered."""
+
+
+@dataclass
+class MermaidRenderLocation:
+    """Represents where a rendered Mermaid diagram is stored."""
+
+    is_cid: bool
+    value: str
+
+    def img_src(self) -> str:
+        if self.is_cid:
+            path = cid_path(self.value, "svg") or f"/{self.value}.svg"
+            return path
+        return self.value
+
+
+class _MermaidRenderer:
+    """Render Mermaid diagrams through mermaid.ink and store them as CIDs."""
+
+    _API_ENDPOINT = "https://mermaid.ink/svg"
+    _REMOTE_SVG_BASE = "https://mermaid.ink/svg/"
+
+    def __init__(self) -> None:
+        self._session = requests.Session()
+        self._cache: Dict[str, MermaidRenderLocation] = {}
+
+    def render_html(self, source: str) -> str:
+        normalized = (source or "").strip()
+        if not normalized:
+            raise MermaidRenderingError("Mermaid diagram was empty")
+
+        cached = self._cache.get(normalized)
+        if cached is not None:
+            return self._build_html(cached, normalized)
+
+        location: Optional[MermaidRenderLocation]
+        try:
+            svg_bytes = self._fetch_svg(normalized)
+        except Exception:
+            location = self._remote_location(normalized)
+        else:
+            if not svg_bytes:
+                raise MermaidRenderingError("Mermaid renderer returned no data")
+
+            location = self._store_svg(svg_bytes)
+            if location is None:
+                data_url = self._build_data_url(svg_bytes)
+                location = MermaidRenderLocation(is_cid=False, value=data_url)
+
+        if location is None:
+            raise MermaidRenderingError("Mermaid renderer failed to produce an image")
+
+        self._cache[normalized] = location
+        return self._build_html(location, normalized)
+
+    def _fetch_svg(self, source: str) -> bytes:
+        response = self._session.post(
+            self._API_ENDPOINT,
+            data=source.encode("utf-8"),
+            timeout=20,
+            headers={"Content-Type": "text/plain"},
+        )
+        response.raise_for_status()
+        return response.content
+
+    def _store_svg(self, svg_bytes: bytes) -> Optional[MermaidRenderLocation]:
+        try:
+            _ensure_db_access()
+            cid_value = format_cid(generate_cid(svg_bytes))
+            path = cid_path(cid_value)
+            if path and get_cid_by_path and get_cid_by_path(path):
+                return MermaidRenderLocation(is_cid=True, value=cid_value)
+
+            if create_cid_record is not None:
+                create_cid_record(cid_value, svg_bytes, None)
+
+            return MermaidRenderLocation(is_cid=True, value=cid_value)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _build_data_url(svg_bytes: bytes) -> str:
+        encoded = base64.b64encode(svg_bytes).decode("ascii")
+        return f"data:image/svg+xml;base64,{encoded}"
+
+    @staticmethod
+    def _encode_source(source: str) -> str:
+        return base64.urlsafe_b64encode(source.encode("utf-8")).decode("ascii")
+
+    @classmethod
+    def _remote_location(cls, source: str) -> Optional[MermaidRenderLocation]:
+        encoded = cls._encode_source(source)
+        remote_url = f"{cls._REMOTE_SVG_BASE}{encoded}"
+        return MermaidRenderLocation(is_cid=False, value=remote_url)
+
+    @classmethod
+    def _build_html(cls, location: MermaidRenderLocation, source: str) -> str:
+        escaped_src = html.escape(location.img_src(), quote=True)
+        encoded_diagram = cls._encode_source(source)
+        return (
+            f'<figure class="mermaid-diagram" data-mermaid-source="{encoded_diagram}">\n'
+            f'  <img src="{escaped_src}" alt="Mermaid diagram" loading="lazy" decoding="async">\n'
+            f"</figure>\n"
+        )
+
+
+_mermaid_renderer = _MermaidRenderer()
 
 
 def _replace_formdown_fences(text):
@@ -666,9 +780,33 @@ def _replace_formdown_fences(text):
     return converted, found
 
 
+def _replace_mermaid_fences(text: str) -> Tuple[str, bool]:
+    """Replace ```mermaid fences with rendered diagram figures."""
+
+    found = False
+
+    def _replacement(match: re.Match[str]) -> str:
+        nonlocal found
+        prefix = match.group(1)
+        indent = match.group(2)
+        diagram_source = (match.group(3) or "").rstrip("\n")
+        try:
+            figure_html = _mermaid_renderer.render_html(diagram_source)
+        except MermaidRenderingError:
+            return match.group(0)
+        except Exception:
+            return match.group(0)
+        found = True
+        return f"{prefix}{indent}{figure_html}"
+
+    replaced = _MERMAID_FENCE_RE.sub(_replacement, text)
+    return replaced, found
+
+
 def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
+    converted, _ = _replace_mermaid_fences(converted)
     converted, has_formdown = _replace_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     title = _extract_markdown_title(text)
@@ -741,6 +879,13 @@ def _render_markdown_document(text):
         "      max-width: 100%;\n"
         "      border-radius: 8px;\n"
         "      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);\n"
+        "    }\n"
+        "    .mermaid-diagram {\n"
+        "      margin: 2rem 0;\n"
+        "      text-align: center;\n"
+        "    }\n"
+        "    .mermaid-diagram img {\n"
+        "      display: inline-block;\n"
         "    }\n"
         "    .formdown-document {\n"
         "      margin: 2rem 0;\n"
