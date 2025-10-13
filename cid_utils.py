@@ -5,7 +5,7 @@ import hashlib
 import json
 import re
 from typing import Optional, Tuple
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
 import requests
 from flask import make_response, render_template, request
