@@ -151,6 +151,24 @@ class TestImagesAndEmbeds:
         assert '<figure class="mermaid-diagram"' in fragment
         assert 'src="/diagramcid123.svg"' in fragment
 
+    def test_mermaid_renderer_falls_back_to_remote_svg_on_error(self):
+        with (
+            patch('cid_utils._mermaid_renderer._fetch_svg', side_effect=RuntimeError('network down')),
+            patch('cid_utils._mermaid_renderer._store_svg') as store_svg,
+        ):
+            fragment = _render_fragment(
+                """
+                ```mermaid
+                graph TD
+                    A --> B
+                ```
+                """
+            )
+
+        store_svg.assert_not_called()
+        assert '<figure class="mermaid-diagram"' in fragment
+        assert 'src="https://mermaid.ink/svg/' in fragment
+
 
 class TestFormIdeasAndDividers:
     def test_form_sketch_preserves_literal_characters_in_code_block(self):

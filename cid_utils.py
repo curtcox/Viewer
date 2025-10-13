@@ -672,6 +672,7 @@ class _MermaidRenderer:
     """Render Mermaid diagrams through mermaid.ink and store them as CIDs."""
 
     _API_ENDPOINT = "https://mermaid.ink/svg"
+    _REMOTE_SVG_BASE = "https://mermaid.ink/svg/"
 
     def __init__(self) -> None:
         self._session = requests.Session()
@@ -686,14 +687,22 @@ class _MermaidRenderer:
         if cached is not None:
             return self._build_html(cached, normalized)
 
-        svg_bytes = self._fetch_svg(normalized)
-        if not svg_bytes:
-            raise MermaidRenderingError("Mermaid renderer returned no data")
+        location: Optional[MermaidRenderLocation]
+        try:
+            svg_bytes = self._fetch_svg(normalized)
+        except Exception:
+            location = self._remote_location(normalized)
+        else:
+            if not svg_bytes:
+                raise MermaidRenderingError("Mermaid renderer returned no data")
 
-        location = self._store_svg(svg_bytes)
+            location = self._store_svg(svg_bytes)
+            if location is None:
+                data_url = self._build_data_url(svg_bytes)
+                location = MermaidRenderLocation(is_cid=False, value=data_url)
+
         if location is None:
-            data_url = self._build_data_url(svg_bytes)
-            location = MermaidRenderLocation(is_cid=False, value=data_url)
+            raise MermaidRenderingError("Mermaid renderer failed to produce an image")
 
         self._cache[normalized] = location
         return self._build_html(location, normalized)
@@ -729,9 +738,19 @@ class _MermaidRenderer:
         return f"data:image/svg+xml;base64,{encoded}"
 
     @staticmethod
-    def _build_html(location: MermaidRenderLocation, source: str) -> str:
+    def _encode_source(source: str) -> str:
+        return base64.urlsafe_b64encode(source.encode("utf-8")).decode("ascii")
+
+    @classmethod
+    def _remote_location(cls, source: str) -> Optional[MermaidRenderLocation]:
+        encoded = cls._encode_source(source)
+        remote_url = f"{cls._REMOTE_SVG_BASE}{encoded}"
+        return MermaidRenderLocation(is_cid=False, value=remote_url)
+
+    @classmethod
+    def _build_html(cls, location: MermaidRenderLocation, source: str) -> str:
         escaped_src = html.escape(location.img_src(), quote=True)
-        encoded_diagram = base64.urlsafe_b64encode(source.encode("utf-8")).decode("ascii")
+        encoded_diagram = cls._encode_source(source)
         return (
             f'<figure class="mermaid-diagram" data-mermaid-source="{encoded_diagram}">\n'
             f'  <img src="{escaped_src}" alt="Mermaid diagram" loading="lazy" decoding="async">\n'
