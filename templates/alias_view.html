@@ -6,6 +6,7 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
+            {% set alias_target_cid = extract_cid_from_path(alias.target_path) %}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-link me-2"></i>{{ alias.name }}</h2>
                 <div class="btn-group">
@@ -28,7 +29,13 @@
                         <dd class="col-sm-9"><code>{{ alias.name }}</code></dd>
 
                         <dt class="col-sm-3">Redirect Path</dt>
-                        <dd class="col-sm-9"><code>{{ alias.target_path }}</code></dd>
+                        <dd class="col-sm-9">
+                            {% if alias_target_cid %}
+                                {{ render_cid_link(alias_target_cid) }}
+                            {% else %}
+                                <code>{{ alias.target_path }}</code>
+                            {% endif %}
+                        </dd>
 
                         <dt class="col-sm-3">Match Pattern</dt>
                         <dd class="col-sm-9"><code>{{ alias.match_pattern }}</code></dd>
@@ -118,7 +125,12 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-3">
-                        Visiting <code>{{ request.url_root }}{{ alias.name }}</code> redirects browsers to <code>{{ alias.target_path }}</code>.
+                        Visiting <code>{{ request.url_root }}{{ alias.name }}</code> redirects browsers to
+                        {% if alias_target_cid %}
+                            {{ render_cid_link(alias_target_cid) }}
+                        {% else %}
+                            <code>{{ alias.target_path }}</code>
+                        {% endif %}.
                         Any query string on the incoming request is preserved and merged with query parameters already present on the target URL.
                     </p>
                     <p class="mb-0">

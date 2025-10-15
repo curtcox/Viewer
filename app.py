@@ -14,8 +14,10 @@ from ai_defaults import ensure_ai_stub_for_all_users
 from cid_presenter import (
     cid_full_url,
     cid_path,
+    extract_cid_from_path,
     format_cid,
     format_cid_short,
+    is_probable_cid_path,
     render_cid_link,
 )
 
@@ -81,8 +83,10 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     app.jinja_env.globals.update(
         cid_full_url=cid_full_url,
         cid_path=cid_path,
+        extract_cid_from_path=extract_cid_from_path,
         format_cid=format_cid,
         format_cid_short=format_cid_short,
+        is_probable_cid_path=is_probable_cid_path,
         render_cid_link=render_cid_link,
     )
 
