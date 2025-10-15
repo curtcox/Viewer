@@ -820,4 +820,20 @@ def meta_route(requested_path: str):
     return jsonify(metadata), status_code
 
 
-__all__ = ["meta_route"]
+def inspect_path_metadata(
+    requested_path: str,
+    *,
+    include_alias_relations: bool = True,
+    include_alias_target_metadata: bool = True,
+):
+    """Expose metadata gathering for reuse outside the /meta route."""
+
+    normalized = _normalize_target_path(requested_path)
+    return _gather_metadata(
+        normalized,
+        include_alias_relations=include_alias_relations,
+        include_alias_target_metadata=include_alias_target_metadata,
+    )
+
+
+__all__ = ["inspect_path_metadata", "meta_route"]

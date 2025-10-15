@@ -6,8 +6,20 @@ import textwrap
 import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
+from urllib.parse import urljoin, urlsplit
 
-from flask import jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    current_app,
+    has_app_context,
+    has_request_context,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_login import current_user
 import logfire
 
@@ -34,6 +46,139 @@ from syntax_highlighting import highlight_source
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
+
+VARIABLE_PREFETCH_SESSION_KEY = "__viewer_variable_prefetch__"
+_MAX_VARIABLE_REDIRECTS = 5
+
+
+def _normalize_variable_path(value: Any) -> Optional[str]:
+    if not isinstance(value, str):
+        return None
+
+    trimmed = value.strip()
+    if not trimmed.startswith("/"):
+        return None
+
+    return trimmed
+
+
+def _should_skip_variable_prefetch() -> bool:
+    if not has_request_context():
+        return False
+
+    try:
+        return bool(session.get(VARIABLE_PREFETCH_SESSION_KEY))
+    except Exception:
+        return False
+
+
+def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
+    if not location:
+        return None
+
+    parsed = urlsplit(location)
+    if parsed.scheme or parsed.netloc:
+        return None
+
+    candidate = parsed.path or ""
+    if not candidate:
+        return None
+
+    if not candidate.startswith("/"):
+        candidate = urljoin(current_path, candidate)
+
+    if parsed.query:
+        candidate = f"{candidate}?{parsed.query}"
+
+    return candidate
+
+
+def _fetch_variable_content(path: str) -> Optional[str]:
+    normalized = _normalize_variable_path(path)
+    if not normalized:
+        return None
+
+    if not has_app_context() or not getattr(current_user, "is_authenticated", False):
+        return None
+
+    if has_request_context() and normalized == request.path:
+        return None
+
+    user_id = getattr(current_user, "id", None)
+    if callable(user_id):
+        try:
+            user_id = user_id()
+        except TypeError:
+            user_id = None
+    if not user_id:
+        getter = getattr(current_user, "get_id", None)
+        if callable(getter):
+            user_id = getter()
+
+    if not user_id:
+        return None
+
+    client = current_app.test_client()
+    try:
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(user_id)
+            sess["_fresh"] = True
+            sess[VARIABLE_PREFETCH_SESSION_KEY] = True
+
+        visited: set[str] = set()
+        target = normalized
+        for _ in range(_MAX_VARIABLE_REDIRECTS):
+            if target in visited:
+                break
+            visited.add(target)
+
+            response = client.get(target, follow_redirects=False)
+            status = getattr(response, "status_code", None) or 0
+
+            if status in {301, 302, 303, 307, 308}:
+                next_target = _resolve_redirect_target(
+                    response.headers.get("Location", ""), target
+                )
+                if not next_target:
+                    break
+                target = next_target
+                continue
+
+            if status != 200:
+                break
+
+            try:
+                return response.get_data(as_text=True)
+            except Exception:
+                return None
+    except Exception:
+        return None
+    finally:
+        try:
+            with client.session_transaction() as sess:
+                sess.pop(VARIABLE_PREFETCH_SESSION_KEY, None)
+        except Exception:
+            pass
+
+    return None
+
+
+def _resolve_variable_values(variable_map: Dict[str, Any]) -> Dict[str, Any]:
+    if not variable_map:
+        return {}
+
+    resolved: Dict[str, Any] = {}
+    for name, value in variable_map.items():
+        resolved_value = value
+        candidate = _normalize_variable_path(value)
+        if candidate and not _should_skip_variable_prefetch():
+            fetched = _fetch_variable_content(candidate)
+            if fetched is not None:
+                resolved_value = fetched
+
+        resolved[name] = resolved_value
+
+    return resolved
 
 
 @dataclass
@@ -432,6 +577,10 @@ def _load_user_context() -> Dict[str, Dict[str, Any]]:
         return {"variables": {}, "secrets": {}, "servers": {}}
 
     variables = model_as_dict(get_user_variables(user_id))
+    if _should_skip_variable_prefetch():
+        variables = dict(variables)
+    else:
+        variables = _resolve_variable_values(variables)
     secrets = model_as_dict(get_user_secrets(user_id))
     servers = model_as_dict(get_user_servers(user_id))
     return {"variables": variables, "secrets": secrets, "servers": servers}

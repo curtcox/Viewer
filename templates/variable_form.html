@@ -98,6 +98,27 @@
                 </div>
             </div>
             {% endif %}
+
+            {% if matching_route %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Matching Route</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Path:</strong> <code>{{ matching_route.path }}</code></p>
+                    <p class="mb-2"><strong>Status:</strong> {{ matching_route.status }}{% if matching_route.status_label %} – {{ matching_route.status_label }}{% endif %}</p>
+                    <p class="mb-0">{{ matching_route.summary }}</p>
+                    {% if matching_route.details %}
+                    <dl class="row mb-0 mt-3">
+                        {% for detail in matching_route.details %}
+                        <dt class="col-sm-4">{{ detail.label }}</dt>
+                        <dd class="col-sm-8"><code>{{ detail.value }}</code></dd>
+                        {% endfor %}
+                    </dl>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>

@@ -1,4 +1,7 @@
 """Variable management routes and helpers."""
+from http import HTTPStatus
+from typing import Any, Dict, List, Optional, Tuple
+
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
@@ -14,6 +17,7 @@ from interaction_log import load_interaction_history
 
 from . import main_bp
 from .entities import create_entity, update_entity
+from .meta import inspect_path_metadata
 
 
 def update_variable_definitions_cid(user_id):
@@ -23,6 +27,163 @@ def update_variable_definitions_cid(user_id):
 
 def user_variables():
     return get_user_variables(current_user.id)
+
+
+def _status_label(status: int) -> Optional[str]:
+    try:
+        return HTTPStatus(status).phrase
+    except ValueError:
+        return None
+
+
+def _format_status(status: int) -> str:
+    label = _status_label(status)
+    return f"{status} – {label}" if label else str(status)
+
+
+def _append_detail(details: List[Dict[str, str]], label: str, value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, str) and not value.strip():
+        return
+    if isinstance(value, list):
+        if not value:
+            return
+        rendered = ", ".join(str(item) for item in value)
+    elif isinstance(value, bool):
+        rendered = "Yes" if value else "No"
+    else:
+        rendered = str(value)
+    details.append({"label": label, "value": rendered})
+
+
+def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    rtype = resolution.get("type")
+    details: List[Dict[str, str]] = []
+    summary = "Unknown resolution"
+
+    if rtype == "route":
+        endpoint = resolution.get("endpoint")
+        rule = resolution.get("rule")
+        if endpoint and rule:
+            summary = f"Route {endpoint} ({rule})"
+        elif endpoint:
+            summary = f"Route {endpoint}"
+        elif rule:
+            summary = f"Route {rule}"
+        else:
+            summary = "Route"
+        _append_detail(details, "Endpoint", endpoint)
+        _append_detail(details, "Rule", rule)
+        _append_detail(details, "Blueprint", resolution.get("blueprint"))
+        methods = resolution.get("methods")
+        if methods:
+            _append_detail(details, "Methods", ", ".join(methods))
+    elif rtype == "alias_redirect":
+        alias_name = resolution.get("alias")
+        target_path = resolution.get("target_path")
+        if alias_name and target_path:
+            summary = f"Alias {alias_name} → {target_path}"
+        elif alias_name:
+            summary = f"Alias {alias_name}"
+        elif target_path:
+            summary = f"Alias redirect to {target_path}"
+        else:
+            summary = "Alias redirect"
+        _append_detail(details, "Alias", alias_name)
+        _append_detail(details, "Target", target_path)
+        redirect_location = resolution.get("redirect_location")
+        if redirect_location and redirect_location != target_path:
+            _append_detail(details, "Redirect Location", redirect_location)
+        target_metadata = resolution.get("target_metadata") or {}
+        target_status = target_metadata.get("status_code")
+        if target_status is not None:
+            _append_detail(details, "Target Status", _format_status(target_status))
+        resolved_path = target_metadata.get("path")
+        if resolved_path and resolved_path != target_path:
+            _append_detail(details, "Resolved Path", resolved_path)
+    elif rtype in {"server_execution", "server_function_execution"}:
+        server_name = resolution.get("server_name")
+        summary = f"Server {server_name}" if server_name else "Server execution"
+        if rtype == "server_function_execution" and resolution.get("function_name"):
+            summary = f"{summary}.{resolution['function_name']}"
+            _append_detail(details, "Function", resolution.get("function_name"))
+        _append_detail(details, "Server", server_name)
+        if resolution.get("requires_authentication") is not None:
+            _append_detail(details, "Requires Authentication", resolution.get("requires_authentication"))
+    elif rtype in {"versioned_server_execution", "versioned_server_function_execution"}:
+        server_name = resolution.get("server_name")
+        partial = resolution.get("partial_cid")
+        summary = "Versioned server"
+        if server_name:
+            summary = f"{summary} {server_name}"
+        if partial:
+            summary = f"{summary} @ {partial}"
+        if rtype == "versioned_server_function_execution" and resolution.get("function_name"):
+            summary = f"{summary}.{resolution['function_name']}"
+            _append_detail(details, "Function", resolution.get("function_name"))
+        _append_detail(details, "Server", server_name)
+        _append_detail(details, "Partial CID", partial)
+        matches = resolution.get("matches")
+        if isinstance(matches, list):
+            _append_detail(details, "Matches", len(matches))
+    elif rtype == "cid":
+        cid_value = resolution.get("cid")
+        summary = f"CID {cid_value}" if cid_value else "CID content"
+        _append_detail(details, "CID", cid_value)
+        _append_detail(details, "Extension", resolution.get("extension"))
+    elif rtype == "method_not_allowed":
+        summary = "Method not allowed"
+        allowed = resolution.get("allowed_methods") or []
+        if allowed:
+            _append_detail(details, "Allowed Methods", ", ".join(allowed))
+    elif rtype == "redirect":
+        location = resolution.get("location")
+        summary = f"Redirect to {location}" if location else "Redirect"
+        _append_detail(details, "Location", location)
+    else:
+        if rtype:
+            summary = rtype.replace("_", " ").title()
+
+    return summary, details
+
+
+def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not value or not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if not candidate.startswith("/"):
+        return None
+
+    metadata, status = inspect_path_metadata(
+        candidate,
+        include_alias_relations=False,
+        include_alias_target_metadata=True,
+    )
+
+    info: Dict[str, Any] = {
+        "path": candidate,
+        "status": status,
+        "status_label": _status_label(status),
+        "summary": "No matching route.",
+        "details": [],
+        "resolution_type": None,
+    }
+
+    if not metadata:
+        return info
+
+    resolution = metadata.get("resolution") or {}
+    summary, details = _describe_resolution(resolution)
+    info.update(
+        {
+            "summary": summary,
+            "details": details,
+            "resolution_type": resolution.get("type"),
+        }
+    )
+    return info
 
 
 @main_bp.route('/variables')
@@ -71,6 +232,7 @@ def new_variable():
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
+        matching_route=None,
     )
 
 
@@ -82,7 +244,13 @@ def view_variable(variable_name):
     if not variable:
         abort(404)
 
-    return render_template('variable_view.html', variable=variable)
+    matching_route = build_matching_route_info(variable.definition)
+
+    return render_template(
+        'variable_view.html',
+        variable=variable,
+        matching_route=matching_route,
+    )
 
 
 @main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
@@ -99,6 +267,11 @@ def edit_variable(variable_name):
     definition_text = form.definition.data or variable.definition or ''
 
     interaction_history = load_interaction_history(current_user.id, 'variable', variable.name)
+
+    current_definition = form.definition.data
+    if current_definition is None:
+        current_definition = variable.definition
+    matching_route = build_matching_route_info(current_definition)
 
     if form.validate_on_submit():
         if update_entity(
@@ -117,6 +290,7 @@ def edit_variable(variable_name):
             interaction_history=interaction_history,
             ai_entity_name=variable.name,
             ai_entity_name_field=form.name.id,
+            matching_route=matching_route,
         )
 
     return render_template(
@@ -127,6 +301,7 @@ def edit_variable(variable_name):
         interaction_history=interaction_history,
         ai_entity_name=variable.name,
         ai_entity_name_field=form.name.id,
+        matching_route=matching_route,
     )
 
 
