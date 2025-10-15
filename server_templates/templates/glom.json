@@ -1,0 +1,6 @@
+{
+  "id": "glom",
+  "name": "Glom CID explorer",
+  "description": "Extract values from JSON-backed CIDs using glom queries.",
+  "definition_file": "definitions/glom.py"
+}
