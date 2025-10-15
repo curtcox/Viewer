@@ -12,6 +12,7 @@ from io import BytesIO
 from pathlib import Path
 
 from flask import current_app
+from flask_login import login_user
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -35,6 +36,7 @@ from models import (
     Alias,
 )
 from cid_utils import CID_LENGTH, generate_cid
+import server_execution
 from server_templates import get_server_templates
 from routes.core import _build_cross_reference_data
 
@@ -1556,6 +1558,75 @@ class TestVariableRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('definition-ai-input', page)
         self.assertIn('Ask AI to edit the variable definition', page)
+
+    def test_variable_view_shows_matching_route_summary(self):
+        """Variable detail view should render matching route information."""
+
+        variable = Variable(
+            name='profile-link',
+            definition='/profile',
+            user_id=self.test_user.id,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.get('/variables/profile-link')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Matching Route', page)
+        self.assertIn('Route main.profile', page)
+        self.assertIn('/profile', page)
+        self.assertIn('Status:', page)
+
+    def test_variable_edit_shows_404_matching_route(self):
+        """Variable edit form should surface missing route diagnostics."""
+
+        variable = Variable(
+            name='missing-route',
+            definition='/missing-endpoint',
+            user_id=self.test_user.id,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.get('/variables/missing-route/edit')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Matching Route', page)
+        self.assertIn('/missing-endpoint', page)
+        self.assertIn('404 – Not Found', page)
+
+    def test_variable_context_prefetches_path_content(self):
+        """Variable values pointing at paths should resolve to page content."""
+
+        server = Server(
+            name='prefetch-source',
+            definition="""
+def main():
+    return {"output": "prefetched-value", "content_type": "text/plain"}
+""".strip(),
+            user_id=self.test_user.id,
+        )
+        variable = Variable(
+            name='prefetched',
+            definition='/prefetch-source',
+            user_id=self.test_user.id,
+        )
+        db.session.add_all([server, variable])
+        db.session.commit()
+
+        with self.app.test_request_context('/prefetch-check'):
+            login_user(self.test_user)
+            context = server_execution._load_user_context()
+
+        self.assertIn('prefetched', context['variables'])
+        value = context['variables']['prefetched']
+        self.assertNotEqual(value, variable.definition)
+        self.assertIn('prefetched-value', value)
 
 
 class TestSecretRoutes(BaseTestCase):
