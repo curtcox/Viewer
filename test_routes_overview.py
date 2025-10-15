@@ -97,6 +97,18 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertIn('Template: templates/404.html', page)
         self.assertIn('route-not-found', page)
 
+    def test_frontend_filtering_requires_exact_path_match(self):
+        self.login_user()
+
+        response = self.client.get('/routes')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+
+        self.assertIn('function normalizePath', page)
+        self.assertIn('path === normalizedSearch', page)
+        self.assertNotIn('path.includes', page)
+
 
 if __name__ == '__main__':
     unittest.main()

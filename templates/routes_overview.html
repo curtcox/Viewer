@@ -127,9 +127,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggles = Array.from(document.querySelectorAll('[data-type-toggle]'));
     const notFoundRow = document.querySelector('[data-not-found-row="true"]');
 
+    function normalizePath(value) {
+        if (!value) {
+            return '';
+        }
+
+        if (value === '/') {
+            return '/';
+        }
+
+        return value.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    }
+
     function updateMatches() {
         const fragment = (filterInput.value || '').trim().toLowerCase();
-        const search = fragment ? '/' + fragment : '';
+        const search = fragment ? '/' + fragment.replace(/^\/+/g, '') : '';
+        const normalizedSearch = normalizePath(search);
 
         let hasMatch = false;
 
@@ -137,22 +150,23 @@ document.addEventListener('DOMContentLoaded', function () {
             row.classList.remove('table-info', 'route-match', 'table-danger', 'route-not-found');
         });
 
-        rows.forEach((row) => {
-            if (row.dataset.notFoundRow === 'true') {
-                return;
-            }
+        if (fragment) {
+            rows.forEach((row) => {
+                if (row.dataset.notFoundRow === 'true') {
+                    return;
+                }
 
-            if (!fragment || row.classList.contains('d-none')) {
-                return;
-            }
+                if (row.classList.contains('d-none')) {
+                    return;
+                }
 
-            const path = (row.dataset.path || '').toLowerCase();
-            const name = (row.dataset.name || '').toLowerCase();
-            if (path.includes(search) || name.includes(fragment)) {
-                row.classList.add('table-info', 'route-match');
-                hasMatch = true;
-            }
-        });
+                const path = normalizePath((row.dataset.path || '').toLowerCase());
+                if (path && path === normalizedSearch) {
+                    row.classList.add('table-info', 'route-match');
+                    hasMatch = true;
+                }
+            });
+        }
 
         if (notFoundRow) {
             if (fragment && !hasMatch) {
