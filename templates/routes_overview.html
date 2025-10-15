@@ -123,9 +123,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const filterInput = document.getElementById('route-filter');
+    const tbody = document.querySelector('#routes-table tbody');
     const rows = Array.from(document.querySelectorAll('[data-route-entry]'));
     const toggles = Array.from(document.querySelectorAll('[data-type-toggle]'));
     const notFoundRow = document.querySelector('[data-not-found-row="true"]');
+    const originalIndex = new Map();
+
+    rows.forEach((row, index) => originalIndex.set(row, index));
 
     function normalizePath(value) {
         if (!value) {
@@ -139,42 +143,86 @@ document.addEventListener('DOMContentLoaded', function () {
         return value.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
     }
 
-    function updateMatches() {
-        const fragment = (filterInput.value || '').trim().toLowerCase();
-        const search = fragment ? '/' + fragment.replace(/^\/+/g, '') : '';
-        const normalizedSearch = normalizePath(search);
+    function normalizeSearchFragment(fragment) {
+        const trimmed = (fragment || '').trim();
 
-        let hasMatch = false;
+        if (!trimmed) {
+            return '/';
+        }
+
+        const prefixed = '/' + trimmed.replace(/^\/+/g, '');
+        return normalizePath(prefixed || '/');
+    }
+
+    function updateMatches() {
+        const fragment = (filterInput.value || '').trim();
+        const normalizedSearch = normalizeSearchFragment(fragment);
+        const normalizedSearchLower = normalizedSearch.toLowerCase();
+
+        const matchRows = [];
+        const partialRows = [];
+        const visibleRows = new Set(
+            rows.filter((row) => !row.classList.contains('d-none') || row.dataset.notFoundRow === 'true')
+        );
 
         rows.forEach((row) => {
-            row.classList.remove('table-info', 'route-match', 'table-danger', 'route-not-found');
+            row.classList.remove(
+                'table-info',
+                'route-match',
+                'table-danger',
+                'route-not-found',
+                'table-active',
+                'route-partial'
+            );
         });
 
-        if (fragment) {
-            rows.forEach((row) => {
-                if (row.dataset.notFoundRow === 'true') {
-                    return;
-                }
+        rows.forEach((row) => {
+            if (row.dataset.notFoundRow === 'true') {
+                return;
+            }
 
-                if (row.classList.contains('d-none')) {
-                    return;
-                }
+            if (!visibleRows.has(row)) {
+                return;
+            }
 
-                const path = normalizePath((row.dataset.path || '').toLowerCase());
-                if (path && path === normalizedSearch) {
-                    row.classList.add('table-info', 'route-match');
-                    hasMatch = true;
-                }
-            });
-        }
+            const path = normalizePath((row.dataset.path || '').toLowerCase());
+
+            if (path && path === normalizedSearchLower) {
+                row.classList.add('table-info', 'route-match');
+                matchRows.push(row);
+                return;
+            }
+
+            if (fragment && normalizedSearchLower !== '/' && path && path.includes(normalizedSearchLower)) {
+                row.classList.add('table-active', 'route-partial');
+                partialRows.push(row);
+            }
+        });
 
         if (notFoundRow) {
-            if (fragment && !hasMatch) {
+            if (matchRows.length === 0) {
                 notFoundRow.classList.add('table-danger', 'route-not-found');
-            } else {
-                notFoundRow.classList.remove('table-danger', 'route-not-found');
+                matchRows.push(notFoundRow);
             }
         }
+
+        const matchSet = new Set(matchRows);
+        const partialSet = new Set(partialRows);
+
+        const orderedRows = rows
+            .slice()
+            .sort((a, b) => {
+                const rankA = matchSet.has(a) ? 0 : partialSet.has(a) ? 1 : 2;
+                const rankB = matchSet.has(b) ? 0 : partialSet.has(b) ? 1 : 2;
+
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+
+                return originalIndex.get(a) - originalIndex.get(b);
+            });
+
+        orderedRows.forEach((row) => tbody.appendChild(row));
     }
 
     function updateVisibility() {

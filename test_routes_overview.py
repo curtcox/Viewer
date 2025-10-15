@@ -97,7 +97,7 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertIn('Template: templates/404.html', page)
         self.assertIn('route-not-found', page)
 
-    def test_frontend_filtering_requires_exact_path_match(self):
+    def test_frontend_filtering_orders_exact_partial_and_not_found(self):
         self.login_user()
 
         response = self.client.get('/routes')
@@ -105,9 +105,12 @@ class RoutesOverviewTestCase(unittest.TestCase):
 
         page = response.get_data(as_text=True)
 
-        self.assertIn('function normalizePath', page)
-        self.assertIn('path === normalizedSearch', page)
-        self.assertNotIn('path.includes', page)
+        self.assertIn('function normalizeSearchFragment', page)
+        self.assertIn('path && path === normalizedSearchLower', page)
+        self.assertIn('path.includes(normalizedSearchLower)', page)
+        self.assertIn('matchRows.length === 0', page)
+        self.assertIn('const rankA = matchSet.has(a) ? 0 : partialSet.has(a) ? 1 : 2;', page)
+        self.assertIn('route-partial', page)
 
 
 if __name__ == '__main__':
