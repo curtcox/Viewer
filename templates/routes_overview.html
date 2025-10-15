@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex align-items-center mb-4">
+        <h1 class="h3 mb-0">Routes Overview</h1>
+        <span class="badge bg-secondary ms-3">Built-ins · Aliases · Servers</span>
+    </div>
+
+    <div class="row mb-4 g-3 align-items-end">
+        <div class="col-lg-6">
+            <label for="route-filter" class="form-label fw-semibold">Highlight routes matching URL</label>
+            <div class="input-group">
+                <span class="input-group-text">/</span>
+                <input type="text" id="route-filter" class="form-control" placeholder="path fragment" autocomplete="off">
+            </div>
+            <div class="form-text">Start typing to highlight matching built-ins, aliases, and servers in real time.</div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card bg-light border-0">
+                <div class="card-body py-3">
+                    <div class="fw-semibold mb-2">Jump to definitions</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.source_browser', requested_path='routes') }}">
+                            <i class="fas fa-code me-1"></i> Built-in route source
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.aliases') }}">
+                            <i class="fas fa-link me-1"></i> Alias definitions
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.servers') }}">
+                            <i class="fas fa-server me-1"></i> Server definitions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle" id="routes-table">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">Path</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Details</th>
+                    <th scope="col">Defined In</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr data-route-entry
+                    data-path="{{ entry.path }}"
+                    data-name="{{ entry.name }}"
+                    data-type="{{ entry.category }}"
+                    class="{% if entry.is_duplicate %}table-warning route-duplicate{% endif %}">
+                    <td>
+                        <span class="badge text-bg-primary">{{ entry.category_label }}</span>
+                        {% if entry.is_duplicate %}
+                            <span class="badge text-bg-warning ms-2" title="Multiple definitions share this path">Duplicate</span>
+                        {% endif %}
+                    </td>
+                    <td class="font-monospace">{{ entry.path }}</td>
+                    <td>{{ entry.name }}</td>
+                    <td>
+                        {% if entry.extra_detail %}
+                            <span class="text-muted small">{{ entry.extra_detail }}</span>
+                        {% else %}
+                            <span class="text-muted small">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ entry.definition_url }}" class="text-decoration-none">
+                            {{ entry.definition_label }}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterInput = document.getElementById('route-filter');
+    const rows = Array.from(document.querySelectorAll('[data-route-entry]'));
+
+    function updateMatches() {
+        const fragment = (filterInput.value || '').trim().toLowerCase();
+        const search = fragment ? '/' + fragment : '';
+
+        rows.forEach((row) => {
+            row.classList.remove('table-info', 'route-match');
+            if (!fragment) {
+                return;
+            }
+
+            const path = (row.dataset.path || '').toLowerCase();
+            const name = (row.dataset.name || '').toLowerCase();
+            if (path.includes(search) || name.includes(fragment)) {
+                row.classList.add('table-info', 'route-match');
+            }
+        });
+    }
+
+    filterInput.addEventListener('input', updateMatches);
+});
+</script>
+{% endblock %}

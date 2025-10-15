@@ -15,5 +15,6 @@ from . import import_export  # noqa: F401,E402
 from . import source  # noqa: F401,E402
 from . import meta  # noqa: F401,E402
 from . import interactions  # noqa: F401,E402
+from . import routes_overview  # noqa: F401,E402
 
 __all__ = ["main_bp"]
