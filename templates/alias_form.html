@@ -32,8 +32,14 @@
                                     {% endfor %}
                                 </div>
                             {% else %}
+                                {% set alias_sample_name = form.name.data or (alias.name if alias else None) %}
                                 <div class="form-text">
-                                    Alias names can only contain letters, numbers, dots, hyphens, and underscores. This is the path visitors type: <code>/{{ form.name.data or 'alias-name' }}</code>.
+                                    Alias names can only contain letters, numbers, dots, hyphens, and underscores. This is the path visitors type:
+                                    {% if alias_sample_name %}
+                                        {{ render_alias_link(alias_sample_name, label='/' ~ alias_sample_name, code=True) }}
+                                    {% else %}
+                                        <code>/alias-name</code>
+                                    {% endif %}.
                                 </div>
                             {% endif %}
                         </div>
@@ -48,8 +54,12 @@
                                     {% endfor %}
                                 </div>
                             {% else %}
+                                {% set alias_target_example = '/' ~ (alias.name if alias else 'cid123') %}
                                 <div class="form-text">
-                                    Provide a relative URL on this server. Examples: <code>/{{ alias.name if alias else 'cid123' }}</code>, <code>/servers/example</code>, or <code>/dashboard?view=latest</code>.
+                                    Provide a relative URL on this server. Examples:
+                                    {{ render_url_link(alias_target_example, label=alias_target_example, code=True) }},
+                                    {{ render_url_link('/servers/example', label='/servers/example', code=True) }},
+                                    or {{ render_url_link('/dashboard?view=latest', label='/dashboard?view=latest', code=True) }}.
                                 </div>
                             {% endif %}
                         </div>

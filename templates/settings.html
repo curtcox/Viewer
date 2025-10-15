@@ -34,7 +34,15 @@
                             </div>
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Serve aliases directly at: <code>/{name}</code></small>
+                            <small>
+                                Serve aliases directly at:
+                                {% if alias_example_name %}
+                                    {{ render_alias_link(alias_example_name, label='/' ~ alias_example_name, code=True) }}
+                                {% else %}
+                                    {{ render_url_link(url_for('main.new_alias'), label='Create an alias', class_name='text-decoration-none') }}
+                                    to activate direct paths.
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -61,7 +69,15 @@
                             </div>
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Access servers at: <code>/servers/{name}</code></small>
+                            <small>
+                                Access servers at:
+                                {% if server_example_name %}
+                                    {{ render_server_link(server_example_name, label='/servers/' ~ server_example_name, code=True) }}
+                                {% else %}
+                                    {{ render_url_link(url_for('main.new_server'), label='Add a server', class_name='text-decoration-none') }}
+                                    to expose direct routes.
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -88,7 +104,15 @@
                             </div>
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Access variables at: <code>/variables/{name}</code></small>
+                            <small>
+                                Access variables at:
+                                {% if variable_example_name %}
+                                    {{ render_url_link('/variables/' ~ variable_example_name, label='/variables/' ~ variable_example_name, code=True) }}
+                                {% else %}
+                                    {{ render_url_link(url_for('main.new_variable'), label='Create a variable', class_name='text-decoration-none') }}
+                                    to define reusable values.
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -115,7 +139,15 @@
                             </div>
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Access secrets at: <code>/secrets/{name}</code></small>
+                            <small>
+                                Access secrets at:
+                                {% if secret_example_name %}
+                                    {{ render_url_link('/secrets/' ~ secret_example_name, label='/secrets/' ~ secret_example_name, code=True) }}
+                                {% else %}
+                                    {{ render_url_link(url_for('main.new_secret'), label='Store a secret', class_name='text-decoration-none') }}
+                                    to secure sensitive data.
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -167,7 +199,43 @@
                                 </div>
                                 <div class="col-md-4">
                                     <h6>Direct Access</h6>
-                                    <p class="small text-muted">Access your items directly via URLs: <code>/{name}</code> for aliases, <code>/servers/{name}</code>, <code>/variables/{name}</code>, and <code>/secrets/{name}</code>.</p>
+                                    <div class="small text-muted">
+                                        <p class="mb-1">Access your items directly via URLs:</p>
+                                        <ul class="list-unstyled mb-0">
+                                            <li>
+                                                <strong>Aliases:</strong>
+                                                {% if alias_example_name %}
+                                                    {{ render_alias_link(alias_example_name, label='/' ~ alias_example_name, code=True) }}
+                                                {% else %}
+                                                    {{ render_url_link(url_for('main.new_alias'), label='Create an alias', class_name='text-decoration-none') }}
+                                                {% endif %}
+                                            </li>
+                                            <li>
+                                                <strong>Servers:</strong>
+                                                {% if server_example_name %}
+                                                    {{ render_server_link(server_example_name, label='/servers/' ~ server_example_name, code=True) }}
+                                                {% else %}
+                                                    {{ render_url_link(url_for('main.new_server'), label='Add a server', class_name='text-decoration-none') }}
+                                                {% endif %}
+                                            </li>
+                                            <li>
+                                                <strong>Variables:</strong>
+                                                {% if variable_example_name %}
+                                                    {{ render_url_link('/variables/' ~ variable_example_name, label='/variables/' ~ variable_example_name, code=True) }}
+                                                {% else %}
+                                                    {{ render_url_link(url_for('main.new_variable'), label='Create a variable', class_name='text-decoration-none') }}
+                                                {% endif %}
+                                            </li>
+                                            <li>
+                                                <strong>Secrets:</strong>
+                                                {% if secret_example_name %}
+                                                    {{ render_url_link('/secrets/' ~ secret_example_name, label='/secrets/' ~ secret_example_name, code=True) }}
+                                                {% else %}
+                                                    {{ render_url_link(url_for('main.new_secret'), label='Store a secret', class_name='text-decoration-none') }}
+                                                {% endif %}
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row">

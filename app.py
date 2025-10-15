@@ -20,6 +20,15 @@ from cid_presenter import (
     is_probable_cid_path,
     render_cid_link,
 )
+from link_presenter import (
+    alias_full_url,
+    alias_path,
+    render_alias_link,
+    render_server_link,
+    render_url_link,
+    server_full_url,
+    server_path,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -81,6 +90,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
 
     app.jinja_env.globals.update(
+        alias_full_url=alias_full_url,
+        alias_path=alias_path,
         cid_full_url=cid_full_url,
         cid_path=cid_path,
         extract_cid_from_path=extract_cid_from_path,
@@ -88,6 +99,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         format_cid_short=format_cid_short,
         is_probable_cid_path=is_probable_cid_path,
         render_cid_link=render_cid_link,
+        render_alias_link=render_alias_link,
+        render_server_link=render_server_link,
+        render_url_link=render_url_link,
+        server_full_url=server_full_url,
+        server_path=server_path,
     )
 
     # Initialize database

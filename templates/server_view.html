@@ -8,6 +8,7 @@
 {% endif %}
 {% set refs = definition_references or {} %}
 {% set has_refs = refs.aliases or refs.servers or refs.cids %}
+{% set server_public_link = render_server_link(server.name, base_url=request.url_root, code=True) %}
 <div class="container-fluid py-4 px-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <h2 class="mb-0"><i class="fas fa-server me-2"></i>{{ server.name }}</h2>
@@ -122,7 +123,7 @@
                         </div>
                         <div class="col-lg-6">
                             <strong>Direct URL:</strong><br>
-                            <code>{{ request.url_root }}servers/{{ server.name }}</code>
+                            {{ server_public_link }}
                         </div>
                         <div class="col-lg-6">
                             <strong>Definition Length:</strong><br>
