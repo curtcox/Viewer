@@ -44,11 +44,16 @@
                         </div>
                         {% if alias.target_path %}
                         {% set cid_target = extract_cid_from_path(alias.target_path) %}
+                        {% set alias_target_link = render_url_link(alias.target_path, code=True) %}
                         <div class="small text-muted mt-1">
                             {% if cid_target %}
                                 {{ render_cid_link(cid_target) }}
                             {% else %}
-                                <code>{{ alias.target_path }}</code>
+                                {% if alias_target_link %}
+                                    {{ alias_target_link }}
+                                {% else %}
+                                    <code>{{ alias.target_path }}</code>
+                                {% endif %}
                             {% endif %}
                         </div>
                         {% endif %}
