@@ -26,6 +26,7 @@ class RouteEntry:
     definition_url: str
     extra_detail: Optional[str] = None
     is_duplicate: bool = False
+    is_catch_all: bool = False
 
     @property
     def category_label(self) -> str:
@@ -33,6 +34,7 @@ class RouteEntry:
             "builtin": "Built-in",
             "alias": "Alias",
             "server": "Server",
+            "not_found": "Not Found",
         }.get(self.category, self.category.title())
 
     @property
@@ -41,6 +43,7 @@ class RouteEntry:
             "builtin": "fa-code",
             "alias": "fa-link",
             "server": "fa-server",
+            "not_found": "fa-triangle-exclamation",
         }.get(self.category, "fa-circle")
 
     @property
@@ -49,6 +52,7 @@ class RouteEntry:
             "builtin": "text-bg-info",
             "alias": "text-bg-primary",
             "server": "text-bg-success",
+            "not_found": "text-bg-danger",
         }.get(self.category, "text-bg-secondary")
 
 
@@ -141,6 +145,45 @@ def _server_routes() -> Iterable[RouteEntry]:
     return entries
 
 
+def _not_found_entry(root: Path) -> RouteEntry:
+    """Create a catch-all entry describing the 404 handler."""
+
+    from .core import not_found_error
+
+    handler = inspect.unwrap(not_found_error)
+    code = getattr(handler, "__code__", None)
+    handler_path = Path(inspect.getsourcefile(handler) or (code.co_filename if code else ""))
+    relative_handler = _relative_path(handler_path, root)
+
+    definition_label = (
+        f"{relative_handler} · not_found_error" if relative_handler else "404 handler"
+    )
+    definition_url = (
+        url_for("main.source_browser", requested_path=relative_handler)
+        if relative_handler
+        else "#"
+    )
+
+    template_path = Path(current_app.root_path) / "templates" / "404.html"
+    relative_template = _relative_path(template_path, root)
+
+    detail_parts = [
+        "Returns a 404 response when no route, alias, server, or CID matches.",
+    ]
+    if relative_template:
+        detail_parts.append(f"Template: {relative_template}")
+
+    return RouteEntry(
+        category="not_found",
+        path="/(any unmatched path)",
+        name="not_found_error",
+        definition_label=definition_label,
+        definition_url=definition_url,
+        extra_detail=" ".join(detail_parts),
+        is_catch_all=True,
+    )
+
+
 def _mark_duplicates(entries: List[RouteEntry]) -> None:
     """Flag entries that share the same path across or within categories."""
 
@@ -165,10 +208,11 @@ def routes_overview():
     entries.extend(_builtin_routes(repository_root))
     entries.extend(_alias_routes())
     entries.extend(_server_routes())
+    entries.append(_not_found_entry(repository_root))
 
     _mark_duplicates(entries)
 
-    entries.sort(key=lambda item: (item.path, item.category, item.name))
+    entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
 
     return render_template(
         "routes_overview.html",

@@ -34,6 +34,10 @@
                                 <span class="text-muted small">Workspace servers</span>
                             </label>
                         </div>
+                        <div class="d-flex align-items-center gap-2 ps-4">
+                            <span class="badge text-bg-danger"><i class="fas fa-triangle-exclamation me-1"></i>Not found</span>
+                            <span class="text-muted small">Shown when no route matches</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -83,6 +87,7 @@
                     data-path="{{ entry.path }}"
                     data-name="{{ entry.name }}"
                     data-type="{{ entry.category }}"
+                    {% if entry.is_catch_all %}data-not-found-row="true"{% endif %}
                     class="{% if entry.is_duplicate %}table-warning route-duplicate{% endif %}">
                     <td>
                         <div class="d-flex align-items-center gap-2">
@@ -120,13 +125,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterInput = document.getElementById('route-filter');
     const rows = Array.from(document.querySelectorAll('[data-route-entry]'));
     const toggles = Array.from(document.querySelectorAll('[data-type-toggle]'));
+    const notFoundRow = document.querySelector('[data-not-found-row="true"]');
 
     function updateMatches() {
         const fragment = (filterInput.value || '').trim().toLowerCase();
         const search = fragment ? '/' + fragment : '';
 
+        let hasMatch = false;
+
         rows.forEach((row) => {
-            row.classList.remove('table-info', 'route-match');
+            row.classList.remove('table-info', 'route-match', 'table-danger', 'route-not-found');
+        });
+
+        rows.forEach((row) => {
+            if (row.dataset.notFoundRow === 'true') {
+                return;
+            }
+
             if (!fragment || row.classList.contains('d-none')) {
                 return;
             }
@@ -135,8 +150,17 @@ document.addEventListener('DOMContentLoaded', function () {
             const name = (row.dataset.name || '').toLowerCase();
             if (path.includes(search) || name.includes(fragment)) {
                 row.classList.add('table-info', 'route-match');
+                hasMatch = true;
             }
         });
+
+        if (notFoundRow) {
+            if (fragment && !hasMatch) {
+                notFoundRow.classList.add('table-danger', 'route-not-found');
+            } else {
+                notFoundRow.classList.remove('table-danger', 'route-not-found');
+            }
+        }
     }
 
     function updateVisibility() {
@@ -145,6 +169,11 @@ document.addEventListener('DOMContentLoaded', function () {
         );
 
         rows.forEach((row) => {
+            if (row.dataset.notFoundRow === 'true') {
+                row.classList.remove('d-none');
+                return;
+            }
+
             if (enabledTypes.has(row.dataset.type)) {
                 row.classList.remove('d-none');
             } else {

@@ -89,6 +89,13 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertIn('fas fa-code me-1', page)
         self.assertIn('fas fa-link me-1', page)
         self.assertIn('fas fa-server me-1', page)
+        self.assertIn('fas fa-triangle-exclamation me-1', page)
+
+        # Not found handler should be documented with template details
+        self.assertIn('/(any unmatched path)', page)
+        self.assertIn('not_found_error', page)
+        self.assertIn('Template: templates/404.html', page)
+        self.assertIn('route-not-found', page)
 
 
 if __name__ == '__main__':
