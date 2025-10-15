@@ -43,7 +43,14 @@
                             <i class="fas fa-link text-muted"></i>
                         </div>
                         {% if alias.target_path %}
-                        <div class="small text-muted mt-1">{{ alias.target_path }}</div>
+                        {% set cid_target = extract_cid_from_path(alias.target_path) %}
+                        <div class="small text-muted mt-1">
+                            {% if cid_target %}
+                                {{ render_cid_link(cid_target) }}
+                            {% else %}
+                                <code>{{ alias.target_path }}</code>
+                            {% endif %}
+                        </div>
                         {% endif %}
                     </div>
                     {% endfor %}

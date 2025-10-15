@@ -1,6 +1,6 @@
 import pytest
 
-from cid_presenter import render_cid_link
+from cid_presenter import extract_cid_from_path, is_probable_cid_path, render_cid_link
 
 
 @pytest.mark.parametrize("value", [None, "", "   ", "/ "])
@@ -40,3 +40,26 @@ def test_render_cid_link_strips_leading_slash():
 
     assert 'href="/bafybeigdyr.txt"' in rendered
     assert '>#bafybeigd...<' in rendered
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (None, None),
+        ("", None),
+        ("   ", None),
+        ("/" , None),
+        ("/alpha/beta", None),
+        ("/bafybeigdyr.txt", "bafybeigdyr"),
+        ("bafybeigdyr", "bafybeigdyr"),
+        ("/bafybeigdyr?download=1", "bafybeigdyr"),
+    ],
+)
+def test_extract_cid_from_path(value, expected):
+    assert extract_cid_from_path(value) == expected
+
+
+def test_is_probable_cid_path_filters_non_cid_targets():
+    assert is_probable_cid_path("/bafybeigdyr")
+    assert not is_probable_cid_path("/servers/example")
+    assert not is_probable_cid_path("/demo/path")

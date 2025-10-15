@@ -35,7 +35,14 @@
                                 <div><code>{{ alias.match_pattern }}</code></div>
                                 <div class="small text-muted text-capitalize">{{ alias.match_type }}{% if alias.ignore_case %} · ignore case{% endif %}</div>
                             </td>
-                            <td><code>{{ alias.target_path }}</code></td>
+                            <td>
+                                {% set cid_target = extract_cid_from_path(alias.target_path) %}
+                                {% if cid_target %}
+                                    {{ render_cid_link(cid_target) }}
+                                {% else %}
+                                    <code>{{ alias.target_path }}</code>
+                                {% endif %}
+                            </td>
                             <td class="text-end">
                                 <a href="{{ url_for('main.view_alias', alias_name=alias.name) }}" class="btn btn-outline-primary btn-sm">
                                     <i class="fas fa-eye me-1"></i>View

@@ -224,6 +224,28 @@ def main(request):
         self.assertNotIn('No references detected', page)
         self.assertIn('crossref-reference', page)
 
+    def test_index_alias_target_displays_cid_link_for_cid_path(self):
+        """Alias entries on the dashboard should use the CID link component when targeting CIDs."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Alias target CID render check')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'alias target content',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        alias_cid = Alias(name='cid-alias', target_path=f'/{cid_value}', user_id=self.test_user.id)
+
+        db.session.add_all([cid_record, alias_cid])
+        db.session.commit()
+
+        response = self.client.get('/')
+        page = response.get_data(as_text=True)
+
+        pattern = rf'(?s)crossref-alias.*?{alias_cid.name}.*?<div class="small text-muted mt-1">\s*<span class="cid-display dropdown">'
+        self.assertRegex(page, pattern)
+        self.assertNotIn(f'<code>/{cid_value}</code>', page)
+
 
     def test_index_cross_reference_cids_include_incoming_highlight_metadata(self):
         """CID entries should carry metadata linking back to referencing aliases or servers."""
@@ -1585,6 +1607,54 @@ class TestAliasRoutes(BaseTestCase):
         self.assertIn('test_strings-ai-input', page)
         self.assertIn('data-ai-target-id="test_strings"', page)
         self.assertIn('Ask AI to edit the test paths', page)
+
+    def test_alias_list_displays_cid_link_for_cid_target(self):
+        """Alias listings should render CID targets with the standard link widget."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Alias list CID target display')
+        alias = Alias(name='cid-list', target_path=f'/{cid_value}', user_id=self.test_user.id)
+
+        db.session.add(alias)
+        db.session.commit()
+
+        response = self.client.get('/aliases')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('My Aliases', page)
+        self.assertIn('cid-display dropdown', page)
+        self.assertIn(f'href="/{cid_value}.txt"', page)
+        self.assertNotIn(f'<code>/{cid_value}</code>', page)
+
+    def test_alias_detail_displays_cid_link_for_cid_target(self):
+        """Alias detail view should render CID targets with the standard link widget."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Alias detail CID target display')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'Alias detail content',
+            uploaded_by_user_id=self.test_user.id,
+        )
+        alias = Alias(name='cid-detail', target_path=f'/{cid_value}', user_id=self.test_user.id)
+
+        db.session.add_all([cid_record, alias])
+        db.session.commit()
+
+        response = self.client.get(f'/aliases/{alias.name}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertRegex(
+            page,
+            r'(?s)Redirect Path</dt>\s*<dd class="col-sm-9">\s*<span class="cid-display dropdown">',
+        )
+        self.assertRegex(
+            page,
+            r'(?s)redirects browsers to\s*<span class="cid-display dropdown">',
+        )
+        self.assertNotIn(f'<code>/{cid_value}</code>', page)
 
 
 class TestSettingsRoutes(BaseTestCase):

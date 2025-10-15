@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 from markupsafe import Markup, escape
+
+
+_CID_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,}$")
 
 
 def _normalize_value(value: Optional[str]) -> str:
@@ -20,6 +24,40 @@ def _normalize_value(value: Optional[str]) -> str:
 def format_cid(value: Optional[str]) -> str:
     """Return a canonical string representation of a CID for display."""
     return _normalize_value(value)
+
+
+def extract_cid_from_path(value: Optional[str]) -> Optional[str]:
+    """Return the CID component from a likely CID path."""
+
+    if value is None:
+        return None
+
+    slug = value.strip()
+    if not slug:
+        return None
+
+    slug = slug.split("?", 1)[0]
+    slug = slug.split("#", 1)[0]
+    if slug.startswith("/"):
+        slug = slug[1:]
+
+    if not slug or "/" in slug:
+        return None
+
+    cid_part = slug
+    if "." in cid_part:
+        cid_part = cid_part.split(".", 1)[0]
+
+    if not _CID_REFERENCE_PATTERN.fullmatch(cid_part):
+        return None
+
+    return cid_part or None
+
+
+def is_probable_cid_path(value: Optional[str]) -> bool:
+    """Return True when the supplied path appears to reference a CID."""
+
+    return extract_cid_from_path(value) is not None
 
 
 def format_cid_short(value: Optional[str], length: int = 6) -> Optional[str]:
@@ -142,5 +180,8 @@ __all__ = [
     "cid_path",
     "format_cid",
     "format_cid_short",
+    "extract_cid_from_path",
+    "is_probable_cid_path",
     "render_cid_link",
 ]
+
