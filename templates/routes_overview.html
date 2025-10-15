@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+mark.route-fragment-highlight {
+    background-color: rgba(255, 193, 7, 0.4);
+    padding: 0 0.15em;
+    border-radius: 0.2rem;
+}
+</style>
 <div class="container">
     <div class="d-flex align-items-center mb-4">
         <h1 class="h3 mb-0">Routes Overview</h1>
@@ -71,7 +78,7 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle" id="routes-table">
+        <table class="table table-hover align-middle" id="routes-table">
             <thead class="table-dark">
                 <tr>
                     <th scope="col">Type</th>
@@ -99,8 +106,8 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="font-monospace">{{ entry.path }}</td>
-                    <td>{{ entry.name }}</td>
+                    <td class="font-monospace" data-path-cell data-original-path="{{ entry.path|e }}">{{ entry.path }}</td>
+                    <td data-name-cell data-original-name="{{ entry.name|e }}">{{ entry.name }}</td>
                     <td>
                         {% if entry.extra_detail %}
                             <span class="text-muted small">{{ entry.extra_detail }}</span>
@@ -130,6 +137,98 @@ document.addEventListener('DOMContentLoaded', function () {
     const originalIndex = new Map();
 
     rows.forEach((row, index) => originalIndex.set(row, index));
+
+    function resetRowHighlights(row) {
+        const pathCell = row.querySelector('[data-path-cell]');
+        if (pathCell && 'originalPath' in pathCell.dataset) {
+            pathCell.textContent = pathCell.dataset.originalPath;
+        }
+
+        const nameCell = row.querySelector('[data-name-cell]');
+        if (nameCell && 'originalName' in nameCell.dataset) {
+            nameCell.textContent = nameCell.dataset.originalName;
+        }
+    }
+
+    function escapeForRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+    }
+
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function highlightCell(cell, datasetKey, fragments) {
+        if (!cell) {
+            return;
+        }
+
+        if (!(datasetKey in cell.dataset)) {
+            return;
+        }
+
+        const originalValue = cell.dataset[datasetKey];
+
+        if (!fragments.length) {
+            cell.textContent = originalValue;
+            return;
+        }
+
+        const pattern = fragments
+            .filter((fragment) => fragment)
+            .map(escapeForRegExp)
+            .join('|');
+
+        if (!pattern) {
+            cell.textContent = originalValue;
+            return;
+        }
+
+        const regex = new RegExp(pattern, 'gi');
+        let lastIndex = 0;
+        const highlighted = [];
+
+        let match;
+        while ((match = regex.exec(originalValue)) !== null) {
+            if (match.index > lastIndex) {
+                highlighted.push(escapeHtml(originalValue.slice(lastIndex, match.index)));
+            }
+
+            const matchedText = originalValue.slice(match.index, regex.lastIndex);
+            highlighted.push(`<mark class="route-fragment-highlight">${escapeHtml(matchedText)}</mark>`);
+            lastIndex = regex.lastIndex;
+
+            if (!regex.global) {
+                break;
+            }
+        }
+
+        if (lastIndex < originalValue.length) {
+            highlighted.push(escapeHtml(originalValue.slice(lastIndex)));
+        }
+
+        if (highlighted.length === 0) {
+            cell.textContent = originalValue;
+        } else {
+            cell.innerHTML = highlighted.join('');
+        }
+    }
+
+    function applyRowHighlights(row, fragments) {
+        const uniqueFragments = Array.from(new Set(fragments.filter(Boolean)));
+
+        if (!uniqueFragments.length) {
+            return;
+        }
+
+        highlightCell(row.querySelector('[data-path-cell]'), 'originalPath', uniqueFragments);
+        highlightCell(row.querySelector('[data-name-cell]'), 'originalName', uniqueFragments);
+    }
 
     function normalizePath(value) {
         if (!value) {
@@ -174,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'table-active',
                 'route-partial'
             );
+            resetRowHighlights(row);
         });
 
         rows.forEach((row) => {
@@ -190,12 +290,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (path && path === normalizedSearchLower) {
                 row.classList.add('table-info', 'route-match');
                 matchRows.push(row);
+                applyRowHighlights(row, [normalizedSearch, fragment]);
                 return;
             }
 
             if (fragment && normalizedSearchLower !== '/' && path && path.includes(normalizedSearchLower)) {
                 row.classList.add('table-active', 'route-partial');
                 partialRows.push(row);
+                applyRowHighlights(row, [fragment, normalizedSearch]);
             }
         });
 
@@ -203,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (matchRows.length === 0) {
                 notFoundRow.classList.add('table-danger', 'route-not-found');
                 matchRows.push(notFoundRow);
+                applyRowHighlights(notFoundRow, [fragment, normalizedSearch]);
             }
         }
 

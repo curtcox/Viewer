@@ -82,6 +82,11 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertIn('route-duplicate', page)
         self.assertIn('Duplicate</span>', page)
 
+        # Table should avoid zebra-striping and expose fragment highlight support
+        self.assertNotIn('table-striped', page)
+        self.assertIn('data-original-path', page)
+        self.assertIn('route-fragment-highlight', page)
+
         # Filtering controls and icons should be present
         self.assertIn('id="toggle-builtin"', page)
         self.assertIn('id="toggle-alias"', page)
