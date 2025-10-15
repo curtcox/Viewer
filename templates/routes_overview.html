@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+mark.route-fragment-highlight {
+    background-color: rgba(255, 193, 7, 0.4);
+    padding: 0 0.15em;
+    border-radius: 0.2rem;
+}
+</style>
+<div class="container">
+    <div class="d-flex align-items-center mb-4">
+        <h1 class="h3 mb-0">Routes Overview</h1>
+        <span class="badge bg-secondary ms-3">Built-ins · Aliases · Servers</span>
+    </div>
+
+    <div class="row mb-4 g-3 align-items-stretch">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="fw-semibold mb-3">Show route types</div>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="builtin" id="toggle-builtin" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-builtin">
+                                <span class="badge text-bg-info"><i class="fas fa-code me-1"></i>Source</span>
+                                <span class="text-muted small">Built-in routes</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="alias" id="toggle-alias" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-alias">
+                                <span class="badge text-bg-primary"><i class="fas fa-link me-1"></i>Alias</span>
+                                <span class="text-muted small">Workspace aliases</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="server" id="toggle-server" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-server">
+                                <span class="badge text-bg-success"><i class="fas fa-server me-1"></i>Server</span>
+                                <span class="text-muted small">Workspace servers</span>
+                            </label>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 ps-4">
+                            <span class="badge text-bg-danger"><i class="fas fa-triangle-exclamation me-1"></i>Not found</span>
+                            <span class="text-muted small">Shown when no route matches</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <label for="route-filter" class="form-label fw-semibold">Highlight routes matching URL</label>
+            <div class="input-group">
+                <span class="input-group-text">/</span>
+                <input type="text" id="route-filter" class="form-control" placeholder="path fragment" autocomplete="off">
+            </div>
+            <div class="form-text">Start typing to highlight matching built-ins, aliases, and servers in real time.</div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card bg-light border-0 h-100">
+                <div class="card-body py-3">
+                    <div class="fw-semibold mb-2">Jump to definitions</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.source_browser', requested_path='routes') }}">
+                            <i class="fas fa-code me-1"></i> Built-in route source
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.aliases') }}">
+                            <i class="fas fa-link me-1"></i> Alias definitions
+                        </a>
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url_for('main.servers') }}">
+                            <i class="fas fa-server me-1"></i> Server definitions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="routes-table">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">Type</th>
+                    <th scope="col">Path</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Details</th>
+                    <th scope="col">Defined In</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr data-route-entry
+                    data-path="{{ entry.path }}"
+                    data-name="{{ entry.name }}"
+                    data-type="{{ entry.category }}"
+                    {% if entry.is_catch_all %}data-not-found-row="true"{% endif %}
+                    class="{% if entry.is_duplicate %}table-warning route-duplicate{% endif %}">
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge {{ entry.badge_class }}">
+                                <i class="fas {{ entry.icon_class }} me-1"></i>{{ entry.category_label }}
+                            </span>
+                            {% if entry.is_duplicate %}
+                                <span class="badge text-bg-warning" title="Multiple definitions share this path">Duplicate</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="font-monospace" data-path-cell data-original-path="{{ entry.path|e }}">{{ entry.path }}</td>
+                    <td data-name-cell data-original-name="{{ entry.name|e }}">{{ entry.name }}</td>
+                    <td>
+                        {% if entry.extra_detail %}
+                            <span class="text-muted small">{{ entry.extra_detail }}</span>
+                        {% else %}
+                            <span class="text-muted small">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ entry.definition_url }}" class="text-decoration-none">
+                            {{ entry.definition_label }}
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterInput = document.getElementById('route-filter');
+    const tbody = document.querySelector('#routes-table tbody');
+    const rows = Array.from(document.querySelectorAll('[data-route-entry]'));
+    const toggles = Array.from(document.querySelectorAll('[data-type-toggle]'));
+    const notFoundRow = document.querySelector('[data-not-found-row="true"]');
+    const originalIndex = new Map();
+
+    rows.forEach((row, index) => originalIndex.set(row, index));
+
+    function resetRowHighlights(row) {
+        const pathCell = row.querySelector('[data-path-cell]');
+        if (pathCell && 'originalPath' in pathCell.dataset) {
+            pathCell.textContent = pathCell.dataset.originalPath;
+        }
+
+        const nameCell = row.querySelector('[data-name-cell]');
+        if (nameCell && 'originalName' in nameCell.dataset) {
+            nameCell.textContent = nameCell.dataset.originalName;
+        }
+    }
+
+    function escapeForRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\$&');
+    }
+
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function highlightCell(cell, datasetKey, fragments) {
+        if (!cell) {
+            return;
+        }
+
+        if (!(datasetKey in cell.dataset)) {
+            return;
+        }
+
+        const originalValue = cell.dataset[datasetKey];
+
+        if (!fragments.length) {
+            cell.textContent = originalValue;
+            return;
+        }
+
+        const pattern = fragments
+            .filter((fragment) => fragment)
+            .map(escapeForRegExp)
+            .join('|');
+
+        if (!pattern) {
+            cell.textContent = originalValue;
+            return;
+        }
+
+        const regex = new RegExp(pattern, 'gi');
+        let lastIndex = 0;
+        const highlighted = [];
+
+        let match;
+        while ((match = regex.exec(originalValue)) !== null) {
+            if (match.index > lastIndex) {
+                highlighted.push(escapeHtml(originalValue.slice(lastIndex, match.index)));
+            }
+
+            const matchedText = originalValue.slice(match.index, regex.lastIndex);
+            highlighted.push(`<mark class="route-fragment-highlight">${escapeHtml(matchedText)}</mark>`);
+            lastIndex = regex.lastIndex;
+
+            if (!regex.global) {
+                break;
+            }
+        }
+
+        if (lastIndex < originalValue.length) {
+            highlighted.push(escapeHtml(originalValue.slice(lastIndex)));
+        }
+
+        if (highlighted.length === 0) {
+            cell.textContent = originalValue;
+        } else {
+            cell.innerHTML = highlighted.join('');
+        }
+    }
+
+    function applyRowHighlights(row, fragments) {
+        const uniqueFragments = Array.from(new Set(fragments.filter(Boolean)));
+
+        if (!uniqueFragments.length) {
+            return;
+        }
+
+        highlightCell(row.querySelector('[data-path-cell]'), 'originalPath', uniqueFragments);
+        highlightCell(row.querySelector('[data-name-cell]'), 'originalName', uniqueFragments);
+    }
+
+    function normalizePath(value) {
+        if (!value) {
+            return '';
+        }
+
+        if (value === '/') {
+            return '/';
+        }
+
+        return value.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    }
+
+    function normalizeSearchFragment(fragment) {
+        const trimmed = (fragment || '').trim();
+
+        if (!trimmed) {
+            return '/';
+        }
+
+        const prefixed = '/' + trimmed.replace(/^\/+/g, '');
+        return normalizePath(prefixed || '/');
+    }
+
+    function updateMatches() {
+        const fragment = (filterInput.value || '').trim();
+        const normalizedSearch = normalizeSearchFragment(fragment);
+        const normalizedSearchLower = normalizedSearch.toLowerCase();
+
+        const matchRows = [];
+        const partialRows = [];
+        const visibleRows = new Set(
+            rows.filter((row) => !row.classList.contains('d-none') || row.dataset.notFoundRow === 'true')
+        );
+
+        rows.forEach((row) => {
+            row.classList.remove(
+                'table-info',
+                'route-match',
+                'table-danger',
+                'route-not-found',
+                'table-active',
+                'route-partial'
+            );
+            resetRowHighlights(row);
+        });
+
+        rows.forEach((row) => {
+            if (row.dataset.notFoundRow === 'true') {
+                return;
+            }
+
+            if (!visibleRows.has(row)) {
+                return;
+            }
+
+            const path = normalizePath((row.dataset.path || '').toLowerCase());
+
+            if (path && path === normalizedSearchLower) {
+                row.classList.add('table-info', 'route-match');
+                matchRows.push(row);
+                applyRowHighlights(row, [normalizedSearch, fragment]);
+                return;
+            }
+
+            if (fragment && normalizedSearchLower !== '/' && path && path.includes(normalizedSearchLower)) {
+                row.classList.add('table-active', 'route-partial');
+                partialRows.push(row);
+                applyRowHighlights(row, [fragment, normalizedSearch]);
+            }
+        });
+
+        if (notFoundRow) {
+            if (matchRows.length === 0) {
+                notFoundRow.classList.add('table-danger', 'route-not-found');
+                matchRows.push(notFoundRow);
+                applyRowHighlights(notFoundRow, [fragment, normalizedSearch]);
+            }
+        }
+
+        const matchSet = new Set(matchRows);
+        const partialSet = new Set(partialRows);
+
+        const orderedRows = rows
+            .slice()
+            .sort((a, b) => {
+                const rankA = matchSet.has(a) ? 0 : partialSet.has(a) ? 1 : 2;
+                const rankB = matchSet.has(b) ? 0 : partialSet.has(b) ? 1 : 2;
+
+                if (rankA !== rankB) {
+                    return rankA - rankB;
+                }
+
+                return originalIndex.get(a) - originalIndex.get(b);
+            });
+
+        orderedRows.forEach((row) => tbody.appendChild(row));
+    }
+
+    function updateVisibility() {
+        const enabledTypes = new Set(
+            toggles.filter((toggle) => toggle.checked).map((toggle) => toggle.value)
+        );
+
+        rows.forEach((row) => {
+            if (row.dataset.notFoundRow === 'true') {
+                row.classList.remove('d-none');
+                return;
+            }
+
+            if (enabledTypes.has(row.dataset.type)) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        });
+    }
+
+    function applyFilters() {
+        updateVisibility();
+        updateMatches();
+    }
+
+    filterInput.addEventListener('input', updateMatches);
+    toggles.forEach((toggle) => toggle.addEventListener('change', applyFilters));
+
+    applyFilters();
+});
+</script>
+{% endblock %}
