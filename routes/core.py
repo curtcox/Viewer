@@ -30,6 +30,10 @@ from db_access import (
     create_payment_record,
     create_terms_acceptance_record,
     get_cid_by_path,
+    get_first_alias_name,
+    get_first_secret_name,
+    get_first_server_name,
+    get_first_variable_name,
     get_user_aliases,
     get_user_profile_data,
     get_user_servers,
@@ -828,6 +832,10 @@ def get_user_settings_counts(user_id):
         'server_count': count_user_servers(user_id),
         'variable_count': count_user_variables(user_id),
         'secret_count': count_user_secrets(user_id),
+        'alias_example_name': get_first_alias_name(user_id),
+        'server_example_name': get_first_server_name(user_id),
+        'variable_example_name': get_first_variable_name(user_id),
+        'secret_example_name': get_first_secret_name(user_id),
     }
 
 

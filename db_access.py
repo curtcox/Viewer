@@ -86,12 +86,34 @@ def get_server_by_name(user_id: str, name: str):
     return Server.query.filter_by(user_id=user_id, name=name).first()
 
 
+def get_first_server_name(user_id: str) -> Optional[str]:
+    """Return the first server name for a user ordered alphabetically."""
+
+    server = (
+        Server.query.filter_by(user_id=user_id)
+        .order_by(Server.name.asc())
+        .first()
+    )
+    return server.name if server else None
+
+
 def get_user_aliases(user_id: str):
     return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
 
 
 def get_alias_by_name(user_id: str, name: str):
     return Alias.query.filter_by(user_id=user_id, name=name).first()
+
+
+def get_first_alias_name(user_id: str) -> Optional[str]:
+    """Return the first alias name for a user ordered alphabetically."""
+
+    alias = (
+        Alias.query.filter_by(user_id=user_id)
+        .order_by(Alias.name.asc())
+        .first()
+    )
+    return alias.name if alias else None
 
 
 def get_alias_by_target_path(user_id: str, target_path: str):
@@ -114,12 +136,34 @@ def get_variable_by_name(user_id: str, name: str):
     return Variable.query.filter_by(user_id=user_id, name=name).first()
 
 
+def get_first_variable_name(user_id: str) -> Optional[str]:
+    """Return the first variable name for a user ordered alphabetically."""
+
+    variable = (
+        Variable.query.filter_by(user_id=user_id)
+        .order_by(Variable.name.asc())
+        .first()
+    )
+    return variable.name if variable else None
+
+
 def get_user_secrets(user_id: str):
     return Secret.query.filter_by(user_id=user_id).order_by(Secret.name).all()
 
 
 def get_secret_by_name(user_id: str, name: str):
     return Secret.query.filter_by(user_id=user_id, name=name).first()
+
+
+def get_first_secret_name(user_id: str) -> Optional[str]:
+    """Return the first secret name for a user ordered alphabetically."""
+
+    secret = (
+        Secret.query.filter_by(user_id=user_id)
+        .order_by(Secret.name.asc())
+        .first()
+    )
+    return secret.name if secret else None
 
 
 def count_user_servers(user_id: str) -> int:

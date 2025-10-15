@@ -1666,6 +1666,46 @@ class TestSettingsRoutes(BaseTestCase):
         response = self.client.get('/settings')
         self.assertEqual(response.status_code, 200)
 
+    def test_settings_page_shows_direct_access_links(self):
+        """Settings page should render clickable direct access examples."""
+
+        self.login_user()
+
+        alias = Alias(
+            name='docs',
+            target_path='/docs-target',
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+        )
+        server = Server(
+            name='engine',
+            definition='print("ok")',
+            user_id=self.test_user.id,
+        )
+        variable = Variable(
+            name='app-config',
+            definition='value = 1',
+            user_id=self.test_user.id,
+        )
+        secret = Secret(
+            name='api-key',
+            definition='secret-value',
+            user_id=self.test_user.id,
+        )
+
+        db.session.add_all([alias, server, variable, secret])
+        db.session.commit()
+
+        response = self.client.get('/settings')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<a href="/docs">/docs</a>', page)
+        self.assertIn('<a href="/servers/engine">/servers/engine</a>', page)
+        self.assertIn('<a href="/variables/app-config">/variables/app-config</a>', page)
+        self.assertIn('<a href="/secrets/api-key">/secrets/api-key</a>', page)
+
     def test_import_form_includes_ai_controls(self):
         """Import form should expose AI helper controls."""
         self.login_user()
