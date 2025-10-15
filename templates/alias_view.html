@@ -7,6 +7,7 @@
     <div class="row">
         <div class="col-12">
             {% set alias_target_cid = extract_cid_from_path(alias.target_path) %}
+            {% set alias_public_link = render_alias_link(alias.name, base_url=request.url_root, code=True) %}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-link me-2"></i>{{ alias.name }}</h2>
                 <div class="btn-group">
@@ -47,7 +48,7 @@
                         <dd class="col-sm-9">{{ 'Yes' if alias.ignore_case else 'No' }}</dd>
 
                         <dt class="col-sm-3">Public URL</dt>
-                        <dd class="col-sm-9"><code>{{ request.url_root }}{{ alias.name }}</code></dd>
+                        <dd class="col-sm-9">{{ alias_public_link }}</dd>
                     </dl>
                 </div>
                 <div class="card-footer text-muted">
@@ -125,7 +126,7 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted mb-3">
-                        Visiting <code>{{ request.url_root }}{{ alias.name }}</code> redirects browsers to
+                        Visiting {{ alias_public_link }} redirects browsers to
                         {% if alias_target_cid %}
                             {{ render_cid_link(alias_target_cid) }}
                         {% else %}

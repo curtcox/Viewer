@@ -28,7 +28,10 @@
                         {% for alias in aliases %}
                         <tr>
                             <td class="fw-semibold">
-                                <span class="badge bg-secondary me-2">/{{ alias.name }}</span>
+                                {{ render_alias_link(
+                                    alias.name,
+                                    class_name="badge bg-secondary me-2 text-decoration-none",
+                                ) }}
                                 {{ alias.name }}
                             </td>
                             <td>
