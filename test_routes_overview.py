@@ -82,6 +82,14 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertIn('route-duplicate', page)
         self.assertIn('Duplicate</span>', page)
 
+        # Filtering controls and icons should be present
+        self.assertIn('id="toggle-builtin"', page)
+        self.assertIn('id="toggle-alias"', page)
+        self.assertIn('id="toggle-server"', page)
+        self.assertIn('fas fa-code me-1', page)
+        self.assertIn('fas fa-link me-1', page)
+        self.assertIn('fas fa-server me-1', page)
+
 
 if __name__ == '__main__':
     unittest.main()

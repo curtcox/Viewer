@@ -7,8 +7,38 @@
         <span class="badge bg-secondary ms-3">Built-ins · Aliases · Servers</span>
     </div>
 
-    <div class="row mb-4 g-3 align-items-end">
-        <div class="col-lg-6">
+    <div class="row mb-4 g-3 align-items-stretch">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="fw-semibold mb-3">Show route types</div>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="builtin" id="toggle-builtin" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-builtin">
+                                <span class="badge text-bg-info"><i class="fas fa-code me-1"></i>Source</span>
+                                <span class="text-muted small">Built-in routes</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="alias" id="toggle-alias" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-alias">
+                                <span class="badge text-bg-primary"><i class="fas fa-link me-1"></i>Alias</span>
+                                <span class="text-muted small">Workspace aliases</span>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="server" id="toggle-server" data-type-toggle checked>
+                            <label class="form-check-label d-flex align-items-center gap-2" for="toggle-server">
+                                <span class="badge text-bg-success"><i class="fas fa-server me-1"></i>Server</span>
+                                <span class="text-muted small">Workspace servers</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
             <label for="route-filter" class="form-label fw-semibold">Highlight routes matching URL</label>
             <div class="input-group">
                 <span class="input-group-text">/</span>
@@ -16,8 +46,8 @@
             </div>
             <div class="form-text">Start typing to highlight matching built-ins, aliases, and servers in real time.</div>
         </div>
-        <div class="col-lg-6">
-            <div class="card bg-light border-0">
+        <div class="col-lg-4">
+            <div class="card bg-light border-0 h-100">
                 <div class="card-body py-3">
                     <div class="fw-semibold mb-2">Jump to definitions</div>
                     <div class="d-flex flex-wrap gap-2">
@@ -55,10 +85,14 @@
                     data-type="{{ entry.category }}"
                     class="{% if entry.is_duplicate %}table-warning route-duplicate{% endif %}">
                     <td>
-                        <span class="badge text-bg-primary">{{ entry.category_label }}</span>
-                        {% if entry.is_duplicate %}
-                            <span class="badge text-bg-warning ms-2" title="Multiple definitions share this path">Duplicate</span>
-                        {% endif %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge {{ entry.badge_class }}">
+                                <i class="fas {{ entry.icon_class }} me-1"></i>{{ entry.category_label }}
+                            </span>
+                            {% if entry.is_duplicate %}
+                                <span class="badge text-bg-warning" title="Multiple definitions share this path">Duplicate</span>
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="font-monospace">{{ entry.path }}</td>
                     <td>{{ entry.name }}</td>
@@ -85,6 +119,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const filterInput = document.getElementById('route-filter');
     const rows = Array.from(document.querySelectorAll('[data-route-entry]'));
+    const toggles = Array.from(document.querySelectorAll('[data-type-toggle]'));
 
     function updateMatches() {
         const fragment = (filterInput.value || '').trim().toLowerCase();
@@ -92,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         rows.forEach((row) => {
             row.classList.remove('table-info', 'route-match');
-            if (!fragment) {
+            if (!fragment || row.classList.contains('d-none')) {
                 return;
             }
 
@@ -104,7 +139,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function updateVisibility() {
+        const enabledTypes = new Set(
+            toggles.filter((toggle) => toggle.checked).map((toggle) => toggle.value)
+        );
+
+        rows.forEach((row) => {
+            if (enabledTypes.has(row.dataset.type)) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        });
+    }
+
+    function applyFilters() {
+        updateVisibility();
+        updateMatches();
+    }
+
     filterInput.addEventListener('input', updateMatches);
+    toggles.forEach((toggle) => toggle.addEventListener('change', applyFilters));
+
+    applyFilters();
 });
 </script>
 {% endblock %}

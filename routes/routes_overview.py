@@ -35,6 +35,22 @@ class RouteEntry:
             "server": "Server",
         }.get(self.category, self.category.title())
 
+    @property
+    def icon_class(self) -> str:
+        return {
+            "builtin": "fa-code",
+            "alias": "fa-link",
+            "server": "fa-server",
+        }.get(self.category, "fa-circle")
+
+    @property
+    def badge_class(self) -> str:
+        return {
+            "builtin": "text-bg-info",
+            "alias": "text-bg-primary",
+            "server": "text-bg-success",
+        }.get(self.category, "text-bg-secondary")
+
 
 def _relative_path(candidate: Path, root: Path) -> Optional[str]:
     """Return the repository relative path when available."""
