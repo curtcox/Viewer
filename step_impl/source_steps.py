@@ -29,28 +29,29 @@ def reset_scenario_store() -> None:
     _response_store().clear()
 
 
-@step("When I request <path>")
-def when_i_request(path: str) -> None:
+@step("When I request /source")
+def when_i_request_source() -> None:
     if _client is None:
         raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get(path)
+    response = _client.get("/source")
     _response_store()["response"] = response
 
 
-@step("The response status should be <code>")
-def then_status_is(code: str) -> None:
+@step("The response status should be 200")
+def then_status_is_200() -> None:
     response = _response_store().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
-    expected = int(code)
+    expected = 200
     actual = int(response.status_code)
     assert (
         actual == expected
     ), f"Expected HTTP {expected} for {response.request.path!r} but received {actual}."
 
 
-@step("The response should contain <text>")
-def then_response_contains(text: str) -> None:
+@step("The response should contain Source Browser")
+def then_response_contains_source_browser() -> None:
     response = _response_store().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
-    assert text in body, f"Expected to find {text!r} in the response body."
+    expected_text = "Source Browser"
+    assert expected_text in body, f"Expected to find {expected_text!r} in the response body."
