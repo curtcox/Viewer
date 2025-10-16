@@ -1,6 +1,6 @@
 """Provide Gauge decorator shims when the real package is unavailable."""
+
 from __future__ import annotations
-"""Provide Gauge decorator shims when the real package is unavailable."""
 
 import importlib
 import importlib.util
