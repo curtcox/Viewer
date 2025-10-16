@@ -24,7 +24,7 @@ def build_environment() -> dict[str, str]:
     env = os.environ.copy()
     # Ensure the repository root is on the Python path so pytest can import modules.
     python_path = env.get("PYTHONPATH")
-    search_paths = [str(ROOT_DIR), str(ROOT_DIR / "tests")]
+    search_paths = [str(ROOT_DIR), str(ROOT_DIR / "step_impl"), str(ROOT_DIR / "tests")]
     if python_path:
         search_paths.append(python_path)
     env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(search_paths))

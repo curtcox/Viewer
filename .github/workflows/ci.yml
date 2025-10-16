@@ -111,8 +111,8 @@ jobs:
         run: gauge run specs
         env:
           GAUGE_PYTHON_COMMAND: python3
-          STEP_IMPL_DIR: step_impl
-          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/tests"
+          STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
 
       - name: Fail if tests failed
         if: steps.run_tests.outcome == 'failure'
