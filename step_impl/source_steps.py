@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from flask.testing import FlaskClient
-from getgauge.python import before_scenario, before_suite, step
+from gauge_compat import before_scenario, before_suite, step
 
 from app import create_app
 

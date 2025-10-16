@@ -45,10 +45,11 @@ def main(args: Sequence[str]) -> int:
     gauge_cmd = shutil.which("gauge")
     if gauge_cmd is None:
         print(
-            "Gauge CLI not found. Install Gauge from https://docs.gauge.org/getting_started/installing-gauge.html",
+            "Gauge CLI not found. Falling back to python run_specs.py for spec execution.",
             file=sys.stderr,
         )
-        return 1
+        runner_args = [sys.executable, str(ROOT_DIR / "run_specs.py")]
+        return subprocess.call(runner_args, cwd=str(ROOT_DIR), env=env)
 
     env.setdefault("GAUGE_PYTHON_COMMAND", sys.executable)
     env.setdefault("STEP_IMPL_DIR", str(ROOT_DIR / "step_impl"))

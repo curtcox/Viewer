@@ -72,10 +72,13 @@ SCREENSHOT_MODE=1 ./run
 Gauge specs exercise key user flows alongside the pytest suite. Install the
 [Gauge CLI](https://docs.gauge.org/getting_started/installing-gauge.html) and the
 `python` and `html-report` plugins, then run `./test` to execute both pytest and
-Gauge. The HTML report generated at `reports/html-report/index.html` is available
-through the running app's source browser at `/source/reports/html-report/index.html`,
-alongside unit test and coverage results. A build is only considered passing when
-both the pytest suite and the Gauge specs succeed.
+Gauge. When the Gauge CLI is unavailable, `./test` falls back to
+`python run_specs.py`, a lightweight interpreter that executes the specs via the
+existing step implementations so you can still validate behaviour locally. The
+HTML report generated at `reports/html-report/index.html` is available through the
+running app's source browser at `/source/reports/html-report/index.html`, alongside
+unit test and coverage results. A build is only considered passing when both the
+pytest suite and the Gauge specs succeed.
 
 ## Requirements
 
