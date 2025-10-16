@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -23,10 +24,10 @@ def build_environment() -> dict[str, str]:
     env = os.environ.copy()
     # Ensure the repository root is on the Python path so pytest can import modules.
     python_path = env.get("PYTHONPATH")
+    search_paths = [str(ROOT_DIR), str(ROOT_DIR / "step_impl"), str(ROOT_DIR / "tests")]
     if python_path:
-        env["PYTHONPATH"] = os.pathsep.join([str(ROOT_DIR), python_path])
-    else:
-        env["PYTHONPATH"] = str(ROOT_DIR)
+        search_paths.append(python_path)
+    env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(search_paths))
 
     for key, value in DEFAULT_ENV.items():
         env.setdefault(key, value)
@@ -37,7 +38,22 @@ def build_environment() -> dict[str, str]:
 def main(args: Sequence[str]) -> int:
     env = build_environment()
     cmd = [sys.executable, "-m", "pytest", *args]
-    return subprocess.call(cmd, cwd=str(ROOT_DIR), env=env)
+    result = subprocess.call(cmd, cwd=str(ROOT_DIR), env=env)
+    if result != 0:
+        return result
+
+    gauge_cmd = shutil.which("gauge")
+    if gauge_cmd is None:
+        print(
+            "Gauge CLI not found. Install Gauge from https://docs.gauge.org/getting_started/installing-gauge.html",
+            file=sys.stderr,
+        )
+        return 1
+
+    env.setdefault("GAUGE_PYTHON_COMMAND", sys.executable)
+    env.setdefault("STEP_IMPL_DIR", str(ROOT_DIR / "step_impl"))
+    gauge_args = [gauge_cmd, "run", "specs"]
+    return subprocess.call(gauge_args, cwd=str(ROOT_DIR), env=env)
 
 
 if __name__ == "__main__":

@@ -54,6 +54,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Gauge CLI
+        run: |
+          curl -fsSL https://downloads.gauge.org/stable | sh
+          echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
+
+      - name: Install Gauge plugins
+        run: |
+          gauge install python
+          gauge install html-report
+
       - name: Run tests with coverage
         id: run_tests
         run: |
@@ -96,6 +106,13 @@ jobs:
         with:
           name: coverage-html
           path: htmlcov
+
+      - name: Run Gauge specs
+        run: gauge run specs
+        env:
+          GAUGE_PYTHON_COMMAND: python3
+          STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
 
       - name: Fail if tests failed
         if: steps.run_tests.outcome == 'failure'

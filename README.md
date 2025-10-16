@@ -9,7 +9,7 @@ The project includes simple helper scripts so you can get up and running quickly
 ./install   # set up a virtual environment and install dependencies
 ./doctor    # verify your environment
 ./run       # start the development server on http://localhost:5000
-./test      # run the full test suite
+./test      # run the full test suite (pytest + Gauge specs)
 python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
@@ -66,6 +66,16 @@ SCREENSHOT_MODE=1 ./run
 * `doctor` – check for common installation issues and suggest how to fix them.
 * `test` – execute the automated test suite via pytest.
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
+
+### Gauge specs
+
+Gauge specs exercise key user flows alongside the pytest suite. Install the
+[Gauge CLI](https://docs.gauge.org/getting_started/installing-gauge.html) and the
+`python` and `html-report` plugins, then run `./test` to execute both pytest and
+Gauge. The HTML report generated at `reports/html-report/index.html` is available
+through the running app's source browser at `/source/reports/html-report/index.html`,
+alongside unit test and coverage results. A build is only considered passing when
+both the pytest suite and the Gauge specs succeed.
 
 ## Requirements
 
