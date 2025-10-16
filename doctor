@@ -25,6 +25,15 @@ else
   status=1
 fi
 
+# check gauge cli
+if command -v gauge >/dev/null 2>&1; then
+  gauge_version=$(gauge --version 2>/dev/null | head -n 1)
+  echo "Gauge CLI: $gauge_version"
+else
+  echo "Gauge CLI: missing. Install Gauge from https://docs.gauge.org/getting_started/installing-gauge.html"
+  status=1
+fi
+
 # check packages
 missing=()
 if [ -d "venv" ]; then

@@ -41,7 +41,21 @@ def _get_all_project_files(root_path: str) -> frozenset[str]:
         # Get all source files recursively, excluding common non-source directories
         exclude_dirs = {'.git', '__pycache__', '.pytest_cache', 'venv', '.venv', 'node_modules', '.tox'}
         
-        for pattern in ["*.py", "*.html", "*.js", "*.css", "*.json", "*.md", "*.txt", "*.yml", "*.yaml", "*.toml", "*.ini", "*.cfg"]:
+        for pattern in [
+            "*.py",
+            "*.html",
+            "*.js",
+            "*.css",
+            "*.json",
+            "*.md",
+            "*.txt",
+            "*.yml",
+            "*.yaml",
+            "*.toml",
+            "*.ini",
+            "*.cfg",
+            "*.spec",
+        ]:
             for file_path in root.rglob(pattern):
                 try:
                     # Skip files in excluded directories
@@ -126,9 +140,10 @@ def _render_file(path: str, root_path: Path):
     if not file_path.is_file() or repository_root not in file_path.parents:
         abort(404)
 
-    # Coverage HTML reports already contain full HTML documents. Serve them
-    # directly so the content is not wrapped in the source browser template.
-    if path.startswith("htmlcov/"):
+    # Coverage and spec HTML reports already contain full HTML documents.
+    # Serve them directly so the content is not wrapped in the source browser template.
+    html_passthrough_prefixes = ("htmlcov/", "reports/html-report/")
+    if path.startswith(html_passthrough_prefixes):
         return send_file(file_path)
 
     try:

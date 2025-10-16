@@ -38,6 +38,7 @@ MANIFEST
 # PyInstaller
 *.manifest
 *.spec
+!specs/*.spec
 
 # Installer logs
 pip-log.txt
@@ -93,6 +94,11 @@ celerybeat-schedule
 .env
 .venv
 env/
+!env/
+env/*
+!env/default/
+env/default/*
+!env/default/python.properties
 venv/
 ENV/
 env.bak/

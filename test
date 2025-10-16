@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -37,7 +38,21 @@ def build_environment() -> dict[str, str]:
 def main(args: Sequence[str]) -> int:
     env = build_environment()
     cmd = [sys.executable, "-m", "pytest", *args]
-    return subprocess.call(cmd, cwd=str(ROOT_DIR), env=env)
+    result = subprocess.call(cmd, cwd=str(ROOT_DIR), env=env)
+    if result != 0:
+        return result
+
+    gauge_cmd = shutil.which("gauge")
+    if gauge_cmd is None:
+        print(
+            "Gauge CLI not found. Install Gauge from https://docs.gauge.org/getting_started/installing-gauge.html",
+            file=sys.stderr,
+        )
+        return 1
+
+    env.setdefault("GAUGE_PYTHON_COMMAND", sys.executable)
+    gauge_args = [gauge_cmd, "run", "specs"]
+    return subprocess.call(gauge_args, cwd=str(ROOT_DIR), env=env)
 
 
 if __name__ == "__main__":
