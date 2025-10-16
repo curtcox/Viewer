@@ -51,7 +51,7 @@ def main(args: Sequence[str]) -> int:
         return 1
 
     env.setdefault("GAUGE_PYTHON_COMMAND", sys.executable)
-    env.setdefault("STEP_IMPL_DIR", str(ROOT_DIR / "tests" / "step_impl"))
+    env.setdefault("STEP_IMPL_DIR", str(ROOT_DIR / "step_impl"))
     gauge_args = [gauge_cmd, "run", "specs"]
     return subprocess.call(gauge_args, cwd=str(ROOT_DIR), env=env)
 
