@@ -11,22 +11,39 @@ Usage examples::
     python run_specs.py                      # run every ``*.spec`` file
     python run_specs.py specs/source_browser.spec
 
-The runner understands the step sentences currently used in the specs and
-executes the corresponding Gauge step implementations from
-``step_impl/source_steps.py``.  It exits with a non-zero status code if any
-step fails, making it suitable for CI integration.
+The runner discovers the Gauge-style step implementations under
+``step_impl/`` and executes them directly.  It exits with a non-zero status
+code if any step fails, making it suitable for CI integration.
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from importlib import import_module
+from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
-from step_impl import source_steps
+from gauge_compat import (
+    iter_before_scenario_hooks,
+    iter_before_suite_hooks,
+    iter_registered_steps,
+)
+
+
+def _load_step_modules(package: str = "step_impl") -> None:
+    """Import all step implementation modules so decorators register hooks."""
+
+    package_module = import_module(package)
+    package_path = Path(package_module.__file__).resolve().parent
+
+    for module_path in package_path.glob("*.py"):
+        if module_path.name.startswith("_") or module_path.name == "__init__.py":
+            continue
+        module_name = f"{package}.{module_path.stem}"
+        import_module(module_name)
 
 
 @dataclass
@@ -45,36 +62,46 @@ class StepDefinition:
     action: Callable[..., None]
 
 
-STEP_DEFINITIONS: Sequence[StepDefinition] = (
-    StepDefinition(
-        pattern=re.compile(r"When I request /source"),
-        action=lambda: source_steps.when_i_request_source(),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"The response status should be 200"),
-        action=lambda: source_steps.then_status_is_200(),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"The response should contain Source Browser"),
-        action=lambda: source_steps.then_response_contains_source_browser(),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"When I request (.+) with screenshot mode enabled"),
-        action=lambda path: source_steps.when_i_request_path_with_screenshot_mode(path),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"The CID screenshot response should include expected content"),
-        action=lambda: source_steps.then_cid_screenshot_contains_expected_content(),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"The uploads screenshot response should include sample data"),
-        action=lambda: source_steps.then_uploads_screenshot_contains_sample_data(),
-    ),
-    StepDefinition(
-        pattern=re.compile(r"The server events screenshot response should include sample data"),
-        action=lambda: source_steps.then_server_events_screenshot_contains_sample_data(),
-    ),
-)
+STEP_DEFINITIONS: tuple[StepDefinition, ...] = ()
+BEFORE_SUITE_HOOKS: tuple[Callable[..., None], ...] = ()
+BEFORE_SCENARIO_HOOKS: tuple[Callable[..., None], ...] = ()
+
+PLACEHOLDER_RE = re.compile(r"<([^>]+)>")
+
+
+def _convert_gauge_pattern(pattern_text: str) -> re.Pattern[str]:
+    """Translate a Gauge parameter pattern into a Python regular expression."""
+
+    parts: list[str] = []
+    last_index = 0
+    for match in PLACEHOLDER_RE.finditer(pattern_text):
+        parts.append(re.escape(pattern_text[last_index : match.start()]))
+        parts.append("(.+)")
+        last_index = match.end()
+
+    parts.append(re.escape(pattern_text[last_index:]))
+    regex = "^" + "".join(parts) + "$"
+    return re.compile(regex)
+
+
+def _initialise_runtime_state() -> None:
+    """Load step definitions and lifecycle hooks from the step modules."""
+
+    global STEP_DEFINITIONS, BEFORE_SUITE_HOOKS, BEFORE_SCENARIO_HOOKS
+
+    _load_step_modules()
+
+    step_definitions: list[StepDefinition] = []
+    for pattern_text, action in iter_registered_steps():
+        compiled = _convert_gauge_pattern(pattern_text)
+        step_definitions.append(StepDefinition(pattern=compiled, action=action))
+
+    if not step_definitions:
+        raise SpecExecutionError("No Gauge step definitions registered.")
+
+    STEP_DEFINITIONS = tuple(step_definitions)
+    BEFORE_SUITE_HOOKS = tuple(iter_before_suite_hooks())
+    BEFORE_SCENARIO_HOOKS = tuple(iter_before_scenario_hooks())
 
 
 class SpecExecutionError(RuntimeError):
@@ -132,6 +159,9 @@ def parse_spec(spec_path: Path) -> list[Scenario]:
 def _match_step(step_text: str) -> tuple[StepDefinition, Sequence[str]]:
     """Find the matching step definition and captured arguments."""
 
+    if not STEP_DEFINITIONS:
+        raise SpecExecutionError("Step definitions have not been initialised.")
+
     for definition in STEP_DEFINITIONS:
         match = definition.pattern.fullmatch(step_text)
         if match:
@@ -143,7 +173,9 @@ def run_scenario(scenario: Scenario) -> None:
     """Execute a single scenario, raising on failure."""
 
     print(f"  Scenario: {scenario.name}")
-    source_steps.reset_scenario_store()
+
+    for hook in BEFORE_SCENARIO_HOOKS:
+        hook()
 
     for step_text in scenario.steps:
         definition, arguments = _match_step(step_text)
@@ -176,7 +208,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("No spec files found.")
         return 1
 
-    source_steps.setup_suite()
+    _initialise_runtime_state()
+
+    for hook in BEFORE_SUITE_HOOKS:
+        hook()
 
     try:
         for spec_path in spec_paths:
