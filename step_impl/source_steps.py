@@ -4,15 +4,12 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from flask.testing import FlaskClient
-from getgauge.python import DataStoreFactory, before_scenario, before_suite, step
+from getgauge.python import before_scenario, before_suite, step
 
 from app import create_app
 
 _client: Optional[FlaskClient] = None
-
-
-def _response_store() -> dict[str, Any]:
-    return DataStoreFactory.scenario_data_store()
+_scenario_state: dict[str, Any] = {}
 
 
 @before_suite()
@@ -26,7 +23,7 @@ def setup_suite() -> None:
 @before_scenario()
 def reset_scenario_store() -> None:
     """Clear scenario data before each spec scenario."""
-    _response_store().clear()
+    _scenario_state.clear()
 
 
 @step("When I request /source")
@@ -34,12 +31,12 @@ def when_i_request_source() -> None:
     if _client is None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/source")
-    _response_store()["response"] = response
+    _scenario_state["response"] = response
 
 
 @step("The response status should be 200")
 def then_status_is_200() -> None:
-    response = _response_store().get("response")
+    response = _scenario_state.get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
     expected = 200
     actual = int(response.status_code)
@@ -50,7 +47,7 @@ def then_status_is_200() -> None:
 
 @step("The response should contain Source Browser")
 def then_response_contains_source_browser() -> None:
-    response = _response_store().get("response")
+    response = _scenario_state.get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
     expected_text = "Source Browser"
