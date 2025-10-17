@@ -1,7 +1,6 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
 from flask import request, session
-from flask import request, session
 
 from identity import current_user
 

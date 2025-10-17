@@ -2,7 +2,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from types import SimpleNamespace
 
 import server_execution
 from app import app

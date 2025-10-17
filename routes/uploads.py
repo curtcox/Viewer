@@ -1,7 +1,6 @@
 """Upload-related routes and helpers."""
-from datetime import datetime
 
-from flask import abort, current_app, flash, render_template, request, url_for
+from flask import abort, flash, render_template, request, url_for
 from identity import current_user
 
 from markupsafe import Markup
