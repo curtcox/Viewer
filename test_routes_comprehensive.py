@@ -22,16 +22,12 @@ from app import create_app
 from database import db
 from models import (
     User,
-    Payment,
-    TermsAcceptance,
     CID,
-    Invitation,
     PageView,
     Server,
     ServerInvocation,
     Variable,
     Secret,
-    CURRENT_TERMS_VERSION,
     Alias,
 )
 from cid_utils import CID_LENGTH, generate_cid
@@ -369,17 +365,17 @@ def main(request):
     def test_plans_page(self):
         """Test plans page."""
         response = self.client.get('/plans')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
     def test_terms_page(self):
         """Test terms page."""
         response = self.client.get('/terms')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
     def test_privacy_page(self):
         """Test privacy page."""
         response = self.client.get('/privacy')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
     def test_404_page_includes_creation_links(self):
         """The 404 page should offer shortcuts for creating aliases or servers."""
@@ -438,114 +434,49 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class TestSubscriptionRoutes(BaseTestCase):
-    """Test subscription and payment routes."""
+class TestRemovedLegacyRoutes(BaseTestCase):
+    """Ensure removed authentication and marketing routes return 404."""
 
-    def test_subscribe_get(self):
-        """Test subscribe page GET request."""
+    def test_subscribe_route_removed(self):
         self.login_user()
-        response = self.client.get('/subscribe')
-        self.assertEqual(response.status_code, 200)
-
-    def test_subscribe_post_annual_plan(self):
-        """Test subscribing to annual plan."""
-        self.login_user()
-        response = self.client.post('/subscribe', data={
-            'plan': 'annual',
-            'submit': 'Subscribe'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-
-        # Check payment was created
-        payment = Payment.query.filter_by(user_id=self.test_user.id).first()
-        self.assertIsNotNone(payment)
-        self.assertEqual(payment.plan_type, 'annual')
-        self.assertEqual(payment.amount, 50.00)
-
-        # Check user was updated
-        db.session.refresh(self.test_user)
-        self.assertTrue(self.test_user.is_paid)
-        self.assertIsNotNone(self.test_user.payment_expires_at)
-
-    def test_subscribe_post_free_plan(self):
-        """Test subscribing to free plan."""
-        self.login_user()
-        response = self.client.post('/subscribe', data={
-            'plan': 'free',
-            'submit': 'Subscribe'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-
-        # Check payment was created
-        payment = Payment.query.filter_by(user_id=self.test_user.id).first()
-        self.assertIsNotNone(payment)
-        self.assertEqual(payment.plan_type, 'free')
-        self.assertEqual(payment.amount, 0.00)
-
-
-class TestTermsAcceptanceRoutes(BaseTestCase):
-    """Test terms acceptance routes."""
-
-    def test_accept_terms_get(self):
-        """Test accept terms page GET request."""
-        self.login_user()
-        response = self.client.get('/accept-terms')
-        self.assertEqual(response.status_code, 200)
-
-    def test_accept_terms_post(self):
-        """Test accepting terms."""
-        # Create user who hasn't accepted terms
-        user = User(
-            id='terms_user',
-            email='terms@example.com',
-            current_terms_accepted=False
+        self.assertEqual(self.client.get('/subscribe').status_code, 404)
+        self.assertEqual(
+            self.client.post('/subscribe', data={'plan': 'free', 'submit': 'Subscribe'}).status_code,
+            404,
         )
-        db.session.add(user)
-        db.session.commit()
 
-        self.login_user(user)
-        response = self.client.post('/accept-terms', data={
-            'accept_terms': True,
-            'submit': 'Accept Terms'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-
-        # Check terms acceptance was created
-        terms_acceptance = TermsAcceptance.query.filter_by(user_id=user.id).first()
-        self.assertIsNotNone(terms_acceptance)
-        self.assertEqual(terms_acceptance.terms_version, CURRENT_TERMS_VERSION)
-
-        # Check user was updated
-        db.session.refresh(user)
-        self.assertTrue(user.current_terms_accepted)
-
-    def test_accept_terms_already_accepted(self):
-        """Test accepting terms when already accepted."""
-        # Create existing terms acceptance
-        terms_acceptance = TermsAcceptance(
-            user_id=self.test_user.id,
-            terms_version=CURRENT_TERMS_VERSION
-        )
-        db.session.add(terms_acceptance)
-        db.session.commit()
-
+    def test_accept_terms_route_removed(self):
         self.login_user()
-        response = self.client.post('/accept-terms', data={
-            'accept_terms': True,
-            'submit': 'Accept Terms'
-        }, follow_redirects=True)
+        self.assertEqual(self.client.get('/accept-terms').status_code, 404)
+        self.assertEqual(
+            self.client.post('/accept-terms', data={'submit': 'Accept Terms'}).status_code,
+            404,
+        )
 
-        self.assertEqual(response.status_code, 200)
+    def test_invitation_routes_removed(self):
+        self.login_user()
+        self.assertEqual(self.client.get('/invitations').status_code, 404)
+        self.assertEqual(self.client.get('/create-invitation').status_code, 404)
+        self.assertEqual(
+            self.client.post('/create-invitation', data={'submit': 'Create Invitation'}).status_code,
+            404,
+        )
 
-        # Should not create duplicate
-        count = TermsAcceptance.query.filter_by(
-            user_id=self.test_user.id,
-            terms_version=CURRENT_TERMS_VERSION
-        ).count()
-        self.assertEqual(count, 1)
+    def test_require_invitation_removed(self):
+        self.login_user()
+        self.assertEqual(self.client.get('/require-invitation').status_code, 404)
+        self.assertEqual(
+            self.client.post('/require-invitation', data={'invitation_code': 'test'}).status_code,
+            404,
+        )
+
+    def test_invite_link_removed(self):
+        self.login_user()
+        self.assertEqual(self.client.get('/invite/example-code').status_code, 404)
+
+    def test_screenshot_demo_removed(self):
+        self.login_user()
+        self.assertEqual(self.client.get('/_screenshot/cid-demo').status_code, 404)
 
 
 class TestFileUploadRoutes(BaseTestCase):
@@ -810,7 +741,7 @@ class TestCidEditingRoutes(BaseTestCase):
     def test_edit_requires_login(self):
         cid_value = self._create_cid_record(b'needs auth')
         response = self.client.get(f'/edit/{cid_value}', follow_redirects=False)
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
     def test_edit_cid_get_full_match(self):
         cid_value = self._create_cid_record(b'original content')
@@ -1021,111 +952,6 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         count = CID.query.filter_by(path=f'/{cid_value}').count()
         self.assertEqual(count, 1)
-
-class TestInvitationRoutes(BaseTestCase):
-    """Test invitation routes."""
-
-    def test_invitations_list(self):
-        """Test invitations list page."""
-        self.login_user()
-        response = self.client.get('/invitations')
-        self.assertEqual(response.status_code, 200)
-
-    def test_create_invitation_get(self):
-        """Test create invitation page GET request."""
-        self.login_user()
-        response = self.client.get('/create-invitation')
-        self.assertEqual(response.status_code, 200)
-
-    def test_create_invitation_post(self):
-        """Test creating invitation."""
-        self.login_user()
-
-        # Test creating invitation with email
-        response = self.client.post('/create-invitation', data={
-            'email': 'invited@example.com',
-            'submit': 'Create Invitation'
-        })
-
-        # Should redirect after successful creation
-        self.assertEqual(response.status_code, 302)
-
-        # Verify invitation was created in database
-        invitation = Invitation.query.filter_by(inviter_user_id=self.test_user.id).first()
-        self.assertIsNotNone(invitation)
-        self.assertEqual(invitation.email, 'invited@example.com')
-        self.assertEqual(invitation.status, 'pending')
-        self.assertIsNotNone(invitation.invitation_code)
-
-        # Test creating invitation without email
-        response = self.client.post('/create-invitation', data={
-            'submit': 'Create Invitation'
-        })
-
-        # Should redirect after successful creation
-        self.assertEqual(response.status_code, 302)
-
-        # Verify second invitation was created
-        invitations = Invitation.query.filter_by(inviter_user_id=self.test_user.id).all()
-        self.assertEqual(len(invitations), 2)
-
-    def test_require_invitation_get(self):
-        """Test require invitation page GET request."""
-        response = self.client.get('/require-invitation')
-        self.assertEqual(response.status_code, 200)
-
-    def test_require_invitation_valid_code(self):
-        """Test require invitation with valid code."""
-        # Create valid invitation
-        invitation = Invitation(
-            inviter_user_id=self.test_user.id,
-            invitation_code='valid_code',
-            status='pending'
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.client.post('/require-invitation', data={
-            'invitation_code': 'valid_code',
-            'submit': 'Verify Invitation'
-        }, follow_redirects=False)
-
-        # Should store invitation code in session
-        with self.client.session_transaction() as sess:
-            self.assertEqual(sess.get('invitation_code'), 'valid_code')
-
-    def test_require_invitation_invalid_code(self):
-        """Test require invitation with invalid code."""
-        response = self.client.post('/require-invitation', data={
-            'invitation_code': 'invalid_code',
-            'submit': 'Verify Invitation'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-
-    def test_accept_invitation_valid(self):
-        """Test accepting invitation via direct link."""
-        invitation = Invitation(
-            inviter_user_id=self.test_user.id,
-            invitation_code='direct_code',
-            status='pending'
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        response = self.client.get('/invite/direct_code', follow_redirects=False)
-        self.assertEqual(response.status_code, 302)
-
-        # Should store invitation code in session
-        with self.client.session_transaction() as sess:
-            self.assertEqual(sess.get('invitation_code'), 'direct_code')
-
-    def test_accept_invitation_invalid(self):
-        """Test accepting invalid invitation."""
-        response = self.client.get('/invite/invalid_code', follow_redirects=False)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('/require-invitation', response.location)
-
 
 class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
@@ -1601,7 +1427,9 @@ def main():
         db.session.commit()
 
         with self.app.test_request_context('/prefetch-check'):
-            self.login_user(self.test_user)
+            from flask import session
+
+            session['_user_id'] = self.test_user.id
             context = server_execution._load_user_context()
 
         self.assertIn('prefetched', context['variables'])

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from flask import g, has_request_context
+from flask import g, has_request_context, session
 from werkzeug.local import LocalProxy
 
 from ai_defaults import ensure_ai_stub_for_user
@@ -71,10 +71,20 @@ def _load_current_user() -> User:
     global _cached_user
 
     if has_request_context():
+        requested_user_id = session.get("_user_id")
         user = getattr(g, "_default_user", None)
-        if user is None:
-            user = _ensure_default_user()
-            g._default_user = user
+
+        if requested_user_id:
+            if not user or getattr(user, "id", None) != requested_user_id:
+                user = db.session.get(User, requested_user_id)
+                if user is None:
+                    user = _ensure_default_user()
+                g._default_user = user
+        else:
+            if user is None:
+                user = _ensure_default_user()
+                g._default_user = user
+
         _cached_user = user
         return user
 

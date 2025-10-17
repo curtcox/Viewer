@@ -18,9 +18,8 @@ def test_echo_server_lookup_logic():
 
     # Test the existing routes check
     existing_routes = {
-        '/', '/dashboard', '/profile', '/upload', '/subscribe',
-        '/accept-terms', '/login', '/logout', '/callback', '/terms',
-        '/require-invitation', '/uploads', '/history', '/servers', '/variables',
+        '/', '/dashboard', '/profile', '/upload',
+        '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings'
     }
 

@@ -112,8 +112,8 @@ class TestServerDefinitionValidationRoute(unittest.TestCase):
         self.assertTrue(payload["has_main"])
         self.assertGreater(len(payload.get("auto_main_errors", [])), 0)
 
-    def test_validate_definition_requires_authentication(self):
-        """Unauthenticated users should be redirected to login."""
+    def test_validate_definition_available_without_authentication(self):
+        """Definition validation remains accessible in the default workspace."""
 
         anonymous_client = self.app.test_client()
         response = anonymous_client.post(
@@ -121,7 +121,7 @@ class TestServerDefinitionValidationRoute(unittest.TestCase):
             json={"definition": "print('hi')"},
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 200)
 
 
 if __name__ == "__main__":

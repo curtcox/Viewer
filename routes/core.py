@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from flask import (
     abort,
     current_app,
-    flash,
     redirect,
     render_template,
     request,
@@ -25,25 +24,21 @@ from db_access import (
     count_user_secrets,
     count_user_servers,
     count_user_variables,
-    create_payment_record,
-    create_terms_acceptance_record,
     get_cid_by_path,
     get_first_alias_name,
     get_first_secret_name,
     get_first_server_name,
     get_first_variable_name,
     get_user_aliases,
-    get_user_profile_data,
     get_user_servers,
 )
-from forms import PaymentForm, TermsAcceptanceForm
 from cid_presenter import cid_path, format_cid, format_cid_short
 from entity_references import (
     extract_references_from_bytes,
     extract_references_from_target,
     extract_references_from_text,
 )
-from models import CID, CURRENT_TERMS_VERSION
+from models import CID
 from server_execution import (
     is_potential_server_path,
     is_potential_versioned_server_path,
@@ -632,44 +627,12 @@ def profile():
 
 @main_bp.route('/subscribe', methods=['GET', 'POST'])
 def subscribe():
-    """Handle subscription payments (mock implementation)."""
-    form = PaymentForm()
-    if form.validate_on_submit():
-        plan_prices = {
-            'free': 0.00,
-            'annual': 50.00,
-        }
-
-        plan = form.plan.data
-        amount = plan_prices.get(plan, 0.00)
-
-        create_payment_record(plan, amount, current_user)
-
-        flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
-        return redirect(url_for('main.profile'))
-
-    return render_template('subscribe.html', form=form)
+    abort(404)
 
 
 @main_bp.route('/accept-terms', methods=['GET', 'POST'])
 def accept_terms():
-    """Handle terms and conditions acceptance."""
-    form = TermsAcceptanceForm()
-    if form.validate_on_submit():
-        profile_data = get_user_profile_data(current_user.id)
-        if profile_data['needs_terms_acceptance']:
-            create_terms_acceptance_record(
-                current_user,
-                request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
-            )
-            flash('Terms and conditions accepted successfully!', 'success')
-        return redirect(url_for('main.profile'))
-
-    return render_template(
-        'accept_terms.html',
-        form=form,
-        terms_version=CURRENT_TERMS_VERSION,
-    )
+    abort(404)
 
 
 @main_bp.route('/plans')
@@ -736,8 +699,8 @@ def get_user_settings_counts(user_id):
 def get_existing_routes():
     """Get set of existing routes that should take precedence over server names."""
     return {
-        '/', '/dashboard', '/profile', '/subscribe', '/accept-terms',
-        '/plans', '/terms', '/privacy', '/upload',
+        '/', '/dashboard', '/profile',
+        '/upload',
         '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings', '/aliases', '/aliases/new',
         '/edit', '/meta',
@@ -839,17 +802,12 @@ def internal_error(error):
 
 
 __all__ = [
-    'accept_terms',
     'dashboard',
     'get_existing_routes',
     'get_user_settings_counts',
     'index',
     'inject_observability_info',
     'not_found_error',
-    'plans',
-    'privacy',
     'profile',
     'settings',
-    'subscribe',
-    'terms',
 ]

@@ -49,12 +49,159 @@
                             {% if cid_target %}
                                 {{ render_cid_link(cid_target) }}
                             {% else %}
+                                {% if alias_target_link %}
+                                    {{ alias_target_link }}
+                                {% else %}
+                                    <code>{{ alias.target_path }}</code>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="card-body text-muted small">
+                    <p class="mb-0">No aliases yet. Create one to route friendly URLs to servers or CIDs.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold text-uppercase small">Servers</span>
+                    <span class="badge rounded-pill text-bg-success">{{ cross_reference.servers|length }}</span>
+                </div>
+                {% if cross_reference.servers %}
+                <div class="list-group list-group-flush">
+                    {% for server in cross_reference.servers %}
+                    <div class="list-group-item position-relative crossref-entity crossref-server"
+                         data-entity-type="server"
+                         data-entity-key="{{ server.entity_key }}"
+                         data-implies="{{ server.implied_keys|join(' ') }}"
+                         data-incoming-refs="{{ server.incoming_refs|join(' ') }}"
+                         data-outgoing-refs="{{ server.outgoing_refs|join(' ') }}"
+                         tabindex="0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <a href="{{ server.url }}" class="fw-semibold text-decoration-none">{{ server.name }}</a>
+                            <i class="fas fa-server text-muted"></i>
+                        </div>
+                        {% if server.definition_cid %}
+                        <div class="small text-muted mt-1">
+                            Definition CID:
+                            {{ render_cid_link(server.definition_cid) }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="card-body text-muted small">
+                    <p class="mb-0">No servers defined yet. Build one to power dynamic routes.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold text-uppercase small">CIDs</span>
+                    <span class="badge rounded-pill text-bg-dark">{{ cross_reference.cids|length }}</span>
+                </div>
+                {% if cross_reference.cids %}
+                <div class="list-group list-group-flush">
+                    {% for cid in cross_reference.cids %}
+                    <div class="list-group-item crossref-entity crossref-cid"
+                         data-entity-type="cid"
+                         data-entity-key="{{ cid.entity_key }}"
+                         data-implies="{{ cid.implied_keys|join(' ') }}"
+                         data-incoming-refs="{{ cid.incoming_refs|join(' ') }}"
+                         data-outgoing-refs="{{ cid.outgoing_refs|join(' ') }}"
+                         tabindex="0">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-dark text-uppercase">CID</span>
+                                <span class="small text-muted">Preview</span>
+                            </div>
+                            <div>{{ render_cid_link(cid.cid) }}</div>
+                            <div class="small text-muted font-monospace">
+                                {{ cid.preview }}{% if cid.preview_truncated %}...{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="card-body text-muted small">
+                    <p class="mb-0">No CIDs referenced by your aliases or servers yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold text-uppercase small">References</span>
+                    <span class="badge rounded-pill text-bg-secondary">{{ cross_reference.references|length }}</span>
+                </div>
+                {% if cross_reference.references %}
+                <div class="list-group list-group-flush">
+                    {% for ref in cross_reference.references %}
+                    <div class="list-group-item crossref-reference"
+                         data-reference-key="{{ ref.key }}"
+                         data-source-key="{{ ref.source_key }}"
+                         data-target-key="{{ ref.target_key }}"
+                         tabindex="0">
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <div class="flex-grow-1">
+                                <div class="text-uppercase small text-muted">{{ ref.source_label }}</div>
+                                {% if ref.source_type == 'cid' %}
+                                <span class="badge text-bg-dark">{{ ref.source_cid_short }}</span>
+                                {% elif ref.source_url %}
+                                <a href="{{ ref.source_url }}" class="fw-semibold text-decoration-none">{{ ref.source_name }}</a>
+                                {% else %}
+                                <span class="fw-semibold">{{ ref.source_name }}</span>
+                                {% endif %}
+                            </div>
+                            <i class="fas fa-arrow-right text-muted"></i>
+                            <div class="flex-grow-1 text-end">
+                                <div class="text-uppercase small text-muted">{{ ref.target_label }}</div>
+                                {% if ref.target_type == 'cid' %}
+                                <span class="badge text-bg-dark">{{ ref.target_cid_short }}</span>
+                                {% elif ref.target_url %}
+                                <a href="{{ ref.target_url }}" class="fw-semibold text-decoration-none">{{ ref.target_name }}</a>
+                                {% else %}
+                                <span class="fw-semibold">{{ ref.target_name }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="card-body text-muted small">
+                    <p class="mb-0">No references detected between your entities yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="container py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <h1 class="display-5 fw-bold text-primary mb-4">Welcome to SecureApp</h1>
+            <h1 class="display-5 fw-bold text-primary mb-4">Workspace ready for you</h1>
             <p class="lead text-muted mb-4">
-                Upload content, create aliases, and manage servers without worrying about sign-in. All tools are ready whenever you are.
+                SecureApp now keeps a default workspace signed in so you can upload content,
+                create aliases, and run servers without a login step.
+            </p>
+            <p class="text-muted mb-4">
+                When you need personalized access controls, connect an external identity provider and this page will link to it.
             </p>
             <div class="d-flex flex-wrap gap-3 justify-content-center">
                 <a href="{{ url_for('main.uploads') }}" class="btn btn-primary btn-lg">
@@ -63,9 +210,115 @@
                 <a href="{{ url_for('main.aliases') }}" class="btn btn-outline-secondary btn-lg">
                     <i class="fas fa-link me-2"></i>Manage Aliases
                 </a>
+                <a href="{{ url_for('main.servers') }}" class="btn btn-outline-dark btn-lg">
+                    <i class="fas fa-server me-2"></i>Explore Servers
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if cross_reference %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('[data-crossref-container]');
+    if (!container) {
+        return;
+    }
+
+    const escapeSelector = function (value) {
+        if (!value) {
+            return '';
+        }
+        if (window.CSS && typeof window.CSS.escape === 'function') {
+            return window.CSS.escape(value);
+        }
+        return value.replace(/(["'\\#.:;,!?+<>=~*^$\[\](){}|\/-])/g, '\\$1');
+    };
+
+    const clearHighlight = function () {
+        container.classList.remove('is-hovering');
+        container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach((el) => {
+            el.classList.remove('is-highlighted', 'is-related', 'is-reference', 'is-dimmed');
+        });
+    };
+
+    const highlightEntity = function (key, className) {
+        if (!key) {
+            return;
+        }
+        const selector = '[data-entity-key="' + escapeSelector(key) + '"]';
+        container.querySelectorAll(selector).forEach((el) => el.classList.add(className));
+    };
+
+    const highlightReference = function (key, className) {
+        if (!key) {
+            return;
+        }
+        const selector = '[data-reference-key="' + escapeSelector(key) + '"]';
+        container.querySelectorAll(selector).forEach((el) => el.classList.add(className));
+    };
+
+    const markDimmed = function () {
+        const active = new Set();
+        container.querySelectorAll('.is-highlighted, .is-related, .is-reference').forEach((el) => active.add(el));
+        container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach((el) => {
+            if (!active.has(el)) {
+                el.classList.add('is-dimmed');
+            }
+        });
+    };
+
+    const applyHighlight = function (element) {
+        clearHighlight();
+        if (!element) {
+            return;
+        }
+
+        container.classList.add('is-hovering');
+        element.classList.add('is-highlighted');
+
+        if (element.hasAttribute('data-reference-key')) {
+            const sourceKey = element.getAttribute('data-source-key');
+            const targetKey = element.getAttribute('data-target-key');
+            if (sourceKey) {
+                highlightEntity(sourceKey, 'is-related');
+            }
+            if (targetKey) {
+                highlightEntity(targetKey, 'is-related');
+            }
+        } else {
+            const implied = (element.getAttribute('data-implies') || '').split(/\s+/).filter(Boolean);
+            implied.forEach((key) => highlightEntity(key, 'is-related'));
+
+            const refKeys = (element.getAttribute('data-outgoing-refs') || '').split(/\s+/).filter(Boolean);
+            refKeys.forEach((key) => highlightReference(key, 'is-reference'));
+
+            const incomingRefKeys = (element.getAttribute('data-incoming-refs') || '').split(/\s+/).filter(Boolean);
+            incomingRefKeys.forEach((key) => highlightReference(key, 'is-reference'));
+        }
+
+        markDimmed();
+    };
+
+    const attachListeners = function (element) {
+        const enter = () => applyHighlight(element);
+        const leave = () => clearHighlight();
+        element.addEventListener('mouseenter', enter);
+        element.addEventListener('focus', enter);
+        element.addEventListener('mouseleave', leave);
+        element.addEventListener('blur', leave);
+    };
+
+    container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach(attachListeners);
+    container.addEventListener('mouseleave', clearHighlight);
+});
+</script>
 {% endif %}
 {% endblock %}
