@@ -5,9 +5,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from flask import abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
 from entity_references import extract_references_from_target
 from forms import AliasForm
@@ -43,7 +42,6 @@ def _persist_alias(alias: Alias) -> Alias:
 
 
 @main_bp.route('/aliases')
-@require_login
 def aliases():
     """Display the authenticated user's aliases."""
     alias_list = get_user_aliases(current_user.id)
@@ -51,7 +49,6 @@ def aliases():
 
 
 @main_bp.route('/aliases/new', methods=['GET', 'POST'])
-@require_login
 def new_alias():
     """Create a new alias for the authenticated user."""
     form = AliasForm()
@@ -112,7 +109,6 @@ def new_alias():
 
 
 @main_bp.route('/aliases/<alias_name>')
-@require_login
 def view_alias(alias_name: str):
     """View a single alias."""
     alias = get_alias_by_name(current_user.id, alias_name)
@@ -132,7 +128,6 @@ def view_alias(alias_name: str):
 
 
 @main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
-@require_login
 def edit_alias(alias_name: str):
     """Edit an existing alias."""
     alias = get_alias_by_name(current_user.id, alias_name)

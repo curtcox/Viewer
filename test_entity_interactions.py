@@ -5,7 +5,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from auth_providers import create_local_user
+from identity import ensure_default_user
 from db_access import record_entity_interaction, get_recent_entity_interactions
 
 
@@ -19,18 +19,12 @@ class TestEntityInteractions(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        self.user = create_local_user(email='interactions@example.com')
-        self._login()
+        self.user = ensure_default_user()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
-    def _login(self):
-        with self.client.session_transaction() as session:
-            session['_user_id'] = self.user.id
-            session['_fresh'] = True
 
     def test_record_entity_interaction_persists(self):
         record_entity_interaction(

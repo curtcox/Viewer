@@ -1,7 +1,6 @@
 from flask import jsonify, request
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from db_access import record_entity_interaction
 from interaction_log import load_interaction_history, summarise_interaction
 
@@ -9,7 +8,6 @@ from . import main_bp
 
 
 @main_bp.route('/api/interactions', methods=['POST'])
-@require_login
 def create_interaction_entry():
     """Persist an interaction triggered from the client and return updated history."""
 

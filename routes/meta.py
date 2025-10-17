@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 from flask import Response, current_app, jsonify, url_for
-from flask_login import current_user
+from identity import current_user
 from sqlalchemy import or_
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
@@ -244,9 +244,6 @@ def _serialize_alias(alias) -> Dict[str, Any]:
 
 def _aliases_targeting_path(path: str) -> List[Dict[str, Any]]:
     """Return aliases owned by the current user that target the supplied path."""
-    if not getattr(current_user, "is_authenticated", False):
-        return []
-
     normalized = _normalize_target_path(path)
     aliases = []
     for alias in get_user_aliases(current_user.id):
@@ -279,12 +276,9 @@ def _resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> O
         "source_links": _dedupe_links(["/source/alias_routing.py", META_SOURCE_LINK]),
         "resolution": {
             "type": "alias_redirect",
-            "requires_authentication": True,
+            "requires_authentication": False,
         },
     }
-
-    if not getattr(current_user, "is_authenticated", False):
-        return None
 
     alias_obj = find_matching_alias(path)
     if not alias_obj:
@@ -369,15 +363,12 @@ def _resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
             if function_name
             else "server_execution",
             "server_name": server_name,
-            "requires_authentication": True,
+            "requires_authentication": False,
         },
     }
 
     if function_name:
         payload["resolution"]["function_name"] = function_name
-
-    if not getattr(current_user, "is_authenticated", False):
-        return None
 
     server = get_server_by_name(current_user.id, server_name)
     if not server:
@@ -426,15 +417,12 @@ def _resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
             else "versioned_server_execution",
             "server_name": server_name,
             "partial_cid": partial_cid,
-            "requires_authentication": True,
+            "requires_authentication": False,
         },
     }
 
     if function_name:
         payload["resolution"]["function_name"] = function_name
-
-    if not getattr(current_user, "is_authenticated", False):
-        return None
 
     server = get_server_by_name(current_user.id, server_name)
     if not server:
@@ -625,7 +613,7 @@ def _resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         metadata["server_events"] = server_events
         metadata["source_links"] = _dedupe_links(metadata["source_links"] + ["/source/server_execution.py"])
 
-    user_id = current_user.id if getattr(current_user, "is_authenticated", False) else None
+    user_id = current_user.id
     references = extract_references_from_bytes(
         getattr(cid_record, "file_data", None),
         user_id,

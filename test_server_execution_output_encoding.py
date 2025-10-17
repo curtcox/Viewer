@@ -14,9 +14,10 @@ mock_flask.request = types.SimpleNamespace(
 )
 sys.modules.setdefault("flask", mock_flask)
 
-mock_flask_login = types.ModuleType("flask_login")
-mock_flask_login.current_user = types.SimpleNamespace(is_authenticated=False, id=None)
-sys.modules.setdefault("flask_login", mock_flask_login)
+mock_identity = types.ModuleType("identity")
+mock_identity.current_user = types.SimpleNamespace(id=None)
+mock_identity.ensure_default_user = lambda: None
+sys.modules.setdefault("identity", mock_identity)
 
 # Other internal modules referenced but not needed for these tests
 mock_cid_utils = types.ModuleType("cid_utils")
@@ -82,9 +83,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         self.original_get_extension = server_execution.get_extension_from_mime_type
         self.original_current_user = server_execution.current_user
         self.original_render_error_html = server_execution._render_execution_error_html
-        server_execution.current_user = types.SimpleNamespace(
-            is_authenticated=True, id="user-123"
-        )
+        server_execution.current_user = types.SimpleNamespace(id="user-123")
         server_execution.build_request_args = lambda: {
             "request": {"path": "/mock"},
             "context": {"variables": {}, "secrets": {}, "servers": {}},

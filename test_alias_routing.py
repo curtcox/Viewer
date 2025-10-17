@@ -7,7 +7,6 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from auth_providers import auth_manager
 from models import Alias, CID, User
 from alias_routing import (
     _append_query_string,
@@ -40,8 +39,6 @@ class TestAliasRouting(unittest.TestCase):
         db.session.add(self.test_user)
         db.session.commit()
 
-        auth_manager._active_provider = auth_manager.providers.get('local')
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()
@@ -67,13 +64,6 @@ class TestAliasRouting(unittest.TestCase):
         db.session.commit()
         return alias
 
-    def login(self, user=None):
-        if user is None:
-            user = self.test_user
-        with self.client.session_transaction() as session:
-            session['_user_id'] = user.id
-            session['_fresh'] = True
-
     def test_is_potential_alias_path(self):
         routes = get_existing_routes()
         self.assertFalse(is_potential_alias_path('/', routes))
@@ -96,22 +86,21 @@ class TestAliasRouting(unittest.TestCase):
     def test_append_query_string_with_empty_query(self):
         self.assertEqual(_append_query_string('/cid123', ''), '/cid123')
 
-    def test_try_alias_redirect_requires_authentication(self):
-        self.create_alias()
+    def test_try_alias_redirect_without_alias_returns_none(self):
         with app.test_request_context('/latest'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=False)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 result = try_alias_redirect('/latest')
                 self.assertIsNone(result)
 
     def test_try_alias_redirect_requires_alias_name(self):
         with app.test_request_context('/'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 self.assertIsNone(try_alias_redirect('/'))
 
     def test_try_alias_redirect_success(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.status_code, 302)
@@ -120,7 +109,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_preserves_method_for_post(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest', method='POST'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.status_code, 307)
@@ -129,7 +118,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_preserves_query(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest?download=1&format=html'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?download=1&format=html')
@@ -137,7 +126,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_combines_existing_query_and_fragment(self):
         self.create_alias(target='/cid123?existing=1#files')
         with app.test_request_context('/latest?download=1'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?existing=1&download=1#files')
@@ -145,14 +134,14 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_rejects_non_relative_target(self):
         self.create_alias(target='https://example.com/cid123')
         with app.test_request_context('/latest'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNone(response)
 
     def test_try_alias_redirect_literal_ignore_case(self):
         self.create_alias(name='Latest', target='/cid123', pattern='/Latest', ignore_case=True)
         with app.test_request_context('/latest'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
@@ -160,7 +149,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_glob_pattern(self):
         self.create_alias(name='glob', target='/cid123', match_type='glob', pattern='/release/*/latest')
         with app.test_request_context('/release/v1.2/latest'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/release/v1.2/latest')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
@@ -168,7 +157,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_regex_pattern(self):
         self.create_alias(name='regex', target='/cid123', match_type='regex', pattern=r'^/release-\d+$')
         with app.test_request_context('/release-42'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/release-42')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
@@ -176,7 +165,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_try_alias_redirect_flask_pattern(self):
         self.create_alias(name='flask', target='/cid123', match_type='flask', pattern='/users/<username>/profile')
         with app.test_request_context('/users/alice/profile'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = try_alias_redirect('/users/alice/profile')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
@@ -184,7 +173,7 @@ class TestAliasRouting(unittest.TestCase):
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest/anything'):
-            with patch('alias_routing.current_user', new=SimpleNamespace(is_authenticated=True, id=self.test_user.id)):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.test_user.id)):
                 response = not_found_error(Exception('not found'))
                 self.assertEqual(response.status_code, 302)
                 self.assertEqual(response.location, '/cid123')

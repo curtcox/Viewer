@@ -4,9 +4,8 @@ from typing import Dict, Iterable, List, Optional
 from types import SimpleNamespace
 
 from flask import render_template, request
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from analytics import get_paginated_page_views, get_user_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
 from cid_utils import is_strict_cid_candidate, split_cid_path
@@ -16,7 +15,6 @@ from . import main_bp
 
 
 @main_bp.route('/history')
-@require_login
 def history():
     """Display user's page view history."""
     page = request.args.get('page', 1, type=int)

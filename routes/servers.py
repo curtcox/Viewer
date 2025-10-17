@@ -4,9 +4,8 @@ import re
 from typing import Dict, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
     generate_cid,
@@ -179,7 +178,6 @@ def _highlight_definition_content(definition: Optional[str], history, server_nam
 
 
 @main_bp.route('/servers/validate-definition', methods=['POST'])
-@require_login
 def validate_server_definition():
     """Validate a server definition and report auto main compatibility."""
 
@@ -200,7 +198,6 @@ def validate_server_definition():
 
 
 @main_bp.route('/servers/<server_name>/upload-test-page', methods=['POST'])
-@require_login
 def upload_server_test_page(server_name):
     """Persist a formdown page that mirrors the inline server test form."""
 
@@ -326,7 +323,6 @@ def user_servers():
 
 
 @main_bp.route('/servers')
-@require_login
 def servers():
     """Display user's servers."""
     servers_list = user_servers()
@@ -344,7 +340,6 @@ def servers():
 
 
 @main_bp.route('/servers/new', methods=['GET', 'POST'])
-@require_login
 def new_server():
     """Create a new server."""
     form = ServerForm()
@@ -386,7 +381,6 @@ def new_server():
 
 
 @main_bp.route('/servers/<server_name>')
-@require_login
 def view_server(server_name):
     """View a specific server."""
     server = get_server_by_name(current_user.id, server_name)
@@ -431,7 +425,6 @@ def view_server(server_name):
 
 
 @main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
-@require_login
 def edit_server(server_name):
     """Edit a specific server."""
     server = get_server_by_name(current_user.id, server_name)
@@ -510,7 +503,6 @@ def edit_server(server_name):
 
 
 @main_bp.route('/servers/<server_name>/delete', methods=['POST'])
-@require_login
 def delete_server(server_name):
     """Delete a specific server."""
     server = get_server_by_name(current_user.id, server_name)

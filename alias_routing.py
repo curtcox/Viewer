@@ -6,7 +6,8 @@ from typing import Iterable, Optional, Tuple
 from urllib.parse import urlsplit
 
 from flask import redirect, request
-from flask_login import current_user
+
+from identity import current_user
 
 from alias_matching import alias_sort_key, matches_path
 from db_access import get_user_aliases
@@ -91,9 +92,6 @@ def _sorted_aliases_for_user(user_id: str):
 
 def find_matching_alias(path: str):
     """Return the first alias belonging to the current user that matches the path."""
-
-    if not getattr(current_user, "is_authenticated", False):
-        return None
 
     for alias, match_type, pattern in _sorted_aliases_for_user(current_user.id):
         ignore_case = bool(getattr(alias, "ignore_case", False))

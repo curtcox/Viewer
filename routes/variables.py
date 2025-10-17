@@ -3,9 +3,8 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
 from flask import abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from cid_utils import (
     get_current_variable_definitions_cid,
     store_variable_definitions_cid,
@@ -187,7 +186,6 @@ def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
 
 
 @main_bp.route('/variables')
-@require_login
 def variables():
     """Display user's variables."""
     variables_list = user_variables()
@@ -202,7 +200,6 @@ def variables():
 
 
 @main_bp.route('/variables/new', methods=['GET', 'POST'])
-@require_login
 def new_variable():
     """Create a new variable."""
     form = VariableForm()
@@ -237,7 +234,6 @@ def new_variable():
 
 
 @main_bp.route('/variables/<variable_name>')
-@require_login
 def view_variable(variable_name):
     """View a specific variable."""
     variable = get_variable_by_name(current_user.id, variable_name)
@@ -254,7 +250,6 @@ def view_variable(variable_name):
 
 
 @main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
-@require_login
 def edit_variable(variable_name):
     """Edit a specific variable."""
     variable = get_variable_by_name(current_user.id, variable_name)
@@ -306,7 +301,6 @@ def edit_variable(variable_name):
 
 
 @main_bp.route('/variables/<variable_name>/delete', methods=['POST'])
-@require_login
 def delete_variable(variable_name):
     """Delete a specific variable."""
     variable = get_variable_by_name(current_user.id, variable_name)

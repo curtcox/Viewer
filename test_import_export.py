@@ -46,16 +46,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
     def _login_patch(self, mock_current_user):
         mock_current_user.id = self.user_id
-        mock_current_user.is_authenticated = True
         return mock_current_user
 
     @contextmanager
     def logged_in(self):
         with ExitStack() as stack:
             route_user = stack.enter_context(patch('routes.import_export.current_user'))
-            auth_user = stack.enter_context(patch('auth_providers.current_user'))
-            for mock_user in (route_user, auth_user):
-                self._login_patch(mock_user)
+            self._login_patch(route_user)
             yield
 
     def assert_flash_present(self, message: str, response_data: bytes):

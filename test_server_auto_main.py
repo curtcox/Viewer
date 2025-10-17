@@ -2,6 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from types import SimpleNamespace
 
 import server_execution
 from app import app
@@ -14,7 +15,7 @@ def patch_execution_environment(monkeypatch):
     monkeypatch.setattr(
         server_execution,
         "current_user",
-        SimpleNamespace(is_authenticated=True, id="user-123"),
+        SimpleNamespace(id="user-123"),
     )
     monkeypatch.setattr(
         server_execution,

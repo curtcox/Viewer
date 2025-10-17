@@ -1,8 +1,7 @@
 """Secret management routes and helpers."""
 from flask import abort, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from cid_utils import (
     get_current_secret_definitions_cid,
     store_secret_definitions_cid,
@@ -26,7 +25,6 @@ def user_secrets():
 
 
 @main_bp.route('/secrets')
-@require_login
 def secrets():
     """Display user's secrets."""
     secrets_list = user_secrets()
@@ -41,7 +39,6 @@ def secrets():
 
 
 @main_bp.route('/secrets/new', methods=['GET', 'POST'])
-@require_login
 def new_secret():
     """Create a new secret."""
     form = SecretForm()
@@ -75,7 +72,6 @@ def new_secret():
 
 
 @main_bp.route('/secrets/<secret_name>')
-@require_login
 def view_secret(secret_name):
     """View a specific secret."""
     secret = get_secret_by_name(current_user.id, secret_name)
@@ -86,7 +82,6 @@ def view_secret(secret_name):
 
 
 @main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
-@require_login
 def edit_secret(secret_name):
     """Edit a specific secret."""
     secret = get_secret_by_name(current_user.id, secret_name)
@@ -131,7 +126,6 @@ def edit_secret(secret_name):
 
 
 @main_bp.route('/secrets/<secret_name>/delete', methods=['POST'])
-@require_login
 def delete_secret(secret_name):
     """Delete a specific secret."""
     secret = get_secret_by_name(current_user.id, secret_name)

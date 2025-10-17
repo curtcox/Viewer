@@ -113,7 +113,6 @@ class TestVariablesSecretsIssue(unittest.TestCase):
 
         mock_user_servers.return_value = []
 
-        mock_current_user.is_authenticated = True
         mock_current_user.id = 'test_user_123'
         
         # Mock request context

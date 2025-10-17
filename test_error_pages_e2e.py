@@ -239,8 +239,7 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
 
         with self.app.test_request_context('/test-auth-error'):
             try:
-                with patch('flask_login.current_user') as mock_user:
-                    mock_user.is_authenticated = True
+                with patch('identity.current_user') as mock_user:
                     mock_user.id = user_id
 
                     # Import something from aliases to get it in traceback

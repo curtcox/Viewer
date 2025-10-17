@@ -32,33 +32,6 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
   * `LOGFIRE_PROJECT_URL` – the share link to your Logfire project so the home page can deep-link directly to it.
   * `LANGSMITH_API_KEY` – enables Logfire's LangSmith bridge so language workflows are captured automatically.
   * `LANGSMITH_PROJECT_URL` – optional link shown on the home page when the LangSmith integration is active.
-* `SCREENSHOT_MODE` – when set to `1`, exposes the `/_screenshot/cid-demo` route for capturing consistent CID layout
-  screenshots without authentication.
-
-> When implementing or updating UI features, enable screenshot mode so you can capture verification images from `/_screenshot/cid-demo` without needing an authenticated session.
-
-### Screenshot mode reference
-
-Enable screenshot mode by exporting `SCREENSHOT_MODE=1` (or any truthy value) before running `./run`. When active, a small
-family of unauthenticated routes render deterministic pages that are safe to capture:
-
-* `/_screenshot/cid-demo` – defined in `routes/core.py` and used throughout the test suite as the canonical CID layout sample.
-* `/_screenshot/uploads` and `/_screenshot/server-events` – defined in `routes/uploads.py` for showcasing upload and
-  event views without logging in.
-
-The quick regression check in `test_screenshot_mode.py` demonstrates expected behavior with and without the flag, and is a
-handy reminder of the route names when you need them. Run it directly with:
-
-```bash
-SCREENSHOT_MODE=1 pytest test_screenshot_mode.py
-```
-
-For live verification, start the app with screenshot mode enabled and open the desired route in your browser or capture tool:
-
-```bash
-SCREENSHOT_MODE=1 ./run
-```
-
 ## Scripts
 
 * `install` – create a virtual environment and install the required Python packages.

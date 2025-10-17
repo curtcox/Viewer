@@ -12,7 +12,6 @@ from io import BytesIO
 from pathlib import Path
 
 from flask import current_app
-from flask_login import login_user
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -111,24 +110,6 @@ class TestUtilityFunctions(BaseTestCase):
 
 class TestContextProcessors(BaseTestCase):
     """Test context processors and before/after request handlers."""
-
-    @patch('routes.core.auth_manager')
-    def test_inject_auth_info(self, mock_auth_manager):
-        """Test authentication info injection."""
-        mock_auth_manager.is_authentication_available.return_value = True
-        mock_auth_manager.get_provider_name.return_value = "Test Provider"
-        mock_auth_manager.get_login_url.return_value = "/login"
-        mock_auth_manager.get_logout_url.return_value = "/logout"
-
-        response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
-
-        # Verify auth manager methods were called
-        mock_auth_manager.is_authentication_available.assert_called()
-        mock_auth_manager.get_provider_name.assert_called()
-        mock_auth_manager.get_login_url.assert_called()
-        mock_auth_manager.get_logout_url.assert_called()
-
 
     def test_inject_observability_info(self):
         """Ensure observability context values mirror application status."""
@@ -1620,7 +1601,7 @@ def main():
         db.session.commit()
 
         with self.app.test_request_context('/prefetch-check'):
-            login_user(self.test_user)
+            self.login_user(self.test_user)
             context = server_execution._load_user_context()
 
         self.assertIn('prefetched', context['variables'])
@@ -1858,7 +1839,6 @@ class TestPageViewTracking(BaseTestCase):
     @patch('routes.core.current_user')
     def test_page_view_tracking_authenticated(self, mock_current_user):
         """Test page view tracking for authenticated users."""
-        mock_current_user.is_authenticated = True
         mock_current_user.id = self.test_user.id
 
         # Make request that should be tracked
