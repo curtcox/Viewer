@@ -1,4 +1,4 @@
-"""Gauge step implementations for SecureApp specs.
+"""Gauge step implementations for Viewer specs.
 
 The Gauge Python runner imports this package directly. Without explicitly
 importing the step modules the decorated functions never register, which causes

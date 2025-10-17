@@ -1,6 +1,6 @@
-# SecureApp
+# Viewer
 
-SecureApp is a Flask based web application that demonstrates multi layer access control and integrates with OAuth providers.  
+Viewer is a Flask based web application that demonstrates multi layer access control and integrates with OAuth providers.
 The project includes simple helper scripts so you can get up and running quickly.
 
 ## Quick start
@@ -69,7 +69,7 @@ execute every `test_*.py` module in the repository.
 
 ### Observability
 
-SecureApp now ships with Logfire support (including LangSmith instrumentation) so local development mirrors production
+Viewer now ships with Logfire support (including LangSmith instrumentation) so local development mirrors production
 tracing.  Install dependencies with `./install`, set your `LOGFIRE_*` and `LANGSMITH_*` values in `.env`, and then use `./run`
 to start the server.  The `./install` script installs the required OpenTelemetry instrumentations (`opentelemetry-
 instrumentation-flask` and `opentelemetry-instrumentation-sqlalchemy`) so Logfire can attach to the framework automatically.
