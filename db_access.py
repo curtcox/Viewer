@@ -5,7 +5,6 @@ from database import db
 from models import (
     Payment,
     TermsAcceptance,
-    Invitation,
     CURRENT_TERMS_VERSION,
     User,
     Server,
@@ -68,14 +67,6 @@ def create_terms_acceptance_record(user: User, ip_address: str) -> TermsAcceptan
     db.session.add(terms_acceptance)
     db.session.commit()
     return terms_acceptance
-
-
-def validate_invitation_code(invitation_code: str) -> Optional[Invitation]:
-    """Validate an invitation code and return the invitation if valid."""
-    invitation = Invitation.query.filter_by(invitation_code=invitation_code).first()
-    if invitation and invitation.is_valid():
-        return invitation
-    return None
 
 
 def get_user_servers(user_id: str):

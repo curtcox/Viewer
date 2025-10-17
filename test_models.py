@@ -11,7 +11,7 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
-from models import db, User, Invitation, CID, PageView, Server, Variable, Secret
+from models import db, User, CID, PageView, Server, Variable, Secret
 
 
 class TestModels(unittest.TestCase):
@@ -118,91 +118,6 @@ class TestModels(unittest.TestCase):
 
         self.assertFalse(user.has_access())
 
-    def test_invitation_is_valid_pending(self):
-        """Test Invitation.is_valid() for pending invitation."""
-        future_date = datetime.now(timezone.utc) + timedelta(days=7)
-        invitation = Invitation(
-            invitation_code='TEST123',
-            inviter_user_id=1,
-            status='pending',
-            expires_at=future_date
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.assertTrue(invitation.is_valid())
-
-    def test_invitation_is_valid_expired(self):
-        """Test Invitation.is_valid() for expired invitation."""
-        past_date = datetime.now(timezone.utc) - timedelta(days=1)
-        invitation = Invitation(
-            invitation_code='TEST123',
-            inviter_user_id=1,
-            status='pending',
-            expires_at=past_date
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.assertFalse(invitation.is_valid())
-
-    def test_invitation_is_valid_used(self):
-        """Test Invitation.is_valid() for used invitation."""
-        future_date = datetime.now(timezone.utc) + timedelta(days=7)
-        invitation = Invitation(
-            invitation_code='TEST123',
-            inviter_user_id=1,
-            status='used',
-            expires_at=future_date
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.assertFalse(invitation.is_valid())
-
-    def test_invitation_is_valid_no_expiry(self):
-        """Test Invitation.is_valid() with no expiry date."""
-        invitation = Invitation(
-            invitation_code='TEST123',
-            inviter_user_id=1,
-            status='pending',
-            expires_at=None
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.assertTrue(invitation.is_valid())
-
-    def test_invitation_mark_used(self):
-        """Test Invitation.mark_used() method."""
-        invitation = Invitation(
-            invitation_code='TEST123',
-            inviter_user_id=1,
-            status='pending',
-            expires_at=None
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        # Create a user to mark as using the invitation
-        user = User(
-            id='test_user_6',
-            email='test6@example.com',
-            first_name='Test',
-            last_name='User'
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        # Mark invitation as used
-        invitation.mark_used(user.id)
-        db.session.commit()
-
-        self.assertEqual(invitation.status, 'used')
-        self.assertEqual(invitation.used_by_user_id, user.id)
-        self.assertIsNotNone(invitation.used_at)
-        self.assertIsInstance(invitation.used_at, datetime)
-
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""
         # Create a test user first to satisfy foreign key constraints
@@ -214,20 +129,6 @@ class TestModels(unittest.TestCase):
         )
         db.session.add(test_user)
         db.session.commit()
-
-        # Test Invitation model datetime defaults
-        invitation = Invitation(
-            invitation_code='TEST456',
-            inviter_user_id=test_user.id
-        )
-        db.session.add(invitation)
-        db.session.commit()
-
-        self.assertIsNotNone(invitation.created_at)
-        self.assertIsInstance(invitation.created_at, datetime)
-        # Verify the datetime is recent (within last minute)
-        time_diff = datetime.now(timezone.utc).replace(tzinfo=None) - invitation.created_at
-        self.assertLess(time_diff.total_seconds(), 60)
 
         # Test CID model datetime defaults
         cid = CID(

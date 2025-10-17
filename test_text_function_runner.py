@@ -173,7 +173,7 @@ return value["number"]
             mock_store.return_value = 'cid-abc'
             with patch(
                 'text_function_runner.current_user',
-                new=SimpleNamespace(id='user-123', is_authenticated=True),
+                new=SimpleNamespace(id='user-123'),
             ):
                 result = self.run_text_function(body, argmap)
 
@@ -186,9 +186,6 @@ return value["number"]
         argmap = {"data": "payload"}
 
         class CallableIdUser:
-            def __init__(self):
-                self.is_authenticated = True
-
             def id(self):
                 return "callable-user"
 
@@ -206,9 +203,6 @@ return value["number"]
         argmap = {"message": "hello"}
 
         class InconsistentUser:
-            def __init__(self):
-                self.is_authenticated = True
-
             def id(self, unexpected):  # pragma: no cover - exercised via TypeError
                 return "should-not-be-used"
 
@@ -229,8 +223,6 @@ return value["number"]
         argmap = {"payload": "ignored"}
 
         class AnonymousUser:
-            is_authenticated = False
-
             def get_id(self):
                 return None
 
@@ -248,7 +240,6 @@ return value["number"]
 
         class NumericUser:
             def __init__(self):
-                self.is_authenticated = True
                 self.id = 'numeric-user'
 
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
@@ -267,7 +258,6 @@ return value["number"]
 
         class BinaryUser:
             def __init__(self):
-                self.is_authenticated = True
                 self.id = 'binary-user'
 
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:

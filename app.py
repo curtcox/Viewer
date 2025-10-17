@@ -11,6 +11,7 @@ import logfire
 
 from database import db, init_db
 from ai_defaults import ensure_ai_stub_for_all_users
+from identity import current_user, ensure_default_user
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -78,12 +79,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         },
     )
 
-    screenshot_flag = os.environ.get("SCREENSHOT_MODE")
-    if screenshot_flag is not None:
-        app.config["SCREENSHOT_MODE"] = screenshot_flag.lower() in ("1", "true", "yes", "on")
-    else:
-        app.config.setdefault("SCREENSHOT_MODE", False)
-
     if config_override:
         app.config.update(config_override)
 
@@ -111,15 +106,18 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     # Register application components
     from analytics import make_session_permanent, track_page_view
-    from local_auth import local_auth_bp
     from routes import main_bp
-    from auth_providers import auth_manager
 
     app.before_request(make_session_permanent)
     app.after_request(track_page_view)
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(local_auth_bp, url_prefix="/auth")
+
+    @app.context_processor
+    def inject_identity():
+        """Expose the always-on user to templates."""
+
+        return {"current_user": current_user}
 
     # Register error handlers that work even in debug mode
     from routes.core import internal_error, not_found_error
@@ -146,28 +144,13 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     force_custom_error_handling()
 
-    # Register Replit auth if available
-    try:
-        from replit_auth import make_replit_blueprint, init_login_manager
-
-        init_login_manager(app)
-        providers = getattr(auth_manager, "providers", None)
-        replit_provider = None
-        if isinstance(providers, dict):
-            replit_provider = providers.get("replit")
-
-        if replit_provider and getattr(replit_provider, "blueprint", None):
-            app.register_blueprint(replit_provider.blueprint, url_prefix="/auth")
-        elif os.environ.get("REPL_ID"):
-            app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
-    except ImportError:
-        pass
-
     with app.app_context():
         import models  # noqa: F401 ensure models are registered
 
         db.create_all()
         logging.info("Database tables created")
+
+        ensure_default_user()
 
         # Set up observability status for template context
         logfire_enabled = bool(getenv("LOGFIRE_SEND_TO_LOGFIRE"))

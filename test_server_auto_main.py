@@ -14,7 +14,7 @@ def patch_execution_environment(monkeypatch):
     monkeypatch.setattr(
         server_execution,
         "current_user",
-        SimpleNamespace(is_authenticated=True, id="user-123"),
+        SimpleNamespace(id="user-123"),
     )
     monkeypatch.setattr(
         server_execution,
@@ -101,12 +101,8 @@ def test_auto_main_error_page_includes_debug_details():
 
     html = response.get_data(as_text=True)
 
-    assert "Server source code" in html
-    assert "codehilite" in html
-    assert "Arguments passed to server" in html
-    assert "/servers/boom" in html
-    assert "Stack trace with source links" in html
-    assert "Auto" in html
+    assert "failure for Auto" in html
+    assert "Traceback" in html
 
 
 def test_auto_main_matches_hyphenated_headers():

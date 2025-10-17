@@ -77,14 +77,6 @@ class EditCidForm(FlaskForm):
     )
     submit = SubmitField('Save Changes')
 
-class InvitationForm(FlaskForm):
-    email = StringField('Email (optional)', validators=[Optional()])
-    submit = SubmitField('Create Invitation')
-
-class InvitationCodeForm(FlaskForm):
-    invitation_code = StringField('Invitation Code', validators=[DataRequired()])
-    submit = SubmitField('Verify Invitation')
-
 class ServerForm(FlaskForm):
     name = StringField('Server Name', validators=[
         DataRequired(),

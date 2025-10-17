@@ -8,7 +8,7 @@ import typing
 from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes
 from db_access import get_cid_by_path
-from flask_login import current_user
+from identity import current_user
 
 
 def _coerce_to_bytes(value) -> bytes:

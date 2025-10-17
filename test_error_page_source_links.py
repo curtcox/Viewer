@@ -52,9 +52,8 @@ class TestErrorPageSourceLinks(unittest.TestCase):
             try:
                 # Mock the get_user_aliases function to raise a database error similar to the real issue
                 with patch('db_access.get_user_aliases') as mock_get_aliases:
-                    with patch('flask_login.current_user') as mock_current_user:
+                    with patch('identity.current_user') as mock_current_user:
                         # Mock authentication
-                        mock_current_user.is_authenticated = True
                         mock_current_user.id = 'test_user_123'
 
                         # Simulate the SQLAlchemy OperationalError that occurs in the real scenario

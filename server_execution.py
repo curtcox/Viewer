@@ -20,7 +20,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_login import current_user
+from identity import current_user
 import logfire
 
 from cid_presenter import cid_path, format_cid
@@ -98,7 +98,7 @@ def _fetch_variable_content(path: str) -> Optional[str]:
     if not normalized:
         return None
 
-    if not has_app_context() or not getattr(current_user, "is_authenticated", False):
+    if not has_app_context():
         return None
 
     if has_request_context() and normalized == request.path:
@@ -569,9 +569,6 @@ def request_details() -> Dict[str, Any]:
 
 
 def _load_user_context() -> Dict[str, Dict[str, Any]]:
-    if not getattr(current_user, "is_authenticated", False):
-        return {"variables": {}, "secrets": {}, "servers": {}}
-
     user_id = getattr(current_user, "id", None)
     if not user_id:
         return {"variables": {}, "secrets": {}, "servers": {}}
@@ -932,9 +929,6 @@ def try_server_execution_with_partial(
     history_fetcher: Callable[[str, str], Iterable[Dict[str, Any]]],
 ):
     """Execute a server version referenced by a partial CID."""
-    if not getattr(current_user, "is_authenticated", False):
-        return None
-
     parts = [segment for segment in path.split("/") if segment]
     if len(parts) not in {2, 3}:
         return None
@@ -999,9 +993,6 @@ def is_potential_server_path(path: str, existing_routes: Iterable[str]) -> bool:
 
 def try_server_execution(path: str):
     """Execute the server whose name matches the request path."""
-    if not getattr(current_user, "is_authenticated", False):
-        return None
-
     parts = [segment for segment in path.split("/") if segment]
     if not parts:
         return None

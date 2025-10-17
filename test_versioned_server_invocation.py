@@ -5,7 +5,7 @@ Tests for versioned server invocation via /{server_name}/{partial_CID}.
 Covers:
 - Path detection by is_potential_versioned_server_path()
 - try_server_execution_with_partial() behavior for 0/1/many matches
-- Authentication and server existence guards
+- Server existence guards
 """
 
 import unittest
@@ -40,16 +40,8 @@ class TestVersionedServerInvocation(unittest.TestCase):
 
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
-    def test_try_partial_requires_auth(self, mock_current_user, mock_get_server_by_name):
-        mock_current_user.is_authenticated = False
-        result = try_server_execution_with_partial(f'/{self.server_name}/abc', Mock())
-        self.assertIsNone(result)
-        mock_get_server_by_name.assert_not_called()
-
-    @patch('server_execution.get_server_by_name')
-    @patch('server_execution.current_user')
     def test_try_partial_server_missing(self, mock_current_user, mock_get_server_by_name):
-        mock_current_user.is_authenticated = True
+        mock_current_user.id = self.user_id
         mock_get_server_by_name.return_value = None
         result = try_server_execution_with_partial(f'/{self.server_name}/abc', Mock())
         self.assertIsNone(result)
@@ -58,7 +50,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
     def test_try_partial_no_matches_returns_404(self, mock_current_user, mock_get_server_by_name, mock_render):
-        mock_current_user.is_authenticated = True
+        mock_current_user.id = self.user_id
         mock_get_server_by_name.return_value = object()
         mock_render.return_value = ('not found', 404)
         history_fetcher = Mock(return_value=[])
@@ -70,7 +62,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
     def test_try_partial_multiple_matches_returns_400_with_list(self, mock_current_user, mock_get_server_by_name, mock_jsonify):
-        mock_current_user.is_authenticated = True
+        mock_current_user.id = self.user_id
         mock_get_server_by_name.return_value = object()
         # Two matches with same prefix
         history_fetcher = Mock(return_value=[
@@ -87,7 +79,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
     def test_try_partial_single_match_executes(self, mock_current_user, mock_get_server_by_name, mock_execute):
-        mock_current_user.is_authenticated = True
+        mock_current_user.id = self.user_id
         mock_get_server_by_name.return_value = object()
         history_fetcher = Mock(return_value=[
             {
@@ -106,7 +98,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
     @patch('server_execution.get_server_by_name')
     @patch('server_execution.current_user')
     def test_try_partial_helper_executes(self, mock_current_user, mock_get_server_by_name, mock_execute_helper):
-        mock_current_user.is_authenticated = True
+        mock_current_user.id = self.user_id
         mock_get_server_by_name.return_value = object()
         history_entry = {
             'definition_cid': 'abc123',

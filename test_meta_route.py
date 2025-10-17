@@ -87,15 +87,15 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_route_information(self):
         with self.app.app_context():
-            response = self.client.get('/meta/privacy')
+            response = self.client.get('/meta/profile')
             self.assertEqual(response.status_code, 200)
 
             data = json.loads(response.data)
-            self.assertEqual(data['path'], '/privacy')
+            self.assertEqual(data['path'], '/profile')
             self.assertEqual(data['status_code'], 200)
             self.assertIn('resolution', data)
             self.assertEqual(data['resolution']['type'], 'route')
-            self.assertEqual(data['resolution']['endpoint'], 'main.privacy')
+            self.assertEqual(data['resolution']['endpoint'], 'main.profile')
             self.assertIn('/source/routes/core.py', data['source_links'])
 
     def test_meta_route_returns_404_for_unknown_path(self):

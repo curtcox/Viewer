@@ -117,8 +117,8 @@ def helper():
         self.assertIn("@query_parameters(Query parameters):", content)
         self.assertIn("value=\"foo=bar\\npage=2\"", content)
 
-    def test_upload_requires_authentication(self):
-        """Anonymous users should be redirected to authenticate."""
+    def test_upload_without_workspace_server_returns_not_found(self):
+        """Requests from the default workspace return 404 when the server belongs to another user."""
 
         server = self._create_server(
             "echo",
@@ -134,7 +134,7 @@ def main(message: str):
             json={"values": {"message": "hi"}},
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 404)
 
 
 if __name__ == "__main__":

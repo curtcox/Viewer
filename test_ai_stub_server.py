@@ -5,7 +5,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from auth_providers import create_local_user
+from identity import ensure_default_user
 from db_access import get_alias_by_name, get_server_by_name
 from models import Alias, Server
 
@@ -20,18 +20,12 @@ class TestAiStubServer(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        self.user = create_local_user(email='ai@example.com')
-        self.login()
+        self.user = ensure_default_user()
 
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
-    def login(self):
-        with self.client.session_transaction() as session:
-            session['_user_id'] = self.user.id
-            session['_fresh'] = True
 
     def test_ai_stub_resources_created(self):
         alias = get_alias_by_name(self.user.id, 'ai')

@@ -1,7 +1,8 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
 from flask import request, session
-from flask_login import current_user
+
+from identity import current_user
 
 from models import PageView, ServerInvocation  # noqa: F401
 
@@ -13,7 +14,7 @@ def make_session_permanent():
 
 def should_track_page_view(response):
     """Determine if the current request should be tracked."""
-    if not current_user.is_authenticated or response.status_code != 200:
+    if response.status_code != 200:
         return False
 
     # Skip tracking for static files, API calls, and certain paths

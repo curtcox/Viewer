@@ -7,9 +7,8 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from flask import current_app, render_template, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from db_access import get_user_aliases, get_user_servers
 
 from . import main_bp
@@ -198,7 +197,6 @@ def _mark_duplicates(entries: List[RouteEntry]) -> None:
 
 
 @main_bp.route("/routes")
-@require_login
 def routes_overview():
     """Render a comprehensive list of routes, aliases, and servers."""
 

@@ -65,20 +65,11 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertEqual(filename, 'upload')
 
     @patch('routes.uploads.current_user')
-    @patch('routes.uploads.require_login')
-    def test_upload_text_gets_txt_extension(self, mock_require_login, mock_current_user):
+    def test_upload_text_gets_txt_extension(self, mock_current_user):
         """Test that pasted text uploads get .txt extension in view URL"""
-        # Mock authentication
-        mock_current_user.is_authenticated = True
         mock_current_user.id = 'test_user_123'
-        mock_require_login.return_value = lambda f: f  # Bypass login requirement
-        
+
         with self.app.app_context():
-            # Mock the session to simulate logged in user
-            with self.client.session_transaction() as sess:
-                sess['_user_id'] = 'test_user_123'
-                sess['_fresh'] = True
-            
             # Simulate text upload
             response = self.client.post('/upload', data={
                 'upload_type': 'text',
@@ -94,19 +85,11 @@ class TestUploadExtensions(unittest.TestCase):
             self.assertIn(b'.txt', response.data)
 
     @patch('routes.uploads.current_user')
-    @patch('routes.uploads.require_login')
-    def test_upload_file_preserves_original_extension(self, mock_require_login, mock_current_user):
+    def test_upload_file_preserves_original_extension(self, mock_current_user):
         """Test that file uploads preserve their original extension"""
-        mock_current_user.is_authenticated = True
         mock_current_user.id = 'test_user_123'
-        mock_require_login.return_value = lambda f: f  # Bypass login requirement
-        
+
         with self.app.app_context():
-            # Mock the session to simulate logged in user
-            with self.client.session_transaction() as sess:
-                sess['_user_id'] = 'test_user_123'
-                sess['_fresh'] = True
-            
             # Create a mock file with .pdf extension
             file_data = io.BytesIO(b'PDF file content')
             file_data.name = 'document.pdf'
@@ -126,19 +109,11 @@ class TestUploadExtensions(unittest.TestCase):
             self.assertIn(b'.pdf', response.data)
 
     @patch('routes.uploads.current_user')
-    @patch('routes.uploads.require_login')
-    def test_upload_file_handles_no_extension(self, mock_require_login, mock_current_user):
+    def test_upload_file_handles_no_extension(self, mock_current_user):
         """Test that file uploads without extension don't break"""
-        mock_current_user.is_authenticated = True
         mock_current_user.id = 'test_user_123'
-        mock_require_login.return_value = lambda f: f  # Bypass login requirement
-        
+
         with self.app.app_context():
-            # Mock the session to simulate logged in user
-            with self.client.session_transaction() as sess:
-                sess['_user_id'] = 'test_user_123'
-                sess['_fresh'] = True
-            
             # Create a mock file without extension
             file_data = io.BytesIO(b'File content without extension')
             file_data.name = 'document'

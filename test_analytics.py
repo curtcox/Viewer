@@ -55,31 +55,22 @@ class TestAnalytics(unittest.TestCase):
             make_session_permanent()
             self.assertTrue(session.permanent)
 
-    def test_should_track_page_view_requires_authenticated_user(self):
-        with app.test_request_context("/dashboard"):
-            response = app.response_class(status=200)
-            with patch("analytics.current_user", new=SimpleNamespace(is_authenticated=False)):
-                self.assertFalse(should_track_page_view(response))
-
     def test_should_track_page_view_requires_success_status(self):
         with app.test_request_context("/dashboard"):
             response = app.response_class(status=404)
-            with patch("analytics.current_user", new=SimpleNamespace(is_authenticated=True)):
-                self.assertFalse(should_track_page_view(response))
+            self.assertFalse(should_track_page_view(response))
 
     def test_should_track_page_view_skips_static_and_ajax_requests(self):
         with app.test_request_context("/static/logo.png"):
             response = app.response_class(status=200)
-            with patch("analytics.current_user", new=SimpleNamespace(is_authenticated=True)):
-                self.assertFalse(should_track_page_view(response))
+            self.assertFalse(should_track_page_view(response))
 
         with app.test_request_context(
             "/dashboard",
             headers={"X-Requested-With": "XMLHttpRequest"},
         ):
             response = app.response_class(status=200)
-            with patch("analytics.current_user", new=SimpleNamespace(is_authenticated=True)):
-                self.assertFalse(should_track_page_view(response))
+            self.assertFalse(should_track_page_view(response))
 
     def test_should_track_page_view_accepts_standard_requests(self):
         with app.test_request_context(
@@ -87,11 +78,7 @@ class TestAnalytics(unittest.TestCase):
             headers={"User-Agent": "Browser", "X-Requested-With": ""},
         ):
             response = app.response_class(status=200)
-            with patch(
-                "analytics.current_user",
-                new=SimpleNamespace(is_authenticated=True),
-            ):
-                self.assertTrue(should_track_page_view(response))
+            self.assertTrue(should_track_page_view(response))
 
     def test_track_page_view_persists_record(self):
         long_user_agent = "Agent" * 200  # exceeds 500 characters when repeated
@@ -104,7 +91,7 @@ class TestAnalytics(unittest.TestCase):
             response = app.response_class(status=200)
             with patch(
                 "analytics.current_user",
-                new=SimpleNamespace(is_authenticated=True, id=self.user.id),
+                new=SimpleNamespace(id=self.user.id),
             ):
                 result = track_page_view(response)
 
@@ -120,7 +107,7 @@ class TestAnalytics(unittest.TestCase):
             response = app.response_class(status=200)
             with patch(
                 "analytics.current_user",
-                new=SimpleNamespace(is_authenticated=True, id=self.user.id),
+                new=SimpleNamespace(id=self.user.id),
             ), patch("analytics.should_track_page_view", return_value=True), patch(
                 "analytics.create_page_view_record",
                 side_effect=RuntimeError("boom"),

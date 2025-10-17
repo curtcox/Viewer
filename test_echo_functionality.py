@@ -62,23 +62,13 @@ class TestEchoFunctionality(unittest.TestCase):
         result = is_potential_server_path('/echo/helper', existing_routes)
         self.assertTrue(result, "/echo/helper should be identified as a potential server path")
 
-    def test_try_server_execution_without_authentication(self):
-        """Test that server execution fails without authentication"""
-        with app.test_request_context('/echo'):
-            # Mock current_user as not authenticated
-            with patch('server_execution.current_user') as mock_user:
-                mock_user.is_authenticated = False
-                result = try_server_execution('/echo')
-                self.assertIsNone(result, "Should return None when user is not authenticated")
-    
     def test_try_server_execution_with_authentication_but_no_server(self):
         """Test that server execution fails when authenticated but no echo server exists"""
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
-                
+
                 result = try_server_execution('/echo')
                 self.assertIsNone(result, "Should return None when no echo server exists for user")
     
@@ -96,7 +86,6 @@ class TestEchoFunctionality(unittest.TestCase):
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
 
                 # Mock the text function runner
@@ -114,7 +103,6 @@ class TestEchoFunctionality(unittest.TestCase):
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
                 
                 # Create a mock 404 error
@@ -139,7 +127,6 @@ class TestEchoFunctionality(unittest.TestCase):
         
         with app.test_request_context('/echo'):
             with patch('server_execution.current_user') as mock_user:
-                mock_user.is_authenticated = True
                 mock_user.id = self.test_user.id
                 
                 # Mock the text function runner

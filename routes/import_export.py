@@ -15,9 +15,8 @@ from typing import Any, Callable, Iterable, Tuple
 import requests
 from importlib import metadata
 from flask import current_app, flash, redirect, render_template, request, url_for
-from flask_login import current_user
+from identity import current_user
 
-from auth_providers import require_login
 from alias_matching import PatternError, normalise_pattern
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
@@ -862,7 +861,6 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
 
 
 @main_bp.route('/export', methods=['GET', 'POST'])
-@require_login
 def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
@@ -1012,7 +1010,6 @@ def export_data():
 
 
 @main_bp.route('/import', methods=['GET', 'POST'])
-@require_login
 def import_data():
     """Allow users to import data collections from JSON content."""
     form = ImportForm()

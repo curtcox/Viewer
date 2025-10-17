@@ -11,39 +11,26 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from flask import (
     abort,
     current_app,
-    flash,
     redirect,
     render_template,
     request,
-    session,
     url_for,
 )
-from flask_login import current_user
 
-from auth_providers import require_login, auth_manager, save_user_from_claims
+from identity import current_user
 from database import db
 from db_access import (
     count_user_aliases,
     count_user_secrets,
     count_user_servers,
     count_user_variables,
-    create_payment_record,
-    create_terms_acceptance_record,
     get_cid_by_path,
     get_first_alias_name,
     get_first_secret_name,
     get_first_server_name,
     get_first_variable_name,
     get_user_aliases,
-    get_user_profile_data,
     get_user_servers,
-    validate_invitation_code,
-)
-from forms import (
-    InvitationCodeForm,
-    InvitationForm,
-    PaymentForm,
-    TermsAcceptanceForm,
 )
 from cid_presenter import cid_path, format_cid, format_cid_short
 from entity_references import (
@@ -51,8 +38,7 @@ from entity_references import (
     extract_references_from_target,
     extract_references_from_text,
 )
-from models import CID, Invitation, CURRENT_TERMS_VERSION
-from secrets import token_urlsafe as secrets_token_urlsafe
+from models import CID
 from server_execution import (
     is_potential_server_path,
     is_potential_versioned_server_path,
@@ -604,17 +590,6 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
     return frames
 
 
-# Make authentication info available to all templates
-@main_bp.app_context_processor
-def inject_auth_info():
-    return dict(
-        AUTH_AVAILABLE=auth_manager.is_authentication_available(),
-        AUTH_PROVIDER=auth_manager.get_provider_name(),
-        LOGIN_URL=auth_manager.get_login_url(),
-        LOGOUT_URL=auth_manager.get_logout_url(),
-    )
-
-
 @main_bp.app_context_processor
 def inject_observability_info():
     """Expose Logfire and LangSmith availability to all templates."""
@@ -633,192 +608,74 @@ def inject_observability_info():
 @main_bp.route('/')
 def index():
     """Landing page with marketing and observability information."""
-    cross_reference = None
-    if current_user.is_authenticated:
-        cross_reference = _build_cross_reference_data(current_user.id)
+    cross_reference = _build_cross_reference_data(current_user.id)
 
     return render_template('index.html', cross_reference=cross_reference)
 
 
 @main_bp.route('/dashboard')
-@require_login
 def dashboard():
     """User dashboard - directs members to their profile overview."""
     return redirect(url_for('main.profile'))
 
 
 @main_bp.route('/profile')
-@require_login
 def profile():
-    """User profile showing payment history and terms acceptance."""
-    profile_data = get_user_profile_data(current_user.id)
-    return render_template('profile.html', **profile_data)
+    """User profile placeholder for future external account management."""
+    return render_template('profile.html')
 
 
 @main_bp.route('/subscribe', methods=['GET', 'POST'])
-@require_login
 def subscribe():
-    """Handle subscription payments (mock implementation)."""
-    form = PaymentForm()
-    if form.validate_on_submit():
-        plan_prices = {
-            'free': 0.00,
-            'annual': 50.00,
-        }
-
-        plan = form.plan.data
-        amount = plan_prices.get(plan, 0.00)
-
-        create_payment_record(plan, amount, current_user)
-
-        flash(f'Successfully subscribed to {plan.title()} plan!', 'success')
-        return redirect(url_for('main.profile'))
-
-    return render_template('subscribe.html', form=form)
+    abort(404)
 
 
 @main_bp.route('/accept-terms', methods=['GET', 'POST'])
-@require_login
 def accept_terms():
-    """Handle terms and conditions acceptance."""
-    form = TermsAcceptanceForm()
-    if form.validate_on_submit():
-        profile_data = get_user_profile_data(current_user.id)
-        if profile_data['needs_terms_acceptance']:
-            create_terms_acceptance_record(
-                current_user,
-                request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr),
-            )
-            flash('Terms and conditions accepted successfully!', 'success')
-        return redirect(url_for('main.profile'))
-
-    return render_template(
-        'accept_terms.html',
-        form=form,
-        terms_version=CURRENT_TERMS_VERSION,
-    )
+    abort(404)
 
 
 @main_bp.route('/plans')
 def plans():
-    """Display pricing plans."""
-    return render_template('plans.html')
+    abort(404)
 
 
 @main_bp.route('/terms')
 def terms():
-    """Terms of service page."""
-    return render_template('terms.html', current_version=CURRENT_TERMS_VERSION)
-
+    abort(404)
 
 
 @main_bp.route('/privacy')
 def privacy():
-    """Display privacy policy."""
-    return render_template('privacy.html')
+    abort(404)
 
 
 @main_bp.route('/invitations')
-@require_login
 def invitations():
-    """Manage user invitations."""
-    user_invitations = (
-        Invitation.query
-        .filter_by(inviter_user_id=current_user.id)
-        .order_by(Invitation.created_at.desc())
-        .all()
-    )
-    return render_template('invitations.html', invitations=user_invitations)
+    abort(404)
 
 
 @main_bp.route('/create-invitation', methods=['GET', 'POST'])
-@require_login
 def create_invitation():
-    """Create a new invitation."""
-    form = InvitationForm()
-
-    if form.validate_on_submit():
-        invitation_code = secrets_token_urlsafe(16)
-
-        invitation = Invitation(
-            inviter_user_id=current_user.id,
-            invitation_code=invitation_code,
-            email=form.email.data if form.email.data else None,
-        )
-
-        db.session.add(invitation)
-        db.session.commit()
-
-        flash(f'Invitation created! Code: {invitation_code}', 'success')
-        return redirect(url_for('main.invitations'))
-
-    return render_template('create_invitation.html', form=form)
+    abort(404)
 
 
 @main_bp.route('/require-invitation', methods=['GET', 'POST'])
 def require_invitation():
-    """Handle invitation code requirement for new users."""
-    form = InvitationCodeForm()
-    error_message = session.pop('invitation_error', None)
-
-    if form.validate_on_submit():
-        invitation_code = form.invitation_code.data
-        invitation = validate_invitation_code(invitation_code)
-
-        if invitation:
-            session['invitation_code'] = invitation_code
-
-            auth_result = handle_pending_authentication(invitation_code)
-            if auth_result:
-                return auth_result
-
-            flash('Invitation validated! Please sign in.', 'success')
-            return redirect(auth_manager.get_login_url())
-        else:
-            flash('Invalid or expired invitation code.', 'danger')
-
-    return render_template(
-        'require_invitation.html',
-        form=form,
-        error_message=error_message,
-    )
+    abort(404)
 
 
 @main_bp.route('/invite/<invitation_code>')
 def accept_invitation(invitation_code):
-    """Direct link to accept an invitation."""
-    invitation = validate_invitation_code(invitation_code)
-
-    if invitation:
-        session['invitation_code'] = invitation_code
-        flash('Invitation accepted! Please sign in to complete your registration.', 'success')
-        return redirect(auth_manager.get_login_url())
-
-    flash('Invalid or expired invitation link.', 'danger')
-    return redirect(url_for('main.require_invitation'))
+    abort(404)
 
 
 @main_bp.route('/_screenshot/cid-demo')
 def screenshot_cid_demo():
-    """Render a stable CID showcase for screenshot-based verification during testing."""
-    if not current_app.config.get('SCREENSHOT_MODE'):
-        abort(404)
-
-    sample_cids = [
-        'bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq',
-        'bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku',
-        'bafybeiaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    ]
-
-    return render_template(
-        'screenshot_cid_demo.html',
-        title='CID Screenshot Demo',
-        sample_cids=sample_cids,
-    )
+    abort(404)
 
 
 @main_bp.route('/settings')
-@require_login
 def settings():
     """Settings page with links to servers, variables, aliases, and secrets."""
     counts = get_user_settings_counts(current_user.id)
@@ -839,35 +696,12 @@ def get_user_settings_counts(user_id):
     }
 
 
-def handle_pending_authentication(invitation_code):
-    """Handle pending authentication with invitation code."""
-    if 'pending_token' in session and 'pending_user_claims' in session:
-        _ = session.pop('pending_token')
-        user_claims = session.pop('pending_user_claims')
-
-        try:
-            user = save_user_from_claims(user_claims, invitation_code)
-            session.pop('invitation_code', None)
-
-            from flask_login import login_user
-
-            login_user(user)
-
-            flash('Welcome! Your account has been created.', 'success')
-            return redirect(url_for('main.index'))
-        except ValueError as exc:
-            flash(f'Error: {str(exc)}', 'danger')
-            return None
-
-    return None
-
-
 def get_existing_routes():
     """Get set of existing routes that should take precedence over server names."""
     return {
-        '/', '/dashboard', '/profile', '/subscribe', '/accept-terms',
-        '/plans', '/terms', '/privacy', '/upload', '/invitations', '/create-invitation',
-        '/require-invitation', '/uploads', '/history', '/servers', '/variables',
+        '/', '/dashboard', '/profile',
+        '/upload',
+        '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings', '/aliases', '/aliases/new',
         '/edit', '/meta',
         '/export', '/import',
@@ -968,24 +802,12 @@ def internal_error(error):
 
 
 __all__ = [
-    'accept_invitation',
-    'accept_terms',
-    'create_invitation',
     'dashboard',
     'get_existing_routes',
     'get_user_settings_counts',
-    'handle_pending_authentication',
     'index',
-    'inject_auth_info',
     'inject_observability_info',
-    'invitations',
     'not_found_error',
-    'plans',
-    'privacy',
     'profile',
-    'require_invitation',
-    'screenshot_cid_demo',
     'settings',
-    'subscribe',
-    'terms',
 ]
