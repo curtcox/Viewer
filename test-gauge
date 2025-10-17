@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Run the Gauge specification suite."""
+
+from __future__ import annotations
+
+import argparse
+import subprocess
+import sys
+from collections.abc import Sequence
+
+from test_support import ROOT_DIR, build_test_environment, locate_gauge
+
+
+def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Execute Gauge specs using the repository configuration.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--specs-dir",
+        default="specs",
+        help="Path to the Gauge specifications to run.",
+    )
+    parser.add_argument(
+        "gauge_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments forwarded to 'gauge run' (prefix with --).",
+    )
+    args = parser.parse_args(argv)
+    if args.gauge_args and args.gauge_args[0] == "--":
+        args.gauge_args = args.gauge_args[1:]
+    return args
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    args = parse_arguments(list(argv))
+    env = build_test_environment()
+    env.setdefault("GAUGE_PYTHON_COMMAND", sys.executable)
+    env.setdefault("STEP_IMPL_DIR", str(ROOT_DIR / "step_impl"))
+
+    try:
+        gauge_cmd = locate_gauge()
+    except FileNotFoundError as error:
+        print(error.args[0], file=sys.stderr)
+        return 1
+
+    command = [gauge_cmd, "run", args.specs_dir, *args.gauge_args]
+    return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
