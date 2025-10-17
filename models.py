@@ -20,15 +20,9 @@ class User(UserMixin, db.Model):
     payment_expires_at = db.Column(db.DateTime)
     current_terms_accepted = db.Column(db.Boolean, default=False)
 
-    # Invitation tracking
-    invited_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
-    invitation_used_id = db.Column(db.Integer, db.ForeignKey('invitation.id'), nullable=True)
-
     # Relationships
     payments = db.relationship('Payment', backref='user', lazy=True, cascade='all, delete-orphan')
     terms_acceptances = db.relationship('TermsAcceptance', backref='user', lazy=True, cascade='all, delete-orphan')
-    invitations_sent = db.relationship('Invitation', backref='inviter', lazy=True, foreign_keys='Invitation.inviter_user_id')
-    invited_by = db.relationship('User', remote_side=[id], backref='invited_users')
 
     def has_access(self):
         """Check if user has full access (logged in, paid, terms accepted)"""
@@ -81,37 +75,6 @@ class TermsAcceptance(db.Model):
 
     def __repr__(self):
         return f'<TermsAcceptance {self.terms_version} by user {self.user_id}>'
-
-class Invitation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    inviter_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
-    invitation_code = db.Column(db.String(32), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(120), nullable=True)  # Optional: specific email invite
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    used_at = db.Column(db.DateTime, nullable=True)
-    used_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
-    status = db.Column(db.String(20), default='pending')  # pending, used, expired
-    expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration
-
-    # Relationships
-    used_by_user = db.relationship('User', foreign_keys=[used_by_user_id], backref='invitation_used')
-
-    def is_valid(self):
-        """Check if invitation is still valid for use"""
-        if self.status != 'pending':
-            return False
-        if self.expires_at and self.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            return False
-        return True
-
-    def mark_used(self, user_id):
-        """Mark invitation as used by a specific user"""
-        self.status = 'used'
-        self.used_at = datetime.now(timezone.utc)
-        self.used_by_user_id = user_id
-
-    def __repr__(self):
-        return f'<Invitation {self.invitation_code} by {self.inviter_user_id}>'
 
 class CID(db.Model):
     id = db.Column(db.Integer, primary_key=True)

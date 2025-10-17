@@ -10,7 +10,7 @@ sys.path.insert(0, '.')
 
 # Import Flask app and models
 from app import create_app
-from models import User, CID, PageView, Server, Variable, Secret, Payment, TermsAcceptance, Invitation
+from models import User, CID, PageView, Server, Variable, Secret, Payment, TermsAcceptance
 
 app = create_app()
 
@@ -34,7 +34,6 @@ def inspect_database():
             ("Secrets", Secret),
             ("Payments", Payment),
             ("Terms Acceptances", TermsAcceptance),
-            ("Invitations", Invitation)
         ]
         
         print("TABLE COUNTS:")

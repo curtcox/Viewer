@@ -8,12 +8,11 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
-from models import db, User, Invitation, Server, Variable, Secret
+from models import db, User, Server, Variable, Secret
 from db_access import (
     create_payment_record,
     create_terms_acceptance_record,
     get_user_profile_data,
-    validate_invitation_code,
     get_server_by_name,
     get_variable_by_name,
     get_secret_by_name,
@@ -66,13 +65,6 @@ class TestDBAccess(unittest.TestCase):
         data = get_user_profile_data(self.user.id)
         self.assertEqual(len(data['payments']), 1)
         self.assertFalse(data['needs_terms_acceptance'])
-
-    def test_validate_invitation_code(self):
-        invitation = Invitation(inviter_user_id=self.user.id, invitation_code='ABC123')
-        db.session.add(invitation)
-        db.session.commit()
-        self.assertIsNotNone(validate_invitation_code('ABC123'))
-        self.assertIsNone(validate_invitation_code('NOTREAL'))
 
     def test_entity_helpers(self):
         server = Server(name='srv', definition='print(1)', user_id=self.user.id)
