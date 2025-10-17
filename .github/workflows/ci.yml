@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 jobs:
   lint:
@@ -32,7 +34,7 @@ jobs:
       - name: Run Ruff
         run: ruff check .
 
-  tests:
+  unit-tests:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     env:
@@ -54,20 +56,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Gauge CLI
-        run: |
-          curl -fsSL https://downloads.gauge.org/stable | sh
-          echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
-
-      - name: Install Gauge plugins
-        run: |
-          gauge install python
-          gauge install html-report
-
       - name: Run tests with coverage
         id: run_tests
         run: |
-          python run_coverage.py --xml --html --summary-file coverage-report.txt
+          ./test-unit --coverage --summary-file coverage-report.txt
         continue-on-error: true
 
       - name: Publish coverage summary
@@ -104,16 +96,133 @@ jobs:
         if: always() && steps.coverage.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-html
+          name: unit-tests-html
           path: htmlcov
-
-      - name: Run Gauge specs
-        run: gauge run specs
-        env:
-          GAUGE_PYTHON_COMMAND: python3
-          STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
-          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
 
       - name: Fail if tests failed
         if: steps.run_tests.outcome == 'failure'
         run: exit 1
+
+  gauge-specs:
+    name: Gauge Specs
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/secureapp-ci.db
+      SESSION_SECRET: test-secret-key
+      TESTING: "True"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Gauge CLI
+        run: |
+          curl -fsSL https://downloads.gauge.org/stable | sh
+          echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
+
+      - name: Install Gauge plugins
+        run: |
+          gauge install python
+          gauge install html-report
+
+      - name: Run Gauge specs
+        id: run_gauge
+        run: ./test-gauge
+        env:
+          GAUGE_PYTHON_COMMAND: python3
+          STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
+          PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
+        continue-on-error: true
+
+      - name: Upload Gauge HTML report
+        if: always() && steps.run_gauge.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauge-html
+          path: reports/html-report
+
+      - name: Fail if Gauge specs failed
+        if: steps.run_gauge.outcome == 'failure'
+        run: exit 1
+
+  deploy-reports:
+    name: Publish Test Reports
+    needs:
+      - unit-tests
+      - gauge-specs
+    if: >-
+      ${{ github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          needs['unit-tests'].result == 'success' &&
+          needs['gauge-specs'].result == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download unit test report
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-tests-html
+          path: site/unit-tests
+
+      - name: Download Gauge report
+        uses: actions/download-artifact@v4
+        with:
+          name: gauge-html
+          path: site/gauge-specs
+
+      - name: Prepare site content
+        run: |
+          mkdir -p site/unit-tests site/gauge-specs
+          if [ -d site/unit-tests/htmlcov ]; then
+            mv site/unit-tests/htmlcov/* site/unit-tests/
+            rmdir site/unit-tests/htmlcov
+          fi
+          if [ -d site/gauge-specs/reports/html-report ]; then
+            mv site/gauge-specs/reports/html-report/* site/gauge-specs/
+            rm -rf site/gauge-specs/reports
+          fi
+          cat <<'HTML' > site/index.html
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <title>SecureApp Test Reports</title>
+            <style>
+              body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+              h1 { font-size: 2rem; margin-bottom: 1rem; }
+              ul { list-style: disc; padding-left: 1.5rem; }
+              a { color: #0366d6; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>SecureApp Test Reports</h1>
+            <ul>
+              <li><a href="unit-tests/index.html">Unit test coverage report</a></li>
+              <li><a href="gauge-specs/index.html">Gauge HTML report</a></li>
+            </ul>
+          </body>
+          </html>
+          HTML
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
