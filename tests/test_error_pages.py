@@ -44,9 +44,9 @@ class TestInternalServerErrorPage(unittest.TestCase):
         body = response
         self.assertIn('RuntimeError', body)
         self.assertIn('Intentional failure for testing', body)
-        self.assertIn('href="/source/test_error_pages.py"', body)
+        self.assertIn('href="/source/tests/test_error_pages.py"', body)
         # Updated to match our enhanced error handling output format
-        self.assertIn('<code class="text-primary">test_error_pages.py</code>', body)
+        self.assertIn('<code class="text-primary">tests/test_error_pages.py</code>', body)
 
     def test_stack_trace_links_when_repo_root_differs(self):
         with self.app.app_context():
@@ -83,7 +83,7 @@ class TestInternalServerErrorPage(unittest.TestCase):
         self.assertEqual(captured.filename, '<string>')
 
         display_paths = [frame['display_path'] for frame in frames]
-        self.assertIn('test_error_pages.py', display_paths)
+        self.assertIn('tests/test_error_pages.py', display_paths)
         self.assertIn('text_function_runner.py', display_paths)
         self.assertNotIn('<string>', display_paths)
 

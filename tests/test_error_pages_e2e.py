@@ -256,7 +256,7 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
                 self.assertIn('Authenticated user error test', html_content)
 
                 # Should have source links to the test file
-                self.assertIn('href="/source/test_error_pages_e2e.py"', html_content)
+                self.assertIn('href="/source/tests/test_error_pages_e2e.py"', html_content)
 
     def test_error_page_html_structure_and_styling(self):
         """Test that error page has proper HTML structure and Bootstrap styling."""

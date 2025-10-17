@@ -42,7 +42,7 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
                 self.assertIn('Test error for comprehensive source links', response)
                 
                 # Should have source link to this test file
-                self.assertIn('href="/source/test_enhanced_error_pages.py"', response)
+                self.assertIn('href="/source/tests/test_enhanced_error_pages.py"', response)
                 
                 # Should show enhanced code context with >>> markers
                 self.assertIn('>>>', response)
@@ -64,7 +64,9 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
             self.assertTrue(any('.html' in path for path in comprehensive_paths))
             
             # Should include this test file
-            self.assertTrue(any('test_enhanced_error_pages.py' in path for path in comprehensive_paths))
+            self.assertTrue(
+                any('tests/test_enhanced_error_pages.py' in path for path in comprehensive_paths)
+            )
 
     def test_error_page_template_renders_with_source_links(self):
         """Test that the 500.html template properly renders source links."""

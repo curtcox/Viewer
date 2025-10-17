@@ -7,7 +7,7 @@ import subprocess
 import sys
 from collections.abc import Sequence
 
-from test_support import ROOT_DIR, build_test_environment
+from tests.test_support import ROOT_DIR, build_test_environment
 
 
 def main(argv: Sequence[str] | None = None) -> int:

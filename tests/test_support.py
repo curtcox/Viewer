@@ -6,7 +6,10 @@ import os
 import shutil
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent
+# ``test_support`` now lives under ``tests/`` but callers expect ``ROOT_DIR``
+# to point at the repository root. Step up one additional level to account for
+# the new package structure.
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 DEFAULT_ENV = {
     "DATABASE_URL": "sqlite:///:memory:",
