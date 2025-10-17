@@ -4,7 +4,7 @@
 
 Viewer is a Flask based web application that demonstrates multi layer access control and integrates with OAuth providers.
 The project includes simple helper scripts so you can get up and running quickly.
-Visit the [published GitHub Pages site](https://curtcox.github.io/Viewer/) for a hosted build of the app.
+Visit the [published GitHub Pages site](https://curtcox.github.io/Viewer/) for the latest CI test and spec reports.
 
 ## Quick start
 
