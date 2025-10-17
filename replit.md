@@ -1,6 +1,6 @@
 # Overview
 
-SecureApp is a Flask-based web application that demonstrates a multi-layered access control system. The application provides secure content access through user authentication, payment verification, and terms acceptance tracking. It features detailed HTTP request analysis as its core functionality, allowing authenticated and subscribed users to view comprehensive information about their web requests including headers, metadata, and network details.
+Viewer is a Flask-based web application that demonstrates a multi-layered access control system. The application provides secure content access through user authentication, payment verification, and terms acceptance tracking. It features detailed HTTP request analysis as its core functionality, allowing authenticated and subscribed users to view comprehensive information about their web requests including headers, metadata, and network details.
 
 # User Preferences
 
