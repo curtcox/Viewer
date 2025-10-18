@@ -1,4 +1,4 @@
-"""Integration coverage for server detail pages."""
+"""Integration coverage for server management pages."""
 from __future__ import annotations
 
 import pytest
@@ -8,6 +8,37 @@ from models import Server
 
 
 pytestmark = pytest.mark.integration
+
+
+def test_servers_page_lists_user_servers(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """The servers index page should list servers belonging to the user."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="weather",
+            definition=(
+                "def main(city: str) -> str:\n"
+                "    return f\"Forecast for {city}\"\n"
+            ),
+            definition_cid="bafyweatherdefinition",
+            user_id="default-user",
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "My Servers" in page
+    assert "weather" in page
+    assert "View Full Definition" in page
 
 
 def test_new_server_form_renders_for_authenticated_user(
