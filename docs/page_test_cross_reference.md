@@ -51,7 +51,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_list_displays_cid_link_for_cid_target`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_alias_pages.py::test_aliases_page_lists_user_aliases`
 
 **Specs:**
 - _None_
@@ -262,8 +262,8 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/secrets.py::view_secret` (paths: `/secrets/<secret_name>`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_missing_returns_404`
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
 
 **Integration tests:**
 - _None_
