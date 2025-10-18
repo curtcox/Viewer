@@ -296,7 +296,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_server_events_page_shows_invocations`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_server_events_page.py::test_server_events_page_lists_recent_invocations`
 
 **Specs:**
 - _None_
