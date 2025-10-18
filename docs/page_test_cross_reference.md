@@ -235,7 +235,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_overview.py::RoutesOverviewTestCase::test_requires_login`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_routes_overview_page.py::test_routes_overview_lists_user_routes`
 
 **Specs:**
 - _None_
