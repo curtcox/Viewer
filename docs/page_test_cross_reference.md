@@ -301,7 +301,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_server_events_page.py::test_server_events_page_lists_recent_invocations`
 
 **Specs:**
-- _None_
+- server_events.spec — Server events dashboard is accessible
 
 ## templates/server_form.html
 
