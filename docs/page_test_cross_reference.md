@@ -251,7 +251,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_secret_pages.py::test_edit_secret_form_displays_existing_secret`
+- `tests/integration/test_secret_pages.py::test_new_secret_form_renders_for_authenticated_user`
 
 **Specs:**
 - _None_
