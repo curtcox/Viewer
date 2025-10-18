@@ -37,3 +37,74 @@ def test_uploads_page_displays_user_uploads(
     assert "My Uploads" in page
     assert "Total Files" in page
     assert f"#{manual_cid_value[:9]}..." in page
+
+
+def test_edit_cid_page_prefills_existing_content(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Editing an existing CID should show the stored text content."""
+
+    cid_value = "bafyeditcidexample"
+
+    with integration_app.app_context():
+        editable_cid = CID(
+            path=f"/{cid_value}",
+            file_data=b"Existing CID text content",
+            file_size=24,
+            uploaded_by_user_id="default-user",
+        )
+        db.session.add(editable_cid)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get(f"/edit/{cid_value}")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Edit CID Content" in page
+    assert "Existing CID text content" in page
+    assert "Optionally supply a new alias" in page
+
+
+def test_edit_cid_choices_page_prompts_for_selection(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """When multiple CIDs match the prefix the choices page should render."""
+
+    cid_prefix = "bafyshared"
+    first_cid = f"{cid_prefix}alpha"
+    second_cid = f"{cid_prefix}beta"
+
+    with integration_app.app_context():
+        db.session.add(
+            CID(
+                path=f"/{first_cid}",
+                file_data=b"First matching content",
+                file_size=22,
+                uploaded_by_user_id="default-user",
+            )
+        )
+        db.session.add(
+            CID(
+                path=f"/{second_cid}",
+                file_data=b"Second matching content",
+                file_size=23,
+                uploaded_by_user_id="default-user",
+            )
+        )
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get(f"/edit/{cid_prefix}")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Multiple Matches Found" in page
+    assert f"href=\"/{first_cid}" in page
+    assert f"href=\"/{second_cid}" in page
