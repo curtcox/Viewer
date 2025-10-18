@@ -335,7 +335,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_invocation_history_table`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_server_pages.py::test_server_detail_page_displays_server_information`
 
 **Specs:**
 - _None_
