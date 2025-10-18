@@ -477,7 +477,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variable_edit_shows_404_matching_route`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_variable_pages.py::test_edit_variable_form_displays_existing_variable_details`
+- `tests/integration/test_variable_pages.py::test_new_variable_form_renders_for_authenticated_user`
 
 **Specs:**
 - _None_
