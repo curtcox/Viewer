@@ -455,7 +455,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_uploads_list_excludes_server_events`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_upload_pages.py::test_uploads_page_displays_user_uploads`
 
 **Specs:**
 - _None_
