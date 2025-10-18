@@ -178,6 +178,17 @@ class TestMetaRoute(unittest.TestCase):
             self.assertIn('<a href="/settings"><code>/settings</code></a>', body)
             self.assertIn('<a href="/source/templates/settings.html"><code>/source/templates/settings.html</code></a>', body)
 
+    def test_meta_route_html_includes_related_tests_links(self):
+        with self.app.app_context():
+            response = self.client.get('/meta/settings.html')
+            self.assertEqual(response.status_code, 200)
+
+            body = response.data.decode('utf-8')
+            self.assertIn('Related automated coverage', body)
+            self.assertIn('/source/templates/settings.html', body)
+            self.assertIn('/source/tests/test_routes_comprehensive.py', body)
+            self.assertIn('TestSettingsRoutes::test_settings_page', body)
+
     def test_meta_route_reports_alias_redirect_metadata(self):
         with self.app.app_context():
             user = self._create_test_user()
