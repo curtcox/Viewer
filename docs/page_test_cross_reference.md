@@ -203,7 +203,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_unauthenticated`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_index_page.py::test_index_page_displays_cross_reference_dashboard`
 
 **Specs:**
 - meta_navigation.spec — Info icon links to metadata
