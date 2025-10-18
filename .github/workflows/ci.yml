@@ -265,48 +265,48 @@ jobs:
             mv site/gauge-specs/reports/html-report/* site/gauge-specs/
             rm -rf site/gauge-specs/reports
           fi
-          python <<'PY'
-from html import escape
-from pathlib import Path
-
-base = Path("site/integration-tests")
-base.mkdir(parents=True, exist_ok=True)
-
-log_path = base / "integration-tests.log"
-xml_path = base / "integration-tests-report.xml"
-index_path = base / "index.html"
-
-log_content = "No log output was captured."
-if log_path.exists():
-    log_content = escape(log_path.read_text())
-
-xml_link = ""
-if xml_path.exists():
-    xml_link = '<p><a href="integration-tests-report.xml">Download the JUnit XML report</a></p>'
-
-index_path.write_text(
-    """<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <title>Integration test results</title>
-  <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
-    pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
-    a {{ color: #0366d6; text-decoration: none; }}
-    a:hover {{ text-decoration: underline; }}
-  </style>
-</head>
-<body>
-  <h1>Integration test results</h1>
-  {xml_link}
-  <h2>Latest log excerpt</h2>
-  <pre>{log_content}</pre>
-</body>
-</html>
-""".format(xml_link=xml_link, log_content=log_content)
-)
-PY
+          python3 <<'PY'
+          from html import escape
+          from pathlib import Path
+          
+          base = Path("site/integration-tests")
+          base.mkdir(parents=True, exist_ok=True)
+          
+          log_path = base / "integration-tests.log"
+          xml_path = base / "integration-tests-report.xml"
+          index_path = base / "index.html"
+          
+          log_content = "No log output was captured."
+          if log_path.exists():
+              log_content = escape(log_path.read_text())
+          
+          xml_link = ""
+          if xml_path.exists():
+              xml_link = '<p><a href="integration-tests-report.xml">Download the JUnit XML report</a></p>'
+          
+          index_path.write_text(
+              """<!DOCTYPE html>
+          <html lang=\"en\">
+          <head>
+            <meta charset=\"utf-8\" />
+            <title>Integration test results</title>
+            <style>
+              body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
+              pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
+              a {{ color: #0366d6; text-decoration: none; }}
+              a:hover {{ text-decoration: underline; }}
+            </style>
+          </head>
+          <body>
+            <h1>Integration test results</h1>
+            {xml_link}
+            <h2>Latest log excerpt</h2>
+            <pre>{log_content}</pre>
+          </body>
+          </html>
+          """.format(xml_link=xml_link, log_content=log_content)
+          )
+          PY
           cat <<'HTML' > site/index.html
           <!DOCTYPE html>
           <html lang="en">
