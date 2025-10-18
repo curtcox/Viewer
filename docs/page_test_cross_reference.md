@@ -224,7 +224,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_profile_page.py::test_profile_page_links_to_workspace`
 
 **Specs:**
-- _None_
+- profile.spec — Default workspace profile is accessible
 
 ## templates/routes_overview.html
 
