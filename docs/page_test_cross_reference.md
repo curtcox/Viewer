@@ -486,7 +486,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variable_view_shows_matching_route_summary`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_variable_pages.py::test_variable_detail_page_displays_variable_information`
 
 **Specs:**
 - _None_
@@ -501,7 +501,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_variable_pages.py::test_variables_page_lists_user_variables`
 
 **Specs:**
 - _None_
