@@ -410,7 +410,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_upload_pages.py::test_upload_page_allows_user_to_choose_upload_method`
 
 **Specs:**
 - _None_
@@ -445,6 +445,7 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_upload_pages.py::test_edit_cid_choices_page_prompts_for_selection`
 - `tests/integration/test_upload_pages.py::test_edit_cid_page_prefills_existing_content`
+- `tests/integration/test_upload_pages.py::test_upload_page_allows_user_to_choose_upload_method`
 
 **Specs:**
 - _None_

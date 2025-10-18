@@ -39,6 +39,25 @@ def test_uploads_page_displays_user_uploads(
     assert f"#{manual_cid_value[:9]}..." in page
 
 
+def test_upload_page_allows_user_to_choose_upload_method(
+    client,
+    login_default_user,
+):
+    """The upload form should render with options for file, text, and URL inputs."""
+
+    login_default_user()
+
+    response = client.get("/upload")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Upload Content" in page
+    assert "Upload a file or paste text content" in page
+    assert "upload_type_file" in page
+    assert "upload_type_text" in page
+    assert "upload_type_url" in page
+
+
 def test_edit_cid_page_prefills_existing_content(
     client,
     integration_app,
