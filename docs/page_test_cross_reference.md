@@ -284,7 +284,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
 
 **Specs:**
 - _None_
