@@ -34,7 +34,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_detail_displays_cid_link_for_cid_target`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_alias_pages.py::test_alias_detail_page_displays_alias_information`
 
 **Specs:**
 - _None_

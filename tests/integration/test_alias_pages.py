@@ -50,3 +50,30 @@ def test_new_alias_form_renders_for_authenticated_user(
     assert "Create New Alias" in page
     assert "name=\"name\"" in page
     assert "name=\"target_path\"" in page
+
+
+def test_alias_detail_page_displays_alias_information(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Viewing an alias should show its saved details."""
+
+    with integration_app.app_context():
+        alias = Alias(
+            name="docs",
+            target_path="/docs",
+            user_id="default-user",
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/aliases/docs")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Alias Details" in page
+    assert "<code>docs</code>" in page
+    assert "<code>/docs</code>" in page
