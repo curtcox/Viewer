@@ -291,10 +291,10 @@ index_path.write_text(
   <meta charset=\"utf-8\" />
   <title>Integration test results</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
-    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
-    a { color: #0366d6; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
+    pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
+    a {{ color: #0366d6; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
   </style>
 </head>
 <body>
