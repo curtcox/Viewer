@@ -317,7 +317,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_prefills_name_from_path_query`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_server_pages.py::test_new_server_form_renders_for_authenticated_user`
 
 **Specs:**
 - _None_

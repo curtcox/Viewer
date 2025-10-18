@@ -10,6 +10,24 @@ from models import Server
 pytestmark = pytest.mark.integration
 
 
+def test_new_server_form_renders_for_authenticated_user(
+    client,
+    login_default_user,
+):
+    """The new-server form should render the creation UI when logged in."""
+
+    login_default_user()
+
+    response = client.get("/servers/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Create New Server" in page
+    assert "Server Configuration" in page
+    assert "name=\"name\"" in page
+    assert "name=\"definition\"" in page
+
+
 def test_server_detail_page_displays_server_information(
     client,
     integration_app,
