@@ -160,7 +160,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_pagination`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_history_page.py::test_history_page_displays_recent_activity`
 
 **Specs:**
 - _None_
