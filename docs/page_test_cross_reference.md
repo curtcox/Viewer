@@ -390,7 +390,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_source_spec_report.py::test_source_serves_gauge_report`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_source_browser_page.py::test_source_browser_displays_file_content`
+- `tests/integration/test_source_browser_page.py::test_source_browser_lists_directories`
 
 **Specs:**
 - source_browser.spec — Source listing renders
