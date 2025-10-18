@@ -34,6 +34,14 @@ def when_i_request_source() -> None:
     _scenario_state["response"] = response
 
 
+@step("When I request the page <path>")
+def when_i_request_the_page(path: str) -> None:
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    response = _client.get(path)
+    _scenario_state["response"] = response
+
+
 @step("The response status should be 200")
 def then_status_is_200() -> None:
     response = _scenario_state.get("response")
@@ -52,3 +60,11 @@ def then_response_contains_source_browser() -> None:
     body = response.get_data(as_text=True)
     expected_text = "Source Browser"
     assert expected_text in body, f"Expected to find {expected_text!r} in the response body."
+
+
+@step("The page should contain <text>")
+def then_page_should_contain(text: str) -> None:
+    response = _scenario_state.get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert text in body, f"Expected to find {text!r} in the response body."

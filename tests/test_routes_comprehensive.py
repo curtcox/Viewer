@@ -132,6 +132,16 @@ class TestContextProcessors(BaseTestCase):
             "https://langsmith.example/project",
         )
 
+    def test_inject_meta_inspector_link(self):
+        """Expose a metadata inspector link for the active request path."""
+
+        from routes.core import inject_meta_inspector_link
+
+        with self.app.test_request_context('/servers/example'):
+            context = inject_meta_inspector_link()
+
+        self.assertEqual(context["meta_inspector_url"], "/meta/servers/example.html")
+
 
 class TestPublicRoutes(BaseTestCase):
     """Test routes that don't require authentication."""
@@ -426,6 +436,17 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/profile')
         self.assertEqual(response.status_code, 200)
+
+    def test_navigation_includes_meta_inspector_link(self):
+        """Display a metadata inspector shortcut in the site navigation."""
+
+        self.login_user()
+        response = self.client.get('/profile')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('href="/meta/profile.html"', page)
+        self.assertIn('fa-circle-info', page)
 
     def test_content_route_returns_not_found(self):
         """Legacy /content endpoint should be unavailable."""
