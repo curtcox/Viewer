@@ -83,3 +83,36 @@ def test_secret_detail_page_displays_secret_information(
     assert "production-api-key" in page
     assert "super-secret-value" in page
     assert "Back to Secrets" in page
+
+
+def test_secrets_list_page_displays_user_secrets(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """The secrets overview should list saved secrets for the user."""
+
+    with integration_app.app_context():
+        first_secret = Secret(
+            name="production-api-key",
+            definition="super-secret-value",
+            user_id="default-user",
+        )
+        second_secret = Secret(
+            name="staging-api-key",
+            definition="staging-secret-value",
+            user_id="default-user",
+        )
+        db.session.add_all([first_secret, second_secret])
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/secrets")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "My Secrets" in page
+    assert "production-api-key" in page
+    assert "staging-api-key" in page
+    assert "Create New Secret" in page
