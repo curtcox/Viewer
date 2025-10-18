@@ -10,4 +10,5 @@ implementations.
 # Import the source browser steps so Gauge registers the decorated functions.
 # The module has side effects at import time and does not expose a public API,
 # so we disable the unused import warning.
+from . import import_export_steps  # noqa: F401
 from . import source_steps  # noqa: F401
