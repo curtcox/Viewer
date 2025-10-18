@@ -364,7 +364,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSettingsRoutes::test_settings_page_shows_direct_access_links`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_settings_page.py::test_settings_page_displays_resource_counts_and_links`
 
 **Specs:**
 - _None_
