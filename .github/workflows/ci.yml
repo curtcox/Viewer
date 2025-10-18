@@ -103,6 +103,69 @@ jobs:
         if: steps.run_tests.outcome == 'failure'
         run: exit 1
 
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:////tmp/secureapp-ci.db
+      SESSION_SECRET: test-secret-key
+      TESTING: "True"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run integration tests
+        id: run_integration
+        run: |
+          set -o pipefail
+          python run_integration_tests.py -- --junitxml=integration-tests-report.xml | tee integration-tests.log
+        continue-on-error: true
+
+      - name: Publish integration summary
+        if: always()
+        run: |
+          if [ -f integration-tests.log ]; then
+            {
+              echo "### Integration tests"
+              echo
+              echo '```'
+              tail -n 50 integration-tests.log
+              echo '```'
+              echo
+              echo "JUnit XML: integration-tests-report.xml"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Integration tests"
+              echo
+              echo "No integration test log was produced."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload integration test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-results
+          path: |
+            integration-tests-report.xml
+            integration-tests.log
+
+      - name: Fail if integration tests failed
+        if: steps.run_integration.outcome == 'failure'
+        run: exit 1
+
   gauge-specs:
     name: Gauge Specs
     runs-on: ubuntu-latest
@@ -159,11 +222,13 @@ jobs:
     name: Publish Test Reports
     needs:
       - unit-tests
+      - integration-tests
       - gauge-specs
     if: >-
       ${{ github.event_name == 'push' &&
           github.ref == 'refs/heads/main' &&
           needs['unit-tests'].result == 'success' &&
+          needs['integration-tests'].result == 'success' &&
           needs['gauge-specs'].result == 'success' }}
     runs-on: ubuntu-latest
     environment:
@@ -183,9 +248,15 @@ jobs:
           name: gauge-html
           path: site/gauge-specs
 
+      - name: Download integration test results
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-tests-results
+          path: site/integration-tests
+
       - name: Prepare site content
         run: |
-          mkdir -p site/unit-tests site/gauge-specs
+          mkdir -p site/unit-tests site/gauge-specs site/integration-tests
           if [ -d site/unit-tests/htmlcov ]; then
             mv site/unit-tests/htmlcov/* site/unit-tests/
             rmdir site/unit-tests/htmlcov
@@ -194,6 +265,48 @@ jobs:
             mv site/gauge-specs/reports/html-report/* site/gauge-specs/
             rm -rf site/gauge-specs/reports
           fi
+          python <<'PY'
+from html import escape
+from pathlib import Path
+
+base = Path("site/integration-tests")
+base.mkdir(parents=True, exist_ok=True)
+
+log_path = base / "integration-tests.log"
+xml_path = base / "integration-tests-report.xml"
+index_path = base / "index.html"
+
+log_content = "No log output was captured."
+if log_path.exists():
+    log_content = escape(log_path.read_text())
+
+xml_link = ""
+if xml_path.exists():
+    xml_link = '<p><a href="integration-tests-report.xml">Download the JUnit XML report</a></p>'
+
+index_path.write_text(
+    """<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <title>Integration test results</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Integration test results</h1>
+  {xml_link}
+  <h2>Latest log excerpt</h2>
+  <pre>{log_content}</pre>
+</body>
+</html>
+""".format(xml_link=xml_link, log_content=log_content)
+)
+PY
           cat <<'HTML' > site/index.html
           <!DOCTYPE html>
           <html lang="en">
@@ -212,6 +325,7 @@ jobs:
             <h1>SecureApp Test Reports</h1>
             <ul>
               <li><a href="unit-tests/index.html">Unit test coverage report</a></li>
+              <li><a href="integration-tests/index.html">Integration test results</a></li>
               <li><a href="gauge-specs/index.html">Gauge HTML report</a></li>
             </ul>
           </body>

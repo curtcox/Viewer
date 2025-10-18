@@ -15,6 +15,7 @@ Visit the [published GitHub Pages site](https://curtcox.github.io/Viewer/) for t
 ./test      # run the full test suite (pytest + Gauge specs)
 ./test-unit  # run only the pytest suite (add --coverage for coverage reports)
 ./test-gauge # run only the Gauge specs
+python run_integration_tests.py  # run the dedicated integration test suite
 python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
@@ -45,6 +46,7 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `test-unit` – execute the pytest suite (`--coverage` forwards to `run_coverage.py`).
 * `test-gauge` – run the Gauge specifications.
 * `test` – invoke both `test-unit` and `test-gauge` sequentially.
+* `run_integration_tests.py` – execute only the integration tests under `tests/integration`.
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 
 ### Gauge specs
@@ -67,8 +69,9 @@ both the pytest suite and the Gauge specs succeed.
 After changing the configuration or dependencies re‑run `./doctor` to ensure your setup is healthy.  Use `Ctrl+C` to stop
  the development server started with `./run`.
 
-Run `pytest` (or the `./test` wrapper) before opening a pull request so you catch regressions locally.  The test runner will
-execute every `test_*.py` module in the repository.
+Run `pytest` (or the `./test` wrapper) before opening a pull request so you catch regressions locally.  Integration scenarios
+live under `tests/integration` and are skipped by default; run `python run_integration_tests.py` when you need to validate
+end-to-end behaviour.
 
 ### Observability
 
