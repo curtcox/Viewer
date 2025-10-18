@@ -269,7 +269,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_secret_pages.py::test_secret_detail_page_displays_secret_information`
 
 **Specs:**
 - _None_
