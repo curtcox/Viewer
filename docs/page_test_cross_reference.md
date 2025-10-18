@@ -77,7 +77,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_requires_login`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_upload_pages.py::test_edit_cid_choices_page_prompts_for_selection`
+- `tests/integration/test_upload_pages.py::test_edit_cid_page_prefills_existing_content`
 
 **Specs:**
 - _None_
@@ -103,7 +104,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_requires_login`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_upload_pages.py::test_edit_cid_choices_page_prompts_for_selection`
+- `tests/integration/test_upload_pages.py::test_edit_cid_page_prefills_existing_content`
 
 **Specs:**
 - _None_
@@ -440,7 +442,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_upload_pages.py::test_edit_cid_choices_page_prompts_for_selection`
+- `tests/integration/test_upload_pages.py::test_edit_cid_page_prefills_existing_content`
 
 **Specs:**
 - _None_
