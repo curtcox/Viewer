@@ -33,3 +33,20 @@ def test_aliases_page_lists_user_aliases(
     page = response.get_data(as_text=True)
     assert "docs" in page
     assert "/docs" in page
+
+
+def test_new_alias_form_renders_for_authenticated_user(
+    client,
+    login_default_user,
+):
+    """The new-alias form should render when the user is logged in."""
+
+    login_default_user()
+
+    response = client.get("/aliases/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Create New Alias" in page
+    assert "name=\"name\"" in page
+    assert "name=\"target_path\"" in page

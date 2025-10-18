@@ -19,7 +19,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_alias_pages.py::test_new_alias_form_renders_for_authenticated_user`
 
 **Specs:**
 - _None_
