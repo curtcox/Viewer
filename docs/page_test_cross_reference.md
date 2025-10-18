@@ -262,7 +262,8 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/secrets.py::view_secret` (paths: `/secrets/<secret_name>`)
 
 **Unit tests:**
-- _None_
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_missing_returns_404`
 
 **Integration tests:**
 - _None_

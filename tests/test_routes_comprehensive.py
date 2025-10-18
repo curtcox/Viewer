@@ -1494,6 +1494,34 @@ class TestSecretRoutes(BaseTestCase):
         self.assertIn('definition-ai-input', page)
         self.assertIn('Ask AI to edit the secret definition', page)
 
+    def test_view_secret_page_displays_secret_details(self):
+        """Secret detail page should render secret metadata and definition."""
+        self.login_user()
+
+        secret = Secret(
+            name='production-api-key',
+            definition='super-secret-value',
+            user_id=self.test_user.id,
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+        response = self.client.get('/secrets/production-api-key')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Secret Definition', page)
+        self.assertIn('super-secret-value', page)
+        self.assertIn('Direct URL', page)
+        self.assertIn('/secrets/production-api-key', page)
+
+    def test_view_secret_missing_returns_404(self):
+        """Requesting a secret that does not exist should return 404."""
+        self.login_user()
+
+        response = self.client.get('/secrets/nonexistent-secret')
+        self.assertEqual(response.status_code, 404)
+
 
 class TestAliasRoutes(BaseTestCase):
     """Test alias management AI helpers."""
