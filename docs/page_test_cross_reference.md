@@ -219,7 +219,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestPageViewTracking::test_page_view_tracking_authenticated`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_profile_page.py::test_profile_page_links_to_workspace`
 
 **Specs:**
 - _None_
