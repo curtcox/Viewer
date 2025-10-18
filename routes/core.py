@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 from flask import (
     abort,
     current_app,
+    has_request_context,
     redirect,
     render_template,
     request,
@@ -603,6 +604,25 @@ def inject_observability_info():
         LANGSMITH_PROJECT_URL=status.get("langsmith_project_url"),
         LANGSMITH_UNAVAILABLE_REASON=status.get("langsmith_reason"),
     )
+
+
+@main_bp.app_context_processor
+def inject_meta_inspector_link():
+    """Expose the per-page /meta inspector link to templates."""
+
+    if has_request_context():
+        path = request.path or "/"
+    else:
+        path = "/"
+
+    stripped = path.strip("/")
+    if stripped:
+        requested_path = f"{stripped}.html"
+    else:
+        requested_path = ".html"
+
+    meta_url = url_for("main.meta_route", requested_path=requested_path)
+    return {"meta_inspector_url": meta_url}
 
 
 @main_bp.route('/')
