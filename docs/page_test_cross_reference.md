@@ -352,7 +352,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_server_pages.py::test_servers_page_lists_user_servers`
 
 **Specs:**
 - _None_
