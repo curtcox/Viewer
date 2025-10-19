@@ -1,7 +1,7 @@
 """Server management routes and helpers."""
 
 import re
-from typing import Dict, Optional
+from typing import Dict, Iterable, List, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from identity import current_user
@@ -17,7 +17,9 @@ from db_access import (
     delete_entity,
     get_cid_by_path,
     get_server_by_name,
+    get_user_secrets,
     get_user_servers,
+    get_user_variables,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
@@ -31,6 +33,128 @@ from . import main_bp
 from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
+
+
+_INDEX_ACCESS_PATTERN = re.compile(
+    r"context\[['\"](variables|secrets)['\"]\]\[['\"]([^'\"]+)['\"]\]"
+)
+
+_GET_ACCESS_PATTERN = re.compile(
+    r"context\[['\"](variables|secrets)['\"]\]\.get\(\s*['\"]([^'\"]+)['\"]"
+)
+
+_ALIAS_ASSIGNMENT_PATTERNS = (
+    re.compile(r"(\w+)\s*=\s*context\[['\"](variables|secrets)['\"]\]"),
+    re.compile(
+        r"(\w+)\s*=\s*context\.get\(\s*['\"](variables|secrets)['\"](?:\s*,[^)]*)?\)"
+    ),
+)
+
+_ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
+
+
+def _extract_context_references(
+    definition: Optional[str],
+    known_variables: Optional[Iterable[str]] = None,
+    known_secrets: Optional[Iterable[str]] = None,
+) -> Dict[str, List[str]]:
+    """Return referenced variable and secret names from a server definition."""
+
+    if not definition:
+        return {'variables': [], 'secrets': []}
+
+    matches = set()
+    aliases: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+
+    for pattern in _ALIAS_ASSIGNMENT_PATTERNS:
+        for match in pattern.finditer(definition):
+            alias, source = match.groups()
+            if not alias or not source:
+                continue
+            aliases.setdefault(source, set()).add(alias)
+
+    for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
+        for match in pattern.finditer(definition):
+            source, name = match.groups()
+            if not name:
+                continue
+            matches.add((source, name))
+
+    for source, alias_names in aliases.items():
+        for alias in alias_names:
+            if not alias:
+                continue
+
+            index_pattern = re.compile(
+                rf"(?<!\w){re.escape(alias)}\[['\"]([^'\"]+)['\"]\]"
+            )
+            get_pattern = re.compile(
+                rf"(?<!\w){re.escape(alias)}\.get\(\s*['\"]([^'\"]+)['\"](?:\s*,[^)]*)?\)"
+            )
+
+            for pattern in (index_pattern, get_pattern):
+                for match in pattern.finditer(definition):
+                    name = match.group(1)
+                    if not name:
+                        continue
+                    matches.add((source, name))
+
+    normalized_variables = {
+        str(name)
+        for name in (known_variables or [])
+        if isinstance(name, str) and name
+    }
+    normalized_secrets = {
+        str(name)
+        for name in (known_secrets or [])
+        if isinstance(name, str) and name
+    }
+
+    if normalized_variables or normalized_secrets:
+        description = describe_main_function_parameters(definition or '')
+        if description:
+            parameter_names = {
+                str(parameter.get('name'))
+                for parameter in description.get('parameters', [])
+                if isinstance(parameter, dict) and parameter.get('name')
+            }
+
+            for name in parameter_names & normalized_variables:
+                matches.add(('variables', name))
+
+            for name in parameter_names & normalized_secrets:
+                matches.add(('secrets', name))
+
+    grouped: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+    for source, name in matches:
+        grouped.setdefault(source, set()).add(name)
+
+    return {
+        'variables': sorted(grouped.get('variables', set())),
+        'secrets': sorted(grouped.get('secrets', set())),
+    }
+
+
+def _extract_route_references(definition: Optional[str]) -> List[str]:
+    """Return route-like paths referenced within the server definition."""
+
+    if not definition:
+        return []
+
+    candidates: set[str] = set()
+    for match in _ROUTE_PATTERN.finditer(definition):
+        value = match.group(1)
+        if not value or value in {"/", "//"}:
+            continue
+        if value.startswith('//'):
+            continue
+        if value.startswith('/http') or value.startswith('/https'):
+            continue
+        if not re.search(r"[A-Za-z]", value):
+            continue
+        candidates.add(value)
+
+    return sorted(candidates)
 
 
 def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
@@ -327,15 +451,68 @@ def servers():
     """Display user's servers."""
     servers_list = user_servers()
     server_definitions_cid = None
+    server_rows: List[Dict[str, object]] = []
     if servers_list:
         server_definitions_cid = format_cid(
             get_current_server_definitions_cid(current_user.id)
         )
 
+        known_variable_names = {
+            str(variable.name)
+            for variable in get_user_variables(current_user.id)
+            if getattr(variable, 'name', None)
+        }
+        known_secret_names = {
+            str(secret.name)
+            for secret in get_user_secrets(current_user.id)
+            if getattr(secret, 'name', None)
+        }
+
+        for server in servers_list:
+            definition_text = getattr(server, 'definition', '')
+            context_refs = _extract_context_references(
+                definition_text,
+                known_variables=known_variable_names,
+                known_secrets=known_secret_names,
+            )
+            route_refs = _extract_route_references(definition_text)
+
+            variable_links = [
+                {
+                    'label': name,
+                    'url': url_for('main.view_variable', variable_name=name),
+                }
+                for name in context_refs.get('variables', [])
+            ]
+            secret_links = [
+                {
+                    'label': name,
+                    'url': url_for('main.view_secret', secret_name=name),
+                }
+                for name in context_refs.get('secrets', [])
+            ]
+            route_links = [
+                {
+                    'label': path,
+                    'url': path,
+                }
+                for path in route_refs
+            ]
+
+            server_rows.append(
+                {
+                    'server': server,
+                    'variables': variable_links,
+                    'secrets': secret_links,
+                    'routes': route_links,
+                }
+            )
+
     return render_template(
         'servers.html',
         servers=servers_list,
         server_definitions_cid=server_definitions_cid,
+        server_rows=server_rows,
     )
 
 
