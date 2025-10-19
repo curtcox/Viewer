@@ -41,6 +41,45 @@ def test_servers_page_lists_user_servers(
     assert "View Full Definition" in page
 
 
+def test_servers_page_shows_referenced_variables_and_secrets(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Server reference badges should mirror context usage in definitions."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="reference-links",
+            definition=(
+                "def main(context):\n"
+                "    city = context['variables']['city']\n"
+                "    duplicate_city = context['variables'].get('city')\n"
+                "    units = context['variables'].get('units', 'metric')\n"
+                "    token = context['secrets']['api_token']\n"
+                "    fallback = context['secrets'].get('api_token')\n"
+                "    return f'{city} {units} {token or fallback}'\n"
+            ),
+            definition_cid="bafyreferencelinks",
+            user_id="default-user",
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "/variables/city" in page
+    assert page.count("/variables/city") == 1
+    assert "/variables/units" in page
+    assert page.count("/variables/units") == 1
+    assert "/secrets/api_token" in page
+    assert page.count("/secrets/api_token") == 1
+
+
 def test_new_server_form_renders_for_authenticated_user(
     client,
     login_default_user,
