@@ -37,7 +37,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_alias_pages.py::test_alias_detail_page_displays_alias_information`
 
 **Specs:**
-- _None_
+- alias_management.spec — Users can view alias details
 
 ## templates/aliases.html
 
