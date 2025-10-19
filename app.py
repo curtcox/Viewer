@@ -65,15 +65,32 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             logfire_reason = f"Unexpected Logfire error: {exc}"
             logger.exception("Unexpected Logfire configuration failure")
         else:
-            # logfire.instrument_fastapi(app = FastAPI())
-            logfire.instrument_requests()
-            logfire.instrument_aiohttp_client()
-            logfire.instrument_pydantic()
+            instrumentation_steps = (
+                ("requests", logfire.instrument_requests),
+                ("aiohttp", logfire.instrument_aiohttp_client),
+                ("pydantic", logfire.instrument_pydantic),
+            )
 
-            logger.info("Logfire configured")
-            logfire_available = True
-            logfire_reason = None
-            logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
+            instrumentation_errors: list[str] = []
+
+            for name, instrument in instrumentation_steps:
+                try:
+                    instrument()
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    logger.warning(
+                        "Logfire %s instrumentation failed: %s", name, exc
+                    )
+                    instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
+                    break
+
+            if instrumentation_errors:
+                logfire_available = False
+                logfire_reason = "; ".join(instrumentation_errors)
+            else:
+                logger.info("Logfire configured")
+                logfire_available = True
+                logfire_reason = None
+                logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
 

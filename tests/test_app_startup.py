@@ -73,3 +73,43 @@ def test_create_app_handles_logfire_configuration_errors(
         status = app_instance.config["OBSERVABILITY_STATUS"]
         assert status["logfire_available"] is False
         assert "logfire credentials missing" in status["logfire_reason"]
+
+
+def test_create_app_handles_logfire_instrumentation_errors(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    """Instrumentation failures should be logged but not crash startup."""
+
+    monkeypatch.setenv("LOGFIRE_SEND_TO_LOGFIRE", "1")
+
+    instrumentation_calls: list[str] = []
+
+    monkeypatch.setattr(app_module.logfire, "configure", lambda *_, **__: None)
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_requests",
+        lambda: (_ for _ in ()).throw(ModuleNotFoundError("requests not installed")),
+    )
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_aiohttp_client",
+        lambda: instrumentation_calls.append("aiohttp"),
+    )
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_pydantic",
+        lambda: instrumentation_calls.append("pydantic"),
+    )
+
+    app_instance = app_module.create_app(app_config_factory("instrument"))
+
+    client = app_instance.test_client()
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert instrumentation_calls == []
+
+    with app_instance.app_context():
+        status = app_instance.config["OBSERVABILITY_STATUS"]
+        assert status["logfire_available"] is False
+        assert "requests instrumentation failed" in status["logfire_reason"]
