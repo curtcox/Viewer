@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from database import db
-from models import Server
+from models import Secret, Server, Variable
 
 
 pytestmark = pytest.mark.integration
@@ -78,6 +78,50 @@ def test_servers_page_shows_referenced_variables_and_secrets(
     assert page.count("/variables/units") == 1
     assert "/secrets/api_token" in page
     assert page.count("/secrets/api_token") == 1
+
+
+def test_servers_page_links_auto_main_context_matches(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Auto main parameters should surface matching context links."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Variable(
+                name="city",
+                definition="return 'London'",
+                user_id="default-user",
+            )
+        )
+        db.session.add(
+            Secret(
+                name="api_token",
+                definition="return 'secret'",
+                user_id="default-user",
+            )
+        )
+        db.session.add(
+            Server(
+                name="auto-main",
+                definition=(
+                    "def main(city, api_token):\n"
+                    "    return {\"output\": city + api_token}\n"
+                ),
+                user_id="default-user",
+            )
+        )
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "/variables/city" in page
+    assert "/secrets/api_token" in page
 
 
 def test_new_server_form_renders_for_authenticated_user(

@@ -1,7 +1,7 @@
 """Server management routes and helpers."""
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from identity import current_user
@@ -17,7 +17,9 @@ from db_access import (
     delete_entity,
     get_cid_by_path,
     get_server_by_name,
+    get_user_secrets,
     get_user_servers,
+    get_user_variables,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
@@ -51,7 +53,11 @@ _ALIAS_ASSIGNMENT_PATTERNS = (
 _ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
 
 
-def _extract_context_references(definition: Optional[str]) -> Dict[str, List[str]]:
+def _extract_context_references(
+    definition: Optional[str],
+    known_variables: Optional[Iterable[str]] = None,
+    known_secrets: Optional[Iterable[str]] = None,
+) -> Dict[str, List[str]]:
     """Return referenced variable and secret names from a server definition."""
 
     if not definition:
@@ -92,6 +98,32 @@ def _extract_context_references(definition: Optional[str]) -> Dict[str, List[str
                     if not name:
                         continue
                     matches.add((source, name))
+
+    normalized_variables = {
+        str(name)
+        for name in (known_variables or [])
+        if isinstance(name, str) and name
+    }
+    normalized_secrets = {
+        str(name)
+        for name in (known_secrets or [])
+        if isinstance(name, str) and name
+    }
+
+    if normalized_variables or normalized_secrets:
+        description = describe_main_function_parameters(definition or '')
+        if description:
+            parameter_names = {
+                str(parameter.get('name'))
+                for parameter in description.get('parameters', [])
+                if isinstance(parameter, dict) and parameter.get('name')
+            }
+
+            for name in parameter_names & normalized_variables:
+                matches.add(('variables', name))
+
+            for name in parameter_names & normalized_secrets:
+                matches.add(('secrets', name))
 
     grouped: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
     for source, name in matches:
@@ -425,9 +457,24 @@ def servers():
             get_current_server_definitions_cid(current_user.id)
         )
 
+        known_variable_names = {
+            str(variable.name)
+            for variable in get_user_variables(current_user.id)
+            if getattr(variable, 'name', None)
+        }
+        known_secret_names = {
+            str(secret.name)
+            for secret in get_user_secrets(current_user.id)
+            if getattr(secret, 'name', None)
+        }
+
         for server in servers_list:
             definition_text = getattr(server, 'definition', '')
-            context_refs = _extract_context_references(definition_text)
+            context_refs = _extract_context_references(
+                definition_text,
+                known_variables=known_variable_names,
+                known_secrets=known_secret_names,
+            )
             route_refs = _extract_route_references(definition_text)
 
             variable_links = [

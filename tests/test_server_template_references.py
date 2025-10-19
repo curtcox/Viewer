@@ -43,3 +43,39 @@ def test_template_context_references_are_detected() -> None:
         assert references['variables'] == expected_variables
 
     assert exercised, "Expected at least one template to include context references"
+
+
+def test_auto_main_parameters_detect_known_variables_and_secrets() -> None:
+    """Auto main parameters should count as context references when names match."""
+
+    definition = """
+def main(city, api_token, context=None):
+    return {"output": f"{city} {api_token}", "content_type": "text/plain"}
+"""
+
+    references = _extract_context_references(
+        definition,
+        known_variables={'city'},
+        known_secrets={'api_token'},
+    )
+
+    assert references['variables'] == ['city']
+    assert references['secrets'] == ['api_token']
+
+
+def test_auto_main_parameters_ignore_unknown_context_names() -> None:
+    """Auto main parameters without matching context names should be ignored."""
+
+    definition = """
+def main(city, api_token, context=None):
+    return {"output": f"{city} {api_token}", "content_type": "text/plain"}
+"""
+
+    references = _extract_context_references(
+        definition,
+        known_variables={'other'},
+        known_secrets={'different'},
+    )
+
+    assert references['variables'] == []
+    assert references['secrets'] == []
