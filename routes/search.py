@@ -1,6 +1,7 @@
 """Workspace-wide search routes."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from flask import jsonify, render_template, request, url_for
@@ -216,7 +217,22 @@ def _secret_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
 
 def _cid_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
-    for cid_record in get_user_uploads(user_id):
+
+    def created_at_value(record: Any) -> datetime:
+        value = getattr(record, "created_at", None)
+        if value is None:
+            return datetime.fromtimestamp(0, tz=timezone.utc)
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+
+    uploads = sorted(
+        get_user_uploads(user_id),
+        key=created_at_value,
+        reverse=True,
+    )[:100]
+
+    for cid_record in uploads:
         path = getattr(cid_record, "path", "") or ""
         cid_value = format_cid(path)
         display_name = path or (f"/{cid_value}" if cid_value else "")

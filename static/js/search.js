@@ -76,7 +76,37 @@
             resultsContainer.innerHTML = '';
             let totalMatches = 0;
 
-            (categoryOrder.length ? categoryOrder : Object.keys(categories || {})).forEach((key) => {
+            const baseOrder = categoryOrder.length ? categoryOrder.slice() : Object.keys(categories || {});
+            const seen = new Set();
+            const displayOrder = [];
+
+            function pushKey(key) {
+                if (!key || seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                displayOrder.push(key);
+            }
+
+            baseOrder.forEach((key) => {
+                if (key === 'cids') {
+                    return;
+                }
+                pushKey(key);
+            });
+
+            Object.keys(categories || {}).forEach((key) => {
+                if (key === 'cids') {
+                    return;
+                }
+                pushKey(key);
+            });
+
+            if (baseOrder.includes('cids') || (categories && Object.prototype.hasOwnProperty.call(categories, 'cids'))) {
+                pushKey('cids');
+            }
+
+            displayOrder.forEach((key) => {
                 const category = categories[key];
                 if (!category) {
                     return;

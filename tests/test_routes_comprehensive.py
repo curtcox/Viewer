@@ -419,6 +419,44 @@ def main(request):
         for category in ('aliases', 'servers', 'variables', 'secrets', 'cids'):
             self.assertEqual(empty_payload['categories'][category]['count'], 0)
 
+    def test_cid_results_sorted_and_limited_to_latest_entries(self):
+        """CID search results should be sorted by newest first and capped at 100 items."""
+
+        now = datetime.now(timezone.utc)
+        for index in range(105):
+            record = CID(
+                path=f'/needle-{index:03d}',
+                file_data=f'needle {index}'.encode(),
+                uploaded_by_user_id=self.test_user.id,
+                created_at=now + timedelta(minutes=index),
+            )
+            db.session.add(record)
+
+        db.session.commit()
+
+        response = self.client.get(
+            '/search/results',
+            query_string={
+                'q': 'needle',
+                'aliases': '0',
+                'servers': '0',
+                'variables': '0',
+                'secrets': '0',
+                'cids': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.get_json()
+        cids_category = payload['categories']['cids']
+
+        self.assertEqual(payload['total_count'], 100)
+        self.assertEqual(cids_category['count'], 100)
+        self.assertEqual(len(cids_category['items']), 100)
+        self.assertEqual(cids_category['items'][0]['name'], '/needle-104')
+        self.assertEqual(cids_category['items'][-1]['name'], '/needle-005')
+
     def test_index_cross_reference_skips_cids_without_named_server(self):
         """Servers lacking a name should not introduce orphan CID entries."""
         self.login_user()
