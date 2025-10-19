@@ -149,7 +149,7 @@ def then_submitting_form_creates_alias() -> None:
         assert created.target_path == "/guides", "Alias target path did not persist."
 
 
-@step('Given there is an alias named "{}" pointing to {}')
+@step('Given there is an alias named <alias_name> pointing to <target_path>')
 def given_alias_exists(alias_name: str, target_path: str) -> None:
     """Persist an alias with the provided name and target path."""
 

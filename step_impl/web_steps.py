@@ -208,27 +208,13 @@ def then_page_should_contain_edit_alias() -> None:
     assert "Edit Alias" in body, "Expected to find Edit Alias in the response body."
 
 
-# Alias management steps
-@step('Given there is an alias named "docs" pointing to /guides')
-def given_there_is_an_alias_named_pointing_to() -> None:
-    """Create an alias with the specified name and target path."""
-    # This step is already implemented in alias_steps.py
-    from step_impl.alias_steps import given_alias_exists
-    given_alias_exists("docs", "/guides")
-
-
-@step("When I visit /aliases/docs/edit")
-def when_i_visit_aliases_docs_edit() -> None:
-    """Visit the edit page for the docs alias."""
-    from step_impl.alias_steps import when_i_visit_path
-    when_i_visit_path("/aliases/docs/edit")
-
-
-@step("Path coverage: /aliases/ai")
-def path_coverage_aliases_ai() -> None:
-    """Record path coverage for alias detail pages."""
-    from step_impl.alias_steps import record_alias_path_coverage
-    record_alias_path_coverage("ai")
+@step("The page should contain No Server Events Yet")
+def then_page_should_contain_no_server_events_yet() -> None:
+    """Verify the page contains No Server Events Yet text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "No Server Events Yet" in body, "Expected to find No Server Events Yet in the response body."
 
 
 # Import/Export steps
