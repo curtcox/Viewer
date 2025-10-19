@@ -10,3 +10,10 @@
 * Given there is an alias named "docs" pointing to /guides
 * When I visit /aliases/docs/edit
 * Then I can update the alias target and save the changes
+
+## Users can view alias details
+* When I request the page /aliases/ai
+* Path coverage: /aliases/ai
+* The response status should be 200
+* The page should contain Alias Details
+* The page should contain Edit Alias
