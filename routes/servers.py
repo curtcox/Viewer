@@ -1,7 +1,7 @@
 """Server management routes and helpers."""
 
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from identity import current_user
@@ -31,6 +31,63 @@ from . import main_bp
 from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
+
+
+_INDEX_ACCESS_PATTERN = re.compile(
+    r"context\[['\"](variables|secrets)['\"]\]\[['\"]([^'\"]+)['\"]\]"
+)
+
+_GET_ACCESS_PATTERN = re.compile(
+    r"context\[['\"](variables|secrets)['\"]\]\.get\(\s*['\"]([^'\"]+)['\"]"
+)
+
+_ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
+
+
+def _extract_context_references(definition: Optional[str]) -> Dict[str, List[str]]:
+    """Return referenced variable and secret names from a server definition."""
+
+    if not definition:
+        return {'variables': [], 'secrets': []}
+
+    matches = set()
+    for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
+        for match in pattern.finditer(definition):
+            source, name = match.groups()
+            if not name:
+                continue
+            matches.add((source, name))
+
+    grouped: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+    for source, name in matches:
+        grouped.setdefault(source, set()).add(name)
+
+    return {
+        'variables': sorted(grouped.get('variables', set())),
+        'secrets': sorted(grouped.get('secrets', set())),
+    }
+
+
+def _extract_route_references(definition: Optional[str]) -> List[str]:
+    """Return route-like paths referenced within the server definition."""
+
+    if not definition:
+        return []
+
+    candidates: set[str] = set()
+    for match in _ROUTE_PATTERN.finditer(definition):
+        value = match.group(1)
+        if not value or value in {"/", "//"}:
+            continue
+        if value.startswith('//'):
+            continue
+        if value.startswith('/http') or value.startswith('/https'):
+            continue
+        if not re.search(r"[A-Za-z]", value):
+            continue
+        candidates.add(value)
+
+    return sorted(candidates)
 
 
 def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
@@ -327,15 +384,53 @@ def servers():
     """Display user's servers."""
     servers_list = user_servers()
     server_definitions_cid = None
+    server_rows: List[Dict[str, object]] = []
     if servers_list:
         server_definitions_cid = format_cid(
             get_current_server_definitions_cid(current_user.id)
         )
 
+        for server in servers_list:
+            definition_text = getattr(server, 'definition', '')
+            context_refs = _extract_context_references(definition_text)
+            route_refs = _extract_route_references(definition_text)
+
+            variable_links = [
+                {
+                    'label': name,
+                    'url': url_for('main.view_variable', variable_name=name),
+                }
+                for name in context_refs.get('variables', [])
+            ]
+            secret_links = [
+                {
+                    'label': name,
+                    'url': url_for('main.view_secret', secret_name=name),
+                }
+                for name in context_refs.get('secrets', [])
+            ]
+            route_links = [
+                {
+                    'label': path,
+                    'url': path,
+                }
+                for path in route_refs
+            ]
+
+            server_rows.append(
+                {
+                    'server': server,
+                    'variables': variable_links,
+                    'secrets': secret_links,
+                    'routes': route_links,
+                }
+            )
+
     return render_template(
         'servers.html',
         servers=servers_list,
         server_definitions_cid=server_definitions_cid,
+        server_rows=server_rows,
     )
 
 
