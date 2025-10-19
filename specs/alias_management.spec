@@ -14,6 +14,8 @@
 ## Users can view alias details
 * When I request the page /aliases/ai
 * Path coverage: /aliases/<alias_name>
+    | alias_name |
+    | ai         |
 * The response status should be 200
 * The page should contain Alias Details
 * The page should contain Edit Alias
