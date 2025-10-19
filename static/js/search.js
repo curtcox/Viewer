@@ -34,6 +34,13 @@
         }
 
         const categoryOrder = filterInputs.map((input) => input.dataset.searchCategory);
+        const categoryLinks = {
+            aliases: '/aliases',
+            servers: '/servers',
+            variables: '/variables',
+            secrets: '/secrets/',
+            cids: '/uploads',
+        };
         let debounceHandle = null;
         let activeController = null;
         let requestSequence = 0;
@@ -124,7 +131,16 @@
 
                 const heading = document.createElement('h2');
                 heading.className = 'h5 mb-3 text-uppercase text-muted';
-                heading.textContent = `${label}`;
+                const destination = categoryLinks[key];
+                if (destination) {
+                    const link = document.createElement('a');
+                    link.href = destination;
+                    link.className = 'text-decoration-none text-muted';
+                    link.textContent = `${label}`;
+                    heading.appendChild(link);
+                } else {
+                    heading.textContent = `${label}`;
+                }
                 section.appendChild(heading);
 
                 items.forEach((item) => {
