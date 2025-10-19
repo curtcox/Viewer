@@ -45,70 +45,17 @@
                         </div>
 
                         <div class="mb-3">
-                            {{ form.target_path.label(class="form-label") }}
-                            {{ form.target_path(class="form-control" + (" is-invalid" if form.target_path.errors else "")) }}
-                            {% if form.target_path.errors %}
+                            {{ form.definition.label(class="form-label") }}
+                            {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else "")) }}
+                            {% if form.definition.errors %}
                                 <div class="invalid-feedback">
-                                    {% for error in form.target_path.errors %}
+                                    {% for error in form.definition.errors %}
                                         {{ error }}
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                {% set alias_target_example = '/' ~ (alias.name if alias else 'cid123') %}
-                                <div class="form-text">
-                                    Provide a relative URL on this server. Examples:
-                                    {{ render_url_link(alias_target_example, label=alias_target_example, code=True) }},
-                                    {{ render_url_link('/servers/example', label='/servers/example', code=True) }},
-                                    or {{ render_url_link('/dashboard?view=latest', label='/dashboard?view=latest', code=True) }}.
-                                </div>
+                                <div class="form-text">Define the alias on the first line using <code>pattern -> /target [options]</code>. Additional lines can capture nested shortcuts, documentation, or examples.</div>
                             {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.match_type.label.text }}</label>
-                            <div class="btn-group" role="group" aria-label="Alias match type">
-                                {% for subfield in form.match_type %}
-                                <input type="radio"
-                                       class="btn-check"
-                                       name="{{ form.match_type.name }}"
-                                       id="match-type-{{ loop.index }}"
-                                       value="{{ subfield._value() }}"
-                                       {% if subfield.checked %}checked{% endif %}>
-                                <label class="btn btn-outline-primary" for="match-type-{{ loop.index }}">{{ subfield.label.text }}</label>
-                                {% endfor %}
-                            </div>
-                            {% if form.match_type.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.match_type.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">
-                                    Choose how the alias pattern is matched. Literal matches behave like the original aliases.
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3" id="match-pattern-group">
-                            {{ form.match_pattern.label(class="form-label") }}
-                            {{ form.match_pattern(class="form-control" + (" is-invalid" if form.match_pattern.errors else "")) }}
-                            {% if form.match_pattern.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.match_pattern.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">
-                                    Patterns are matched against request paths starting with <code>/</code>. Glob patterns support <code>*</code>, <code>?</code>, and <code>**</code>. Flask patterns accept converters like <code>&lt;username&gt;</code>.
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-check form-switch mb-3">
-                            {{ form.ignore_case(class="form-check-input", role="switch") }}
-                            {{ form.ignore_case.label(class="form-check-label") }}
                         </div>
 
                         <div class="mb-3" data-alias-testing>
@@ -150,6 +97,17 @@
                             </div>
                         </div>
                         {% endif %}
+
+                        <div class="mb-3" data-alias-matcher data-alias-matcher-endpoint="{{ url_for('main.alias_match_preview') }}">
+                            <label class="form-label" for="alias-live-matcher">Interactive Matcher</label>
+                            <textarea id="alias-live-matcher" class="form-control" rows="3" placeholder="/docs/latest" data-alias-matcher-input></textarea>
+                            <div class="form-text">Type URLs here to instantly check whether they match the current alias settings without leaving the page.</div>
+                            <div class="mt-2" data-alias-matcher-results role="status" aria-live="polite"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            {% include "_alias_definition_help.html" %}
+                        </div>
 
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
@@ -195,29 +153,156 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var matchTypeName = {{ form.match_type.name|tojson }};
-    var matchTypeInputs = document.querySelectorAll('input[name="' + matchTypeName + '"]');
-    var patternGroup = document.getElementById('match-pattern-group');
-    var testingGroups = document.querySelectorAll('[data-alias-testing]');
+    var matcherContainer = document.querySelector('[data-alias-matcher]');
 
-    function updateVisibility() {
-        var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
-        var isLiteral = selected && selected.value === 'literal';
-
-        if (patternGroup) {
-            patternGroup.classList.toggle('d-none', isLiteral);
-        }
-
-        testingGroups.forEach(function (element) {
-            element.classList.toggle('d-none', isLiteral);
+    function escapeHtml(value) {
+        return value.replace(/[&<>"']/g, function (character) {
+            switch (character) {
+                case '&':
+                    return '&amp;';
+                case '<':
+                    return '&lt;';
+                case '>':
+                    return '&gt;';
+                case '"':
+                    return '&quot;';
+                case "'":
+                    return '&#39;';
+                default:
+                    return character;
+            }
         });
     }
 
-    matchTypeInputs.forEach(function (input) {
-        input.addEventListener('change', updateVisibility);
-    });
+    if (matcherContainer) {
+        var matcherInput = matcherContainer.querySelector('[data-alias-matcher-input]');
+        var matcherResults = matcherContainer.querySelector('[data-alias-matcher-results]');
+        var matcherEndpoint = matcherContainer.getAttribute('data-alias-matcher-endpoint');
+        var nameField = document.getElementById({{ form.name.id|tojson }});
+        var definitionField = document.getElementById({{ form.definition.id|tojson }});
+        var debounceTimer;
+        var pendingController;
 
-    updateVisibility();
+        function renderPlaceholder() {
+            if (!matcherResults) {
+                return;
+            }
+            matcherResults.innerHTML = '<div class="text-muted small">Type a path above to preview matches instantly.</div>';
+        }
+
+        function scheduleMatcherUpdate() {
+            if (!matcherEndpoint || !matcherInput) {
+                return;
+            }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(runMatcherUpdate, 250);
+        }
+
+        function runMatcherUpdate() {
+            if (!matcherEndpoint || !matcherInput) {
+                return;
+            }
+
+            var rawLines = matcherInput.value.split(/\r?\n/);
+            var hasContent = rawLines.some(function (line) {
+                return line.trim().length > 0;
+            });
+
+            if (!hasContent) {
+                if (pendingController) {
+                    pendingController.abort();
+                    pendingController = null;
+                }
+                renderPlaceholder();
+                return;
+            }
+
+            if (pendingController) {
+                pendingController.abort();
+            }
+            pendingController = new AbortController();
+
+            fetch(matcherEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: nameField ? nameField.value : '',
+                    definition: definitionField ? definitionField.value : '',
+                    paths: rawLines
+                }),
+                signal: pendingController.signal
+            })
+                .then(function (response) {
+                    return response.json()
+                        .then(function (data) {
+                            return { ok: response.ok, data: data };
+                        })
+                        .catch(function () {
+                            return { ok: response.ok, data: {} };
+                        });
+                })
+                .then(function (result) {
+                    pendingController = null;
+                    if (!matcherResults) {
+                        return;
+                    }
+
+                    if (!result.ok) {
+                        var errorMessage = (result.data && result.data.error) ? result.data.error : 'Unable to evaluate paths.';
+                        matcherResults.innerHTML = '<div class="text-danger small">' + escapeHtml(errorMessage) + '</div>';
+                        return;
+                    }
+
+                    var patternText = result.data && result.data.pattern ? String(result.data.pattern) : '';
+                    var items = Array.isArray(result.data && result.data.results) ? result.data.results : [];
+
+                    if (!items.length) {
+                        matcherResults.innerHTML = '<div class="text-muted small">No paths to evaluate.</div>';
+                        return;
+                    }
+
+                    var listHtml = '<div class="small mb-2">Matching against <code>' + escapeHtml(patternText) + '</code></div>';
+                    listHtml += '<ul class="list-unstyled mb-0">';
+                    items.forEach(function (item) {
+                        var matches = !!item.matches;
+                        var badgeClass = matches ? 'bg-success' : 'bg-danger';
+                        var icon = matches ? 'fa-check' : 'fa-times';
+                        var valueText = item.value == null ? '' : String(item.value);
+                        var displayText = valueText.trim() || '(empty)';
+                        listHtml += '<li class="d-flex align-items-center gap-2 mb-1">'
+                            + '<span class="badge ' + badgeClass + '"><i class="fas ' + icon + '"></i></span>'
+                            + '<code class="mb-0">' + escapeHtml(displayText) + '</code>'
+                            + '</li>';
+                    });
+                    listHtml += '</ul>';
+                    matcherResults.innerHTML = listHtml;
+                })
+                .catch(function (error) {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+                    pendingController = null;
+                    if (!matcherResults) {
+                        return;
+                    }
+                    matcherResults.innerHTML = '<div class="text-danger small">Unable to evaluate paths.</div>';
+                });
+        }
+
+        if (matcherInput) {
+            matcherInput.addEventListener('input', scheduleMatcherUpdate);
+        }
+        if (definitionField) {
+            definitionField.addEventListener('input', scheduleMatcherUpdate);
+        }
+        if (nameField) {
+            nameField.addEventListener('input', scheduleMatcherUpdate);
+        }
+
+        renderPlaceholder();
+    }
 });
 </script>
 {% endblock %}

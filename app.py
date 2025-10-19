@@ -8,6 +8,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 import logfire
+from logfire.exceptions import LogfireConfigError
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from database import db, init_db
 from ai_defaults import ensure_ai_stub_for_all_users
@@ -38,31 +41,86 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 
 
+def _ensure_alias_definition_column(engine, logger: logging.Logger) -> None:
+    """Ensure existing databases have the alias definition column."""
+
+    try:
+        inspector = inspect(engine)
+        columns = {column_info["name"] for column_info in inspector.get_columns("alias")}
+    except NoSuchTableError:
+        logger.debug("Alias table not found; skipping definition column check")
+        return
+
+    if "definition" in columns:
+        return
+
+    logger.info("Adding missing alias.definition column to existing database")
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE alias ADD COLUMN definition TEXT"))
+    except SQLAlchemyError as exc:  # pragma: no cover - defensive guard
+        logger.warning("Failed to add alias.definition column: %s", exc)
+
+
+
 def create_app(config_override: Optional[dict] = None) -> Flask:
 
     logger = logging.getLogger(__name__)
+
+    logfire_available = False
+    logfire_reason: Optional[str] = None
+    logfire_project_url: Optional[str] = None
 
     if getenv("LOGFIRE_SEND_TO_LOGFIRE"):
 
         logger.info("Logfire is enabled")
 
-        logfire.configure(
-            code_source=logfire.CodeSource(
-                repository='https://github.com/curtcox/Viewer',
-                revision=getenv("REVISION"),
+        try:
+            logfire.configure(
+                code_source=logfire.CodeSource(
+                    repository='https://github.com/curtcox/Viewer',
+                    revision=getenv("REVISION"),
+                )
             )
-        )
+        except LogfireConfigError as exc:
+            logfire_reason = str(exc)
+            logger.warning("Logfire configuration failed: %s", logfire_reason)
+        except Exception as exc:  # pragma: no cover - defensive guard
+            logfire_reason = f"Unexpected Logfire error: {exc}"
+            logger.exception("Unexpected Logfire configuration failure")
+        else:
+            instrumentation_steps = (
+                ("requests", logfire.instrument_requests),
+                ("aiohttp", logfire.instrument_aiohttp_client),
+                ("pydantic", logfire.instrument_pydantic),
+            )
 
-        # logfire.instrument_fastapi(app = FastAPI())
-        logfire.instrument_requests()
-        logfire.instrument_aiohttp_client()
-        logfire.instrument_pydantic()
+            instrumentation_errors: list[str] = []
 
-        logger.info("Logfire configured")
+            for name, instrument in instrumentation_steps:
+                try:
+                    instrument()
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    logger.warning(
+                        "Logfire %s instrumentation failed: %s", name, exc
+                    )
+                    instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
+                    break
+
+            if instrumentation_errors:
+                logfire_available = False
+                logfire_reason = "; ".join(instrumentation_errors)
+            else:
+                logger.info("Logfire configured")
+                logfire_available = True
+                logfire_reason = None
+                logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
 
         logger.warning("Logfire is not enabled, skipping logfire instrumentation")
+        logfire_reason = "LOGFIRE_SEND_TO_LOGFIRE not set"
 
     """Application factory for creating configured Flask instances."""
     app = Flask(__name__)
@@ -150,16 +208,18 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
+        _ensure_alias_definition_column(db.engine, logger)
+
         ensure_default_user()
 
         # Set up observability status for template context
-        logfire_enabled = bool(getenv("LOGFIRE_SEND_TO_LOGFIRE"))
+        logfire_enabled = logfire_available
         langsmith_enabled = bool(getenv("LANGSMITH_API_KEY"))
 
         app.config["OBSERVABILITY_STATUS"] = {
             "logfire_available": logfire_enabled,
-            "logfire_project_url": getenv("LOGFIRE_PROJECT_URL") if logfire_enabled else None,
-            "logfire_reason": None if logfire_enabled else "LOGFIRE_SEND_TO_LOGFIRE not set",
+            "logfire_project_url": logfire_project_url if logfire_enabled else None,
+            "logfire_reason": logfire_reason,
             "langsmith_available": langsmith_enabled,
             "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL") if langsmith_enabled else None,
             "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",

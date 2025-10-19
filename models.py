@@ -131,6 +131,7 @@ class Alias(db.Model):
     match_type = db.Column(db.String(20), nullable=False, default='literal')
     match_pattern = db.Column(db.String(255), nullable=False, default='')
     ignore_case = db.Column(db.Boolean, nullable=False, default=False)
+    definition = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
@@ -149,6 +150,8 @@ class Alias(db.Model):
             self.match_pattern = f'/{base_name}' if base_name else '/'
         if getattr(self, 'ignore_case', None) is None:
             self.ignore_case = False
+        if getattr(self, 'definition', None) in ("",):
+            self.definition = None
 
     def get_effective_pattern(self) -> str:
         pattern = getattr(self, 'match_pattern', None)

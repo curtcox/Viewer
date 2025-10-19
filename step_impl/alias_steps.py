@@ -122,7 +122,7 @@ def then_alias_form_has_fields() -> None:
     assert response is not None, "Alias form response is unavailable."
     body = response.get_data(as_text=True)
     assert "name=\"name\"" in body, "Alias name input field is missing."
-    assert "name=\"target_path\"" in body, "Alias target path field is missing."
+    assert "name=\"definition\"" in body, "Alias definition field is missing."
 
 
 @step("And submitting the form creates the alias")
@@ -135,9 +135,7 @@ def then_submitting_form_creates_alias() -> None:
         "/aliases/new",
         data={
             "name": alias_name,
-            "target_path": "/guides",
-            "match_type": "literal",
-            "match_pattern": "",
+            "definition": "gauge-alias -> /guides",
             "submit": "Save Alias",
         },
         follow_redirects=False,
@@ -202,9 +200,7 @@ def then_update_alias_target() -> None:
         edit_path,
         data={
             "name": alias_name,
-            "target_path": f"/{alias_name}/updated",
-            "match_type": "literal",
-            "match_pattern": "",
+            "definition": f"{alias_name} -> /{alias_name}/updated",
             "submit": "Save Alias",
         },
         follow_redirects=False,

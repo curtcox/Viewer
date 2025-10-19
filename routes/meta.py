@@ -241,6 +241,7 @@ def _serialize_alias(alias) -> Dict[str, Any]:
         "match_pattern": effective_pattern,
         "ignore_case": bool(getattr(alias, "ignore_case", False)),
         "target_path": getattr(alias, "target_path", None),
+        "definition": getattr(alias, "definition", None),
     }
 
 

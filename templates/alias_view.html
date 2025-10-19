@@ -74,6 +74,20 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Alias Definition</h5>
+                </div>
+                <div class="card-body">
+                    {% if alias.definition %}
+                    <pre class="mb-3"><code>{{ alias.definition }}</code></pre>
+                    {% else %}
+                    <p class="text-muted mb-3">No multi-line definition has been documented for this alias yet.</p>
+                    {% endif %}
+                    {% include "_alias_definition_help.html" %}
+                </div>
+            </div>
+
             {% set refs = target_references or {} %}
             {% if refs.aliases or refs.servers or refs.cids %}
             <div class="card mb-4">

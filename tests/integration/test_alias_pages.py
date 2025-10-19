@@ -49,7 +49,8 @@ def test_new_alias_form_renders_for_authenticated_user(
     page = response.get_data(as_text=True)
     assert "Create New Alias" in page
     assert "name=\"name\"" in page
-    assert "name=\"target_path\"" in page
+    assert "name=\"definition\"" in page
+    assert "pattern -&gt; /target" in page
 
 
 def test_alias_detail_page_displays_alias_information(

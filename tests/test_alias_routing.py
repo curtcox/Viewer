@@ -44,6 +44,7 @@ class TestAliasRouting(unittest.TestCase):
         match_type='literal',
         pattern=None,
         ignore_case=False,
+        definition=None,
     ):
         alias = Alias(
             name=name,
@@ -52,6 +53,7 @@ class TestAliasRouting(unittest.TestCase):
             match_type=match_type,
             match_pattern=pattern or f'/{name}',
             ignore_case=ignore_case,
+            definition=definition,
         )
         db.session.add(alias)
         db.session.commit()
@@ -204,22 +206,22 @@ class TestAliasRouting(unittest.TestCase):
         db.session.add(cid_record)
         db.session.commit()
 
-        self.create_alias(name='docs', target=f'/{cid_value}')
+        self.create_alias(name='docs', target=f'/{cid_value}', definition='# docs definition')
 
         response = self.client.get('/aliases/docs')
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         self.assertIn('Referenced Targets', page)
         self.assertIn(cid_value, page)
+        self.assertIn('docs definition', page)
+        self.assertIn('Project shortcuts', page)
 
     def test_create_alias_via_form(self):
         response = self.client.post(
             '/aliases/new',
             data={
                 'name': 'release',
-                'target_path': '/cid456',
-                'match_type': 'literal',
-                'match_pattern': '/custom-pattern',
+                'definition': 'release -> /cid456\n# release alias',
             },
             follow_redirects=False,
         )
@@ -233,16 +235,15 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(created.match_type, 'literal')
         self.assertEqual(created.match_pattern, '/release')
         self.assertFalse(created.ignore_case)
+        self.assertTrue(created.definition.startswith('release -> /cid456'))
+        self.assertIn('# release alias', created.definition)
 
     def test_create_alias_with_glob_match_type(self):
         response = self.client.post(
             '/aliases/new',
             data={
                 'name': 'release-pattern',
-                'target_path': '/cid789',
-                'match_type': 'glob',
-                'match_pattern': '/release/*/latest',
-                'ignore_case': 'y',
+                'definition': 'release-pattern/* -> /cid789 [glob, ignore-case]',
             },
             follow_redirects=False,
         )
@@ -251,8 +252,9 @@ class TestAliasRouting(unittest.TestCase):
         created = Alias.query.filter_by(user_id=self.default_user.id, name='release-pattern').first()
         self.assertIsNotNone(created)
         self.assertEqual(created.match_type, 'glob')
-        self.assertEqual(created.match_pattern, '/release/*/latest')
+        self.assertEqual(created.match_pattern, '/release-pattern/*')
         self.assertTrue(created.ignore_case)
+        self.assertTrue(created.definition.startswith('release-pattern/* -> /cid789'))
 
     def test_new_alias_prefills_name_from_path_query(self):
         response = self.client.get('/aliases/new?path=/docs/latest')
@@ -260,6 +262,7 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         self.assertIn('value="docs"', page)
+        self.assertIn('docs -&gt; /docs/latest', page)
 
     def test_new_alias_prefills_fields_from_query_parameters(self):
         response = self.client.get('/aliases/new?target_path=%2Fservers%2Fexample&name=example-alias')
@@ -267,16 +270,14 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         self.assertIn('value="example-alias"', page)
-        self.assertIn('value="/servers/example"', page)
+        self.assertIn('example-alias -&gt; /servers/example', page)
 
     def test_create_alias_rejects_conflicting_route(self):
         response = self.client.post(
             '/aliases/new',
             data={
                 'name': 'servers',
-                'target_path': '/cid789',
-                'match_type': 'literal',
-                'match_pattern': '',
+                'definition': 'servers -> /cid789',
             },
             follow_redirects=True,
         )
@@ -286,15 +287,13 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIsNone(Alias.query.filter_by(user_id=self.default_user.id, name='servers').first())
 
     def test_edit_alias_updates_record(self):
-        alias = self.create_alias(name='latest', target='/cid123')
+        alias = self.create_alias(name='latest', target='/cid123', definition='# latest version')
 
         response = self.client.post(
             f'/aliases/{alias.name}/edit',
             data={
                 'name': 'docs',
-                'target_path': '/docs',
-                'match_type': 'literal',
-                'match_pattern': '/custom-pattern',
+                'definition': 'docs -> /docs\n# docs alias',
             },
             follow_redirects=False,
         )
@@ -306,6 +305,8 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIsNotNone(updated)
         self.assertEqual(updated.target_path, '/docs')
         self.assertEqual(updated.match_pattern, '/docs')
+        self.assertTrue(updated.definition.startswith('docs -> /docs'))
+        self.assertIn('# docs alias', updated.definition)
 
     def test_edit_alias_rejects_conflicting_route_name(self):
         alias = self.create_alias(name='latest', target='/cid123')
@@ -314,9 +315,7 @@ class TestAliasRouting(unittest.TestCase):
             f'/aliases/{alias.name}/edit',
             data={
                 'name': 'servers',
-                'target_path': '/cid456',
-                'match_type': 'literal',
-                'match_pattern': '',
+                'definition': 'servers -> /cid456',
             },
             follow_redirects=True,
         )
@@ -327,14 +326,43 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(persisted.name, 'latest')
         self.assertEqual(persisted.target_path, '/cid123')
 
+    def test_alias_match_preview_endpoint(self):
+        payload = {
+            'name': 'docs',
+            'definition': 'docs/* -> /docs [glob]',
+            'paths': ['/docs/api', '/blog'],
+        }
+
+        response = self.client.post('/aliases/match-preview', json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['pattern'], '/docs/*')
+        results = {item['value'].strip(): item['matches'] for item in data['results']}
+        self.assertTrue(results['/docs/api'])
+        self.assertFalse(results['/blog'])
+
+    def test_alias_match_preview_rejects_invalid_pattern(self):
+        payload = {
+            'name': 'docs',
+            'definition': '[ -> /docs [regex]',
+            'paths': ['/docs'],
+        }
+
+        response = self.client.post('/aliases/match-preview', json=payload)
+
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertFalse(data['ok'])
+        self.assertIn('Invalid regular expression', data['error'])
+
     def test_test_pattern_button_displays_results_without_saving(self):
         response = self.client.post(
             '/aliases/new',
             data={
                 'name': 'preview',
-                'target_path': '/cid999',
-                'match_type': 'regex',
-                'match_pattern': r'^/preview-\d+$',
+                'definition': r'^/preview-\d+$ -> /cid999 [regex]',
                 'test_strings': '/preview-1\n/preview-x',
                 'test_pattern': 'Test Pattern',
             },

@@ -1,0 +1,164 @@
+"""Tests that ensure the Flask application can start successfully."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import sqlite3
+
+import pytest
+
+import app as app_module
+from logfire.exceptions import LogfireConfigError
+from sqlalchemy import inspect
+
+from database import db
+
+
+@pytest.fixture
+def app_config_factory(tmp_path: Path):
+    """Return a helper that produces isolated database configurations."""
+
+    def _make_config(name: str) -> dict[str, object]:
+        db_path = tmp_path / f"startup-{name}.sqlite"
+        return {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
+            "WTF_CSRF_ENABLED": False,
+        }
+
+    return _make_config
+
+
+def test_create_app_serves_homepage(monkeypatch: pytest.MonkeyPatch, app_config_factory):
+    """The factory should create an app whose homepage can be rendered."""
+
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+
+    app_instance = app_module.create_app(app_config_factory("basic"))
+    client = app_instance.test_client()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "Viewer" in response.get_data(as_text=True)
+
+    with app_instance.app_context():
+        status = app_instance.config["OBSERVABILITY_STATUS"]
+        assert status["logfire_available"] is False
+        assert status["logfire_reason"] == "LOGFIRE_SEND_TO_LOGFIRE not set"
+
+
+def test_create_app_handles_logfire_configuration_errors(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    """Logfire misconfiguration should not stop the application from starting."""
+
+    monkeypatch.setenv("LOGFIRE_SEND_TO_LOGFIRE", "1")
+
+    calls: list[str] = []
+
+    def fail_configure(*_args, **_kwargs):
+        raise LogfireConfigError("logfire credentials missing")
+
+    monkeypatch.setattr(app_module.logfire, "configure", fail_configure)
+    monkeypatch.setattr(app_module.logfire, "instrument_requests", lambda: calls.append("requests"))
+    monkeypatch.setattr(app_module.logfire, "instrument_aiohttp_client", lambda: calls.append("aiohttp"))
+    monkeypatch.setattr(app_module.logfire, "instrument_pydantic", lambda: calls.append("pydantic"))
+
+    app_instance = app_module.create_app(app_config_factory("logfire"))
+    client = app_instance.test_client()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert calls == []
+
+    with app_instance.app_context():
+        status = app_instance.config["OBSERVABILITY_STATUS"]
+        assert status["logfire_available"] is False
+        assert "logfire credentials missing" in status["logfire_reason"]
+
+
+def test_create_app_handles_logfire_instrumentation_errors(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    """Instrumentation failures should be logged but not crash startup."""
+
+    monkeypatch.setenv("LOGFIRE_SEND_TO_LOGFIRE", "1")
+
+    instrumentation_calls: list[str] = []
+
+    monkeypatch.setattr(app_module.logfire, "configure", lambda *_, **__: None)
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_requests",
+        lambda: (_ for _ in ()).throw(ModuleNotFoundError("requests not installed")),
+    )
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_aiohttp_client",
+        lambda: instrumentation_calls.append("aiohttp"),
+    )
+    monkeypatch.setattr(
+        app_module.logfire,
+        "instrument_pydantic",
+        lambda: instrumentation_calls.append("pydantic"),
+    )
+
+    app_instance = app_module.create_app(app_config_factory("instrument"))
+
+    client = app_instance.test_client()
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert instrumentation_calls == []
+
+    with app_instance.app_context():
+        status = app_instance.config["OBSERVABILITY_STATUS"]
+        assert status["logfire_available"] is False
+        assert "requests instrumentation failed" in status["logfire_reason"]
+
+
+def test_create_app_upgrades_legacy_alias_table(monkeypatch: pytest.MonkeyPatch, app_config_factory):
+    """A database missing the alias.definition column should be upgraded on startup."""
+
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+
+    config = app_config_factory("legacy-alias")
+    db_uri = config["SQLALCHEMY_DATABASE_URI"]
+    assert isinstance(db_uri, str) and db_uri.startswith("sqlite:///")
+
+    legacy_db_path = Path(db_uri.replace("sqlite:///", ""))
+
+    # Create a legacy alias table without the definition column
+    with sqlite3.connect(legacy_db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE alias (
+                id INTEGER NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                target_path VARCHAR(255) NOT NULL,
+                match_type VARCHAR(20) NOT NULL,
+                match_pattern VARCHAR(255) NOT NULL,
+                ignore_case BOOLEAN NOT NULL DEFAULT 0,
+                user_id VARCHAR NOT NULL,
+                created_at DATETIME,
+                updated_at DATETIME,
+                PRIMARY KEY (id),
+                UNIQUE (user_id, name)
+            )
+            """
+        )
+        connection.commit()
+
+    app_instance = app_module.create_app(config)
+    client = app_instance.test_client()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+
+    with app_instance.app_context():
+        inspector = inspect(db.engine)
+        column_names = {column["name"] for column in inspector.get_columns("alias")}
+        assert "definition" in column_names

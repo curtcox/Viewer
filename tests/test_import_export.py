@@ -73,6 +73,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 match_type='glob',
                 match_pattern='/demo/*',
                 ignore_case=True,
+                definition='# export example',
             )
             server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
             variable = Variable(name='var-one', definition='value', user_id=self.user_id)
@@ -121,6 +122,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(aliases[0]['match_type'], 'glob')
         self.assertEqual(aliases[0]['match_pattern'], '/demo/*')
         self.assertTrue(aliases[0]['ignore_case'])
+        self.assertEqual(aliases[0]['definition'], '# export example')
 
         servers = payload.get('servers', [])
         self.assertEqual(len(servers), 1)
@@ -548,6 +550,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     'match_type': 'regex',
                     'match_pattern': r'^/demo$',
                     'ignore_case': True,
+                    'definition': '# imported alias',
                 }
             ],
             'servers': [{'name': 'server-b', 'definition_cid': server_cid}],
@@ -589,6 +592,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             self.assertEqual(alias.match_type, 'regex')
             self.assertEqual(alias.match_pattern, r'^/demo$')
             self.assertTrue(alias.ignore_case)
+            self.assertEqual(alias.definition, '# imported alias')
 
             server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
             self.assertIsNotNone(server)
