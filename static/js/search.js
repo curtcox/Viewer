@@ -150,8 +150,11 @@
                     const body = document.createElement('div');
                     body.className = 'card-body';
 
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'd-flex flex-wrap align-items-center gap-2 mb-3';
+
                     const title = document.createElement('h3');
-                    title.className = 'h5 card-title mb-2';
+                    title.className = 'h5 card-title mb-0 flex-grow-1';
                     const nameHtml = typeof item.name_highlighted === 'string'
                         ? item.name_highlighted
                         : escapeHtml(item.name || '');
@@ -165,7 +168,55 @@
                     } else {
                         title.innerHTML = nameHtml;
                     }
-                    body.appendChild(title);
+
+                    headerRow.appendChild(title);
+
+                    const aliases = Array.isArray(item.aliases) ? item.aliases : [];
+                    const aliasBadgeContainer = document.createElement('div');
+                    aliasBadgeContainer.className = 'd-flex flex-wrap align-items-center gap-2';
+
+                    aliases.forEach((alias) => {
+                        if (!alias || typeof alias !== 'object') {
+                            return;
+                        }
+                        const name = alias.name;
+                        if (!name) {
+                            return;
+                        }
+
+                        const badge = alias.url ? document.createElement('a') : document.createElement('span');
+                        badge.className = 'badge text-bg-secondary text-decoration-none position-relative';
+                        if (alias.url) {
+                            badge.href = alias.url;
+                        }
+                        badge.textContent = name;
+                        aliasBadgeContainer.appendChild(badge);
+                    });
+
+                    if (aliasBadgeContainer.childElementCount > 0) {
+                        const aliasLabel = document.createElement('span');
+                        aliasLabel.className = 'text-uppercase text-muted small fw-semibold';
+                        aliasLabel.textContent = 'Aliases';
+                        const aliasGroup = document.createElement('div');
+                        aliasGroup.className = 'd-flex flex-wrap align-items-center gap-2 ms-2';
+                        aliasGroup.appendChild(aliasLabel);
+                        aliasGroup.appendChild(aliasBadgeContainer);
+                        headerRow.appendChild(aliasGroup);
+                    }
+
+                    if (item.alias_form_url) {
+                        const addAliasButton = document.createElement('a');
+                        addAliasButton.href = item.alias_form_url;
+                        addAliasButton.className = 'btn btn-sm btn-outline-secondary ms-auto position-relative';
+                        addAliasButton.innerHTML = '<i class="fas fa-link me-1"></i>Add Alias';
+                        const buttonLabel = typeof item.name === 'string' && item.name
+                            ? `Add alias for ${item.name}`
+                            : 'Add alias';
+                        addAliasButton.setAttribute('aria-label', buttonLabel);
+                        headerRow.appendChild(addAliasButton);
+                    }
+
+                    body.appendChild(headerRow);
 
                     const details = Array.isArray(item.details) ? item.details : [];
                     details.forEach((detail) => {
