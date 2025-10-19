@@ -22,7 +22,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_alias_pages.py::test_new_alias_form_renders_for_authenticated_user`
 
 **Specs:**
-- _None_
+- alias_management.spec — Users can create aliases through the form
 
 ## templates/alias_view.html
 
