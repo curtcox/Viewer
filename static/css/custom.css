@@ -7,6 +7,16 @@ body {
     background-color: #f8f9fa;
 }
 
+/* Allow layouts to span the full viewport width */
+.container,
+.container-sm,
+.container-md,
+.container-lg,
+.container-xl,
+.container-xxl {
+    max-width: 100% !important;
+}
+
 /* Navigation styles */
 .navbar-brand {
     font-weight: 700;

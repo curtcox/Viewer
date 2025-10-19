@@ -69,8 +69,8 @@ def _render_page(title, body):
             padding: 2rem;
         }}
         main {{
-            max-width: 60rem;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
         }}
         section {{
             background: #ffffff;

@@ -44,8 +44,8 @@ def _build_error_page(message, title):
             padding: 2rem;
         }}
         .notice {{
-            max-width: 50rem;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
             padding: 2rem;
             background: #fff;
             border-radius: 0.75rem;
@@ -97,8 +97,8 @@ body {
     padding: 2rem;
 }
 main {
-    max-width: 80rem;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
 }
 header {
     display: flex;
