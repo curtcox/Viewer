@@ -287,7 +287,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
 
 **Specs:**
-- _None_
+- secrets.spec — Secrets list is accessible
 
 ## templates/server_events.html
 
