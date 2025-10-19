@@ -7,9 +7,8 @@ import importlib
 import os
 import sys
 from pathlib import Path
+from types import ModuleType
 from typing import Iterable, List, Sequence, Tuple
-
-from getgauge.python import registry
 
 
 class GaugeError(RuntimeError):
@@ -100,6 +99,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
+    ensure_getgauge_available()
+
+    from getgauge.python import registry  # type: ignore
+
     load_step_modules(step_dir, project_root)
 
     suite = SuiteResult()
@@ -112,7 +115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     for spec_path in iter_spec_files(spec_root):
-        for scenario in run_spec(spec_path):
+        for scenario in run_spec(spec_path, registry):
             suite.add_scenario(scenario)
             report_scenario(spec_path, scenario)
 
@@ -160,7 +163,7 @@ def parse_spec(spec_path: Path) -> List[Tuple[str, List[str]]]:
     return scenarios
 
 
-def run_spec(spec_path: Path) -> List[ScenarioResult]:
+def run_spec(spec_path: Path, registry) -> List[ScenarioResult]:
     results: List[ScenarioResult] = []
     for name, steps in parse_spec(spec_path):
         scenario = ScenarioResult(name)
@@ -174,15 +177,15 @@ def run_spec(spec_path: Path) -> List[ScenarioResult]:
         if before_ok:
             for step_text in steps:
                 try:
-                    execute_step(step_text, scenario)
+                    execute_step(step_text, scenario, registry)
                 except GaugeError:
                     break
-        run_after_scenario_hooks(scenario)
+        run_after_scenario_hooks(scenario, registry)
         results.append(scenario)
     return results
 
 
-def run_after_scenario_hooks(scenario: ScenarioResult) -> None:
+def run_after_scenario_hooks(scenario: ScenarioResult, registry) -> None:
     for hook in registry.after_scenario_hooks:
         try:
             hook()
@@ -190,8 +193,8 @@ def run_after_scenario_hooks(scenario: ScenarioResult) -> None:
             scenario.record_failure("after_scenario", exc)
 
 
-def execute_step(step_text: str, scenario: ScenarioResult) -> None:
-    match = find_step_match(step_text)
+def execute_step(step_text: str, scenario: ScenarioResult, registry) -> None:
+    match = find_step_match(step_text, registry)
     if match is None:
         error = StepNotFoundError(step_text)
         scenario.record_failure(step_text, error)
@@ -207,12 +210,46 @@ def execute_step(step_text: str, scenario: ScenarioResult) -> None:
         scenario.record_success(step_text)
 
 
-def find_step_match(step_text: str):
+def find_step_match(step_text: str, registry):
     for definition in registry.step_definitions:
         step_match = definition.match(step_text)
         if step_match is not None:
             return step_match
     return None
+
+
+def ensure_getgauge_available() -> None:
+    """Ensure ``getgauge`` can be imported.
+
+    When the real Gauge Python runner is installed (CI), importing ``getgauge``
+    succeeds immediately. During offline execution we fall back to the
+    lightweight compatibility layer that ships with this repository. That module
+    lives under ``gauge_stub`` to avoid colliding with the genuine distribution,
+    so we register it under the expected import names dynamically.
+    """
+
+    try:  # pragma: no cover - import succeeds in CI
+        import getgauge  # type: ignore  # noqa: F401
+        return
+    except ImportError:
+        pass
+
+    try:
+        stub_pkg = importlib.import_module("gauge_stub")
+        stub_python = importlib.import_module("gauge_stub.python")
+    except ImportError as exc:  # pragma: no cover - defensive
+        raise RuntimeError("Missing gauge compatibility layer") from exc
+
+    register_module_alias("getgauge", stub_pkg)
+    register_module_alias("getgauge.python", stub_python)
+    setattr(sys.modules["getgauge"], "python", stub_python)
+
+
+def register_module_alias(name: str, module: ModuleType) -> None:
+    parent, _, _ = name.rpartition(".")
+    module.__dict__["__name__"] = name
+    module.__dict__["__package__"] = parent or name
+    sys.modules[name] = module
 
 
 def report_scenario(spec_path: Path, scenario: ScenarioResult) -> None:
