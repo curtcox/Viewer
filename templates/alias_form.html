@@ -111,6 +111,20 @@
                             {{ form.ignore_case.label(class="form-check-label") }}
                         </div>
 
+                        <div class="mb-3">
+                            {{ form.definition.label(class="form-label") }}
+                            {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else "")) }}
+                            {% if form.definition.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.definition.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-text">Document multi-line alias context, nested shortcuts, and routing notes here.</div>
+                            {% endif %}
+                        </div>
+
                         <div class="mb-3" data-alias-testing>
                             {{ form.test_strings.label(class="form-label") }}
                             {{ form.test_strings(class="form-control") }}
@@ -150,6 +164,17 @@
                             </div>
                         </div>
                         {% endif %}
+
+                        <div class="mb-3" data-alias-matcher data-alias-matcher-endpoint="{{ url_for('main.alias_match_preview') }}">
+                            <label class="form-label" for="alias-live-matcher">Interactive Matcher</label>
+                            <textarea id="alias-live-matcher" class="form-control" rows="3" placeholder="/docs/latest" data-alias-matcher-input></textarea>
+                            <div class="form-text">Type URLs here to instantly check whether they match the current alias settings without leaving the page.</div>
+                            <div class="mt-2" data-alias-matcher-results role="status" aria-live="polite"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            {% include "_alias_definition_help.html" %}
+                        </div>
 
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
@@ -199,6 +224,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var matchTypeInputs = document.querySelectorAll('input[name="' + matchTypeName + '"]');
     var patternGroup = document.getElementById('match-pattern-group');
     var testingGroups = document.querySelectorAll('[data-alias-testing]');
+    var matcherContainer = document.querySelector('[data-alias-matcher]');
 
     function updateVisibility() {
         var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
@@ -218,6 +244,169 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     updateVisibility();
+
+    function escapeHtml(value) {
+        return value.replace(/[&<>"']/g, function (character) {
+            switch (character) {
+                case '&':
+                    return '&amp;';
+                case '<':
+                    return '&lt;';
+                case '>':
+                    return '&gt;';
+                case '"':
+                    return '&quot;';
+                case "'":
+                    return '&#39;';
+                default:
+                    return character;
+            }
+        });
+    }
+
+    if (matcherContainer) {
+        var matcherInput = matcherContainer.querySelector('[data-alias-matcher-input]');
+        var matcherResults = matcherContainer.querySelector('[data-alias-matcher-results]');
+        var matcherEndpoint = matcherContainer.getAttribute('data-alias-matcher-endpoint');
+        var nameField = document.getElementById({{ form.name.id|tojson }});
+        var patternField = document.getElementById({{ form.match_pattern.id|tojson }});
+        var ignoreCaseField = document.getElementById({{ form.ignore_case.id|tojson }});
+        var debounceTimer;
+        var pendingController;
+
+        function selectedMatchType() {
+            var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
+            return selected ? selected.value : 'literal';
+        }
+
+        function renderPlaceholder() {
+            if (!matcherResults) {
+                return;
+            }
+            matcherResults.innerHTML = '<div class="text-muted small">Type a path above to preview matches instantly.</div>';
+        }
+
+        function scheduleMatcherUpdate() {
+            if (!matcherEndpoint || !matcherInput) {
+                return;
+            }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(runMatcherUpdate, 250);
+        }
+
+        function runMatcherUpdate() {
+            if (!matcherEndpoint || !matcherInput) {
+                return;
+            }
+
+            var rawLines = matcherInput.value.split(/\r?\n/);
+            var hasContent = rawLines.some(function (line) {
+                return line.trim().length > 0;
+            });
+
+            if (!hasContent) {
+                if (pendingController) {
+                    pendingController.abort();
+                    pendingController = null;
+                }
+                renderPlaceholder();
+                return;
+            }
+
+            if (pendingController) {
+                pendingController.abort();
+            }
+            pendingController = new AbortController();
+
+            fetch(matcherEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: nameField ? nameField.value : '',
+                    match_type: selectedMatchType(),
+                    match_pattern: patternField ? patternField.value : '',
+                    ignore_case: ignoreCaseField ? ignoreCaseField.checked : false,
+                    paths: rawLines
+                }),
+                signal: pendingController.signal
+            })
+                .then(function (response) {
+                    return response.json()
+                        .then(function (data) {
+                            return { ok: response.ok, data: data };
+                        })
+                        .catch(function () {
+                            return { ok: response.ok, data: {} };
+                        });
+                })
+                .then(function (result) {
+                    pendingController = null;
+                    if (!matcherResults) {
+                        return;
+                    }
+
+                    if (!result.ok) {
+                        var errorMessage = (result.data && result.data.error) ? result.data.error : 'Unable to evaluate paths.';
+                        matcherResults.innerHTML = '<div class="text-danger small">' + escapeHtml(errorMessage) + '</div>';
+                        return;
+                    }
+
+                    var patternText = result.data && result.data.pattern ? String(result.data.pattern) : '';
+                    var items = Array.isArray(result.data && result.data.results) ? result.data.results : [];
+
+                    if (!items.length) {
+                        matcherResults.innerHTML = '<div class="text-muted small">No paths to evaluate.</div>';
+                        return;
+                    }
+
+                    var listHtml = '<div class="small mb-2">Matching against <code>' + escapeHtml(patternText) + '</code></div>';
+                    listHtml += '<ul class="list-unstyled mb-0">';
+                    items.forEach(function (item) {
+                        var matches = !!item.matches;
+                        var badgeClass = matches ? 'bg-success' : 'bg-danger';
+                        var icon = matches ? 'fa-check' : 'fa-times';
+                        var valueText = item.value == null ? '' : String(item.value);
+                        var displayText = valueText.trim() || '(empty)';
+                        listHtml += '<li class="d-flex align-items-center gap-2 mb-1">'
+                            + '<span class="badge ' + badgeClass + '"><i class="fas ' + icon + '"></i></span>'
+                            + '<code class="mb-0">' + escapeHtml(displayText) + '</code>'
+                            + '</li>';
+                    });
+                    listHtml += '</ul>';
+                    matcherResults.innerHTML = listHtml;
+                })
+                .catch(function (error) {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+                    pendingController = null;
+                    if (!matcherResults) {
+                        return;
+                    }
+                    matcherResults.innerHTML = '<div class="text-danger small">Unable to evaluate paths.</div>';
+                });
+        }
+
+        if (matcherInput) {
+            matcherInput.addEventListener('input', scheduleMatcherUpdate);
+        }
+        if (patternField) {
+            patternField.addEventListener('input', scheduleMatcherUpdate);
+        }
+        if (nameField) {
+            nameField.addEventListener('input', scheduleMatcherUpdate);
+        }
+        if (ignoreCaseField) {
+            ignoreCaseField.addEventListener('change', scheduleMatcherUpdate);
+        }
+        matchTypeInputs.forEach(function (input) {
+            input.addEventListener('change', scheduleMatcherUpdate);
+        });
+
+        renderPlaceholder();
+    }
 });
 </script>
 {% endblock %}

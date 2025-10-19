@@ -1,0 +1,28 @@
+<div class="alert alert-info" role="alert">
+    <h5 class="alert-heading">Multi-line alias definitions</h5>
+    <p class="mb-3">
+        Use the alias definition field to capture multi-line context for related shortcuts, nested routes,
+        and pattern behaviour. The text you enter here travels with workspace exports and returns on import,
+        keeping documentation and routing intent in sync.
+    </p>
+    {% set alias_definition_example %}
+# Project shortcuts
+docs -> /documentation              # literal match: /docs
+  api -> /docs/api                  # literal: /docs/api
+  guide -> /docs/guide
+
+# Pattern matching
+search/* -> /search [glob]          # matches /search/anything
+blog-* -> /posts [glob, ignore-case]  # case-insensitive glob
+
+# Advanced patterns
+/article/\d+ -> /articles [regex]   # regex match
+/user/<id> -> /profile [flask]      # Flask-style parameter
+
+# Nested organization
+admin -> /admin/dashboard
+  users -> /admin/users
+  reports -> /admin/reports
+    {% endset %}
+    <pre class="mb-0 small bg-light border rounded p-3"><code>{{ alias_definition_example | trim }}</code></pre>
+</div>

@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from identity import current_user
 
 from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
@@ -16,6 +16,7 @@ import logfire
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 from interaction_log import load_interaction_history
+from alias_matching import PatternError, evaluate_test_strings, normalise_pattern
 
 
 def _alias_name_conflicts_with_routes(name: str) -> bool:
@@ -91,6 +92,7 @@ def new_alias():
                     match_type=form.match_type.data,
                     match_pattern=form.match_pattern.data,
                     ignore_case=bool(form.ignore_case.data),
+                    definition=form.definition.data or None,
                 )
                 _persist_alias(alias)
                 record_entity_interaction(
@@ -189,6 +191,7 @@ def edit_alias(alias_name: str):
             alias.match_type = form.match_type.data
             alias.match_pattern = form.match_pattern.data
             alias.ignore_case = bool(form.ignore_case.data)
+            alias.definition = form.definition.data or None
             alias.updated_at = datetime.now(timezone.utc)
             _persist_alias(alias)
             record_entity_interaction(
@@ -215,4 +218,50 @@ def edit_alias(alias_name: str):
     )
 
 
-__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias']
+@main_bp.route('/aliases/match-preview', methods=['POST'])
+def alias_match_preview():
+    """Return live matching results for the provided alias configuration."""
+
+    if not getattr(current_user, 'id', None):
+        abort(401)
+
+    payload = request.get_json(silent=True) or {}
+    match_type = (payload.get('match_type') or 'literal').lower()
+    match_pattern = payload.get('match_pattern')
+    alias_name = payload.get('name')
+    ignore_case = bool(payload.get('ignore_case', False))
+    raw_paths = payload.get('paths', [])
+
+    if isinstance(raw_paths, str):
+        raw_paths = [raw_paths]
+    if not isinstance(raw_paths, list):
+        return jsonify({'ok': False, 'error': 'Provide a list of paths to evaluate.'}), 400
+
+    try:
+        normalised = normalise_pattern(match_type, match_pattern, alias_name)
+    except PatternError as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+    results = evaluate_test_strings(
+        match_type,
+        normalised,
+        raw_paths,
+        ignore_case=ignore_case,
+    )
+
+    return jsonify(
+        {
+            'ok': True,
+            'pattern': normalised,
+            'results': [
+                {
+                    'value': value,
+                    'matches': matches,
+                }
+                for value, matches in results
+            ],
+        }
+    )
+
+
+__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'alias_match_preview']

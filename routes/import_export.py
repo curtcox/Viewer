@@ -511,6 +511,11 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
         match_type = (entry.get('match_type') or 'literal').lower()
         match_pattern = entry.get('match_pattern')
         ignore_case = bool(entry.get('ignore_case', False))
+        definition_text = entry.get('definition')
+
+        if definition_text is not None and not isinstance(definition_text, str):
+            errors.append(f'Alias "{name}" definition must be text when provided.')
+            continue
 
         try:
             normalised_pattern = normalise_pattern(match_type, match_pattern, name)
@@ -524,6 +529,7 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
             existing.match_type = match_type
             existing.match_pattern = normalised_pattern
             existing.ignore_case = ignore_case
+            existing.definition = (definition_text or None)
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
@@ -534,6 +540,7 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
                 match_type=match_type,
                 match_pattern=normalised_pattern,
                 ignore_case=ignore_case,
+                definition=definition_text or None,
             )
             save_entity(alias)
         imported += 1
@@ -905,6 +912,7 @@ def export_data():
                     'match_type': alias.match_type,
                     'match_pattern': alias.get_effective_pattern(),
                     'ignore_case': bool(alias.ignore_case),
+                    'definition': getattr(alias, 'definition', None),
                 }
                 for alias in get_user_aliases(current_user.id)
             ]

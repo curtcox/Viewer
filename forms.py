@@ -138,6 +138,12 @@ class AliasForm(FlaskForm):
         render_kw={'placeholder': '/latest or /users/<username>'},
     )
     ignore_case = BooleanField('Ignore Case')
+    definition = TextAreaField(
+        'Alias Definition',
+        validators=[Optional()],
+        filters=[_strip_filter],
+        render_kw={'rows': 8, 'placeholder': 'Document related aliases, nested shortcuts, or matching rules...'},
+    )
     test_strings = TextAreaField(
         'Test Strings',
         render_kw={'rows': 4, 'placeholder': '/users/alice'},
