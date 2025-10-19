@@ -1,0 +1,231 @@
+#!/usr/bin/env python3
+"""A minimal Gauge CLI stub that can execute specs without the real Gauge binary."""
+from __future__ import annotations
+
+import argparse
+import importlib
+import os
+import sys
+from pathlib import Path
+from typing import Iterable, List, Sequence, Tuple
+
+from getgauge.python import registry
+
+
+class GaugeError(RuntimeError):
+    """Base exception for Gauge runner failures."""
+
+
+class StepNotFoundError(GaugeError):
+    """Raised when no registered step matches a spec line."""
+
+    def __init__(self, step_text: str) -> None:
+        super().__init__(f"No step implementation matches: {step_text}")
+        self.step_text = step_text
+
+
+class StepExecutionError(GaugeError):
+    """Raised when a step implementation fails."""
+
+    def __init__(self, step_text: str, original: BaseException) -> None:
+        message = f"Step failed: {step_text}\n{original}"
+        super().__init__(message)
+        self.step_text = step_text
+        self.original = original
+
+
+class ScenarioResult:
+    """Track execution status for a single scenario."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.steps: List[Tuple[str, bool, str | None]] = []
+        self.failed = False
+
+    def record_success(self, text: str) -> None:
+        self.steps.append((text, True, None))
+
+    def record_failure(self, text: str, error: BaseException) -> None:
+        self.failed = True
+        self.steps.append((text, False, str(error)))
+
+
+class SuiteResult:
+    """Aggregate results across all specs."""
+
+    def __init__(self) -> None:
+        self.scenarios: List[ScenarioResult] = []
+        self.failed = False
+
+    def add_scenario(self, scenario: ScenarioResult) -> None:
+        if scenario.failed:
+            self.failed = True
+        self.scenarios.append(scenario)
+
+
+def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="gauge", add_help=False)
+    parser.add_argument("command", nargs="?")
+    parser.add_argument("path", nargs="?")
+    parser.add_argument("remaining", nargs=argparse.REMAINDER)
+    parser.add_argument("--version", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    args = parse_arguments(list(argv))
+    if args.version:
+        print("Gauge Stub 0.0.1")
+        return 0
+
+    if args.command != "run" or args.path is None:
+        print("This Gauge stub only supports 'gauge run <spec-dir>'.", file=sys.stderr)
+        return 2
+
+    spec_root = (Path.cwd() / args.path).resolve()
+    if not spec_root.exists():
+        print(f"Spec directory not found: {spec_root}", file=sys.stderr)
+        return 1
+
+    step_root = os.environ.get("STEP_IMPL_DIR")
+    step_dir = Path(step_root) if step_root else (Path.cwd() / "step_impl")
+    if not step_dir.exists():
+        print(f"Step implementation directory not found: {step_dir}", file=sys.stderr)
+        return 1
+
+    project_root = Path.cwd()
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    load_step_modules(step_dir, project_root)
+
+    suite = SuiteResult()
+
+    try:
+        for hook in registry.before_suite_hooks:
+            hook()
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"before_suite hook failed: {exc}", file=sys.stderr)
+        return 1
+
+    for spec_path in iter_spec_files(spec_root):
+        for scenario in run_spec(spec_path):
+            suite.add_scenario(scenario)
+            report_scenario(spec_path, scenario)
+
+    return 1 if suite.failed else 0
+
+
+def load_step_modules(step_dir: Path, project_root: Path) -> None:
+    parent = step_dir.parent
+    if str(parent) not in sys.path:
+        sys.path.insert(0, str(parent))
+
+    for module_path in sorted(step_dir.glob("*.py")):
+        if module_path.name == "__init__.py":
+            continue
+        relative = module_path.with_suffix("").relative_to(parent)
+        module_name = ".".join(relative.parts)
+        importlib.import_module(module_name)
+
+
+def iter_spec_files(spec_root: Path) -> Iterable[Path]:
+    return sorted(path for path in spec_root.rglob("*.spec") if path.is_file())
+
+
+def parse_spec(spec_path: Path) -> List[Tuple[str, List[str]]]:
+    scenarios: List[Tuple[str, List[str]]] = []
+    current_name = spec_path.stem
+    current_steps: List[str] = []
+
+    for line in spec_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("##"):
+            if current_steps:
+                scenarios.append((current_name, current_steps))
+                current_steps = []
+            current_name = stripped.lstrip("#").strip() or spec_path.stem
+            continue
+        if stripped.startswith("*"):
+            current_steps.append(stripped[1:].strip())
+
+    if current_steps:
+        scenarios.append((current_name, current_steps))
+
+    return scenarios
+
+
+def run_spec(spec_path: Path) -> List[ScenarioResult]:
+    results: List[ScenarioResult] = []
+    for name, steps in parse_spec(spec_path):
+        scenario = ScenarioResult(name)
+        before_ok = True
+        try:
+            for hook in registry.before_scenario_hooks:
+                hook()
+        except Exception as exc:
+            scenario.record_failure("before_scenario", exc)
+            before_ok = False
+        if before_ok:
+            for step_text in steps:
+                try:
+                    execute_step(step_text, scenario)
+                except GaugeError:
+                    break
+        run_after_scenario_hooks(scenario)
+        results.append(scenario)
+    return results
+
+
+def run_after_scenario_hooks(scenario: ScenarioResult) -> None:
+    for hook in registry.after_scenario_hooks:
+        try:
+            hook()
+        except Exception as exc:
+            scenario.record_failure("after_scenario", exc)
+
+
+def execute_step(step_text: str, scenario: ScenarioResult) -> None:
+    match = find_step_match(step_text)
+    if match is None:
+        error = StepNotFoundError(step_text)
+        scenario.record_failure(step_text, error)
+        raise error
+
+    step_match = match
+    try:
+        step_match.execute()
+    except Exception as exc:
+        scenario.record_failure(step_text, exc)
+        raise StepExecutionError(step_text, exc) from exc
+    else:
+        scenario.record_success(step_text)
+
+
+def find_step_match(step_text: str):
+    for definition in registry.step_definitions:
+        step_match = definition.match(step_text)
+        if step_match is not None:
+            return step_match
+    return None
+
+
+def report_scenario(spec_path: Path, scenario: ScenarioResult) -> None:
+    rel = spec_path.relative_to(Path.cwd())
+    status = "FAILED" if scenario.failed else "PASSED"
+    print(f"{rel} :: {scenario.name} -> {status}")
+    for text, success, error in scenario.steps:
+        prefix = "  ✔" if success else "  ✖"
+        line = f"{prefix} {text}"
+        if error and not success:
+            line += f"\n      {error}"
+        print(line)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

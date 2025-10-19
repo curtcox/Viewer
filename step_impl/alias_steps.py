@@ -72,6 +72,8 @@ def setup_alias_scenario() -> None:
         _db_path.unlink()
 
     _app, _client, _db_path = _create_isolated_app()
+    if _client is not None:
+        _login_default_user(_client)
 
 
 @after_scenario()
@@ -153,6 +155,12 @@ def then_submitting_form_creates_alias() -> None:
 def given_alias_exists(alias_name: str, target_path: str) -> None:
     """Persist an alias with the provided name and target path."""
 
+    client = _require_client()
+    _login_default_user(client)
+
+    alias_name = alias_name.strip().strip('"')
+    target_path = target_path.strip().strip('"')
+
     with _app_context():
         user = ensure_default_user()
         alias = Alias(
@@ -209,6 +217,13 @@ def then_update_alias_target() -> None:
         assert alias is not None, "Alias was not found after attempting to update it."
         expected_target = f"/{alias_name}/updated"
         assert alias.target_path == expected_target, "Alias target path did not update."
+
+
+@step("Path coverage: /aliases")
+def record_alias_index_path_coverage() -> None:
+    """Acknowledge alias index path coverage for documentation purposes."""
+
+    return None
 
 
 @step("Path coverage: /aliases/<alias_name>")
