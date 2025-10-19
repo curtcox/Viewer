@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 import logfire
 from logfire.exceptions import LogfireConfigError
+from sqlalchemy import inspect, text
+from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 
 from database import db, init_db
 from ai_defaults import ensure_ai_stub_for_all_users
@@ -37,6 +39,29 @@ load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+
+
+def _ensure_alias_definition_column(engine, logger: logging.Logger) -> None:
+    """Ensure existing databases have the alias definition column."""
+
+    try:
+        inspector = inspect(engine)
+        columns = {column_info["name"] for column_info in inspector.get_columns("alias")}
+    except NoSuchTableError:
+        logger.debug("Alias table not found; skipping definition column check")
+        return
+
+    if "definition" in columns:
+        return
+
+    logger.info("Adding missing alias.definition column to existing database")
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE alias ADD COLUMN definition TEXT"))
+    except SQLAlchemyError as exc:  # pragma: no cover - defensive guard
+        logger.warning("Failed to add alias.definition column: %s", exc)
+
 
 
 def create_app(config_override: Optional[dict] = None) -> Flask:
@@ -182,6 +207,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
         db.create_all()
         logging.info("Database tables created")
+
+        _ensure_alias_definition_column(db.engine, logger)
 
         ensure_default_user()
 
