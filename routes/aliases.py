@@ -56,10 +56,21 @@ def new_alias():
     change_message = (request.form.get('change_message') or '').strip()
 
     if request.method == 'GET':
-        path_hint = request.args.get('path', '')
-        suggested_name = derive_name_from_path(path_hint)
-        if suggested_name and not form.name.data:
-            form.name.data = suggested_name
+        path_hint = (request.args.get('path') or '').strip()
+        name_hint = (request.args.get('name') or '').strip()
+        target_hint = (request.args.get('target_path') or '').strip()
+
+        if name_hint and not form.name.data:
+            form.name.data = name_hint
+        elif path_hint:
+            suggested_name = derive_name_from_path(path_hint)
+            if suggested_name and not form.name.data:
+                form.name.data = suggested_name
+
+        if target_hint and not form.target_path.data:
+            form.target_path.data = target_hint or None
+        elif path_hint and not form.target_path.data:
+            form.target_path.data = path_hint
 
     if form.validate_on_submit():
         if form.test_pattern.data:

@@ -261,6 +261,14 @@ class TestAliasRouting(unittest.TestCase):
         page = response.get_data(as_text=True)
         self.assertIn('value="docs"', page)
 
+    def test_new_alias_prefills_fields_from_query_parameters(self):
+        response = self.client.get('/aliases/new?target_path=%2Fservers%2Fexample&name=example-alias')
+
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('value="example-alias"', page)
+        self.assertIn('value="/servers/example"', page)
+
     def test_create_alias_rejects_conflicting_route(self):
         response = self.client.post(
             '/aliases/new',

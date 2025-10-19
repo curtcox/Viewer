@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+import re
+from typing import Any, Dict, List, Optional
 
 from flask import jsonify, render_template, request, url_for
 from markupsafe import escape
@@ -27,6 +28,97 @@ _CATEGORY_CONFIG: Dict[str, Dict[str, Any]] = {
     "variables": {"label": "Variables"},
     "secrets": {"label": "Secrets"},
 }
+
+
+_ALIAS_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+AliasLookup = Dict[str, Dict[str, Dict[str, Optional[str]]]]
+
+
+def _lookup_key_variants(value: Optional[str]) -> set[str]:
+    """Return candidate lookup keys for the supplied path."""
+
+    variants: set[str] = set()
+    if value is None:
+        return variants
+
+    cleaned = value.strip()
+    if not cleaned:
+        return variants
+
+    variants.add(cleaned)
+
+    if not cleaned.startswith("/"):
+        prefixed = f"/{cleaned}"
+        variants.add(prefixed)
+    else:
+        prefixed = cleaned
+
+    if prefixed != "/" and prefixed.endswith("/"):
+        variants.add(prefixed.rstrip("/"))
+
+    return {variant for variant in variants if variant}
+
+
+def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> AliasLookup:
+    """Return a mapping of target paths to aliases referencing them."""
+
+    lookup: AliasLookup = {}
+    source = aliases if aliases is not None else get_user_aliases(user_id)
+
+    for alias in source:
+        name = getattr(alias, "name", "") or ""
+        if not name:
+            continue
+
+        target_path = getattr(alias, "target_path", "") or ""
+        if not target_path:
+            continue
+
+        entry = {
+            "name": name,
+            "url": url_for("main.view_alias", alias_name=name),
+        }
+
+        for key in _lookup_key_variants(target_path):
+            bucket = lookup.setdefault(key, {})
+            bucket[name] = entry
+
+    return lookup
+
+
+def _alias_matches_for(target_path: Optional[str], lookup: Optional[AliasLookup]) -> List[Dict[str, Optional[str]]]:
+    """Return aliases referencing the provided target path."""
+
+    if not lookup or target_path is None:
+        return []
+
+    matches: Dict[str, Dict[str, Optional[str]]] = {}
+    for key in _lookup_key_variants(target_path):
+        bucket = lookup.get(key)
+        if not bucket:
+            continue
+        matches.update(bucket)
+
+    if not matches:
+        return []
+
+    return sorted(matches.values(), key=lambda entry: (entry.get("name") or "").lower())
+
+
+def _alias_form_url(target_path: Optional[str], name_suggestion: Optional[str] = None) -> Optional[str]:
+    """Return the alias creation URL with helpful defaults when possible."""
+
+    if not target_path:
+        return None
+
+    params: Dict[str, str] = {"target_path": target_path}
+
+    if name_suggestion and _ALIAS_NAME_PATTERN.fullmatch(name_suggestion):
+        params["name"] = name_suggestion
+
+    return url_for("main.new_alias", **params)
 
 
 def _parse_enabled(value: str | None) -> bool:
@@ -102,9 +194,16 @@ def _highlight_snippet(text: str | None, query_lower: str, *, context: int = 60)
     return f"{prefix}{highlighted}{suffix}"
 
 
-def _alias_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
+def _alias_results(
+    user_id: str,
+    query_lower: str,
+    alias_lookup: Optional[AliasLookup] = None,
+    aliases: Optional[List[Any]] = None,
+) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
-    for alias in get_user_aliases(user_id):
+    source = aliases if aliases is not None else get_user_aliases(user_id)
+
+    for alias in source:
         name_text = getattr(alias, "name", "") or ""
         target_path = getattr(alias, "target_path", "") or ""
         match_pattern = getattr(alias, "match_pattern", "") or ""
@@ -125,6 +224,7 @@ def _alias_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
             if "<mark>" in highlighted:
                 details.append({"label": label, "value": highlighted})
 
+        canonical_path = target_path.strip() or None
         results.append(
             {
                 "id": getattr(alias, "id", None),
@@ -132,12 +232,19 @@ def _alias_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
                 "name_highlighted": _highlight_full(name_text, query_lower),
                 "url": url_for("main.view_alias", alias_name=name_text) if name_text else None,
                 "details": details,
+                "aliases": _alias_matches_for(canonical_path, alias_lookup),
+                "alias_form_url": _alias_form_url(canonical_path),
             }
         )
     return results
 
 
-def _server_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
+def _server_results(
+    user_id: str,
+    query_lower: str,
+    alias_lookup: Optional[AliasLookup] = None,
+    aliases: Optional[List[Any]] = None,
+) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for server in get_user_servers(user_id):
         name_text = getattr(server, "name", "") or ""
@@ -151,19 +258,28 @@ def _server_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
+        canonical_path = url_for("main.view_server", server_name=name_text) if name_text else None
+
         results.append(
             {
                 "id": getattr(server, "id", None),
                 "name": name_text,
                 "name_highlighted": _highlight_full(name_text, query_lower),
-                "url": url_for("main.view_server", server_name=name_text) if name_text else None,
+                "url": canonical_path,
                 "details": details,
+                "aliases": _alias_matches_for(canonical_path, alias_lookup),
+                "alias_form_url": _alias_form_url(canonical_path, name_text),
             }
         )
     return results
 
 
-def _variable_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
+def _variable_results(
+    user_id: str,
+    query_lower: str,
+    alias_lookup: Optional[AliasLookup] = None,
+    aliases: Optional[List[Any]] = None,
+) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for variable in get_user_variables(user_id):
         name_text = getattr(variable, "name", "") or ""
@@ -177,19 +293,28 @@ def _variable_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
+        canonical_path = url_for("main.view_variable", variable_name=name_text) if name_text else None
+
         results.append(
             {
                 "id": getattr(variable, "id", None),
                 "name": name_text,
                 "name_highlighted": _highlight_full(name_text, query_lower),
-                "url": url_for("main.view_variable", variable_name=name_text) if name_text else None,
+                "url": canonical_path,
                 "details": details,
+                "aliases": _alias_matches_for(canonical_path, alias_lookup),
+                "alias_form_url": _alias_form_url(canonical_path, name_text),
             }
         )
     return results
 
 
-def _secret_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
+def _secret_results(
+    user_id: str,
+    query_lower: str,
+    alias_lookup: Optional[AliasLookup] = None,
+    aliases: Optional[List[Any]] = None,
+) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for secret in get_user_secrets(user_id):
         name_text = getattr(secret, "name", "") or ""
@@ -203,19 +328,28 @@ def _secret_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
+        canonical_path = url_for("main.view_secret", secret_name=name_text) if name_text else None
+
         results.append(
             {
                 "id": getattr(secret, "id", None),
                 "name": name_text,
                 "name_highlighted": _highlight_full(name_text, query_lower),
-                "url": url_for("main.view_secret", secret_name=name_text) if name_text else None,
+                "url": canonical_path,
                 "details": details,
+                "aliases": _alias_matches_for(canonical_path, alias_lookup),
+                "alias_form_url": _alias_form_url(canonical_path, name_text),
             }
         )
     return results
 
 
-def _cid_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
+def _cid_results(
+    user_id: str,
+    query_lower: str,
+    alias_lookup: Optional[AliasLookup] = None,
+    aliases: Optional[List[Any]] = None,
+) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
 
     def created_at_value(record: Any) -> datetime:
@@ -255,13 +389,18 @@ def _cid_results(user_id: str, query_lower: str) -> List[Dict[str, Any]]:
         if snippet:
             details.append({"label": "Content", "value": snippet})
 
+        canonical_path = cid_path(cid_value) if cid_value else (display_name or None)
+        alias_name_suggestion = cid_value if cid_value and _ALIAS_NAME_PATTERN.fullmatch(cid_value) else None
+
         results.append(
             {
                 "id": getattr(cid_record, "id", None),
                 "name": display_name,
                 "name_highlighted": _highlight_full(display_name, query_lower),
-                "url": cid_path(cid_value) if cid_value else display_name,
+                "url": canonical_path,
                 "details": details,
+                "aliases": _alias_matches_for(canonical_path, alias_lookup),
+                "alias_form_url": _alias_form_url(canonical_path, alias_name_suggestion),
             }
         )
     return results
@@ -313,13 +452,18 @@ def search_results():
         )
 
     user_id = current_user.id
+    alias_records = get_user_aliases(user_id)
+    alias_lookup = _build_alias_lookup(user_id, alias_records)
     total_count = 0
 
     for key, config in _CATEGORY_CONFIG.items():
         include = applied_filters.get(key, True)
         if include:
             collector = _COLLECTORS.get(key)
-            items = collector(user_id, query_lower) if collector else []
+            if collector:
+                items = collector(user_id, query_lower, alias_lookup, alias_records)
+            else:
+                items = []
         else:
             items = []
 

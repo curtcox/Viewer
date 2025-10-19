@@ -352,7 +352,7 @@ class TestSearchApi(BaseTestCase):
     def test_search_results_include_all_categories(self):
         """Search results should highlight matches across every enabled category."""
 
-        alias = Alias(name='hello-alias', target_path='/servers/hello', user_id=self.test_user.id)
+        alias = Alias(name='hello-alias', target_path='/servers/hello-server', user_id=self.test_user.id)
         server = Server(
             name='hello-server',
             definition='''
@@ -397,11 +397,35 @@ def main(request):
         alias_details = categories['aliases']['items'][0]['details']
         self.assertTrue(any('<mark>' in detail['value'] for detail in alias_details))
 
-        server_details = categories['servers']['items'][0]['details']
+        alias_entry = categories['aliases']['items'][0]
+        server_entry = categories['servers']['items'][0]
+        variable_entry = categories['variables']['items'][0]
+        secret_entry = categories['secrets']['items'][0]
+        cid_entry = categories['cids']['items'][0]
+
+        server_details = server_entry['details']
         self.assertTrue(server_details and '<mark>' in server_details[0]['value'])
 
-        cid_details = categories['cids']['items'][0]['details']
+        cid_details = cid_entry['details']
         self.assertTrue(cid_details and '<mark>' in cid_details[0]['value'])
+
+        self.assertTrue(alias_entry['aliases'])
+        self.assertEqual(alias_entry['aliases'][0]['name'], 'hello-alias')
+        self.assertIn('/aliases/new?target_path=/servers/hello-server', alias_entry['alias_form_url'])
+
+        self.assertTrue(server_entry['aliases'])
+        self.assertEqual(server_entry['aliases'][0]['name'], 'hello-alias')
+        self.assertIn('target_path=/servers/hello-server', server_entry['alias_form_url'])
+        self.assertIn('name=hello-server', server_entry['alias_form_url'])
+
+        self.assertIn('target_path=/variables/HELLO_VARIABLE', variable_entry['alias_form_url'])
+        self.assertIn('name=HELLO_VARIABLE', variable_entry['alias_form_url'])
+
+        self.assertIn('target_path=/secrets/HELLO_SECRET', secret_entry['alias_form_url'])
+        self.assertIn('name=HELLO_SECRET', secret_entry['alias_form_url'])
+
+        self.assertIn(f'target_path=/{cid_value}', cid_entry['alias_form_url'])
+        self.assertIn(f'name={cid_value}', cid_entry['alias_form_url'])
 
         filtered = self.client.get(
             '/search/results',
