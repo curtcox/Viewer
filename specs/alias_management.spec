@@ -17,3 +17,10 @@
 * The response status should be 200
 * The page should contain Alias Details
 * The page should contain Edit Alias
+
+## Aliases list shows available shortcuts
+* When I request the page /aliases
+* Path coverage: /aliases
+* The response status should be 200
+* The page should contain Aliases
+* The page should contain New Alias
