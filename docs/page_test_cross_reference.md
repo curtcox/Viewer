@@ -240,7 +240,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_routes_overview_page.py::test_routes_overview_lists_user_routes`
 
 **Specs:**
-- _None_
+- routes_overview.spec — Routes overview highlights available route types
 
 ## templates/secret_form.html
 
