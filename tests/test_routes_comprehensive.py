@@ -172,6 +172,18 @@ class TestPublicRoutes(BaseTestCase):
         self.assertIn('href="/servers"', page)
         self.assertIn('href="/uploads"', page)
 
+    def test_search_page_renders_with_filters(self):
+        """The search page should render the filter checkboxes and status helper."""
+        self.login_user()
+
+        response = self.client.get('/search')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Workspace Search', page)
+        self.assertIn('data-search-category="aliases"', page)
+        self.assertIn('Start typing to search your workspace.', page)
+
     def test_index_cross_reference_lists_entities_and_relationships(self):
         """Cross reference dashboard should include aliases, servers, CIDs, and references."""
         self.login_user()
@@ -328,6 +340,84 @@ def main(request):
             ),
             'References column should not include entries for the filtered CID',
         )
+
+
+class TestSearchApi(BaseTestCase):
+    """Verify the incremental search endpoint."""
+
+    def setUp(self):
+        super().setUp()
+        self.login_user()
+
+    def test_search_results_include_all_categories(self):
+        """Search results should highlight matches across every enabled category."""
+
+        alias = Alias(name='hello-alias', target_path='/servers/hello', user_id=self.test_user.id)
+        server = Server(
+            name='hello-server',
+            definition='''
+def main(request):
+    return "Hello from server"
+'''.strip(),
+            user_id=self.test_user.id,
+        )
+        variable = Variable(
+            name='HELLO_VARIABLE',
+            definition='The value says hello to the world.',
+            user_id=self.test_user.id,
+        )
+        secret = Secret(
+            name='HELLO_SECRET',
+            definition='super hello secret token',
+            user_id=self.test_user.id,
+        )
+        cid_value = generate_cid(b'Hello from CID search test')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'Hello from CID search test',
+            uploaded_by_user_id=self.test_user.id,
+        )
+
+        db.session.add_all([alias, server, variable, secret, cid_record])
+        db.session.commit()
+
+        response = self.client.get('/search/results', query_string={'q': 'hello'})
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.get_json()
+        categories = payload['categories']
+
+        self.assertEqual(payload['total_count'], 5)
+        self.assertEqual(categories['aliases']['count'], 1)
+        self.assertEqual(categories['servers']['count'], 1)
+        self.assertEqual(categories['variables']['count'], 1)
+        self.assertEqual(categories['secrets']['count'], 1)
+        self.assertEqual(categories['cids']['count'], 1)
+
+        alias_details = categories['aliases']['items'][0]['details']
+        self.assertTrue(any('<mark>' in detail['value'] for detail in alias_details))
+
+        server_details = categories['servers']['items'][0]['details']
+        self.assertTrue(server_details and '<mark>' in server_details[0]['value'])
+
+        cid_details = categories['cids']['items'][0]['details']
+        self.assertTrue(cid_details and '<mark>' in cid_details[0]['value'])
+
+        filtered = self.client.get(
+            '/search/results',
+            query_string={'q': 'hello', 'aliases': '1', 'servers': '0', 'variables': '0', 'secrets': '0', 'cids': '0'},
+        )
+        filtered_payload = filtered.get_json()
+        self.assertEqual(filtered_payload['total_count'], 1)
+        self.assertEqual(filtered_payload['categories']['aliases']['count'], 1)
+        for category in ('servers', 'variables', 'secrets', 'cids'):
+            self.assertEqual(filtered_payload['categories'][category]['count'], 0)
+
+        empty_response = self.client.get('/search/results', query_string={'q': '   '})
+        empty_payload = empty_response.get_json()
+        self.assertEqual(empty_payload['total_count'], 0)
+        for category in ('aliases', 'servers', 'variables', 'secrets', 'cids'):
+            self.assertEqual(empty_payload['categories'][category]['count'], 0)
 
     def test_index_cross_reference_skips_cids_without_named_server(self):
         """Servers lacking a name should not introduce orphan CID entries."""

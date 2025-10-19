@@ -723,7 +723,7 @@ def get_existing_routes():
         '/upload',
         '/uploads', '/history', '/servers', '/variables',
         '/secrets', '/settings', '/aliases', '/aliases/new',
-        '/edit', '/meta',
+        '/edit', '/meta', '/search', '/search/results',
         '/export', '/import',
     }
 
