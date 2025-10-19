@@ -162,7 +162,7 @@
                     if (item.url) {
                         const link = document.createElement('a');
                         link.href = item.url;
-                        link.className = 'stretched-link text-decoration-none';
+                        link.className = 'text-decoration-none';
                         link.innerHTML = nameHtml;
                         title.appendChild(link);
                     } else {
@@ -208,6 +208,10 @@
                         const addAliasButton = document.createElement('a');
                         addAliasButton.href = item.alias_form_url;
                         addAliasButton.className = 'btn btn-sm btn-outline-secondary ms-auto position-relative';
+                        addAliasButton.style.zIndex = '1';
+                        addAliasButton.addEventListener('click', (event) => {
+                            event.stopPropagation();
+                        });
                         addAliasButton.innerHTML = '<i class="fas fa-link me-1"></i>Add Alias';
                         const buttonLabel = typeof item.name === 'string' && item.name
                             ? `Add alias for ${item.name}`
