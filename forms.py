@@ -2,10 +2,10 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField, RadioField
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
-from urllib.parse import urlsplit
 import re
 
-from alias_matching import PatternError, evaluate_test_strings, normalise_pattern
+from alias_matching import evaluate_test_strings
+from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
 def _strip_filter(value):
@@ -115,34 +115,14 @@ class AliasForm(FlaskForm):
         ],
         filters=[_strip_filter],
     )
-    target_path = StringField(
-        'Target Path',
-        validators=[DataRequired()],
-        filters=[_strip_filter],
-        render_kw={'placeholder': '/cid123 or /path?query=1'},
-    )
-    match_type = RadioField(
-        'Match Type',
-        choices=[
-            ('literal', 'Literal'),
-            ('glob', 'Glob'),
-            ('regex', 'Regular Expression'),
-            ('flask', 'Flask Route'),
-        ],
-        default='literal',
-        validators=[DataRequired()],
-    )
-    match_pattern = StringField(
-        'Match Pattern',
-        filters=[_strip_filter],
-        render_kw={'placeholder': '/latest or /users/<username>'},
-    )
-    ignore_case = BooleanField('Ignore Case')
     definition = TextAreaField(
         'Alias Definition',
         validators=[Optional()],
         filters=[_strip_filter],
-        render_kw={'rows': 8, 'placeholder': 'Document related aliases, nested shortcuts, or matching rules...'},
+        render_kw={
+            'rows': 10,
+            'placeholder': 'pattern -> /target [glob]\n# Add related aliases or notes on following lines',
+        },
     )
     test_strings = TextAreaField(
         'Test Strings',
@@ -151,43 +131,39 @@ class AliasForm(FlaskForm):
     submit = SubmitField('Save Alias')
     test_pattern = SubmitField('Test Pattern')
 
-    def validate_target_path(self, field):
-        target = field.data
-        if not target:
-            raise ValidationError('Target path is required.')
-        if target.startswith('//'):
-            raise ValidationError('Target path must stay within this application.')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._parsed_definition = None
 
-        parsed = urlsplit(target)
-        if parsed.scheme or parsed.netloc:
-            raise ValidationError('Target path must stay within this application.')
+    @property
+    def parsed_definition(self):
+        return self._parsed_definition
 
     def validate(self, extra_validators=None):
         if not super().validate(extra_validators):
             return False
 
-        match_type = (self.match_type.data or 'literal').lower()
-
-        if match_type == 'literal':
-            self.match_pattern.data = self.name.data
         try:
-            normalised = normalise_pattern(match_type, self.match_pattern.data, self.name.data)
-        except PatternError as exc:
-            self.match_pattern.errors.append(str(exc))
+            self._parsed_definition = parse_alias_definition(
+                self.definition.data or '',
+                alias_name=self.name.data or None,
+            )
+        except AliasDefinitionError as exc:
+            self.definition.errors.append(str(exc))
             return False
 
-        self.match_pattern.data = normalised
         return True
 
     def evaluated_tests(self):
-        if not self.match_pattern.data:
+        parsed = self._parsed_definition
+        if not parsed:
             return []
         raw_values = (self.test_strings.data or '').splitlines()
         return evaluate_test_strings(
-            self.match_type.data,
-            self.match_pattern.data,
+            parsed.match_type,
+            parsed.match_pattern,
             raw_values,
-            ignore_case=bool(self.ignore_case.data),
+            ignore_case=parsed.ignore_case,
         )
 
 class SecretForm(FlaskForm):

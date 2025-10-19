@@ -45,73 +45,6 @@
                         </div>
 
                         <div class="mb-3">
-                            {{ form.target_path.label(class="form-label") }}
-                            {{ form.target_path(class="form-control" + (" is-invalid" if form.target_path.errors else "")) }}
-                            {% if form.target_path.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.target_path.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {% set alias_target_example = '/' ~ (alias.name if alias else 'cid123') %}
-                                <div class="form-text">
-                                    Provide a relative URL on this server. Examples:
-                                    {{ render_url_link(alias_target_example, label=alias_target_example, code=True) }},
-                                    {{ render_url_link('/servers/example', label='/servers/example', code=True) }},
-                                    or {{ render_url_link('/dashboard?view=latest', label='/dashboard?view=latest', code=True) }}.
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.match_type.label.text }}</label>
-                            <div class="btn-group" role="group" aria-label="Alias match type">
-                                {% for subfield in form.match_type %}
-                                <input type="radio"
-                                       class="btn-check"
-                                       name="{{ form.match_type.name }}"
-                                       id="match-type-{{ loop.index }}"
-                                       value="{{ subfield._value() }}"
-                                       {% if subfield.checked %}checked{% endif %}>
-                                <label class="btn btn-outline-primary" for="match-type-{{ loop.index }}">{{ subfield.label.text }}</label>
-                                {% endfor %}
-                            </div>
-                            {% if form.match_type.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.match_type.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">
-                                    Choose how the alias pattern is matched. Literal matches behave like the original aliases.
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3" id="match-pattern-group">
-                            {{ form.match_pattern.label(class="form-label") }}
-                            {{ form.match_pattern(class="form-control" + (" is-invalid" if form.match_pattern.errors else "")) }}
-                            {% if form.match_pattern.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.match_pattern.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">
-                                    Patterns are matched against request paths starting with <code>/</code>. Glob patterns support <code>*</code>, <code>?</code>, and <code>**</code>. Flask patterns accept converters like <code>&lt;username&gt;</code>.
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="form-check form-switch mb-3">
-                            {{ form.ignore_case(class="form-check-input", role="switch") }}
-                            {{ form.ignore_case.label(class="form-check-label") }}
-                        </div>
-
-                        <div class="mb-3">
                             {{ form.definition.label(class="form-label") }}
                             {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else "")) }}
                             {% if form.definition.errors %}
@@ -121,7 +54,7 @@
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <div class="form-text">Document multi-line alias context, nested shortcuts, and routing notes here.</div>
+                                <div class="form-text">Define the alias on the first line using <code>pattern -> /target [options]</code>. Additional lines can capture nested shortcuts, documentation, or examples.</div>
                             {% endif %}
                         </div>
 
@@ -220,30 +153,7 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var matchTypeName = {{ form.match_type.name|tojson }};
-    var matchTypeInputs = document.querySelectorAll('input[name="' + matchTypeName + '"]');
-    var patternGroup = document.getElementById('match-pattern-group');
-    var testingGroups = document.querySelectorAll('[data-alias-testing]');
     var matcherContainer = document.querySelector('[data-alias-matcher]');
-
-    function updateVisibility() {
-        var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
-        var isLiteral = selected && selected.value === 'literal';
-
-        if (patternGroup) {
-            patternGroup.classList.toggle('d-none', isLiteral);
-        }
-
-        testingGroups.forEach(function (element) {
-            element.classList.toggle('d-none', isLiteral);
-        });
-    }
-
-    matchTypeInputs.forEach(function (input) {
-        input.addEventListener('change', updateVisibility);
-    });
-
-    updateVisibility();
 
     function escapeHtml(value) {
         return value.replace(/[&<>"']/g, function (character) {
@@ -269,15 +179,9 @@ document.addEventListener('DOMContentLoaded', function () {
         var matcherResults = matcherContainer.querySelector('[data-alias-matcher-results]');
         var matcherEndpoint = matcherContainer.getAttribute('data-alias-matcher-endpoint');
         var nameField = document.getElementById({{ form.name.id|tojson }});
-        var patternField = document.getElementById({{ form.match_pattern.id|tojson }});
-        var ignoreCaseField = document.getElementById({{ form.ignore_case.id|tojson }});
+        var definitionField = document.getElementById({{ form.definition.id|tojson }});
         var debounceTimer;
         var pendingController;
-
-        function selectedMatchType() {
-            var selected = document.querySelector('input[name="' + matchTypeName + '"]:checked');
-            return selected ? selected.value : 'literal';
-        }
 
         function renderPlaceholder() {
             if (!matcherResults) {
@@ -325,9 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({
                     name: nameField ? nameField.value : '',
-                    match_type: selectedMatchType(),
-                    match_pattern: patternField ? patternField.value : '',
-                    ignore_case: ignoreCaseField ? ignoreCaseField.checked : false,
+                    definition: definitionField ? definitionField.value : '',
                     paths: rawLines
                 }),
                 signal: pendingController.signal
@@ -392,18 +294,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (matcherInput) {
             matcherInput.addEventListener('input', scheduleMatcherUpdate);
         }
-        if (patternField) {
-            patternField.addEventListener('input', scheduleMatcherUpdate);
+        if (definitionField) {
+            definitionField.addEventListener('input', scheduleMatcherUpdate);
         }
         if (nameField) {
             nameField.addEventListener('input', scheduleMatcherUpdate);
         }
-        if (ignoreCaseField) {
-            ignoreCaseField.addEventListener('change', scheduleMatcherUpdate);
-        }
-        matchTypeInputs.forEach(function (input) {
-            input.addEventListener('change', scheduleMatcherUpdate);
-        });
 
         renderPlaceholder();
     }

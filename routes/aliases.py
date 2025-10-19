@@ -16,7 +16,13 @@ import logfire
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 from interaction_log import load_interaction_history
-from alias_matching import PatternError, evaluate_test_strings, normalise_pattern
+from alias_matching import evaluate_test_strings
+from alias_definition import (
+    AliasDefinitionError,
+    ensure_primary_line,
+    format_primary_alias_line,
+    parse_alias_definition,
+)
 
 
 def _alias_name_conflicts_with_routes(name: str) -> bool:
@@ -33,6 +39,38 @@ def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] =
         return False
     return True
 
+
+def _primary_definition_line_for_alias(alias: Alias) -> Optional[str]:
+    target = getattr(alias, "target_path", None)
+    if not target:
+        return None
+    return format_primary_alias_line(
+        getattr(alias, "match_type", None),
+        getattr(alias, "match_pattern", None),
+        target,
+        ignore_case=bool(getattr(alias, "ignore_case", False)),
+        alias_name=getattr(alias, "name", None),
+    )
+
+
+def _prefill_definition_from_hints(
+    form: AliasForm,
+    target_hint: Optional[str],
+    path_hint: Optional[str],
+) -> None:
+    if form.definition.data:
+        return
+
+    candidate_name = (form.name.data or "").strip()
+    target = (target_hint or "").strip() or (path_hint or "").strip()
+
+    if candidate_name and target:
+        form.definition.data = format_primary_alias_line(
+            "literal",
+            f"/{candidate_name}",
+            target,
+            alias_name=candidate_name,
+        )
 
 @logfire.instrument("aliases._persist_alias({alias=})", extract_args=True, record_return=True)
 def _persist_alias(alias: Alias) -> Alias:
@@ -68,17 +106,15 @@ def new_alias():
             if suggested_name and not form.name.data:
                 form.name.data = suggested_name
 
-        if target_hint and not form.target_path.data:
-            form.target_path.data = target_hint or None
-        elif path_hint and not form.target_path.data:
-            form.target_path.data = path_hint
+        _prefill_definition_from_hints(form, target_hint, path_hint)
 
     if form.validate_on_submit():
+        parsed = form.parsed_definition
         if form.test_pattern.data:
             test_results = form.evaluated_tests()
         else:
             name = form.name.data
-            target_path = form.target_path.data
+            target_path = parsed.target_path if parsed else None
 
             if _alias_name_conflicts_with_routes(name):
                 flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
@@ -89,9 +125,9 @@ def new_alias():
                     name=name,
                     target_path=target_path,
                     user_id=current_user.id,
-                    match_type=form.match_type.data,
-                    match_pattern=form.match_pattern.data,
-                    ignore_case=bool(form.ignore_case.data),
+                    match_type=parsed.match_type if parsed else 'literal',
+                    match_pattern=parsed.match_pattern if parsed else f'/{name}',
+                    ignore_case=parsed.ignore_case if parsed else False,
                     definition=form.definition.data or None,
                 )
                 _persist_alias(alias)
@@ -152,12 +188,18 @@ def edit_alias(alias_name: str):
     change_message = (request.form.get('change_message') or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
 
+    if request.method == 'GET':
+        primary_line = _primary_definition_line_for_alias(alias)
+        if primary_line:
+            form.definition.data = ensure_primary_line(alias.definition, primary_line)
+
     if form.validate_on_submit():
+        parsed = form.parsed_definition
         if form.test_pattern.data:
             test_results = form.evaluated_tests()
         else:
             new_name = form.name.data
-            new_target = form.target_path.data
+            new_target = parsed.target_path if parsed else None
 
             if new_name != alias.name:
                 if _alias_name_conflicts_with_routes(new_name):
@@ -188,9 +230,9 @@ def edit_alias(alias_name: str):
 
             alias.name = new_name
             alias.target_path = new_target
-            alias.match_type = form.match_type.data
-            alias.match_pattern = form.match_pattern.data
-            alias.ignore_case = bool(form.ignore_case.data)
+            alias.match_type = parsed.match_type if parsed else alias.match_type
+            alias.match_pattern = parsed.match_pattern if parsed else alias.match_pattern
+            alias.ignore_case = parsed.ignore_case if parsed else bool(alias.ignore_case)
             alias.definition = form.definition.data or None
             alias.updated_at = datetime.now(timezone.utc)
             _persist_alias(alias)
@@ -226,10 +268,8 @@ def alias_match_preview():
         abort(401)
 
     payload = request.get_json(silent=True) or {}
-    match_type = (payload.get('match_type') or 'literal').lower()
-    match_pattern = payload.get('match_pattern')
     alias_name = payload.get('name')
-    ignore_case = bool(payload.get('ignore_case', False))
+    definition_text = payload.get('definition')
     raw_paths = payload.get('paths', [])
 
     if isinstance(raw_paths, str):
@@ -237,22 +277,25 @@ def alias_match_preview():
     if not isinstance(raw_paths, list):
         return jsonify({'ok': False, 'error': 'Provide a list of paths to evaluate.'}), 400
 
+    if definition_text is None:
+        return jsonify({'ok': False, 'error': 'Provide an alias definition to evaluate.'}), 400
+
     try:
-        normalised = normalise_pattern(match_type, match_pattern, alias_name)
-    except PatternError as exc:
+        parsed = parse_alias_definition(definition_text, alias_name=alias_name)
+    except AliasDefinitionError as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
     results = evaluate_test_strings(
-        match_type,
-        normalised,
+        parsed.match_type,
+        parsed.match_pattern,
         raw_paths,
-        ignore_case=ignore_case,
+        ignore_case=parsed.ignore_case,
     )
 
     return jsonify(
         {
             'ok': True,
-            'pattern': normalised,
+            'pattern': parsed.match_pattern,
             'results': [
                 {
                     'value': value,
