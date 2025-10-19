@@ -41,6 +41,13 @@ _GET_ACCESS_PATTERN = re.compile(
     r"context\[['\"](variables|secrets)['\"]\]\.get\(\s*['\"]([^'\"]+)['\"]"
 )
 
+_ALIAS_ASSIGNMENT_PATTERNS = (
+    re.compile(r"(\w+)\s*=\s*context\[['\"](variables|secrets)['\"]\]"),
+    re.compile(
+        r"(\w+)\s*=\s*context\.get\(\s*['\"](variables|secrets)['\"](?:\s*,[^)]*)?\)"
+    ),
+)
+
 _ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
 
 
@@ -51,12 +58,40 @@ def _extract_context_references(definition: Optional[str]) -> Dict[str, List[str
         return {'variables': [], 'secrets': []}
 
     matches = set()
+    aliases: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+
+    for pattern in _ALIAS_ASSIGNMENT_PATTERNS:
+        for match in pattern.finditer(definition):
+            alias, source = match.groups()
+            if not alias or not source:
+                continue
+            aliases.setdefault(source, set()).add(alias)
+
     for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
         for match in pattern.finditer(definition):
             source, name = match.groups()
             if not name:
                 continue
             matches.add((source, name))
+
+    for source, alias_names in aliases.items():
+        for alias in alias_names:
+            if not alias:
+                continue
+
+            index_pattern = re.compile(
+                rf"(?<!\w){re.escape(alias)}\[['\"]([^'\"]+)['\"]\]"
+            )
+            get_pattern = re.compile(
+                rf"(?<!\w){re.escape(alias)}\.get\(\s*['\"]([^'\"]+)['\"](?:\s*,[^)]*)?\)"
+            )
+
+            for pattern in (index_pattern, get_pattern):
+                for match in pattern.finditer(definition):
+                    name = match.group(1)
+                    if not name:
+                        continue
+                    matches.add((source, name))
 
     grouped: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
     for source, name in matches:
