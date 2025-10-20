@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Dict, Optional
+from urllib.parse import urlsplit
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from identity import current_user
@@ -12,6 +13,7 @@ from entity_references import extract_references_from_target
 from forms import AliasForm
 from models import Alias
 import logfire
+from cid_presenter import extract_cid_from_path
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
@@ -19,6 +21,7 @@ from interaction_log import load_interaction_history
 from alias_matching import evaluate_test_strings, matches_path
 from alias_definition import (
     AliasDefinitionError,
+    DefinitionLineSummary,
     ensure_primary_line,
     format_primary_alias_line,
     parse_alias_definition,
@@ -79,6 +82,113 @@ def _persist_alias(alias: Alias) -> Alias:
 
     save_entity(alias)
     return alias
+
+
+def _candidate_cid_from_target(path: str) -> Optional[str]:
+    """Return the CID portion from a potential CID target path."""
+
+    candidate = extract_cid_from_path(path)
+    if candidate:
+        return candidate
+
+    segments = [segment for segment in path.split("/") if segment]
+    if len(segments) >= 2 and segments[0].lower() == "cid":
+        return extract_cid_from_path(segments[1])
+
+    return None
+
+
+def _describe_target_path(target_path: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Return metadata for rendering a target path within a definition."""
+
+    if not target_path:
+        return None
+
+    normalized = target_path.strip()
+    if not normalized:
+        return None
+
+    parsed = urlsplit(normalized)
+    path = parsed.path or ""
+    query = parsed.query or ""
+    fragment = parsed.fragment or ""
+
+    suffix = ""
+    if query:
+        suffix += f"?{query}"
+    if fragment:
+        suffix += f"#{fragment}"
+
+    canonical_path = path
+    if canonical_path and not canonical_path.startswith("/"):
+        canonical_path = f"/{canonical_path}"
+
+    candidate_cid = _candidate_cid_from_target(canonical_path or normalized)
+    if candidate_cid:
+        return {
+            "kind": "cid",
+            "cid": candidate_cid,
+            "suffix": suffix,
+        }
+
+    segments = [segment for segment in canonical_path.split("/") if segment]
+    if len(segments) >= 2:
+        head = segments[0].lower()
+        name = segments[1]
+        display_path = f"{canonical_path}{suffix}" if canonical_path else normalized
+
+        if head == "servers":
+            return {
+                "kind": "server",
+                "name": name,
+                "url": url_for("main.view_server", server_name=name),
+                "display": display_path,
+            }
+
+        if head == "aliases":
+            return {
+                "kind": "alias",
+                "name": name,
+                "url": url_for("main.view_alias", alias_name=name),
+                "display": display_path,
+            }
+
+    return {
+        "kind": "path",
+        "display": f"{canonical_path}{suffix}" if canonical_path else normalized,
+    }
+
+
+def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
+    """Convert a definition line summary into template-friendly metadata."""
+
+    options: list[str] = []
+    if entry.match_type and entry.match_type != "literal":
+        options.append(entry.match_type)
+    if entry.ignore_case:
+        options.append("ignore-case")
+
+    pattern_text = ""
+    if entry.text and "->" in entry.text:
+        pattern_text = entry.text.split("->", 1)[0].strip()
+
+    target_details = None
+    if entry.is_mapping and not entry.parse_error:
+        target_details = _describe_target_path(entry.target_path)
+
+    return {
+        "number": entry.number,
+        "text": entry.text,
+        "is_mapping": entry.is_mapping,
+        "parse_error": entry.parse_error,
+        "match_type": entry.match_type,
+        "match_pattern": entry.match_pattern,
+        "ignore_case": entry.ignore_case,
+        "target_path": entry.target_path,
+        "target_details": target_details,
+        "options": options,
+        "pattern_text": (pattern_text or entry.match_pattern or ""),
+    }
 
 
 @main_bp.route('/aliases')
@@ -165,10 +275,16 @@ def view_alias(alias_name: str):
         current_user.id,
     )
 
+    definition_summary = summarize_definition_lines(
+        getattr(alias, "definition", None), alias_name=getattr(alias, "name", None)
+    )
+    definition_lines = [_serialize_definition_line(entry) for entry in definition_summary]
+
     return render_template(
         'alias_view.html',
         alias=alias,
         target_references=target_references,
+        alias_definition_lines=definition_lines,
     )
 
 

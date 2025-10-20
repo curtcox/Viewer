@@ -24,6 +24,7 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertEqual(first.match_type, "literal")
         self.assertEqual(first.match_pattern, "/docs")
         self.assertFalse(first.ignore_case)
+        self.assertEqual(first.target_path, "/docs")
         self.assertIsNone(first.parse_error)
 
         second = summary[1]
@@ -31,6 +32,7 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertEqual(second.match_type, "glob")
         self.assertEqual(second.match_pattern, "/search/*")
         self.assertTrue(second.ignore_case)
+        self.assertEqual(second.target_path, "/search")
 
         third = summary[2]
         self.assertFalse(third.is_mapping)
@@ -40,6 +42,7 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertTrue(fourth.is_mapping)
         self.assertEqual(fourth.text, "  guide -> /guides")
         self.assertEqual(fourth.match_pattern, "/guide")
+        self.assertEqual(fourth.target_path, "/guides")
 
     def test_summarize_definition_lines_reports_parse_errors(self):
         definition = "docs -> /docs [regex, glob]"
