@@ -15,7 +15,7 @@ from werkzeug.routing import Map, Rule
 from identity import current_user
 
 from alias_definition import AliasRouteRule, collect_alias_routes
-from alias_matching import alias_sort_key, matches_path
+from alias_matching import matches_path
 from db_access import get_user_aliases
 
 
@@ -84,21 +84,19 @@ class AliasMatch:
     route: AliasRouteRule
 
 
-def _sorted_alias_routes_for_user(user_id: str):
+def _alias_routes_for_user_in_declaration_order(user_id: str):
+    """Yield alias routes in the order they are declared."""
+
     aliases = get_user_aliases(user_id)
-    decorated = []
     for alias in aliases:
         for route in collect_alias_routes(alias):
-            decorated.append((alias_sort_key(route.match_type, route.match_pattern), alias, route))
-    decorated.sort(key=lambda item: item[0])
-    for _, alias, route in decorated:
-        yield alias, route
+            yield alias, route
 
 
 def find_matching_alias(path: str) -> Optional[AliasMatch]:
     """Return the first alias route belonging to the current user that matches the path."""
 
-    for alias, route in _sorted_alias_routes_for_user(current_user.id):
+    for alias, route in _alias_routes_for_user_in_declaration_order(current_user.id):
         if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
             return AliasMatch(alias=alias, route=route)
     return None

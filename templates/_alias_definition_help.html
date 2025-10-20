@@ -23,6 +23,10 @@ docs -> /documentation                         # redirects /docs to /documentati
 status -> /status-page                         # /status stays on the overview
 status/* -> /status/sections/* [glob]          # nested paths reuse the captured suffix
 
+# Declaration order controls overlapping matches
+docs/* -> /preferred [glob]                    # first matching declaration wins for /docs/topic/guide
+docs/*/guide -> /special [glob]                # later declarations only run if earlier ones fail
+
 # Pattern matching
 search/* -> /search [glob]            # redirects /search/anything to /search
 blog-* -> /posts [glob, ignore-case]  # redirects blog-anything to /posts

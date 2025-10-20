@@ -198,6 +198,56 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/archive/guides/section/setup')
 
+    def test_try_alias_redirect_uses_first_matching_declaration(self):
+        definition = textwrap.dedent(
+            """
+            docs/* -> /preferred [glob]
+            docs/*/guide -> /special [glob]
+            """
+        ).strip()
+
+        self.create_alias(
+            name='docs',
+            target='/preferred',
+            match_type='glob',
+            pattern='/docs/*',
+            definition=definition,
+        )
+
+        with app.test_request_context('/docs/topic/guide'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/topic/guide')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/preferred')
+
+    def test_try_alias_redirect_checks_subsequent_declarations(self):
+        definition = textwrap.dedent(
+            """
+            docs/*/guide -> /special [glob]
+            docs/* -> /fallback [glob]
+            """
+        ).strip()
+
+        self.create_alias(
+            name='docs',
+            target='/special',
+            match_type='glob',
+            pattern='/docs/*/guide',
+            definition=definition,
+        )
+
+        with app.test_request_context('/docs/topic/guide'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/topic/guide')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/special')
+
+        with app.test_request_context('/docs/topic/tutorial'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/topic/tutorial')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/fallback')
+
     def test_try_alias_redirect_glob_pattern_ignore_case(self):
         self.create_alias(
             name='blog',
