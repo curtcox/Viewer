@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Sequence
 from urllib.parse import urlsplit
 
 from alias_matching import PatternError, normalise_pattern
@@ -22,6 +22,19 @@ class ParsedAliasDefinition:
     target_path: str
     ignore_case: bool
     pattern_text: str
+
+
+@dataclass(frozen=True)
+class DefinitionLineSummary:
+    """Metadata describing a single line within an alias definition."""
+
+    number: int
+    text: str
+    is_mapping: bool
+    match_type: Optional[str] = None
+    match_pattern: Optional[str] = None
+    ignore_case: bool = False
+    parse_error: Optional[str] = None
 
 
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
@@ -188,6 +201,122 @@ def ensure_primary_line(definition: Optional[str], primary_line: str) -> str:
     return f"{primary_line}\n\n{cleaned}"
 
 
+def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
+    """Return the selected match type and ignore-case flag for a line."""
+
+    specified_match_type: Optional[str] = None
+    ignore_case = False
+
+    for raw_option in option_segment.split(","):
+        option = raw_option.strip().lower()
+        if not option:
+            continue
+        if option in _MATCH_TYPE_OPTIONS:
+            if specified_match_type and option != specified_match_type:
+                raise AliasDefinitionError('Alias definition may specify only one match type.')
+            specified_match_type = option
+        elif option in _IGNORE_CASE_OPTIONS:
+            ignore_case = True
+        else:
+            raise AliasDefinitionError(f'Unknown alias option "{option}".')
+
+    return specified_match_type, ignore_case
+
+
+def _parse_line_metadata(line: str, alias_name: Optional[str]) -> tuple[str, str, bool]:
+    """Return the match configuration for a potential mapping line."""
+
+    stripped = (line or "").strip()
+    if not stripped or stripped.startswith("#"):
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+    if "->" not in stripped:
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+
+    without_comment = _strip_inline_comment(stripped)
+    if "->" not in without_comment:
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+
+    pattern_part, _, remainder = without_comment.partition("->")
+    pattern_text = (pattern_part or "").strip()
+    target_part = remainder.strip()
+
+    option_segment = ""
+    option_start = target_part.find("[")
+    option_end = target_part.find("]") if option_start != -1 else -1
+
+    if option_start != -1:
+        if option_end == -1 or option_end < option_start:
+            raise AliasDefinitionError('Alias definition options must be closed with "]".')
+        option_segment = target_part[option_start + 1 : option_end]
+        trailing = target_part[option_end + 1 :].strip()
+        if trailing:
+            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
+
+    specified_match_type, ignore_case = _interpret_option_segment(option_segment)
+    match_type = specified_match_type or "literal"
+
+    try:
+        normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
+    except PatternError as exc:
+        raise AliasDefinitionError(str(exc)) from exc
+
+    return match_type, normalised_pattern, ignore_case
+
+
+def summarize_definition_lines(
+    definition: Optional[str], alias_name: Optional[str] = None
+) -> Sequence[DefinitionLineSummary]:
+    """Return a summary of each line in the alias definition."""
+
+    if definition is None:
+        definition = ""
+
+    lines = definition.splitlines()
+    if not lines:
+        return []
+
+    summaries: list[DefinitionLineSummary] = []
+    for index, raw_line in enumerate(lines, start=1):
+        text = raw_line.rstrip("\r")
+        stripped = text.strip()
+
+        if not stripped or stripped.startswith("#") or "->" not in stripped:
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=False,
+                )
+            )
+            continue
+
+        try:
+            match_type, match_pattern, ignore_case = _parse_line_metadata(text, alias_name)
+        except AliasDefinitionError as exc:
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=True,
+                    parse_error=str(exc),
+                )
+            )
+            continue
+
+        summaries.append(
+            DefinitionLineSummary(
+                number=index,
+                text=text,
+                is_mapping=True,
+                match_type=match_type,
+                match_pattern=match_pattern,
+                ignore_case=ignore_case,
+            )
+        )
+
+    return summaries
+
+
 __all__ = [
     "AliasDefinitionError",
     "ParsedAliasDefinition",
@@ -195,4 +324,6 @@ __all__ = [
     "definition_contains_mapping",
     "format_primary_alias_line",
     "ensure_primary_line",
+    "DefinitionLineSummary",
+    "summarize_definition_lines",
 ]
