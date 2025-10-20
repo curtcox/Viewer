@@ -1,7 +1,8 @@
 """Helpers for serving named alias redirects."""
 from __future__ import annotations
 
-from typing import Iterable, Optional, Tuple
+from dataclasses import dataclass
+from typing import Iterable, Optional
 
 from urllib.parse import urlsplit
 
@@ -9,6 +10,7 @@ from flask import redirect, request
 
 from identity import current_user
 
+from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import alias_sort_key, matches_path
 from db_access import get_user_aliases
 
@@ -67,47 +69,42 @@ def _append_query_string(target: str, query: str) -> str:
     return combined_base
 
 
-def _effective_pattern_and_type(alias) -> Tuple[str, str]:
-    match_type = getattr(alias, "match_type", None) or "literal"
-    if hasattr(alias, "get_effective_pattern"):
-        pattern = alias.get_effective_pattern()
-    else:
-        pattern = getattr(alias, "match_pattern", None)
-        if not pattern:
-            name = getattr(alias, "name", "") or ""
-            pattern = f"/{name}" if name else "/"
-    return pattern, match_type
+@dataclass(frozen=True)
+class AliasMatch:
+    """Match result tying a request path to an alias routing rule."""
+
+    alias: object
+    route: AliasRouteRule
 
 
-def _sorted_aliases_for_user(user_id: str):
+def _sorted_alias_routes_for_user(user_id: str):
     aliases = get_user_aliases(user_id)
     decorated = []
     for alias in aliases:
-        pattern, match_type = _effective_pattern_and_type(alias)
-        decorated.append((alias_sort_key(match_type, pattern), alias, pattern, match_type))
+        for route in collect_alias_routes(alias):
+            decorated.append((alias_sort_key(route.match_type, route.match_pattern), alias, route))
     decorated.sort(key=lambda item: item[0])
-    for _, alias, pattern, match_type in decorated:
-        yield alias, match_type, pattern
+    for _, alias, route in decorated:
+        yield alias, route
 
 
-def find_matching_alias(path: str):
-    """Return the first alias belonging to the current user that matches the path."""
+def find_matching_alias(path: str) -> Optional[AliasMatch]:
+    """Return the first alias route belonging to the current user that matches the path."""
 
-    for alias, match_type, pattern in _sorted_aliases_for_user(current_user.id):
-        ignore_case = bool(getattr(alias, "ignore_case", False))
-        if matches_path(match_type, pattern, path, ignore_case):
-            return alias
+    for alias, route in _sorted_alias_routes_for_user(current_user.id):
+        if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
+            return AliasMatch(alias=alias, route=route)
     return None
 
 
-def try_alias_redirect(path: str):
+def try_alias_redirect(path: str, *, alias_match: Optional[AliasMatch] = None):
     """Return a redirect response for an alias if one matches the path."""
 
-    alias = find_matching_alias(path)
-    if not alias:
+    match = alias_match or find_matching_alias(path)
+    if not match:
         return None
 
-    target = getattr(alias, "target_path", None)
+    target = match.route.target_path
     if not target or not _is_relative_target(target):
         return None
 
@@ -121,4 +118,4 @@ def try_alias_redirect(path: str):
     return redirect(target, code=status_code)
 
 
-__all__ = ["find_matching_alias", "is_potential_alias_path", "try_alias_redirect"]
+__all__ = ["AliasMatch", "find_matching_alias", "is_potential_alias_path", "try_alias_redirect"]

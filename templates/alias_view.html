@@ -89,6 +89,9 @@
                                 {% if line.is_mapping and not line.parse_error %}
                                 <div class="d-flex flex-wrap align-items-center gap-2 font-monospace">
                                     <span class="text-primary">{{ line.pattern_text or line.match_pattern or line.text }}</span>
+                                    {% if line.alias_path and line.alias_path not in (line.pattern_text or '') %}
+                                    <span class="badge text-bg-light border">/{{ line.alias_path }}</span>
+                                    {% endif %}
                                     <span class="text-muted">&rarr;</span>
                                     {% set target = line.target_details %}
                                     {% if target %}

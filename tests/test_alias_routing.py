@@ -1,4 +1,5 @@
 import os
+import textwrap
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -13,6 +14,7 @@ from alias_routing import (
     _append_query_string,
     _extract_alias_name,
     _is_relative_target,
+    find_matching_alias,
     is_potential_alias_path,
     try_alias_redirect,
 )
@@ -165,6 +167,51 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
 
+    def test_try_alias_redirect_nested_alias_definition(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+              guide -> /guides/getting-started.html
+            """
+        ).strip("\n")
+
+        self.create_alias(name='docs', target='/documentation', definition=definition)
+
+        with app.test_request_context('/docs/api'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                match = find_matching_alias('/docs/api')
+                self.assertIsNotNone(match)
+                self.assertEqual(match.route.alias_path, 'docs/api')
+                self.assertEqual(match.route.target_path, '/docs/api/architecture/overview.html')
+                response = try_alias_redirect('/docs/api', alias_match=match)
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/docs/api/architecture/overview.html')
+
+        with app.test_request_context('/docs/guide'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/guide')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/guides/getting-started.html')
+
+    def test_view_alias_displays_nested_alias_paths(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+              guide -> /guides/getting-started.html
+            """
+        ).strip("\n")
+
+        self.create_alias(name='docs', target='/documentation', definition=definition)
+
+        response = self.client.get('/aliases/docs')
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('/docs/api/architecture/overview.html', page)
+        self.assertIn('badge text-bg-light border">/docs/api<', page)
+        self.assertIn('badge text-bg-light border">/docs/guide<', page)
+
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest/anything'):
@@ -214,7 +261,7 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn('Referenced Targets', page)
         self.assertIn(cid_value, page)
         self.assertIn('docs definition', page)
-        self.assertIn('Project shortcuts', page)
+        self.assertIn('Multi-line alias definitions', page)
 
     def test_create_alias_via_form(self):
         response = self.client.post(

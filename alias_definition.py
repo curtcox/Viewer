@@ -36,6 +36,20 @@ class DefinitionLineSummary:
     ignore_case: bool = False
     target_path: Optional[str] = None
     parse_error: Optional[str] = None
+    alias_path: Optional[str] = None
+    depth: int = 0
+
+
+@dataclass(frozen=True)
+class AliasRouteRule:
+    """Concrete routing details derived from an alias definition."""
+
+    alias_path: str
+    match_type: str
+    match_pattern: str
+    target_path: str
+    ignore_case: bool
+    source: Optional[DefinitionLineSummary] = None
 
 
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
@@ -285,8 +299,14 @@ def summarize_definition_lines(
         return []
 
     summaries: list[DefinitionLineSummary] = []
+    base_segments = [segment for segment in (alias_name or "").split("/") if segment]
+    segment_stack: list[list[str]] = []
+
     for index, raw_line in enumerate(lines, start=1):
         text = raw_line.rstrip("\r")
+        expanded = text.expandtabs(2)
+        indent_length = len(expanded) - len(expanded.lstrip(" "))
+        depth = indent_length // 2 if indent_length > 0 else 0
         stripped = text.strip()
 
         if not stripped or stripped.startswith("#") or "->" not in stripped:
@@ -295,6 +315,7 @@ def summarize_definition_lines(
                     number=index,
                     text=text,
                     is_mapping=False,
+                    depth=depth,
                 )
             )
             continue
@@ -310,9 +331,47 @@ def summarize_definition_lines(
                     text=text,
                     is_mapping=True,
                     parse_error=str(exc),
+                    depth=depth,
                 )
             )
             continue
+
+        alias_path = None
+        resolved_pattern = match_pattern
+
+        parent_segments: list[str] = []
+        if depth > 0:
+            parent_index = min(depth - 1, len(segment_stack) - 1)
+            if parent_index >= 0:
+                parent_segments = segment_stack[parent_index]
+            if not parent_segments and base_segments:
+                parent_segments = base_segments
+
+        if match_type == "literal":
+            line_segments = [segment for segment in match_pattern.lstrip("/").split("/") if segment]
+            if not line_segments and alias_name:
+                line_segments = [alias_name]
+
+            alias_segments = [*parent_segments, *line_segments]
+            alias_segments = [segment for segment in alias_segments if segment]
+            if alias_segments:
+                alias_path = "/".join(alias_segments)
+                resolved_pattern = f"/{alias_path}"
+            else:
+                alias_path = None
+                resolved_pattern = match_pattern or "/"
+
+            if len(segment_stack) <= depth:
+                segment_stack.extend([[]] * (depth + 1 - len(segment_stack)))
+            segment_stack[depth] = alias_segments
+            if len(segment_stack) > depth + 1:
+                segment_stack[depth + 1 :] = []
+        else:
+            alias_path = match_pattern.lstrip("/") if match_pattern else None
+            if len(segment_stack) > depth:
+                segment_stack[depth] = parent_segments
+            if len(segment_stack) > depth + 1:
+                segment_stack[depth + 1 :] = []
 
         summaries.append(
             DefinitionLineSummary(
@@ -320,17 +379,82 @@ def summarize_definition_lines(
                 text=text,
                 is_mapping=True,
                 match_type=match_type,
-                match_pattern=match_pattern,
+                match_pattern=resolved_pattern,
                 ignore_case=ignore_case,
                 target_path=target_path,
+                alias_path=alias_path,
+                depth=depth,
             )
         )
 
     return summaries
 
 
+def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
+    """Return all routing rules defined for the supplied alias."""
+
+    alias_name = getattr(alias, "name", None) or ""
+    match_type = getattr(alias, "match_type", None) or "literal"
+    match_pattern = getattr(alias, "match_pattern", None) or (
+        f"/{alias_name}" if alias_name else "/"
+    )
+    target_path = getattr(alias, "target_path", None)
+    ignore_case = bool(getattr(alias, "ignore_case", False))
+    definition = getattr(alias, "definition", None)
+
+    summary = summarize_definition_lines(definition, alias_name=alias_name)
+
+    routes: list[AliasRouteRule] = []
+    seen: set[tuple[str, str, str, bool]] = set()
+
+    def _register(
+        alias_path: Optional[str],
+        route_match_type: str,
+        route_pattern: Optional[str],
+        route_target: Optional[str],
+        route_ignore_case: bool,
+        source: Optional[DefinitionLineSummary] = None,
+    ) -> None:
+        if not route_pattern or not route_target:
+            return
+
+        key = (route_match_type, route_pattern, route_target, route_ignore_case)
+        if key in seen:
+            return
+
+        seen.add(key)
+        effective_alias_path = alias_path or route_pattern.lstrip("/") or alias_name
+        routes.append(
+            AliasRouteRule(
+                alias_path=effective_alias_path,
+                match_type=route_match_type,
+                match_pattern=route_pattern,
+                target_path=route_target,
+                ignore_case=route_ignore_case,
+                source=source,
+            )
+        )
+
+    _register(alias_name, match_type, match_pattern, target_path, ignore_case)
+
+    for entry in summary:
+        if not entry.is_mapping or entry.parse_error:
+            continue
+
+        route_match_type = entry.match_type or "literal"
+        route_pattern = entry.match_pattern or (
+            f"/{entry.alias_path}" if entry.alias_path else None
+        )
+        route_target = entry.target_path
+        route_ignore_case = entry.ignore_case
+        _register(entry.alias_path, route_match_type, route_pattern, route_target, route_ignore_case, entry)
+
+    return routes
+
+
 __all__ = [
     "AliasDefinitionError",
+    "AliasRouteRule",
     "ParsedAliasDefinition",
     "parse_alias_definition",
     "definition_contains_mapping",
@@ -338,4 +462,5 @@ __all__ = [
     "ensure_primary_line",
     "DefinitionLineSummary",
     "summarize_definition_lines",
+    "collect_alias_routes",
 ]

@@ -283,18 +283,19 @@ def _resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> O
         },
     }
 
-    alias_obj = find_matching_alias(path)
-    if not alias_obj:
+    alias_match = find_matching_alias(path)
+    if not alias_match:
         return None
 
-    base_payload["resolution"]["alias"] = alias_obj.name
+    alias_name = alias_match.route.alias_path or getattr(alias_match.alias, "name", None)
+    base_payload["resolution"]["alias"] = alias_name
 
-    redirect_response = try_alias_redirect(path)
+    redirect_response = try_alias_redirect(path, alias_match=alias_match)
     if redirect_response is None:
         return None
 
     base_payload["status_code"] = redirect_response.status_code
-    target_path = getattr(alias_obj, "target_path", None)
+    target_path = alias_match.route.target_path
     base_payload["resolution"].update(
         {
             "available": True,

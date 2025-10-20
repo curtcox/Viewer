@@ -187,6 +187,8 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
         "target_path": entry.target_path,
         "target_details": target_details,
         "options": options,
+        "alias_path": entry.alias_path,
+        "depth": entry.depth,
         "pattern_text": (pattern_text or entry.match_pattern or ""),
     }
 
