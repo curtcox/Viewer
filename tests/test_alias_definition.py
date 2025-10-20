@@ -2,7 +2,7 @@ import textwrap
 import unittest
 from types import SimpleNamespace
 
-from alias_definition import collect_alias_routes, summarize_definition_lines
+from alias_definition import collect_alias_routes, resolve_alias_definition, summarize_definition_lines
 
 
 class SummarizeDefinitionLinesTests(unittest.TestCase):
@@ -80,6 +80,37 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
             routes_by_path["docs/guide"].target_path,
             "/guides/getting-started.html",
         )
+
+    def test_resolve_alias_definition_returns_shared_metadata(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+            """
+        ).strip("\n")
+
+        alias = SimpleNamespace(
+            name="docs",
+            match_type="literal",
+            match_pattern="/docs",
+            target_path="/documentation",
+            ignore_case=False,
+            definition=definition,
+        )
+
+        details = resolve_alias_definition(alias)
+
+        self.assertEqual(len(details.routes), 2)
+        self.assertGreaterEqual(len(details.summary), 2)
+
+        alias_paths = {route.alias_path for route in details.routes}
+        self.assertIn("docs", alias_paths)
+        self.assertIn("docs/api", alias_paths)
+
+        summary_paths = {
+            entry.alias_path for entry in details.summary if entry.is_mapping and not entry.parse_error
+        }
+        self.assertIn("docs/api", summary_paths)
 
     def test_summarize_definition_lines_reports_parse_errors(self):
         definition = "docs -> /docs [regex, glob]"

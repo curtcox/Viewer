@@ -137,6 +137,21 @@
                             </div>
                         </div>
                     </div>
+                    <div class="mt-4">
+                        <h6 class="fw-semibold">Alias Definition</h6>
+                        {% if alias_definition_lines %}
+                            {% set lines = alias_definition_lines %}
+                            {% include "_alias_definition_lines.html" %}
+                            {% if alias.definition %}
+                            <details>
+                                <summary class="small text-muted">View raw definition</summary>
+                                <pre class="mt-3 mb-0 bg-body-tertiary border rounded p-3"><code>{{ alias.definition }}</code></pre>
+                            </details>
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted small mb-0">No multi-line definition has been documented for this alias yet.</p>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -269,10 +284,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     errorHtml = '<span class="text-danger small ms-2">' + escapeHtml(String(line.parse_error)) + '</span>';
                 }
 
+                var depth = Number(line.depth || 0);
+                var indentRaw = depth * 1.5;
+                var indent = indentRaw === 0 ? '0' : indentRaw.toFixed(2);
+                var content = '<div class="flex-grow-1" data-alias-definition-depth="' + depth + '">' +
+                    '<div class="d-inline-block w-100" style="margin-left: ' + indent + 'rem;">' +
+                        lineText + errorHtml +
+                    '</div>' +
+                '</div>';
+
                 return '<div class="' + classes.join(' ') + '">' +
                     '<span class="text-muted small pt-1" style="width: 2.5rem;">' + line.number + '.</span>' +
                     '<span class="' + indicatorClass + ' pt-1"><i class="fas ' + indicatorIcon + '"></i></span>' +
-                    '<span class="flex-grow-1">' + lineText + errorHtml + '</span>' +
+                    content +
                 '</div>';
             }).join('');
 

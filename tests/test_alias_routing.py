@@ -211,6 +211,27 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn('/docs/api/architecture/overview.html', page)
         self.assertIn('badge text-bg-light border">/docs/api<', page)
         self.assertIn('badge text-bg-light border">/docs/guide<', page)
+        self.assertIn('data-alias-definition-depth="1"', page)
+
+    def test_edit_alias_form_displays_nested_alias_paths(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+              guide -> /guides/getting-started.html
+            """
+        ).strip("\n")
+
+        alias = self.create_alias(name='docs', target='/documentation', definition=definition)
+
+        response = self.client.get(f'/aliases/{alias.name}/edit')
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('Alias Definition', page)
+        self.assertIn('/docs/api/architecture/overview.html', page)
+        self.assertIn('badge text-bg-light border">/docs/api<', page)
+        self.assertIn('badge text-bg-light border">/docs/guide<', page)
+        self.assertIn('data-alias-definition-depth="1"', page)
 
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
@@ -399,6 +420,31 @@ class TestAliasRouting(unittest.TestCase):
         self.assertFalse(primary_line['has_error'])
         self.assertTrue(primary_line['matches_any'])
         self.assertEqual(primary_line['text'], 'docs/* -> /docs [glob]')
+        self.assertIn('depth', primary_line)
+        self.assertEqual(primary_line['depth'], 0)
+
+    def test_alias_match_preview_includes_nested_line_depth(self):
+        payload = {
+            'name': 'docs',
+            'definition': textwrap.dedent(
+                """
+                docs -> /documentation
+                  api -> /docs/api
+                """
+            ).strip(),
+            'paths': ['/docs/api'],
+        }
+
+        response = self.client.post('/aliases/match-preview', json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data['ok'])
+        definition = data.get('definition')
+        self.assertIsNotNone(definition)
+        nested_lines = [line for line in definition.get('lines', []) if line.get('depth') == 1]
+        self.assertTrue(nested_lines)
+        self.assertEqual(nested_lines[0]['text'].strip(), 'api -> /docs/api')
 
     def test_alias_match_preview_rejects_invalid_pattern(self):
         payload = {
