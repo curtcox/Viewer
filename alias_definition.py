@@ -34,6 +34,7 @@ class DefinitionLineSummary:
     match_type: Optional[str] = None
     match_pattern: Optional[str] = None
     ignore_case: bool = False
+    target_path: Optional[str] = None
     parse_error: Optional[str] = None
 
 
@@ -223,7 +224,9 @@ def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]
     return specified_match_type, ignore_case
 
 
-def _parse_line_metadata(line: str, alias_name: Optional[str]) -> tuple[str, str, bool]:
+def _parse_line_metadata(
+    line: str, alias_name: Optional[str]
+) -> tuple[str, str, bool, str]:
     """Return the match configuration for a potential mapping line."""
 
     stripped = (line or "").strip()
@@ -239,8 +242,11 @@ def _parse_line_metadata(line: str, alias_name: Optional[str]) -> tuple[str, str
     pattern_part, _, remainder = without_comment.partition("->")
     pattern_text = (pattern_part or "").strip()
     target_part = remainder.strip()
+    if not target_part:
+        raise AliasDefinitionError('Alias definition must include a target path after "->".')
 
     option_segment = ""
+    target_text = target_part
     option_start = target_part.find("[")
     option_end = target_part.find("]") if option_start != -1 else -1
 
@@ -251,6 +257,9 @@ def _parse_line_metadata(line: str, alias_name: Optional[str]) -> tuple[str, str
         trailing = target_part[option_end + 1 :].strip()
         if trailing:
             raise AliasDefinitionError('Unexpected text after the closing options bracket.')
+        target_text = target_part[:option_start].rstrip()
+
+    target_path = _normalize_target_path(target_text)
 
     specified_match_type, ignore_case = _interpret_option_segment(option_segment)
     match_type = specified_match_type or "literal"
@@ -260,7 +269,7 @@ def _parse_line_metadata(line: str, alias_name: Optional[str]) -> tuple[str, str
     except PatternError as exc:
         raise AliasDefinitionError(str(exc)) from exc
 
-    return match_type, normalised_pattern, ignore_case
+    return match_type, normalised_pattern, ignore_case, target_path
 
 
 def summarize_definition_lines(
@@ -291,7 +300,9 @@ def summarize_definition_lines(
             continue
 
         try:
-            match_type, match_pattern, ignore_case = _parse_line_metadata(text, alias_name)
+            match_type, match_pattern, ignore_case, target_path = _parse_line_metadata(
+                text, alias_name
+            )
         except AliasDefinitionError as exc:
             summaries.append(
                 DefinitionLineSummary(
@@ -311,6 +322,7 @@ def summarize_definition_lines(
                 match_type=match_type,
                 match_pattern=match_pattern,
                 ignore_case=ignore_case,
+                target_path=target_path,
             )
         )
 
