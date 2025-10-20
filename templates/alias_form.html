@@ -4,25 +4,48 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-xl-6">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-link me-2"></i>{{ title }}</h2>
-                <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Aliases
-                </a>
-            </div>
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="fas fa-link me-2"></i>{{ title }}</h2>
+        <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Aliases
+        </a>
+    </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Alias Configuration</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST">
-                        {{ form.hidden_tag() }}
+    <form method="POST" class="card shadow-sm">
+        {{ form.hidden_tag() }}
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="alias-form-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="alias-form-config-tab" data-bs-toggle="tab" data-bs-target="#alias-form-config" type="button" role="tab" aria-controls="alias-form-config" aria-selected="true">
+                        <i class="fas fa-sliders-h me-1"></i>Configuration
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="alias-form-matcher-tab" data-bs-toggle="tab" data-bs-target="#alias-form-matcher" type="button" role="tab" aria-controls="alias-form-matcher" aria-selected="false">
+                        <i class="fas fa-vial me-1"></i>Interactive Matcher
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="alias-form-guidance-tab" data-bs-toggle="tab" data-bs-target="#alias-form-guidance" type="button" role="tab" aria-controls="alias-form-guidance" aria-selected="false">
+                        <i class="fas fa-lightbulb me-1"></i>Guidance
+                    </button>
+                </li>
+                {% if alias %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="alias-form-current-tab" data-bs-toggle="tab" data-bs-target="#alias-form-current" type="button" role="tab" aria-controls="alias-form-current" aria-selected="false">
+                        <i class="fas fa-circle-info me-1"></i>Current Alias
+                    </button>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
 
-                        <div class="mb-3">
+        <div class="card-body">
+            <div class="tab-content" id="alias-form-tabs-content">
+                <div class="tab-pane fade show active" id="alias-form-config" role="tabpanel" aria-labelledby="alias-form-config-tab">
+                    <div class="row g-4">
+                        <div class="col-12">
                             {{ form.name.label(class="form-label") }}
                             {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
                             {% if form.name.errors %}
@@ -44,7 +67,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3">
+                        <div class="col-12">
                             {{ form.definition.label(class="form-label") }}
                             {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else "")) }}
                             {% if form.definition.errors %}
@@ -58,94 +81,72 @@
                             {% endif %}
                         </div>
 
-                        <div class="mb-3" data-alias-testing>
-                            {{ form.test_strings.label(class="form-label") }}
-                            {{ form.test_strings(class="form-control") }}
-                            <div class="form-text">Enter one path per line to try the current configuration without saving.</div>
-                        </div>
-                        <div data-alias-testing>
-                        {{ ai_text_controls(
-                            form.test_strings.id,
-                            'test strings',
-                            request_label='Ask AI to edit the test paths',
-                            helper_text='Describe how the AI should update the test paths before trying them.',
-                            context={'form': 'alias_form'},
-                            entity_type='alias',
-                            entity_name=ai_entity_name|default(''),
-                            entity_name_field=ai_entity_name_field|default(''),
-                            interactions=interaction_history|default([]),
-                            history_label='Recent alias edits and requests'
-                        ) }}
-                        </div>
-
-                        {% if test_results %}
-                        <div class="mb-3" data-alias-testing>
-                            <div class="alert alert-secondary mb-0">
-                                <h6 class="alert-heading">Test Results</h6>
-                                <ul class="list-unstyled mb-0 small">
-                                    {% for value, matches in test_results %}
-                                    <li>
-                                        {% if matches %}
-                                            <span class="badge bg-success me-2"><i class="fas fa-check"></i></span>
-                                        {% else %}
-                                            <span class="badge bg-danger me-2"><i class="fas fa-times"></i></span>
-                                        {% endif %}
-                                        <code>{{ value.strip() }}</code>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <div class="mb-3" data-alias-matcher data-alias-matcher-endpoint="{{ url_for('main.alias_match_preview') }}">
-                            <label class="form-label" for="alias-live-matcher">Interactive Matcher</label>
-                            <textarea id="alias-live-matcher" class="form-control" rows="3" placeholder="/docs/latest" data-alias-matcher-input></textarea>
-                            <div class="form-text">Type URLs here to instantly check whether they match the current alias settings without leaving the page.</div>
-                            <div class="mt-2" data-alias-matcher-results role="status" aria-live="polite"></div>
-                        </div>
-
-                        <div class="mb-3">
-                            {% include "_alias_definition_help.html" %}
-                        </div>
-
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </a>
-                            <div class="d-flex gap-2 flex-wrap align-items-center">
-                                <div data-alias-testing>
-                                    {{ form.test_pattern(class="btn btn-outline-primary") }}
-                                </div>
-                                {{ ai_action_button(form.test_strings.id, button_label='AI', extra_classes='btn-outline-primary') }}
-                                {{ form.submit(class="btn btn-primary") }}
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            {% if alias %}
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Current Alias</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Name:</strong><br>
-                            <code>{{ alias.name }}</code>
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Last Updated:</strong><br>
-                            {{ alias.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        <div class="col-12">
+                            {{ ai_text_controls(
+                                form.definition.id,
+                                'alias definition',
+                                request_label='Ask AI to edit the alias definition',
+                                helper_text='Describe how the AI should adjust the alias definition before saving.',
+                                context={'form': 'alias_form'},
+                                entity_type='alias',
+                                entity_name=ai_entity_name|default(''),
+                                entity_name_field=ai_entity_name_field|default(''),
+                                interactions=interaction_history|default([]),
+                                history_label='Recent alias edits and requests'
+                            ) }}
                         </div>
                     </div>
                 </div>
+
+                <div class="tab-pane fade" id="alias-form-matcher" role="tabpanel" aria-labelledby="alias-form-matcher-tab">
+                    <div class="mb-3">
+                        <p class="text-muted">Use the live matcher to try paths without leaving the page. Results refresh automatically as you change the alias name or definition.</p>
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body" data-alias-matcher data-alias-matcher-endpoint="{{ url_for('main.alias_match_preview') }}">
+                                <label class="form-label" for="alias-live-matcher">Interactive Matcher</label>
+                                <textarea id="alias-live-matcher" class="form-control" rows="3" placeholder="/docs/latest" data-alias-matcher-input></textarea>
+                                <div class="form-text">Type URLs here to instantly check whether they match the current alias settings.</div>
+                                <div class="mt-2" data-alias-matcher-results role="status" aria-live="polite"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="alias-form-guidance" role="tabpanel" aria-labelledby="alias-form-guidance-tab">
+                    {% include "_alias_definition_help.html" %}
+                </div>
+
+                {% if alias %}
+                <div class="tab-pane fade" id="alias-form-current" role="tabpanel" aria-labelledby="alias-form-current-tab">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="bg-light border rounded p-3 h-100">
+                                <strong>Name:</strong><br>
+                                <code>{{ alias.name }}</code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light border rounded p-3 h-100">
+                                <strong>Last Updated:</strong><br>
+                                {{ alias.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
-    </div>
+
+        <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i>Cancel
+            </a>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                {{ ai_action_button(form.definition.id, button_label='AI', extra_classes='btn-outline-primary') }}
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </div>
+    </form>
 </div>
 {% endblock %}
 

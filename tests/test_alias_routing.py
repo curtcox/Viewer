@@ -357,22 +357,6 @@ class TestAliasRouting(unittest.TestCase):
         self.assertFalse(data['ok'])
         self.assertIn('Invalid regular expression', data['error'])
 
-    def test_test_pattern_button_displays_results_without_saving(self):
-        response = self.client.post(
-            '/aliases/new',
-            data={
-                'name': 'preview',
-                'definition': r'^/preview-\d+$ -> /cid999 [regex]',
-                'test_strings': '/preview-1\n/preview-x',
-                'test_pattern': 'Test Pattern',
-            },
-            follow_redirects=True,
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Test Results', response.data)
-        self.assertIsNone(Alias.query.filter_by(user_id=self.default_user.id, name='preview').first())
-
 
 if __name__ == '__main__':
     unittest.main()

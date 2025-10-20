@@ -91,7 +91,6 @@ def aliases():
 def new_alias():
     """Create a new alias for the authenticated user."""
     form = AliasForm()
-    test_results = None
     change_message = (request.form.get('change_message') or '').strip()
 
     if request.method == 'GET':
@@ -110,37 +109,34 @@ def new_alias():
 
     if form.validate_on_submit():
         parsed = form.parsed_definition
-        if form.test_pattern.data:
-            test_results = form.evaluated_tests()
-        else:
-            name = form.name.data
-            target_path = parsed.target_path if parsed else None
+        name = form.name.data
+        target_path = parsed.target_path if parsed else None
 
-            if _alias_name_conflicts_with_routes(name):
-                flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
-            elif _alias_with_name_exists(current_user.id, name):
-                flash(f'An alias named "{name}" already exists.', 'danger')
-            else:
-                alias = Alias(
-                    name=name,
-                    target_path=target_path,
-                    user_id=current_user.id,
-                    match_type=parsed.match_type if parsed else 'literal',
-                    match_pattern=parsed.match_pattern if parsed else f'/{name}',
-                    ignore_case=parsed.ignore_case if parsed else False,
-                    definition=form.definition.data or None,
-                )
-                _persist_alias(alias)
-                record_entity_interaction(
-                    current_user.id,
-                    'alias',
-                    alias.name,
-                    'save',
-                    change_message,
-                    form.test_strings.data or '',
-                )
-                flash(f'Alias "{name}" created successfully!', 'success')
-                return redirect(url_for('main.aliases'))
+        if _alias_name_conflicts_with_routes(name):
+            flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
+        elif _alias_with_name_exists(current_user.id, name):
+            flash(f'An alias named "{name}" already exists.', 'danger')
+        else:
+            alias = Alias(
+                name=name,
+                target_path=target_path,
+                user_id=current_user.id,
+                match_type=parsed.match_type if parsed else 'literal',
+                match_pattern=parsed.match_pattern if parsed else f'/{name}',
+                ignore_case=parsed.ignore_case if parsed else False,
+                definition=form.definition.data or None,
+            )
+            _persist_alias(alias)
+            record_entity_interaction(
+                current_user.id,
+                'alias',
+                alias.name,
+                'save',
+                change_message,
+                form.definition.data or '',
+            )
+            flash(f'Alias "{name}" created successfully!', 'success')
+            return redirect(url_for('main.aliases'))
 
     entity_name_hint = (form.name.data or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', entity_name_hint)
@@ -150,7 +146,6 @@ def new_alias():
         form=form,
         title='Create New Alias',
         alias=None,
-        test_results=test_results,
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
@@ -184,7 +179,6 @@ def edit_alias(alias_name: str):
         abort(404)
 
     form = AliasForm(obj=alias)
-    test_results = None
     change_message = (request.form.get('change_message') or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
 
@@ -195,65 +189,59 @@ def edit_alias(alias_name: str):
 
     if form.validate_on_submit():
         parsed = form.parsed_definition
-        if form.test_pattern.data:
-            test_results = form.evaluated_tests()
-        else:
-            new_name = form.name.data
-            new_target = parsed.target_path if parsed else None
+        new_name = form.name.data
+        new_target = parsed.target_path if parsed else None
 
-            if new_name != alias.name:
-                if _alias_name_conflicts_with_routes(new_name):
-                    flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
-                    return render_template(
-                        'alias_form.html',
-                        form=form,
-                        title=f'Edit Alias "{alias.name}"',
-                        alias=alias,
-                        test_results=test_results,
-                        interaction_history=interaction_history,
-                        ai_entity_name=alias.name,
-                        ai_entity_name_field=form.name.id,
-                    )
+        if new_name != alias.name:
+            if _alias_name_conflicts_with_routes(new_name):
+                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
+                return render_template(
+                    'alias_form.html',
+                    form=form,
+                    title=f'Edit Alias "{alias.name}"',
+                    alias=alias,
+                    interaction_history=interaction_history,
+                    ai_entity_name=alias.name,
+                    ai_entity_name_field=form.name.id,
+                )
 
-                if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
-                    flash(f'An alias named "{new_name}" already exists.', 'danger')
-                    return render_template(
-                        'alias_form.html',
-                        form=form,
-                        title=f'Edit Alias "{alias.name}"',
-                        alias=alias,
-                        test_results=test_results,
-                        interaction_history=interaction_history,
-                        ai_entity_name=alias.name,
-                        ai_entity_name_field=form.name.id,
-                    )
+            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
+                flash(f'An alias named "{new_name}" already exists.', 'danger')
+                return render_template(
+                    'alias_form.html',
+                    form=form,
+                    title=f'Edit Alias "{alias.name}"',
+                    alias=alias,
+                    interaction_history=interaction_history,
+                    ai_entity_name=alias.name,
+                    ai_entity_name_field=form.name.id,
+                )
 
-            alias.name = new_name
-            alias.target_path = new_target
-            alias.match_type = parsed.match_type if parsed else alias.match_type
-            alias.match_pattern = parsed.match_pattern if parsed else alias.match_pattern
-            alias.ignore_case = parsed.ignore_case if parsed else bool(alias.ignore_case)
-            alias.definition = form.definition.data or None
-            alias.updated_at = datetime.now(timezone.utc)
-            _persist_alias(alias)
-            record_entity_interaction(
-                current_user.id,
-                'alias',
-                alias.name,
-                'save',
-                change_message,
-                form.test_strings.data or '',
-            )
+        alias.name = new_name
+        alias.target_path = new_target
+        alias.match_type = parsed.match_type if parsed else alias.match_type
+        alias.match_pattern = parsed.match_pattern if parsed else alias.match_pattern
+        alias.ignore_case = parsed.ignore_case if parsed else bool(alias.ignore_case)
+        alias.definition = form.definition.data or None
+        alias.updated_at = datetime.now(timezone.utc)
+        _persist_alias(alias)
+        record_entity_interaction(
+            current_user.id,
+            'alias',
+            alias.name,
+            'save',
+            change_message,
+            form.definition.data or '',
+        )
 
-            flash(f'Alias "{alias.name}" updated successfully!', 'success')
-            return redirect(url_for('main.view_alias', alias_name=alias.name))
+        flash(f'Alias "{alias.name}" updated successfully!', 'success')
+        return redirect(url_for('main.view_alias', alias_name=alias.name))
 
     return render_template(
         'alias_form.html',
         form=form,
         title=f'Edit Alias "{alias.name}"',
         alias=alias,
-        test_results=test_results,
         interaction_history=interaction_history,
         ai_entity_name=alias.name,
         ai_entity_name_field=form.name.id,
