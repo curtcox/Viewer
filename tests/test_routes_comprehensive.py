@@ -1685,9 +1685,9 @@ class TestAliasRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('test_strings-ai-input', page)
-        self.assertIn('data-ai-target-id="test_strings"', page)
-        self.assertIn('Ask AI to edit the test paths', page)
+        self.assertIn('definition-ai-input', page)
+        self.assertIn('data-ai-target-id="definition"', page)
+        self.assertIn('Ask AI to edit the alias definition', page)
 
     def test_alias_list_displays_cid_link_for_cid_target(self):
         """Alias listings should render CID targets with the standard link widget."""

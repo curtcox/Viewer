@@ -4,7 +4,6 @@ from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAre
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 import re
 
-from alias_matching import evaluate_test_strings
 from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
@@ -124,12 +123,7 @@ class AliasForm(FlaskForm):
             'placeholder': 'pattern -> /target [glob]\n# Add related aliases or notes on following lines',
         },
     )
-    test_strings = TextAreaField(
-        'Test Strings',
-        render_kw={'rows': 4, 'placeholder': '/users/alice'},
-    )
     submit = SubmitField('Save Alias')
-    test_pattern = SubmitField('Test Pattern')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -154,17 +148,6 @@ class AliasForm(FlaskForm):
 
         return True
 
-    def evaluated_tests(self):
-        parsed = self._parsed_definition
-        if not parsed:
-            return []
-        raw_values = (self.test_strings.data or '').splitlines()
-        return evaluate_test_strings(
-            parsed.match_type,
-            parsed.match_pattern,
-            raw_values,
-            ignore_case=parsed.ignore_case,
-        )
 
 class SecretForm(FlaskForm):
     name = StringField('Secret Name', validators=[

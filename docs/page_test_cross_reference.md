@@ -15,7 +15,6 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_alias_routing.py::TestAliasRouting::test_edit_alias_rejects_conflicting_route_name`
 - `tests/test_alias_routing.py::TestAliasRouting::test_edit_alias_updates_record`
 - `tests/test_alias_routing.py::TestAliasRouting::test_new_alias_prefills_name_from_path_query`
-- `tests/test_alias_routing.py::TestAliasRouting::test_test_pattern_button_displays_results_without_saving`
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
 **Integration tests:**
