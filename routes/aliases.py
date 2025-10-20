@@ -16,12 +16,13 @@ import logfire
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 from interaction_log import load_interaction_history
-from alias_matching import evaluate_test_strings
+from alias_matching import evaluate_test_strings, matches_path
 from alias_definition import (
     AliasDefinitionError,
     ensure_primary_line,
     format_primary_alias_line,
     parse_alias_definition,
+    summarize_definition_lines,
 )
 
 
@@ -268,10 +269,48 @@ def alias_match_preview():
     if definition_text is None:
         return jsonify({'ok': False, 'error': 'Provide an alias definition to evaluate.'}), 400
 
+    candidate_paths: list[str] = []
+    for raw_value in raw_paths:
+        if not isinstance(raw_value, str):
+            continue
+        trimmed = raw_value.strip()
+        if not trimmed:
+            continue
+        candidate_paths.append(trimmed if trimmed.startswith('/') else f'/{trimmed}')
+
     try:
         parsed = parse_alias_definition(definition_text, alias_name=alias_name)
     except AliasDefinitionError as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
+
+    definition_summary = summarize_definition_lines(definition_text, alias_name=alias_name)
+    has_active_paths = bool(candidate_paths)
+
+    line_status = []
+    for entry in definition_summary:
+        matches_any = False
+        if (
+            entry.is_mapping
+            and not entry.parse_error
+            and entry.match_type
+            and entry.match_pattern
+            and has_active_paths
+        ):
+            matches_any = any(
+                matches_path(entry.match_type, entry.match_pattern, path, entry.ignore_case)
+                for path in candidate_paths
+            )
+
+        line_status.append(
+            {
+                'number': entry.number,
+                'text': entry.text,
+                'is_mapping': entry.is_mapping,
+                'matches_any': matches_any,
+                'has_error': bool(entry.parse_error),
+                'parse_error': entry.parse_error,
+            }
+        )
 
     results = evaluate_test_strings(
         parsed.match_type,
@@ -291,6 +330,10 @@ def alias_match_preview():
                 }
                 for value, matches in results
             ],
+            'definition': {
+                'has_active_paths': has_active_paths,
+                'lines': line_status,
+            },
         }
     )
 

@@ -343,6 +343,16 @@ class TestAliasRouting(unittest.TestCase):
         self.assertTrue(results['/docs/api'])
         self.assertFalse(results['/blog'])
 
+        definition = data.get('definition')
+        self.assertIsNotNone(definition)
+        self.assertTrue(definition['has_active_paths'])
+        self.assertIn('lines', definition)
+        primary_line = definition['lines'][0]
+        self.assertTrue(primary_line['is_mapping'])
+        self.assertFalse(primary_line['has_error'])
+        self.assertTrue(primary_line['matches_any'])
+        self.assertEqual(primary_line['text'], 'docs/* -> /docs [glob]')
+
     def test_alias_match_preview_rejects_invalid_pattern(self):
         payload = {
             'name': 'docs',
