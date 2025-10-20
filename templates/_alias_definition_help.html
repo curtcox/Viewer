@@ -8,17 +8,18 @@
     </p>
     {% set alias_definition_example %}
 # Indent to create nested aliases
-docs -> /documentation                         # this redirects /docs to /documentation
-  api -> /docs/api/architecture/overview.html  # this redirects /docs/api to /docs/api/architecture/overview.html
-  guide -> /guides/getting-started.html        # this redirects /docs/guide to /guides/getting-started.html
+docs/* -> /documentation/?q=* [glob]           # redirects /docs/anything to /documentation/?q=anything
+docs -> /documentation                         # redirects /docs to /documentation, but not /docs/anything
+  api -> /docs/api/architecture/overview.html  # redirects /docs/api to /docs/api/architecture/overview.html
+  guide -> /guides/getting-started.html        # redirects /docs/guide to /guides/getting-started.html
 
 # Pattern matching
-search/* -> /search [glob]          # matches /search/anything
-blog-* -> /posts [glob, ignore-case]  # case-insensitive glob
+search/* -> /search [glob]            # redirects /search/anything to /search
+blog-* -> /posts [glob, ignore-case]  # redirects blog-anything to /posts
 
 # Advanced patterns
-/article/\d+ -> /articles [regex]   # regex match
-/user/<id> -> /profile [flask]      # Flask-style parameter
+/article/\d+ -> /articles [regex]              # redirects /article/123 to /articles
+/user/<id> -> /user-profile/<id>/view [flask]  # redirects /user/123 to /user-profile/123/view
     {% endset %}
     <pre class="mb-0 small bg-light border rounded p-3"><code>{{ alias_definition_example | trim }}</code></pre>
 </div>
