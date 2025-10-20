@@ -144,28 +144,73 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertEqual(response.location, '/cid123')
 
     def test_try_alias_redirect_glob_pattern(self):
-        self.create_alias(name='glob', target='/cid123', match_type='glob', pattern='/release/*/latest')
-        with app.test_request_context('/release/v1.2/latest'):
+        self.create_alias(name='search', target='/search', match_type='glob', pattern='/search/*')
+        with app.test_request_context('/search/documentation'):
             with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
-                response = try_alias_redirect('/release/v1.2/latest')
+                response = try_alias_redirect('/search/documentation')
                 self.assertIsNotNone(response)
-                self.assertEqual(response.location, '/cid123')
+                self.assertEqual(response.location, '/search')
+
+    def test_try_alias_redirect_glob_pattern_expands_wildcard(self):
+        self.create_alias(
+            name='docs-search',
+            target='/documentation/?q=*',
+            match_type='glob',
+            pattern='/docs/*',
+        )
+        with app.test_request_context('/docs/api/overview'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/api/overview')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/documentation/?q=api/overview')
+
+    def test_try_alias_redirect_glob_pattern_multiple_wildcards(self):
+        self.create_alias(
+            name='docs-section',
+            target='/archive/*/section/*',
+            match_type='glob',
+            pattern='/docs/*/pages/*',
+        )
+        with app.test_request_context('/docs/guides/pages/setup'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/guides/pages/setup')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/archive/guides/section/setup')
+
+    def test_try_alias_redirect_glob_pattern_ignore_case(self):
+        self.create_alias(
+            name='blog',
+            target='/posts',
+            match_type='glob',
+            pattern='/blog-*',
+            ignore_case=True,
+        )
+        with app.test_request_context('/BLOG-today'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/BLOG-today')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/posts')
 
     def test_try_alias_redirect_regex_pattern(self):
-        self.create_alias(name='regex', target='/cid123', match_type='regex', pattern=r'^/release-\d+$')
-        with app.test_request_context('/release-42'):
+        self.create_alias(name='regex', target='/articles', match_type='regex', pattern=r'^/article/\d+$')
+        with app.test_request_context('/article/42'):
             with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
-                response = try_alias_redirect('/release-42')
+                response = try_alias_redirect('/article/42')
                 self.assertIsNotNone(response)
-                self.assertEqual(response.location, '/cid123')
+                self.assertEqual(response.location, '/articles')
 
     def test_try_alias_redirect_flask_pattern(self):
-        self.create_alias(name='flask', target='/cid123', match_type='flask', pattern='/users/<username>/profile')
-        with app.test_request_context('/users/alice/profile'):
+        self.create_alias(
+            name='profile',
+            target='/user-profile/<id>/view',
+            match_type='flask',
+            pattern='/user/<id>',
+        )
+        with app.test_request_context('/user/123'):
             with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
-                response = try_alias_redirect('/users/alice/profile')
+                response = try_alias_redirect('/user/123')
                 self.assertIsNotNone(response)
-                self.assertEqual(response.location, '/cid123')
+                self.assertEqual(response.location, '/user-profile/123/view')
 
     def test_try_alias_redirect_nested_alias_definition(self):
         definition = textwrap.dedent(
