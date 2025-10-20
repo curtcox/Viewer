@@ -1,7 +1,8 @@
 import textwrap
 import unittest
+from types import SimpleNamespace
 
-from alias_definition import summarize_definition_lines
+from alias_definition import collect_alias_routes, summarize_definition_lines
 
 
 class SummarizeDefinitionLinesTests(unittest.TestCase):
@@ -41,8 +42,44 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         fourth = summary[3]
         self.assertTrue(fourth.is_mapping)
         self.assertEqual(fourth.text, "  guide -> /guides")
-        self.assertEqual(fourth.match_pattern, "/guide")
+        self.assertEqual(fourth.match_pattern, "/docs/guide")
         self.assertEqual(fourth.target_path, "/guides")
+        self.assertEqual(fourth.alias_path, "docs/guide")
+
+    def test_collect_alias_routes_includes_nested_entries(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+              guide -> /guides/getting-started.html
+            """
+        ).strip("\n")
+
+        alias = SimpleNamespace(
+            name="docs",
+            match_type="literal",
+            match_pattern="/docs",
+            target_path="/documentation",
+            ignore_case=False,
+            definition=definition,
+        )
+
+        routes = collect_alias_routes(alias)
+        routes_by_path = {route.alias_path: route for route in routes}
+
+        self.assertIn("docs", routes_by_path)
+        self.assertIn("docs/api", routes_by_path)
+        self.assertIn("docs/guide", routes_by_path)
+
+        self.assertEqual(routes_by_path["docs"].target_path, "/documentation")
+        self.assertEqual(
+            routes_by_path["docs/api"].target_path,
+            "/docs/api/architecture/overview.html",
+        )
+        self.assertEqual(
+            routes_by_path["docs/guide"].target_path,
+            "/guides/getting-started.html",
+        )
 
     def test_summarize_definition_lines_reports_parse_errors(self):
         definition = "docs -> /docs [regex, glob]"
