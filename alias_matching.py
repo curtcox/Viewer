@@ -29,6 +29,14 @@ def _ensure_leading_slash(value: str) -> str:
     return "/" + value.lstrip("/")
 
 
+def _normalize_literal_path(value: str) -> str:
+    """Return the literal path without a trailing slash (except for root)."""
+
+    if value == "/":
+        return "/"
+    return value.rstrip("/") or "/"
+
+
 def normalise_pattern(match_type: str, pattern: str | None, fallback_name: str | None = None) -> str:
     """Return a cleaned version of the provided pattern or raise PatternError."""
 
@@ -85,21 +93,18 @@ def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = F
 
     if match_type == "literal":
         cleaned_pattern = _ensure_leading_slash(pattern)
-        prefix = cleaned_pattern.rstrip("/") or "/"
         if ignore_case:
             candidate_cf = candidate.casefold()
             pattern_cf = cleaned_pattern.casefold()
-            prefix_cf = prefix.casefold()
-            if candidate_cf == pattern_cf or candidate_cf == prefix_cf:
+            if candidate_cf == pattern_cf:
                 return True
-            if prefix_cf != "/" and candidate_cf.startswith(prefix_cf + "/"):
-                return True
-            return False
-        if candidate == cleaned_pattern or candidate == prefix:
+            return (
+                _normalize_literal_path(candidate).casefold()
+                == _normalize_literal_path(cleaned_pattern).casefold()
+            )
+        if candidate == cleaned_pattern:
             return True
-        if prefix != "/" and candidate.startswith(prefix + "/"):
-            return True
-        return False
+        return _normalize_literal_path(candidate) == _normalize_literal_path(cleaned_pattern)
 
     if match_type == "glob":
         cleaned_pattern = _ensure_leading_slash(pattern)

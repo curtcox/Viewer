@@ -6,12 +6,26 @@
         alias follows this format. The text you enter here travels with workspace exports and returns on import,
         keeping documentation and routing intent in sync.
     </p>
+    <p class="mb-3">
+        Automated coverage for these examples lives in
+        <a href="/source/tests/test_alias_definition.py" class="alert-link">tests/test_alias_definition.py</a>
+        and
+        <a href="/source/tests/test_alias_routing.py" class="alert-link">tests/test_alias_routing.py</a>.
+    </p>
     {% set alias_definition_example %}
 # Indent to create nested aliases
 docs/* -> /documentation/?q=* [glob]           # redirects /docs/anything to /documentation/?q=anything
 docs -> /documentation                         # redirects /docs to /documentation, but not /docs/anything
     api -> /docs/api/architecture/overview.html  # redirects /docs/api to /docs/api/architecture/overview.html
     guide -> /guides/getting-started.html        # redirects /docs/guide to /guides/getting-started.html
+
+# Pair literal roots with glob aliases for deeper paths
+status -> /status-page                         # /status stays on the overview
+status/* -> /status/sections/* [glob]          # nested paths reuse the captured suffix
+
+# Declaration order controls overlapping matches
+docs/* -> /preferred [glob]                    # first matching declaration wins for /docs/topic/guide
+docs/*/guide -> /special [glob]                # later declarations only run if earlier ones fail
 
 # Pattern matching
 search/* -> /search [glob]            # redirects /search/anything to /search
@@ -20,6 +34,9 @@ blog-* -> /posts [glob, ignore-case]  # redirects blog-anything to /posts
 # Advanced patterns
 /article/\d+ -> /articles [regex]              # redirects /article/123 to /articles
 /user/<id> -> /user-profile/<id>/view [flask]  # redirects /user/123 to /user-profile/123/view
+
+# Reuse matched segments in the target
+docs/*/pages/* -> /archive/*/section/* [glob]  # copies wildcard segments into the destination
     {% endset %}
     <pre class="mb-0 small bg-light border rounded p-3"><code>{{ alias_definition_example | trim }}</code></pre>
 </div>
