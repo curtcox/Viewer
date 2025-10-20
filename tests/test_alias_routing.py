@@ -143,6 +143,12 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123')
 
+    def test_try_alias_redirect_literal_does_not_match_subpath(self):
+        self.create_alias(name='docs', target='/documentation', pattern='/docs')
+        with app.test_request_context('/docs/anything'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                self.assertIsNone(try_alias_redirect('/docs/anything'))
+
     def test_try_alias_redirect_glob_pattern(self):
         self.create_alias(name='search', target='/search', match_type='glob', pattern='/search/*')
         with app.test_request_context('/search/documentation'):
@@ -150,6 +156,21 @@ class TestAliasRouting(unittest.TestCase):
                 response = try_alias_redirect('/search/documentation')
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/search')
+
+    def test_try_alias_redirect_prefers_glob_over_literal_for_subpaths(self):
+        self.create_alias(name='docs-root', target='/documentation', pattern='/docs')
+        self.create_alias(
+            name='docs',
+            target='/documentation/?q=*',
+            match_type='glob',
+            pattern='/docs/*',
+        )
+
+        with app.test_request_context('/docs/topic'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/docs/topic')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/documentation/?q=topic')
 
     def test_try_alias_redirect_glob_pattern_expands_wildcard(self):
         self.create_alias(
@@ -259,7 +280,7 @@ class TestAliasRouting(unittest.TestCase):
 
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
-        with app.test_request_context('/latest/anything'):
+        with app.test_request_context('/latest'):
             with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
                 response = not_found_error(Exception('not found'))
                 self.assertEqual(response.status_code, 302)

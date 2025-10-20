@@ -19,6 +19,10 @@ docs -> /documentation                         # redirects /docs to /documentati
     api -> /docs/api/architecture/overview.html  # redirects /docs/api to /docs/api/architecture/overview.html
     guide -> /guides/getting-started.html        # redirects /docs/guide to /guides/getting-started.html
 
+# Pair literal roots with glob aliases for deeper paths
+status -> /status-page                         # /status stays on the overview
+status/* -> /status/sections/* [glob]          # nested paths reuse the captured suffix
+
 # Pattern matching
 search/* -> /search [glob]            # redirects /search/anything to /search
 blog-* -> /posts [glob, ignore-case]  # redirects blog-anything to /posts
