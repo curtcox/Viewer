@@ -52,6 +52,14 @@ class AliasRouteRule:
     source: Optional[DefinitionLineSummary] = None
 
 
+@dataclass(frozen=True)
+class AliasDefinitionDetails:
+    """Combined metadata for working with alias definitions."""
+
+    summary: Sequence[DefinitionLineSummary]
+    routes: Sequence[AliasRouteRule]
+
+
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
 _MATCH_TYPE_OPTIONS = {"literal", "glob", "regex", "flask"}
 _IGNORE_CASE_OPTIONS = {"ignore-case", "ignorecase"}
@@ -390,19 +398,15 @@ def summarize_definition_lines(
     return summaries
 
 
-def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
-    """Return all routing rules defined for the supplied alias."""
-
-    alias_name = getattr(alias, "name", None) or ""
-    match_type = getattr(alias, "match_type", None) or "literal"
-    match_pattern = getattr(alias, "match_pattern", None) or (
-        f"/{alias_name}" if alias_name else "/"
-    )
-    target_path = getattr(alias, "target_path", None)
-    ignore_case = bool(getattr(alias, "ignore_case", False))
-    definition = getattr(alias, "definition", None)
-
-    summary = summarize_definition_lines(definition, alias_name=alias_name)
+def _build_alias_routes(
+    alias_name: str,
+    match_type: str,
+    match_pattern: Optional[str],
+    target_path: Optional[str],
+    ignore_case: bool,
+    summary: Sequence[DefinitionLineSummary],
+) -> list[AliasRouteRule]:
+    """Return concrete routing rules derived from summary metadata."""
 
     routes: list[AliasRouteRule] = []
     seen: set[tuple[str, str, str, bool]] = set()
@@ -452,7 +456,40 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
     return routes
 
 
+def resolve_alias_definition(alias) -> AliasDefinitionDetails:
+    """Return combined routing and summary metadata for an alias."""
+
+    alias_name = getattr(alias, "name", None) or ""
+    match_type = getattr(alias, "match_type", None) or "literal"
+    match_pattern = getattr(alias, "match_pattern", None) or (
+        f"/{alias_name}" if alias_name else "/"
+    )
+    target_path = getattr(alias, "target_path", None)
+    ignore_case = bool(getattr(alias, "ignore_case", False))
+    definition = getattr(alias, "definition", None)
+
+    summary = summarize_definition_lines(definition, alias_name=alias_name)
+    routes = _build_alias_routes(
+        alias_name,
+        match_type,
+        match_pattern,
+        target_path,
+        ignore_case,
+        summary,
+    )
+
+    return AliasDefinitionDetails(summary=summary, routes=routes)
+
+
+def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
+    """Return all routing rules defined for the supplied alias."""
+
+    details = resolve_alias_definition(alias)
+    return details.routes
+
+
 __all__ = [
+    "AliasDefinitionDetails",
     "AliasDefinitionError",
     "AliasRouteRule",
     "ParsedAliasDefinition",
@@ -463,4 +500,5 @@ __all__ = [
     "DefinitionLineSummary",
     "summarize_definition_lines",
     "collect_alias_routes",
+    "resolve_alias_definition",
 ]

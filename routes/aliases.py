@@ -19,13 +19,15 @@ from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 from interaction_log import load_interaction_history
 from alias_matching import evaluate_test_strings, matches_path
+from types import SimpleNamespace
+
 from alias_definition import (
     AliasDefinitionError,
     DefinitionLineSummary,
     ensure_primary_line,
     format_primary_alias_line,
     parse_alias_definition,
-    summarize_definition_lines,
+    resolve_alias_definition,
 )
 
 
@@ -277,10 +279,10 @@ def view_alias(alias_name: str):
         current_user.id,
     )
 
-    definition_summary = summarize_definition_lines(
-        getattr(alias, "definition", None), alias_name=getattr(alias, "name", None)
-    )
-    definition_lines = [_serialize_definition_line(entry) for entry in definition_summary]
+    definition_details = resolve_alias_definition(alias)
+    definition_lines = [
+        _serialize_definition_line(entry) for entry in definition_details.summary
+    ]
 
     return render_template(
         'alias_view.html',
@@ -300,6 +302,10 @@ def edit_alias(alias_name: str):
     form = AliasForm(obj=alias)
     change_message = (request.form.get('change_message') or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
+    definition_details = resolve_alias_definition(alias)
+    alias_definition_lines = [
+        _serialize_definition_line(entry) for entry in definition_details.summary
+    ]
 
     if request.method == 'GET':
         primary_line = _primary_definition_line_for_alias(alias)
@@ -322,6 +328,7 @@ def edit_alias(alias_name: str):
                     interaction_history=interaction_history,
                     ai_entity_name=alias.name,
                     ai_entity_name_field=form.name.id,
+                    alias_definition_lines=alias_definition_lines,
                 )
 
             if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
@@ -334,6 +341,7 @@ def edit_alias(alias_name: str):
                     interaction_history=interaction_history,
                     ai_entity_name=alias.name,
                     ai_entity_name_field=form.name.id,
+                    alias_definition_lines=alias_definition_lines,
                 )
 
         alias.name = new_name
@@ -364,6 +372,7 @@ def edit_alias(alias_name: str):
         interaction_history=interaction_history,
         ai_entity_name=alias.name,
         ai_entity_name_field=form.name.id,
+        alias_definition_lines=alias_definition_lines,
     )
 
 
@@ -401,7 +410,16 @@ def alias_match_preview():
     except AliasDefinitionError as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
-    definition_summary = summarize_definition_lines(definition_text, alias_name=alias_name)
+    temp_alias = SimpleNamespace(
+        name=alias_name,
+        match_type=parsed.match_type,
+        match_pattern=parsed.match_pattern,
+        target_path=parsed.target_path,
+        ignore_case=parsed.ignore_case,
+        definition=definition_text,
+    )
+    definition_details = resolve_alias_definition(temp_alias)
+    definition_summary = definition_details.summary
     has_active_paths = bool(candidate_paths)
 
     line_status = []

@@ -212,6 +212,25 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn('badge text-bg-light border">/docs/api<', page)
         self.assertIn('badge text-bg-light border">/docs/guide<', page)
 
+    def test_edit_alias_form_displays_nested_alias_paths(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+              api -> /docs/api/architecture/overview.html
+              guide -> /guides/getting-started.html
+            """
+        ).strip("\n")
+
+        alias = self.create_alias(name='docs', target='/documentation', definition=definition)
+
+        response = self.client.get(f'/aliases/{alias.name}/edit')
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertIn('Alias Definition', page)
+        self.assertIn('/docs/api/architecture/overview.html', page)
+        self.assertIn('badge text-bg-light border">/docs/api<', page)
+        self.assertIn('badge text-bg-light border">/docs/guide<', page)
+
     def test_not_found_handler_uses_alias(self):
         self.create_alias(target='/cid123')
         with app.test_request_context('/latest/anything'):
