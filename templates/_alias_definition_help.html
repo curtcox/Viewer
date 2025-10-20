@@ -7,10 +7,10 @@
         keeping documentation and routing intent in sync.
     </p>
     {% set alias_definition_example %}
-# Project shortcuts
-docs -> /documentation              # literal match: /docs
-  api -> /docs/api                  # literal: /docs/api
-  guide -> /docs/guide
+# Indent to create nested aliases
+docs -> /documentation                         # this redirects /docs to /documentation
+  api -> /docs/api/architecture/overview.html  # this redirects /docs/api to /docs/api/architecture/overview.html
+  guide -> /guides/getting-started.html        # this redirects /docs/guide to /guides/getting-started.html
 
 # Pattern matching
 search/* -> /search [glob]          # matches /search/anything
@@ -19,11 +19,6 @@ blog-* -> /posts [glob, ignore-case]  # case-insensitive glob
 # Advanced patterns
 /article/\d+ -> /articles [regex]   # regex match
 /user/<id> -> /profile [flask]      # Flask-style parameter
-
-# Nested organization
-admin -> /admin/dashboard
-  users -> /admin/users
-  reports -> /admin/reports
     {% endset %}
     <pre class="mb-0 small bg-light border rounded p-3"><code>{{ alias_definition_example | trim }}</code></pre>
 </div>
