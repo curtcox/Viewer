@@ -19,12 +19,12 @@ from flask import (
 )
 
 from identity import current_user
-from database import db
 from db_access import (
     count_user_aliases,
     count_user_secrets,
     count_user_servers,
     count_user_variables,
+    get_cids_by_paths,
     get_cid_by_path,
     get_first_alias_name,
     get_first_secret_name,
@@ -32,6 +32,7 @@ from db_access import (
     get_first_variable_name,
     get_user_aliases,
     get_user_servers,
+    rollback_session,
 )
 from cid_presenter import cid_path, format_cid, format_cid_short
 from entity_references import (
@@ -272,7 +273,7 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
     cid_paths = [cid_path(value) for value in referenced_cids if cid_path(value)]
     cid_records: Sequence[CID] = []
     if cid_paths:
-        cid_records = CID.query.filter(CID.path.in_(cid_paths)).all()
+        cid_records = get_cids_by_paths(cid_paths)
 
     records_by_cid = {
         format_cid(getattr(record, 'path', '')): record
@@ -762,7 +763,7 @@ def not_found_error(error):
 
 def internal_error(error):
     """Enhanced 500 error handler with comprehensive stack trace reporting."""
-    db.session.rollback()
+    rollback_session()
     
     # Always try to build a comprehensive stack trace
     stack_trace = []

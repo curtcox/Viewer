@@ -10,7 +10,20 @@ sys.path.insert(0, '.')
 
 # Import Flask app and models
 from app import create_app
-from models import User, CID, PageView, Server, Variable, Secret, Payment, TermsAcceptance
+from db_access import (
+    count_cids,
+    count_page_views,
+    count_payments,
+    count_secrets,
+    count_servers,
+    count_terms_acceptances,
+    count_users,
+    count_variables,
+    get_all_users,
+    get_cid_by_path,
+    get_first_cid,
+    get_recent_cids,
+)
 
 app = create_app()
 
@@ -25,28 +38,28 @@ def inspect_database():
         print()
         
         # Table counts
-        tables = [
-            ("Users", User),
-            ("CIDs", CID),
-            ("Page Views", PageView),
-            ("Servers", Server),
-            ("Variables", Variable),
-            ("Secrets", Secret),
-            ("Payments", Payment),
-            ("Terms Acceptances", TermsAcceptance),
+        counters = [
+            ("Users", count_users),
+            ("CIDs", count_cids),
+            ("Page Views", count_page_views),
+            ("Servers", count_servers),
+            ("Variables", count_variables),
+            ("Secrets", count_secrets),
+            ("Payments", count_payments),
+            ("Terms Acceptances", count_terms_acceptances),
         ]
-        
+
         print("TABLE COUNTS:")
         print("-" * 30)
-        for name, model in tables:
-            count = model.query.count()
+        for name, counter in counters:
+            count = counter()
             print(f"{name:<20}: {count:>8}")
         print()
         
         # Recent CIDs
         print("RECENT CID RECORDS (Last 10):")
         print("-" * 50)
-        recent_cids = CID.query.order_by(CID.created_at.desc()).limit(10).all()
+        recent_cids = get_recent_cids()
         if recent_cids:
             for cid in recent_cids:
                 size_kb = (cid.file_size or 0) / 1024
@@ -62,7 +75,7 @@ def inspect_database():
         # Users summary
         print("USERS SUMMARY:")
         print("-" * 30)
-        users = User.query.all()
+        users = get_all_users()
         if users:
             for user in users:
                 print(f"ID: {user.id}")
@@ -81,9 +94,9 @@ def show_cid_details(cid_path=None):
         if cid_path:
             if not cid_path.startswith('/'):
                 cid_path = f'/{cid_path}'
-            cid = CID.query.filter_by(path=cid_path).first()
+            cid = get_cid_by_path(cid_path)
         else:
-            cid = CID.query.first()
+            cid = get_first_cid()
         
         if cid:
             print(f"CID DETAILS: {cid.path}")

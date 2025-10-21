@@ -18,12 +18,14 @@ from db_access import (
     get_cid_by_path,
     get_server_by_name,
     get_user_secrets,
+    get_user_server_invocations_by_server,
     get_user_servers,
+    get_user_uploads,
     get_user_variables,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
-from models import CID, Server, ServerInvocation
+from models import Server
 from server_execution import analyze_server_definition, describe_main_function_parameters
 from syntax_highlighting import highlight_source
 from server_templates import get_server_templates
@@ -382,14 +384,7 @@ def upload_server_test_page(server_name):
 
 def get_server_definition_history(user_id, server_name):
     """Get historical server definitions for a specific server."""
-    from models import db
-
-    cids = (
-        db.session.query(CID)
-        .filter(CID.uploaded_by_user_id == user_id)
-        .order_by(CID.created_at.desc())
-        .all()
-    )
+    cids = get_user_uploads(user_id)
 
     history = []
 
@@ -697,15 +692,7 @@ def delete_server(server_name):
 
 def get_server_invocation_history(user_id, server_name):
     """Return invocation events for a specific server ordered from newest to oldest."""
-    invocations = (
-        ServerInvocation.query
-        .filter(
-            ServerInvocation.user_id == user_id,
-            ServerInvocation.server_name == server_name,
-        )
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
-    )
+    invocations = get_user_server_invocations_by_server(user_id, server_name)
 
     if not invocations:
         return []

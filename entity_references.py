@@ -11,12 +11,12 @@ from cid_presenter import cid_path, format_cid
 from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
     get_alias_by_name,
+    get_cids_by_paths,
+    get_cid_by_path,
+    get_server_by_name,
     get_user_aliases,
     get_user_servers,
-    get_server_by_name,
-    get_cid_by_path,
 )
-from models import CID
 
 
 ReferenceMap = Dict[str, List[Dict[str, str]]]
@@ -137,7 +137,7 @@ def _discover_cid_references(text: str) -> List[Dict[str, str]]:
     if not paths:
         return []
 
-    records = CID.query.filter(CID.path.in_(paths)).all()
+    records = get_cids_by_paths(paths)
     matched = {format_cid(getattr(record, "path", "")) for record in records if getattr(record, "path", None)}
     references = [_build_cid_reference(value) for value in matched if value]
     return _dedupe(references, "cid")
