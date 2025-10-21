@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 
 from database import db
-from db_access import update_cid_references
+from db_access import update_alias_cid_reference, update_cid_references
 from models import Alias, Server
 
 
@@ -64,3 +64,53 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
 
         mock_save.assert_called_once()
         mock_store.assert_called_once_with("default-user")
+
+
+def test_update_alias_cid_reference_updates_existing_alias(integration_app):
+    with integration_app.app_context():
+        alias = Alias(
+            name="integration-release",
+            target_path="/legacycid?download=1",
+            user_id="default-user",
+            match_type="regex",
+            match_pattern="/custom",
+            ignore_case=False,
+            definition=(
+                "integration-release -> /legacycid?download=1 [ignore-case]\n"
+                "# replace legacycid"
+            ),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        result = update_alias_cid_reference(
+            "legacycid",
+            "integration-latest",
+            "integration-release",
+        )
+
+        assert result == {"created": False, "updated": 1}
+
+        refreshed = db.session.get(Alias, alias.id)
+        assert refreshed is not None
+        assert refreshed.target_path == "/integration-latest?download=1"
+        assert "integration-latest" in (refreshed.definition or "")
+        assert "legacycid" not in (refreshed.definition or "")
+        assert refreshed.match_type == "literal"
+        assert refreshed.match_pattern == "/integration-release"
+        assert refreshed.ignore_case is True
+
+
+def test_update_alias_cid_reference_creates_alias_when_missing(integration_app):
+    with integration_app.app_context():
+        result = update_alias_cid_reference(
+            "missing", "integration-fresh", "integration-new"
+        )
+
+        assert result == {"created": True, "updated": 1}
+
+        created = Alias.query.filter_by(name="integration-new").first()
+        assert created is not None
+        assert created.user_id == "default-user"
+        assert created.target_path == "/integration-fresh"
+        assert created.definition.startswith("integration-new -> /integration-fresh")
