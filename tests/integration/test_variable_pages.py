@@ -3,8 +3,14 @@ from __future__ import annotations
 
 import pytest
 
+from cid_presenter import format_cid
+from cid_utils import (
+    generate_all_variable_definitions_json,
+    generate_cid,
+    store_variable_definitions_cid,
+)
 from database import db
-from models import Variable
+from models import CID, Variable
 
 pytestmark = pytest.mark.integration
 
@@ -106,3 +112,70 @@ def test_edit_variable_form_displays_existing_variable_details(
     assert "Edit Variable" in page
     assert "<code>API_TOKEN</code>" in page
     assert "super-secret-token" in page
+
+
+def test_edit_variable_updates_definition_snapshot(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Variable edits should persist new definitions for subsequent page loads."""
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="city",
+            definition="return 'Paris'",
+            user_id="default-user",
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        initial_snapshot_cid = store_variable_definitions_cid("default-user")
+
+    login_default_user()
+
+    updated_definition = "return 'Berlin'"
+
+    response = client.post(
+        "/variables/city/edit",
+        data={
+            "name": "region",
+            "definition": updated_definition,
+            "change_message": "rename variable",
+            "submit": "Save Variable",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/variables/region")
+
+    with integration_app.app_context():
+        updated_variable = Variable.query.filter_by(
+            user_id="default-user",
+            name="region",
+        ).first()
+        assert updated_variable is not None
+        assert updated_variable.definition == updated_definition
+
+        expected_snapshot_json = generate_all_variable_definitions_json("default-user")
+        expected_snapshot_cid = format_cid(
+            generate_cid(expected_snapshot_json.encode("utf-8"))
+        )
+
+        assert expected_snapshot_cid != initial_snapshot_cid
+
+        snapshot_record = CID.query.filter_by(
+            path=f"/{expected_snapshot_cid}",
+        ).first()
+        assert snapshot_record is not None
+        assert snapshot_record.file_data.decode("utf-8") == expected_snapshot_json
+
+    page_response = client.get("/variables")
+    assert page_response.status_code == 200
+
+    page = page_response.get_data(as_text=True)
+    assert "/variables/region" in page
+    assert "/variables/city" not in page
+    assert expected_snapshot_cid in page
+    assert initial_snapshot_cid not in page

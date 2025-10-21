@@ -3,8 +3,15 @@ from __future__ import annotations
 
 import pytest
 
+from cid_presenter import format_cid
+from cid_utils import (
+    generate_all_server_definitions_json,
+    generate_cid,
+    save_server_definition_as_cid,
+    store_server_definitions_cid,
+)
 from database import db
-from models import Secret, Server, Variable
+from models import CID, Secret, Server, Variable
 
 
 pytestmark = pytest.mark.integration
@@ -173,3 +180,93 @@ def test_server_detail_page_displays_server_information(
     assert "Forecast for" in page
     assert "Definition Length:" in page
     assert "Run Test" in page
+
+
+def test_edit_server_updates_definition_snapshots(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Editing a server should refresh definition CIDs for subsequent pages."""
+
+    with integration_app.app_context():
+        original_definition = (
+            "def main(city: str) -> str:\n"
+            "    return f\"Response for {city}\"\n"
+        )
+        original_cid = save_server_definition_as_cid(
+            original_definition,
+            "default-user",
+        )
+        server = Server(
+            name="weather",
+            definition=original_definition,
+            definition_cid=original_cid,
+            user_id="default-user",
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        initial_snapshot_cid = store_server_definitions_cid("default-user")
+
+    login_default_user()
+
+    updated_definition = (
+        "def main(city: str) -> str:\n"
+        "    return f\"Updated forecast for {city}\"\n"
+    )
+
+    response = client.post(
+        "/servers/weather/edit",
+        data={
+            "name": "forecast",
+            "definition": updated_definition,
+            "change_message": "rename server",
+            "submit": "Save Server",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/servers/forecast")
+
+    with integration_app.app_context():
+        updated_server = Server.query.filter_by(
+            user_id="default-user",
+            name="forecast",
+        ).first()
+        assert updated_server is not None
+        assert updated_server.definition == updated_definition
+
+        expected_definition_cid = format_cid(
+            generate_cid(updated_definition.encode("utf-8"))
+        )
+        assert updated_server.definition_cid == expected_definition_cid
+
+        definition_record = CID.query.filter_by(
+            path=f"/{expected_definition_cid}",
+        ).first()
+        assert definition_record is not None
+        assert definition_record.file_data.decode("utf-8") == updated_definition
+
+        expected_snapshot_json = generate_all_server_definitions_json("default-user")
+        expected_snapshot_cid = format_cid(
+            generate_cid(expected_snapshot_json.encode("utf-8"))
+        )
+
+        assert expected_snapshot_cid != initial_snapshot_cid
+
+        snapshot_record = CID.query.filter_by(
+            path=f"/{expected_snapshot_cid}",
+        ).first()
+        assert snapshot_record is not None
+        assert snapshot_record.file_data.decode("utf-8") == expected_snapshot_json
+
+    page_response = client.get("/servers")
+    assert page_response.status_code == 200
+
+    page = page_response.get_data(as_text=True)
+    assert "/servers/forecast" in page
+    assert "/servers/weather" not in page
+    assert expected_snapshot_cid in page
+    assert initial_snapshot_cid not in page

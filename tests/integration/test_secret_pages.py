@@ -3,8 +3,14 @@ from __future__ import annotations
 
 import pytest
 
+from cid_presenter import format_cid
+from cid_utils import (
+    generate_all_secret_definitions_json,
+    generate_cid,
+    store_secret_definitions_cid,
+)
 from database import db
-from models import Secret
+from models import CID, Secret
 
 pytestmark = pytest.mark.integration
 
@@ -116,3 +122,70 @@ def test_secrets_list_page_displays_user_secrets(
     assert "production-api-key" in page
     assert "staging-api-key" in page
     assert "Create New Secret" in page
+
+
+def test_edit_secret_updates_definition_snapshot(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Secret edits should update cached definition snapshots immediately."""
+
+    with integration_app.app_context():
+        secret = Secret(
+            name="api-token",
+            definition="return 'old-secret'",
+            user_id="default-user",
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+        initial_snapshot_cid = store_secret_definitions_cid("default-user")
+
+    login_default_user()
+
+    updated_definition = "return 'new-secret'"
+
+    response = client.post(
+        "/secrets/api-token/edit",
+        data={
+            "name": "service-token",
+            "definition": updated_definition,
+            "change_message": "rename secret",
+            "submit": "Save Secret",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/secrets/service-token")
+
+    with integration_app.app_context():
+        updated_secret = Secret.query.filter_by(
+            user_id="default-user",
+            name="service-token",
+        ).first()
+        assert updated_secret is not None
+        assert updated_secret.definition == updated_definition
+
+        expected_snapshot_json = generate_all_secret_definitions_json("default-user")
+        expected_snapshot_cid = format_cid(
+            generate_cid(expected_snapshot_json.encode("utf-8"))
+        )
+
+        assert expected_snapshot_cid != initial_snapshot_cid
+
+        snapshot_record = CID.query.filter_by(
+            path=f"/{expected_snapshot_cid}",
+        ).first()
+        assert snapshot_record is not None
+        assert snapshot_record.file_data.decode("utf-8") == expected_snapshot_json
+
+    page_response = client.get("/secrets")
+    assert page_response.status_code == 200
+
+    page = page_response.get_data(as_text=True)
+    assert "/secrets/service-token" in page
+    assert "/secrets/api-token" not in page
+    assert expected_snapshot_cid in page
+    assert initial_snapshot_cid not in page
