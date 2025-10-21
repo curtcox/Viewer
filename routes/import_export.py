@@ -21,8 +21,10 @@ from alias_matching import PatternError, normalise_pattern
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
 from db_access import (
+    find_entity_interaction,
     get_alias_by_name,
     get_cid_by_path,
+    get_entity_interactions,
     get_secret_by_name,
     get_server_by_name,
     get_user_aliases,
@@ -36,7 +38,7 @@ from db_access import (
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
-from models import Alias, EntityInteraction, Secret, Server, Variable
+from models import Alias, Secret, Server, Variable
 
 from . import main_bp
 from .core import get_existing_routes
@@ -719,12 +721,7 @@ def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> Tuple[int, list
 
 
 def _serialise_interaction_history(user_id: str, entity_type: str, entity_name: str) -> list[dict[str, str]]:
-    interactions = (
-        EntityInteraction.query
-        .filter_by(user_id=user_id, entity_type=entity_type, entity_name=entity_name)
-        .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())
-        .all()
-    )
+    interactions = get_entity_interactions(user_id, entity_type, entity_name)
 
     history: list[dict[str, str]] = []
     for interaction in interactions:
@@ -838,17 +835,13 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
                 content_raw = raw_event.get('content')
                 content = (content_raw if isinstance(content_raw, str) else '').strip()
 
-                existing = (
-                    EntityInteraction.query
-                    .filter_by(
-                        user_id=user_id,
-                        entity_type=entity_type,
-                        entity_name=name,
-                        action=action,
-                        message=message,
-                    )
-                    .filter(EntityInteraction.created_at == timestamp)
-                    .first()
+                existing = find_entity_interaction(
+                    user_id,
+                    entity_type,
+                    name,
+                    action,
+                    message,
+                    timestamp,
                 )
                 if existing:
                     continue

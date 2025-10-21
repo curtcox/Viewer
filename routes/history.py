@@ -9,7 +9,11 @@ from identity import current_user
 from analytics import get_paginated_page_views, get_user_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
 from cid_utils import is_strict_cid_candidate, split_cid_path
-from models import CID, ServerInvocation
+from db_access import (
+    get_cids_by_paths,
+    get_user_server_invocations_by_result_cids,
+)
+from models import ServerInvocation
 
 from . import main_bp
 
@@ -200,11 +204,7 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
         path = cid_path(cid)
         if path:
             cid_paths.append(path)
-    cid_records = (
-        CID.query
-        .filter(CID.path.in_(cid_paths))
-        .all()
-    )
+    cid_records = get_cids_by_paths(cid_paths)
 
     referer_by_cid: Dict[str, str] = {}
     for record in cid_records:
@@ -239,14 +239,9 @@ def _attach_server_event_links(page_views: object) -> None:
     if not result_cids:
         return
 
-    invocations = (
-        ServerInvocation.query
-        .filter(
-            ServerInvocation.user_id == current_user.id,
-            ServerInvocation.result_cid.in_(result_cids),
-        )
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
+    invocations = get_user_server_invocations_by_result_cids(
+        current_user.id,
+        result_cids,
     )
 
     # Prefer the most recent invocation for each result CID.

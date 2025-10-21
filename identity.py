@@ -13,7 +13,7 @@ from flask import g, has_request_context, session
 from werkzeug.local import LocalProxy
 
 from ai_defaults import ensure_ai_stub_for_user
-from database import db
+from db_access import get_user_by_id, load_user_by_id, save_entity
 from models import User
 
 _DEFAULT_USER_ID = "default-user"
@@ -27,7 +27,7 @@ _cached_user: Optional[User] = None
 def _ensure_default_user() -> User:
     """Return the singleton default user, creating it if necessary."""
 
-    user = User.query.filter_by(id=_DEFAULT_USER_ID).first()
+    user = get_user_by_id(_DEFAULT_USER_ID)
     if user is None:
         user = User(
             id=_DEFAULT_USER_ID,
@@ -37,8 +37,7 @@ def _ensure_default_user() -> User:
             is_paid=True,
             current_terms_accepted=True,
         )
-        db.session.add(user)
-        db.session.commit()
+        save_entity(user)
         ensure_ai_stub_for_user(user.id)
         return user
 
@@ -51,8 +50,7 @@ def _ensure_default_user() -> User:
         user.current_terms_accepted = True
         updated = True
     if updated:
-        db.session.add(user)
-        db.session.commit()
+        save_entity(user)
     return user
 
 
@@ -76,7 +74,7 @@ def _load_current_user() -> User:
 
         if requested_user_id:
             if not user or getattr(user, "id", None) != requested_user_id:
-                user = db.session.get(User, requested_user_id)
+                user = load_user_by_id(requested_user_id)
                 if user is None:
                     user = _ensure_default_user()
                 g._default_user = user

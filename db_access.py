@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, Iterable, List
 
 from database import db
 from models import (
@@ -14,7 +14,9 @@ from models import (
     ServerInvocation,
     CID,
     EntityInteraction,
+    PageView,
 )
+from sqlalchemy import func, or_
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
@@ -184,6 +186,60 @@ def delete_entity(entity):
     db.session.commit()
 
 
+def rollback_session() -> None:
+    """Roll back the current database session."""
+
+    db.session.rollback()
+
+
+def save_page_view(page_view: PageView) -> PageView:
+    """Persist a page view record."""
+
+    db.session.add(page_view)
+    db.session.commit()
+    return page_view
+
+
+def count_user_page_views(user_id: str) -> int:
+    """Return the number of page views recorded for a user."""
+
+    return PageView.query.filter_by(user_id=user_id).count()
+
+
+def count_unique_page_view_paths(user_id: str) -> int:
+    """Return the number of unique paths viewed by a user."""
+
+    return (
+        db.session.query(func.count(func.distinct(PageView.path)))
+        .filter_by(user_id=user_id)
+        .scalar()
+        or 0
+    )
+
+
+def get_popular_page_paths(user_id: str, limit: int = 5):
+    """Return the most frequently viewed paths for a user."""
+
+    return (
+        db.session.query(PageView.path, func.count(PageView.path).label('count'))
+        .filter_by(user_id=user_id)
+        .group_by(PageView.path)
+        .order_by(func.count(PageView.path).desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def paginate_user_page_views(user_id: str, page: int, per_page: int = 50):
+    """Return paginated page view history for a user."""
+
+    return (
+        PageView.query.filter_by(user_id=user_id)
+        .order_by(PageView.viewed_at.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
+
+
 def create_server_invocation(
     user_id: str,
     server_name: str,
@@ -206,6 +262,70 @@ def create_server_invocation(
     )
     save_entity(invocation)
     return invocation
+
+
+def get_user_server_invocations(user_id: str) -> List[ServerInvocation]:
+    """Return invocation events for a user ordered from newest to oldest."""
+
+    return (
+        ServerInvocation.query
+        .filter(ServerInvocation.user_id == user_id)
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
+
+
+def get_user_server_invocations_by_server(user_id: str, server_name: str) -> List[ServerInvocation]:
+    """Return invocation events for a specific server ordered from newest to oldest."""
+
+    return (
+        ServerInvocation.query
+        .filter(
+            ServerInvocation.user_id == user_id,
+            ServerInvocation.server_name == server_name,
+        )
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
+
+
+def get_user_server_invocations_by_result_cids(
+    user_id: str,
+    result_cids: Iterable[str],
+) -> List[ServerInvocation]:
+    """Return invocation events matching any of the provided result CIDs."""
+
+    cid_values = {cid for cid in result_cids if cid}
+    if not cid_values:
+        return []
+
+    return (
+        ServerInvocation.query
+        .filter(
+            ServerInvocation.user_id == user_id,
+            ServerInvocation.result_cid.in_(cid_values),
+        )
+        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
+        .all()
+    )
+
+
+def find_server_invocations_by_cid(cid_value: str) -> List[ServerInvocation]:
+    """Return invocation events that reference a CID in any tracked column."""
+
+    if not cid_value:
+        return []
+
+    filters = [
+        ServerInvocation.result_cid == cid_value,
+        ServerInvocation.invocation_cid == cid_value,
+        ServerInvocation.request_details_cid == cid_value,
+        ServerInvocation.servers_cid == cid_value,
+        ServerInvocation.variables_cid == cid_value,
+        ServerInvocation.secrets_cid == cid_value,
+    ]
+
+    return ServerInvocation.query.filter(or_(*filters)).all()
 
 
 def get_cid_by_path(path: str) -> Optional[CID]:
@@ -243,6 +363,33 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
 
 def get_user_uploads(user_id: str):
     return CID.query.filter_by(uploaded_by_user_id=user_id).order_by(CID.created_at.desc()).all()
+
+
+def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
+    """Return CID records that match any of the supplied paths."""
+
+    normalized_paths = [path for path in paths if path]
+    if not normalized_paths:
+        return []
+
+    return CID.query.filter(CID.path.in_(normalized_paths)).all()
+
+
+def get_recent_cids(limit: int = 10) -> List[CID]:
+    """Return the most recent CID records."""
+
+    return (
+        CID.query
+        .order_by(CID.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def get_first_cid() -> Optional[CID]:
+    """Return the first CID record in the table."""
+
+    return CID.query.first()
 
 
 def record_entity_interaction(
@@ -325,3 +472,102 @@ def get_recent_entity_interactions(
         query = query.limit(limit)
 
     return list(query.all())
+
+
+def find_entity_interaction(
+    user_id: str,
+    entity_type: str,
+    entity_name: str,
+    action: str,
+    message: str,
+    created_at,
+):
+    """Return a single interaction matching the supplied criteria."""
+
+    query = EntityInteraction.query.filter_by(
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_name=entity_name,
+        action=action,
+        message=message,
+    )
+
+    if created_at is not None:
+        query = query.filter(EntityInteraction.created_at == created_at)
+
+    return query.first()
+
+
+def get_entity_interactions(
+    user_id: str,
+    entity_type: str,
+    entity_name: str,
+):
+    """Return all stored interactions for an entity ordered from oldest to newest."""
+
+    return (
+        EntityInteraction.query
+        .filter_by(user_id=user_id, entity_type=entity_type, entity_name=entity_name)
+        .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())
+        .all()
+    )
+
+
+def get_all_users() -> List[User]:
+    """Return all user records."""
+
+    return User.query.all()
+
+
+def get_all_servers() -> List[Server]:
+    """Return all server records."""
+
+    return Server.query.all()
+
+
+def get_user_by_id(user_id: str) -> Optional[User]:
+    """Return a user by identifier."""
+
+    if not user_id:
+        return None
+    return User.query.filter_by(id=user_id).first()
+
+
+def load_user_by_id(user_id: str) -> Optional[User]:
+    """Return a user by primary key using the active session."""
+
+    if not user_id:
+        return None
+    return db.session.get(User, user_id)
+
+
+def count_users() -> int:
+    return User.query.count()
+
+
+def count_cids() -> int:
+    return CID.query.count()
+
+
+def count_page_views() -> int:
+    return PageView.query.count()
+
+
+def count_servers() -> int:
+    return Server.query.count()
+
+
+def count_variables() -> int:
+    return Variable.query.count()
+
+
+def count_secrets() -> int:
+    return Secret.query.count()
+
+
+def count_payments() -> int:
+    return Payment.query.count()
+
+
+def count_terms_acceptances() -> int:
+    return TermsAcceptance.query.count()

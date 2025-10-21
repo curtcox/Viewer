@@ -5,8 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import create_app
-from database import db
-from models import Server
+from db_access import get_all_servers, save_entity
 from cid_utils import save_server_definition_as_cid
 import sqlite3
 
@@ -52,18 +51,20 @@ def migrate_add_server_cid():
             conn.close()
             
             # Now populate existing servers with CIDs
-            servers = Server.query.all()
+            servers = get_all_servers()
             print(f"Found {len(servers)} existing servers to update")
-            
+
+            updated_servers = 0
             for server in servers:
                 if not server.definition_cid and server.definition:
                     # Generate CID for existing definition
                     cid = save_server_definition_as_cid(server.definition, server.user_id)
                     server.definition_cid = cid
                     print(f"✓ Updated server '{server.name}' with CID: {cid}")
-            
-            db.session.commit()
-            print(f"✓ Updated {len(servers)} servers with CIDs")
+                    save_entity(server)
+                    updated_servers += 1
+
+            print(f"✓ Updated {updated_servers} servers with CIDs")
             
             return True
             

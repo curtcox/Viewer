@@ -6,8 +6,13 @@ from typing import Optional
 
 from flask import current_app
 
-from db_access import get_alias_by_name, get_server_by_name, save_entity
-from models import Alias, Server, User
+from db_access import (
+    get_alias_by_name,
+    get_all_users,
+    get_server_by_name,
+    save_entity,
+)
+from models import Alias, Server
 from server_templates import iter_server_templates
 
 AI_ALIAS_NAME = "ai"
@@ -101,7 +106,7 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 def ensure_ai_stub_for_all_users() -> None:
     """Ensure every existing user can use the AI stub without additional setup."""
 
-    for user in User.query.all():
+    for user in get_all_users():
         ensure_ai_stub_for_user(user.id)
 
 

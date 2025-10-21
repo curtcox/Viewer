@@ -2,9 +2,17 @@
 
 from flask import request, session
 
+from db_access import (
+    count_unique_page_view_paths,
+    count_user_page_views,
+    get_popular_page_paths,
+    paginate_user_page_views,
+    rollback_session,
+    save_page_view,
+)
 from identity import current_user
 
-from models import PageView, ServerInvocation  # noqa: F401
+from models import PageView  # noqa: F401
 
 
 def make_session_permanent():
@@ -45,41 +53,24 @@ def track_page_view(response):
     try:
         if should_track_page_view(response):
             page_view = create_page_view_record()
-            from database import db
-            db.session.add(page_view)
-            db.session.commit()
+            save_page_view(page_view)
     except Exception:
         # Don't let tracking errors break the request
-        from database import db
-        db.session.rollback()
+        rollback_session()
 
     return response
 
 
 def get_user_history_statistics(user_id):
     """Calculate history statistics for a user."""
-    from sqlalchemy import func
-    from database import db
-
     # Get total views count
-    total_views = PageView.query.filter_by(user_id=user_id).count()
+    total_views = count_user_page_views(user_id)
 
     # Get unique paths count
-    unique_paths = (
-        db.session.query(func.count(func.distinct(PageView.path)))
-        .filter_by(user_id=user_id)
-        .scalar()
-    )
+    unique_paths = count_unique_page_view_paths(user_id)
 
     # Get most visited paths
-    popular_paths = (
-        db.session.query(PageView.path, func.count(PageView.path).label('count'))
-        .filter_by(user_id=user_id)
-        .group_by(PageView.path)
-        .order_by(func.count(PageView.path).desc())
-        .limit(5)
-        .all()
-    )
+    popular_paths = get_popular_page_paths(user_id)
 
     return {
         'total_views': total_views,
@@ -90,11 +81,7 @@ def get_user_history_statistics(user_id):
 
 def get_paginated_page_views(user_id, page, per_page=50):
     """Get paginated page views for a user."""
-    return (
-        PageView.query.filter_by(user_id=user_id)
-        .order_by(PageView.viewed_at.desc())
-        .paginate(page=page, per_page=per_page, error_out=False)
-    )
+    return paginate_user_page_views(user_id, page, per_page=per_page)
 
 
 __all__ = [

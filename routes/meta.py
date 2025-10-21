@@ -12,15 +12,18 @@ from urllib.parse import urlsplit
 
 from flask import Response, current_app, jsonify, url_for
 from identity import current_user
-from sqlalchemy import or_
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
 from cid_presenter import cid_path, format_cid
 from entity_references import extract_references_from_bytes
-from db_access import get_cid_by_path, get_server_by_name, get_user_aliases
-from models import ServerInvocation
+from db_access import (
+    find_server_invocations_by_cid,
+    get_cid_by_path,
+    get_server_by_name,
+    get_user_aliases,
+)
 from server_execution import (
     is_potential_server_path,
     is_potential_versioned_server_path,
@@ -514,16 +517,7 @@ def _server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
     if not cid_value:
         return []
 
-    filters = [
-        ServerInvocation.result_cid == cid_value,
-        ServerInvocation.invocation_cid == cid_value,
-        ServerInvocation.request_details_cid == cid_value,
-        ServerInvocation.servers_cid == cid_value,
-        ServerInvocation.variables_cid == cid_value,
-        ServerInvocation.secrets_cid == cid_value,
-    ]
-
-    invocations = ServerInvocation.query.filter(or_(*filters)).all()
+    invocations = find_server_invocations_by_cid(cid_value)
     if not invocations:
         return []
 

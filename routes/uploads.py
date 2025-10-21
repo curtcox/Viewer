@@ -22,11 +22,12 @@ from db_access import (
     get_alias_by_name,
     get_alias_by_target_path,
     get_cid_by_path,
+    get_user_server_invocations,
     get_user_uploads,
     record_entity_interaction,
     save_entity,
 )
-from models import Alias, ServerInvocation
+from models import Alias
 from forms import EditCidForm, FileUploadForm
 from upload_templates import get_upload_templates
 from interaction_log import load_interaction_history
@@ -306,12 +307,7 @@ def edit_cid(cid_prefix):
 @main_bp.route('/server_events')
 def server_events():
     """Display server invocation events for the current user."""
-    invocations = (
-        ServerInvocation.query
-        .filter(ServerInvocation.user_id == current_user.id)
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
-    )
+    invocations = get_user_server_invocations(current_user.id)
 
     referer_by_request = _load_request_referers(invocations)
 
@@ -368,12 +364,7 @@ def _attach_creation_sources(user_uploads):
     if not user_uploads:
         return
 
-    invocations = (
-        ServerInvocation.query
-        .filter(ServerInvocation.user_id == current_user.id)
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
-    )
+    invocations = get_user_server_invocations(current_user.id)
 
     invocation_by_cid = {}
     for invocation in invocations:
