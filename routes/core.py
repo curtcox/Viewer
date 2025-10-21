@@ -35,8 +35,8 @@ from db_access import (
 )
 from cid_presenter import cid_path, format_cid, format_cid_short
 from entity_references import (
+    extract_references_from_alias,
     extract_references_from_bytes,
-    extract_references_from_target,
     extract_references_from_text,
 )
 from models import CID
@@ -200,7 +200,7 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         entity_incoming_refs[target_key].add(ref_key)
 
     def _handle_alias_references(alias_obj) -> None:
-        refs = extract_references_from_target(getattr(alias_obj, 'target_path', None), user_id)
+        refs = extract_references_from_alias(alias_obj, user_id)
         for ref in refs.get('aliases', []):
             target_name = ref.get('name')
             if target_name:

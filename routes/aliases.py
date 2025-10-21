@@ -9,7 +9,7 @@ from flask import abort, flash, jsonify, redirect, render_template, request, url
 from identity import current_user
 
 from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
-from entity_references import extract_references_from_target
+from entity_references import extract_references_from_alias
 from forms import AliasForm
 from models import Alias
 import logfire
@@ -272,10 +272,7 @@ def view_alias(alias_name: str):
     if not alias:
         abort(404)
 
-    target_references = extract_references_from_target(
-        getattr(alias, "target_path", None),
-        current_user.id,
-    )
+    target_references = extract_references_from_alias(alias, current_user.id)
 
     definition_summary = summarize_definition_lines(
         getattr(alias, "definition", None), alias_name=getattr(alias, "name", None)

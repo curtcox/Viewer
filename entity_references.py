@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from flask import url_for
 
+from alias_definition import collect_alias_routes
 from cid_presenter import cid_path, format_cid
 from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
@@ -205,6 +206,41 @@ def extract_references_from_target(target_path: Optional[str], user_id: Optional
     return references
 
 
+def extract_references_from_alias(alias_obj, user_id: Optional[str] = None) -> ReferenceMap:
+    """Aggregate references from all targets defined by an alias."""
+
+    references = _empty_reference_map()
+    if not alias_obj:
+        return references
+
+    target_paths: set[str] = set()
+
+    direct_target = getattr(alias_obj, "target_path", None)
+    if direct_target:
+        target_paths.add(direct_target)
+
+    for route in collect_alias_routes(alias_obj):
+        route_target = getattr(route, "target_path", None)
+        if route_target:
+            target_paths.add(route_target)
+
+    alias_refs: list[Dict[str, str]] = []
+    server_refs: list[Dict[str, str]] = []
+    cid_refs: list[Dict[str, str]] = []
+
+    for target in target_paths:
+        path_refs = extract_references_from_target(target, user_id)
+        alias_refs.extend(path_refs.get("aliases", []))
+        server_refs.extend(path_refs.get("servers", []))
+        cid_refs.extend(path_refs.get("cids", []))
+
+    references["aliases"] = _dedupe(alias_refs, "name")
+    references["servers"] = _dedupe(server_refs, "name")
+    references["cids"] = _dedupe(cid_refs, "cid")
+
+    return references
+
+
 def _server_name_from_path(path: str) -> Optional[str]:
     segments = [segment for segment in path.split("/") if segment]
     if not segments:
@@ -232,6 +268,7 @@ def _cid_reference_from_path(path: str) -> Optional[Dict[str, str]]:
 
 __all__ = [
     "extract_references_from_bytes",
+    "extract_references_from_alias",
     "extract_references_from_target",
     "extract_references_from_text",
 ]

@@ -925,6 +925,18 @@ class TestCidEditingRoutes(BaseTestCase):
         db.session.commit()
         return alias
 
+    def _extract_referenced_targets_section(self, page: str) -> str:
+        marker = 'Referenced Targets'
+        if marker not in page:
+            return ''
+
+        after_marker = page.split(marker, 1)[1]
+        end_marker = 'How it Works'
+        if end_marker in after_marker:
+            after_marker = after_marker.split(end_marker, 1)[0]
+
+        return after_marker
+
     def test_edit_requires_login(self):
         cid_value = self._create_cid_record(b'needs auth')
         response = self.client.get(f'/edit/{cid_value}', follow_redirects=False)
@@ -1334,6 +1346,10 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(view_page.status_code, 200)
         view_text = view_page.get_data(as_text=True)
         self.assertIn(f'/{new_cid}', view_text)
+        self.assertIn('Referenced Targets', view_text)
+        view_targets = self._extract_referenced_targets_section(view_text)
+        self.assertIn(new_cid, view_targets)
+        self.assertNotIn(cid_value, view_targets)
 
         edit_page = self.client.get('/aliases/Alpha/edit')
         self.assertEqual(edit_page.status_code, 200)
@@ -1385,6 +1401,10 @@ class TestCidEditingRoutes(BaseTestCase):
         view_text = view_page.get_data(as_text=True)
         self.assertIn(f'/{new_cid}', view_text)
         self.assertIn('[glob]', view_text)
+        self.assertIn('Referenced Targets', view_text)
+        view_targets = self._extract_referenced_targets_section(view_text)
+        self.assertIn(new_cid, view_targets)
+        self.assertNotIn(cid_value, view_targets)
 
         edit_page = self.client.get('/aliases/Atlas/edit')
         self.assertEqual(edit_page.status_code, 200)
@@ -1432,6 +1452,10 @@ class TestCidEditingRoutes(BaseTestCase):
         view_text = view_page.get_data(as_text=True)
         self.assertIn(new_cid, view_text)
         self.assertNotIn(cid_value, view_text)
+        self.assertIn('Referenced Targets', view_text)
+        view_targets = self._extract_referenced_targets_section(view_text)
+        self.assertIn(new_cid, view_targets)
+        self.assertNotIn(cid_value, view_targets)
 
         edit_page = self.client.get('/aliases/Alpha/edit')
         self.assertEqual(edit_page.status_code, 200)
@@ -1484,6 +1508,10 @@ class TestCidEditingRoutes(BaseTestCase):
         view_text = view_page.get_data(as_text=True)
         self.assertIn(new_cid, view_text)
         self.assertNotIn(cid_value, view_text)
+        self.assertIn('Referenced Targets', view_text)
+        view_targets = self._extract_referenced_targets_section(view_text)
+        self.assertIn(new_cid, view_targets)
+        self.assertNotIn(cid_value, view_targets)
 
         edit_page = self.client.get('/aliases/Atlas/edit')
         self.assertEqual(edit_page.status_code, 200)
