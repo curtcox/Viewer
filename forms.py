@@ -7,6 +7,9 @@ import re
 from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
+ALIAS_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+$')
+
+
 def _strip_filter(value):
     return value.strip() if isinstance(value, str) else value
 
@@ -64,17 +67,34 @@ class EditCidForm(FlaskForm):
         render_kw={'rows': 15, 'placeholder': 'Update the CID content here...'},
     )
     alias_name = StringField(
-        'Alias Name (optional)',
+        'Alias Names (Optional)',
         validators=[
             Optional(),
-            Regexp(
-                r'^[a-zA-Z0-9._-]+$',
-                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores',
-            ),
         ],
         filters=[_strip_filter],
     )
     submit = SubmitField('Save Changes')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._alias_names = []
+
+    @property
+    def alias_names(self):
+        return self._alias_names
+
+    def validate_alias_name(self, field):
+        data = field.data or ''
+        raw_names = data.split()
+        unique_names = list(dict.fromkeys(raw_names))
+        self._alias_names = unique_names
+
+        invalid_names = [name for name in unique_names if not ALIAS_NAME_PATTERN.match(name)]
+        if invalid_names:
+            raise ValidationError(
+                'Alias names can only contain letters, numbers, dots, hyphens, and underscores: '
+                + ', '.join(invalid_names)
+            )
 
 class ServerForm(FlaskForm):
     name = StringField('Server Name', validators=[

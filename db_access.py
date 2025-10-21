@@ -119,6 +119,18 @@ def get_alias_by_target_path(user_id: str, target_path: str):
     )
 
 
+def get_aliases_by_target_path(user_id: str, target_path: str):
+    return (
+        Alias.query.filter_by(
+            user_id=user_id,
+            target_path=target_path,
+            match_type='literal',
+        )
+        .order_by(Alias.id.asc())
+        .all()
+    )
+
+
 def get_user_variables(user_id: str):
     return Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
 

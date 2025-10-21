@@ -951,8 +951,9 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias Name (optional)', page)
-        self.assertIn('Optionally supply a new alias', page)
+        self.assertIn('Alias Names (Optional)', page)
+        self.assertIn('Optionally supply alias names separated by spaces', page)
+        self.assertNotIn('Aliases listed below will be updated to point at the new CID when you save:', page)
 
     def test_edit_cid_get_unique_prefix(self):
         cid_value = self._create_cid_record(b'unique prefix content')
@@ -976,8 +977,24 @@ class TestCidEditingRoutes(BaseTestCase):
 
         page = response.get_data(as_text=True)
         self.assertIn('Save Atari', page)
-        self.assertIn('Saving will update the <strong>Atari</strong> alias', page)
-        self.assertNotIn('Alias Name (optional)', page)
+        self.assertIn('Aliases listed below will be updated to point at the new CID when you save:', page)
+        self.assertIn('<strong>Atari</strong>', page)
+        self.assertIn('Alias Names (Optional)', page)
+        self.assertIn('value="Atari"', page)
+
+    def test_edit_cid_prefills_multiple_aliases_in_field(self):
+        cid_value = self._create_cid_record(b'multiple aliases content')
+        self._create_alias('Alpha', f'/{cid_value}')
+        self._create_alias('Beta', f'/{cid_value}')
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Aliases listed below will be updated to point at the new CID when you save:', page)
+        self.assertIn('<strong>Alpha, Beta</strong>', page)
+        self.assertIn('value="Alpha Beta"', page)
 
     def test_edit_cid_multiple_matches(self):
         self.login_user()
@@ -1041,7 +1058,7 @@ class TestCidEditingRoutes(BaseTestCase):
         updated_text = 'alias new content'
         response = self.client.post(
             f'/edit/{cid_value}',
-            data={'text_content': updated_text, 'submit': 'Save Atari'},
+            data={'text_content': updated_text, 'alias_name': 'Atari', 'submit': 'Save Atari'},
             follow_redirects=True,
         )
 
@@ -1054,6 +1071,60 @@ class TestCidEditingRoutes(BaseTestCase):
 
         page = response.get_data(as_text=True)
         self.assertIn(new_cid, page)
+
+    def test_edit_cid_save_updates_multiple_alias_targets(self):
+        original_content = b'multiple alias original'
+        cid_value = self._create_cid_record(original_content)
+        self._create_alias('Atari', f'/{cid_value}')
+        self._create_alias('Lynx', f'/{cid_value}')
+        self.login_user()
+
+        updated_text = 'multiple alias new content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Atari Lynx',
+                'submit': 'Save Atari',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        for alias_name in ('Atari', 'Lynx'):
+            alias = Alias.query.filter_by(name=alias_name, user_id=self.test_user.id).first()
+            self.assertIsNotNone(alias)
+            self.assertEqual(alias.target_path, f'/{new_cid}')
+
+    def test_edit_cid_save_updates_existing_and_creates_new_alias(self):
+        original_content = b'existing and new alias original'
+        cid_value = self._create_cid_record(original_content)
+        self._create_alias('Atari', f'/{cid_value}')
+        self.login_user()
+
+        updated_text = 'existing and new alias updated content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Atari Jaguar',
+                'submit': 'Save Atari',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        atari_alias = Alias.query.filter_by(name='Atari', user_id=self.test_user.id).first()
+        self.assertIsNotNone(atari_alias)
+        self.assertEqual(atari_alias.target_path, f'/{new_cid}')
+
+        jaguar_alias = Alias.query.filter_by(name='Jaguar', user_id=self.test_user.id).first()
+        self.assertIsNotNone(jaguar_alias)
+        self.assertEqual(jaguar_alias.target_path, f'/{new_cid}')
 
     def test_edit_cid_save_allows_creating_new_alias(self):
         original_content = b'add alias original'
@@ -1101,8 +1172,8 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias with this name already exists.', page)
-        self.assertIn('Alias Name (optional)', page)
+        self.assertIn('Alias with this name already exists: Existing.', page)
+        self.assertIn('Alias Names (Optional)', page)
 
         new_cid = generate_cid(updated_text.encode('utf-8'))
         self.assertIsNone(CID.query.filter_by(path=f'/{new_cid}').first())

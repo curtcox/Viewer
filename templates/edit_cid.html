@@ -91,28 +91,27 @@
                             interactions=interaction_history|default([]),
                             history_label='Recent edits and requests'
                         ) }}
-                        {% if not show_alias_field and current_alias_name %}
+                        {% if prefilled_alias_names %}
                             <div class="alert alert-info" role="alert">
                                 <i class="fas fa-link me-1"></i>
-                                Saving will update the <strong>{{ current_alias_name }}</strong> alias to point at the new CID.
+                                Aliases listed below will be updated to point at the new CID when you save:
+                                <strong>{{ prefilled_alias_names|join(', ') }}</strong>
                             </div>
                         {% endif %}
-                        {% if show_alias_field %}
-                            <div class="mb-3">
-                                {{ form.alias_name.label(class="form-label") }}
-                                {{ form.alias_name(class="form-control" + (" is-invalid" if form.alias_name.errors else "")) }}
-                                {% if form.alias_name.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.alias_name.errors %}
-                                            <div>{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Optionally supply a new alias to point at the saved content. Alias names are case sensitive.
-                                </small>
-                            </div>
-                        {% endif %}
+                        <div class="mb-3">
+                            {{ form.alias_name.label(class="form-label") }}
+                            {{ form.alias_name(class="form-control" + (" is-invalid" if form.alias_name.errors else "")) }}
+                            {% if form.alias_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.alias_name.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                Optionally supply alias names separated by spaces to point at the saved content. Alias names are case sensitive.
+                            </small>
+                        </div>
                         <div class="d-flex gap-2 align-items-center flex-wrap">
                             {{ form.submit(class="btn btn-primary", value=submit_label) }}
                             {{ ai_action_button(form.text_content.id, button_label='AI', extra_classes='btn-outline-primary') }}
