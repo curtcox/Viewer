@@ -1,6 +1,7 @@
 """Upload-related routes and helpers."""
 
 import re
+from urllib.parse import urlsplit
 
 from flask import abort, flash, render_template, request, url_for
 from identity import current_user
@@ -64,6 +65,52 @@ def _replace_alias_target_in_line(line: str, original_target: str, new_target: s
     return f"{prefix}{arrow}{updated_suffix}{comment}"
 
 
+def _normalize_route_target(target: str) -> str:
+    """Return a canonical representation of a route target for comparison."""
+
+    normalized = (target or "").strip()
+    if not normalized:
+        return ""
+
+    parsed = urlsplit(normalized)
+    path = (parsed.path or "").strip()
+    if path and not path.startswith("/"):
+        path = f"/{path}"
+    return path
+
+
+def _definition_target_search_value(target: str) -> str:
+    """Return the substring from the definition that should be replaced."""
+
+    normalized = (target or "").strip()
+    if not normalized:
+        return ""
+
+    parsed = urlsplit(normalized)
+    path = parsed.path or ""
+    if not path:
+        return ""
+
+    if normalized.startswith("/") or path.startswith("/"):
+        return path if path.startswith("/") else f"/{path}"
+
+    return path.lstrip("/") or path
+
+
+def _format_replacement_target(original_target: str, new_target: str) -> str:
+    """Adjust the new target so it mirrors the formatting of the original string."""
+
+    replacement = new_target or ""
+    if (
+        replacement
+        and original_target
+        and not original_target.startswith("/")
+        and replacement.startswith("/")
+    ):
+        return replacement.lstrip("/")
+    return replacement
+
+
 def _update_alias_definition_targets(alias: Alias, original_target: str, new_target: str) -> None:
     """Update any definition lines that routed to the original CID target."""
 
@@ -71,25 +118,41 @@ def _update_alias_definition_targets(alias: Alias, original_target: str, new_tar
     if not definition:
         return
 
+    normalized_original = _normalize_route_target(original_target)
+    if not normalized_original:
+        return
+
     alias_name = getattr(alias, "name", None)
     summaries = summarize_definition_lines(definition, alias_name=alias_name)
-    target_line_numbers = {
-        entry.number
-        for entry in summaries
-        if entry.is_mapping and not entry.parse_error and entry.target_path == original_target
-    }
 
-    if not target_line_numbers:
+    targets_by_line: dict[int, str] = {}
+    for entry in summaries:
+        if not entry.is_mapping or entry.parse_error:
+            continue
+
+        normalized_entry_target = _normalize_route_target(entry.target_path or "")
+        if normalized_entry_target != normalized_original:
+            continue
+
+        search_value = _definition_target_search_value(entry.target_path or "")
+        if not search_value:
+            continue
+
+        targets_by_line.setdefault(entry.number, search_value)
+
+    if not targets_by_line:
         return
 
     lines = definition.splitlines()
     updated = False
 
     for index, line in enumerate(lines, start=1):
-        if index not in target_line_numbers:
+        target_segment = targets_by_line.get(index)
+        if not target_segment:
             continue
 
-        new_line = _replace_alias_target_in_line(line, original_target, new_target)
+        replacement_target = _format_replacement_target(target_segment, new_target)
+        new_line = _replace_alias_target_in_line(line, target_segment, replacement_target)
         if new_line != line:
             lines[index - 1] = new_line
             updated = True

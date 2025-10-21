@@ -1392,6 +1392,105 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertIn(f'/{new_cid}', edit_text)
         self.assertIn('[glob]', edit_text)
 
+    def test_edit_cid_save_updates_alias_definition_without_leading_slash(self):
+        original_content = b'alias missing slash original'
+        cid_value = self._create_cid_record(original_content)
+
+        alias = Alias(
+            name='Alpha',
+            target_path=f'/{cid_value}',
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+            definition=f'Alpha -> {cid_value}',
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        self.login_user()
+        updated_text = 'alias missing slash updated content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Alpha',
+                'submit': 'Save Alpha',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        alias = Alias.query.filter_by(name='Alpha', user_id=self.test_user.id).first()
+        self.assertIsNotNone(alias)
+        self.assertEqual(alias.target_path, f'/{new_cid}')
+        self.assertEqual(alias.definition, f'Alpha -> {new_cid}')
+
+        view_page = self.client.get('/aliases/Alpha')
+        self.assertEqual(view_page.status_code, 200)
+        view_text = view_page.get_data(as_text=True)
+        self.assertIn(new_cid, view_text)
+        self.assertNotIn(cid_value, view_text)
+
+        edit_page = self.client.get('/aliases/Alpha/edit')
+        self.assertEqual(edit_page.status_code, 200)
+        edit_text = edit_page.get_data(as_text=True)
+        self.assertIn(new_cid, edit_text)
+        self.assertNotIn(cid_value, edit_text)
+
+    def test_edit_cid_save_updates_nested_alias_definition_without_leading_slash(self):
+        original_content = b'nested alias missing slash original'
+        cid_value = self._create_cid_record(original_content)
+
+        definition = textwrap.dedent(
+            f"""
+            Atlas -> /atlas/home
+              guide -> {cid_value} [glob]
+            """
+        ).strip()
+
+        alias = self._create_multiline_alias('Atlas', '/atlas/home', definition)
+
+        self.login_user()
+        updated_text = 'nested alias missing slash updated content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Atlas',
+                'submit': 'Save Atlas',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        alias = Alias.query.filter_by(name='Atlas', user_id=self.test_user.id).first()
+        self.assertIsNotNone(alias)
+        self.assertEqual(alias.target_path, '/atlas/home')
+
+        expected_definition = textwrap.dedent(
+            f"""
+            Atlas -> /atlas/home
+              guide -> {new_cid} [glob]
+            """
+        ).strip()
+        self.assertEqual(alias.definition, expected_definition)
+
+        view_page = self.client.get('/aliases/Atlas')
+        self.assertEqual(view_page.status_code, 200)
+        view_text = view_page.get_data(as_text=True)
+        self.assertIn(new_cid, view_text)
+        self.assertNotIn(cid_value, view_text)
+
+        edit_page = self.client.get('/aliases/Atlas/edit')
+        self.assertEqual(edit_page.status_code, 200)
+        edit_text = edit_page.get_data(as_text=True)
+        self.assertIn(new_cid, edit_text)
+        self.assertNotIn(cid_value, edit_text)
+
     def test_edit_cid_alias_name_conflict_shows_error(self):
         original_content = b'conflict original'
         cid_value = self._create_cid_record(original_content)
