@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, Iterable, List
+from typing import Optional, Dict, Any, Iterable, List, Tuple, Set
 
 import models
 from database import db
@@ -18,6 +18,8 @@ from models import (
     PageView,
 )
 from sqlalchemy import func, or_
+
+from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
@@ -199,6 +201,147 @@ def save_page_view(page_view: PageView) -> PageView:
     db.session.add(page_view)
     db.session.commit()
     return page_view
+
+
+def _normalize_cid_value(value: Optional[str]) -> str:
+    """Return a normalized CID component without leading slashes or whitespace."""
+
+    if value is None:
+        return ""
+    normalized = value.strip().lstrip("/")
+    return normalized
+
+
+def _replace_cid_text(
+    text: Optional[str],
+    old_path: str,
+    new_path: str,
+    old_value: str,
+    new_value: str,
+) -> Tuple[Optional[str], bool]:
+    """Return text with CID references replaced and whether a change occurred."""
+
+    if text is None:
+        return None, False
+
+    updated = text.replace(old_path, new_path).replace(old_value, new_value)
+    if updated == text:
+        return text, False
+    return updated, True
+
+
+def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
+    """Replace CID references in alias and server definitions.
+
+    Parameters
+    ----------
+    old_cid:
+        The previous CID value. Leading slashes are ignored.
+    new_cid:
+        The CID that should replace the previous value. Leading slashes are ignored.
+
+    Returns
+    -------
+    Dict[str, int]
+        A mapping containing the counts of updated aliases and servers.
+    """
+
+    normalized_old = _normalize_cid_value(old_cid)
+    normalized_new = _normalize_cid_value(new_cid)
+
+    if not normalized_old or not normalized_new or normalized_old == normalized_new:
+        return {"aliases": 0, "servers": 0}
+
+    old_path = f"/{normalized_old}"
+    new_path = f"/{normalized_new}"
+
+    alias_updates = 0
+    server_updates = 0
+    updated_server_users: Set[str] = set()
+    now = datetime.now(timezone.utc)
+
+    aliases: List[Alias] = Alias.query.all()
+    for alias in aliases:
+        alias_changed = False
+
+        updated_target, target_changed = _replace_cid_text(
+            getattr(alias, "target_path", None),
+            old_path,
+            new_path,
+            normalized_old,
+            normalized_new,
+        )
+        if target_changed:
+            alias.target_path = updated_target
+            alias_changed = True
+
+        updated_definition, definition_changed = _replace_cid_text(
+            getattr(alias, "definition", None),
+            old_path,
+            new_path,
+            normalized_old,
+            normalized_new,
+        )
+        if definition_changed:
+            alias.definition = updated_definition
+            alias_changed = True
+
+            parsed = None
+            if updated_definition:
+                try:
+                    parsed = parse_alias_definition(
+                        updated_definition,
+                        alias_name=getattr(alias, "name", None),
+                    )
+                except AliasDefinitionError:
+                    parsed = None
+
+            if parsed:
+                alias.match_type = parsed.match_type
+                alias.match_pattern = parsed.match_pattern
+                alias.ignore_case = parsed.ignore_case
+                alias.target_path = parsed.target_path
+
+        if alias_changed:
+            alias.updated_at = now
+            alias_updates += 1
+
+    servers: List[Server] = Server.query.all()
+    if servers:
+        from cid_utils import save_server_definition_as_cid
+
+        for server in servers:
+            updated_definition, definition_changed = _replace_cid_text(
+                getattr(server, "definition", None),
+                old_path,
+                new_path,
+                normalized_old,
+                normalized_new,
+            )
+            if definition_changed:
+                server.definition = updated_definition
+                server.definition_cid = save_server_definition_as_cid(
+                    updated_definition,
+                    getattr(server, "user_id", ""),
+                )
+                server.updated_at = now
+                server_updates += 1
+                if getattr(server, "user_id", None):
+                    updated_server_users.add(server.user_id)
+
+    total_updates = alias_updates + server_updates
+    if not total_updates:
+        return {"aliases": 0, "servers": 0}
+
+    db.session.commit()
+
+    if server_updates and updated_server_users:
+        from cid_utils import store_server_definitions_cid
+
+        for user_id in updated_server_users:
+            store_server_definitions_cid(user_id)
+
+    return {"aliases": alias_updates, "servers": server_updates}
 
 
 def count_user_page_views(user_id: str) -> int:

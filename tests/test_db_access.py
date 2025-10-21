@@ -2,6 +2,7 @@
 import os
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 # Configure environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -10,6 +11,7 @@ os.environ['TESTING'] = 'True'
 
 from app import app
 from models import (
+    Alias,
     PageView,
     Server,
     ServerInvocation,
@@ -60,6 +62,7 @@ from db_access import (
     record_entity_interaction,
     save_entity,
     save_page_view,
+    update_cid_references,
 )
 
 
@@ -209,6 +212,62 @@ class TestDBAccess(unittest.TestCase):
         related = find_server_invocations_by_cid('request-1')
         self.assertEqual(len(related), 1)
         self.assertEqual(related[0].server_name, 'demo')
+
+    def test_update_cid_references_updates_alias_and_server_records(self):
+        old_cid = 'oldcid123456'
+        new_cid = 'newcid789012'
+
+        alias = Alias(
+            name='docs',
+            target_path=f'/{old_cid}?download=1',
+            user_id=self.user.id,
+            match_type='literal',
+            match_pattern='/docs',
+            ignore_case=False,
+            definition=(
+                f'docs -> /{old_cid}?download=1\n'
+                f'# Link to legacy {old_cid} content'
+            ),
+        )
+        server = Server(
+            name='reader',
+            definition=(
+                "def main(request):\n"
+                f"    return '{old_cid}'\n"
+            ),
+            definition_cid=old_cid,
+            user_id=self.user.id,
+        )
+        db.session.add_all([alias, server])
+        db.session.commit()
+
+        with patch('cid_utils.save_server_definition_as_cid') as mock_save, patch(
+            'cid_utils.store_server_definitions_cid'
+        ) as mock_store:
+            mock_save.side_effect = lambda definition, user_id: f'{user_id}-cid'
+            mock_store.side_effect = lambda user_id: f'stored-{user_id}'
+
+            result = update_cid_references(old_cid, new_cid)
+
+        self.assertEqual(result, {'aliases': 1, 'servers': 1})
+
+        db.session.refresh(alias)
+        db.session.refresh(server)
+
+        self.assertIn(new_cid, alias.target_path)
+        self.assertNotIn(old_cid, alias.target_path)
+        self.assertIn(new_cid, alias.definition)
+        self.assertNotIn(old_cid, alias.definition)
+        self.assertEqual(alias.match_pattern, '/docs')
+        self.assertEqual(alias.match_type, 'literal')
+        self.assertFalse(alias.ignore_case)
+
+        self.assertIn(new_cid, server.definition)
+        self.assertNotIn(old_cid, server.definition)
+        self.assertEqual(server.definition_cid, f'{self.user.id}-cid')
+
+        mock_save.assert_called_once()
+        mock_store.assert_called_once_with(self.user.id)
 
     def test_cid_lookup_helpers(self):
         create_cid_record('gamma', b'g', self.user.id)
