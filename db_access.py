@@ -230,6 +230,137 @@ def _replace_cid_text(
     return updated, True
 
 
+def update_alias_cid_reference(
+    old_cid: str,
+    new_cid: str,
+    alias_name: str,
+) -> Dict[str, Any]:
+    """Ensure an alias points to the supplied CID and update its definition.
+
+    Parameters
+    ----------
+    old_cid:
+        The previous CID value associated with the alias. Leading slashes are
+        ignored. When empty no text replacement is attempted.
+    new_cid:
+        The CID that should replace the previous value. Leading slashes are
+        ignored.
+    alias_name:
+        The alias to update. When no alias exists a new record is created for
+        the default user.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A mapping describing whether an alias was created and how many existing
+        aliases were updated.
+    """
+
+    normalized_alias = (alias_name or "").strip()
+    normalized_new = _normalize_cid_value(new_cid)
+    if not normalized_alias or not normalized_new:
+        return {"created": False, "updated": 0}
+
+    normalized_old = _normalize_cid_value(old_cid)
+    aliases: List[Alias] = Alias.query.filter_by(name=normalized_alias).all()
+
+    if not aliases:
+        from identity import ensure_default_user
+
+        owner = ensure_default_user()
+        definition = f"{normalized_alias} -> /{normalized_new}"
+        alias = Alias(
+            name=normalized_alias,
+            user_id=owner.id,
+            definition=definition,
+            target_path=f"/{normalized_new}",
+        )
+
+        try:
+            parsed = parse_alias_definition(definition, alias_name=normalized_alias)
+        except AliasDefinitionError:
+            parsed = None
+
+        if parsed:
+            alias.match_type = parsed.match_type
+            alias.match_pattern = parsed.match_pattern
+            alias.ignore_case = parsed.ignore_case
+            alias.target_path = parsed.target_path
+
+        db.session.add(alias)
+        db.session.commit()
+        return {"created": True, "updated": 1}
+
+    if normalized_old and normalized_old == normalized_new:
+        return {"created": False, "updated": 0}
+
+    new_path = f"/{normalized_new}"
+    old_path = f"/{normalized_old}" if normalized_old else None
+    now = datetime.now(timezone.utc)
+    updated_count = 0
+
+    for alias in aliases:
+        alias_changed = False
+
+        current_target = getattr(alias, "target_path", None)
+        if normalized_old:
+            updated_target, target_changed = _replace_cid_text(
+                current_target,
+                old_path,
+                new_path,
+                normalized_old,
+                normalized_new,
+            )
+        else:
+            target_changed = current_target != new_path
+            updated_target = new_path if target_changed else current_target
+
+        if target_changed:
+            alias.target_path = updated_target
+            alias_changed = True
+
+        updated_definition = getattr(alias, "definition", None)
+        definition_changed = False
+        if normalized_old:
+            updated_definition, definition_changed = _replace_cid_text(
+                updated_definition,
+                old_path,
+                new_path,
+                normalized_old,
+                normalized_new,
+            )
+
+        if definition_changed:
+            alias.definition = updated_definition
+            alias_changed = True
+
+            parsed = None
+            if updated_definition:
+                try:
+                    parsed = parse_alias_definition(
+                        updated_definition,
+                        alias_name=getattr(alias, "name", None),
+                    )
+                except AliasDefinitionError:
+                    parsed = None
+
+            if parsed:
+                alias.match_type = parsed.match_type
+                alias.match_pattern = parsed.match_pattern
+                alias.ignore_case = parsed.ignore_case
+                alias.target_path = parsed.target_path
+                alias_changed = True
+
+        if alias_changed:
+            alias.updated_at = now
+            updated_count += 1
+
+    if updated_count:
+        db.session.commit()
+
+    return {"created": False, "updated": updated_count}
+
+
 def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
     """Replace CID references in alias and server definitions.
 

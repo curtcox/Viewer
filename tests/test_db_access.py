@@ -62,6 +62,7 @@ from db_access import (
     record_entity_interaction,
     save_entity,
     save_page_view,
+    update_alias_cid_reference,
     update_cid_references,
 )
 
@@ -268,6 +269,47 @@ class TestDBAccess(unittest.TestCase):
 
         mock_save.assert_called_once()
         mock_store.assert_called_once_with(self.user.id)
+
+    def test_update_alias_cid_reference_updates_existing_alias(self):
+        alias = Alias(
+            name='release',
+            target_path='/legacycid?download=1',
+            user_id=self.user.id,
+            match_type='regex',
+            match_pattern='/custom',
+            ignore_case=False,
+            definition=(
+                'release -> /legacycid?download=1 [ignore-case]\n'
+                '# legacy release pointer legacycid'
+            ),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        result = update_alias_cid_reference('legacycid', 'latestcid', 'release')
+
+        self.assertEqual(result, {'created': False, 'updated': 1})
+
+        db.session.refresh(alias)
+        self.assertEqual(alias.target_path, '/latestcid?download=1')
+        self.assertIn('latestcid', alias.definition)
+        self.assertNotIn('legacycid', alias.definition)
+        self.assertEqual(alias.match_type, 'literal')
+        self.assertEqual(alias.match_pattern, '/release')
+        self.assertTrue(alias.ignore_case)
+
+    def test_update_alias_cid_reference_creates_alias_when_missing(self):
+        result = update_alias_cid_reference('unused', 'freshcid', 'latest')
+
+        self.assertEqual(result, {'created': True, 'updated': 1})
+
+        alias = Alias.query.filter_by(name='latest').first()
+        self.assertIsNotNone(alias)
+        self.assertEqual(alias.user_id, 'default-user')
+        self.assertEqual(alias.target_path, '/freshcid')
+        self.assertIn('/freshcid', alias.definition)
+        self.assertEqual(alias.match_type, 'literal')
+        self.assertEqual(alias.match_pattern, '/latest')
 
     def test_cid_lookup_helpers(self):
         create_cid_record('gamma', b'g', self.user.id)
