@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Iterable, List
 
+import models
 from database import db
 from models import (
     Payment,
@@ -362,7 +363,17 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
 
 
 def get_user_uploads(user_id: str):
-    return CID.query.filter_by(uploaded_by_user_id=user_id).order_by(CID.created_at.desc()).all()
+    """Return all CID uploads for a user ordered from newest to oldest."""
+
+    session_owner = getattr(models, "db", db)
+    session = getattr(session_owner, "session", db.session)
+
+    return (
+        session.query(CID)
+        .filter(CID.uploaded_by_user_id == user_id)
+        .order_by(CID.created_at.desc())
+        .all()
+    )
 
 
 def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
