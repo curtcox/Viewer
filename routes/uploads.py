@@ -1,10 +1,13 @@
 """Upload-related routes and helpers."""
 
+import re
+
 from flask import abort, flash, render_template, request, url_for
 from identity import current_user
 
 from markupsafe import Markup
 
+from alias_definition import summarize_definition_lines
 from cid_presenter import cid_path, format_cid, format_cid_short, render_cid_link
 from cid_utils import (
     generate_cid,
@@ -34,6 +37,82 @@ from interaction_log import load_interaction_history
 from . import main_bp
 from .history import _load_request_referers
 import logfire
+
+
+def _replace_alias_target_in_line(line: str, original_target: str, new_target: str) -> str:
+    """Return a mapping line with the CID target swapped for the provided alias."""
+
+    if "->" not in line or not original_target:
+        return line
+
+    prefix, arrow, suffix = line.partition("->")
+    comment_index = suffix.find("#")
+    if comment_index != -1:
+        comment = suffix[comment_index:]
+        suffix_body = suffix[:comment_index]
+    else:
+        comment = ""
+        suffix_body = suffix
+
+    pattern = re.compile(r"(?P<leading>\s*)" + re.escape(original_target) + r"(?P<options>(?:\s*\[[^\]]*\])?)")
+    match = pattern.search(suffix_body)
+    if not match:
+        return line
+
+    replaced = match.group("leading") + new_target + match.group("options")
+    updated_suffix = suffix_body[: match.start()] + replaced + suffix_body[match.end():]
+    return f"{prefix}{arrow}{updated_suffix}{comment}"
+
+
+def _update_alias_definition_targets(alias: Alias, original_target: str, new_target: str) -> None:
+    """Update any definition lines that routed to the original CID target."""
+
+    definition = getattr(alias, "definition", None)
+    if not definition:
+        return
+
+    alias_name = getattr(alias, "name", None)
+    summaries = summarize_definition_lines(definition, alias_name=alias_name)
+    target_line_numbers = {
+        entry.number
+        for entry in summaries
+        if entry.is_mapping and not entry.parse_error and entry.target_path == original_target
+    }
+
+    if not target_line_numbers:
+        return
+
+    lines = definition.splitlines()
+    updated = False
+
+    for index, line in enumerate(lines, start=1):
+        if index not in target_line_numbers:
+            continue
+
+        new_line = _replace_alias_target_in_line(line, original_target, new_target)
+        if new_line != line:
+            lines[index - 1] = new_line
+            updated = True
+
+    if updated:
+        alias.definition = "\n".join(lines)
+
+
+def _retarget_alias_for_new_cid(alias: Alias, original_target: str, new_target: str) -> None:
+    """Update alias routing fields so they reference the newly saved CID."""
+
+    if not alias or not original_target or not new_target:
+        return
+
+    alias_target = getattr(alias, "target_path", "") or ""
+    normalized_alias_target = alias_target.strip()
+    if normalized_alias_target and not normalized_alias_target.startswith("/"):
+        normalized_alias_target = f"/{normalized_alias_target}"
+
+    if normalized_alias_target == original_target:
+        alias.target_path = new_target
+
+    _update_alias_definition_targets(alias, original_target, new_target)
 
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""
@@ -265,8 +344,9 @@ def edit_cid(cid_prefix):
             )
 
         new_target_path = cid_path(cid_value)
+        original_target_path = getattr(cid_record, "path", None)
         for alias in aliases_to_update:
-            alias.target_path = new_target_path
+            _retarget_alias_for_new_cid(alias, original_target_path, new_target_path)
             _persist_alias_from_upload(alias)
 
         for alias_name in new_alias_names:

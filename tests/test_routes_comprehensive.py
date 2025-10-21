@@ -1294,6 +1294,104 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(alias.match_type, 'literal')
         self.assertFalse(alias.ignore_case)
 
+    def test_edit_cid_save_updates_alias_definition_primary_line(self):
+        original_content = b'definition original'
+        cid_value = self._create_cid_record(original_content)
+
+        definition = f"Alpha -> /{cid_value}"
+        alias = Alias(
+            name='Alpha',
+            target_path=f'/{cid_value}',
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+            definition=definition,
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        self.login_user()
+        updated_text = 'definition updated content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Alpha',
+                'submit': 'Save Alpha',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        alias = Alias.query.filter_by(name='Alpha', user_id=self.test_user.id).first()
+        self.assertIsNotNone(alias)
+        self.assertEqual(alias.target_path, f'/{new_cid}')
+        self.assertEqual(alias.definition, f"Alpha -> /{new_cid}")
+
+        view_page = self.client.get('/aliases/Alpha')
+        self.assertEqual(view_page.status_code, 200)
+        view_text = view_page.get_data(as_text=True)
+        self.assertIn(f'/{new_cid}', view_text)
+
+        edit_page = self.client.get('/aliases/Alpha/edit')
+        self.assertEqual(edit_page.status_code, 200)
+        edit_text = edit_page.get_data(as_text=True)
+        self.assertIn(f'/{new_cid}', edit_text)
+
+    def test_edit_cid_save_updates_nested_alias_definition_route(self):
+        original_content = b'nested alias original'
+        cid_value = self._create_cid_record(original_content)
+
+        definition = textwrap.dedent(
+            f"""
+            Atlas -> /atlas/home
+              guide -> /{cid_value} [glob]
+            """
+        ).strip()
+
+        alias = self._create_multiline_alias('Atlas', '/atlas/home', definition)
+
+        self.login_user()
+        updated_text = 'nested alias updated content'
+        response = self.client.post(
+            f'/edit/{cid_value}',
+            data={
+                'text_content': updated_text,
+                'alias_name': 'Atlas',
+                'submit': 'Save Atlas',
+            },
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        alias = Alias.query.filter_by(name='Atlas', user_id=self.test_user.id).first()
+        self.assertIsNotNone(alias)
+        self.assertEqual(alias.target_path, '/atlas/home')
+
+        expected_definition = textwrap.dedent(
+            f"""
+            Atlas -> /atlas/home
+              guide -> /{new_cid} [glob]
+            """
+        ).strip()
+        self.assertEqual(alias.definition, expected_definition)
+
+        view_page = self.client.get('/aliases/Atlas')
+        self.assertEqual(view_page.status_code, 200)
+        view_text = view_page.get_data(as_text=True)
+        self.assertIn(f'/{new_cid}', view_text)
+        self.assertIn('[glob]', view_text)
+
+        edit_page = self.client.get('/aliases/Atlas/edit')
+        self.assertEqual(edit_page.status_code, 200)
+        edit_text = edit_page.get_data(as_text=True)
+        self.assertIn(f'/{new_cid}', edit_text)
+        self.assertIn('[glob]', edit_text)
+
     def test_edit_cid_alias_name_conflict_shows_error(self):
         original_content = b'conflict original'
         cid_value = self._create_cid_record(original_content)
