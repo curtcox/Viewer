@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 
 from database import db
+from alias_definition import collect_alias_routes
 from models import (
     Payment,
     TermsAcceptance,
@@ -129,6 +130,48 @@ def get_aliases_by_target_path(user_id: str, target_path: str):
         .order_by(Alias.id.asc())
         .all()
     )
+
+
+def find_aliases_pointing_to_target(user_id: str, target_path: str) -> List[Alias]:
+    """Return aliases that route to the supplied target path."""
+
+    if not user_id or not target_path:
+        return []
+
+    normalized_target = target_path.strip()
+    if not normalized_target.startswith('/'):
+        normalized_target = f'/{normalized_target}'
+
+    aliases = get_user_aliases(user_id)
+    matches: list[Alias] = []
+    seen_names: set[str] = set()
+
+    for alias in aliases:
+        alias_target = getattr(alias, 'target_path', None)
+        if alias_target:
+            normalized_alias_target = alias_target.strip()
+            if not normalized_alias_target.startswith('/'):
+                normalized_alias_target = f'/{normalized_alias_target}'
+            if normalized_alias_target == normalized_target and alias.name not in seen_names:
+                matches.append(alias)
+                seen_names.add(alias.name)
+                continue
+
+        for route in collect_alias_routes(alias):
+            route_target = getattr(route, 'target_path', None)
+            if not route_target:
+                continue
+
+            normalized_route_target = route_target.strip()
+            if not normalized_route_target.startswith('/'):
+                normalized_route_target = f'/{normalized_route_target}'
+
+            if normalized_route_target == normalized_target and alias.name not in seen_names:
+                matches.append(alias)
+                seen_names.add(alias.name)
+                break
+
+    return matches
 
 
 def get_user_variables(user_id: str):

@@ -19,8 +19,8 @@ from entity_references import (
 from db_access import (
     create_cid_record,
     find_cids_by_prefix,
+    find_aliases_pointing_to_target,
     get_alias_by_name,
-    get_aliases_by_target_path,
     get_cid_by_path,
     get_user_uploads,
     record_entity_interaction,
@@ -204,7 +204,7 @@ def edit_cid(cid_prefix):
 
     cid_record = matches[0]
     full_cid = format_cid(cid_record.path)
-    aliases_for_cid = get_aliases_by_target_path(current_user.id, cid_record.path)
+    aliases_for_cid = find_aliases_pointing_to_target(current_user.id, cid_record.path)
     alias_for_cid = aliases_for_cid[0] if aliases_for_cid else None
     prefilled_alias_names = [alias.name for alias in aliases_for_cid]
     form = EditCidForm()

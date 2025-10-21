@@ -5,6 +5,7 @@ Comprehensive unit tests for routes.py
 import json
 import os
 import re
+import textwrap
 import unittest
 from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
@@ -911,6 +912,19 @@ class TestCidEditingRoutes(BaseTestCase):
         db.session.commit()
         return alias
 
+    def _create_multiline_alias(self, name: str, top_target: str, definition: str) -> Alias:
+        alias = Alias(
+            name=name,
+            target_path=top_target,
+            user_id=self.test_user.id,
+            match_type='literal',
+            ignore_case=False,
+            definition=definition,
+        )
+        db.session.add(alias)
+        db.session.commit()
+        return alias
+
     def test_edit_requires_login(self):
         cid_value = self._create_cid_record(b'needs auth')
         response = self.client.get(f'/edit/{cid_value}', follow_redirects=False)
@@ -995,6 +1009,134 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertIn('Aliases listed below will be updated to point at the new CID when you save:', page)
         self.assertIn('<strong>Alpha, Beta</strong>', page)
         self.assertIn('value="Alpha Beta"', page)
+
+    def test_edit_cid_prefill_alias_field_empty_without_matching_routes(self):
+        cid_value = self._create_cid_record(b'no alias matches content')
+        other_cid = self._create_cid_record(b'other alias target')
+
+        definition = textwrap.dedent(
+            f"""
+            docs -> /docs/home
+              guide -> /{other_cid}
+            """
+        ).strip()
+
+        self._create_multiline_alias('docs', '/docs/home', definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertNotIn('Aliases listed below will be updated to point at the new CID when you save:', page)
+        self.assertIn('value=""', page)
+
+    def test_edit_cid_prefill_alias_field_with_multiple_multiline_matches(self):
+        cid_value = self._create_cid_record(b'multiple multiline matches content')
+
+        atlas_definition = textwrap.dedent(
+            f"""
+            Atlas -> /atlas/home
+              guide -> /{cid_value}
+            """
+        ).strip()
+        beta_definition = textwrap.dedent(
+            f"""
+            Beta -> /beta/home
+              tutorial -> /{cid_value}
+            """
+        ).strip()
+
+        self._create_multiline_alias('Atlas', '/atlas/home', atlas_definition)
+        self._create_multiline_alias('Beta', '/beta/home', beta_definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<strong>Atlas, Beta</strong>', page)
+        self.assertIn('value="Atlas Beta"', page)
+
+    def test_edit_cid_prefill_alias_field_with_multiline_literal_route(self):
+        cid_value = self._create_cid_record(b'multiline literal match content')
+
+        definition = textwrap.dedent(
+            f"""
+            docs -> /docs/home
+              api -> /{cid_value}
+            """
+        ).strip()
+
+        self._create_multiline_alias('docs', '/docs/home', definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<strong>docs</strong>', page)
+        self.assertIn('value="docs"', page)
+
+    def test_edit_cid_prefill_alias_field_with_multiline_glob_route(self):
+        cid_value = self._create_cid_record(b'multiline glob match content')
+
+        definition = textwrap.dedent(
+            f"""
+            docs -> /docs/home
+              downloads/* -> /{cid_value} [glob]
+            """
+        ).strip()
+
+        self._create_multiline_alias('docs', '/docs/home', definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<strong>docs</strong>', page)
+        self.assertIn('value="docs"', page)
+
+    def test_edit_cid_prefill_alias_field_with_multiline_regex_route(self):
+        cid_value = self._create_cid_record(b'multiline regex match content')
+
+        definition = textwrap.dedent(
+            f"""
+            docs -> /docs/home
+              /downloads/\\d+ -> /{cid_value} [regex]
+            """
+        ).strip()
+
+        self._create_multiline_alias('docs', '/docs/home', definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<strong>docs</strong>', page)
+        self.assertIn('value="docs"', page)
+
+    def test_edit_cid_prefill_alias_field_with_multiline_flask_route(self):
+        cid_value = self._create_cid_record(b'multiline flask match content')
+
+        definition = textwrap.dedent(
+            f"""
+            docs -> /docs/home
+              /docs/<slug> -> /{cid_value} [flask]
+            """
+        ).strip()
+
+        self._create_multiline_alias('docs', '/docs/home', definition)
+        self.login_user()
+
+        response = self.client.get(f'/edit/{cid_value}')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<strong>docs</strong>', page)
+        self.assertIn('value="docs"', page)
 
     def test_edit_cid_multiple_matches(self):
         self.login_user()
