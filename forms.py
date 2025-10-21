@@ -63,18 +63,39 @@ class EditCidForm(FlaskForm):
         validators=[DataRequired()],
         render_kw={'rows': 15, 'placeholder': 'Update the CID content here...'},
     )
-    alias_name = StringField(
-        'Alias Name (optional)',
-        validators=[
-            Optional(),
-            Regexp(
-                r'^[a-zA-Z0-9._-]+$',
-                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores',
-            ),
-        ],
+    alias_names = StringField(
+        'Alias Names (Optional)',
+        validators=[Optional()],
         filters=[_strip_filter],
     )
     submit = SubmitField('Save Changes')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.alias_names_list = []
+
+    def validate_alias_names(self, field):
+        value = field.data or ''
+        if not value:
+            self.alias_names_list = []
+            return
+
+        names = [name for name in re.split(r'\s+', value.strip()) if name]
+        invalid = [name for name in names if not re.match(r'^[a-zA-Z0-9._-]+$', name)]
+
+        if invalid:
+            raise ValidationError(
+                'Alias names can only contain letters, numbers, dots, hyphens, and underscores'
+            )
+
+        unique_names = []
+        seen = set()
+        for name in names:
+            if name not in seen:
+                seen.add(name)
+                unique_names.append(name)
+
+        self.alias_names_list = unique_names
 
 class ServerForm(FlaskForm):
     name = StringField('Server Name', validators=[

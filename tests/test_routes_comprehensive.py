@@ -31,6 +31,7 @@ from models import (
     Alias,
 )
 from cid_utils import CID_LENGTH, generate_cid
+from db_access import update_alias_cid_reference, update_cid_references
 import server_execution
 from server_templates import get_server_templates
 from routes.core import _build_cross_reference_data
@@ -951,8 +952,9 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias Name (optional)', page)
-        self.assertIn('Optionally supply a new alias', page)
+        self.assertIn('Alias Names (Optional)', page)
+        self.assertIn('Provide a space-delimited list of aliases', page)
+        self.assertIn('class="btn btn-primary" disabled id="submit"', page)
 
     def test_edit_cid_get_unique_prefix(self):
         cid_value = self._create_cid_record(b'unique prefix content')
@@ -976,8 +978,9 @@ class TestCidEditingRoutes(BaseTestCase):
 
         page = response.get_data(as_text=True)
         self.assertIn('Save Atari', page)
-        self.assertIn('Saving will update the <strong>Atari</strong> alias', page)
-        self.assertNotIn('Alias Name (optional)', page)
+        self.assertIn('Saving will update the following aliases to point at the new CID', page)
+        self.assertIn('Alias Names (Optional)', page)
+        self.assertIn('value="Atari"', page)
 
     def test_edit_cid_multiple_matches(self):
         self.login_user()
@@ -1041,7 +1044,7 @@ class TestCidEditingRoutes(BaseTestCase):
         updated_text = 'alias new content'
         response = self.client.post(
             f'/edit/{cid_value}',
-            data={'text_content': updated_text, 'submit': 'Save Atari'},
+            data={'text_content': updated_text, 'alias_names': 'Atari', 'submit': 'Save Atari'},
             follow_redirects=True,
         )
 
@@ -1066,7 +1069,7 @@ class TestCidEditingRoutes(BaseTestCase):
             f'/edit/{cid_value}',
             data={
                 'text_content': updated_text,
-                'alias_name': alias_name,
+                'alias_names': alias_name,
                 'submit': 'Save Changes',
             },
             follow_redirects=True,
@@ -1092,7 +1095,7 @@ class TestCidEditingRoutes(BaseTestCase):
             f'/edit/{cid_value}',
             data={
                 'text_content': updated_text,
-                'alias_name': 'Existing',
+                'alias_names': 'Existing',
                 'submit': 'Save Changes',
             },
             follow_redirects=True,
@@ -1101,8 +1104,8 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias with this name already exists.', page)
-        self.assertIn('Alias Name (optional)', page)
+        self.assertIn('Alias &#34;Existing&#34; already exists.', page)
+        self.assertIn('Alias Names (Optional)', page)
 
         new_cid = generate_cid(updated_text.encode('utf-8'))
         self.assertIsNone(CID.query.filter_by(path=f'/{new_cid}').first())
@@ -1110,6 +1113,74 @@ class TestCidEditingRoutes(BaseTestCase):
         alias = Alias.query.filter_by(name='Existing', user_id=self.test_user.id).first()
         self.assertIsNotNone(alias)
         self.assertEqual(alias.target_path, '/other-target')
+
+    def test_edit_cid_unchanged_aliases_use_reference_update(self):
+        original_content = b'alias original'
+        cid_value = self._create_cid_record(original_content)
+        self._create_alias('Atari', f'/{cid_value}')
+        self.login_user()
+
+        updated_text = 'alias new content'
+
+        with patch(
+            'routes.uploads.update_cid_references',
+            wraps=update_cid_references,
+        ) as mock_update_refs, patch(
+            'routes.uploads.update_alias_cid_reference',
+            wraps=update_alias_cid_reference,
+        ) as mock_update_alias:
+            response = self.client.post(
+                f'/edit/{cid_value}',
+                data={
+                    'text_content': updated_text,
+                    'alias_names': 'Atari',
+                    'submit': 'Save Atari',
+                },
+                follow_redirects=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        mock_update_refs.assert_called_once()
+        old_cid, new_cid = mock_update_refs.call_args.args
+        self.assertEqual(old_cid, cid_value)
+        self.assertEqual(new_cid, generate_cid(updated_text.encode('utf-8')))
+        mock_update_alias.assert_not_called()
+
+    def test_edit_cid_alias_changes_update_specific_aliases(self):
+        original_content = b'alias change original'
+        cid_value = self._create_cid_record(original_content)
+        self._create_alias('Atari', f'/{cid_value}')
+        self.login_user()
+
+        updated_text = 'alias change new content'
+
+        with patch(
+            'routes.uploads.update_cid_references',
+            wraps=update_cid_references,
+        ) as mock_update_refs, patch(
+            'routes.uploads.update_alias_cid_reference',
+            wraps=update_alias_cid_reference,
+        ) as mock_update_alias:
+            response = self.client.post(
+                f'/edit/{cid_value}',
+                data={
+                    'text_content': updated_text,
+                    'alias_names': 'Atari Extra',
+                    'submit': 'Save Atari',
+                },
+                follow_redirects=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        mock_update_refs.assert_not_called()
+        self.assertEqual(mock_update_alias.call_count, 2)
+        alias_names = {call.args[2] for call in mock_update_alias.call_args_list}
+        self.assertEqual(alias_names, {'Atari', 'Extra'})
+
+        new_cid = generate_cid(updated_text.encode('utf-8'))
+        alias_extra = Alias.query.filter_by(name='Extra', user_id=self.test_user.id).first()
+        self.assertIsNotNone(alias_extra)
+        self.assertEqual(alias_extra.target_path, f'/{new_cid}')
 
     def test_edit_cid_save_existing_content(self):
         content = b'repeated text content'

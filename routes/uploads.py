@@ -20,12 +20,14 @@ from db_access import (
     create_cid_record,
     find_cids_by_prefix,
     get_alias_by_name,
-    get_alias_by_target_path,
+    get_aliases_by_target_path,
     get_cid_by_path,
     get_user_server_invocations,
     get_user_uploads,
     record_entity_interaction,
     save_entity,
+    update_alias_cid_reference,
+    update_cid_references,
 )
 from models import Alias
 from forms import EditCidForm, FileUploadForm
@@ -205,33 +207,52 @@ def edit_cid(cid_prefix):
 
     cid_record = matches[0]
     full_cid = format_cid(cid_record.path)
-    alias_for_cid = get_alias_by_target_path(current_user.id, cid_record.path)
+    aliases_for_cid = get_aliases_by_target_path(current_user.id, cid_record.path)
+    existing_alias_names = [alias.name for alias in aliases_for_cid]
+    existing_alias_set = set(existing_alias_names)
+    existing_alias_string = " ".join(existing_alias_names)
+
     form = EditCidForm()
-    submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
+    submit_label = (
+        f"Save {existing_alias_names[0]}"
+        if len(existing_alias_names) == 1
+        else 'Save Changes'
+    )
 
     interaction_history = load_interaction_history(current_user.id, 'cid', full_cid)
     content_references = extract_references_from_bytes(
         getattr(cid_record, 'file_data', None),
         current_user.id,
     )
+    original_text_content = cid_record.file_data.decode('utf-8', errors='replace')
 
     if form.validate_on_submit():
-        alias_name_input = ''
-        if not alias_for_cid:
-            alias_name_input = form.alias_name.data or ''
-            if alias_name_input:
-                existing_alias = get_alias_by_name(current_user.id, alias_name_input)
-                if existing_alias:
-                    form.alias_name.errors.append('Alias with this name already exists.')
+        submitted_alias_names = getattr(form, 'alias_names_list', [])
+        alias_values_present = bool(submitted_alias_names)
+        alias_changes = set(submitted_alias_names) != existing_alias_set
+        new_alias_names = []
+
+        if alias_changes and submitted_alias_names:
+            new_alias_names = [
+                name for name in submitted_alias_names if name not in existing_alias_set
+            ]
+
+            for alias_name in new_alias_names:
+                existing_alias = get_alias_by_name(current_user.id, alias_name)
+                if existing_alias and existing_alias.target_path != cid_record.path:
+                    form.alias_names.errors.append(
+                        f'Alias "{alias_name}" already exists.'
+                    )
                     return render_template(
                         'edit_cid.html',
                         form=form,
                         cid=full_cid,
                         submit_label=submit_label,
-                        current_alias_name=getattr(alias_for_cid, 'name', None),
-                        show_alias_field=alias_for_cid is None,
+                        existing_alias_names=existing_alias_names,
                         interaction_history=interaction_history,
                         content_references=content_references,
+                        original_text=original_text_content,
+                        original_aliases=existing_alias_string,
                     )
 
         text_content = form.text_content.data or ''
@@ -258,18 +279,25 @@ def edit_cid(cid_prefix):
             )
 
         new_target_path = cid_path(cid_value)
-        if alias_for_cid:
-            alias_for_cid.target_path = new_target_path
-            _persist_alias_from_upload(alias_for_cid)
-        elif alias_name_input:
-            new_alias = Alias(
-                name=alias_name_input,
-                target_path=new_target_path,
-                user_id=current_user.id,
-                match_type='literal',
-                ignore_case=False,
-            )
-            _persist_alias_from_upload(new_alias)
+
+        if alias_changes:
+            if submitted_alias_names:
+                for alias_name in new_alias_names:
+                    new_alias = Alias(
+                        name=alias_name,
+                        target_path=new_target_path,
+                        user_id=current_user.id,
+                        match_type='literal',
+                        ignore_case=False,
+                    )
+                    _persist_alias_from_upload(new_alias)
+
+                for alias_name in submitted_alias_names:
+                    update_alias_cid_reference(full_cid, cid_value, alias_name)
+            elif existing_alias_names:
+                update_cid_references(full_cid, cid_value)
+        elif alias_values_present:
+            update_cid_references(full_cid, cid_value)
 
         record_entity_interaction(
             current_user.id,
@@ -289,18 +317,19 @@ def edit_cid(cid_prefix):
         )
 
     if request.method == 'GET':
-        existing_text = cid_record.file_data.decode('utf-8', errors='replace')
-        form.text_content.data = existing_text
+        form.text_content.data = original_text_content
+        form.alias_names.data = existing_alias_string
 
     return render_template(
         'edit_cid.html',
         form=form,
         cid=full_cid,
         submit_label=submit_label,
-        current_alias_name=getattr(alias_for_cid, 'name', None),
-        show_alias_field=alias_for_cid is None,
+        existing_alias_names=existing_alias_names,
         interaction_history=interaction_history,
         content_references=content_references,
+        original_text=original_text_content,
+        original_aliases=existing_alias_string,
     )
 
 
