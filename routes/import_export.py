@@ -143,6 +143,44 @@ def _load_cid_bytes(cid_value: str, cid_map: dict[str, bytes]) -> bytes | None:
     return None
 
 
+def _encode_section_content(value: Any) -> bytes:
+    return json.dumps(value, indent=2, sort_keys=True).encode('utf-8')
+
+
+def _load_export_section(
+    payload: dict[str, Any],
+    key: str,
+    cid_map: dict[str, bytes],
+) -> tuple[Any, list[str], bool]:
+    if key not in payload:
+        return None, [], False
+
+    raw_value = payload.get(key)
+    if isinstance(raw_value, str):
+        cid_value = _normalise_cid(raw_value)
+        if not cid_value:
+            return None, [f'Section "{key}" referenced an invalid CID value.'], True
+        content_bytes = _load_cid_bytes(cid_value, cid_map)
+        if content_bytes is None:
+            return None, [
+                f'Section "{key}" referenced CID "{cid_value}" but the content was not provided.'
+            ], True
+        try:
+            decoded_text = content_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            return None, [
+                f'Section "{key}" referenced CID "{cid_value}" that was not UTF-8 encoded.'
+            ], True
+        try:
+            return json.loads(decoded_text), [], False
+        except json.JSONDecodeError:
+            return None, [
+                f'Section "{key}" referenced CID "{cid_value}" with invalid JSON content.'
+            ], True
+
+    return raw_value, [], False
+
+
 _APP_SOURCE_TEMPLATE_DIRECTORIES: tuple[str, ...] = (
     'templates',
     'server_templates',
@@ -902,8 +940,8 @@ def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     if form.validate_on_submit():
-        payload: dict[str, Any] = {
-            'version': 4,
+        payload: dict[str, Any] = {'version': 5}
+        sections: dict[str, Any] = {
             'generated_at': datetime.now(timezone.utc).isoformat(),
             'runtime': _build_runtime_section(),
         }
@@ -911,8 +949,8 @@ def export_data():
         cid_map_entries: dict[str, dict[str, str]] = {}
         base_path = _app_root_path()
 
-        def _record_cid_value(cid_value: str, content: bytes) -> None:
-            if not form.include_cid_map.data:
+        def _record_cid_value(cid_value: str, content: bytes, *, optional: bool = True) -> None:
+            if optional and not form.include_cid_map.data:
                 return
             normalised = _normalise_cid(cid_value)
             if not normalised or normalised in cid_map_entries:
@@ -932,7 +970,7 @@ def export_data():
             project_files_payload[relative_name] = {'cid': cid_value}
 
         if project_files_payload:
-            payload['project_files'] = project_files_payload
+            sections['project_files'] = project_files_payload
 
         if form.include_aliases.data:
             alias_payload: list[dict[str, Any]] = []
@@ -948,7 +986,7 @@ def export_data():
                 )
                 _record_cid_value(definition_cid, definition_bytes)
             if alias_payload:
-                payload['aliases'] = alias_payload
+                sections['aliases'] = alias_payload
 
         if form.include_servers.data:
             servers_payload: list[dict[str, str]] = []
@@ -967,10 +1005,10 @@ def export_data():
                 )
                 _record_cid_value(definition_cid, definition_bytes)
             if servers_payload:
-                payload['servers'] = servers_payload
+                sections['servers'] = servers_payload
 
         if form.include_variables.data:
-            payload['variables'] = [
+            sections['variables'] = [
                 {
                     'name': variable.name,
                     'definition': variable.definition,
@@ -980,7 +1018,7 @@ def export_data():
 
         if form.include_secrets.data:
             key = form.secret_key.data.strip()
-            payload['secrets'] = {
+            sections['secrets'] = {
                 'encryption': SECRET_ENCRYPTION_SCHEME,
                 'items': [
                     {
@@ -994,7 +1032,7 @@ def export_data():
         if form.include_history.data:
             history_payload = _gather_change_history(current_user.id)
             if history_payload:
-                payload['change_history'] = history_payload
+                sections['change_history'] = history_payload
 
         app_source_payload: dict[str, list[dict[str, str]]] = {}
         if form.include_source.data:
@@ -1022,7 +1060,7 @@ def export_data():
                     app_source_payload[category] = entries
 
         if app_source_payload:
-            payload['app_source'] = app_source_payload
+            sections['app_source'] = app_source_payload
 
         if form.include_cid_map.data and form.include_unreferenced_cid_data.data:
             for record in get_user_uploads(current_user.id):
@@ -1033,6 +1071,12 @@ def export_data():
                 if file_content is None:
                     continue
                 cid_map_entries[normalised] = _serialise_cid_value(bytes(file_content))
+
+        for section_name, section_value in sections.items():
+            section_bytes = _encode_section_content(section_value)
+            section_cid = store_cid_from_bytes(section_bytes, current_user.id)
+            _record_cid_value(section_cid, section_bytes, optional=False)
+            payload[section_name] = section_cid
 
         if form.include_cid_map.data and cid_map_entries:
             payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
@@ -1087,84 +1131,122 @@ def import_data():
         summaries: list[str] = []
         cid_lookup: dict[str, bytes] = {}
 
-        if form.process_cid_map.data:
-            parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
-            errors.extend(cid_map_errors)
+        parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
+        errors.extend(cid_map_errors)
 
-            for cid_value, content_bytes in parsed_cids.items():
-                expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
-                if expected_cid and cid_value != expected_cid:
-                    errors.append(
-                        f'CID "{cid_value}" content did not match its hash and was skipped.'
-                    )
-                    continue
+        for cid_value, content_bytes in parsed_cids.items():
+            expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
+            if expected_cid and cid_value != expected_cid:
+                errors.append(
+                    f'CID "{cid_value}" content did not match its hash and was skipped.'
+                )
+                continue
+            cid_lookup[cid_value] = content_bytes
+            if form.process_cid_map.data:
                 store_cid_from_bytes(content_bytes, user_id)
-                cid_lookup[cid_value] = content_bytes
 
         imported_aliases = 0
-        alias_errors: list[str] = []
         if form.include_aliases.data:
-            imported_aliases, alias_errors = _import_aliases(
-                user_id,
-                data.get('aliases'),
+            aliases_section, alias_load_errors, alias_fatal = _load_export_section(
+                data,
+                'aliases',
                 cid_lookup,
             )
-            errors.extend(alias_errors)
-            if imported_aliases:
-                label = 'aliases' if imported_aliases != 1 else 'alias'
-                summaries.append(f'{imported_aliases} {label}')
+            errors.extend(alias_load_errors)
+            if not alias_fatal:
+                imported_aliases, alias_errors = _import_aliases(
+                    user_id,
+                    aliases_section,
+                    cid_lookup,
+                )
+                errors.extend(alias_errors)
+                if imported_aliases:
+                    label = 'aliases' if imported_aliases != 1 else 'alias'
+                    summaries.append(f'{imported_aliases} {label}')
 
         imported_servers = 0
-        server_errors: list[str] = []
         if form.include_servers.data:
-            imported_servers, server_errors = _import_servers(
-                user_id,
-                data.get('servers'),
+            servers_section, server_load_errors, server_fatal = _load_export_section(
+                data,
+                'servers',
                 cid_lookup,
             )
-            errors.extend(server_errors)
-            if imported_servers:
-                label = 'servers' if imported_servers != 1 else 'server'
-                summaries.append(f'{imported_servers} {label}')
+            errors.extend(server_load_errors)
+            if not server_fatal:
+                imported_servers, server_errors = _import_servers(
+                    user_id,
+                    servers_section,
+                    cid_lookup,
+                )
+                errors.extend(server_errors)
+                if imported_servers:
+                    label = 'servers' if imported_servers != 1 else 'server'
+                    summaries.append(f'{imported_servers} {label}')
 
         imported_variables = 0
-        variable_errors: list[str] = []
         if form.include_variables.data:
-            imported_variables, variable_errors = _import_variables(user_id, data.get('variables'))
-            errors.extend(variable_errors)
-            if imported_variables:
-                label = 'variables' if imported_variables != 1 else 'variable'
-                summaries.append(f'{imported_variables} {label}')
+            variables_section, variable_load_errors, variable_fatal = _load_export_section(
+                data,
+                'variables',
+                cid_lookup,
+            )
+            errors.extend(variable_load_errors)
+            if not variable_fatal:
+                imported_variables, variable_errors = _import_variables(user_id, variables_section)
+                errors.extend(variable_errors)
+                if imported_variables:
+                    label = 'variables' if imported_variables != 1 else 'variable'
+                    summaries.append(f'{imported_variables} {label}')
 
         imported_secrets = 0
-        secret_errors: list[str] = []
         if form.include_secrets.data:
-            imported_secrets, secret_errors = _import_secrets(
-                user_id,
-                data.get('secrets'),
-                form.secret_key.data.strip(),
+            secrets_section, secret_load_errors, secret_fatal = _load_export_section(
+                data,
+                'secrets',
+                cid_lookup,
             )
-            errors.extend(secret_errors)
-            if imported_secrets:
-                label = 'secrets' if imported_secrets != 1 else 'secret'
-                summaries.append(f'{imported_secrets} {label}')
+            errors.extend(secret_load_errors)
+            if not secret_fatal:
+                imported_secrets, secret_errors = _import_secrets(
+                    user_id,
+                    secrets_section,
+                    form.secret_key.data.strip(),
+                )
+                errors.extend(secret_errors)
+                if imported_secrets:
+                    label = 'secrets' if imported_secrets != 1 else 'secret'
+                    summaries.append(f'{imported_secrets} {label}')
 
         imported_history = 0
-        history_errors: list[str] = []
         if form.include_history.data:
-            imported_history, history_errors = _import_change_history(user_id, data.get('change_history'))
-            errors.extend(history_errors)
-            if imported_history:
-                label = 'history events' if imported_history != 1 else 'history event'
-                summaries.append(f'{imported_history} {label}')
+            history_section, history_load_errors, history_fatal = _load_export_section(
+                data,
+                'change_history',
+                cid_lookup,
+            )
+            errors.extend(history_load_errors)
+            if not history_fatal:
+                imported_history, history_errors = _import_change_history(user_id, history_section)
+                errors.extend(history_errors)
+                if imported_history:
+                    label = 'history events' if imported_history != 1 else 'history event'
+                    summaries.append(f'{imported_history} {label}')
 
         selected_source_categories: list[tuple[str, str]] = []
+        app_source_section: Any = None
+        app_source_fatal = False
         if form.include_source.data:
             selected_source_categories = list(_APP_SOURCE_CATEGORIES)
+            app_source_section, app_source_errors, app_source_fatal = _load_export_section(
+                data,
+                'app_source',
+                cid_lookup,
+            )
+            errors.extend(app_source_errors)
 
-        if selected_source_categories:
+        if selected_source_categories and not app_source_fatal:
             _verify_import_source_files(
-                data.get('app_source'),
+                app_source_section,
                 selected_source_categories,
                 warnings,
                 info_messages,

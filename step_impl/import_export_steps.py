@@ -1,6 +1,8 @@
 """Gauge steps for exercising the import and export workflow."""
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import os
 import tempfile
@@ -20,6 +22,79 @@ from models import CID, Server
 _scenario_state: dict[str, Any] = {}
 _created_apps: list[Any] = []
 _created_db_paths: list[Path] = []
+
+
+def _load_export_cid_content(cid_value: str) -> bytes:
+    """Return the raw bytes for the provided CID reference within the export payload."""
+    parsed_export = _scenario_state.get("parsed_export")
+    assert parsed_export is not None, "Export metadata is missing."
+
+    cid_map = parsed_export.get("cid_values") or {}
+    entry = cid_map.get(cid_value)
+    content_bytes: bytes | None = None
+
+    if isinstance(entry, dict):
+        encoding = (entry.get("encoding") or "utf-8").strip().lower()
+        value = entry.get("value")
+        assert isinstance(value, str), (
+            f'CID "{cid_value}" entry did not include string content.'
+        )
+
+        if encoding == "base64":
+            try:
+                content_bytes = base64.b64decode(value.encode("ascii"))
+            except (binascii.Error, ValueError) as exc:
+                raise AssertionError(
+                    f'CID "{cid_value}" entry specified invalid base64 content.'
+                ) from exc
+        else:
+            content_bytes = value.encode("utf-8")
+
+    if content_bytes is None:
+        origin_app = _scenario_state.get("origin_app")
+        assert origin_app is not None, "Origin site is not configured."
+        with origin_app.app_context():
+            record = CID.query.filter_by(path=cid_path(cid_value)).first()
+            assert record is not None, (
+                f'CID "{cid_value}" content was not stored on the origin site.'
+            )
+            file_data = record.file_data
+            assert file_data is not None, (
+                f'CID "{cid_value}" entry on the origin site did not include content.'
+            )
+            content_bytes = bytes(file_data)
+
+    return content_bytes
+
+
+def _resolve_export_section(section_name: str) -> Any:
+    """Decode and return a structured export section referenced by CID."""
+    parsed_export = _scenario_state.get("parsed_export")
+    assert parsed_export is not None, "Export metadata is missing."
+
+    section_reference = parsed_export.get(section_name)
+    if section_reference is None:
+        return None
+
+    if isinstance(section_reference, str):
+        content_bytes = _load_export_cid_content(section_reference)
+        try:
+            section_text = content_bytes.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise AssertionError(
+                f'Section "{section_name}" referenced CID "{section_reference}" '
+                "with non UTF-8 content."
+            ) from exc
+
+        try:
+            return json.loads(section_text)
+        except json.JSONDecodeError as exc:
+            raise AssertionError(
+                f'Section "{section_name}" referenced CID "{section_reference}" '
+                "that did not contain valid JSON."
+            ) from exc
+
+    return section_reference
 
 
 def _login_default_user(client: FlaskClient) -> None:
@@ -133,6 +208,8 @@ def and_i_export_servers_from_origin() -> None:
         export_payload = export_record.file_data.decode("utf-8")
         parsed_payload = json.loads(export_payload)
 
+    assert "cid_values" in parsed_payload, "Export payload did not include the CID map."
+
     _scenario_state.update(
         {
             "export_payload": export_payload,
@@ -180,6 +257,33 @@ def then_destination_has_server(server_name: str) -> None:
     server_definition = _scenario_state.get("server_definition")
     assert destination_app is not None, "Destination site is not available."
     assert parsed_export is not None, "Export metadata is missing."
+    assert server_definition is not None, "Origin server definition is missing."
+
+    servers_section = _resolve_export_section("servers")
+    assert isinstance(
+        servers_section, list
+    ), "Export payload did not include a servers section."
+    exported_entry = next(
+        (entry for entry in servers_section if entry.get("name") == server_name),
+        None,
+    )
+    assert exported_entry is not None, "Export payload did not include the server entry."
+    expected_cid = exported_entry.get("definition_cid")
+    assert expected_cid, "Exported server did not record a definition CID."
+
+    cid_map = parsed_export.get("cid_values") or {}
+    assert expected_cid in cid_map, (
+        f"Export payload did not include CID map content for definition {expected_cid}."
+    )
+
+    cid_bytes = _load_export_cid_content(expected_cid)
+    try:
+        cid_text = cid_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise AssertionError(
+            f'CID "{expected_cid}" content was not UTF-8 encoded.'
+        ) from exc
+    assert cid_text == server_definition, "CID map content did not match the server definition."
 
     with destination_app.app_context():
         user = ensure_default_user()
@@ -188,15 +292,6 @@ def then_destination_has_server(server_name: str) -> None:
         assert (
             imported_server.definition == server_definition
         ), "Imported server definition does not match the origin definition."
-
-        servers_section = parsed_export.get("servers", [])
-        exported_entry = next(
-            (entry for entry in servers_section if entry.get("name") == server_name),
-            None,
-        )
-        assert exported_entry is not None, "Export payload did not include the server entry."
-        expected_cid = exported_entry.get("definition_cid")
-        assert expected_cid, "Exported server did not record a definition CID."
         assert (
             imported_server.definition_cid == expected_cid
         ), "Imported server definition CID does not match export metadata."

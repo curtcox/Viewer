@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 import pytest
 
@@ -62,6 +63,23 @@ def _login_default_user(client) -> None:
     with client.session_transaction() as session:
         session["_user_id"] = "default-user"
         session["_fresh"] = True
+
+
+def _load_section(payload: dict[str, Any], key: str):
+    section_cid = payload.get(key)
+    if section_cid is None:
+        return None
+    cid_values = payload.get("cid_values", {})
+    entry = cid_values.get(section_cid)
+    assert entry is not None, f"Expected CID {section_cid} for section {key}"
+    encoding = (entry.get("encoding") or "utf-8").lower()
+    value = entry.get("value")
+    assert isinstance(value, str), f"CID {section_cid} for {key} must include string content"
+    if encoding == "base64":
+        content_bytes = base64.b64decode(value.encode("ascii"))
+    else:
+        content_bytes = value.encode("utf-8")
+    return json.loads(content_bytes.decode("utf-8"))
 
 
 def test_user_can_transport_server_between_sites(app_factory) -> None:
@@ -127,7 +145,7 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
         assert imported_server is not None, "Server should exist after import."
         assert imported_server.definition == server_definition
 
-        servers_section = parsed_payload.get("servers", [])
+        servers_section = _load_section(parsed_payload, "servers") or []
         exported_entry = next(
             (entry for entry in servers_section if entry.get("name") == server_name),
             None,
