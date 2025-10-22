@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/curtcox/Viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/curtcox/Viewer/actions/workflows/ci.yml)
 
-Viewer is a Flask based web application that demonstrates multi layer access control and integrates with OAuth providers.
+Viewer is a Flask based web application that focuses on analysing HTTP requests and presenting diagnostics.
+Authentication, subscriptions, and OAuth flows are now handled externally so this project concentrates on content tooling.
 The project includes simple helper scripts so you can get up and running quickly.
 Visit the [published GitHub Pages site](https://curtcox.github.io/Viewer/) for the latest CI test and spec reports.
 

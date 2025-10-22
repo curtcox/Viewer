@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
-from models import User, Server, CID
+from models import Server, CID
 from cid_utils import CID_LENGTH, save_server_definition_as_cid
 
 def test_server_cid_functionality():
@@ -26,23 +26,13 @@ def test_server_cid_functionality():
         db.drop_all()  # Clear any existing tables
         db.create_all()
 
-        # Create test user
-        test_user = User(
-            id='test_user_123',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True
-        )
-        db.session.add(test_user)
-        db.session.commit()
-
-        print("✓ Test user created")
+        # Track a user identifier for ownership fields
+        test_user_id = 'test_user_123'
+        print("✓ Test user identifier registered")
 
         # Test 1: Test save_server_definition_as_cid function
         definition1 = "print('Hello World')"
-        cid1 = save_server_definition_as_cid(definition1, test_user.id)
+        cid1 = save_server_definition_as_cid(definition1, test_user_id)
 
         # Verify CID was generated
         assert cid1 is not None
@@ -53,11 +43,11 @@ def test_server_cid_functionality():
         cid_record = CID.query.filter_by(path=f"/{cid1}").first()
         assert cid_record is not None
         assert cid_record.file_data == definition1.encode('utf-8')
-        assert cid_record.uploaded_by_user_id == test_user.id
+        assert cid_record.uploaded_by_user_id == test_user_id
         print("✓ CID record created in database")
 
         # Test 2: Test duplicate CID handling
-        cid2 = save_server_definition_as_cid(definition1, test_user.id)
+        cid2 = save_server_definition_as_cid(definition1, test_user_id)
         assert cid1 == cid2  # Should return same CID for same content
 
         # Should still only have one CID record
@@ -67,20 +57,20 @@ def test_server_cid_functionality():
 
         # Test 3: Test different content generates different CID
         definition2 = "print('Hello Universe')"
-        cid3 = save_server_definition_as_cid(definition2, test_user.id)
+        cid3 = save_server_definition_as_cid(definition2, test_user_id)
         assert cid3 != cid1
         print(f"✓ Different content generates different CID: {cid3}")
 
         # Test 4: Test direct server creation with CID
         definition = "print('Server code')"
-        cid = save_server_definition_as_cid(definition, test_user.id)
+        cid = save_server_definition_as_cid(definition, test_user_id)
 
         # Create server directly
         server = Server(
             name="test_server",
             definition=definition,
             definition_cid=cid,
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()

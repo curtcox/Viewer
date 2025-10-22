@@ -1,10 +1,9 @@
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import unittest
 
 from app import create_app
 from database import db
-from models import CID, Server, User
+from models import CID, Server
 
 
 class TestPygmentsServerTemplate(unittest.TestCase):
@@ -21,15 +20,7 @@ class TestPygmentsServerTemplate(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-
-        self.user = User(
-            id="user-1",
-            email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        db.session.add(self.user)
+        self.user_id = "user-1"
 
         template_path = (
             Path(self.app.root_path)
@@ -38,13 +29,13 @@ class TestPygmentsServerTemplate(unittest.TestCase):
             / "pygments.py"
         )
         definition = template_path.read_text(encoding="utf-8")
-        self.server = Server(name="pygments", definition=definition, user_id=self.user.id)
+        self.server = Server(name="pygments", definition=definition, user_id=self.user_id)
         db.session.add(self.server)
         db.session.commit()
 
         self.client = self.app.test_client()
         with self.client.session_transaction() as session:
-            session["_user_id"] = self.user.id
+            session["_user_id"] = self.user_id
             session["_fresh"] = True
 
     def tearDown(self):
@@ -57,7 +48,7 @@ class TestPygmentsServerTemplate(unittest.TestCase):
             path=f"/{cid_value}",
             file_data=content.encode("utf-8"),
             file_size=len(content),
-            uploaded_by_user_id=self.user.id,
+            uploaded_by_user_id=self.user_id,
         )
         db.session.add(record)
         db.session.commit()

@@ -8,7 +8,6 @@ from flask import current_app
 
 from db_access import (
     get_alias_by_name,
-    get_all_users,
     get_server_by_name,
     save_entity,
 )
@@ -104,10 +103,12 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
 
 def ensure_ai_stub_for_all_users() -> None:
-    """Ensure every existing user can use the AI stub without additional setup."""
+    """Ensure the default user can use the AI stub without additional setup."""
 
-    for user in get_all_users():
-        ensure_ai_stub_for_user(user.id)
+    from identity import ensure_default_user
+
+    user = ensure_default_user()
+    ensure_ai_stub_for_user(user.id)
 
 
 __all__ = [

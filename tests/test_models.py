@@ -11,7 +11,8 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
-from models import db, User, CID, PageView, Server, Variable, Secret
+from identity import ExternalUser
+from models import db, CID, PageView, Server, Variable, Secret
 
 
 class TestModels(unittest.TestCase):
@@ -39,103 +40,85 @@ class TestModels(unittest.TestCase):
     def test_user_has_access_with_valid_payment(self):
         """Test User.has_access() with valid payment."""
         future_date = datetime.now(timezone.utc) + timedelta(days=30)
-        user = User(
+        user = ExternalUser(
             id='test_user_1',
             email='test@example.com',
             first_name='Test',
             last_name='User',
             is_paid=True,
             current_terms_accepted=True,
-            payment_expires_at=future_date
+            payment_expires_at=future_date,
         )
-        db.session.add(user)
-        db.session.commit()
 
         self.assertTrue(user.has_access())
 
     def test_user_has_access_with_expired_payment(self):
         """Test User.has_access() with expired payment."""
         past_date = datetime.now(timezone.utc) - timedelta(days=1)
-        user = User(
+        user = ExternalUser(
             id='test_user_2',
             email='test2@example.com',
             first_name='Test',
             last_name='User',
             is_paid=True,
             current_terms_accepted=True,
-            payment_expires_at=past_date
+            payment_expires_at=past_date,
         )
-        db.session.add(user)
-        db.session.commit()
 
         self.assertFalse(user.has_access())
 
     def test_user_has_access_no_payment_expiry(self):
         """Test User.has_access() with no payment expiry (lifetime access)."""
-        user = User(
+        user = ExternalUser(
             id='test_user_3',
             email='test3@example.com',
             first_name='Test',
             last_name='User',
             is_paid=True,
             current_terms_accepted=True,
-            payment_expires_at=None
+            payment_expires_at=None,
         )
-        db.session.add(user)
-        db.session.commit()
 
         self.assertTrue(user.has_access())
 
     def test_user_has_access_not_paid(self):
         """Test User.has_access() when user is not paid."""
-        user = User(
+        user = ExternalUser(
             id='test_user_4',
             email='test4@example.com',
             first_name='Test',
             last_name='User',
             is_paid=False,
             current_terms_accepted=True,
-            payment_expires_at=None
+            payment_expires_at=None,
         )
-        db.session.add(user)
-        db.session.commit()
 
         self.assertFalse(user.has_access())
 
     def test_user_has_access_terms_not_accepted(self):
         """Test User.has_access() when terms not accepted."""
-        user = User(
+        user = ExternalUser(
             id='test_user_5',
             email='test5@example.com',
             first_name='Test',
             last_name='User',
             is_paid=True,
             current_terms_accepted=False,
-            payment_expires_at=None
+            payment_expires_at=None,
         )
-        db.session.add(user)
-        db.session.commit()
 
         self.assertFalse(user.has_access())
 
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""
-        # Create a test user first to satisfy foreign key constraints
-        test_user = User(
-            id='test_user_datetime',
-            email='datetime@example.com',
-            first_name='DateTime',
-            last_name='Test'
-        )
-        db.session.add(test_user)
-        db.session.commit()
+        test_user_id = 'test_user_datetime'
 
         # Test CID model datetime defaults
         cid = CID(
             path='/test/path/datetime',
             file_data=b'test content',
             file_size=12,
-            uploaded_by_user_id=test_user.id
+            uploaded_by_user_id=test_user_id
         )
         db.session.add(cid)
         db.session.commit()
@@ -148,7 +131,7 @@ class TestModels(unittest.TestCase):
 
         # Test PageView model datetime defaults
         page_view = PageView(
-            user_id=test_user.id,
+            user_id=test_user_id,
             path='/test',
             method='GET'
         )
@@ -165,7 +148,7 @@ class TestModels(unittest.TestCase):
         server = Server(
             name='test_server_datetime',
             definition='test definition',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -184,7 +167,7 @@ class TestModels(unittest.TestCase):
         variable = Variable(
             name='test_var_datetime',
             definition='test value',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(variable)
         db.session.commit()
@@ -203,7 +186,7 @@ class TestModels(unittest.TestCase):
         secret = Secret(
             name='test_secret_datetime',
             definition='test secret value',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(secret)
         db.session.commit()
@@ -220,21 +203,13 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_onupdate_functionality(self):
         """Test that onupdate datetime fields work correctly."""
-        # Create a test user first to satisfy foreign key constraints
-        test_user = User(
-            id='test_user_onupdate',
-            email='onupdate@example.com',
-            first_name='OnUpdate',
-            last_name='Test'
-        )
-        db.session.add(test_user)
-        db.session.commit()
+        test_user_id = 'test_user_onupdate'
 
         # Test Server model onupdate functionality
         server = Server(
             name='test_server_onupdate',
             definition='initial definition',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -259,7 +234,7 @@ class TestModels(unittest.TestCase):
         variable = Variable(
             name='test_var_onupdate',
             definition='initial value',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(variable)
         db.session.commit()
@@ -283,7 +258,7 @@ class TestModels(unittest.TestCase):
         secret = Secret(
             name='test_secret_onupdate',
             definition='initial secret',
-            user_id=test_user.id
+            user_id=test_user_id
         )
         db.session.add(secret)
         db.session.commit()

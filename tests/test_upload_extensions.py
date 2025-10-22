@@ -2,7 +2,6 @@ import unittest
 from unittest.mock import Mock, patch
 import io
 from app import create_app, db
-from models import User
 from cid_utils import CID_LENGTH, process_file_upload
 
 
@@ -19,16 +18,7 @@ class TestUploadExtensions(unittest.TestCase):
         
         with self.app.app_context():
             db.create_all()
-            
-            # Create a test user
-            self.test_user = User(
-                id='test_user_123',
-                email='test@example.com',
-                first_name='Test',
-                last_name='User'
-            )
-            db.session.add(self.test_user)
-            db.session.commit()
+            self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after tests"""
@@ -67,7 +57,7 @@ class TestUploadExtensions(unittest.TestCase):
     @patch('routes.uploads.current_user')
     def test_upload_text_gets_txt_extension(self, mock_current_user):
         """Test that pasted text uploads get .txt extension in view URL"""
-        mock_current_user.id = 'test_user_123'
+        mock_current_user.id = self.test_user_id
 
         with self.app.app_context():
             # Simulate text upload
@@ -87,7 +77,7 @@ class TestUploadExtensions(unittest.TestCase):
     @patch('routes.uploads.current_user')
     def test_upload_file_preserves_original_extension(self, mock_current_user):
         """Test that file uploads preserve their original extension"""
-        mock_current_user.id = 'test_user_123'
+        mock_current_user.id = self.test_user_id
 
         with self.app.app_context():
             # Create a mock file with .pdf extension
@@ -111,7 +101,7 @@ class TestUploadExtensions(unittest.TestCase):
     @patch('routes.uploads.current_user')
     def test_upload_file_handles_no_extension(self, mock_current_user):
         """Test that file uploads without extension don't break"""
-        mock_current_user.id = 'test_user_123'
+        mock_current_user.id = self.test_user_id
 
         with self.app.app_context():
             # Create a mock file without extension

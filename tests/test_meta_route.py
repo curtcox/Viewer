@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from app import app, db
-from models import Alias, CID, Server, ServerInvocation, User
+from models import Alias, CID, Server, ServerInvocation
 from werkzeug.routing import RequestRedirect
 
 
@@ -27,27 +27,17 @@ class TestMetaRoute(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _create_test_user(self):
-        user = User(
-            id='user-123',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-        )
-        db.session.add(user)
-        db.session.commit()
-        return user
+    def _create_test_user(self, user_id: str = 'user-123'):
+        return user_id
 
-    def _create_cid(self, cid_value: str, content: bytes = b'test', user: User = None):
-        if user is None:
-            user = self._create_test_user()
+    def _create_cid(self, cid_value: str, content: bytes = b'test', user_id: str | None = None):
+        if user_id is None:
+            user_id = self._create_test_user()
         record = CID(
             path=f'/{cid_value}',
             file_data=content,
             file_size=len(content),
-            uploaded_by_user_id=user.id,
+            uploaded_by_user_id=user_id,
         )
         db.session.add(record)
         db.session.commit()
@@ -55,7 +45,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def _create_alias(
         self,
-        user: User,
+        user_id: str,
         name: str = 'docs',
         target: str = '/docs',
         match_type: str = 'literal',
@@ -65,7 +55,7 @@ class TestMetaRoute(unittest.TestCase):
         alias = Alias(
             name=name,
             target_path=target,
-            user_id=user.id,
+            user_id=user_id,
             match_type=match_type,
             match_pattern=pattern or f'/{name}',
             ignore_case=ignore_case,
@@ -74,15 +64,15 @@ class TestMetaRoute(unittest.TestCase):
         db.session.commit()
         return alias
 
-    def _create_server(self, user: User, name: str = 'demo-server', definition: str = 'print("hi")'):
-        server = Server(name=name, definition=definition, user_id=user.id)
+    def _create_server(self, user_id: str, name: str = 'demo-server', definition: str = 'print("hi")'):
+        server = Server(name=name, definition=definition, user_id=user_id)
         db.session.add(server)
         db.session.commit()
         return server
 
-    def _login(self, user: User):
+    def _login(self, user_id: str):
         with self.client.session_transaction() as session:
-            session['_user_id'] = user.id
+            session['_user_id'] = user_id
             session['_fresh'] = True
 
     def test_meta_route_reports_route_information(self):
@@ -117,20 +107,20 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_includes_server_event_links_for_cid(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_cid('cid-result', b'result', user)
-            self._create_server(user, name='demo-server')
-            self._create_alias(user, name='docs', target='/docs')
+            user_id = self._create_test_user()
+            self._create_cid('cid-result', b'result', user_id)
+            self._create_server(user_id, name='demo-server')
+            self._create_alias(user_id, name='docs', target='/docs')
             record = CID.query.filter_by(path='/cid-result').first()
             record.file_data = b'Check /docs /servers/demo-server /demo-server and /cid-inv'
             db.session.commit()
 
             related_cids = ['cid-inv', 'cid-request', 'cid-servers', 'cid-vars', 'cid-secrets']
             for cid in related_cids:
-                self._create_cid(cid, b'extra', user)
+                self._create_cid(cid, b'extra', user_id)
 
             invocation = ServerInvocation(
-                user_id=user.id,
+                user_id=user_id,
                 server_name='demo-server',
                 result_cid='cid-result',
                 invocation_cid='cid-inv',
@@ -142,7 +132,7 @@ class TestMetaRoute(unittest.TestCase):
             db.session.add(invocation)
             db.session.commit()
 
-            self._login(user)
+            self._login(user_id)
             response = self.client.get('/meta/cid-result')
             self.assertEqual(response.status_code, 200)
 

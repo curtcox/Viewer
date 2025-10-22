@@ -5,7 +5,6 @@ import re
 
 from app import create_app
 from database import db
-from models import User
 
 
 class TestErrorPageSourceLinks(unittest.TestCase):
@@ -28,16 +27,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-
-            # Create a test user
-            self.test_user = User(
-                id='test_user_123',
-                email='test@example.com',
-                first_name='Test',
-                last_name='User'
-            )
-            db.session.add(self.test_user)
-            db.session.commit()
+            self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after tests."""
@@ -54,7 +44,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 with patch('db_access.get_user_aliases') as mock_get_aliases:
                     with patch('identity.current_user') as mock_current_user:
                         # Mock authentication
-                        mock_current_user.id = 'test_user_123'
+                        mock_current_user.id = self.test_user_id
 
                         # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
                         from sqlalchemy.exc import OperationalError

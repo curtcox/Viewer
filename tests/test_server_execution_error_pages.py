@@ -3,12 +3,11 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 import unittest
 
 from app import create_app
 from database import db
-from models import Server, User
+from models import Server
 
 
 class _SourceLinkParser(HTMLParser):
@@ -58,15 +57,7 @@ class TestServerExecutionErrorPages(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-
-        self.user = User(
-            id="user-1",
-            email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        db.session.add(self.user)
+        self.user_id = "user-1"
 
         template_path = (
             Path(self.app.root_path)
@@ -78,14 +69,14 @@ class TestServerExecutionErrorPages(unittest.TestCase):
         self.server = Server(
             name="jinja_renderer",
             definition=definition,
-            user_id=self.user.id,
+            user_id=self.user_id,
         )
         db.session.add(self.server)
         db.session.commit()
 
         self.client = self.app.test_client()
         with self.client.session_transaction() as session:
-            session["_user_id"] = self.user.id
+            session["_user_id"] = self.user_id
             session["_fresh"] = True
 
     def tearDown(self) -> None:

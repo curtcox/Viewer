@@ -1,6 +1,5 @@
 import os
 import unittest
-from datetime import datetime, timedelta, timezone
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
@@ -8,7 +7,7 @@ os.environ.setdefault('TESTING', 'True')
 
 from app import create_app  # noqa: E402
 from database import db  # noqa: E402
-from models import Alias, Server, User  # noqa: E402
+from models import Alias, Server  # noqa: E402
 
 
 class RoutesOverviewTestCase(unittest.TestCase):
@@ -28,16 +27,7 @@ class RoutesOverviewTestCase(unittest.TestCase):
 
         db.create_all()
 
-        self.user = User(
-            id='user-1',
-            email='user@example.com',
-            first_name='Test',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        db.session.add(self.user)
-        db.session.commit()
+        self.user_id = 'user-1'
 
     def tearDown(self):
         db.session.remove()
@@ -46,7 +36,7 @@ class RoutesOverviewTestCase(unittest.TestCase):
 
     def login_user(self):
         with self.client.session_transaction() as session:
-            session['_user_id'] = self.user.id
+            session['_user_id'] = self.user_id
             session['_fresh'] = True
 
     def test_requires_login(self):
@@ -54,11 +44,11 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_lists_builtin_alias_and_server_routes(self):
-        alias = Alias(name='shared', target_path='/target', user_id=self.user.id)
+        alias = Alias(name='shared', target_path='/target', user_id=self.user_id)
         server = Server(
             name='shared',
             definition='def main(request):\n    return "ok"',
-            user_id=self.user.id,
+            user_id=self.user_id,
         )
         db.session.add_all([alias, server])
         db.session.commit()

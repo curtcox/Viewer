@@ -10,7 +10,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
 from cid_utils import CID_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
 from app import app, db
-from models import Server, User
+from models import Server
 from routes.core import not_found_error, get_existing_routes
 from server_execution import try_server_execution, execute_server_code, is_potential_server_path
 
@@ -27,17 +27,8 @@ class TestEchoFunctionality(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         
-        # Create a test user
-        self.test_user = User(
-            id='test_user_123',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True
-        )
-        db.session.add(self.test_user)
-        db.session.commit()
+        # Track a user identifier for ownership fields
+        self.test_user_id = 'test_user_123'
     
     def tearDown(self):
         """Clean up test environment"""
@@ -67,7 +58,7 @@ class TestEchoFunctionality(unittest.TestCase):
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user.id
+                mock_user.id = self.test_user_id
 
                 result = try_server_execution('/echo')
                 self.assertIsNone(result, "Should return None when no echo server exists for user")
@@ -78,7 +69,7 @@ class TestEchoFunctionality(unittest.TestCase):
         echo_server = Server(
             name='echo',
             definition='return {"output": "Hello, World!", "content_type": "text/html"}',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(echo_server)
         db.session.commit()
@@ -86,7 +77,7 @@ class TestEchoFunctionality(unittest.TestCase):
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user.id
+                mock_user.id = self.test_user_id
 
                 # Mock the text function runner
                 with patch('server_execution.run_text_function') as mock_runner:
@@ -103,7 +94,7 @@ class TestEchoFunctionality(unittest.TestCase):
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user.id
+                mock_user.id = self.test_user_id
                 
                 # Create a mock 404 error
                 mock_error = MagicMock()
@@ -120,14 +111,14 @@ class TestEchoFunctionality(unittest.TestCase):
         echo_server = Server(
             name='echo',
             definition='return {"output": "<h1>Hello, World!</h1>", "content_type": "text/html"}',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(echo_server)
         db.session.commit()
         
         with app.test_request_context('/echo'):
             with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user.id
+                mock_user.id = self.test_user_id
                 
                 # Mock the text function runner
                 with patch('server_execution.run_text_function') as mock_runner:

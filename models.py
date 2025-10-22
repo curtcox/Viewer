@@ -1,76 +1,25 @@
 from datetime import datetime, timezone
 from database import db
-from flask_login import UserMixin
-from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
-
-class User(UserMixin, db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.String, primary_key=True)
-    email = db.Column(db.String, unique=True, nullable=True)
-    first_name = db.Column(db.String, nullable=True)
-    last_name = db.Column(db.String, nullable=True)
-    profile_image_url = db.Column(db.String, nullable=True)
-
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-
-    # Payment and access control
-    is_paid = db.Column(db.Boolean, default=False)
-    payment_expires_at = db.Column(db.DateTime)
-    current_terms_accepted = db.Column(db.Boolean, default=False)
-
-    def has_access(self):
-        """Check if user has full access (logged in, paid, terms accepted)"""
-        return self.is_paid and self.current_terms_accepted and (
-            self.payment_expires_at is None or self.payment_expires_at.replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
-        )
-
-    @property
-    def username(self):
-        """Compatibility property for templates"""
-        return self.first_name or self.email or self.id
-
-    def __repr__(self):
-        return f'<User {self.id}>'
-
-class OAuth(OAuthConsumerMixin, db.Model):
-    user_id = db.Column(db.String, db.ForeignKey(User.id))
-    browser_session_key = db.Column(db.String, nullable=False)
-    user = db.relationship(User)
-
-    from sqlalchemy import UniqueConstraint
-    __table_args__ = (UniqueConstraint(
-        'user_id',
-        'browser_session_key',
-        'provider',
-        name='uq_user_browser_session_key_provider',
-    ),)
 
 class CID(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
     file_data = db.Column(db.LargeBinary, nullable=False)  # For actual file bytes
     file_size = db.Column(db.Integer, nullable=True)
-    uploaded_by_user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)  # Track uploader
+    uploaded_by_user_id = db.Column(db.String, nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    uploaded_by = db.relationship('User', backref='uploads')
 
     def __repr__(self):
         return f'<CID {self.path}>'
 
 class PageView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     path = db.Column(db.String(255), nullable=False)
     method = db.Column(db.String(10), default='GET')
     user_agent = db.Column(db.String(500), nullable=True)
     ip_address = db.Column(db.String(45), nullable=True)  # Support IPv6
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-
-    # Relationships
-    user = db.relationship('User', backref='page_views')
 
     def __repr__(self):
         return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
@@ -80,12 +29,9 @@ class Server(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
     definition_cid = db.Column(db.String(255), nullable=True, index=True)  # Track CID of definition
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    user = db.relationship('User', backref='servers')
 
     # Unique constraint: each user can only have one server with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_server_name'),)
@@ -102,12 +48,9 @@ class Alias(db.Model):
     match_pattern = db.Column(db.String(255), nullable=False, default='')
     ignore_case = db.Column(db.Boolean, nullable=False, default=False)
     definition = db.Column(db.Text, nullable=True)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    user = db.relationship('User', backref='aliases')
 
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
 
@@ -138,7 +81,7 @@ class EntityInteraction(db.Model):
     __tablename__ = 'entity_interactions'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    user_id = db.Column(db.String, nullable=False, index=True)
     entity_type = db.Column(db.String(50), nullable=False, index=True)
     entity_name = db.Column(db.String(255), nullable=False, index=True)
     action = db.Column(db.String(20), nullable=False)
@@ -151,8 +94,6 @@ class EntityInteraction(db.Model):
         index=True,
     )
 
-    user = db.relationship('User', backref='entity_interactions')
-
     def __repr__(self):
         return f'<EntityInteraction {self.entity_type}:{self.entity_name} {self.action}>'
 
@@ -161,12 +102,9 @@ class Variable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    user = db.relationship('User', backref='variables')
 
     # Unique constraint: each user can only have one variable with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_variable_name'),)
@@ -178,12 +116,9 @@ class Secret(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    user = db.relationship('User', backref='secrets')
 
     # Unique constraint: each user can only have one secret with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)
@@ -193,7 +128,7 @@ class Secret(db.Model):
 
 class ServerInvocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String, nullable=False)
     server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
     result_cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the result produced
     servers_cid = db.Column(db.String(255), nullable=True)  # CID of current servers definitions
@@ -202,9 +137,6 @@ class ServerInvocation(db.Model):
     request_details_cid = db.Column(db.String(255), nullable=True)  # CID of request details JSON
     invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-
-    # Relationships
-    user = db.relationship('User', backref='server_invocations')
 
     def __repr__(self):
         return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'

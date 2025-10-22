@@ -4,7 +4,6 @@ from typing import Optional, Dict, Any, Iterable, List, Tuple, Set
 import models
 from database import db
 from models import (
-    User,
     Server,
     Alias,
     Variable,
@@ -756,36 +755,10 @@ def get_entity_interactions(
     )
 
 
-def get_all_users() -> List[User]:
-    """Return all user records."""
-
-    return User.query.all()
-
-
 def get_all_servers() -> List[Server]:
     """Return all server records."""
 
     return Server.query.all()
-
-
-def get_user_by_id(user_id: str) -> Optional[User]:
-    """Return a user by identifier."""
-
-    if not user_id:
-        return None
-    return User.query.filter_by(id=user_id).first()
-
-
-def load_user_by_id(user_id: str) -> Optional[User]:
-    """Return a user by primary key using the active session."""
-
-    if not user_id:
-        return None
-    return db.session.get(User, user_id)
-
-
-def count_users() -> int:
-    return User.query.count()
 
 
 def count_cids() -> int:
