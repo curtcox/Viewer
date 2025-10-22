@@ -75,6 +75,12 @@ def ensure_default_user() -> ExternalUser:
     global _default_user, _cached_user
     if _default_user is None:
         _default_user = _create_default_user()
+    else:
+        # Test suites may create fresh in-memory databases between calls while the
+        # in-process default user instance remains cached. Make sure the default
+        # AI stub resources are present for the active database on every
+        # invocation.
+        ensure_ai_stub_for_user(_default_user.id)
     _cached_user = _default_user
     return _default_user
 

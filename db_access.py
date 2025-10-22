@@ -13,6 +13,9 @@ from models import (
     EntityInteraction,
     PageView,
 )
+
+_DEFAULT_AI_SERVER_NAME = "ai_stub"
+_DEFAULT_AI_ALIAS_NAME = "ai"
 from sqlalchemy import func, or_
 
 from alias_definition import AliasDefinitionError, parse_alias_definition
@@ -42,12 +45,22 @@ def get_server_by_name(user_id: str, name: str):
 def get_first_server_name(user_id: str) -> Optional[str]:
     """Return the first server name for a user ordered alphabetically."""
 
-    server = (
+    # Prefer user-created servers over the default AI helper when available.
+    preferred = (
+        Server.query.filter_by(user_id=user_id)
+        .filter(Server.name != _DEFAULT_AI_SERVER_NAME)
+        .order_by(Server.name.asc())
+        .first()
+    )
+    if preferred is not None:
+        return preferred.name
+
+    fallback = (
         Server.query.filter_by(user_id=user_id)
         .order_by(Server.name.asc())
         .first()
     )
-    return server.name if server else None
+    return fallback.name if fallback else None
 
 
 def get_user_aliases(user_id: str):
@@ -61,12 +74,22 @@ def get_alias_by_name(user_id: str, name: str):
 def get_first_alias_name(user_id: str) -> Optional[str]:
     """Return the first alias name for a user ordered alphabetically."""
 
-    alias = (
+    # Prefer user-created aliases over the default AI helper when available.
+    preferred = (
+        Alias.query.filter_by(user_id=user_id)
+        .filter(Alias.name != _DEFAULT_AI_ALIAS_NAME)
+        .order_by(Alias.name.asc())
+        .first()
+    )
+    if preferred is not None:
+        return preferred.name
+
+    fallback = (
         Alias.query.filter_by(user_id=user_id)
         .order_by(Alias.name.asc())
         .first()
     )
-    return alias.name if alias else None
+    return fallback.name if fallback else None
 
 
 def get_alias_by_target_path(user_id: str, target_path: str):

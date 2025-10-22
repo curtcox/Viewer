@@ -1895,7 +1895,7 @@ class TestSourceRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('class User(UserMixin, db.Model)', page)
+        self.assertIn('class Alias(db.Model)', page)
 
     def test_source_serves_untracked_project_files(self):
         """Enhanced source browser should serve untracked project files."""
