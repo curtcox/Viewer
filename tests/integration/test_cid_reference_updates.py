@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from database import db
 from db_access import update_alias_cid_reference, update_cid_references
+from alias_definition import format_primary_alias_line
 from models import Alias, Server
 
 
@@ -14,17 +15,19 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
     new_cid = "replacementcid0987654321"
 
     with integration_app.app_context():
+        definition_text = format_primary_alias_line(
+            "literal",
+            "/latest",
+            f"/{old_cid}?download=1",
+            alias_name="latest",
+        )
+        definition_text = (
+            f"{definition_text}\n# legacy pointer {old_cid}"
+        )
         alias = Alias(
             name="latest",
-            target_path=f"/{old_cid}?download=1",
             user_id="default-user",
-            match_type="literal",
-            match_pattern="/latest",
-            ignore_case=False,
-            definition=(
-                f"latest -> /{old_cid}?download=1\n"
-                f"# legacy pointer {old_cid}"
-            ),
+            definition=definition_text,
         )
         server = Server(
             name="docs",
@@ -68,17 +71,20 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
 
 def test_update_alias_cid_reference_updates_existing_alias(integration_app):
     with integration_app.app_context():
+        definition_text = format_primary_alias_line(
+            "regex",
+            "/custom",
+            "/legacycid?download=1",
+            ignore_case=True,
+            alias_name="integration-release",
+        )
+        definition_text = (
+            f"{definition_text}\n# replace legacycid"
+        )
         alias = Alias(
             name="integration-release",
-            target_path="/legacycid?download=1",
             user_id="default-user",
-            match_type="regex",
-            match_pattern="/custom",
-            ignore_case=False,
-            definition=(
-                "integration-release -> /legacycid?download=1 [ignore-case]\n"
-                "# replace legacycid"
-            ),
+            definition=definition_text,
         )
         db.session.add(alias)
         db.session.commit()

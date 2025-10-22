@@ -24,7 +24,9 @@ from alias_definition import (
     DefinitionLineSummary,
     ensure_primary_line,
     format_primary_alias_line,
+    get_primary_alias_route,
     parse_alias_definition,
+    replace_primary_definition_line,
     summarize_definition_lines,
 )
 
@@ -45,14 +47,14 @@ def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] =
 
 
 def _primary_definition_line_for_alias(alias: Alias) -> Optional[str]:
-    target = getattr(alias, "target_path", None)
-    if not target:
+    route = get_primary_alias_route(alias)
+    if not route:
         return None
     return format_primary_alias_line(
-        getattr(alias, "match_type", None),
-        getattr(alias, "match_pattern", None),
-        target,
-        ignore_case=bool(getattr(alias, "ignore_case", False)),
+        route.match_type,
+        route.match_pattern,
+        route.target_path,
+        ignore_case=route.ignore_case,
         alias_name=getattr(alias, "name", None),
     )
 
@@ -223,21 +225,32 @@ def new_alias():
     if form.validate_on_submit():
         parsed = form.parsed_definition
         name = form.name.data
-        target_path = parsed.target_path if parsed else None
 
         if _alias_name_conflicts_with_routes(name):
             flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
         elif _alias_with_name_exists(current_user.id, name):
             flash(f'An alias named "{name}" already exists.', 'danger')
         else:
+            definition_text = form.definition.data or ""
+            if parsed:
+                primary_line = format_primary_alias_line(
+                    parsed.match_type,
+                    parsed.match_pattern,
+                    parsed.target_path,
+                    ignore_case=parsed.ignore_case,
+                    alias_name=name,
+                )
+                definition_value = replace_primary_definition_line(
+                    definition_text,
+                    primary_line,
+                )
+            else:
+                definition_value = definition_text or None
+
             alias = Alias(
                 name=name,
-                target_path=target_path,
                 user_id=current_user.id,
-                match_type=parsed.match_type if parsed else 'literal',
-                match_pattern=parsed.match_pattern if parsed else f'/{name}',
-                ignore_case=parsed.ignore_case if parsed else False,
-                definition=form.definition.data or None,
+                definition=definition_value,
             )
             _persist_alias(alias)
             record_entity_interaction(
@@ -272,8 +285,9 @@ def view_alias(alias_name: str):
     if not alias:
         abort(404)
 
+    primary_route = get_primary_alias_route(alias)
     target_references = extract_references_from_target(
-        getattr(alias, "target_path", None),
+        primary_route.target_path if primary_route else None,
         current_user.id,
     )
 
@@ -309,7 +323,6 @@ def edit_alias(alias_name: str):
     if form.validate_on_submit():
         parsed = form.parsed_definition
         new_name = form.name.data
-        new_target = parsed.target_path if parsed else None
 
         if new_name != alias.name:
             if _alias_name_conflicts_with_routes(new_name):
@@ -337,11 +350,23 @@ def edit_alias(alias_name: str):
                 )
 
         alias.name = new_name
-        alias.target_path = new_target
-        alias.match_type = parsed.match_type if parsed else alias.match_type
-        alias.match_pattern = parsed.match_pattern if parsed else alias.match_pattern
-        alias.ignore_case = parsed.ignore_case if parsed else bool(alias.ignore_case)
-        alias.definition = form.definition.data or None
+        definition_text = form.definition.data or ""
+        if parsed:
+            primary_line = format_primary_alias_line(
+                parsed.match_type,
+                parsed.match_pattern,
+                parsed.target_path,
+                ignore_case=parsed.ignore_case,
+                alias_name=new_name,
+            )
+            definition_value = replace_primary_definition_line(
+                definition_text,
+                primary_line,
+            )
+        else:
+            definition_value = definition_text
+
+        alias.definition = definition_value or None
         alias.updated_at = datetime.now(timezone.utc)
         _persist_alias(alias)
         record_entity_interaction(

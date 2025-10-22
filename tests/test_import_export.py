@@ -15,6 +15,7 @@ from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from datetime import datetime, timezone
+from alias_definition import format_primary_alias_line
 from models import Alias, CID, EntityInteraction, Secret, Server, Variable
 
 
@@ -58,14 +59,18 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
+            definition_text = format_primary_alias_line(
+                'glob',
+                '/demo/*',
+                '/demo',
+                ignore_case=True,
+                alias_name='alias-one',
+            )
+            definition_text = f"{definition_text}\n# export example"
             alias = Alias(
                 name='alias-one',
-                target_path='/demo',
                 user_id=self.user_id,
-                match_type='glob',
-                match_pattern='/demo/*',
-                ignore_case=True,
-                definition='# export example',
+                definition=definition_text,
             )
             server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
             variable = Variable(name='var-one', definition='value', user_id=self.user_id)
@@ -111,10 +116,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         aliases = payload.get('aliases', [])
         self.assertEqual(len(aliases), 1)
         self.assertEqual(aliases[0]['name'], 'alias-one')
-        self.assertEqual(aliases[0]['match_type'], 'glob')
-        self.assertEqual(aliases[0]['match_pattern'], '/demo/*')
-        self.assertTrue(aliases[0]['ignore_case'])
-        self.assertEqual(aliases[0]['definition'], '# export example')
+        self.assertIn('definition_cid', aliases[0])
+        self.assertNotIn('definition', aliases[0])
+        alias_definition_cid = aliases[0]['definition_cid']
 
         servers = payload.get('servers', [])
         self.assertEqual(len(servers), 1)
@@ -122,6 +126,11 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertNotIn('definition', servers[0])
 
         cid_values = payload.get('cid_values', {})
+        self.assertIn(alias_definition_cid, cid_values)
+        self.assertEqual(
+            cid_values[alias_definition_cid],
+            {'encoding': 'utf-8', 'value': definition_text},
+        )
         self.assertIn(servers[0]['definition_cid'], cid_values)
         self.assertEqual(
             cid_values[servers[0]['definition_cid']],
@@ -312,7 +321,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         )
 
     def test_import_reports_missing_selected_content(self):
-        payload = json.dumps({'aliases': [{'name': 'alias-a', 'target_path': '/path'}]})
+        definition_text = format_primary_alias_line(
+            'literal',
+            None,
+            '/path',
+            alias_name='alias-a',
+        )
+        payload = json.dumps({'aliases': [{'name': 'alias-a', 'definition': definition_text}]})
 
         with self.logged_in():
             response = self.client.post('/import', data={
@@ -534,15 +549,20 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         encrypted_secret = encrypt_secret_value('value', 'passphrase')
         server_definition = 'print("hello")'
         server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
+        alias_definition = format_primary_alias_line(
+            'regex',
+            r'^/demo$',
+            '/demo',
+            ignore_case=True,
+            alias_name='alias-b',
+        )
+        alias_definition = f"{alias_definition}\n# imported alias"
+        alias_cid = format_cid(generate_cid(alias_definition.encode('utf-8')))
         payload = json.dumps({
             'aliases': [
                 {
                     'name': 'alias-b',
-                    'target_path': '/demo',
-                    'match_type': 'regex',
-                    'match_pattern': r'^/demo$',
-                    'ignore_case': True,
-                    'definition': '# imported alias',
+                    'definition_cid': alias_cid,
                 }
             ],
             'servers': [{'name': 'server-b', 'definition_cid': server_cid}],
@@ -554,7 +574,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 ],
             },
             'cid_values': {
-                server_cid: {'encoding': 'utf-8', 'value': server_definition}
+                server_cid: {'encoding': 'utf-8', 'value': server_definition},
+                alias_cid: {'encoding': 'utf-8', 'value': alias_definition},
             },
         })
 
@@ -580,11 +601,15 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             alias = Alias.query.filter_by(user_id=self.user_id, name='alias-b').first()
             self.assertIsNotNone(alias)
+            assert alias is not None  # for type checker
             self.assertEqual(alias.target_path, '/demo')
             self.assertEqual(alias.match_type, 'regex')
             self.assertEqual(alias.match_pattern, r'^/demo$')
             self.assertTrue(alias.ignore_case)
-            self.assertEqual(alias.definition, '# imported alias')
+            self.assertTrue(
+                alias.definition.startswith('^/demo$ -> /demo [regex, ignore-case]')
+            )
+            self.assertIn('# imported alias', alias.definition)
 
             server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
             self.assertIsNotNone(server)
@@ -615,7 +640,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         })
 
         with self.app.app_context():
-            alias = Alias(name='alias-b', target_path='/demo', user_id=self.user_id)
+            definition_text = format_primary_alias_line(
+                'literal',
+                None,
+                '/demo',
+                alias_name='alias-b',
+            )
+            alias = Alias(name='alias-b', user_id=self.user_id, definition=definition_text)
             db.session.add(alias)
             db.session.commit()
 

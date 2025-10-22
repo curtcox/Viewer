@@ -14,6 +14,7 @@ from db_access import (
     get_first_server_name,
     get_first_variable_name,
 )
+from alias_definition import format_primary_alias_line
 from models import Alias, Secret, Server, Variable
 
 
@@ -30,10 +31,13 @@ def test_settings_page_displays_resource_counts_and_links(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            target_path="/docs-target",
             user_id="default-user",
-            match_type="literal",
-            ignore_case=False,
+            definition=format_primary_alias_line(
+                "literal",
+                None,
+                "/docs-target",
+                alias_name="docs",
+            ),
         )
         server = Server(
             name="engine",

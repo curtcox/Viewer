@@ -10,6 +10,7 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
+from alias_definition import format_primary_alias_line
 from models import (
     Alias,
     PageView,
@@ -193,17 +194,19 @@ class TestDBAccess(unittest.TestCase):
         old_cid = 'oldcid123456'
         new_cid = 'newcid789012'
 
+        definition_text = format_primary_alias_line(
+            'literal',
+            '/docs',
+            f'/{old_cid}?download=1',
+            alias_name='docs',
+        )
+        definition_text = (
+            f"{definition_text}\n# Link to legacy {old_cid} content"
+        )
         alias = Alias(
             name='docs',
-            target_path=f'/{old_cid}?download=1',
             user_id=self.user_id,
-            match_type='literal',
-            match_pattern='/docs',
-            ignore_case=False,
-            definition=(
-                f'docs -> /{old_cid}?download=1\n'
-                f'# Link to legacy {old_cid} content'
-            ),
+            definition=definition_text,
         )
         server = Server(
             name='reader',
@@ -246,17 +249,20 @@ class TestDBAccess(unittest.TestCase):
         mock_store.assert_called_once_with(self.user_id)
 
     def test_update_alias_cid_reference_updates_existing_alias(self):
+        definition_text = format_primary_alias_line(
+            'regex',
+            '/custom',
+            '/legacycid?download=1',
+            ignore_case=True,
+            alias_name='release',
+        )
+        definition_text = (
+            f"{definition_text}\n# legacy release pointer legacycid"
+        )
         alias = Alias(
             name='release',
-            target_path='/legacycid?download=1',
             user_id=self.user_id,
-            match_type='regex',
-            match_pattern='/custom',
-            ignore_case=False,
-            definition=(
-                'release -> /legacycid?download=1 [ignore-case]\n'
-                '# legacy release pointer legacycid'
-            ),
+            definition=definition_text,
         )
         db.session.add(alias)
         db.session.commit()

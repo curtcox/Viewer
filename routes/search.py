@@ -9,6 +9,7 @@ from flask import jsonify, render_template, request, url_for
 from markupsafe import escape
 
 from cid_presenter import cid_path, format_cid
+from alias_definition import collect_alias_routes
 from db_access import (
     get_user_aliases,
     get_user_servers,
@@ -72,8 +73,8 @@ def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> Al
         if not name:
             continue
 
-        target_path = getattr(alias, "target_path", "") or ""
-        if not target_path:
+        routes = collect_alias_routes(alias)
+        if not routes:
             continue
 
         entry = {
@@ -81,9 +82,14 @@ def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> Al
             "url": url_for("main.view_alias", alias_name=name),
         }
 
-        for key in _lookup_key_variants(target_path):
-            bucket = lookup.setdefault(key, {})
-            bucket[name] = entry
+        for route in routes:
+            target_path = route.target_path or ""
+            if not target_path:
+                continue
+
+            for key in _lookup_key_variants(target_path):
+                bucket = lookup.setdefault(key, {})
+                bucket[name] = entry
 
     return lookup
 
@@ -205,26 +211,33 @@ def _alias_results(
 
     for alias in source:
         name_text = getattr(alias, "name", "") or ""
-        target_path = getattr(alias, "target_path", "") or ""
-        match_pattern = getattr(alias, "match_pattern", "") or ""
+        routes = collect_alias_routes(alias)
+        if not routes:
+            continue
+
+        target_paths = [route.target_path or "" for route in routes if route.target_path]
+        match_patterns = [route.match_pattern or "" for route in routes if route.match_pattern]
 
         if not (
             _has_match(name_text, query_lower)
-            or _has_match(target_path, query_lower)
-            or _has_match(match_pattern, query_lower)
+            or any(_has_match(path, query_lower) for path in target_paths)
+            or any(_has_match(pattern, query_lower) for pattern in match_patterns)
         ):
             continue
 
         details: List[Dict[str, str]] = []
-        for label, value in (
-            ("Target Path", target_path),
-            ("Match Pattern", match_pattern),
+        for label, values in (
+            ("Target Path", target_paths),
+            ("Match Pattern", match_patterns),
         ):
-            highlighted = _highlight_full(value, query_lower)
-            if "<mark>" in highlighted:
-                details.append({"label": label, "value": highlighted})
+            for value in values:
+                highlighted = _highlight_full(value, query_lower)
+                if "<mark>" in highlighted:
+                    details.append({"label": label, "value": highlighted})
+                    break
 
-        canonical_path = target_path.strip() or None
+        primary_route = routes[0]
+        canonical_path = (primary_route.target_path or "").strip() or None
         results.append(
             {
                 "id": getattr(alias, "id", None),

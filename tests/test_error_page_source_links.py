@@ -51,9 +51,9 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                         import sqlite3
 
                         # Create a realistic database error like the one in the stack trace
-                        sqlite_error = sqlite3.OperationalError("no such column: alias.match_type")
+                        sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
                         sqlalchemy_error = OperationalError(
-                            "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.target_path AS alias_target_path, alias.match_type AS alias_match_type, alias.match_pattern AS alias_match_pattern, alias.ignore_case AS alias_ignore_case, alias.user_id AS alias_user_id, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias \nWHERE alias.user_id = ? ORDER BY alias.name",
+                            "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition, alias.user_id AS alias_user_id, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias \nWHERE alias.user_id = ? ORDER BY alias.name",
                             {'user_id': 'test_user_123'},
                             sqlite_error
                         )
@@ -106,9 +106,9 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 from sqlalchemy.exc import OperationalError
                 import sqlite3
 
-                sqlite_error = sqlite3.OperationalError("no such column: alias.match_type")
+                sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
                 sqlalchemy_error = OperationalError(
-                    "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.target_path AS alias_target_path, alias.match_type AS alias_match_type",
+                    "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition",
                     {'user_id': 'test_user_123'},
                     sqlite_error
                 )
@@ -135,7 +135,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 # Verify the error handler works correctly
                 self.assertIn('OperationalError', html_content,
                              "Should show the correct exception type")
-                self.assertIn('no such column: alias.match_type', html_content,
+                self.assertIn('no such column: alias.definition', html_content,
                              "Should show the correct error message")
 
     def test_debug_mode_override_mechanism_works(self):

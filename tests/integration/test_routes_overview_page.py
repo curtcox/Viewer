@@ -5,6 +5,7 @@ import pytest
 
 from database import db
 from identity import ensure_default_user
+from alias_definition import format_primary_alias_line
 from models import Alias, Server
 
 pytestmark = pytest.mark.integration
@@ -22,8 +23,13 @@ def test_routes_overview_lists_user_routes(
         db.session.add(
             Alias(
                 name="docs",
-                target_path="/docs",
                 user_id=user.id,
+                definition=format_primary_alias_line(
+                    "literal",
+                    None,
+                    "/docs",
+                    alias_name="docs",
+                ),
             )
         )
         db.session.add(

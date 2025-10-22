@@ -216,6 +216,32 @@ def ensure_primary_line(definition: Optional[str], primary_line: str) -> str:
     return f"{primary_line}\n\n{cleaned}"
 
 
+def replace_primary_definition_line(
+    definition: Optional[str], primary_line: str
+) -> str:
+    """Replace the first mapping line in the definition with ``primary_line``."""
+
+    if not primary_line:
+        return definition or ""
+
+    if not definition or not definition.strip():
+        return primary_line
+
+    lines = definition.splitlines()
+
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "->" not in stripped:
+            continue
+
+        indent_length = len(line) - len(line.lstrip(" \t"))
+        indent = line[:indent_length]
+        lines[index] = f"{indent}{primary_line}"
+        return "\n".join(lines)
+
+    return ensure_primary_line(definition, primary_line)
+
+
 def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
     """Return the selected match type and ignore-case flag for a line."""
 
@@ -394,12 +420,6 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
     """Return all routing rules defined for the supplied alias."""
 
     alias_name = getattr(alias, "name", None) or ""
-    match_type = getattr(alias, "match_type", None) or "literal"
-    match_pattern = getattr(alias, "match_pattern", None) or (
-        f"/{alias_name}" if alias_name else "/"
-    )
-    target_path = getattr(alias, "target_path", None)
-    ignore_case = bool(getattr(alias, "ignore_case", False))
     definition = getattr(alias, "definition", None)
 
     summary = summarize_definition_lines(definition, alias_name=alias_name)
@@ -435,8 +455,6 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
             )
         )
 
-    _register(alias_name, match_type, match_pattern, target_path, ignore_case)
-
     for entry in summary:
         if not entry.is_mapping or entry.parse_error:
             continue
@@ -449,7 +467,35 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
         route_ignore_case = entry.ignore_case
         _register(entry.alias_path, route_match_type, route_pattern, route_target, route_ignore_case, entry)
 
-    return routes
+    if routes:
+        return routes
+
+    if definition is None:
+        return []
+
+    try:
+        parsed = parse_alias_definition(definition, alias_name=alias_name or None)
+    except AliasDefinitionError:
+        return []
+
+    fallback_path = alias_name or parsed.match_pattern.lstrip("/") or alias_name
+    return [
+        AliasRouteRule(
+            alias_path=fallback_path,
+            match_type=parsed.match_type,
+            match_pattern=parsed.match_pattern,
+            target_path=parsed.target_path,
+            ignore_case=parsed.ignore_case,
+            source=None,
+        )
+    ]
+
+
+def get_primary_alias_route(alias) -> Optional[AliasRouteRule]:
+    """Return the primary alias routing rule for the provided alias."""
+
+    routes = collect_alias_routes(alias)
+    return routes[0] if routes else None
 
 
 __all__ = [
@@ -460,7 +506,9 @@ __all__ = [
     "definition_contains_mapping",
     "format_primary_alias_line",
     "ensure_primary_line",
+    "replace_primary_definition_line",
     "DefinitionLineSummary",
     "summarize_definition_lines",
     "collect_alias_routes",
+    "get_primary_alias_route",
 ]

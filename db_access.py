@@ -4,7 +4,13 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from sqlalchemy import func, or_
 
 import models
-from alias_definition import AliasDefinitionError, parse_alias_definition
+from alias_definition import (
+    AliasDefinitionError,
+    collect_alias_routes,
+    format_primary_alias_line,
+    parse_alias_definition,
+    replace_primary_definition_line,
+)
 from database import db
 from models import (
     Alias,
@@ -95,15 +101,31 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
 
 
 def get_alias_by_target_path(user_id: str, target_path: str):
-    return (
-        Alias.query.filter_by(
-            user_id=user_id,
-            target_path=target_path,
-            match_type='literal',
-        )
+    normalized = (target_path or "").strip()
+    if not normalized:
+        return None
+
+    candidates = {normalized}
+    alternate = f"/{normalized.lstrip('/')}"
+    candidates.add(alternate)
+
+    aliases = (
+        Alias.query.filter_by(user_id=user_id)
         .order_by(Alias.id.asc())
-        .first()
+        .all()
     )
+
+    for alias in aliases:
+        for route in collect_alias_routes(alias):
+            if route.match_type != "literal":
+                continue
+            route_target = (route.target_path or "").strip()
+            if not route_target:
+                continue
+            if route_target in candidates:
+                return alias
+
+    return None
 
 
 def get_user_variables(user_id: str):
@@ -250,24 +272,17 @@ def update_alias_cid_reference(
         from identity import ensure_default_user
 
         owner = ensure_default_user()
-        definition = f"{normalized_alias} -> /{normalized_new}"
+        primary_line = format_primary_alias_line(
+            "literal",
+            None,
+            f"/{normalized_new}",
+            alias_name=normalized_alias,
+        )
         alias = Alias(
             name=normalized_alias,
             user_id=owner.id,
-            definition=definition,
-            target_path=f"/{normalized_new}",
+            definition=primary_line,
         )
-
-        try:
-            parsed = parse_alias_definition(definition, alias_name=normalized_alias)
-        except AliasDefinitionError:
-            parsed = None
-
-        if parsed:
-            alias.match_type = parsed.match_type
-            alias.match_pattern = parsed.match_pattern
-            alias.ignore_case = parsed.ignore_case
-            alias.target_path = parsed.target_path
 
         db.session.add(alias)
         db.session.commit()
@@ -284,54 +299,63 @@ def update_alias_cid_reference(
     for alias in aliases:
         alias_changed = False
 
-        current_target = getattr(alias, "target_path", None)
-        if normalized_old:
-            updated_target, target_changed = _replace_cid_text(
-                current_target,
-                old_path,
-                new_path,
-                normalized_old,
-                normalized_new,
-            )
-        else:
-            target_changed = current_target != new_path
-            updated_target = new_path if target_changed else current_target
-
-        if target_changed:
-            alias.target_path = updated_target
-            alias_changed = True
-
-        updated_definition = getattr(alias, "definition", None)
+        original_definition = getattr(alias, "definition", None)
+        updated_definition = original_definition
         definition_changed = False
+
+        existing_ignore_case = False
+        try:
+            parsed_existing = parse_alias_definition(
+                original_definition or "",
+                alias_name=getattr(alias, "name", None),
+            )
+        except AliasDefinitionError:
+            parsed_existing = None
+
+        if parsed_existing:
+            existing_ignore_case = parsed_existing.ignore_case
+
         if normalized_old:
             updated_definition, definition_changed = _replace_cid_text(
-                updated_definition,
+                original_definition,
                 old_path,
                 new_path,
                 normalized_old,
                 normalized_new,
             )
+
+        desired_target_path = new_path
+        try:
+            parsed_current = parse_alias_definition(
+                (updated_definition or ""),
+                alias_name=getattr(alias, "name", None),
+            )
+        except AliasDefinitionError:
+            parsed_current = None
+        if parsed_current:
+            existing_ignore_case = parsed_current.ignore_case
+            if parsed_current.target_path:
+                desired_target_path = parsed_current.target_path
+
+        if new_path:
+            primary_line = format_primary_alias_line(
+                "literal",
+                None,
+                desired_target_path,
+                ignore_case=existing_ignore_case,
+                alias_name=getattr(alias, "name", None),
+            )
+            current_definition = updated_definition or ""
+            updated_definition = replace_primary_definition_line(
+                updated_definition,
+                primary_line,
+            )
+            if updated_definition != current_definition:
+                definition_changed = True
 
         if definition_changed:
             alias.definition = updated_definition
             alias_changed = True
-
-            parsed = None
-            if updated_definition:
-                try:
-                    parsed = parse_alias_definition(
-                        updated_definition,
-                        alias_name=getattr(alias, "name", None),
-                    )
-                except AliasDefinitionError:
-                    parsed = None
-
-            if parsed:
-                alias.match_type = parsed.match_type
-                alias.match_pattern = parsed.match_pattern
-                alias.ignore_case = parsed.ignore_case
-                alias.target_path = parsed.target_path
-                alias_changed = True
 
         if alias_changed:
             alias.updated_at = now
@@ -377,19 +401,9 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
     for alias in aliases:
         alias_changed = False
 
-        updated_target, target_changed = _replace_cid_text(
-            getattr(alias, "target_path", None),
-            old_path,
-            new_path,
-            normalized_old,
-            normalized_new,
-        )
-        if target_changed:
-            alias.target_path = updated_target
-            alias_changed = True
-
+        original_definition = getattr(alias, "definition", None)
         updated_definition, definition_changed = _replace_cid_text(
-            getattr(alias, "definition", None),
+            original_definition,
             old_path,
             new_path,
             normalized_old,
@@ -398,22 +412,6 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
         if definition_changed:
             alias.definition = updated_definition
             alias_changed = True
-
-            parsed = None
-            if updated_definition:
-                try:
-                    parsed = parse_alias_definition(
-                        updated_definition,
-                        alias_name=getattr(alias, "name", None),
-                    )
-                except AliasDefinitionError:
-                    parsed = None
-
-            if parsed:
-                alias.match_type = parsed.match_type
-                alias.match_pattern = parsed.match_pattern
-                alias.ignore_case = parsed.ignore_case
-                alias.target_path = parsed.target_path
 
         if alias_changed:
             alias.updated_at = now

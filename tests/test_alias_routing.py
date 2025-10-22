@@ -9,6 +9,7 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
 from identity import ensure_default_user
+from alias_definition import format_primary_alias_line
 from models import Alias, CID
 from alias_routing import (
     _append_query_string,
@@ -48,14 +49,27 @@ class TestAliasRouting(unittest.TestCase):
         ignore_case=False,
         definition=None,
     ):
+        if definition is None:
+            pattern_value = pattern
+            if match_type == 'literal' and not pattern_value:
+                pattern_value = None
+            elif pattern_value is None:
+                pattern_value = f'/{name}'
+            primary_line = format_primary_alias_line(
+                match_type,
+                pattern_value,
+                target,
+                ignore_case=ignore_case,
+                alias_name=name,
+            )
+            definition_value = primary_line
+        else:
+            definition_value = definition
+
         alias = Alias(
             name=name,
-            target_path=target,
             user_id=self.default_user.id,
-            match_type=match_type,
-            match_pattern=pattern or f'/{name}',
-            ignore_case=ignore_case,
-            definition=definition,
+            definition=definition_value,
         )
         db.session.add(alias)
         db.session.commit()
@@ -369,7 +383,19 @@ class TestAliasRouting(unittest.TestCase):
         db.session.add(cid_record)
         db.session.commit()
 
-        self.create_alias(name='docs', target=f'/{cid_value}', definition='# docs definition')
+        primary_line = format_primary_alias_line(
+            'literal',
+            None,
+            f'/{cid_value}',
+            alias_name='docs',
+        )
+        definition_text = f"{primary_line}\n# docs definition"
+
+        self.create_alias(
+            name='docs',
+            target=f'/{cid_value}',
+            definition=definition_text,
+        )
 
         response = self.client.get('/aliases/docs')
         self.assertEqual(response.status_code, 200)
@@ -417,7 +443,7 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(created.match_type, 'glob')
         self.assertEqual(created.match_pattern, '/release-pattern/*')
         self.assertTrue(created.ignore_case)
-        self.assertTrue(created.definition.startswith('release-pattern/* -> /cid789'))
+        self.assertTrue(created.definition.startswith('/release-pattern/* -> /cid789'))
 
     def test_new_alias_prefills_name_from_path_query(self):
         response = self.client.get('/aliases/new?path=/docs/latest')
