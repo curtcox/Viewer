@@ -5,6 +5,7 @@ import io
 import hashlib
 import json
 import re
+import textwrap
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
@@ -468,6 +469,7 @@ EXTENSION_TO_MIME = {
     'avi': 'video/x-msvideo',
     'mov': 'video/quicktime',
     'md': 'text/markdown',
+    'elm': 'text/plain',
     'csv': 'text/csv',
     'py': 'text/x-python',
     'java': 'text/x-java-source',
@@ -510,6 +512,222 @@ _INLINE_BOLD_PATTERN = re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')
 _INLINE_ITALIC_PATTERN = re.compile(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)')
 _INLINE_CODE_PATTERN = re.compile(r'`[^`\n]+`')
 
+
+_ELM_INDICATOR_PATTERNS = [
+    re.compile(r'^\s*module\s+[A-Z][A-Za-z0-9_.]*\s+exposing', re.MULTILINE),
+    re.compile(r'^\s*import\s+Html(?:\s+exposing\b|\s*$)', re.MULTILINE),
+    re.compile(r'^\s*import\s+Browser', re.MULTILINE),
+    re.compile(r'^\s*main\s*=\s*', re.MULTILINE),
+    re.compile(r'Html\.text\s*"', re.MULTILINE),
+]
+
+
+def _looks_like_elm(text: str) -> bool:
+    """Heuristically determine if the provided text resembles Elm source."""
+
+    normalized = (text or "").strip()
+    if not normalized:
+        return False
+
+    # Simple guardrail to avoid mis-classifying HTML documents as Elm programs.
+    if normalized.lstrip().startswith("<!DOCTYPE"):
+        return False
+
+    matches = sum(1 for pattern in _ELM_INDICATOR_PATTERNS if pattern.search(normalized))
+    return matches >= 2
+
+
+def _render_elm_document(source: str) -> str:
+    """Return HTML that attempts to compile and render Elm source code."""
+
+    escaped_source = html.escape(source)
+    source_json = json.dumps(source)
+
+    template = textwrap.dedent(
+        """\
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <title>Elm Viewer</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body {
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              margin: 0;
+              background: #0f172a;
+              color: #e2e8f0;
+              padding: 2.5rem 1.75rem;
+            }
+            .elm-layout {
+              display: grid;
+              gap: 1.5rem;
+              max-width: 960px;
+              margin: 0 auto;
+            }
+            .elm-card {
+              background: rgba(15, 23, 42, 0.72);
+              border-radius: 16px;
+              padding: 1.75rem;
+              box-shadow: 0 24px 55px rgba(15, 23, 42, 0.45);
+            }
+            .elm-output {
+              background: rgba(15, 23, 42, 0.45);
+              border-radius: 12px;
+              border: 1px solid rgba(148, 163, 184, 0.2);
+              min-height: 200px;
+              display: grid;
+              place-items: center;
+              text-align: center;
+              padding: 1.25rem;
+              color: #0f172a;
+              background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 55%),
+                                radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.18), transparent 45%);
+            }
+            .elm-source {
+              background: #0f172a;
+              border-radius: 12px;
+              border: 1px solid rgba(148, 163, 184, 0.35);
+              padding: 1.25rem;
+              overflow-x: auto;
+              font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+              line-height: 1.6;
+            }
+            .elm-actions {
+              margin-top: 1rem;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 0.75rem;
+            }
+            .elm-actions a {
+              padding: 0.55rem 1.1rem;
+              border-radius: 999px;
+              text-decoration: none;
+              font-weight: 600;
+              color: #cbd5f5;
+              background: rgba(59, 130, 246, 0.28);
+              border: 1px solid rgba(59, 130, 246, 0.35);
+            }
+            .elm-actions a:hover {
+              background: rgba(59, 130, 246, 0.38);
+            }
+            .elm-status {
+              margin-bottom: 1rem;
+              font-size: 0.95rem;
+              color: rgba(226, 232, 240, 0.85);
+            }
+            .elm-error {
+              margin-top: 1rem;
+              padding: 1rem 1.25rem;
+              border-radius: 12px;
+              background: rgba(248, 113, 113, 0.14);
+              border: 1px solid rgba(248, 113, 113, 0.28);
+              color: #fecaca;
+              font-size: 0.95rem;
+            }
+            iframe.elm-frame {
+              width: 100%;
+              min-height: 220px;
+              border: none;
+              border-radius: 12px;
+              background: #fff;
+            }
+          </style>
+        </head>
+        <body>
+          <main class="elm-layout">
+            <section class="elm-card">
+              <h1>Elm Output</h1>
+              <p id="elm-status" class="elm-status" role="status">Attempting to compile Elm source…</p>
+              <div id="elm-app" class="elm-output">The Elm application will appear here.</div>
+            </section>
+            <section class="elm-card">
+              <h2>Elm Source</h2>
+              <pre class="elm-source"><code>__ESCAPED_SOURCE__</code></pre>
+              <div class="elm-actions">
+                <a href="https://ellie-app.com/new" target="_blank" rel="noopener">Open Ellie Playground</a>
+                <a href="https://elm-lang.org/examples" target="_blank" rel="noopener">Explore Elm Examples</a>
+              </div>
+            </section>
+          </main>
+          <script type="module">
+            const source = __SOURCE_JSON__;
+            const statusNode = document.getElementById("elm-status");
+            const container = document.getElementById("elm-app");
+
+            async function renderElm() {
+              if (!window.fetch) {
+                statusNode.textContent = "This browser does not support the Fetch API needed to compile Elm automatically.";
+                return;
+              }
+
+              statusNode.textContent = "Contacting the Ellie compiler service…";
+              try {
+                const response = await fetch("https://ellie-app.com/api/compile", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ code: source, optimize: true })
+                });
+
+                if (!response.ok) {
+                  throw new Error(`Compiler request failed with status ${response.status}`);
+                }
+
+                const payload = await response.json();
+                const generatedHtml = payload?.generatedFiles?.["index.html"] || payload?.output?.html || payload?.output;
+                const compiledJs = payload?.generatedFiles?.["elm.js"] || payload?.output?.js || payload?.code;
+
+                if (generatedHtml) {
+                  const frame = document.createElement("iframe");
+                  frame.className = "elm-frame";
+                  frame.srcdoc = generatedHtml;
+                  container.replaceChildren(frame);
+                  statusNode.textContent = "Rendered Elm output using Ellie.";
+                  return;
+                }
+
+                if (compiledJs) {
+                  const frame = document.createElement("iframe");
+                  frame.className = "elm-frame";
+                  container.replaceChildren(frame);
+                  const doc = frame.contentDocument;
+                  if (!doc) {
+                    throw new Error("Unable to access iframe document for Elm output.");
+                  }
+                  doc.open();
+                  doc.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><div id=\"elm-app\"></div></body></html>");
+                  doc.close();
+                  const script = doc.createElement("script");
+                  script.type = "module";
+                  script.textContent = `${compiledJs}\nElm.Main.init({ node: doc.getElementById('elm-app') });`;
+                  doc.body.appendChild(script);
+                  statusNode.textContent = "Rendered Elm output.";
+                  return;
+                }
+
+                throw new Error("Ellie compiler returned an unexpected response.");
+              } catch (error) {
+                console.error("Elm rendering failed:", error);
+                statusNode.textContent = "Unable to render Elm automatically.";
+                const message = document.createElement("div");
+                message.className = "elm-error";
+                message.innerHTML = `Copy the Elm source below into <a href="https://ellie-app.com/new" target="_blank" rel="noopener">ellie-app.com/new</a> to run it manually.<br><br><strong>Details:</strong> ${error?.message || "Unknown error."}`;
+                container.after(message);
+              }
+            }
+
+            renderElm();
+          </script>
+        </body>
+        </html>
+        """
+    )
+
+    return (
+        template
+        .replace("__ESCAPED_SOURCE__", escaped_source)
+        .replace("__SOURCE_JSON__", source_json)
+    )
 
 def _decode_text_safely(data):
     """Decode bytes as UTF-8 if possible, returning None on failure."""
@@ -1074,10 +1292,13 @@ def serve_cid_content(cid_content, path):
 
     content_type = get_mime_type_from_extension(path)
     filename_part = path.rsplit('/', 1)[-1]
+    lower_filename = filename_part.lower()
     has_extension = '.' in filename_part
-    explicit_markdown_request = filename_part.lower().endswith('.md.html')
-    is_text_extension_request = filename_part.lower().endswith('.txt')
-    is_qr_request = filename_part.lower().endswith('.qr')
+    explicit_markdown_request = lower_filename.endswith('.md.html')
+    is_text_extension_request = lower_filename.endswith('.txt')
+    is_qr_request = lower_filename.endswith('.qr')
+    is_elm_source_request = lower_filename.endswith('.elm') and not lower_filename.endswith('.elm.html')
+    force_elm_render_request = lower_filename.endswith('.elm.html')
 
     cid_path_attr = getattr(cid_content, 'path', None)
     normalized_cid = (cid_path_attr or '').lstrip('/')
@@ -1085,6 +1306,8 @@ def serve_cid_content(cid_content, path):
     etag_source = normalized_cid or cid.split('.')[0]
 
     response_body = cid_content.file_data
+    text_content = _decode_text_safely(response_body)
+
     if is_qr_request and qr_cid:
         qr_target_url = f"https://256t.org/{qr_cid}"
         qr_image_url = _generate_qr_data_url(qr_target_url)
@@ -1099,31 +1322,47 @@ def serve_cid_content(cid_content, path):
         response_body = html.encode('utf-8')
         content_type = 'text/html; charset=utf-8'
     elif explicit_markdown_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = _render_markdown_document(text).encode('utf-8')
+        if text_content is not None:
+            response_body = _render_markdown_document(text_content).encode('utf-8')
             content_type = 'text/html'
-    elif content_type == 'application/octet-stream':
-        response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
-        if rendered:
-            content_type = 'text/html'
-        elif not has_extension:
-            text = _decode_text_safely(response_body)
-            if text is not None:
-                response_body = text.encode('utf-8')
-                content_type = 'text/plain; charset=utf-8'
-    elif is_text_extension_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
+    elif is_elm_source_request:
+        if text_content is not None:
+            response_body = text_content.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
         else:
             content_type = 'application/octet-stream'
-    elif content_type == 'text/plain':
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
+    elif is_text_extension_request:
+        if text_content is not None:
+            response_body = text_content.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
+        else:
+            content_type = 'application/octet-stream'
+    else:
+        should_render_elm = False
+        elm_source = text_content
+
+        if force_elm_render_request:
+            if elm_source is None:
+                elm_source = response_body.decode('utf-8', errors='replace')
+            should_render_elm = True
+        elif not has_extension and text_content is not None and _looks_like_elm(text_content):
+            should_render_elm = True
+
+        if should_render_elm and elm_source is not None:
+            response_body = _render_elm_document(elm_source).encode('utf-8')
+            content_type = 'text/html; charset=utf-8'
+        elif content_type == 'application/octet-stream':
+            response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
+            if rendered:
+                content_type = 'text/html'
+            elif not has_extension:
+                if text_content is not None:
+                    response_body = text_content.encode('utf-8')
+                    content_type = 'text/plain; charset=utf-8'
+        elif content_type == 'text/plain':
+            if text_content is not None:
+                response_body = text_content.encode('utf-8')
+                content_type = 'text/plain; charset=utf-8'
 
     etag = f'"{etag_source}"'
     if request.headers.get('If-None-Match') == etag:

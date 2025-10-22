@@ -1,0 +1,7 @@
+{
+  "id": "hello-world-elm",
+  "name": "Elm Hello World",
+  "description": "A minimal Elm program that renders a friendly greeting.",
+  "content_file": "contents/elm_hello_world.elm",
+  "suggested_filename": "hello.elm"
+}

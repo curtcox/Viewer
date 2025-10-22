@@ -333,6 +333,101 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_bytes))
 
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_without_extension_renders_elm(self, mock_make_response):
+        """Elm source without an extension should render using the Elm viewer."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                elm_source = (
+                    "import Html exposing (text)\n\n"
+                    "main =\n"
+                    "  text \"Hello from Elm!\"\n"
+                ).encode('utf-8')
+                cid = generate_cid(elm_source)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=elm_source,
+                    file_size=len(elm_source),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}")
+
+                mock_make_response.assert_called_once()
+                rendered_html = mock_make_response.call_args[0][0].decode('utf-8')
+                self.assertIn('Elm Output', rendered_html)
+                self.assertIn('ellie-app.com/api/compile', rendered_html)
+                self.assertIn('Open Ellie Playground', rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_with_elm_extension_returns_source(self, mock_make_response):
+        """Requests for .elm should return the plain Elm source code."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                elm_source = (
+                    "module Demo exposing (main)\n\n"
+                    "import Html exposing (text)\n\n"
+                    "main = text \"Elm Source\"\n"
+                ).encode('utf-8')
+                cid = generate_cid(elm_source)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=elm_source,
+                    file_size=len(elm_source),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}.elm")
+
+                mock_make_response.assert_called_once_with(elm_source)
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_with_forced_elm_render_extension(self, mock_make_response):
+        """The .elm.html extension should force the Elm renderer even for non-Elm text."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                plain_text = b"This is plain text that is forced into the Elm viewer."
+                cid = generate_cid(plain_text)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=plain_text,
+                    file_size=len(plain_text),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}.elm.html")
+
+                mock_make_response.assert_called_once()
+                rendered_html = mock_make_response.call_args[0][0].decode('utf-8')
+                self.assertIn('Elm Output', rendered_html)
+                self.assertIn('Unable to render Elm automatically', rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+
     @patch('cid_utils._generate_qr_data_url')
     @patch('cid_utils.make_response')
     def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response, mock_generate_qr_data_url):
