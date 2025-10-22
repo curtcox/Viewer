@@ -6,8 +6,8 @@
 <div class="container">
     <div class="row">
         <div class="col-12">
-            {% set alias_target_cid = extract_cid_from_path(alias.target_path) %}
-            {% set alias_target_link = render_url_link(alias.target_path, code=True) %}
+            {% set alias_target_cid = extract_cid_from_path(alias_target_path) %}
+            {% set alias_target_link = render_url_link(alias_target_path, code=True) %}
             {% set alias_public_link = render_alias_link(alias.name, base_url=request.url_root, code=True) %}
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-link me-2"></i>{{ alias.name }}</h2>
@@ -37,20 +37,20 @@
                             {% else %}
                                 {% if alias_target_link %}
                                     {{ alias_target_link }}
-                                {% elif alias.target_path %}
-                                    <code>{{ alias.target_path }}</code>
+                                {% elif alias_target_path %}
+                                    <code>{{ alias_target_path }}</code>
                                 {% endif %}
                             {% endif %}
                         </dd>
 
                         <dt class="col-sm-3">Match Pattern</dt>
-                        <dd class="col-sm-9"><code>{{ alias.match_pattern }}</code></dd>
+                        <dd class="col-sm-9"><code>{{ alias_match_pattern }}</code></dd>
 
                         <dt class="col-sm-3">Match Type</dt>
-                        <dd class="col-sm-9 text-capitalize">{{ alias.match_type }}</dd>
+                        <dd class="col-sm-9 text-capitalize">{{ alias_match_type }}</dd>
 
                         <dt class="col-sm-3">Ignore Case</dt>
-                        <dd class="col-sm-9">{{ 'Yes' if alias.ignore_case else 'No' }}</dd>
+                        <dd class="col-sm-9">{{ 'Yes' if alias_ignore_case else 'No' }}</dd>
 
                         <dt class="col-sm-3">Public URL</dt>
                         <dd class="col-sm-9">{{ alias_public_link }}</dd>
@@ -212,8 +212,8 @@
                         {% else %}
                             {% if alias_target_link %}
                                 {{ alias_target_link }}
-                            {% elif alias.target_path %}
-                                <code>{{ alias.target_path }}</code>
+                            {% elif alias_target_path %}
+                                <code>{{ alias_target_path }}</code>
                             {% endif %}
                         {% endif %}.
                         Any query string on the incoming request is preserved and merged with query parameters already present on the target URL.

@@ -259,15 +259,31 @@ def edit_cid(cid_prefix):
 
         new_target_path = cid_path(cid_value)
         if alias_for_cid:
-            alias_for_cid.target_path = new_target_path
+            # Update the alias definition to point to the new CID
+            from alias_definition import format_primary_alias_line
+            new_definition = format_primary_alias_line(
+                'literal',
+                f'/{alias_for_cid.name}',
+                new_target_path,
+                ignore_case=False,
+                alias_name=alias_for_cid.name,
+            )
+            alias_for_cid.definition = new_definition
             _persist_alias_from_upload(alias_for_cid)
         elif alias_name_input:
+            # Create a new alias with definition
+            from alias_definition import format_primary_alias_line
+            new_definition = format_primary_alias_line(
+                'literal',
+                f'/{alias_name_input}',
+                new_target_path,
+                ignore_case=False,
+                alias_name=alias_name_input,
+            )
             new_alias = Alias(
                 name=alias_name_input,
-                target_path=new_target_path,
                 user_id=current_user.id,
-                match_type='literal',
-                ignore_case=False,
+                definition=new_definition,
             )
             _persist_alias_from_upload(new_alias)
 

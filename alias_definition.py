@@ -391,15 +391,14 @@ def summarize_definition_lines(
 
 
 def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
-    """Return all routing rules defined for the supplied alias."""
+    """Return all routing rules defined for the supplied alias.
+
+    All routes are extracted from the alias definition field. The definition
+    must contain at least one valid mapping line (pattern -> target) for routes
+    to be generated.
+    """
 
     alias_name = getattr(alias, "name", None) or ""
-    match_type = getattr(alias, "match_type", None) or "literal"
-    match_pattern = getattr(alias, "match_pattern", None) or (
-        f"/{alias_name}" if alias_name else "/"
-    )
-    target_path = getattr(alias, "target_path", None)
-    ignore_case = bool(getattr(alias, "ignore_case", False))
     definition = getattr(alias, "definition", None)
 
     summary = summarize_definition_lines(definition, alias_name=alias_name)
@@ -434,8 +433,6 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
                 source=source,
             )
         )
-
-    _register(alias_name, match_type, match_pattern, target_path, ignore_case)
 
     for entry in summary:
         if not entry.is_mapping or entry.parse_error:

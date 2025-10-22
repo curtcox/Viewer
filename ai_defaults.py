@@ -70,31 +70,22 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
         created = True
 
     desired_target = f"/{AI_SERVER_NAME}"
-    desired_pattern = f"/{AI_ALIAS_NAME}"
+    desired_definition = f"{AI_ALIAS_NAME} -> {desired_target}"
+
     if alias:
-        needs_update = any(
-            [
-                getattr(alias, "target_path", None) != desired_target,
-                getattr(alias, "match_pattern", None) != desired_pattern,
-                getattr(alias, "match_type", None) != "literal",
-                bool(getattr(alias, "ignore_case", False)),
-            ]
-        )
+        # Check if the alias needs updating
+        current_definition = getattr(alias, "definition", None)
+        needs_update = current_definition != desired_definition
+
         if needs_update:
-            alias.target_path = desired_target
-            alias.match_pattern = desired_pattern
-            alias.match_type = "literal"
-            alias.ignore_case = False
+            alias.definition = desired_definition
             save_entity(alias)
             created = True
     else:
         alias = Alias(
             name=AI_ALIAS_NAME,
-            target_path=desired_target,
             user_id=user_id,
-            match_type="literal",
-            match_pattern=desired_pattern,
-            ignore_case=False,
+            definition=desired_definition,
         )
         save_entity(alias)
         created = True

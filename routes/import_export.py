@@ -527,21 +527,13 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
 
         existing = get_alias_by_name(user_id, name)
         if existing:
-            existing.target_path = target_path
-            existing.match_type = match_type
-            existing.match_pattern = normalised_pattern
-            existing.ignore_case = ignore_case
             existing.definition = (definition_text or None)
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             alias = Alias(
                 name=name,
-                target_path=target_path,
                 user_id=user_id,
-                match_type=match_type,
-                match_pattern=normalised_pattern,
-                ignore_case=ignore_case,
                 definition=definition_text or None,
             )
             save_entity(alias)
@@ -898,17 +890,18 @@ def export_data():
             payload['project_files'] = project_files_payload
 
         if form.include_aliases.data:
-            payload['aliases'] = [
-                {
+            alias_payloads = []
+            for alias in get_user_aliases(current_user.id):
+                parsed = alias.get_primary_parsed_definition()
+                alias_payloads.append({
                     'name': alias.name,
-                    'target_path': alias.target_path,
-                    'match_type': alias.match_type,
-                    'match_pattern': alias.get_effective_pattern(),
-                    'ignore_case': bool(alias.ignore_case),
+                    'target_path': parsed.target_path if parsed else '',
+                    'match_type': parsed.match_type if parsed else 'literal',
+                    'match_pattern': parsed.match_pattern if parsed else f'/{alias.name}',
+                    'ignore_case': parsed.ignore_case if parsed else False,
                     'definition': getattr(alias, 'definition', None),
-                }
-                for alias in get_user_aliases(current_user.id)
-            ]
+                })
+            payload['aliases'] = alias_payloads
 
         if form.include_servers.data:
             servers_payload: list[dict[str, str]] = []

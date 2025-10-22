@@ -45,14 +45,15 @@ def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] =
 
 
 def _primary_definition_line_for_alias(alias: Alias) -> Optional[str]:
-    target = getattr(alias, "target_path", None)
-    if not target:
+    """Generate the primary definition line from the alias definition."""
+    parsed = alias.get_primary_parsed_definition()
+    if not parsed:
         return None
     return format_primary_alias_line(
-        getattr(alias, "match_type", None),
-        getattr(alias, "match_pattern", None),
-        target,
-        ignore_case=bool(getattr(alias, "ignore_case", False)),
+        parsed.match_type,
+        parsed.match_pattern,
+        parsed.target_path,
+        ignore_case=parsed.ignore_case,
         alias_name=getattr(alias, "name", None),
     )
 
@@ -223,7 +224,6 @@ def new_alias():
     if form.validate_on_submit():
         parsed = form.parsed_definition
         name = form.name.data
-        target_path = parsed.target_path if parsed else None
 
         if _alias_name_conflicts_with_routes(name):
             flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
@@ -232,11 +232,7 @@ def new_alias():
         else:
             alias = Alias(
                 name=name,
-                target_path=target_path,
                 user_id=current_user.id,
-                match_type=parsed.match_type if parsed else 'literal',
-                match_pattern=parsed.match_pattern if parsed else f'/{name}',
-                ignore_case=parsed.ignore_case if parsed else False,
                 definition=form.definition.data or None,
             )
             _persist_alias(alias)
@@ -272,8 +268,15 @@ def view_alias(alias_name: str):
     if not alias:
         abort(404)
 
+    # Get target path from parsed definition
+    parsed = alias.get_primary_parsed_definition()
+    target_path = parsed.target_path if parsed else None
+    match_pattern = parsed.match_pattern if parsed else f'/{alias.name}'
+    match_type = parsed.match_type if parsed else 'literal'
+    ignore_case = parsed.ignore_case if parsed else False
+
     target_references = extract_references_from_target(
-        getattr(alias, "target_path", None),
+        target_path,
         current_user.id,
     )
 
@@ -285,6 +288,10 @@ def view_alias(alias_name: str):
     return render_template(
         'alias_view.html',
         alias=alias,
+        alias_target_path=target_path,
+        alias_match_pattern=match_pattern,
+        alias_match_type=match_type,
+        alias_ignore_case=ignore_case,
         target_references=target_references,
         alias_definition_lines=definition_lines,
     )
@@ -309,7 +316,6 @@ def edit_alias(alias_name: str):
     if form.validate_on_submit():
         parsed = form.parsed_definition
         new_name = form.name.data
-        new_target = parsed.target_path if parsed else None
 
         if new_name != alias.name:
             if _alias_name_conflicts_with_routes(new_name):
@@ -337,10 +343,6 @@ def edit_alias(alias_name: str):
                 )
 
         alias.name = new_name
-        alias.target_path = new_target
-        alias.match_type = parsed.match_type if parsed else alias.match_type
-        alias.match_pattern = parsed.match_pattern if parsed else alias.match_pattern
-        alias.ignore_case = parsed.ignore_case if parsed else bool(alias.ignore_case)
         alias.definition = form.definition.data or None
         alias.updated_at = datetime.now(timezone.utc)
         _persist_alias(alias)

@@ -43,10 +43,6 @@ class Server(db.Model):
 class Alias(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
-    target_path = db.Column(db.String(255), nullable=False)
-    match_type = db.Column(db.String(20), nullable=False, default='literal')
-    match_pattern = db.Column(db.String(255), nullable=False, default='')
-    ignore_case = db.Column(db.Boolean, nullable=False, default=False)
     definition = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -56,25 +52,32 @@ class Alias(db.Model):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if not getattr(self, 'match_type', None):
-            self.match_type = 'literal'
-        if getattr(self, 'match_pattern', None) in (None, ''):
-            base_name = getattr(self, 'name', '') or ''
-            self.match_pattern = f'/{base_name}' if base_name else '/'
-        if getattr(self, 'ignore_case', None) is None:
-            self.ignore_case = False
         if getattr(self, 'definition', None) in ("",):
             self.definition = None
 
-    def get_effective_pattern(self) -> str:
-        pattern = getattr(self, 'match_pattern', None)
-        if pattern:
-            return pattern
-        name = getattr(self, 'name', '') or ''
-        return f'/{name}' if name else '/'
+    def get_primary_parsed_definition(self):
+        """Parse the definition and return the primary route configuration.
+
+        Returns a ParsedAliasDefinition object or None if parsing fails.
+        This provides access to match_type, match_pattern, target_path, and ignore_case
+        from the definition field.
+        """
+        from alias_definition import parse_alias_definition, AliasDefinitionError
+
+        definition = getattr(self, 'definition', None)
+        if not definition:
+            return None
+
+        try:
+            return parse_alias_definition(definition, alias_name=getattr(self, 'name', None))
+        except AliasDefinitionError:
+            return None
 
     def __repr__(self):
-        return f'<Alias {self.name} -> {self.target_path}>'
+        parsed = self.get_primary_parsed_definition()
+        if parsed:
+            return f'<Alias {self.name} -> {parsed.target_path}>'
+        return f'<Alias {self.name}>'
 
 
 class EntityInteraction(db.Model):

@@ -146,7 +146,9 @@ def then_submitting_form_creates_alias() -> None:
         user = ensure_default_user()
         created = Alias.query.filter_by(user_id=user.id, name=alias_name).first()
         assert created is not None, "Alias record was not created."
-        assert created.target_path == "/guides", "Alias target path did not persist."
+        parsed = created.get_primary_parsed_definition()
+        assert parsed is not None, "Alias definition could not be parsed."
+        assert parsed.target_path == "/guides", "Alias target path did not persist."
 
 
 @step('Given there is an alias named <alias_name> pointing to <target_path>')
@@ -212,7 +214,9 @@ def then_update_alias_target() -> None:
         alias = Alias.query.filter_by(user_id=user.id, name=alias_name).first()
         assert alias is not None, "Alias was not found after attempting to update it."
         expected_target = f"/{alias_name}/updated"
-        assert alias.target_path == expected_target, "Alias target path did not update."
+        parsed = alias.get_primary_parsed_definition()
+        assert parsed is not None, "Alias definition could not be parsed."
+        assert parsed.target_path == expected_target, "Alias target path did not update."
 
 
 @step("Path coverage: /aliases")
