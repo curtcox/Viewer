@@ -23,11 +23,9 @@ from models import (
 from db_access import (
     count_cids,
     count_page_views,
-    count_payments,
     count_secrets,
     count_servers,
     count_variables,
-    count_terms_acceptances,
     count_unique_page_view_paths,
     count_user_servers,
     count_user_variables,
@@ -35,9 +33,7 @@ from db_access import (
     count_user_page_views,
     count_users,
     create_cid_record,
-    create_payment_record,
     create_server_invocation,
-    create_terms_acceptance_record,
     find_cids_by_prefix,
     find_entity_interaction,
     find_server_invocations_by_cid,
@@ -89,26 +85,12 @@ class TestDBAccess(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def test_create_payment_record(self):
-        create_payment_record('annual', 50.0, self.user)
-        self.assertTrue(self.user.is_paid)
-        self.assertEqual(len(self.user.payments), 1)
-        self.assertEqual(self.user.payments[0].plan_type, 'annual')
-        self.assertEqual(count_payments(), 1)
-
-    def test_create_terms_acceptance_record(self):
-        create_terms_acceptance_record(self.user, '127.0.0.1')
-        self.assertTrue(self.user.current_terms_accepted)
-        self.assertEqual(len(self.user.terms_acceptances), 1)
-        self.assertEqual(self.user.terms_acceptances[0].ip_address, '127.0.0.1')
-        self.assertEqual(count_terms_acceptances(), 1)
-
     def test_get_user_profile_data(self):
-        create_payment_record('free', 0.0, self.user)
-        create_terms_acceptance_record(self.user, '127.0.0.1')
         data = get_user_profile_data(self.user.id)
-        self.assertEqual(len(data['payments']), 1)
+        self.assertEqual(data['payments'], [])
+        self.assertEqual(data['terms_history'], [])
         self.assertFalse(data['needs_terms_acceptance'])
+        self.assertIsNone(data['current_terms_version'])
 
     def test_entity_helpers(self):
         server = Server(name='srv', definition='print(1)', user_id=self.user.id)
