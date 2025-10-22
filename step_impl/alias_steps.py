@@ -163,10 +163,9 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
     with _app_context():
         user = ensure_default_user()
         definition_text = format_primary_alias_line(
-            match_type,
-            pattern or (f"/{alias_name}" if match_type != "literal" else None),
-            target_path,
-            ignore_case=ignore_case,
+            match_type="literal",
+            match_pattern=None,
+            target_path=target_path,
             alias_name=alias_name,
         )
         alias = Alias(
