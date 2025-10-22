@@ -19,13 +19,10 @@ from identity import current_user
 
 from alias_definition import (
     AliasDefinitionError,
-    ensure_primary_line,
     format_primary_alias_line,
-    get_primary_alias_route,
     parse_alias_definition,
     replace_primary_definition_line,
 )
-from alias_matching import PatternError, normalise_pattern
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
 from db_access import (
@@ -492,7 +489,11 @@ def _load_import_payload(form: ImportForm) -> str | None:
     return None
 
 
-def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
+def _import_aliases(
+    user_id: str,
+    raw_aliases: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> Tuple[int, list[str]]:
     """Import alias definitions from JSON data."""
     if raw_aliases is None:
         return 0, ['No alias data found in import file.']
@@ -502,87 +503,72 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
     errors: list[str] = []
     imported = 0
     reserved_routes = get_existing_routes()
+    cid_map = cid_map or {}
 
     for entry in raw_aliases:
         if not isinstance(entry, dict):
-            errors.append('Alias entries must be objects with name and target_path.')
+            errors.append('Alias entries must be objects with name and definition details.')
             continue
 
-        name = entry.get('name')
-        target_path = entry.get('target_path')
-        if not name or not target_path:
-            errors.append('Alias entry must include both name and target_path.')
+        name_raw = entry.get('name')
+        if not isinstance(name_raw, str) or not name_raw.strip():
+            errors.append('Alias entry must include a valid name.')
             continue
+
+        name = name_raw.strip()
 
         if f'/{name}' in reserved_routes:
             errors.append(f'Alias "{name}" conflicts with an existing route and was skipped.')
             continue
 
-        match_type = (entry.get('match_type') or 'literal').lower()
-        match_pattern = entry.get('match_pattern')
-        ignore_case = bool(entry.get('ignore_case', False))
-        definition_text = entry.get('definition')
-
-        if definition_text is not None and not isinstance(definition_text, str):
+        definition_text: Optional[str] = None
+        raw_definition = entry.get('definition')
+        if isinstance(raw_definition, str):
+            definition_text = raw_definition
+        elif raw_definition is not None:
             errors.append(f'Alias "{name}" definition must be text when provided.')
             continue
 
-        definition_value: Optional[str]
-        if definition_text:
-            parsed_definition = None
-            try:
-                parsed_definition = parse_alias_definition(
-                    definition_text, alias_name=name
-                )
-            except AliasDefinitionError:
-                parsed_definition = None
+        definition_cid = _normalise_cid(entry.get('definition_cid'))
 
-            if parsed_definition:
-                canonical_primary = format_primary_alias_line(
-                    parsed_definition.match_type,
-                    parsed_definition.match_pattern,
-                    parsed_definition.target_path,
-                    ignore_case=parsed_definition.ignore_case,
-                    alias_name=name,
+        if definition_text is None and definition_cid:
+            cid_bytes = _load_cid_bytes(definition_cid, cid_map)
+            if cid_bytes is None:
+                errors.append(
+                    f'Alias "{name}" definition with CID "{definition_cid}" was not included in the import.'
                 )
-                definition_value = replace_primary_definition_line(
-                    definition_text,
-                    canonical_primary,
-                )
-            else:
-                try:
-                    normalised_pattern = normalise_pattern(
-                        match_type, match_pattern, name
-                    )
-                except PatternError as exc:
-                    errors.append(f'Alias "{name}" skipped: {exc}')
-                    continue
-
-                canonical_primary = format_primary_alias_line(
-                    match_type,
-                    normalised_pattern,
-                    target_path,
-                    ignore_case=ignore_case,
-                    alias_name=name,
-                )
-                definition_value = ensure_primary_line(
-                    definition_text,
-                    canonical_primary,
-                )
-        else:
+                continue
             try:
-                normalised_pattern = normalise_pattern(match_type, match_pattern, name)
-            except PatternError as exc:
-                errors.append(f'Alias "{name}" skipped: {exc}')
+                definition_text = cid_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                errors.append(
+                    f'Alias "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
+                )
                 continue
 
-            definition_value = format_primary_alias_line(
-                match_type,
-                normalised_pattern,
-                target_path,
-                ignore_case=ignore_case,
-                alias_name=name,
+        if definition_text is None:
+            errors.append(
+                f'Alias "{name}" entry must include either a definition or a definition_cid.'
             )
+            continue
+
+        try:
+            parsed_definition = parse_alias_definition(definition_text, alias_name=name)
+        except AliasDefinitionError as exc:
+            errors.append(f'Alias "{name}" definition could not be parsed: {exc}')
+            continue
+
+        canonical_primary = format_primary_alias_line(
+            parsed_definition.match_type,
+            parsed_definition.match_pattern,
+            parsed_definition.target_path,
+            ignore_case=parsed_definition.ignore_case,
+            alias_name=name,
+        )
+        definition_value = replace_primary_definition_line(
+            definition_text,
+            canonical_primary,
+        )
 
         existing = get_alias_by_name(user_id, name)
         if existing:
@@ -951,18 +937,18 @@ def export_data():
         if form.include_aliases.data:
             alias_payload: list[dict[str, Any]] = []
             for alias in get_user_aliases(current_user.id):
-                route = get_primary_alias_route(alias)
+                definition_text = alias.definition or ''
+                definition_bytes = definition_text.encode('utf-8')
+                definition_cid = store_cid_from_bytes(definition_bytes, current_user.id)
                 alias_payload.append(
                     {
                         'name': alias.name,
-                        'target_path': route.target_path if route else None,
-                        'match_type': route.match_type if route else None,
-                        'match_pattern': route.match_pattern if route else alias.get_effective_pattern(),
-                        'ignore_case': route.ignore_case if route else False,
-                        'definition': getattr(alias, 'definition', None),
+                        'definition_cid': definition_cid,
                     }
                 )
-            payload['aliases'] = alias_payload
+                _record_cid_value(definition_cid, definition_bytes)
+            if alias_payload:
+                payload['aliases'] = alias_payload
 
         if form.include_servers.data:
             servers_payload: list[dict[str, str]] = []
@@ -1118,7 +1104,11 @@ def import_data():
         imported_aliases = 0
         alias_errors: list[str] = []
         if form.include_aliases.data:
-            imported_aliases, alias_errors = _import_aliases(user_id, data.get('aliases'))
+            imported_aliases, alias_errors = _import_aliases(
+                user_id,
+                data.get('aliases'),
+                cid_lookup,
+            )
             errors.extend(alias_errors)
             if imported_aliases:
                 label = 'aliases' if imported_aliases != 1 else 'alias'
