@@ -105,11 +105,13 @@ def _load_current_user() -> ExternalUser:
                 g._default_user = user
             return user
 
-        if user is None:
-            user = ensure_default_user()
-            g._default_user = user
+        default_user = ensure_default_user()
 
-        _cached_default_user = user
+        if user is not default_user:
+            g._default_user = default_user
+            user = default_user
+
+        _cached_default_user = default_user
         return user
 
     if _cached_default_user is None:
