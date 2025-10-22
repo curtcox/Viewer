@@ -1,12 +1,10 @@
 """Tests for the server definition validation endpoint."""
 
-from datetime import datetime, timedelta, timezone
 import textwrap
 import unittest
 
 from app import create_app
 from database import db
-from models import User
 
 
 class TestServerDefinitionValidationRoute(unittest.TestCase):
@@ -23,20 +21,11 @@ class TestServerDefinitionValidationRoute(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-
-        self.user = User(
-            id="user-1",
-            email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
-        )
-        db.session.add(self.user)
-        db.session.commit()
+        self.user_id = "user-1"
 
         self.client = self.app.test_client()
         with self.client.session_transaction() as session:
-            session["_user_id"] = self.user.id
+            session["_user_id"] = self.user_id
             session["_fresh"] = True
 
     def tearDown(self):

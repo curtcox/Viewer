@@ -7,7 +7,7 @@ from entity_references import (
     extract_references_from_target,
     extract_references_from_text,
 )
-from models import Alias, CID, Server, User
+from models import Alias, CID, Server
 
 
 class TestEntityReferences(unittest.TestCase):
@@ -30,19 +30,7 @@ class TestEntityReferences(unittest.TestCase):
             db.drop_all()
 
     def _create_user(self) -> str:
-        with self.app.app_context():
-            user_id = f'user-{uuid.uuid4().hex}'
-            user = User(
-                id=user_id,
-                email=f'{user_id}@example.com',
-                first_name='User',
-                last_name='One',
-                is_paid=True,
-                current_terms_accepted=True,
-            )
-            db.session.add(user)
-            db.session.commit()
-            return user_id
+        return f'user-{uuid.uuid4().hex}'
 
     def _create_alias(self, name: str, target: str) -> str:
         with self.app.app_context():

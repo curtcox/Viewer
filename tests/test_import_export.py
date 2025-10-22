@@ -15,7 +15,7 @@ from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from datetime import datetime, timezone
-from models import Alias, CID, EntityInteraction, Secret, Server, User, Variable
+from models import Alias, CID, EntityInteraction, Secret, Server, Variable
 
 
 class ImportExportRoutesTestCase(unittest.TestCase):
@@ -30,14 +30,6 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
             self.user_id = 'user-123'
-            user = User(
-                id=self.user_id,
-                email='user@example.com',
-                first_name='Test',
-                last_name='User',
-            )
-            db.session.add(user)
-            db.session.commit()
 
     def tearDown(self):
         with self.app.app_context():

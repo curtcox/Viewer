@@ -7,7 +7,6 @@ import re
 
 from app import create_app
 from database import db
-from models import User
 
 
 class TestErrorPagesEndToEnd(unittest.TestCase):
@@ -226,16 +225,8 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
         """Test error page display when user is authenticated."""
 
         with self.app.app_context():
-            # Create a test user
-            user = User(
-                id='test-user-123',
-                email='test@example.com',
-                first_name='Test',
-                last_name='User'
-            )
-            db.session.add(user)
-            db.session.commit()
-            user_id = user.id
+            # Track the authenticated user identifier
+            user_id = 'test-user-123'
 
         with self.app.test_request_context('/test-auth-error'):
             try:

@@ -4,6 +4,16 @@ from __future__ import annotations
 import pytest
 
 from database import db
+from db_access import (
+    count_user_aliases,
+    count_user_secrets,
+    count_user_servers,
+    count_user_variables,
+    get_first_alias_name,
+    get_first_secret_name,
+    get_first_server_name,
+    get_first_variable_name,
+)
 from models import Alias, Secret, Server, Variable
 
 
@@ -44,32 +54,16 @@ def test_settings_page_displays_resource_counts_and_links(
         db.session.commit()
 
         counts = {
-            "alias": Alias.query.filter_by(user_id="default-user").count(),
-            "server": Server.query.filter_by(user_id="default-user").count(),
-            "variable": Variable.query.filter_by(user_id="default-user").count(),
-            "secret": Secret.query.filter_by(user_id="default-user").count(),
+            "alias": count_user_aliases("default-user"),
+            "server": count_user_servers("default-user"),
+            "variable": count_user_variables("default-user"),
+            "secret": count_user_secrets("default-user"),
         }
         examples = {
-            "alias": (
-                Alias.query.filter_by(user_id="default-user")
-                .order_by(Alias.name.asc())
-                .first()
-            ),
-            "server": (
-                Server.query.filter_by(user_id="default-user")
-                .order_by(Server.name.asc())
-                .first()
-            ),
-            "variable": (
-                Variable.query.filter_by(user_id="default-user")
-                .order_by(Variable.name.asc())
-                .first()
-            ),
-            "secret": (
-                Secret.query.filter_by(user_id="default-user")
-                .order_by(Secret.name.asc())
-                .first()
-            ),
+            "alias": get_first_alias_name("default-user"),
+            "server": get_first_server_name("default-user"),
+            "variable": get_first_variable_name("default-user"),
+            "secret": get_first_secret_name("default-user"),
         }
 
     login_default_user()
@@ -90,16 +84,11 @@ def test_settings_page_displays_resource_counts_and_links(
     assert f"{counts['variable']} {variable_label}" in page
     assert f"{counts['secret']} {secret_label}" in page
 
-    alias_example = examples["alias"].name if examples["alias"] else None
-    server_example = examples["server"].name if examples["server"] else None
-    variable_example = examples["variable"].name if examples["variable"] else None
-    secret_example = examples["secret"].name if examples["secret"] else None
-
-    if alias_example:
-        assert f'href="/{alias_example}"' in page
-    if server_example:
-        assert f'href="/servers/{server_example}"' in page
-    if variable_example:
-        assert f'href="/variables/{variable_example}"' in page
-    if secret_example:
-        assert f'href="/secrets/{secret_example}"' in page
+    if examples["alias"]:
+        assert f'href="/{examples["alias"]}"' in page
+    if examples["server"]:
+        assert f'href="/servers/{examples["server"]}"' in page
+    if examples["variable"]:
+        assert f'href="/variables/{examples["variable"]}"' in page
+    if examples["secret"]:
+        assert f'href="/secrets/{examples["secret"]}"' in page

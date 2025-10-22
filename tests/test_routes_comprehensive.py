@@ -21,7 +21,6 @@ os.environ['TESTING'] = 'True'
 from app import create_app
 from database import db
 from models import (
-    User,
     CID,
     PageView,
     Server,
@@ -51,19 +50,7 @@ class BaseTestCase(unittest.TestCase):
         self.app_context.push()
 
         db.create_all()
-
-        # Create test user
-        self.test_user = User(
-            id='test_user_123',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=365)
-        )
-        db.session.add(self.test_user)
-        db.session.commit()
+        self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after tests."""
@@ -71,13 +58,13 @@ class BaseTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def login_user(self, user=None):
+    def login_user(self, user_id=None):
         """Helper to simulate user login."""
-        if user is None:
-            user = self.test_user
+        if user_id is None:
+            user_id = self.test_user_id
 
         with self.client.session_transaction() as sess:
-            sess['_user_id'] = user.id
+            sess['_user_id'] = user_id
             sess['_fresh'] = True
 
 
@@ -192,10 +179,10 @@ class TestPublicRoutes(BaseTestCase):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'CID: /alpha -> /servers/beta',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
-        alias_server = Alias(name='alpha', target_path='/servers/beta', user_id=self.test_user.id)
-        alias_cid = Alias(name='bravo', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        alias_server = Alias(name='alpha', target_path='/servers/beta', user_id=self.test_user_id)
+        alias_cid = Alias(name='bravo', target_path=f'/{cid_value}', user_id=self.test_user_id)
         server_definition = f"""
 def main(request):
     return "Use /bravo and /{cid_value}"
@@ -203,7 +190,7 @@ def main(request):
         server = Server(
             name='beta',
             definition=server_definition,
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             definition_cid=f'/{cid_value}',
         )
 
@@ -233,9 +220,9 @@ def main(request):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'alias target content',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
-        alias_cid = Alias(name='cid-alias', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        alias_cid = Alias(name='cid-alias', target_path=f'/{cid_value}', user_id=self.test_user_id)
 
         db.session.add_all([cid_record, alias_cid])
         db.session.commit()
@@ -256,9 +243,9 @@ def main(request):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'Use /aliases/linked and /servers/linked',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
-        alias_to_cid = Alias(name='linked', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        alias_to_cid = Alias(name='linked', target_path=f'/{cid_value}', user_id=self.test_user_id)
         server_definition = """
 def main(request):
     return "See /aliases/linked"
@@ -266,7 +253,7 @@ def main(request):
         server = Server(
             name='linked',
             definition=server_definition,
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             definition_cid=f'/{cid_value}',
         )
 
@@ -277,7 +264,7 @@ def main(request):
         page = response.get_data(as_text=True)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user.id)
+            cross_reference = _build_cross_reference_data(self.test_user_id)
         cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
         alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'linked')
         server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'linked')
@@ -314,9 +301,9 @@ def main(request):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'nameless alias content',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
-        nameless_alias = Alias(name='', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        nameless_alias = Alias(name='', target_path=f'/{cid_value}', user_id=self.test_user_id)
 
         db.session.add_all([cid_record, nameless_alias])
         db.session.commit()
@@ -327,7 +314,7 @@ def main(request):
         self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user.id)
+            cross_reference = _build_cross_reference_data(self.test_user_id)
 
         self.assertFalse(
             any(entry['cid'] == cid_value for entry in cross_reference['cids']),
@@ -352,30 +339,30 @@ class TestSearchApi(BaseTestCase):
     def test_search_results_include_all_categories(self):
         """Search results should highlight matches across every enabled category."""
 
-        alias = Alias(name='hello-alias', target_path='/servers/hello-server', user_id=self.test_user.id)
+        alias = Alias(name='hello-alias', target_path='/servers/hello-server', user_id=self.test_user_id)
         server = Server(
             name='hello-server',
             definition='''
 def main(request):
     return "Hello from server"
 '''.strip(),
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         variable = Variable(
             name='HELLO_VARIABLE',
             definition='The value says hello to the world.',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         secret = Secret(
             name='HELLO_SECRET',
             definition='super hello secret token',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         cid_value = generate_cid(b'Hello from CID search test')
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'Hello from CID search test',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         db.session.add_all([alias, server, variable, secret, cid_record])
@@ -451,7 +438,7 @@ def main(request):
             record = CID(
                 path=f'/needle-{index:03d}',
                 file_data=f'needle {index}'.encode(),
-                uploaded_by_user_id=self.test_user.id,
+                uploaded_by_user_id=self.test_user_id,
                 created_at=now + timedelta(minutes=index),
             )
             db.session.add(record)
@@ -489,7 +476,7 @@ def main(request):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'nameless server content',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
         nameless_server = Server(
             name='',
@@ -497,7 +484,7 @@ def main(request):
 def main(request):
     return "Hello"
 """.strip(),
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             definition_cid=f'/{cid_value}',
         )
 
@@ -510,7 +497,7 @@ def main(request):
         self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user.id)
+            cross_reference = _build_cross_reference_data(self.test_user_id)
 
         self.assertFalse(
             any(entry['cid'] == cid_value for entry in cross_reference['cids']),
@@ -568,18 +555,16 @@ class TestAuthenticatedRoutes(BaseTestCase):
 
     def test_dashboard_without_access_redirects_to_profile(self):
         """Test dashboard redirects users without access to profile."""
-        # Create user without access
-        user_no_access = User(
-            id='no_access_user',
-            email='noaccess@example.com',
-            is_paid=False,
-            current_terms_accepted=False
-        )
-        db.session.add(user_no_access)
-        db.session.commit()
 
-        self.login_user(user_no_access)
-        response = self.client.get('/dashboard', follow_redirects=False)
+        restricted_user_id = 'no_access_user'
+        self.login_user(restricted_user_id)
+
+        with patch('routes.core.current_user') as mock_user:
+            mock_user.id = restricted_user_id
+            mock_user.has_access.return_value = False
+
+            response = self.client.get('/dashboard', follow_redirects=False)
+
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
 
@@ -683,7 +668,7 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Check file was stored
-        cid_record = CID.query.filter_by(uploaded_by_user_id=self.test_user.id).first()
+        cid_record = CID.query.filter_by(uploaded_by_user_id=self.test_user_id).first()
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
 
@@ -699,7 +684,7 @@ class TestFileUploadRoutes(BaseTestCase):
             path=f"/{cid}",
             file_data=test_data,
             file_size=len(test_data),
-            uploaded_by_user_id=self.test_user.id
+            uploaded_by_user_id=self.test_user_id
         )
         db.session.add(existing_cid)
         db.session.commit()
@@ -727,7 +712,7 @@ class TestFileUploadRoutes(BaseTestCase):
             path="/test_cid",
             file_data=b"test data",
             file_size=9,
-            uploaded_by_user_id=self.test_user.id
+            uploaded_by_user_id=self.test_user_id
         )
         db.session.add(test_cid)
         db.session.commit()
@@ -757,39 +742,39 @@ class TestFileUploadRoutes(BaseTestCase):
             path=f"/{manual_cid}",
             file_data=manual_bytes,
             file_size=len(manual_bytes),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         server_upload = CID(
             path=f"/{server_result_cid}",
             file_data=server_bytes,
             file_size=len(server_bytes),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         request_upload = CID(
             path=f"/{request_cid}",
             file_data=request_payload,
             file_size=len(request_payload),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         invocation_upload = CID(
             path=f"/{invocation_cid}",
             file_data=invocation_payload,
             file_size=len(invocation_payload),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         servers_upload = CID(
             path=f"/{servers_cid}",
             file_data=servers_payload,
             file_size=len(servers_payload),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
 
         invocation = ServerInvocation(
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             server_name='test-server',
             result_cid=server_result_cid,
             invocation_cid=invocation_cid,
@@ -838,11 +823,11 @@ class TestFileUploadRoutes(BaseTestCase):
             path=f'/{request_cid}',
             file_data=request_payload,
             file_size=len(request_payload),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         ))
 
         invocation = ServerInvocation(
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             server_name='test-server',
             result_cid=result_cid,
             servers_cid=servers_cid,
@@ -893,7 +878,7 @@ class TestCidEditingRoutes(BaseTestCase):
             path=cid_path,
             file_data=content,
             file_size=len(content),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(record)
         db.session.commit()
@@ -903,7 +888,7 @@ class TestCidEditingRoutes(BaseTestCase):
         alias = Alias(
             name=name,
             target_path=target_path,
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             match_type='literal',
             ignore_case=False,
         )
@@ -921,11 +906,11 @@ class TestCidEditingRoutes(BaseTestCase):
         alias = Alias(
             name='docs',
             target_path='/docs',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             match_type='literal',
             ignore_case=False,
         )
-        server = Server(name='ref-server', definition='return None', user_id=self.test_user.id)
+        server = Server(name='ref-server', definition='return None', user_id=self.test_user_id)
         db.session.add_all([alias, server])
         db.session.commit()
         cid_record = CID.query.filter_by(path=f'/{cid_value}').first()
@@ -1048,7 +1033,7 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         new_cid = generate_cid(updated_text.encode('utf-8'))
-        alias = Alias.query.filter_by(name='Atari', user_id=self.test_user.id).first()
+        alias = Alias.query.filter_by(name='Atari', user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
         self.assertEqual(alias.target_path, f'/{new_cid}')
 
@@ -1075,7 +1060,7 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         new_cid = generate_cid(updated_text.encode('utf-8'))
-        alias = Alias.query.filter_by(name=alias_name, user_id=self.test_user.id).first()
+        alias = Alias.query.filter_by(name=alias_name, user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
         self.assertEqual(alias.target_path, f'/{new_cid}')
         self.assertEqual(alias.match_type, 'literal')
@@ -1107,7 +1092,7 @@ class TestCidEditingRoutes(BaseTestCase):
         new_cid = generate_cid(updated_text.encode('utf-8'))
         self.assertIsNone(CID.query.filter_by(path=f'/{new_cid}').first())
 
-        alias = Alias.query.filter_by(name='Existing', user_id=self.test_user.id).first()
+        alias = Alias.query.filter_by(name='Existing', user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
         self.assertEqual(alias.target_path, '/other-target')
 
@@ -1156,11 +1141,11 @@ class TestHistoryRoutes(BaseTestCase):
             path=f'/{request_cid}',
             file_data=request_details,
             file_size=len(request_details),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         ))
 
         invocation = ServerInvocation(
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             server_name='test-server',
             result_cid=result_cid,
             invocation_cid=invocation_cid,
@@ -1169,7 +1154,7 @@ class TestHistoryRoutes(BaseTestCase):
         db.session.add(invocation)
 
         page_view = PageView(
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             path=f'/{result_cid}',
             method='GET',
             user_agent='Test Agent',
@@ -1255,7 +1240,7 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Check server was created
-        server = Server.query.filter_by(user_id=self.test_user.id, name='test-server').first()
+        server = Server.query.filter_by(user_id=self.test_user_id, name='test-server').first()
         self.assertIsNotNone(server)
         self.assertEqual(server.definition, 'Test server definition')
 
@@ -1265,7 +1250,7 @@ class TestServerRoutes(BaseTestCase):
         existing_server = Server(
             name='duplicate-server',
             definition='Existing definition',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(existing_server)
         db.session.commit()
@@ -1280,16 +1265,16 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Should not create duplicate
-        count = Server.query.filter_by(user_id=self.test_user.id, name='duplicate-server').count()
+        count = Server.query.filter_by(user_id=self.test_user_id, name='duplicate-server').count()
         self.assertEqual(count, 1)
 
     def test_view_server(self):
         """Test viewing specific server."""
-        helper_server = Server(name='helper', definition='print("helper")', user_id=self.test_user.id)
+        helper_server = Server(name='helper', definition='print("helper")', user_id=self.test_user_id)
         alias = Alias(
             name='docs-link',
             target_path='/docs',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             match_type='literal',
             ignore_case=False,
         )
@@ -1298,14 +1283,14 @@ class TestServerRoutes(BaseTestCase):
             path=f'/{cid_value}',
             file_data=b'server reference',
             file_size=16,
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
         server = Server(
             name='view-server',
             definition=(
                 f'print("Use /{alias.name} and /servers/{helper_server.name} and /{helper_server.name} and /{cid_value}")'
             ),
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add_all([helper_server, alias, cid_record, server])
         db.session.commit()
@@ -1324,7 +1309,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='auto-test',
             definition='def main(user, greeting="Hello"):\n    return {"output": greeting}',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(server)
         db.session.commit()
@@ -1344,7 +1329,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='simple-test',
             definition='print("hello")',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(server)
         db.session.commit()
@@ -1365,7 +1350,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='view-server',
             definition='Server to view',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(server)
 
@@ -1384,11 +1369,11 @@ class TestServerRoutes(BaseTestCase):
             path=f'/{request_cid}',
             file_data=request_payload,
             file_size=len(request_payload),
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         ))
 
         invocation = ServerInvocation(
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             server_name='view-server',
             result_cid=result_cid,
             servers_cid=servers_cid,
@@ -1433,7 +1418,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='edit-server',
             definition='Server to edit',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -1447,7 +1432,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='edit-test',
             definition='def main(token):\n    return {"output": token}',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(server)
         db.session.commit()
@@ -1466,7 +1451,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='edit-server',
             definition='Original definition',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -1490,7 +1475,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server(
             name='delete-server',
             definition='Server to delete',
-            user_id=self.test_user.id
+            user_id=self.test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -1500,7 +1485,7 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 302)
 
         # Check server was deleted
-        deleted_server = Server.query.filter_by(user_id=self.test_user.id, name='delete-server').first()
+        deleted_server = Server.query.filter_by(user_id=self.test_user_id, name='delete-server').first()
         self.assertIsNone(deleted_server)
 
 
@@ -1525,7 +1510,7 @@ class TestVariableRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Check variable was created
-        variable = Variable.query.filter_by(user_id=self.test_user.id, name='test-variable').first()
+        variable = Variable.query.filter_by(user_id=self.test_user_id, name='test-variable').first()
         self.assertIsNotNone(variable)
         self.assertEqual(variable.definition, 'Test variable definition')
 
@@ -1545,7 +1530,7 @@ class TestVariableRoutes(BaseTestCase):
         variable = Variable(
             name='profile-link',
             definition='/profile',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(variable)
         db.session.commit()
@@ -1566,7 +1551,7 @@ class TestVariableRoutes(BaseTestCase):
         variable = Variable(
             name='missing-route',
             definition='/missing-endpoint',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(variable)
         db.session.commit()
@@ -1589,12 +1574,12 @@ class TestVariableRoutes(BaseTestCase):
 def main():
     return {"output": "prefetched-value", "content_type": "text/plain"}
 """.strip(),
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         variable = Variable(
             name='prefetched',
             definition='/prefetch-source',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add_all([server, variable])
         db.session.commit()
@@ -1602,7 +1587,7 @@ def main():
         with self.app.test_request_context('/prefetch-check'):
             from flask import session
 
-            session['_user_id'] = self.test_user.id
+            session['_user_id'] = self.test_user_id
             context = server_execution._load_user_context()
 
         self.assertIn('prefetched', context['variables'])
@@ -1632,7 +1617,7 @@ class TestSecretRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Check secret was created
-        secret = Secret.query.filter_by(user_id=self.test_user.id, name='test-secret').first()
+        secret = Secret.query.filter_by(user_id=self.test_user_id, name='test-secret').first()
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
 
@@ -1653,7 +1638,7 @@ class TestSecretRoutes(BaseTestCase):
         secret = Secret(
             name='production-api-key',
             definition='super-secret-value',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         db.session.add(secret)
         db.session.commit()
@@ -1694,7 +1679,7 @@ class TestAliasRoutes(BaseTestCase):
         self.login_user()
 
         cid_value = generate_cid(b'Alias list CID target display')
-        alias = Alias(name='cid-list', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        alias = Alias(name='cid-list', target_path=f'/{cid_value}', user_id=self.test_user_id)
 
         db.session.add(alias)
         db.session.commit()
@@ -1716,9 +1701,9 @@ class TestAliasRoutes(BaseTestCase):
         cid_record = CID(
             path=f'/{cid_value}',
             file_data=b'Alias detail content',
-            uploaded_by_user_id=self.test_user.id,
+            uploaded_by_user_id=self.test_user_id,
         )
-        alias = Alias(name='cid-detail', target_path=f'/{cid_value}', user_id=self.test_user.id)
+        alias = Alias(name='cid-detail', target_path=f'/{cid_value}', user_id=self.test_user_id)
 
         db.session.add_all([cid_record, alias])
         db.session.commit()
@@ -1755,24 +1740,24 @@ class TestSettingsRoutes(BaseTestCase):
         alias = Alias(
             name='docs',
             target_path='/docs-target',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
             match_type='literal',
             ignore_case=False,
         )
         server = Server(
             name='engine',
             definition='print("ok")',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         variable = Variable(
             name='app-config',
             definition='value = 1',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
         secret = Secret(
             name='api-key',
             definition='secret-value',
-            user_id=self.test_user.id,
+            user_id=self.test_user_id,
         )
 
         db.session.add_all([alias, server, variable, secret])
@@ -1814,7 +1799,7 @@ class TestErrorHandlers(BaseTestCase):
             path="/test-cid-path",
             file_data=test_data,
             file_size=len(test_data),
-            uploaded_by_user_id=self.test_user.id
+            uploaded_by_user_id=self.test_user_id
         )
         db.session.add(cid_content)
         db.session.commit()
@@ -1833,7 +1818,7 @@ class TestErrorHandlers(BaseTestCase):
             path=f"/{cid}",
             file_data=test_data,
             file_size=len(test_data),
-            uploaded_by_user_id=self.test_user.id
+            uploaded_by_user_id=self.test_user_id
         )
         db.session.add(cid_content)
         db.session.commit()
@@ -1853,7 +1838,7 @@ class TestErrorHandlers(BaseTestCase):
         cid_content = CID(
             path="/legacy-content",
             file_data=b"<h1>Legacy HTML</h1>",
-            uploaded_by_user_id=self.test_user.id
+            uploaded_by_user_id=self.test_user_id
         )
         db.session.add(cid_content)
         db.session.commit()
@@ -1868,13 +1853,13 @@ class TestPageViewTracking(BaseTestCase):
     @patch('routes.core.current_user')
     def test_page_view_tracking_authenticated(self, mock_current_user):
         """Test page view tracking for authenticated users."""
-        mock_current_user.id = self.test_user.id
+        mock_current_user.id = self.test_user_id
 
         # Make request that should be tracked
         self.client.get('/profile')
 
         # Check if page view was recorded
-        PageView.query.filter_by(user_id=self.test_user.id, path='/profile').first()
+        PageView.query.filter_by(user_id=self.test_user_id, path='/profile').first()
         # Note: This might not work in test environment due to mocking complexity
         # but the test structure is correct
 
@@ -1910,7 +1895,7 @@ class TestSourceRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('class User(UserMixin, db.Model)', page)
+        self.assertIn('class Alias(db.Model)', page)
 
     def test_source_serves_untracked_project_files(self):
         """Enhanced source browser should serve untracked project files."""

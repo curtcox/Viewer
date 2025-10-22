@@ -1,22 +1,24 @@
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, Iterable, List, Tuple, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+
+from sqlalchemy import func, or_
 
 import models
+from alias_definition import AliasDefinitionError, parse_alias_definition
 from database import db
 from models import (
-    User,
-    Server,
     Alias,
-    Variable,
-    Secret,
-    ServerInvocation,
     CID,
     EntityInteraction,
     PageView,
+    Secret,
+    Server,
+    ServerInvocation,
+    Variable,
 )
-from sqlalchemy import func, or_
 
-from alias_definition import AliasDefinitionError, parse_alias_definition
+_DEFAULT_AI_SERVER_NAME = "ai_stub"
+_DEFAULT_AI_ALIAS_NAME = "ai"
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
@@ -32,6 +34,8 @@ def get_user_profile_data(user_id: str) -> Dict[str, Any]:
         "needs_terms_acceptance": False,
         "current_terms_version": None,
     }
+
+
 def get_user_servers(user_id: str):
     return Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
 
@@ -43,12 +47,22 @@ def get_server_by_name(user_id: str, name: str):
 def get_first_server_name(user_id: str) -> Optional[str]:
     """Return the first server name for a user ordered alphabetically."""
 
-    server = (
+    # Prefer user-created servers over the default AI helper when available.
+    preferred = (
+        Server.query.filter_by(user_id=user_id)
+        .filter(Server.name != _DEFAULT_AI_SERVER_NAME)
+        .order_by(Server.name.asc())
+        .first()
+    )
+    if preferred is not None:
+        return preferred.name
+
+    fallback = (
         Server.query.filter_by(user_id=user_id)
         .order_by(Server.name.asc())
         .first()
     )
-    return server.name if server else None
+    return fallback.name if fallback else None
 
 
 def get_user_aliases(user_id: str):
@@ -62,12 +76,22 @@ def get_alias_by_name(user_id: str, name: str):
 def get_first_alias_name(user_id: str) -> Optional[str]:
     """Return the first alias name for a user ordered alphabetically."""
 
-    alias = (
+    # Prefer user-created aliases over the default AI helper when available.
+    preferred = (
+        Alias.query.filter_by(user_id=user_id)
+        .filter(Alias.name != _DEFAULT_AI_ALIAS_NAME)
+        .order_by(Alias.name.asc())
+        .first()
+    )
+    if preferred is not None:
+        return preferred.name
+
+    fallback = (
         Alias.query.filter_by(user_id=user_id)
         .order_by(Alias.name.asc())
         .first()
     )
-    return alias.name if alias else None
+    return fallback.name if fallback else None
 
 
 def get_alias_by_target_path(user_id: str, target_path: str):
@@ -756,36 +780,10 @@ def get_entity_interactions(
     )
 
 
-def get_all_users() -> List[User]:
-    """Return all user records."""
-
-    return User.query.all()
-
-
 def get_all_servers() -> List[Server]:
     """Return all server records."""
 
     return Server.query.all()
-
-
-def get_user_by_id(user_id: str) -> Optional[User]:
-    """Return a user by identifier."""
-
-    if not user_id:
-        return None
-    return User.query.filter_by(id=user_id).first()
-
-
-def load_user_by_id(user_id: str) -> Optional[User]:
-    """Return a user by primary key using the active session."""
-
-    if not user_id:
-        return None
-    return db.session.get(User, user_id)
-
-
-def count_users() -> int:
-    return User.query.count()
 
 
 def count_cids() -> int:

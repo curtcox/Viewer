@@ -582,12 +582,9 @@ def _resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         "uploaded_by_user_id": cid_record.uploaded_by_user_id,
     }
 
-    uploader = getattr(cid_record, "uploaded_by", None)
-    if uploader:
+    if cid_record.uploaded_by_user_id:
         record["uploaded_by"] = {
-            "user_id": uploader.id,
-            "username": uploader.username,
-            "email": uploader.email,
+            "user_id": cid_record.uploaded_by_user_id,
         }
 
     metadata: Dict[str, Any] = {

@@ -10,23 +10,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Web Framework
 The application is built on Flask with SQLAlchemy ORM for database operations. The architecture follows a traditional MVC pattern with clear separation of concerns:
-- **Models**: User plus supporting entities for aliases, servers, variables, secrets, and analytics
+- **Models**: Data stores for aliases, servers, variables, secrets, analytics, and activity history
 - **Views**: Jinja2 templates with Bootstrap 5 for responsive UI
-- **Controllers**: Route handlers managing authentication, payments, and content access
+- **Controllers**: Route handlers focusing on content tooling while delegating authentication to upstream systems
 
 ## Authentication & Authorization
-Flask-Login provides session management for the default application user. External identity and billing providers determine who may access the tool, allowing this service to focus on product functionality rather than subscription logic.
+Identity is provided by a lightweight proxy that represents the currently authenticated workspace user. External identity and billing providers determine who may access the tool, allowing this service to focus on product functionality rather than subscription logic.
 
 ## Database Design
 SQLAlchemy with declarative base provides the ORM layer:
-- **User Model**: Core user data plus helper methods for request analysis features
-- **Supporting Models**: Records for servers, aliases, variables, secrets, page views, and historical invocations
+- **Core Models**: Records for servers, aliases, variables, secrets, page views, and historical invocations
 - **Relationships**: One-to-many relationships with cascade delete for data integrity
 
 ## Form Handling
 WTForms provides server-side validation with CSRF protection:
-- **Custom Validators**: Username and email uniqueness validation
-- **Security**: Password strength requirements and confirmation matching
+- **Custom Validators**: Domain-specific rules for server and alias configuration
+- **Security**: CSRF protection and request-level validation for uploaded content
 - **User Experience**: Field-level error display with Bootstrap styling
 
 ## Frontend Architecture
@@ -36,8 +35,8 @@ Bootstrap 5 with custom CSS provides a responsive, accessible interface:
 - **Responsive Design**: Mobile-first approach with grid system
 
 ## Security Features
-- **Password Security**: Werkzeug password hashing with salt
 - **Session Management**: Secure session handling with configurable secrets
+- **Content Integrity**: Consistent CID management to ensure immutable assets and reproducible server definitions
 - **Access Guards**: Decorator-based route protection with redirect handling
 - **CSRF Protection**: Form token validation on all POST requests
 

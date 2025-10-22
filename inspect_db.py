@@ -15,9 +15,7 @@ from db_access import (
     count_page_views,
     count_secrets,
     count_servers,
-    count_users,
     count_variables,
-    get_all_users,
     get_cid_by_path,
     get_first_cid,
     get_recent_cids,
@@ -37,7 +35,6 @@ def inspect_database():
         
         # Table counts
         counters = [
-            ("Users", count_users),
             ("CIDs", count_cids),
             ("Page Views", count_page_views),
             ("Servers", count_servers),
@@ -68,21 +65,12 @@ def inspect_database():
         else:
             print("No CID records found.")
         
-        # Users summary
-        print("USERS SUMMARY:")
+        # User records are now managed externally; provide guidance instead of data.
+        print("USER DIRECTORY:")
         print("-" * 30)
-        users = get_all_users()
-        if users:
-            for user in users:
-                print(f"ID: {user.id}")
-                print(f"  Email: {user.email}")
-                print(f"  Name: {user.first_name} {user.last_name}")
-                print(f"  Paid: {user.is_paid}")
-                print(f"  Terms Accepted: {user.current_terms_accepted}")
-                print(f"  Uploads: {len(user.uploads)}")
-                print()
-        else:
-            print("No users found.")
+        print("User accounts are no longer stored in the local database.")
+        print("Viewer expects authentication and subscription details to be handled externally.")
+        print()
 
 def show_cid_details(cid_path=None):
     """Show detailed information about a specific CID"""

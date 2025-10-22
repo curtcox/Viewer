@@ -38,10 +38,15 @@ def locate_gauge() -> str:
     """Return the path to the Gauge CLI or raise ``FileNotFoundError``."""
 
     gauge_cmd = shutil.which("gauge")
-    if gauge_cmd is None:
-        msg = (
-            "Gauge CLI not found. Install Gauge from "
-            "https://docs.gauge.org/getting_started/installing-gauge.html"
-        )
-        raise FileNotFoundError(msg)
-    return gauge_cmd
+    if gauge_cmd is not None:
+        return gauge_cmd
+
+    stub_path = ROOT_DIR / "gauge"
+    if stub_path.exists():
+        return str(stub_path)
+
+    msg = (
+        "Gauge CLI not found. Install Gauge from "
+        "https://docs.gauge.org/getting_started/installing-gauge.html"
+    )
+    raise FileNotFoundError(msg)

@@ -5,7 +5,7 @@ import re
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from app import app, db
-from models import CID, User
+from models import CID
 import cid_utils
 
 from cid_utils import (
@@ -40,19 +40,10 @@ class TestCIDFunctionality(unittest.TestCase):
             db.session.remove()
             db.drop_all()
     
-    def _create_test_user(self):
-        """Helper method to create a test user within the current session"""
-        test_user = User(
-            id='test_user_123',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True
-        )
-        db.session.add(test_user)
-        db.session.commit()
-        return test_user
+    def _create_test_user(self, user_id: str = 'test_user_123'):
+        """Helper method to provide a lightweight user-like object."""
+
+        return SimpleNamespace(id=user_id)
     
     def test_generate_cid_only_uses_file_data(self):
         """Test that CID generation only uses file data, not MIME type"""
