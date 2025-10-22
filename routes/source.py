@@ -1,13 +1,16 @@
-"""Routes for browsing repository source files."""
+"""Routes for browsing repository source files and database tables."""
 from __future__ import annotations
 
 import subprocess
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple
 
 from flask import abort, current_app, render_template, send_file
+from sqlalchemy import MetaData, Table, inspect, select
+from sqlalchemy.exc import SQLAlchemyError
 
+from database import db
 from syntax_highlighting import highlight_source
 
 from . import main_bp
@@ -206,3 +209,74 @@ def source_browser(requested_path: str):
         return _render_directory(relative_path, comprehensive_paths)
 
     abort(404)
+
+
+def _collect_table_summaries() -> list[dict[str, Any]]:
+    """Return database table metadata for the instance overview."""
+
+    try:
+        inspector = inspect(db.engine)
+    except SQLAlchemyError:
+        return []
+
+    summaries: list[dict[str, Any]] = []
+    for table_name in sorted(inspector.get_table_names()):
+        try:
+            columns = inspector.get_columns(table_name)
+        except SQLAlchemyError:
+            column_names: list[str] = []
+        else:
+            column_names = [column_info.get("name", "") for column_info in columns]
+
+        summaries.append({"name": table_name, "columns": column_names})
+
+    return summaries
+
+
+@main_bp.route("/source/instance")
+def source_instance_overview():
+    """Render an overview of database tables and their fields."""
+
+    tables = _collect_table_summaries()
+    return render_template("source_instance.html", tables=tables)
+
+
+@main_bp.route("/source/instance/<string:table_name>")
+def source_instance_table(table_name: str):
+    """Render the raw contents of a single database table."""
+
+    try:
+        inspector = inspect(db.engine)
+    except SQLAlchemyError:
+        abort(500)
+
+    available_tables = set(inspector.get_table_names())
+    if table_name not in available_tables:
+        abort(404)
+
+    metadata = MetaData()
+    try:
+        table = Table(table_name, metadata, autoload_with=db.engine)
+    except SQLAlchemyError:
+        abort(500)
+
+    result = None
+    try:
+        result = db.session.execute(select(table))
+        rows = [dict(row._mapping) for row in result]
+    except SQLAlchemyError:
+        abort(500)
+    finally:
+        if result is not None:
+            result.close()
+
+    columns = [column.name for column in table.columns]
+    row_count = len(rows)
+
+    return render_template(
+        "source_instance_table.html",
+        table_name=table_name,
+        columns=columns,
+        rows=rows,
+        row_count=row_count,
+    )
