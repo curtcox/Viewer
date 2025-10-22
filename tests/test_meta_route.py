@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 from app import app, db
+from alias_definition import format_primary_alias_line
 from models import Alias, CID, Server, ServerInvocation
 from werkzeug.routing import RequestRedirect
 
@@ -52,13 +53,22 @@ class TestMetaRoute(unittest.TestCase):
         pattern: str | None = None,
         ignore_case: bool = False,
     ):
+        pattern_value = pattern
+        if match_type == 'literal' and not pattern_value:
+            pattern_value = None
+        elif pattern_value is None:
+            pattern_value = f'/{name}'
+        definition_text = format_primary_alias_line(
+            match_type,
+            pattern_value,
+            target,
+            ignore_case=ignore_case,
+            alias_name=name,
+        )
         alias = Alias(
             name=name,
-            target_path=target,
             user_id=user_id,
-            match_type=match_type,
-            match_pattern=pattern or f'/{name}',
-            ignore_case=ignore_case,
+            definition=definition_text,
         )
         db.session.add(alias)
         db.session.commit()

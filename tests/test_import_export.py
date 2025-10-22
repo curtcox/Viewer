@@ -15,6 +15,7 @@ from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from datetime import datetime, timezone
+from alias_definition import format_primary_alias_line
 from models import Alias, CID, EntityInteraction, Secret, Server, Variable
 
 
@@ -58,14 +59,18 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
+            definition_text = format_primary_alias_line(
+                'glob',
+                '/demo/*',
+                '/demo',
+                ignore_case=True,
+                alias_name='alias-one',
+            )
+            definition_text = f"{definition_text}\n# export example"
             alias = Alias(
                 name='alias-one',
-                target_path='/demo',
                 user_id=self.user_id,
-                match_type='glob',
-                match_pattern='/demo/*',
-                ignore_case=True,
-                definition='# export example',
+                definition=definition_text,
             )
             server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
             variable = Variable(name='var-one', definition='value', user_id=self.user_id)
@@ -114,7 +119,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(aliases[0]['match_type'], 'glob')
         self.assertEqual(aliases[0]['match_pattern'], '/demo/*')
         self.assertTrue(aliases[0]['ignore_case'])
-        self.assertEqual(aliases[0]['definition'], '# export example')
+        self.assertEqual(aliases[0]['definition'], definition_text)
 
         servers = payload.get('servers', [])
         self.assertEqual(len(servers), 1)
@@ -584,7 +589,10 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             self.assertEqual(alias.match_type, 'regex')
             self.assertEqual(alias.match_pattern, r'^/demo$')
             self.assertTrue(alias.ignore_case)
-            self.assertEqual(alias.definition, '# imported alias')
+            self.assertTrue(
+                alias.definition.startswith('^/demo$ -> /demo [regex, ignore-case]')
+            )
+            self.assertIn('# imported alias', alias.definition)
 
             server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
             self.assertIsNotNone(server)
@@ -615,7 +623,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         })
 
         with self.app.app_context():
-            alias = Alias(name='alias-b', target_path='/demo', user_id=self.user_id)
+            definition_text = format_primary_alias_line(
+                'literal',
+                None,
+                '/demo',
+                alias_name='alias-b',
+            )
+            alias = Alias(name='alias-b', user_id=self.user_id, definition=definition_text)
             db.session.add(alias)
             db.session.commit()
 

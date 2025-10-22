@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from database import db
+from alias_definition import format_primary_alias_line
 from models import Alias
 
 pytestmark = pytest.mark.integration
@@ -19,8 +20,13 @@ def test_aliases_page_lists_user_aliases(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            target_path="/docs",
             user_id="default-user",
+            definition=format_primary_alias_line(
+                "literal",
+                None,
+                "/docs",
+                alias_name="docs",
+            ),
         )
         db.session.add(alias)
         db.session.commit()
@@ -63,8 +69,13 @@ def test_alias_detail_page_displays_alias_information(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            target_path="/docs",
             user_id="default-user",
+            definition=format_primary_alias_line(
+                "literal",
+                None,
+                "/docs",
+                alias_name="docs",
+            ),
         )
         db.session.add(alias)
         db.session.commit()

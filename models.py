@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from typing import Optional
+
 from database import db
 
 class CID(db.Model):
@@ -43,10 +45,6 @@ class Server(db.Model):
 class Alias(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
-    target_path = db.Column(db.String(255), nullable=False)
-    match_type = db.Column(db.String(20), nullable=False, default='literal')
-    match_pattern = db.Column(db.String(255), nullable=False, default='')
-    ignore_case = db.Column(db.Boolean, nullable=False, default=False)
     definition = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -54,27 +52,43 @@ class Alias(db.Model):
 
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        if not getattr(self, 'match_type', None):
-            self.match_type = 'literal'
-        if getattr(self, 'match_pattern', None) in (None, ''):
-            base_name = getattr(self, 'name', '') or ''
-            self.match_pattern = f'/{base_name}' if base_name else '/'
-        if getattr(self, 'ignore_case', None) is None:
-            self.ignore_case = False
-        if getattr(self, 'definition', None) in ("",):
-            self.definition = None
-
     def get_effective_pattern(self) -> str:
-        pattern = getattr(self, 'match_pattern', None)
-        if pattern:
-            return pattern
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        if route and route.match_pattern:
+            return route.match_pattern
         name = getattr(self, 'name', '') or ''
         return f'/{name}' if name else '/'
 
+    @property
+    def match_type(self) -> str:
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        return route.match_type if route else 'literal'
+
+    @property
+    def match_pattern(self) -> str:
+        return self.get_effective_pattern()
+
+    @property
+    def target_path(self) -> Optional[str]:
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        return route.target_path if route else None
+
+    @property
+    def ignore_case(self) -> bool:
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        return bool(route.ignore_case) if route else False
+
     def __repr__(self):
-        return f'<Alias {self.name} -> {self.target_path}>'
+        target = self.target_path or '?'
+        return f'<Alias {self.name} -> {target}>'
 
 
 class EntityInteraction(db.Model):

@@ -7,6 +7,7 @@ from entity_references import (
     extract_references_from_target,
     extract_references_from_text,
 )
+from alias_definition import format_primary_alias_line
 from models import Alias, CID, Server
 
 
@@ -34,12 +35,16 @@ class TestEntityReferences(unittest.TestCase):
 
     def _create_alias(self, name: str, target: str) -> str:
         with self.app.app_context():
+            definition_text = format_primary_alias_line(
+                'literal',
+                None,
+                target,
+                alias_name=name,
+            )
             alias = Alias(
                 name=name,
-                target_path=target,
                 user_id=self.user_id,
-                match_type='literal',
-                ignore_case=False,
+                definition=definition_text,
             )
             db.session.add(alias)
             db.session.commit()

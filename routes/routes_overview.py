@@ -9,6 +9,7 @@ from typing import Iterable, List, Optional
 from flask import current_app, render_template, url_for
 from identity import current_user
 
+from alias_definition import collect_alias_routes
 from db_access import get_user_aliases, get_user_servers
 
 from . import main_bp
@@ -108,19 +109,34 @@ def _alias_routes() -> Iterable[RouteEntry]:
     aliases = get_user_aliases(current_user.id)
     entries: List[RouteEntry] = []
     for alias in aliases:
-        pattern = getattr(alias, "get_effective_pattern", lambda: None)()
-        pattern = pattern or f"/{getattr(alias, 'name', '')}"
-
-        entries.append(
-            RouteEntry(
-                category="alias",
-                path=pattern,
-                name=alias.name,
-                definition_label=f"Alias: {alias.name}",
-                definition_url=url_for("main.view_alias", alias_name=alias.name),
-                extra_detail=getattr(alias, "match_type", "literal"),
+        routes = collect_alias_routes(alias)
+        if not routes:
+            pattern = getattr(alias, "get_effective_pattern", lambda: None)()
+            pattern = pattern or f"/{getattr(alias, 'name', '')}"
+            entries.append(
+                RouteEntry(
+                    category="alias",
+                    path=pattern,
+                    name=alias.name,
+                    definition_label=f"Alias: {alias.name}",
+                    definition_url=url_for("main.view_alias", alias_name=alias.name),
+                    extra_detail="literal",
+                )
             )
-        )
+            continue
+
+        for route in routes:
+            pattern = route.match_pattern or f"/{getattr(alias, 'name', '')}"
+            entries.append(
+                RouteEntry(
+                    category="alias",
+                    path=pattern,
+                    name=alias.name,
+                    definition_label=f"Alias: {alias.name}",
+                    definition_url=url_for("main.view_alias", alias_name=alias.name),
+                    extra_detail=route.match_type,
+                )
+            )
 
     return entries
 

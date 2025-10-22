@@ -20,6 +20,7 @@ os.environ['TESTING'] = 'True'
 
 from app import create_app
 from database import db
+from alias_definition import format_primary_alias_line
 from models import (
     CID,
     PageView,
@@ -33,6 +34,28 @@ from cid_utils import CID_LENGTH, generate_cid
 import server_execution
 from server_templates import get_server_templates
 from routes.core import _build_cross_reference_data
+
+
+def _alias_definition(
+    name: str,
+    target: str,
+    *,
+    match_type: str = 'literal',
+    pattern: str | None = None,
+    ignore_case: bool = False,
+) -> str:
+    pattern_value = pattern
+    if match_type == 'literal' and not pattern_value:
+        pattern_value = None
+    elif pattern_value is None:
+        pattern_value = f'/{name}'
+    return format_primary_alias_line(
+        match_type,
+        pattern_value,
+        target,
+        ignore_case=ignore_case,
+        alias_name=name,
+    )
 
 
 class BaseTestCase(unittest.TestCase):
@@ -181,8 +204,16 @@ class TestPublicRoutes(BaseTestCase):
             file_data=b'CID: /alpha -> /servers/beta',
             uploaded_by_user_id=self.test_user_id,
         )
-        alias_server = Alias(name='alpha', target_path='/servers/beta', user_id=self.test_user_id)
-        alias_cid = Alias(name='bravo', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        alias_server = Alias(
+            name='alpha',
+            user_id=self.test_user_id,
+            definition=_alias_definition('alpha', '/servers/beta'),
+        )
+        alias_cid = Alias(
+            name='bravo',
+            user_id=self.test_user_id,
+            definition=_alias_definition('bravo', f'/{cid_value}'),
+        )
         server_definition = f"""
 def main(request):
     return "Use /bravo and /{cid_value}"
@@ -222,7 +253,11 @@ def main(request):
             file_data=b'alias target content',
             uploaded_by_user_id=self.test_user_id,
         )
-        alias_cid = Alias(name='cid-alias', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        alias_cid = Alias(
+            name='cid-alias',
+            user_id=self.test_user_id,
+            definition=_alias_definition('cid-alias', f'/{cid_value}'),
+        )
 
         db.session.add_all([cid_record, alias_cid])
         db.session.commit()
@@ -245,7 +280,11 @@ def main(request):
             file_data=b'Use /aliases/linked and /servers/linked',
             uploaded_by_user_id=self.test_user_id,
         )
-        alias_to_cid = Alias(name='linked', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        alias_to_cid = Alias(
+            name='linked',
+            user_id=self.test_user_id,
+            definition=_alias_definition('linked', f'/{cid_value}'),
+        )
         server_definition = """
 def main(request):
     return "See /aliases/linked"
@@ -303,7 +342,11 @@ def main(request):
             file_data=b'nameless alias content',
             uploaded_by_user_id=self.test_user_id,
         )
-        nameless_alias = Alias(name='', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        nameless_alias = Alias(
+            name='',
+            user_id=self.test_user_id,
+            definition=_alias_definition('', f'/{cid_value}'),
+        )
 
         db.session.add_all([cid_record, nameless_alias])
         db.session.commit()
@@ -339,7 +382,11 @@ class TestSearchApi(BaseTestCase):
     def test_search_results_include_all_categories(self):
         """Search results should highlight matches across every enabled category."""
 
-        alias = Alias(name='hello-alias', target_path='/servers/hello-server', user_id=self.test_user_id)
+        alias = Alias(
+            name='hello-alias',
+            user_id=self.test_user_id,
+            definition=_alias_definition('hello-alias', '/servers/hello-server'),
+        )
         server = Server(
             name='hello-server',
             definition='''
@@ -887,10 +934,8 @@ class TestCidEditingRoutes(BaseTestCase):
     def _create_alias(self, name: str, target_path: str) -> Alias:
         alias = Alias(
             name=name,
-            target_path=target_path,
             user_id=self.test_user_id,
-            match_type='literal',
-            ignore_case=False,
+            definition=_alias_definition(name, target_path),
         )
         db.session.add(alias)
         db.session.commit()
@@ -905,10 +950,8 @@ class TestCidEditingRoutes(BaseTestCase):
         cid_value = self._create_cid_record(b'original content')
         alias = Alias(
             name='docs',
-            target_path='/docs',
             user_id=self.test_user_id,
-            match_type='literal',
-            ignore_case=False,
+            definition=_alias_definition('docs', '/docs'),
         )
         server = Server(name='ref-server', definition='return None', user_id=self.test_user_id)
         db.session.add_all([alias, server])
@@ -1273,10 +1316,8 @@ class TestServerRoutes(BaseTestCase):
         helper_server = Server(name='helper', definition='print("helper")', user_id=self.test_user_id)
         alias = Alias(
             name='docs-link',
-            target_path='/docs',
             user_id=self.test_user_id,
-            match_type='literal',
-            ignore_case=False,
+            definition=_alias_definition('docs-link', '/docs'),
         )
         cid_value = 'cidserver123456'
         cid_record = CID(
@@ -1679,7 +1720,11 @@ class TestAliasRoutes(BaseTestCase):
         self.login_user()
 
         cid_value = generate_cid(b'Alias list CID target display')
-        alias = Alias(name='cid-list', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        alias = Alias(
+            name='cid-list',
+            user_id=self.test_user_id,
+            definition=_alias_definition('cid-list', f'/{cid_value}'),
+        )
 
         db.session.add(alias)
         db.session.commit()
@@ -1703,7 +1748,11 @@ class TestAliasRoutes(BaseTestCase):
             file_data=b'Alias detail content',
             uploaded_by_user_id=self.test_user_id,
         )
-        alias = Alias(name='cid-detail', target_path=f'/{cid_value}', user_id=self.test_user_id)
+        alias = Alias(
+            name='cid-detail',
+            user_id=self.test_user_id,
+            definition=_alias_definition('cid-detail', f'/{cid_value}'),
+        )
 
         db.session.add_all([cid_record, alias])
         db.session.commit()
@@ -1739,10 +1788,8 @@ class TestSettingsRoutes(BaseTestCase):
 
         alias = Alias(
             name='docs',
-            target_path='/docs-target',
             user_id=self.test_user_id,
-            match_type='literal',
-            ignore_case=False,
+            definition=_alias_definition('docs', '/docs-target'),
         )
         server = Server(
             name='engine',

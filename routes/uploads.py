@@ -16,6 +16,11 @@ from cid_utils import (
 from entity_references import (
     extract_references_from_bytes,
 )
+from alias_definition import (
+    format_primary_alias_line,
+    get_primary_alias_route,
+    replace_primary_definition_line,
+)
 from db_access import (
     create_cid_record,
     find_cids_by_prefix,
@@ -259,15 +264,38 @@ def edit_cid(cid_prefix):
 
         new_target_path = cid_path(cid_value)
         if alias_for_cid:
-            alias_for_cid.target_path = new_target_path
+            primary_route = get_primary_alias_route(alias_for_cid)
+            if primary_route:
+                primary_line = format_primary_alias_line(
+                    primary_route.match_type,
+                    primary_route.match_pattern,
+                    new_target_path,
+                    ignore_case=primary_route.ignore_case,
+                    alias_name=getattr(alias_for_cid, "name", None),
+                )
+            else:
+                primary_line = format_primary_alias_line(
+                    "literal",
+                    None,
+                    new_target_path,
+                    alias_name=getattr(alias_for_cid, "name", None),
+                )
+            alias_for_cid.definition = replace_primary_definition_line(
+                getattr(alias_for_cid, "definition", None),
+                primary_line,
+            )
             _persist_alias_from_upload(alias_for_cid)
         elif alias_name_input:
+            primary_line = format_primary_alias_line(
+                "literal",
+                None,
+                new_target_path,
+                alias_name=alias_name_input,
+            )
             new_alias = Alias(
                 name=alias_name_input,
-                target_path=new_target_path,
                 user_id=current_user.id,
-                match_type='literal',
-                ignore_case=False,
+                definition=primary_line,
             )
             _persist_alias_from_upload(new_alias)
 

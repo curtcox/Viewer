@@ -15,6 +15,7 @@ from identity import current_user
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
+from alias_definition import collect_alias_routes, get_primary_alias_route
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
 from cid_presenter import cid_path, format_cid
 from entity_references import extract_references_from_bytes
@@ -229,21 +230,25 @@ def _normalize_alias_target_path(target: Optional[str]) -> Optional[str]:
     return candidate
 
 
-def _serialize_alias(alias) -> Dict[str, Any]:
+def _serialize_alias(alias, route=None) -> Dict[str, Any]:
     """Return a JSON-serializable representation of an alias."""
-    effective_pattern = (
-        alias.get_effective_pattern()
-        if hasattr(alias, "get_effective_pattern")
-        else getattr(alias, "match_pattern", None)
-    )
+    selected_route = route or get_primary_alias_route(alias)
+    effective_pattern = None
+    if selected_route and selected_route.match_pattern:
+        effective_pattern = selected_route.match_pattern
+    elif hasattr(alias, "get_effective_pattern"):
+        effective_pattern = alias.get_effective_pattern()
+    else:
+        effective_pattern = getattr(alias, "match_pattern", None)
 
+    target_path = selected_route.target_path if selected_route else None
     return {
         "id": getattr(alias, "id", None),
         "name": getattr(alias, "name", None),
-        "match_type": getattr(alias, "match_type", None),
+        "match_type": selected_route.match_type if selected_route else None,
         "match_pattern": effective_pattern,
-        "ignore_case": bool(getattr(alias, "ignore_case", False)),
-        "target_path": getattr(alias, "target_path", None),
+        "ignore_case": selected_route.ignore_case if selected_route else False,
+        "target_path": target_path,
         "definition": getattr(alias, "definition", None),
     }
 
@@ -253,15 +258,17 @@ def _aliases_targeting_path(path: str) -> List[Dict[str, Any]]:
     normalized = _normalize_target_path(path)
     aliases = []
     for alias in get_user_aliases(current_user.id):
-        target_path = _normalize_alias_target_path(getattr(alias, "target_path", None))
-        if not target_path:
-            continue
-        if target_path != normalized:
-            continue
+        for route in collect_alias_routes(alias):
+            target_path = _normalize_alias_target_path(route.target_path)
+            if not target_path:
+                continue
+            if target_path != normalized:
+                continue
 
-        serialized = _serialize_alias(alias)
-        serialized["meta_link"] = f"/meta/{serialized['name']}" if serialized.get("name") else None
-        aliases.append(serialized)
+            serialized = _serialize_alias(alias, route=route)
+            serialized["meta_link"] = f"/meta/{serialized['name']}" if serialized.get("name") else None
+            serialized["alias_path"] = route.alias_path
+            aliases.append(serialized)
 
     return aliases
 

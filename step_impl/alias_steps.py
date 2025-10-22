@@ -12,6 +12,7 @@ from getgauge.python import after_scenario, before_scenario, step
 from app import create_app
 from database import db
 from identity import ensure_default_user
+from alias_definition import format_primary_alias_line
 from models import Alias
 
 _app = None
@@ -161,13 +162,17 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
 
     with _app_context():
         user = ensure_default_user()
+        definition_text = format_primary_alias_line(
+            match_type,
+            pattern or (f"/{alias_name}" if match_type != "literal" else None),
+            target_path,
+            ignore_case=ignore_case,
+            alias_name=alias_name,
+        )
         alias = Alias(
             name=alias_name,
-            target_path=target_path,
             user_id=user.id,
-            match_type="literal",
-            match_pattern=f"/{alias_name}",
-            ignore_case=False,
+            definition=definition_text,
         )
         db.session.add(alias)
         db.session.commit()

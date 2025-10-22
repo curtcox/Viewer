@@ -10,13 +10,21 @@ import sys
 import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable, Iterable, Optional, Tuple
 
 import requests
 from importlib import metadata
 from flask import current_app, flash, redirect, render_template, request, url_for
 from identity import current_user
 
+from alias_definition import (
+    AliasDefinitionError,
+    ensure_primary_line,
+    format_primary_alias_line,
+    get_primary_alias_route,
+    parse_alias_definition,
+    replace_primary_definition_line,
+)
 from alias_matching import PatternError, normalise_pattern
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
@@ -519,30 +527,73 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
             errors.append(f'Alias "{name}" definition must be text when provided.')
             continue
 
-        try:
-            normalised_pattern = normalise_pattern(match_type, match_pattern, name)
-        except PatternError as exc:
-            errors.append(f'Alias "{name}" skipped: {exc}')
-            continue
+        definition_value: Optional[str]
+        if definition_text:
+            parsed_definition = None
+            try:
+                parsed_definition = parse_alias_definition(
+                    definition_text, alias_name=name
+                )
+            except AliasDefinitionError:
+                parsed_definition = None
+
+            if parsed_definition:
+                canonical_primary = format_primary_alias_line(
+                    parsed_definition.match_type,
+                    parsed_definition.match_pattern,
+                    parsed_definition.target_path,
+                    ignore_case=parsed_definition.ignore_case,
+                    alias_name=name,
+                )
+                definition_value = replace_primary_definition_line(
+                    definition_text,
+                    canonical_primary,
+                )
+            else:
+                try:
+                    normalised_pattern = normalise_pattern(
+                        match_type, match_pattern, name
+                    )
+                except PatternError as exc:
+                    errors.append(f'Alias "{name}" skipped: {exc}')
+                    continue
+
+                canonical_primary = format_primary_alias_line(
+                    match_type,
+                    normalised_pattern,
+                    target_path,
+                    ignore_case=ignore_case,
+                    alias_name=name,
+                )
+                definition_value = ensure_primary_line(
+                    definition_text,
+                    canonical_primary,
+                )
+        else:
+            try:
+                normalised_pattern = normalise_pattern(match_type, match_pattern, name)
+            except PatternError as exc:
+                errors.append(f'Alias "{name}" skipped: {exc}')
+                continue
+
+            definition_value = format_primary_alias_line(
+                match_type,
+                normalised_pattern,
+                target_path,
+                ignore_case=ignore_case,
+                alias_name=name,
+            )
 
         existing = get_alias_by_name(user_id, name)
         if existing:
-            existing.target_path = target_path
-            existing.match_type = match_type
-            existing.match_pattern = normalised_pattern
-            existing.ignore_case = ignore_case
-            existing.definition = (definition_text or None)
+            existing.definition = definition_value
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             alias = Alias(
                 name=name,
-                target_path=target_path,
                 user_id=user_id,
-                match_type=match_type,
-                match_pattern=normalised_pattern,
-                ignore_case=ignore_case,
-                definition=definition_text or None,
+                definition=definition_value,
             )
             save_entity(alias)
         imported += 1
@@ -898,17 +949,20 @@ def export_data():
             payload['project_files'] = project_files_payload
 
         if form.include_aliases.data:
-            payload['aliases'] = [
-                {
-                    'name': alias.name,
-                    'target_path': alias.target_path,
-                    'match_type': alias.match_type,
-                    'match_pattern': alias.get_effective_pattern(),
-                    'ignore_case': bool(alias.ignore_case),
-                    'definition': getattr(alias, 'definition', None),
-                }
-                for alias in get_user_aliases(current_user.id)
-            ]
+            alias_payload: list[dict[str, Any]] = []
+            for alias in get_user_aliases(current_user.id):
+                route = get_primary_alias_route(alias)
+                alias_payload.append(
+                    {
+                        'name': alias.name,
+                        'target_path': route.target_path if route else None,
+                        'match_type': route.match_type if route else None,
+                        'match_pattern': route.match_pattern if route else alias.get_effective_pattern(),
+                        'ignore_case': route.ignore_case if route else False,
+                        'definition': getattr(alias, 'definition', None),
+                    }
+                )
+            payload['aliases'] = alias_payload
 
         if form.include_servers.data:
             servers_payload: list[dict[str, str]] = []

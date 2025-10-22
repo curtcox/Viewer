@@ -19,6 +19,7 @@ from flask import (
 )
 
 from identity import current_user
+from alias_definition import get_primary_alias_route
 from db_access import (
     count_user_aliases,
     count_user_secrets,
@@ -201,7 +202,11 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         entity_incoming_refs[target_key].add(ref_key)
 
     def _handle_alias_references(alias_obj) -> None:
-        refs = extract_references_from_target(getattr(alias_obj, 'target_path', None), user_id)
+        primary_route = get_primary_alias_route(alias_obj)
+        refs = extract_references_from_target(
+            primary_route.target_path if primary_route else None,
+            user_id,
+        )
         for ref in refs.get('aliases', []):
             target_name = ref.get('name')
             if target_name:
@@ -242,13 +247,14 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
 
     alias_entries: List[Dict[str, Any]] = []
     for alias in aliases:
+        primary_route = get_primary_alias_route(alias)
         alias_entries.append(
             {
                 'type': 'alias',
                 'name': alias.name,
                 'url': url_for('main.view_alias', alias_name=alias.name),
                 'entity_key': _entity_key('alias', alias.name),
-                'target_path': getattr(alias, 'target_path', ''),
+                'target_path': primary_route.target_path if primary_route else '',
             }
         )
         _handle_alias_references(alias)

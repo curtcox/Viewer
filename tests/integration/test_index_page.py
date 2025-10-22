@@ -5,6 +5,7 @@ import pytest
 
 from cid_utils import generate_cid
 from database import db
+from alias_definition import format_primary_alias_line
 from models import Alias, CID, Server
 
 
@@ -27,8 +28,13 @@ def test_index_page_displays_cross_reference_dashboard(
         )
         alias = Alias(
             name="sample-alias",
-            target_path="/servers/sample-server",
             user_id="default-user",
+            definition=format_primary_alias_line(
+                "literal",
+                None,
+                "/servers/sample-server",
+                alias_name="sample-alias",
+            ),
         )
         server = Server(
             name="sample-server",

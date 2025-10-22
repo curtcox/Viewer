@@ -7,6 +7,7 @@ os.environ.setdefault('TESTING', 'True')
 
 from app import create_app  # noqa: E402
 from database import db  # noqa: E402
+from alias_definition import format_primary_alias_line  # noqa: E402
 from models import Alias, Server  # noqa: E402
 
 
@@ -44,7 +45,13 @@ class RoutesOverviewTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_lists_builtin_alias_and_server_routes(self):
-        alias = Alias(name='shared', target_path='/target', user_id=self.user_id)
+        definition_text = format_primary_alias_line(
+            'literal',
+            None,
+            '/target',
+            alias_name='shared',
+        )
+        alias = Alias(name='shared', user_id=self.user_id, definition=definition_text)
         server = Server(
             name='shared',
             definition='def main(request):\n    return "ok"',
