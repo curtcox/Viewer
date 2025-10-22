@@ -51,7 +51,7 @@ class ExternalUser:
 
 
 _default_user: Optional[ExternalUser] = None
-_cached_user: Optional[ExternalUser] = None
+_cached_default_user: Optional[ExternalUser] = None
 
 
 def _create_default_user() -> ExternalUser:
@@ -72,7 +72,7 @@ def _create_default_user() -> ExternalUser:
 def ensure_default_user() -> ExternalUser:
     """Public helper to ensure the default user exists."""
 
-    global _default_user, _cached_user
+    global _default_user, _cached_default_user
     if _default_user is None:
         _default_user = _create_default_user()
     else:
@@ -81,14 +81,14 @@ def ensure_default_user() -> ExternalUser:
         # AI stub resources are present for the active database on every
         # invocation.
         ensure_ai_stub_for_user(_default_user.id)
-    _cached_user = _default_user
+    _cached_default_user = _default_user
     return _default_user
 
 
 def _load_current_user() -> ExternalUser:
     """Return the current user for the active request or global context."""
 
-    global _cached_user
+    global _cached_default_user
 
     if has_request_context():
         requested_user_id = session.get("_user_id")
@@ -103,17 +103,18 @@ def _load_current_user() -> ExternalUser:
                 )
                 ensure_ai_stub_for_user(user.id)
                 g._default_user = user
-        else:
-            if user is None:
-                user = ensure_default_user()
-                g._default_user = user
+            return user
 
-        _cached_user = user
+        if user is None:
+            user = ensure_default_user()
+            g._default_user = user
+
+        _cached_default_user = user
         return user
 
-    if _cached_user is None:
-        _cached_user = ensure_default_user()
-    return _cached_user
+    if _cached_default_user is None:
+        _cached_default_user = ensure_default_user()
+    return _cached_default_user
 
 
 current_user: ExternalUser = LocalProxy(_load_current_user)
