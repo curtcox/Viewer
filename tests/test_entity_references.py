@@ -37,8 +37,6 @@ class TestEntityReferences(unittest.TestCase):
                 email=f'{user_id}@example.com',
                 first_name='User',
                 last_name='One',
-                is_paid=True,
-                current_terms_accepted=True,
             )
             db.session.add(user)
             db.session.commit()

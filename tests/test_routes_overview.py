@@ -1,6 +1,5 @@
 import os
 import unittest
-from datetime import datetime, timedelta, timezone
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
@@ -32,9 +31,6 @@ class RoutesOverviewTestCase(unittest.TestCase):
             id='user-1',
             email='user@example.com',
             first_name='Test',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
         db.session.add(self.user)
         db.session.commit()

@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import unittest
 
@@ -26,9 +25,6 @@ class TestGlomServerTemplate(unittest.TestCase):
         self.user = User(
             id="user-1",
             email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
         db.session.add(self.user)
 

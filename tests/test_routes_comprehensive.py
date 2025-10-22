@@ -58,9 +58,6 @@ class BaseTestCase(unittest.TestCase):
             email='test@example.com',
             first_name='Test',
             last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=365)
         )
         db.session.add(self.test_user)
         db.session.commit()
@@ -566,14 +563,11 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
 
-    def test_dashboard_without_access_redirects_to_profile(self):
-        """Test dashboard redirects users without access to profile."""
-        # Create user without access
+    def test_dashboard_redirects_new_users_to_profile(self):
+        """Dashboard should lead any signed-in user to their profile."""
         user_no_access = User(
             id='no_access_user',
             email='noaccess@example.com',
-            is_paid=False,
-            current_terms_accepted=False
         )
         db.session.add(user_no_access)
         db.session.commit()

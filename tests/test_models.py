@@ -3,7 +3,7 @@ Test cases for model methods, particularly focusing on datetime-related function
 """
 import os
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -36,87 +36,39 @@ class TestModels(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def test_user_has_access_with_valid_payment(self):
-        """Test User.has_access() with valid payment."""
-        future_date = datetime.now(timezone.utc) + timedelta(days=30)
+    def test_user_has_access_returns_true(self):
+        """User access is now granted externally but remains truthy for callers."""
         user = User(
-            id='test_user_1',
+            id='test_user_access',
             email='test@example.com',
             first_name='Test',
             last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=future_date
         )
         db.session.add(user)
         db.session.commit()
 
         self.assertTrue(user.has_access())
 
-    def test_user_has_access_with_expired_payment(self):
-        """Test User.has_access() with expired payment."""
-        past_date = datetime.now(timezone.utc) - timedelta(days=1)
-        user = User(
-            id='test_user_2',
-            email='test2@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=past_date
+    def test_username_falls_back_to_email_or_id(self):
+        """Username property should favor first name, then email, then id."""
+        named_user = User(
+            id='user_named',
+            email='named@example.com',
+            first_name='Named',
         )
-        db.session.add(user)
+        email_only_user = User(
+            id='user_email_only',
+            email='email@example.com',
+        )
+        id_only_user = User(
+            id='user_id_only',
+        )
+        db.session.add_all([named_user, email_only_user, id_only_user])
         db.session.commit()
 
-        self.assertFalse(user.has_access())
-
-    def test_user_has_access_no_payment_expiry(self):
-        """Test User.has_access() with no payment expiry (lifetime access)."""
-        user = User(
-            id='test_user_3',
-            email='test3@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=None
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        self.assertTrue(user.has_access())
-
-    def test_user_has_access_not_paid(self):
-        """Test User.has_access() when user is not paid."""
-        user = User(
-            id='test_user_4',
-            email='test4@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=False,
-            current_terms_accepted=True,
-            payment_expires_at=None
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        self.assertFalse(user.has_access())
-
-    def test_user_has_access_terms_not_accepted(self):
-        """Test User.has_access() when terms not accepted."""
-        user = User(
-            id='test_user_5',
-            email='test5@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=False,
-            payment_expires_at=None
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        self.assertFalse(user.has_access())
+        self.assertEqual(named_user.username, 'Named')
+        self.assertEqual(email_only_user.username, 'email@example.com')
+        self.assertEqual(id_only_user.username, 'user_id_only')
 
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""

@@ -13,10 +13,8 @@ from app import create_app
 from db_access import (
     count_cids,
     count_page_views,
-    count_payments,
     count_secrets,
     count_servers,
-    count_terms_acceptances,
     count_users,
     count_variables,
     get_all_users,
@@ -45,8 +43,6 @@ def inspect_database():
             ("Servers", count_servers),
             ("Variables", count_variables),
             ("Secrets", count_secrets),
-            ("Payments", count_payments),
-            ("Terms Acceptances", count_terms_acceptances),
         ]
 
         print("TABLE COUNTS:")
@@ -81,8 +77,6 @@ def inspect_database():
                 print(f"ID: {user.id}")
                 print(f"  Email: {user.email}")
                 print(f"  Name: {user.first_name} {user.last_name}")
-                print(f"  Paid: {user.is_paid}")
-                print(f"  Terms Accepted: {user.current_terms_accepted}")
                 print(f"  Uploads: {len(user.uploads)}")
                 print()
         else:

@@ -34,23 +34,11 @@ def _ensure_default_user() -> User:
             email=_DEFAULT_EMAIL,
             first_name=_DEFAULT_FIRST_NAME,
             last_name=_DEFAULT_LAST_NAME,
-            is_paid=True,
-            current_terms_accepted=True,
         )
         save_entity(user)
         ensure_ai_stub_for_user(user.id)
         return user
 
-    # Ensure legacy flags remain enabled so existing UI behaves as expected.
-    updated = False
-    if not getattr(user, "is_paid", False):
-        user.is_paid = True
-        updated = True
-    if not getattr(user, "current_terms_accepted", False):
-        user.current_terms_accepted = True
-        updated = True
-    if updated:
-        save_entity(user)
     return user
 
 

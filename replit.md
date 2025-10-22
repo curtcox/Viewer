@@ -1,6 +1,6 @@
 # Overview
 
-Viewer is a Flask-based web application that demonstrates a multi-layered access control system. The application provides secure content access through user authentication, payment verification, and terms acceptance tracking. It features detailed HTTP request analysis as its core functionality, allowing authenticated and subscribed users to view comprehensive information about their web requests including headers, metadata, and network details.
+Viewer is a Flask-based web application focused on analysing HTTP requests and presenting rich diagnostics. User authentication, subscription management, and terms acceptance now live in external services; this application assumes an already-authenticated user context and concentrates on content tooling and observability features.
 
 # User Preferences
 
@@ -10,21 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Web Framework
 The application is built on Flask with SQLAlchemy ORM for database operations. The architecture follows a traditional MVC pattern with clear separation of concerns:
-- **Models**: User, Payment, and TermsAcceptance entities with relationships
+- **Models**: User plus supporting entities for aliases, servers, variables, secrets, and analytics
 - **Views**: Jinja2 templates with Bootstrap 5 for responsive UI
-- **Controllers**: Route handlers managing authentication, payments, and content access
+- **Controllers**: Route handlers focusing on content tooling and workspace flows while external services handle authentication
 
 ## Authentication & Authorization
-Flask-Login provides session management with a multi-tier access control system:
-- **Authentication**: Username/password login with session persistence
-- **Payment Verification**: Subscription-based access with expiration tracking
-- **Terms Acceptance**: Version-controlled terms that users must accept
-- **Access Control**: Combined verification of all three factors before granting content access
+Flask-Login provides session management for the default application user. External identity and billing providers determine who may access the tool, allowing this service to focus on product functionality rather than subscription logic.
 
 ## Database Design
 SQLAlchemy with declarative base provides the ORM layer:
-- **User Model**: Core user data with password hashing and access control methods
-- **Payment Model**: Subscription tracking with plan types and expiration dates
+- **User Model**: Core user data plus helper methods for request analysis features
+- **Supporting Models**: Records for servers, aliases, variables, secrets, page views, and historical invocations
 - **Relationships**: One-to-many relationships with cascade delete for data integrity
 
 ## Form Handling
@@ -40,9 +36,8 @@ Bootstrap 5 with custom CSS provides a responsive, accessible interface:
 - **Responsive Design**: Mobile-first approach with grid system
 
 ## Security Features
-- **Password Security**: Werkzeug password hashing with salt
-- **Session Management**: Secure session handling with configurable secrets
-- **Access Guards**: Decorator-based route protection with redirect handling
+- **Session Management**: Flask-Login maintains a default workspace user with configurable secrets
+- **External Trust**: Upstream identity and billing providers gate access before requests reach the app
 - **CSRF Protection**: Form token validation on all POST requests
 
 # External Dependencies

@@ -38,8 +38,6 @@ class TestAnalytics(unittest.TestCase):
         self.user = User(
             id="analytics-user",
             email="analytics@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
         )
         db.session.add(self.user)
         db.session.commit()

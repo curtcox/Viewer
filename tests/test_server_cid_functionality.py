@@ -32,8 +32,6 @@ def test_server_cid_functionality():
             email='test@example.com',
             first_name='Test',
             last_name='User',
-            is_paid=True,
-            current_terms_accepted=True
         )
         db.session.add(test_user)
         db.session.commit()

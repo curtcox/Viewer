@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import BooleanField, SelectField, SubmitField, StringField, TextAreaField, RadioField
+from wtforms import BooleanField, SubmitField, StringField, TextAreaField, RadioField
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 import re
 
@@ -9,17 +9,6 @@ from alias_definition import AliasDefinitionError, parse_alias_definition
 
 def _strip_filter(value):
     return value.strip() if isinstance(value, str) else value
-
-class PaymentForm(FlaskForm):
-    plan = SelectField('Plan', choices=[
-        ('free', 'Free Plan - $0/year'),
-        ('annual', 'Annual Plan - $50/year')
-    ], validators=[DataRequired()])
-    submit = SubmitField('Subscribe')
-
-class TermsAcceptanceForm(FlaskForm):
-    accept_terms = BooleanField('I accept the current Terms and Conditions', validators=[DataRequired()])
-    submit = SubmitField('Accept Terms')
 
 class FileUploadForm(FlaskForm):
     upload_type = RadioField('Upload Method', choices=[

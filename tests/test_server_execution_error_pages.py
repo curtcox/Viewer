@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 import unittest
 
 from app import create_app
@@ -62,9 +61,6 @@ class TestServerExecutionErrorPages(unittest.TestCase):
         self.user = User(
             id="user-1",
             email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
         db.session.add(self.user)
 

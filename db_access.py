@@ -1,12 +1,9 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, Iterable, List, Tuple, Set
 
 import models
 from database import db
 from models import (
-    Payment,
-    TermsAcceptance,
-    CURRENT_TERMS_VERSION,
     User,
     Server,
     Alias,
@@ -23,56 +20,17 @@ from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
-    """Gather payment and terms data for a user."""
-    payments = (
-        Payment.query.filter_by(user_id=user_id)
-        .order_by(Payment.payment_date.desc())
-        .all()
-    )
-    terms_history = (
-        TermsAcceptance.query.filter_by(user_id=user_id)
-        .order_by(TermsAcceptance.accepted_at.desc())
-        .all()
-    )
-    current_terms = TermsAcceptance.query.filter_by(
-        user_id=user_id, terms_version=CURRENT_TERMS_VERSION
-    ).first()
+    """Return minimal profile metadata while identity is externalized."""
+
+    # Identity and subscription data now live in an external system. Keep a
+    # stable helper so templates that expect profile metadata still receive a
+    # predictable structure even though the application no longer tracks any of
+    # the legacy billing fields.
     return {
-        "payments": payments,
-        "terms_history": terms_history,
-        "needs_terms_acceptance": current_terms is None,
-        "current_terms_version": CURRENT_TERMS_VERSION,
+        "user_id": user_id,
+        "profile": {},
+        "managed_externally": True,
     }
-
-
-def create_payment_record(plan: str, amount: float, user: User) -> Payment:
-    """Create and persist a payment record, updating the user as needed."""
-    payment = Payment(user_id=user.id, amount=amount, plan_type=plan)
-    if plan == "annual":
-        payment.expires_at = datetime.now(timezone.utc) + timedelta(days=365)
-        user.is_paid = True
-        user.payment_expires_at = payment.expires_at
-    else:
-        user.is_paid = False
-        user.payment_expires_at = None
-    payment.transaction_id = f"mock_txn_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    db.session.add(payment)
-    db.session.commit()
-    return payment
-
-
-def create_terms_acceptance_record(user: User, ip_address: str) -> TermsAcceptance:
-    """Create and persist a terms acceptance record for the user."""
-    terms_acceptance = TermsAcceptance(
-        user_id=user.id,
-        terms_version=CURRENT_TERMS_VERSION,
-        ip_address=ip_address,
-    )
-    user.current_terms_accepted = True
-    db.session.add(terms_acceptance)
-    db.session.commit()
-    return terms_acceptance
-
 
 def get_user_servers(user_id: str):
     return Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
@@ -850,9 +808,3 @@ def count_secrets() -> int:
     return Secret.query.count()
 
 
-def count_payments() -> int:
-    return Payment.query.count()
-
-
-def count_terms_acceptances() -> int:
-    return TermsAcceptance.query.count()

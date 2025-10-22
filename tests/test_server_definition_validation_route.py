@@ -1,6 +1,5 @@
 """Tests for the server definition validation endpoint."""
 
-from datetime import datetime, timedelta, timezone
 import textwrap
 import unittest
 
@@ -27,9 +26,6 @@ class TestServerDefinitionValidationRoute(unittest.TestCase):
         self.user = User(
             id="user-1",
             email="user@example.com",
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=datetime.now(timezone.utc) + timedelta(days=30),
         )
         db.session.add(self.user)
         db.session.commit()
