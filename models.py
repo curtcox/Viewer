@@ -3,7 +3,6 @@ from database import db
 from flask_login import UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 
-# (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.String, primary_key=True)
@@ -38,7 +37,6 @@ class User(UserMixin, db.Model):
     def __repr__(self):
         return f'<User {self.id}>'
 
-# (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 class OAuth(OAuthConsumerMixin, db.Model):
     user_id = db.Column(db.String, db.ForeignKey(User.id))
     browser_session_key = db.Column(db.String, nullable=False)
