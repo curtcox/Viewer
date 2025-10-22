@@ -60,22 +60,69 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         )
 
     def _load_section(self, payload: dict[str, Any], key: str):
-        cid_values = payload.get('cid_values', {})
         section_cid = payload.get(key)
         if section_cid is None:
             return None
+
         self.assertIsInstance(section_cid, str, f'{key} section should reference a CID string')
+        cid_values = payload.get('cid_values', {})
         entry = cid_values.get(section_cid)
-        self.assertIsNotNone(entry, f'CID "{section_cid}" for section "{key}" missing from cid_values')
-        encoding = (entry.get('encoding') or 'utf-8').lower()
-        value = entry.get('value')
-        self.assertIsInstance(value, str, f'{key} CID entry must include string content')
-        if encoding == 'base64':
-            content_bytes = base64.b64decode(value.encode('ascii'))
+        content_bytes: bytes | None = None
+
+        if entry is not None:
+            encoding = (entry.get('encoding') or 'utf-8').lower()
+            value = entry.get('value')
+            self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+            if encoding == 'base64':
+                content_bytes = base64.b64decode(value.encode('ascii'))
+            else:
+                content_bytes = value.encode('utf-8')
         else:
-            content_bytes = value.encode('utf-8')
+            with self.app.app_context():
+                record = CID.query.filter_by(path=f'/{section_cid}').first()
+                self.assertIsNotNone(
+                    record,
+                    f'CID "{section_cid}" for section "{key}" missing from cid_values and storage',
+                )
+                assert record is not None  # appease type checker
+                file_data = record.file_data
+                self.assertIsNotNone(
+                    file_data,
+                    f'CID "{section_cid}" for section "{key}" did not include stored content',
+                )
+                content_bytes = bytes(file_data)
+
+        assert content_bytes is not None
         text = content_bytes.decode('utf-8')
         return json.loads(text)
+
+    def _load_export_payload(self) -> tuple[CID, dict[str, Any]]:
+        with self.app.app_context():
+            export_record: CID | None = None
+            export_payload: dict[str, Any] | None = None
+
+            for record in CID.query.all():
+                file_data = record.file_data
+                if file_data is None:
+                    continue
+                try:
+                    text = bytes(file_data).decode('utf-8')
+                except (TypeError, UnicodeDecodeError):
+                    continue
+                try:
+                    parsed = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, dict) and parsed.get('version') == 5:
+                    export_record = record
+                    export_payload = parsed
+                    break
+
+        self.assertIsNotNone(export_record, 'Expected to find stored export payload')
+        assert export_record is not None
+        self.assertIsNotNone(export_payload, 'Stored export payload did not decode correctly')
+        assert export_payload is not None
+        return export_record, export_payload
 
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
@@ -113,16 +160,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Your export is ready', response.data)
 
-        with self.app.app_context():
-            cid_records = CID.query.all()
-            export_record = next(
-                (record for record in cid_records if b'"version"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
-            cid_value = export_record.path.lstrip('/')
+        export_record, payload = self._load_export_payload()
+        cid_value = export_record.path.lstrip('/')
 
         self.assertEqual(payload['version'], 5)
 
@@ -184,14 +223,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            export_record = next(
-                (record for record in CID.query.all() if b'"runtime"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        _, payload = self._load_export_payload()
 
         runtime_section = self._load_section(payload, 'runtime')
         self.assertIsInstance(runtime_section, dict)
@@ -216,14 +248,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            export_record = next(
-                (record for record in CID.query.all() if b'"runtime"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        _, payload = self._load_export_payload()
 
         self.assertIn('runtime', payload)
         runtime_section = self._load_section(payload, 'runtime')
@@ -237,9 +262,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertNotIn('secrets', payload)
         self.assertNotIn('change_history', payload)
         self.assertNotIn('app_source', payload)
-        self.assertIn('cid_values', payload)
+        self.assertNotIn('cid_values', payload)
 
-    def test_export_without_cid_map_excludes_section(self):
+    def test_export_without_cid_map_omits_content_map(self):
         with self.app.app_context():
             server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
             db.session.add(server)
@@ -253,15 +278,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            cid_records = CID.query.all()
-            export_record = next(
-                (record for record in cid_records if b'"version"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        export_record, payload = self._load_export_payload()
 
         project_files = self._load_section(payload, 'project_files')
         self.assertIn('pyproject.toml', project_files)
@@ -269,9 +286,18 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         servers = self._load_section(payload, 'servers')
         server_definition_cid = servers[0]['definition_cid']
 
-        cid_values = payload.get('cid_values', {})
-        self.assertIn(payload['runtime'], cid_values)
-        self.assertNotIn(server_definition_cid, cid_values)
+        self.assertNotIn('cid_values', payload)
+
+        with self.app.app_context():
+            runtime_record = CID.query.filter_by(path=f"/{payload['runtime']}").first()
+            self.assertIsNotNone(runtime_record)
+            assert runtime_record is not None
+            self.assertIsNotNone(runtime_record.file_data)
+
+            server_record = CID.query.filter_by(path=f'/{server_definition_cid}').first()
+            self.assertIsNotNone(server_record)
+            assert server_record is not None
+            self.assertIsNotNone(server_record.file_data)
 
     def test_export_excludes_unreferenced_cids_by_default(self):
         server_definition = 'print("hi")'
@@ -298,14 +324,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            export_record = next(
-                (record for record in CID.query.all() if b'"cid_values"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        _, payload = self._load_export_payload()
 
         cid_values = payload.get('cid_values', {})
         expected_server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
@@ -336,14 +355,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            export_record = next(
-                (record for record in CID.query.all() if b'"cid_values"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        _, payload = self._load_export_payload()
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(unreferenced_cid, cid_values)
@@ -404,14 +416,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        with self.app.app_context():
-            export_record = next(
-                (record for record in CID.query.all() if b'"app_source"' in record.file_data),
-                None,
-            )
-
-            self.assertIsNotNone(export_record)
-            payload = json.loads(export_record.file_data.decode('utf-8'))
+        _, payload = self._load_export_payload()
 
         app_source = self._load_section(payload, 'app_source')
         self.assertIsInstance(app_source, dict)
@@ -456,14 +461,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
             self.assertEqual(response.status_code, 200)
 
-            with self.app.app_context():
-                export_record = next(
-                    (record for record in CID.query.all() if b'"app_source"' in record.file_data),
-                    None,
-                )
-
-                self.assertIsNotNone(export_record)
-                payload = json.loads(export_record.file_data.decode('utf-8'))
+            _, payload = self._load_export_payload()
 
             app_source_section = self._load_section(payload, 'app_source')
             python_entries = (app_source_section or {}).get('python', [])

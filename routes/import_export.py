@@ -1074,11 +1074,11 @@ def export_data():
 
         for section_name, section_value in sections.items():
             section_bytes = _encode_section_content(section_value)
-            section_cid = format_cid(generate_cid(section_bytes))
+            section_cid = store_cid_from_bytes(section_bytes, current_user.id)
             _record_cid_value(section_cid, section_bytes, optional=False)
             payload[section_name] = section_cid
 
-        if cid_map_entries:
+        if form.include_cid_map.data and cid_map_entries:
             payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
 
         json_payload = json.dumps(payload, indent=2, sort_keys=True)
