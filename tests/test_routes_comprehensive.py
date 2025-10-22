@@ -1035,7 +1035,11 @@ class TestCidEditingRoutes(BaseTestCase):
         new_cid = generate_cid(updated_text.encode('utf-8'))
         alias = Alias.query.filter_by(name='Atari', user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, f'/{new_cid}')
+
+        # Check parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, f'/{new_cid}')
 
         page = response.get_data(as_text=True)
         self.assertIn(new_cid, page)
@@ -1062,9 +1066,13 @@ class TestCidEditingRoutes(BaseTestCase):
         new_cid = generate_cid(updated_text.encode('utf-8'))
         alias = Alias.query.filter_by(name=alias_name, user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, f'/{new_cid}')
-        self.assertEqual(alias.match_type, 'literal')
-        self.assertFalse(alias.ignore_case)
+
+        # Check parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, f'/{new_cid}')
+        self.assertEqual(parsed.match_type, 'literal')
+        self.assertFalse(parsed.ignore_case)
 
     def test_edit_cid_alias_name_conflict_shows_error(self):
         original_content = b'conflict original'
@@ -1094,7 +1102,11 @@ class TestCidEditingRoutes(BaseTestCase):
 
         alias = Alias.query.filter_by(name='Existing', user_id=self.test_user_id).first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, '/other-target')
+
+        # Check parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/other-target')
 
     def test_edit_cid_save_existing_content(self):
         content = b'repeated text content'

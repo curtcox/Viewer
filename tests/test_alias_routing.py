@@ -48,13 +48,21 @@ class TestAliasRouting(unittest.TestCase):
         ignore_case=False,
         definition=None,
     ):
+        # If no definition provided, create one from the parameters
+        if definition is None:
+            from alias_definition import format_primary_alias_line
+            final_pattern = pattern or f'/{name}'
+            definition = format_primary_alias_line(
+                match_type,
+                final_pattern,
+                target,
+                ignore_case=ignore_case,
+                alias_name=name,
+            )
+
         alias = Alias(
             name=name,
-            target_path=target,
             user_id=self.default_user.id,
-            match_type=match_type,
-            match_pattern=pattern or f'/{name}',
-            ignore_case=ignore_case,
             definition=definition,
         )
         db.session.add(alias)
@@ -394,12 +402,16 @@ class TestAliasRouting(unittest.TestCase):
 
         created = Alias.query.filter_by(user_id=self.default_user.id, name='release').first()
         self.assertIsNotNone(created)
-        self.assertEqual(created.target_path, '/cid456')
-        self.assertEqual(created.match_type, 'literal')
-        self.assertEqual(created.match_pattern, '/release')
-        self.assertFalse(created.ignore_case)
         self.assertTrue(created.definition.startswith('release -> /cid456'))
         self.assertIn('# release alias', created.definition)
+
+        # Check parsed definition
+        parsed = created.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/cid456')
+        self.assertEqual(parsed.match_type, 'literal')
+        self.assertEqual(parsed.match_pattern, '/release')
+        self.assertFalse(parsed.ignore_case)
 
     def test_create_alias_with_glob_match_type(self):
         response = self.client.post(
@@ -414,9 +426,13 @@ class TestAliasRouting(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         created = Alias.query.filter_by(user_id=self.default_user.id, name='release-pattern').first()
         self.assertIsNotNone(created)
-        self.assertEqual(created.match_type, 'glob')
-        self.assertEqual(created.match_pattern, '/release-pattern/*')
-        self.assertTrue(created.ignore_case)
+
+        # Check parsed definition
+        parsed = created.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.match_type, 'glob')
+        self.assertEqual(parsed.match_pattern, '/release-pattern/*')
+        self.assertTrue(parsed.ignore_case)
         self.assertTrue(created.definition.startswith('release-pattern/* -> /cid789'))
 
     def test_new_alias_prefills_name_from_path_query(self):
@@ -466,10 +482,14 @@ class TestAliasRouting(unittest.TestCase):
 
         updated = Alias.query.filter_by(user_id=self.default_user.id, name='docs').first()
         self.assertIsNotNone(updated)
-        self.assertEqual(updated.target_path, '/docs')
-        self.assertEqual(updated.match_pattern, '/docs')
         self.assertTrue(updated.definition.startswith('docs -> /docs'))
         self.assertIn('# docs alias', updated.definition)
+
+        # Check parsed definition
+        parsed = updated.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/docs')
+        self.assertEqual(parsed.match_pattern, '/docs')
 
     def test_edit_alias_rejects_conflicting_route_name(self):
         alias = self.create_alias(name='latest', target='/cid123')
@@ -487,7 +507,11 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn(b'conflicts with an existing route', response.data)
         persisted = db.session.get(Alias, alias.id)
         self.assertEqual(persisted.name, 'latest')
-        self.assertEqual(persisted.target_path, '/cid123')
+
+        # Check parsed definition
+        parsed = persisted.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/cid123')
 
     def test_alias_match_preview_endpoint(self):
         payload = {

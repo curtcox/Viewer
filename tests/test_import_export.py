@@ -580,11 +580,17 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             alias = Alias.query.filter_by(user_id=self.user_id, name='alias-b').first()
             self.assertIsNotNone(alias)
-            self.assertEqual(alias.target_path, '/demo')
-            self.assertEqual(alias.match_type, 'regex')
-            self.assertEqual(alias.match_pattern, r'^/demo$')
-            self.assertTrue(alias.ignore_case)
-            self.assertEqual(alias.definition, '# imported alias')
+            # Check that definition was created with the mapping line
+            self.assertIn('-> /demo', alias.definition)
+            self.assertIn('# imported alias', alias.definition)
+
+            # Check parsed definition
+            parsed = alias.get_primary_parsed_definition()
+            self.assertIsNotNone(parsed)
+            self.assertEqual(parsed.target_path, '/demo')
+            self.assertEqual(parsed.match_type, 'regex')
+            self.assertEqual(parsed.match_pattern, r'^/demo$')
+            self.assertTrue(parsed.ignore_case)
 
             server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
             self.assertIsNotNone(server)

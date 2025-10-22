@@ -195,11 +195,7 @@ class TestDBAccess(unittest.TestCase):
 
         alias = Alias(
             name='docs',
-            target_path=f'/{old_cid}?download=1',
             user_id=self.user_id,
-            match_type='literal',
-            match_pattern='/docs',
-            ignore_case=False,
             definition=(
                 f'docs -> /{old_cid}?download=1\n'
                 f'# Link to legacy {old_cid} content'
@@ -230,13 +226,18 @@ class TestDBAccess(unittest.TestCase):
         db.session.refresh(alias)
         db.session.refresh(server)
 
-        self.assertIn(new_cid, alias.target_path)
-        self.assertNotIn(old_cid, alias.target_path)
+        # Check that the definition was updated
         self.assertIn(new_cid, alias.definition)
         self.assertNotIn(old_cid, alias.definition)
-        self.assertEqual(alias.match_pattern, '/docs')
-        self.assertEqual(alias.match_type, 'literal')
-        self.assertFalse(alias.ignore_case)
+
+        # Check the parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertIn(new_cid, parsed.target_path)
+        self.assertNotIn(old_cid, parsed.target_path)
+        self.assertEqual(parsed.match_pattern, '/docs')
+        self.assertEqual(parsed.match_type, 'literal')
+        self.assertFalse(parsed.ignore_case)
 
         self.assertIn(new_cid, server.definition)
         self.assertNotIn(old_cid, server.definition)
@@ -248,11 +249,7 @@ class TestDBAccess(unittest.TestCase):
     def test_update_alias_cid_reference_updates_existing_alias(self):
         alias = Alias(
             name='release',
-            target_path='/legacycid?download=1',
             user_id=self.user_id,
-            match_type='regex',
-            match_pattern='/custom',
-            ignore_case=False,
             definition=(
                 'release -> /legacycid?download=1 [ignore-case]\n'
                 '# legacy release pointer legacycid'
@@ -266,12 +263,16 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(result, {'created': False, 'updated': 1})
 
         db.session.refresh(alias)
-        self.assertEqual(alias.target_path, '/latestcid?download=1')
         self.assertIn('latestcid', alias.definition)
         self.assertNotIn('legacycid', alias.definition)
-        self.assertEqual(alias.match_type, 'literal')
-        self.assertEqual(alias.match_pattern, '/release')
-        self.assertTrue(alias.ignore_case)
+
+        # Check parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/latestcid?download=1')
+        self.assertEqual(parsed.match_type, 'literal')
+        self.assertEqual(parsed.match_pattern, '/release')
+        self.assertTrue(parsed.ignore_case)
 
     def test_update_alias_cid_reference_creates_alias_when_missing(self):
         result = update_alias_cid_reference('unused', 'freshcid', 'latest')
@@ -281,10 +282,14 @@ class TestDBAccess(unittest.TestCase):
         alias = Alias.query.filter_by(name='latest').first()
         self.assertIsNotNone(alias)
         self.assertEqual(alias.user_id, 'default-user')
-        self.assertEqual(alias.target_path, '/freshcid')
         self.assertIn('/freshcid', alias.definition)
-        self.assertEqual(alias.match_type, 'literal')
-        self.assertEqual(alias.match_pattern, '/latest')
+
+        # Check parsed definition
+        parsed = alias.get_primary_parsed_definition()
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed.target_path, '/freshcid')
+        self.assertEqual(parsed.match_type, 'literal')
+        self.assertEqual(parsed.match_pattern, '/latest')
 
     def test_cid_lookup_helpers(self):
         create_cid_record('gamma', b'g', self.user_id)

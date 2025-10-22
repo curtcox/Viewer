@@ -525,16 +525,36 @@ def _import_aliases(user_id: str, raw_aliases: Any) -> Tuple[int, list[str]]:
             errors.append(f'Alias "{name}" skipped: {exc}')
             continue
 
+        # Determine the final definition to use
+        from alias_definition import definition_contains_mapping, format_primary_alias_line, ensure_primary_line
+
+        final_definition = definition_text
+
+        # If the definition doesn't contain a mapping line, generate one from the imported metadata
+        if not definition_contains_mapping(definition_text):
+            primary_line = format_primary_alias_line(
+                match_type,
+                normalised_pattern,
+                target_path,
+                ignore_case=ignore_case,
+                alias_name=name,
+            )
+            # If there was any definition text (like comments), append it
+            if definition_text and definition_text.strip():
+                final_definition = f"{primary_line}\n{definition_text}"
+            else:
+                final_definition = primary_line
+
         existing = get_alias_by_name(user_id, name)
         if existing:
-            existing.definition = (definition_text or None)
+            existing.definition = final_definition
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             alias = Alias(
                 name=name,
                 user_id=user_id,
-                definition=definition_text or None,
+                definition=final_definition,
             )
             save_entity(alias)
         imported += 1

@@ -16,11 +16,7 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
     with integration_app.app_context():
         alias = Alias(
             name="latest",
-            target_path=f"/{old_cid}?download=1",
             user_id="default-user",
-            match_type="literal",
-            match_pattern="/latest",
-            ignore_case=False,
             definition=(
                 f"latest -> /{old_cid}?download=1\n"
                 f"# legacy pointer {old_cid}"
@@ -54,9 +50,13 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
         assert refreshed_alias is not None
         assert refreshed_server is not None
 
-        assert refreshed_alias.target_path == f"/{new_cid}?download=1"
         assert new_cid in (refreshed_alias.definition or "")
         assert old_cid not in (refreshed_alias.definition or "")
+
+        # Check parsed definition
+        parsed = refreshed_alias.get_primary_parsed_definition()
+        assert parsed is not None
+        assert parsed.target_path == f"/{new_cid}?download=1"
 
         assert new_cid in (refreshed_server.definition or "")
         assert old_cid not in (refreshed_server.definition or "")
@@ -70,11 +70,7 @@ def test_update_alias_cid_reference_updates_existing_alias(integration_app):
     with integration_app.app_context():
         alias = Alias(
             name="integration-release",
-            target_path="/legacycid?download=1",
             user_id="default-user",
-            match_type="regex",
-            match_pattern="/custom",
-            ignore_case=False,
             definition=(
                 "integration-release -> /legacycid?download=1 [ignore-case]\n"
                 "# replace legacycid"
@@ -93,12 +89,16 @@ def test_update_alias_cid_reference_updates_existing_alias(integration_app):
 
         refreshed = db.session.get(Alias, alias.id)
         assert refreshed is not None
-        assert refreshed.target_path == "/integration-latest?download=1"
         assert "integration-latest" in (refreshed.definition or "")
         assert "legacycid" not in (refreshed.definition or "")
-        assert refreshed.match_type == "literal"
-        assert refreshed.match_pattern == "/integration-release"
-        assert refreshed.ignore_case is True
+
+        # Check parsed definition
+        parsed = refreshed.get_primary_parsed_definition()
+        assert parsed is not None
+        assert parsed.target_path == "/integration-latest?download=1"
+        assert parsed.match_type == "literal"
+        assert parsed.match_pattern == "/integration-release"
+        assert parsed.ignore_case is True
 
 
 def test_update_alias_cid_reference_creates_alias_when_missing(integration_app):
@@ -112,5 +112,9 @@ def test_update_alias_cid_reference_creates_alias_when_missing(integration_app):
         created = Alias.query.filter_by(name="integration-new").first()
         assert created is not None
         assert created.user_id == "default-user"
-        assert created.target_path == "/integration-fresh"
         assert created.definition.startswith("integration-new -> /integration-fresh")
+
+        # Check parsed definition
+        parsed = created.get_primary_parsed_definition()
+        assert parsed is not None
+        assert parsed.target_path == "/integration-fresh"
