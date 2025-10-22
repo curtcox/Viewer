@@ -1,24 +1,24 @@
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, Iterable, List, Tuple, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+
+from sqlalchemy import func, or_
 
 import models
+from alias_definition import AliasDefinitionError, parse_alias_definition
 from database import db
 from models import (
-    Server,
     Alias,
-    Variable,
-    Secret,
-    ServerInvocation,
     CID,
     EntityInteraction,
     PageView,
+    Secret,
+    Server,
+    ServerInvocation,
+    Variable,
 )
 
 _DEFAULT_AI_SERVER_NAME = "ai_stub"
 _DEFAULT_AI_ALIAS_NAME = "ai"
-from sqlalchemy import func, or_
-
-from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
@@ -34,6 +34,8 @@ def get_user_profile_data(user_id: str) -> Dict[str, Any]:
         "needs_terms_acceptance": False,
         "current_terms_version": None,
     }
+
+
 def get_user_servers(user_id: str):
     return Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
 
