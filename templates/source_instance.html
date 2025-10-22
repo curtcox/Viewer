@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Database Tables{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-database me-2"></i>Database Tables</h2>
+            <p class="text-muted mb-0">Explore the schema and data available in this Viewer instance.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.source_browser') }}">
+            <i class="fas fa-code me-2"></i>Back to Source
+        </a>
+    </div>
+
+    {% if tables %}
+        <div class="row g-3">
+            {% for table in tables %}
+                <div class="col-12">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <a class="text-decoration-none" href="{{ url_for('main.source_instance_table', table_name=table.name) }}">
+                                    <i class="fas fa-table me-2 text-muted"></i>{{ table.name }}
+                                </a>
+                            </h5>
+                            <span class="badge bg-secondary">{{ table.columns|length }} fields</span>
+                        </div>
+                        <div class="card-body py-3">
+                            {% if table.columns %}
+                                <ul class="list-inline mb-0">
+                                    {% for column in table.columns %}
+                                        <li class="list-inline-item mb-2">
+                                            <span class="badge bg-light text-dark border"><code>{{ column }}</code></span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted mb-0">No columns reported for this table.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info mb-0" role="alert">
+            No database tables are available for this instance.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
