@@ -692,26 +692,78 @@ def _render_elm_document(source: str) -> str:
                 return err.message || 'Unknown error.';
               }
 
-              fetch('/__elm__/compile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source: source, optimize: true })
-              })
-                .then(function(response) {
-                  if (!response.ok) {
-                    throw new Error('Compiler request failed with status ' + response.status);
+              const directPayload = JSON.stringify({ code: source, optimize: true });
+              const proxyPayload = JSON.stringify({ source: source, optimize: true });
+
+              const compileAttempts = [
+                {
+                  label: 'Ellie compile API',
+                  request: function() {
+                    return fetch('https://ellie-app.com/api/compile', {
+                      method: 'POST',
+                      mode: 'cors',
+                      credentials: 'omit',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: directPayload
+                    }).then(function(response) {
+                      if (!response.ok) {
+                        throw new Error('Compiler request failed with status ' + response.status);
+                      }
+                      return response.json();
+                    });
                   }
-                  return response.json();
-                })
-                .then(function(payload) {
-                  if (!applyCompileResult(payload)) {
-                    throw new Error('Compiler returned no runnable output.');
+                },
+                {
+                  label: 'Local compile proxy',
+                  request: function() {
+                    return fetch('/__elm__/compile', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: proxyPayload
+                    }).then(function(response) {
+                      if (!response.ok) {
+                        throw new Error('Compiler request failed with status ' + response.status);
+                      }
+                      return response.json();
+                    });
                   }
-                })
+                }
+              ];
+
+              function runCompileAttempts(index, failures) {
+                if (index >= compileAttempts.length) {
+                  const summary = failures.join(' | ') || 'Compiler returned no runnable output.';
+                  const error = new Error(summary);
+                  error.__elmFailures = failures.slice();
+                  throw error;
+                }
+
+                const attempt = compileAttempts[index];
+                return attempt.request()
+                  .then(function(payload) {
+                    if (!applyCompileResult(payload)) {
+                      throw new Error('Compiler returned no runnable output.');
+                    }
+                  })
+                  .catch(function(error) {
+                    const reason = attempt.label + ': ' + sanitizeError(error);
+                    failures.push(reason);
+                    return runCompileAttempts(index + 1, failures);
+                  });
+              }
+
+              runCompileAttempts(0, [])
                 .catch(function(error) {
+                  var details;
+                  if (error && error.__elmFailures && error.__elmFailures.length) {
+                    details = error.__elmFailures.join(' | ');
+                  } else {
+                    details = sanitizeError(error);
+                  }
                   const message = 'Unable to render Elm automatically.<br><br><small>' +
-                    sanitizeError(error) +
+                    details +
                     '</small><br><br><a class="elm-help-link" href="https://ellie-app.com/new" target="_blank" rel="noopener">Open in Ellie</a>';
+                  console.error('Elm render failed', details);
                   showError(message);
                 });
             })();
