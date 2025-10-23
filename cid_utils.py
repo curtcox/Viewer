@@ -42,6 +42,13 @@ CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LEN
 
 ELLIE_COMPILE_ENDPOINT = "https://ellie-app.com/api/compile"
 ELLIE_TIMEOUT_SECONDS = 15
+ELLIE_COMPILE_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Origin": "https://ellie-app.com",
+    "Referer": "https://ellie-app.com/editor",
+    "User-Agent": "Mozilla/5.0 (compatible; ViewerElm/1.0; +https://256t.org)",
+}
 CID_PATH_CAPTURE_PATTERN = re.compile(
     rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
 )
@@ -692,74 +699,30 @@ def _render_elm_document(source: str) -> str:
                 return err.message || 'Unknown error.';
               }
 
-              const directPayload = JSON.stringify({ code: source, optimize: true });
-              const proxyPayload = JSON.stringify({ source: source, optimize: true });
+              const compilePayload = JSON.stringify({ source: source, optimize: true });
+              const attemptLabel = 'Local compile proxy';
 
-              const compileAttempts = [
-                {
-                  label: 'Ellie compile API',
-                  request: function() {
-                    return fetch('https://ellie-app.com/api/compile', {
-                      method: 'POST',
-                      mode: 'cors',
-                      credentials: 'omit',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: directPayload
-                    }).then(function(response) {
-                      if (!response.ok) {
-                        throw new Error('Compiler request failed with status ' + response.status);
-                      }
-                      return response.json();
-                    });
+              function requestCompile() {
+                return fetch('/__elm__/compile', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: compilePayload
+                }).then(function(response) {
+                  if (!response.ok) {
+                    throw new Error('Compiler request failed with status ' + response.status);
                   }
-                },
-                {
-                  label: 'Local compile proxy',
-                  request: function() {
-                    return fetch('/__elm__/compile', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: proxyPayload
-                    }).then(function(response) {
-                      if (!response.ok) {
-                        throw new Error('Compiler request failed with status ' + response.status);
-                      }
-                      return response.json();
-                    });
-                  }
-                }
-              ];
-
-              function runCompileAttempts(index, failures) {
-                if (index >= compileAttempts.length) {
-                  const summary = failures.join(' | ') || 'Compiler returned no runnable output.';
-                  const error = new Error(summary);
-                  error.__elmFailures = failures.slice();
-                  throw error;
-                }
-
-                const attempt = compileAttempts[index];
-                return attempt.request()
-                  .then(function(payload) {
-                    if (!applyCompileResult(payload)) {
-                      throw new Error('Compiler returned no runnable output.');
-                    }
-                  })
-                  .catch(function(error) {
-                    const reason = attempt.label + ': ' + sanitizeError(error);
-                    failures.push(reason);
-                    return runCompileAttempts(index + 1, failures);
-                  });
+                  return response.json();
+                });
               }
 
-              runCompileAttempts(0, [])
-                .catch(function(error) {
-                  var details;
-                  if (error && error.__elmFailures && error.__elmFailures.length) {
-                    details = error.__elmFailures.join(' | ');
-                  } else {
-                    details = sanitizeError(error);
+              requestCompile()
+                .then(function(payload) {
+                  if (!applyCompileResult(payload)) {
+                    throw new Error('Compiler returned no runnable output.');
                   }
+                })
+                .catch(function(error) {
+                  const details = attemptLabel + ': ' + sanitizeError(error);
                   const message = 'Unable to render Elm automatically.<br><br><small>' +
                     details +
                     '</small><br><br><a class="elm-help-link" href="https://ellie-app.com/new" target="_blank" rel="noopener">Open in Ellie</a>';
@@ -836,7 +799,12 @@ def compile_elm_source(
     payload = {"code": source, "optimize": bool(optimize)}
 
     try:
-        response = requests.post(endpoint, json=payload, timeout=ELLIE_TIMEOUT_SECONDS)
+        response = requests.post(
+            endpoint,
+            json=payload,
+            timeout=ELLIE_TIMEOUT_SECONDS,
+            headers=ELLIE_COMPILE_HEADERS,
+        )
     except requests.RequestException as exc:  # pragma: no cover - network failure scenarios
         raise ElmCompilationError(f"Unable to contact the Elm compiler: {exc}") from exc
 

@@ -364,9 +364,9 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_make_response.assert_called_once()
                 rendered_html = mock_make_response.call_args[0][0].decode('utf-8')
                 self.assertIn('id="elm-root"', rendered_html)
-                self.assertIn('https://ellie-app.com/api/compile', rendered_html)
+                self.assertNotIn('https://ellie-app.com/api/compile', rendered_html)
                 self.assertIn("fetch('/__elm__/compile'", rendered_html)
-                self.assertIn('Ellie compile API', rendered_html)
+                self.assertNotIn('Ellie compile API', rendered_html)
                 self.assertIn('Local compile proxy', rendered_html)
                 self.assertIn('Elm.Main.init', rendered_html)
                 self.assertIn('window.__ELM_COMPILE_RESULT__', rendered_html)
@@ -480,6 +480,7 @@ class TestCIDFunctionality(unittest.TestCase):
             cid_utils.ELLIE_COMPILE_ENDPOINT,
             json={"code": source, "optimize": True},
             timeout=cid_utils.ELLIE_TIMEOUT_SECONDS,
+            headers=cid_utils.ELLIE_COMPILE_HEADERS,
         )
 
     @patch('cid_utils.requests.post')
@@ -519,6 +520,7 @@ class TestCIDFunctionality(unittest.TestCase):
             cid_utils.ELLIE_COMPILE_ENDPOINT,
             json={'code': 'main = text "Hi!"', 'optimize': False},
             timeout=cid_utils.ELLIE_TIMEOUT_SECONDS,
+            headers=cid_utils.ELLIE_COMPILE_HEADERS,
         )
 
     @patch('cid_utils.requests.post')
