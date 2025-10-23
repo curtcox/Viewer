@@ -7,7 +7,7 @@ import json
 import re
 import textwrap
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -39,6 +39,9 @@ MAX_CONTENT_LENGTH = (1 << (CID_LENGTH_PREFIX_BYTES * 8)) - 1
 CID_NORMALIZED_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_LENGTH}}}$")
 CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
 CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LENGTH},}}$")
+
+ELLIE_COMPILE_ENDPOINT = "https://ellie-app.com/api/compile"
+ELLIE_TIMEOUT_SECONDS = 15
 CID_PATH_CAPTURE_PATTERN = re.compile(
     rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
 )
@@ -537,10 +540,10 @@ def _looks_like_elm(text: str) -> bool:
     return matches >= 2
 
 
+
 def _render_elm_document(source: str) -> str:
     """Return HTML that attempts to compile and render Elm source code."""
 
-    escaped_source = html.escape(source)
     source_json = json.dumps(source)
 
     template = textwrap.dedent(
@@ -552,243 +555,309 @@ def _render_elm_document(source: str) -> str:
           <title>Elm Viewer</title>
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <style>
-            body {
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            html, body {
+              height: 100%;
               margin: 0;
               background: #0f172a;
+            }
+            body {
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
               color: #e2e8f0;
-              padding: 2.5rem 1.75rem;
             }
-            .elm-layout {
-              display: grid;
-              gap: 1.5rem;
-              max-width: 960px;
-              margin: 0 auto;
-            }
-            .elm-card {
-              background: rgba(15, 23, 42, 0.72);
-              border-radius: 16px;
-              padding: 1.75rem;
-              box-shadow: 0 24px 55px rgba(15, 23, 42, 0.45);
-            }
-            .elm-output {
-              background: rgba(15, 23, 42, 0.45);
-              border-radius: 12px;
-              border: 1px solid rgba(148, 163, 184, 0.2);
-              min-height: 200px;
-              display: grid;
-              place-items: center;
-              text-align: center;
-              padding: 1.25rem;
-              color: #0f172a;
-              background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 55%),
-                                radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.18), transparent 45%);
-            }
-            .elm-source {
-              background: #0f172a;
-              border-radius: 12px;
-              border: 1px solid rgba(148, 163, 184, 0.35);
-              padding: 1.25rem;
-              overflow-x: auto;
-              font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
-              line-height: 1.6;
-            }
-            .elm-actions {
-              margin-top: 1rem;
+            .elm-root {
+              position: relative;
+              height: 100%;
+              width: 100%;
               display: flex;
-              flex-wrap: wrap;
-              gap: 0.75rem;
+              align-items: stretch;
+              justify-content: center;
             }
-            .elm-actions a {
-              padding: 0.55rem 1.1rem;
-              border-radius: 999px;
-              text-decoration: none;
-              font-weight: 600;
-              color: #cbd5f5;
-              background: rgba(59, 130, 246, 0.28);
-              border: 1px solid rgba(59, 130, 246, 0.35);
+            .elm-frame {
+              border: none;
+              flex: 1 1 auto;
+              width: 100%;
+              height: 100%;
+              background: #0f172a;
             }
-            .elm-actions a:hover {
-              background: rgba(59, 130, 246, 0.38);
+            .elm-placeholder,
+            .elm-error {
+              margin: auto;
+              padding: 1.5rem 2rem;
+              border-radius: 12px;
+              max-width: 420px;
+              text-align: center;
+              line-height: 1.5;
+              border: 1px solid rgba(148, 163, 184, 0.35);
             }
-            .elm-status {
-              margin-bottom: 1rem;
-              font-size: 0.95rem;
-              color: rgba(226, 232, 240, 0.85);
+            .elm-placeholder {
+              color: rgba(148, 163, 184, 0.85);
+              background: rgba(15, 23, 42, 0.72);
             }
             .elm-error {
-              margin-top: 1rem;
-              padding: 1rem 1.25rem;
-              border-radius: 12px;
-              background: rgba(248, 113, 113, 0.14);
-              border: 1px solid rgba(248, 113, 113, 0.28);
               color: #fecaca;
-              font-size: 0.95rem;
+              background: rgba(248, 113, 113, 0.16);
+              border-color: rgba(248, 113, 113, 0.32);
             }
-            iframe.elm-frame {
-              width: 100%;
-              min-height: 220px;
-              border: none;
-              border-radius: 12px;
-              background: #fff;
+            a.elm-help-link {
+              color: inherit;
             }
           </style>
         </head>
         <body>
-          <main class="elm-layout">
-            <section class="elm-card">
-              <h1>Elm Output</h1>
-              <p id="elm-status" class="elm-status" role="status">Attempting to compile Elm source…</p>
-              <div id="elm-app" class="elm-output">The Elm application will appear here.</div>
-            </section>
-            <section class="elm-card">
-              <h2>Elm Source</h2>
-              <pre class="elm-source"><code>__ESCAPED_SOURCE__</code></pre>
-              <div class="elm-actions">
-                <a href="https://ellie-app.com/new" target="_blank" rel="noopener">Open Ellie Playground</a>
-                <a href="https://elm-lang.org/examples" target="_blank" rel="noopener">Explore Elm Examples</a>
-              </div>
-            </section>
-          </main>
-          <script type="module">
-            const source = __SOURCE_JSON__;
-            const statusNode = document.getElementById("elm-status");
-            const container = document.getElementById("elm-app");
+          <div id="elm-root" class="elm-root">
+            <div class="elm-placeholder" role="status">Rendering Elm…</div>
+          </div>
+          <script type="text/javascript">
+            (function() {
+              const source = __SOURCE_JSON__;
+              const root = document.getElementById('elm-root');
 
-            function extractGeneratedFile(value) {
-              if (!value) {
-                return null;
-              }
-
-              if (typeof value === "string") {
-                return value;
-              }
-
-              if (typeof value === "object") {
-                if (typeof value.contents === "string") {
-                  return value.contents;
-                }
-
-                if (typeof value.content === "string") {
-                  return value.content;
-                }
-
-                if (typeof value.data === "string") {
-                  return value.data;
-                }
-
-                if (Array.isArray(value)) {
-                  for (const item of value) {
-                    const extracted = extractGeneratedFile(item);
-                    if (extracted) {
-                      return extracted;
-                    }
-                  }
-                }
-              }
-
-              return null;
-            }
-
-            function selectFirstAvailable(...candidates) {
-              for (const candidate of candidates) {
-                const extracted = extractGeneratedFile(candidate);
-                if (extracted) {
-                  return extracted;
-                }
-              }
-
-              return null;
-            }
-
-            async function renderElm() {
-              if (!window.fetch) {
-                statusNode.textContent = "This browser does not support the Fetch API needed to compile Elm automatically.";
+              if (!root) {
                 return;
               }
 
-              statusNode.textContent = "Contacting the Ellie compiler service…";
-              try {
-                const response = await fetch("https://ellie-app.com/api/compile", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ code: source, optimize: true })
-                });
-
-                if (!response.ok) {
-                  throw new Error(`Compiler request failed with status ${response.status}`);
+              function clearRoot() {
+                while (root.firstChild) {
+                  root.removeChild(root.firstChild);
                 }
-
-                const payload = await response.json();
-                const generatedFiles = payload?.generatedFiles || {};
-                const generatedHtml = selectFirstAvailable(
-                  generatedFiles["index.html"],
-                  generatedFiles["main.html"],
-                  payload?.output?.html,
-                  payload?.outputHtml,
-                  payload?.output
-                );
-                const compiledJs = selectFirstAvailable(
-                  generatedFiles["elm.js"],
-                  generatedFiles["main.js"],
-                  generatedFiles["index.js"],
-                  payload?.output?.js,
-                  payload?.code,
-                  payload?.js,
-                  payload?.outputJs
-                );
-
-                if (generatedHtml) {
-                  const frame = document.createElement("iframe");
-                  frame.className = "elm-frame";
-                  frame.srcdoc = generatedHtml;
-                  container.replaceChildren(frame);
-                  statusNode.textContent = "Rendered Elm output using Ellie.";
-                  return;
-                }
-
-                if (compiledJs) {
-                  const frame = document.createElement("iframe");
-                  frame.className = "elm-frame";
-                  container.replaceChildren(frame);
-                  const doc = frame.contentDocument;
-                  if (!doc) {
-                    throw new Error("Unable to access iframe document for Elm output.");
-                  }
-                  doc.open();
-                  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="elm-app"></div></body></html>');
-                  doc.close();
-                  const script = doc.createElement("script");
-                  script.type = "text/javascript";
-                  script.textContent = `${compiledJs}\nElm.Main.init({ node: document.getElementById('elm-app') });`;
-                  doc.body.appendChild(script);
-                  statusNode.textContent = "Rendered Elm output.";
-                  return;
-                }
-
-                throw new Error("Ellie compiler returned an unexpected response.");
-              } catch (error) {
-                console.error("Elm rendering failed:", error);
-                statusNode.textContent = "Unable to render Elm automatically.";
-                const message = document.createElement("div");
-                message.className = "elm-error";
-                message.innerHTML = `Copy the Elm source below into <a href="https://ellie-app.com/new" target="_blank" rel="noopener">ellie-app.com/new</a> to run it manually.<br><br><strong>Details:</strong> ${error?.message || "Unknown error."}`;
-                container.after(message);
               }
-            }
 
-            renderElm();
+              function showError(message) {
+                clearRoot();
+                const error = document.createElement('div');
+                error.className = 'elm-error';
+                error.innerHTML = message;
+                root.appendChild(error);
+              }
+
+              function mountIframeWithHtml(html) {
+                clearRoot();
+                const frame = document.createElement('iframe');
+                frame.className = 'elm-frame';
+                frame.srcdoc = html;
+                frame.setAttribute('title', 'Elm output');
+                root.appendChild(frame);
+              }
+
+              function mountIframeWithJs(js) {
+                clearRoot();
+                const frame = document.createElement('iframe');
+                frame.className = 'elm-frame';
+                frame.setAttribute('title', 'Elm output');
+                root.appendChild(frame);
+                const doc = frame.contentDocument;
+                if (!doc) {
+                  throw new Error('Unable to access iframe document for Elm output.');
+                }
+                doc.open();
+                doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="elm-app"></div></body></html>');
+                doc.close();
+                const script = doc.createElement('script');
+                script.type = 'text/javascript';
+                script.textContent = js + "\\nElm.Main.init({ node: document.getElementById('elm-app') || document.body });";
+                doc.body.appendChild(script);
+              }
+
+              function applyCompileResult(result) {
+                if (result && typeof result === 'object') {
+                  if (typeof result.html === 'string' && result.html.trim()) {
+                    mountIframeWithHtml(result.html);
+                    return true;
+                  }
+                  if (typeof result.js === 'string' && result.js.trim()) {
+                    mountIframeWithJs(result.js);
+                    return true;
+                  }
+                  if (result.error) {
+                    showError('Unable to render Elm automatically.<br><br><small>' + String(result.error) + '</small>');
+                    return true;
+                  }
+                }
+                return false;
+              }
+
+              if (window.__ELM_COMPILE_RESULT__) {
+                if (applyCompileResult(window.__ELM_COMPILE_RESULT__)) {
+                  return;
+                }
+              }
+
+              function sanitizeError(err) {
+                if (!err) {
+                  return 'Unknown error.';
+                }
+                if (typeof err === 'string') {
+                  return err;
+                }
+                return err.message || 'Unknown error.';
+              }
+
+              fetch('/__elm__/compile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source: source, optimize: true })
+              })
+                .then(function(response) {
+                  if (!response.ok) {
+                    throw new Error('Compiler request failed with status ' + response.status);
+                  }
+                  return response.json();
+                })
+                .then(function(payload) {
+                  if (!applyCompileResult(payload)) {
+                    throw new Error('Compiler returned no runnable output.');
+                  }
+                })
+                .catch(function(error) {
+                  const message = 'Unable to render Elm automatically.<br><br><small>' +
+                    sanitizeError(error) +
+                    '</small><br><br><a class="elm-help-link" href="https://ellie-app.com/new" target="_blank" rel="noopener">Open in Ellie</a>';
+                  showError(message);
+                });
+            })();
           </script>
         </body>
         </html>
         """
     )
 
-    return (
-        template
-        .replace("__ESCAPED_SOURCE__", escaped_source)
-        .replace("__SOURCE_JSON__", source_json)
+    return template.replace("__SOURCE_JSON__", source_json)
+
+
+class ElmCompilationError(Exception):
+    """Raised when Elm compilation fails."""
+
+
+def _extract_ellie_generated_file(entry):
+    """Return the first usable string from Ellie response structures."""
+
+    if entry is None:
+        return None
+
+    if isinstance(entry, str):
+        trimmed = entry.strip()
+        return trimmed or None
+
+    if isinstance(entry, (list, tuple)):
+        for item in entry:
+            extracted = _extract_ellie_generated_file(item)
+            if extracted:
+                return extracted
+        return None
+
+    if isinstance(entry, dict):
+        for key in ("content", "contents", "data", "text", "value"):
+            if key in entry:
+                extracted = _extract_ellie_generated_file(entry[key])
+                if extracted:
+                    return extracted
+        for value in entry.values():
+            extracted = _extract_ellie_generated_file(value)
+            if extracted:
+                return extracted
+
+    return None
+
+
+def _select_first_available(*candidates):
+    """Return the first non-empty generated artifact from Ellie output."""
+
+    for candidate in candidates:
+        extracted = _extract_ellie_generated_file(candidate)
+        if extracted:
+            return extracted
+    return None
+
+
+def compile_elm_source(
+    source: str,
+    *,
+    optimize: bool = True,
+    endpoint: str = ELLIE_COMPILE_ENDPOINT,
+) -> Dict[str, Any]:
+    """Compile Elm source through Ellie, returning HTML/JS artifacts."""
+
+    normalized = (source or "").strip()
+    if not normalized:
+        raise ElmCompilationError("Elm source is empty.")
+
+    payload = {"code": source, "optimize": bool(optimize)}
+
+    try:
+        response = requests.post(endpoint, json=payload, timeout=ELLIE_TIMEOUT_SECONDS)
+    except requests.RequestException as exc:  # pragma: no cover - network failure scenarios
+        raise ElmCompilationError(f"Unable to contact the Elm compiler: {exc}") from exc
+
+    if response.status_code >= 400:
+        raise ElmCompilationError(f"Compiler request failed with status {response.status_code}.")
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ElmCompilationError("Compiler returned an invalid JSON response.") from exc
+
+    generated_files = data.get("generatedFiles") if isinstance(data, dict) else None
+    html_candidate = None
+    js_candidate = None
+
+    if isinstance(generated_files, dict):
+        html_candidate = _select_first_available(
+            generated_files.get("index.html"),
+            generated_files.get("main.html"),
+            generated_files.get("output.html"),
+        )
+        js_candidate = _select_first_available(
+            generated_files.get("elm.js"),
+            generated_files.get("main.js"),
+            generated_files.get("index.js"),
+        )
+
+    output_section = data.get("output") if isinstance(data, dict) and isinstance(data.get("output"), dict) else {}
+
+    html_candidate = html_candidate or _select_first_available(
+        data.get("outputHtml") if isinstance(data, dict) else None,
+        output_section.get("html") if isinstance(output_section, dict) else None,
+        data.get("html") if isinstance(data, dict) else None,
     )
+
+    js_candidate = js_candidate or _select_first_available(
+        data.get("outputJs") if isinstance(data, dict) else None,
+        output_section.get("js") if isinstance(output_section, dict) else None,
+        data.get("code") if isinstance(data, dict) else None,
+        data.get("js") if isinstance(data, dict) else None,
+    )
+
+    result: Dict[str, Any] = {
+        "html": html_candidate,
+        "js": js_candidate,
+        "payload": data,
+    }
+
+    if not html_candidate and not js_candidate:
+        error_message: Optional[str] = None
+        if isinstance(data, dict):
+            error_message = (
+                data.get("error")
+                or data.get("message")
+                or data.get("details")
+                or data.get("stderr")
+            )
+            errors = data.get("errors")
+            if isinstance(errors, list) and not error_message:
+                messages: list[str] = []
+                for entry in errors:
+                    if isinstance(entry, str):
+                        messages.append(entry)
+                    elif isinstance(entry, dict):
+                        snippet = entry.get("title") or entry.get("message")
+                        if snippet:
+                            messages.append(str(snippet))
+                if messages:
+                    error_message = "; ".join(messages)
+        result["error"] = error_message or "Compiler returned no runnable output."
+
+    return result
+
 
 def _decode_text_safely(data):
     """Decode bytes as UTF-8 if possible, returning None on failure."""

@@ -48,10 +48,34 @@ from server_execution import (
     try_server_execution,
     try_server_execution_with_partial,
 )
-from cid_utils import serve_cid_content
+from cid_utils import ElmCompilationError, compile_elm_source, serve_cid_content
 from alias_routing import is_potential_alias_path, try_alias_redirect
 
 from . import main_bp
+
+
+@main_bp.route("/__elm__/compile", methods=["POST"])
+def proxy_elm_compile():
+    """Proxy Elm compilation requests through the server to avoid CORS issues."""
+
+    payload = request.get_json(silent=True) or {}
+    source = payload.get("source") or payload.get("code")
+
+    if not isinstance(source, str) or not source.strip():
+        return {"error": "Elm source is required."}, 400
+
+    optimize = payload.get("optimize")
+    if optimize is None:
+        optimize_flag = True
+    else:
+        optimize_flag = bool(optimize)
+
+    try:
+        result = compile_elm_source(source, optimize=optimize_flag)
+    except ElmCompilationError as exc:
+        return {"error": str(exc)}, 502
+
+    return result
 
 
 def _extract_exception(error: Exception) -> Exception:

@@ -9,4 +9,4 @@ def test_elm_template_is_available():
 
     assert elm_template["suggested_filename"] == "hello.elm"
     assert "Elm" in elm_template["name"]
-    assert "Hello!" in elm_template["content"]
+    assert "Hello Elm!" in elm_template["content"]
