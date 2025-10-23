@@ -365,6 +365,8 @@ class TestCIDFunctionality(unittest.TestCase):
                 self.assertIn('Elm Output', rendered_html)
                 self.assertIn('ellie-app.com/api/compile', rendered_html)
                 self.assertIn('Open Ellie Playground', rendered_html)
+                self.assertIn('script.type = "text/javascript"', rendered_html)
+                self.assertIn('Elm.Main.init', rendered_html)
 
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
 

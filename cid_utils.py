@@ -698,7 +698,7 @@ def _render_elm_document(source: str) -> str:
                   doc.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><div id=\"elm-app\"></div></body></html>");
                   doc.close();
                   const script = doc.createElement("script");
-                  script.type = "module";
+                  script.type = "text/javascript";
                   script.textContent = `${compiledJs}\nElm.Main.init({ node: doc.getElementById('elm-app') });`;
                   doc.body.appendChild(script);
                   statusNode.textContent = "Rendered Elm output.";
