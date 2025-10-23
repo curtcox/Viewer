@@ -2,6 +2,8 @@ import unittest
 import hashlib
 import base64
 import re
+import subprocess
+import textwrap
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from app import app, db
@@ -367,6 +369,9 @@ class TestCIDFunctionality(unittest.TestCase):
                 self.assertIn('Open Ellie Playground', rendered_html)
                 self.assertIn('script.type = "text/javascript"', rendered_html)
                 self.assertIn('Elm.Main.init', rendered_html)
+                self.assertIn('function extractGeneratedFile', rendered_html)
+                self.assertIn('selectFirstAvailable(', rendered_html)
+                self.assertIn('generatedFiles["elm.js"]', rendered_html)
 
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
 
@@ -429,6 +434,86 @@ class TestCIDFunctionality(unittest.TestCase):
                 self.assertIn('Unable to render Elm automatically', rendered_html)
 
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+
+    def test_elm_viewer_extracts_generated_files_from_object_payloads(self):
+        """Ensure the Elm viewer script can unwrap Ellie responses that wrap content."""
+
+        sample_html = cid_utils._render_elm_document(
+            "import Html exposing (text)\n\nmain = text \"Hello!\"\n"
+        )
+
+        script_match = re.search(r"<script type=\"module\">(.*?)</script>", sample_html, re.DOTALL)
+        self.assertIsNotNone(script_match, "Unable to locate Elm viewer script block.")
+
+        script_body = script_match.group(1)
+
+        def _extract_function(script_text: str, function_name: str) -> str:
+            start = script_text.find(f"function {function_name}")
+            self.assertNotEqual(start, -1, f"Missing {function_name} definition in script.")
+            brace_start = script_text.find('{', start)
+            self.assertNotEqual(brace_start, -1, f"Missing opening brace for {function_name}.")
+
+            depth = 0
+            for index in range(brace_start, len(script_text)):
+                char = script_text[index]
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        return script_text[start:index + 1]
+
+            self.fail(f"Unbalanced braces while extracting {function_name}.")
+
+        extract_fn_js = _extract_function(script_body, "extractGeneratedFile")
+        select_fn_js = _extract_function(script_body, "selectFirstAvailable")
+
+        node_script = textwrap.dedent(
+            """
+            const assertEqual = (actual, expected, message) => {
+              if (actual !== expected) {
+                throw new Error(`${message} Expected ${JSON.stringify(expected)} but received ${JSON.stringify(actual)}.`);
+              }
+            };
+            """
+        ) + extract_fn_js + "\n" + select_fn_js + textwrap.dedent(
+            """
+            const cases = [
+              ["console.log('ok');", "console.log('ok');"],
+              [{ content: "compiled" }, "compiled"],
+              [{ contents: "compiled-contents" }, "compiled-contents"],
+              [{ data: "compiled-data" }, "compiled-data"],
+              [[{ content: "nested" }, { invalid: true }], "nested"],
+              [null, null],
+            ];
+            for (const [input, expected] of cases) {
+              const actual = extractGeneratedFile(input);
+              assertEqual(actual, expected, "extractGeneratedFile:");
+            }
+            const selected = selectFirstAvailable(null, undefined, { content: "viaSelector" });
+            assertEqual(selected, "viaSelector", "selectFirstAvailable should pick the first non-null candidate.");
+            if (extractGeneratedFile({}) !== null) {
+              throw new Error('Empty object should return null.');
+            }
+            """
+        )
+
+        result = subprocess.run(
+            ["node"],
+            input=node_script,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(
+            result.returncode,
+            0,
+            msg=(
+                "Node execution failed while evaluating extractGeneratedFile: "
+                f"stdout={result.stdout!r} stderr={result.stderr!r}"
+            ),
+        )
 
     @patch('cid_utils._generate_qr_data_url')
     @patch('cid_utils.make_response')

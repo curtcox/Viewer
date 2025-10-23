@@ -655,6 +655,52 @@ def _render_elm_document(source: str) -> str:
             const statusNode = document.getElementById("elm-status");
             const container = document.getElementById("elm-app");
 
+            function extractGeneratedFile(value) {
+              if (!value) {
+                return null;
+              }
+
+              if (typeof value === "string") {
+                return value;
+              }
+
+              if (typeof value === "object") {
+                if (typeof value.contents === "string") {
+                  return value.contents;
+                }
+
+                if (typeof value.content === "string") {
+                  return value.content;
+                }
+
+                if (typeof value.data === "string") {
+                  return value.data;
+                }
+
+                if (Array.isArray(value)) {
+                  for (const item of value) {
+                    const extracted = extractGeneratedFile(item);
+                    if (extracted) {
+                      return extracted;
+                    }
+                  }
+                }
+              }
+
+              return null;
+            }
+
+            function selectFirstAvailable(...candidates) {
+              for (const candidate of candidates) {
+                const extracted = extractGeneratedFile(candidate);
+                if (extracted) {
+                  return extracted;
+                }
+              }
+
+              return null;
+            }
+
             async function renderElm() {
               if (!window.fetch) {
                 statusNode.textContent = "This browser does not support the Fetch API needed to compile Elm automatically.";
@@ -674,8 +720,23 @@ def _render_elm_document(source: str) -> str:
                 }
 
                 const payload = await response.json();
-                const generatedHtml = payload?.generatedFiles?.["index.html"] || payload?.output?.html || payload?.output;
-                const compiledJs = payload?.generatedFiles?.["elm.js"] || payload?.output?.js || payload?.code;
+                const generatedFiles = payload?.generatedFiles || {};
+                const generatedHtml = selectFirstAvailable(
+                  generatedFiles["index.html"],
+                  generatedFiles["main.html"],
+                  payload?.output?.html,
+                  payload?.outputHtml,
+                  payload?.output
+                );
+                const compiledJs = selectFirstAvailable(
+                  generatedFiles["elm.js"],
+                  generatedFiles["main.js"],
+                  generatedFiles["index.js"],
+                  payload?.output?.js,
+                  payload?.code,
+                  payload?.js,
+                  payload?.outputJs
+                );
 
                 if (generatedHtml) {
                   const frame = document.createElement("iframe");
@@ -695,11 +756,11 @@ def _render_elm_document(source: str) -> str:
                     throw new Error("Unable to access iframe document for Elm output.");
                   }
                   doc.open();
-                  doc.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><div id=\"elm-app\"></div></body></html>");
+                  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="elm-app"></div></body></html>');
                   doc.close();
                   const script = doc.createElement("script");
                   script.type = "text/javascript";
-                  script.textContent = `${compiledJs}\nElm.Main.init({ node: doc.getElementById('elm-app') });`;
+                  script.textContent = `${compiledJs}\nElm.Main.init({ node: document.getElementById('elm-app') });`;
                   doc.body.appendChild(script);
                   statusNode.textContent = "Rendered Elm output.";
                   return;
