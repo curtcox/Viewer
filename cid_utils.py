@@ -5,8 +5,9 @@ import io
 import hashlib
 import json
 import re
+import textwrap
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -38,6 +39,16 @@ MAX_CONTENT_LENGTH = (1 << (CID_LENGTH_PREFIX_BYTES * 8)) - 1
 CID_NORMALIZED_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_LENGTH}}}$")
 CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
 CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LENGTH},}}$")
+
+ELLIE_COMPILE_ENDPOINT = "https://ellie-app.com/api/compile"
+ELLIE_TIMEOUT_SECONDS = 15
+ELLIE_COMPILE_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Origin": "https://ellie-app.com",
+    "Referer": "https://ellie-app.com/editor",
+    "User-Agent": "Mozilla/5.0 (compatible; ViewerElm/1.0; +https://256t.org)",
+}
 CID_PATH_CAPTURE_PATTERN = re.compile(
     rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
 )
@@ -468,6 +479,7 @@ EXTENSION_TO_MIME = {
     'avi': 'video/x-msvideo',
     'mov': 'video/quicktime',
     'md': 'text/markdown',
+    'elm': 'text/plain',
     'csv': 'text/csv',
     'py': 'text/x-python',
     'java': 'text/x-java-source',
@@ -509,6 +521,362 @@ _MARKDOWN_INDICATOR_PATTERNS = [
 _INLINE_BOLD_PATTERN = re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')
 _INLINE_ITALIC_PATTERN = re.compile(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)')
 _INLINE_CODE_PATTERN = re.compile(r'`[^`\n]+`')
+
+
+_ELM_INDICATOR_PATTERNS = [
+    re.compile(r'^\s*module\s+[A-Z][A-Za-z0-9_.]*\s+exposing', re.MULTILINE),
+    re.compile(r'^\s*import\s+Html(?:\s+exposing\b|\s*$)', re.MULTILINE),
+    re.compile(r'^\s*import\s+Browser', re.MULTILINE),
+    re.compile(r'^\s*main\s*=\s*', re.MULTILINE),
+    re.compile(r'Html\.text\s*"', re.MULTILINE),
+]
+
+
+def _looks_like_elm(text: str) -> bool:
+    """Heuristically determine if the provided text resembles Elm source."""
+
+    normalized = (text or "").strip()
+    if not normalized:
+        return False
+
+    # Simple guardrail to avoid mis-classifying HTML documents as Elm programs.
+    if normalized.lstrip().startswith("<!DOCTYPE"):
+        return False
+
+    matches = sum(1 for pattern in _ELM_INDICATOR_PATTERNS if pattern.search(normalized))
+    return matches >= 2
+
+
+
+def _render_elm_document(source: str) -> str:
+    """Return HTML that attempts to compile and render Elm source code."""
+
+    source_json = json.dumps(source)
+
+    template = textwrap.dedent(
+        """\
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8">
+          <title>Elm Viewer</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            html, body {
+              height: 100%;
+              margin: 0;
+              background: #0f172a;
+            }
+            body {
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              color: #e2e8f0;
+            }
+            .elm-root {
+              position: relative;
+              height: 100%;
+              width: 100%;
+              display: flex;
+              align-items: stretch;
+              justify-content: center;
+            }
+            .elm-frame {
+              border: none;
+              flex: 1 1 auto;
+              width: 100%;
+              height: 100%;
+              background: #0f172a;
+            }
+            .elm-placeholder,
+            .elm-error {
+              margin: auto;
+              padding: 1.5rem 2rem;
+              border-radius: 12px;
+              max-width: 420px;
+              text-align: center;
+              line-height: 1.5;
+              border: 1px solid rgba(148, 163, 184, 0.35);
+            }
+            .elm-placeholder {
+              color: rgba(148, 163, 184, 0.85);
+              background: rgba(15, 23, 42, 0.72);
+            }
+            .elm-error {
+              color: #fecaca;
+              background: rgba(248, 113, 113, 0.16);
+              border-color: rgba(248, 113, 113, 0.32);
+            }
+            a.elm-help-link {
+              color: inherit;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="elm-root" class="elm-root">
+            <div class="elm-placeholder" role="status">Rendering Elm…</div>
+          </div>
+          <script type="text/javascript">
+            (function() {
+              const source = __SOURCE_JSON__;
+              const root = document.getElementById('elm-root');
+
+              if (!root) {
+                return;
+              }
+
+              function clearRoot() {
+                while (root.firstChild) {
+                  root.removeChild(root.firstChild);
+                }
+              }
+
+              function showError(message) {
+                clearRoot();
+                const error = document.createElement('div');
+                error.className = 'elm-error';
+                error.innerHTML = message;
+                root.appendChild(error);
+              }
+
+              function mountIframeWithHtml(html) {
+                clearRoot();
+                const frame = document.createElement('iframe');
+                frame.className = 'elm-frame';
+                frame.srcdoc = html;
+                frame.setAttribute('title', 'Elm output');
+                root.appendChild(frame);
+              }
+
+              function mountIframeWithJs(js) {
+                clearRoot();
+                const frame = document.createElement('iframe');
+                frame.className = 'elm-frame';
+                frame.setAttribute('title', 'Elm output');
+                root.appendChild(frame);
+                const doc = frame.contentDocument;
+                if (!doc) {
+                  throw new Error('Unable to access iframe document for Elm output.');
+                }
+                doc.open();
+                doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><div id="elm-app"></div></body></html>');
+                doc.close();
+                const script = doc.createElement('script');
+                script.type = 'text/javascript';
+                script.textContent = js + "\\nElm.Main.init({ node: document.getElementById('elm-app') || document.body });";
+                doc.body.appendChild(script);
+              }
+
+              function applyCompileResult(result) {
+                if (result && typeof result === 'object') {
+                  if (typeof result.html === 'string' && result.html.trim()) {
+                    mountIframeWithHtml(result.html);
+                    return true;
+                  }
+                  if (typeof result.js === 'string' && result.js.trim()) {
+                    mountIframeWithJs(result.js);
+                    return true;
+                  }
+                  if (result.error) {
+                    showError('Unable to render Elm automatically.<br><br><small>' + String(result.error) + '</small>');
+                    return true;
+                  }
+                }
+                return false;
+              }
+
+              if (window.__ELM_COMPILE_RESULT__) {
+                if (applyCompileResult(window.__ELM_COMPILE_RESULT__)) {
+                  return;
+                }
+              }
+
+              function sanitizeError(err) {
+                if (!err) {
+                  return 'Unknown error.';
+                }
+                if (typeof err === 'string') {
+                  return err;
+                }
+                return err.message || 'Unknown error.';
+              }
+
+              const compilePayload = JSON.stringify({ source: source, optimize: true });
+              const attemptLabel = 'Local compile proxy';
+
+              function requestCompile() {
+                return fetch('/__elm__/compile', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: compilePayload
+                }).then(function(response) {
+                  if (!response.ok) {
+                    throw new Error('Compiler request failed with status ' + response.status);
+                  }
+                  return response.json();
+                });
+              }
+
+              requestCompile()
+                .then(function(payload) {
+                  if (!applyCompileResult(payload)) {
+                    throw new Error('Compiler returned no runnable output.');
+                  }
+                })
+                .catch(function(error) {
+                  const details = attemptLabel + ': ' + sanitizeError(error);
+                  const message = 'Unable to render Elm automatically.<br><br><small>' +
+                    details +
+                    '</small><br><br><a class="elm-help-link" href="https://ellie-app.com/new" target="_blank" rel="noopener">Open in Ellie</a>';
+                  console.error('Elm render failed', details);
+                  showError(message);
+                });
+            })();
+          </script>
+        </body>
+        </html>
+        """
+    )
+
+    return template.replace("__SOURCE_JSON__", source_json)
+
+
+class ElmCompilationError(Exception):
+    """Raised when Elm compilation fails."""
+
+
+def _extract_ellie_generated_file(entry):
+    """Return the first usable string from Ellie response structures."""
+
+    if entry is None:
+        return None
+
+    if isinstance(entry, str):
+        trimmed = entry.strip()
+        return trimmed or None
+
+    if isinstance(entry, (list, tuple)):
+        for item in entry:
+            extracted = _extract_ellie_generated_file(item)
+            if extracted:
+                return extracted
+        return None
+
+    if isinstance(entry, dict):
+        for key in ("content", "contents", "data", "text", "value"):
+            if key in entry:
+                extracted = _extract_ellie_generated_file(entry[key])
+                if extracted:
+                    return extracted
+        for value in entry.values():
+            extracted = _extract_ellie_generated_file(value)
+            if extracted:
+                return extracted
+
+    return None
+
+
+def _select_first_available(*candidates):
+    """Return the first non-empty generated artifact from Ellie output."""
+
+    for candidate in candidates:
+        extracted = _extract_ellie_generated_file(candidate)
+        if extracted:
+            return extracted
+    return None
+
+
+def compile_elm_source(
+    source: str,
+    *,
+    optimize: bool = True,
+    endpoint: str = ELLIE_COMPILE_ENDPOINT,
+) -> Dict[str, Any]:
+    """Compile Elm source through Ellie, returning HTML/JS artifacts."""
+
+    normalized = (source or "").strip()
+    if not normalized:
+        raise ElmCompilationError("Elm source is empty.")
+
+    payload = {"code": source, "optimize": bool(optimize)}
+
+    try:
+        response = requests.post(
+            endpoint,
+            json=payload,
+            timeout=ELLIE_TIMEOUT_SECONDS,
+            headers=ELLIE_COMPILE_HEADERS,
+        )
+    except requests.RequestException as exc:  # pragma: no cover - network failure scenarios
+        raise ElmCompilationError(f"Unable to contact the Elm compiler: {exc}") from exc
+
+    if response.status_code >= 400:
+        raise ElmCompilationError(f"Compiler request failed with status {response.status_code}.")
+
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise ElmCompilationError("Compiler returned an invalid JSON response.") from exc
+
+    generated_files = data.get("generatedFiles") if isinstance(data, dict) else None
+    html_candidate = None
+    js_candidate = None
+
+    if isinstance(generated_files, dict):
+        html_candidate = _select_first_available(
+            generated_files.get("index.html"),
+            generated_files.get("main.html"),
+            generated_files.get("output.html"),
+        )
+        js_candidate = _select_first_available(
+            generated_files.get("elm.js"),
+            generated_files.get("main.js"),
+            generated_files.get("index.js"),
+        )
+
+    output_section = data.get("output") if isinstance(data, dict) and isinstance(data.get("output"), dict) else {}
+
+    html_candidate = html_candidate or _select_first_available(
+        data.get("outputHtml") if isinstance(data, dict) else None,
+        output_section.get("html") if isinstance(output_section, dict) else None,
+        data.get("html") if isinstance(data, dict) else None,
+    )
+
+    js_candidate = js_candidate or _select_first_available(
+        data.get("outputJs") if isinstance(data, dict) else None,
+        output_section.get("js") if isinstance(output_section, dict) else None,
+        data.get("code") if isinstance(data, dict) else None,
+        data.get("js") if isinstance(data, dict) else None,
+    )
+
+    result: Dict[str, Any] = {
+        "html": html_candidate,
+        "js": js_candidate,
+        "payload": data,
+    }
+
+    if not html_candidate and not js_candidate:
+        error_message: Optional[str] = None
+        if isinstance(data, dict):
+            error_message = (
+                data.get("error")
+                or data.get("message")
+                or data.get("details")
+                or data.get("stderr")
+            )
+            errors = data.get("errors")
+            if isinstance(errors, list) and not error_message:
+                messages: list[str] = []
+                for entry in errors:
+                    if isinstance(entry, str):
+                        messages.append(entry)
+                    elif isinstance(entry, dict):
+                        snippet = entry.get("title") or entry.get("message")
+                        if snippet:
+                            messages.append(str(snippet))
+                if messages:
+                    error_message = "; ".join(messages)
+        result["error"] = error_message or "Compiler returned no runnable output."
+
+    return result
 
 
 def _decode_text_safely(data):
@@ -1074,10 +1442,13 @@ def serve_cid_content(cid_content, path):
 
     content_type = get_mime_type_from_extension(path)
     filename_part = path.rsplit('/', 1)[-1]
+    lower_filename = filename_part.lower()
     has_extension = '.' in filename_part
-    explicit_markdown_request = filename_part.lower().endswith('.md.html')
-    is_text_extension_request = filename_part.lower().endswith('.txt')
-    is_qr_request = filename_part.lower().endswith('.qr')
+    explicit_markdown_request = lower_filename.endswith('.md.html')
+    is_text_extension_request = lower_filename.endswith('.txt')
+    is_qr_request = lower_filename.endswith('.qr')
+    is_elm_source_request = lower_filename.endswith('.elm') and not lower_filename.endswith('.elm.html')
+    force_elm_render_request = lower_filename.endswith('.elm.html')
 
     cid_path_attr = getattr(cid_content, 'path', None)
     normalized_cid = (cid_path_attr or '').lstrip('/')
@@ -1085,6 +1456,8 @@ def serve_cid_content(cid_content, path):
     etag_source = normalized_cid or cid.split('.')[0]
 
     response_body = cid_content.file_data
+    text_content = _decode_text_safely(response_body)
+
     if is_qr_request and qr_cid:
         qr_target_url = f"https://256t.org/{qr_cid}"
         qr_image_url = _generate_qr_data_url(qr_target_url)
@@ -1099,31 +1472,47 @@ def serve_cid_content(cid_content, path):
         response_body = html.encode('utf-8')
         content_type = 'text/html; charset=utf-8'
     elif explicit_markdown_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = _render_markdown_document(text).encode('utf-8')
+        if text_content is not None:
+            response_body = _render_markdown_document(text_content).encode('utf-8')
             content_type = 'text/html'
-    elif content_type == 'application/octet-stream':
-        response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
-        if rendered:
-            content_type = 'text/html'
-        elif not has_extension:
-            text = _decode_text_safely(response_body)
-            if text is not None:
-                response_body = text.encode('utf-8')
-                content_type = 'text/plain; charset=utf-8'
-    elif is_text_extension_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
+    elif is_elm_source_request:
+        if text_content is not None:
+            response_body = text_content.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
         else:
             content_type = 'application/octet-stream'
-    elif content_type == 'text/plain':
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
+    elif is_text_extension_request:
+        if text_content is not None:
+            response_body = text_content.encode('utf-8')
             content_type = 'text/plain; charset=utf-8'
+        else:
+            content_type = 'application/octet-stream'
+    else:
+        should_render_elm = False
+        elm_source = text_content
+
+        if force_elm_render_request:
+            if elm_source is None:
+                elm_source = response_body.decode('utf-8', errors='replace')
+            should_render_elm = True
+        elif not has_extension and text_content is not None and _looks_like_elm(text_content):
+            should_render_elm = True
+
+        if should_render_elm and elm_source is not None:
+            response_body = _render_elm_document(elm_source).encode('utf-8')
+            content_type = 'text/html; charset=utf-8'
+        elif content_type == 'application/octet-stream':
+            response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
+            if rendered:
+                content_type = 'text/html'
+            elif not has_extension:
+                if text_content is not None:
+                    response_body = text_content.encode('utf-8')
+                    content_type = 'text/plain; charset=utf-8'
+        elif content_type == 'text/plain':
+            if text_content is not None:
+                response_body = text_content.encode('utf-8')
+                content_type = 'text/plain; charset=utf-8'
 
     etag = f'"{etag_source}"'
     if request.headers.get('If-None-Match') == etag:

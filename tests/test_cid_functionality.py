@@ -1,6 +1,7 @@
 import unittest
-import hashlib
 import base64
+import hashlib
+import requests
 import re
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
@@ -332,6 +333,216 @@ class TestCIDFunctionality(unittest.TestCase):
 
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_bytes))
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_without_extension_renders_elm(self, mock_make_response):
+        """Elm source without an extension should render using the Elm viewer."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                elm_source = (
+                    "import Html exposing (text)\n\n"
+                    "main =\n"
+                    "  text \"Hello from Elm!\"\n"
+                ).encode('utf-8')
+                cid = generate_cid(elm_source)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=elm_source,
+                    file_size=len(elm_source),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}")
+
+                mock_make_response.assert_called_once()
+                rendered_html = mock_make_response.call_args[0][0].decode('utf-8')
+                self.assertIn('id="elm-root"', rendered_html)
+                self.assertNotIn('https://ellie-app.com/api/compile', rendered_html)
+                self.assertIn("fetch('/__elm__/compile'", rendered_html)
+                self.assertNotIn('Ellie compile API', rendered_html)
+                self.assertIn('Local compile proxy', rendered_html)
+                self.assertIn('Elm.Main.init', rendered_html)
+                self.assertIn('window.__ELM_COMPILE_RESULT__', rendered_html)
+                self.assertIn('Unable to render Elm automatically', rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_with_elm_extension_returns_source(self, mock_make_response):
+        """Requests for .elm should return the plain Elm source code."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                elm_source = (
+                    "module Demo exposing (main)\n\n"
+                    "import Html exposing (text)\n\n"
+                    "main = text \"Elm Source\"\n"
+                ).encode('utf-8')
+                cid = generate_cid(elm_source)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=elm_source,
+                    file_size=len(elm_source),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}.elm")
+
+                mock_make_response.assert_called_once_with(elm_source)
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+
+    @patch('cid_utils.make_response')
+    def test_serve_cid_content_with_forced_elm_render_extension(self, mock_make_response):
+        """The .elm.html extension should force the Elm renderer even for non-Elm text."""
+        with self.app.app_context():
+            test_user = self._create_test_user()
+            with self.app.test_request_context():
+                plain_text = b"This is plain text that is forced into the Elm viewer."
+                cid = generate_cid(plain_text)
+
+                cid_record = CID(
+                    path=f"/{cid}",
+                    file_data=plain_text,
+                    file_size=len(plain_text),
+                    uploaded_by_user_id=test_user.id
+                )
+                db.session.add(cid_record)
+                db.session.commit()
+
+                mock_response = MagicMock()
+                mock_make_response.return_value = mock_response
+
+                serve_cid_content(cid_record, f"/{cid}.elm.html")
+
+                mock_make_response.assert_called_once()
+                rendered_html = mock_make_response.call_args[0][0].decode('utf-8')
+                self.assertIn('id="elm-root"', rendered_html)
+                self.assertIn('Unable to render Elm automatically', rendered_html)
+
+                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
+
+    def test_extract_ellie_generated_file_handles_nested_payloads(self):
+        """Ensure the extraction helpers return the first usable generated artifact."""
+
+        cases = [
+            ("console.log('ok');", "console.log('ok');"),
+            ({"content": "compiled"}, "compiled"),
+            ({"contents": "compiled-contents"}, "compiled-contents"),
+            ({"data": "compiled-data"}, "compiled-data"),
+            ([{"content": "nested"}, {"invalid": True}], "nested"),
+            (None, None),
+            ({}, None),
+        ]
+
+        for raw, expected in cases:
+            self.assertEqual(cid_utils._extract_ellie_generated_file(raw), expected)
+
+        self.assertEqual(
+            cid_utils._select_first_available(None, {"content": "preferred"}, "fallback"),
+            "preferred",
+        )
+
+    @patch('cid_utils.requests.post')
+    def test_compile_elm_source_extracts_assets(self, mock_post):
+        """The compile helper should surface HTML and JS artifacts when available."""
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "generatedFiles": {
+                "index.html": {"content": "<!DOCTYPE html><html><body>Hello Elm!</body></html>"},
+                "elm.js": {"content": "console.log('elm runtime');"},
+            }
+        }
+        mock_post.return_value = mock_response
+
+        source = "main = text \"Hello Elm!\""
+        result = cid_utils.compile_elm_source(source)
+
+        self.assertEqual(result["html"], "<!DOCTYPE html><html><body>Hello Elm!</body></html>")
+        self.assertEqual(result["js"], "console.log('elm runtime');")
+        self.assertIn("payload", result)
+
+        mock_post.assert_called_once_with(
+            cid_utils.ELLIE_COMPILE_ENDPOINT,
+            json={"code": source, "optimize": True},
+            timeout=cid_utils.ELLIE_TIMEOUT_SECONDS,
+            headers=cid_utils.ELLIE_COMPILE_HEADERS,
+        )
+
+    @patch('cid_utils.requests.post')
+    def test_compile_elm_source_reports_error(self, mock_post):
+        """Errors from the Ellie API should surface as ElmCompilationError."""
+
+        mock_post.side_effect = requests.RequestException("network down")
+
+        with self.assertRaises(cid_utils.ElmCompilationError) as exc:
+            cid_utils.compile_elm_source("main = text \"Hello\"")
+
+        self.assertIn("network down", str(exc.exception))
+
+    @patch('cid_utils.requests.post')
+    def test_proxy_elm_compile_route_success(self, mock_post):
+        """The Elm compile route should proxy Ellie responses."""
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "generatedFiles": {
+                "index.html": {"content": "<!DOCTYPE html><html><body>Hi!</body></html>"},
+                "elm.js": {"content": "console.log('ready');"},
+            }
+        }
+        mock_post.return_value = mock_response
+
+        with self.app.test_client() as client:
+            response = client.post('/__elm__/compile', json={'source': 'main = text "Hi!"', 'optimize': False})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["html"], "<!DOCTYPE html><html><body>Hi!</body></html>")
+        self.assertEqual(payload["js"], "console.log('ready');")
+
+        mock_post.assert_called_once_with(
+            cid_utils.ELLIE_COMPILE_ENDPOINT,
+            json={'code': 'main = text "Hi!"', 'optimize': False},
+            timeout=cid_utils.ELLIE_TIMEOUT_SECONDS,
+            headers=cid_utils.ELLIE_COMPILE_HEADERS,
+        )
+
+    @patch('cid_utils.requests.post')
+    def test_proxy_elm_compile_route_handles_errors(self, mock_post):
+        """Network errors should return a 502 from the Elm compile proxy."""
+
+        mock_post.side_effect = requests.RequestException("timeout")
+
+        with self.app.test_client() as client:
+            response = client.post('/__elm__/compile', json={'source': 'main = text "Hi"'})
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn('timeout', response.get_json()['error'])
+
+    def test_proxy_elm_compile_route_rejects_missing_source(self):
+        """An empty request body should return a 400 error."""
+
+        with self.app.test_client() as client:
+            response = client.post('/__elm__/compile', json={'source': '  '})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Elm source is required', response.get_json()['error'])
 
     @patch('cid_utils._generate_qr_data_url')
     @patch('cid_utils.make_response')
