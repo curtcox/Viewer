@@ -1,8 +1,6 @@
 # ruff: noqa: F821, F706
 """Automatic main() mapping template for executing shell commands."""
 
-from __future__ import annotations
-
 import os
 import subprocess
 from html import escape
