@@ -77,6 +77,31 @@ jobs:
       - name: Run mypy
         run: mypy
 
+  test-index:
+    name: Test Index Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate test index
+        run: python generate_test_index.py
+
+      - name: Check if test index is up to date
+        run: |
+          if ! git diff --exit-code TEST_INDEX.md; then
+            echo "Error: TEST_INDEX.md is out of date!"
+            echo "Please run 'python generate_test_index.py' and commit the changes."
+            exit 1
+          fi
+          echo "Test index is up to date."
+
   unit-tests:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
