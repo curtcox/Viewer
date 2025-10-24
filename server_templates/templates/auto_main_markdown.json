@@ -1,0 +1,6 @@
+{
+  "id": "auto-main-markdown",
+  "name": "Automatic main() Markdown renderer",
+  "description": "Accepts Markdown text and returns fully rendered HTML using Viewer features.",
+  "definition_file": "definitions/auto_main_markdown.py"
+}
