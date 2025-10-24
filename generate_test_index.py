@@ -11,8 +11,6 @@ It outputs a markdown file with links to each test definition.
 """
 
 import ast
-import os
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -45,7 +43,8 @@ class TestIndexer:
         if not tests_dir.exists():
             return
 
-        for test_file in tests_dir.glob("test_*.py"):
+        # Sort files to ensure deterministic ordering
+        for test_file in sorted(tests_dir.glob("test_*.py")):
             # Skip integration tests
             if "integration" in test_file.parts:
                 continue
@@ -57,7 +56,8 @@ class TestIndexer:
         if not integration_dir.exists():
             return
 
-        for test_file in integration_dir.glob("test_*.py"):
+        # Sort files to ensure deterministic ordering
+        for test_file in sorted(integration_dir.glob("test_*.py")):
             self._parse_python_test_file(test_file, "integration")
 
     def find_gauge_tests(self) -> None:
@@ -66,7 +66,8 @@ class TestIndexer:
         if not specs_dir.exists():
             return
 
-        for spec_file in specs_dir.glob("*.spec"):
+        # Sort files to ensure deterministic ordering
+        for spec_file in sorted(specs_dir.glob("*.spec")):
             self._parse_gauge_spec_file(spec_file)
 
     def _parse_python_test_file(self, file_path: Path, test_type: str) -> None:
@@ -81,20 +82,27 @@ class TestIndexer:
 
         rel_path = file_path.relative_to(self.root_dir)
 
-        # Find test functions (pytest style)
+        # Find test functions (pytest style) - collect first, then sort by line number
+        test_functions = []
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-                self.tests.append(
-                    TestInfo(
-                        name=node.name,
-                        file_path=str(rel_path),
-                        line_number=node.lineno,
-                        test_type=test_type,
-                    )
-                )
+                test_functions.append(node)
 
-            # Find test methods in unittest.TestCase classes
-            elif isinstance(node, ast.ClassDef):
+        # Sort by line number to ensure deterministic ordering
+        for node in sorted(test_functions, key=lambda n: n.lineno):
+            self.tests.append(
+                TestInfo(
+                    name=node.name,
+                    file_path=str(rel_path),
+                    line_number=node.lineno,
+                    test_type=test_type,
+                )
+            )
+
+        # Find test methods in unittest.TestCase classes
+        test_classes = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
                 # Check if this is a test class
                 is_test_class = (
                     node.name.startswith("Test")
@@ -102,21 +110,31 @@ class TestIndexer:
                 )
 
                 if is_test_class:
-                    for item in node.body:
-                        if (
-                            isinstance(item, ast.FunctionDef)
-                            and item.name.startswith("test_")
-                        ):
-                            # Use class.method format for unittest tests
-                            test_name = f"{node.name}.{item.name}"
-                            self.tests.append(
-                                TestInfo(
-                                    name=test_name,
-                                    file_path=str(rel_path),
-                                    line_number=item.lineno,
-                                    test_type=test_type,
-                                )
-                            )
+                    test_classes.append(node)
+
+        # Sort test classes by line number to ensure deterministic ordering
+        for node in sorted(test_classes, key=lambda n: n.lineno):
+            # Collect test methods within each class
+            test_methods = []
+            for item in node.body:
+                if (
+                    isinstance(item, ast.FunctionDef)
+                    and item.name.startswith("test_")
+                ):
+                    test_methods.append(item)
+
+            # Sort test methods by line number
+            for item in sorted(test_methods, key=lambda n: n.lineno):
+                # Use class.method format for unittest tests
+                test_name = f"{node.name}.{item.name}"
+                self.tests.append(
+                    TestInfo(
+                        name=test_name,
+                        file_path=str(rel_path),
+                        line_number=item.lineno,
+                        test_type=test_type,
+                    )
+                )
 
     def _get_name(self, node: ast.AST) -> str:
         """Extract the name from an AST node."""
@@ -138,18 +156,24 @@ class TestIndexer:
         rel_path = file_path.relative_to(self.root_dir)
 
         # Gauge scenarios start with ## (heading level 2)
+        # Collect scenarios first, then sort by line number to ensure deterministic ordering
+        scenarios = []
         for line_num, line in enumerate(lines, start=1):
             # Match scenario headings (## Scenario Name)
             if line.strip().startswith("## "):
                 scenario_name = line.strip()[3:].strip()
-                self.tests.append(
-                    TestInfo(
-                        name=scenario_name,
-                        file_path=str(rel_path),
-                        line_number=line_num,
-                        test_type="gauge",
-                    )
+                scenarios.append((line_num, scenario_name))
+
+        # Sort by line number to ensure deterministic ordering
+        for line_num, scenario_name in sorted(scenarios, key=lambda x: x[0]):
+            self.tests.append(
+                TestInfo(
+                    name=scenario_name,
+                    file_path=str(rel_path),
+                    line_number=line_num,
+                    test_type="gauge",
                 )
+            )
 
     def generate_markdown(self) -> str:
         """Generate markdown index of all tests."""
