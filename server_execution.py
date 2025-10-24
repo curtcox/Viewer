@@ -42,6 +42,7 @@ from db_access import (
     save_entity,
 )
 from identity import current_user
+from models import ServerInvocation
 from syntax_highlighting import highlight_source
 from text_function_runner import run_text_function
 
