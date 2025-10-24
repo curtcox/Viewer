@@ -32,11 +32,11 @@
                             <span class="badge bg-secondary ms-2">Optional</span>
                             {% endif %}
                         </label>
-                        <input type="text"
-                               class="form-control"
-                               id="server-test-param-{{ loop.index0 }}"
-                               name="{{ parameter.name }}"
-                               placeholder="Value for {{ parameter.name }}">
+                        <textarea class="form-control"
+                                  id="server-test-param-{{ loop.index0 }}"
+                                  name="{{ parameter.name }}"
+                                  rows="3"
+                                  placeholder="Value for {{ parameter.name }}"></textarea>
                     </div>
                     {% endfor %}
                 </div>
@@ -258,7 +258,7 @@ if (!window.submitServerTestForm) {
         const params = new URLSearchParams();
 
         if (mode === 'main') {
-            const inputs = form.querySelectorAll('input[name]');
+            const inputs = form.querySelectorAll('#server-test-parameters [name]');
             inputs.forEach((input) => {
                 const value = input.value.trim();
                 if (value !== '') {
@@ -266,7 +266,7 @@ if (!window.submitServerTestForm) {
                 }
             });
         } else {
-            const textarea = form.querySelector('textarea');
+            const textarea = form.querySelector('#server-test-query');
             if (textarea) {
                 textarea.value
                     .split(/\r?\n/)
@@ -379,11 +379,11 @@ if (!window.uploadServerTestForm) {
         const values = {};
         const mode = form.dataset.mode || 'query';
         if (mode === 'main') {
-            form.querySelectorAll('input[name]').forEach((input) => {
+            form.querySelectorAll('#server-test-parameters [name]').forEach((input) => {
                 values[input.name] = input.value;
             });
         } else {
-            const textarea = form.querySelector('textarea');
+            const textarea = form.querySelector('#server-test-query');
             if (textarea) {
                 values.query = textarea.value;
             }
@@ -440,13 +440,11 @@ if (!window.resetServerTestForm) {
         if (!form) {
             return;
         }
-        form.querySelectorAll('input').forEach((input) => {
-            input.value = '';
+        form.querySelectorAll('input, textarea').forEach((input) => {
+            if (input.name || input.id === 'server-test-query') {
+                input.value = '';
+            }
         });
-        const textarea = form.querySelector('textarea');
-        if (textarea) {
-            textarea.value = '';
-        }
         if (typeof window.clearServerTestResult === 'function') {
             window.clearServerTestResult();
         }

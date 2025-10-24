@@ -134,7 +134,7 @@
             }
 
             const existingValues = {};
-            parametersContainer.querySelectorAll('input[name]').forEach((input) => {
+            parametersContainer.querySelectorAll('input[name], textarea[name]').forEach((input) => {
                 existingValues[input.name] = input.value;
             });
 
@@ -163,12 +163,12 @@
                 badge.textContent = parameter.required ? 'Required' : 'Optional';
                 label.appendChild(badge);
 
-                const input = document.createElement('input');
-                input.type = 'text';
+                const input = document.createElement('textarea');
                 input.className = 'form-control';
                 input.id = fieldId;
                 input.name = parameter.name || `param_${index}`;
                 input.placeholder = `Value for ${parameter.name || `param_${index}`}`;
+                input.rows = 3;
                 if (Object.prototype.hasOwnProperty.call(existingValues, input.name)) {
                     input.value = existingValues[input.name];
                 }
