@@ -1,0 +1,112 @@
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+from app import app
+import server_execution
+from cid_utils import MermaidRenderLocation
+from server_templates.definitions import auto_main_markdown
+from text_function_runner import run_text_function
+
+
+def test_auto_main_markdown_main_normalizes_input(monkeypatch):
+    captured = {}
+
+    def fake_renderer(text):
+        captured["text"] = text
+        return "<html></html>"
+
+    monkeypatch.setattr(auto_main_markdown, "_render_markdown_document", fake_renderer)
+
+    result = auto_main_markdown.main(markdown="## Heading")
+
+    assert result["content_type"] == "text/html"
+    assert result["output"] == "<html></html>"
+    assert captured["text"] == "## Heading\n"
+
+
+def test_auto_main_markdown_supports_mermaid_and_formdown():
+    svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+    markdown = """
+    # Release planning
+
+    ```mermaid
+    graph TD
+        A --> B
+    ```
+
+    ```formdown
+    @email: [email required]
+    @submit: [submit label="Notify me"]
+    ```
+    """.strip()
+
+    with (
+        patch("cid_utils._mermaid_renderer._fetch_svg", return_value=svg_bytes),
+        patch(
+            "cid_utils._mermaid_renderer._store_svg",
+            return_value=MermaidRenderLocation(is_cid=True, value="diagramcid123"),
+        ),
+    ):
+        result = auto_main_markdown.main(markdown=markdown)
+
+    assert result["content_type"] == "text/html"
+    assert "mermaid-diagram" in result["output"]
+    assert "/diagramcid123.svg" in result["output"]
+    assert "<div class=\"formdown-document\"" in result["output"]
+    assert "Notify me" in result["output"]
+
+
+@pytest.fixture
+def patched_server_execution(monkeypatch):
+    """Provide a predictable environment for server execution tests."""
+
+    monkeypatch.setattr(
+        server_execution,
+        "current_user",
+        SimpleNamespace(id="user-123"),
+    )
+    monkeypatch.setattr(
+        server_execution,
+        "_load_user_context",
+        lambda: {"variables": {}, "secrets": {}, "servers": {}},
+    )
+
+    def fake_success(output, content_type, server_name):
+        return {
+            "output": output,
+            "content_type": content_type,
+            "server_name": server_name,
+        }
+
+    monkeypatch.setattr(server_execution, "_handle_successful_execution", fake_success)
+
+
+def test_auto_main_markdown_runs_through_text_function_runner():
+    definition = """
+from server_templates.definitions import auto_main_markdown
+
+return auto_main_markdown.main(markdown=markdown)
+""".strip()
+
+    result = run_text_function(definition, {"markdown": "Hello from text runner"})
+
+    assert result["content_type"] == "text/html"
+    assert "Hello from text runner" in result["output"]
+    assert "<main class=\"markdown-body\"" in result["output"]
+
+
+def test_auto_main_markdown_executes_via_server_execution(patched_server_execution):
+    definition = Path("server_templates/definitions/auto_main_markdown.py").read_text()
+
+    with app.test_request_context("/markdown", json={"markdown": "Hello from server execution"}):
+        result = server_execution.execute_server_code_from_definition(
+            definition, "markdown-renderer"
+        )
+
+    assert result["server_name"] == "markdown-renderer"
+    assert result["content_type"] == "text/html"
+    assert "Hello from server execution" in result["output"]
+    assert "<main class=\"markdown-body\"" in result["output"]
