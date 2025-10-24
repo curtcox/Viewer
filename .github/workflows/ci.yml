@@ -26,13 +26,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Ruff
+      - name: Install lint dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
+          pip install -r requirements.txt
+          pip install ruff pylint
 
       - name: Run Ruff
         run: ruff check .
+
+      - name: Run Pylint
+        run: pylint --errors-only .
 
   unit-tests:
     name: Unit Tests and Coverage
