@@ -1363,6 +1363,24 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('data-mode="main"', page)
         self.assertIn('name="user"', page)
         self.assertIn('name="greeting"', page)
+        user_snippet = '\n'.join([
+            '<textarea class="form-control"',
+            '                                  id="server-test-param-0"',
+            '                                  name="user"',
+        ])
+        greeting_snippet = '\n'.join([
+            '<textarea class="form-control"',
+            '                                  id="server-test-param-1"',
+            '                                  name="greeting"',
+        ])
+        legacy_input_snippet = '\n'.join([
+            '<input type="text"',
+            '                               class="form-control"',
+            '                               id="server-test-param-0"',
+        ])
+        self.assertIn(user_snippet, page)
+        self.assertIn(greeting_snippet, page)
+        self.assertNotIn(legacy_input_snippet, page)
         self.assertIn('/auto-test', page)
 
     def test_view_server_falls_back_to_query_test_form(self):

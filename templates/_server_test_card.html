@@ -32,11 +32,11 @@
                             <span class="badge bg-secondary ms-2">Optional</span>
                             {% endif %}
                         </label>
-                        <input type="text"
-                               class="form-control"
-                               id="server-test-param-{{ loop.index0 }}"
-                               name="{{ parameter.name }}"
-                               placeholder="Value for {{ parameter.name }}">
+                        <textarea class="form-control"
+                                  id="server-test-param-{{ loop.index0 }}"
+                                  name="{{ parameter.name }}"
+                                  rows="3"
+                                  placeholder="Value for {{ parameter.name }}"></textarea>
                     </div>
                     {% endfor %}
                 </div>
@@ -100,6 +100,31 @@ function _escapeServerTestHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function _resolveServerTestResultUrl(url) {
+    if (!url) {
+        return { absolute: null, display: null };
+    }
+
+    try {
+        const parsed = new URL(url, window.location.href);
+        const absolute = parsed.toString();
+        const display = parsed.origin === window.location.origin
+            ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+            : absolute;
+        return { absolute, display };
+    } catch (error) {
+        if (typeof url === 'string' && url.startsWith('/')) {
+            try {
+                const parsed = new URL(url, window.location.href);
+                return { absolute: parsed.toString(), display: url };
+            } catch (innerError) {
+                return { absolute: url, display: url };
+            }
+        }
+        return { absolute: url, display: url };
+    }
 }
 
 function _extractServerTestFailure(body, contentType) {
@@ -233,7 +258,7 @@ if (!window.submitServerTestForm) {
         const params = new URLSearchParams();
 
         if (mode === 'main') {
-            const inputs = form.querySelectorAll('input[name]');
+            const inputs = form.querySelectorAll('#server-test-parameters [name]');
             inputs.forEach((input) => {
                 const value = input.value.trim();
                 if (value !== '') {
@@ -241,7 +266,7 @@ if (!window.submitServerTestForm) {
                 }
             });
         } else {
-            const textarea = form.querySelector('textarea');
+            const textarea = form.querySelector('#server-test-query');
             if (textarea) {
                 textarea.value
                     .split(/\r?\n/)
@@ -284,12 +309,20 @@ if (!window.submitServerTestForm) {
             });
 
             if (response.ok) {
-                const blob = await response.blob();
+                const { absolute: absoluteUrl, display: displayUrl } = _resolveServerTestResultUrl(
+                    response.url || url
+                );
 
                 if (popup) {
-                    const objectUrl = URL.createObjectURL(blob);
-                    popup.location.replace(objectUrl);
-                    setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+                    if (absoluteUrl) {
+                        try {
+                            popup.location.replace(absoluteUrl);
+                        } catch (error) {
+                            popup.close();
+                        }
+                    } else {
+                        popup.close();
+                    }
                 }
 
                 if (resultContainer) {
@@ -297,33 +330,23 @@ if (!window.submitServerTestForm) {
                     resultContainer.classList.add('alert-success');
                     let html = '<strong>Server test ran successfully.</strong>';
 
-                    if (popup) {
+                    if (popup && absoluteUrl) {
                         html += ' The result opened in a new tab.';
-                    } else {
-                        const objectUrl = URL.createObjectURL(blob);
+                    } else if (absoluteUrl) {
                         const linkId = `server-test-result-link-${Date.now()}`;
-                        html += ` Your browser blocked pop-ups. <a id="${linkId}" href="${objectUrl}" target="_blank" rel="noopener">Open the result</a>.`;
-                        setTimeout(() => URL.revokeObjectURL(objectUrl), 120000);
+                        html += ` Your browser blocked pop-ups. <a id="${linkId}" href="${absoluteUrl}" target="_blank" rel="noopener">Open the result</a>.`;
+                    } else {
+                        html += ' The result opened, but its URL could not be determined.';
+                    }
+
+                    if (displayUrl) {
+                        html += ` <span class="d-block mt-2 small text-muted">Result path: <code>${_escapeServerTestHtml(displayUrl)}</code></span>`;
                     }
 
                     resultContainer.innerHTML = html;
-
-                    if (!popup) {
-                        const link = resultContainer.querySelector('a[target="_blank"]');
-                        if (link) {
-                            link.addEventListener('click', () => {
-                                const href = link.getAttribute('href');
-                                if (href) {
-                                    setTimeout(() => URL.revokeObjectURL(href), 60000);
-                                }
-                            }, { once: true });
-                        }
-                    }
                 }
 
-                if (!popup) {
-                    return;
-                }
+                return;
             } else {
                 if (popup) {
                     popup.close();
@@ -356,11 +379,11 @@ if (!window.uploadServerTestForm) {
         const values = {};
         const mode = form.dataset.mode || 'query';
         if (mode === 'main') {
-            form.querySelectorAll('input[name]').forEach((input) => {
+            form.querySelectorAll('#server-test-parameters [name]').forEach((input) => {
                 values[input.name] = input.value;
             });
         } else {
-            const textarea = form.querySelector('textarea');
+            const textarea = form.querySelector('#server-test-query');
             if (textarea) {
                 values.query = textarea.value;
             }
@@ -417,13 +440,11 @@ if (!window.resetServerTestForm) {
         if (!form) {
             return;
         }
-        form.querySelectorAll('input').forEach((input) => {
-            input.value = '';
+        form.querySelectorAll('input, textarea').forEach((input) => {
+            if (input.name || input.id === 'server-test-query') {
+                input.value = '';
+            }
         });
-        const textarea = form.querySelector('textarea');
-        if (textarea) {
-            textarea.value = '';
-        }
         if (typeof window.clearServerTestResult === 'function') {
             window.clearServerTestResult();
         }
