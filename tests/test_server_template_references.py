@@ -5,7 +5,6 @@ import re
 from routes.servers import _extract_context_references
 from server_templates import iter_server_templates
 
-
 _SECRET_LITERAL_PATTERN = re.compile(
     r"\bsecrets\[['\"]([^'\"]+)['\"]\]|\bsecrets\.get\(\s*['\"]([^'\"]+)['\"]"
 )

@@ -1,22 +1,22 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
 import os
+import sys
+import unittest
+from unittest.mock import MagicMock, patch
 
 # Add the parent directory to the path so we can import the app modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
-from cid_utils import CID_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
 from app import app, db
+from cid_utils import CID_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
 from models import Server
-from routes.core import not_found_error, get_existing_routes
-from server_execution import try_server_execution, execute_server_code, is_potential_server_path
+from routes.core import get_existing_routes, not_found_error
+from server_execution import execute_server_code, is_potential_server_path, try_server_execution
 
 
 class TestEchoFunctionality(unittest.TestCase):
-    
+
     def setUp(self):
         """Set up test environment"""
         app.config['TESTING'] = True
@@ -26,21 +26,21 @@ class TestEchoFunctionality(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-        
+
         # Track a user identifier for ownership fields
         self.test_user_id = 'test_user_123'
-    
+
     def tearDown(self):
         """Clean up test environment"""
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-    
+
     def test_echo_server_missing_from_database(self):
         """Test that no 'echo' server exists in the database"""
         echo_servers = Server.query.filter_by(name='echo').all()
         self.assertEqual(len(echo_servers), 0, "Expected no 'echo' servers in database")
-    
+
     def test_is_potential_server_path_for_echo(self):
         """Test that /echo is identified as a potential server path"""
         existing_routes = get_existing_routes()
@@ -62,7 +62,7 @@ class TestEchoFunctionality(unittest.TestCase):
 
                 result = try_server_execution('/echo')
                 self.assertIsNone(result, "Should return None when no echo server exists for user")
-    
+
     def test_echo_server_creation_and_execution(self):
         """Test that echo server works when properly created"""
         # Create an echo server for the test user
@@ -73,7 +73,7 @@ class TestEchoFunctionality(unittest.TestCase):
         )
         db.session.add(echo_server)
         db.session.commit()
-        
+
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
@@ -85,26 +85,26 @@ class TestEchoFunctionality(unittest.TestCase):
                         'output': 'Hello, World!',
                         'content_type': 'text/html'
                     }
-                    
+
                     result = try_server_execution('/echo')
                     self.assertIsNotNone(result, "Should return a result when echo server exists")
-    
+
     def test_not_found_error_flow_for_echo(self):
         """Test the complete 404 error handler flow for /echo"""
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
             with patch('server_execution.current_user') as mock_user:
                 mock_user.id = self.test_user_id
-                
+
                 # Create a mock 404 error
                 mock_error = MagicMock()
-                
+
                 # Call the not_found_error handler
                 result = not_found_error(mock_error)
-                
+
                 # Should return a 404 response since no echo server exists
                 self.assertEqual(result[1], 404, "Should return 404 status when no echo server exists")
-    
+
     def test_echo_redirect_url_format(self):
         """Test that echo server generates correct CID redirect URL"""
         # Create an echo server
@@ -115,23 +115,23 @@ class TestEchoFunctionality(unittest.TestCase):
         )
         db.session.add(echo_server)
         db.session.commit()
-        
+
         with app.test_request_context('/echo'):
             with patch('server_execution.current_user') as mock_user:
                 mock_user.id = self.test_user_id
-                
+
                 # Mock the text function runner
                 with patch('server_execution.run_text_function') as mock_runner:
                     mock_runner.return_value = {
                         'output': '<h1>Hello, World!</h1>',
                         'content_type': 'text/html'
                     }
-                    
+
                     result = execute_server_code(echo_server, 'echo')
-                    
+
                     # Should be a redirect response
                     self.assertEqual(result.status_code, 302, "Should return redirect response")
-                    
+
                     # Check that it redirects to a CID URL with .html extension
                     location = result.headers.get('Location')
                     self.assertIsNotNone(location, "Should have a Location header")

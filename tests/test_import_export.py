@@ -5,20 +5,19 @@ import shutil
 import sys
 import unittest
 from contextlib import ExitStack, contextmanager
+from datetime import datetime, timezone
 from html import escape
+from importlib import metadata
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
-from importlib import metadata
-from typing import Any
-
+from alias_definition import format_primary_alias_line
 from app import create_app, db
 from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
-from datetime import datetime, timezone
-from alias_definition import format_primary_alias_line
-from models import Alias, CID, EntityInteraction, Secret, Server, Variable
+from models import CID, Alias, EntityInteraction, Secret, Server, Variable
 
 
 class ImportExportRoutesTestCase(unittest.TestCase):
@@ -278,7 +277,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        export_record, payload = self._load_export_payload()
+        _, payload = self._load_export_payload()
 
         project_files = self._load_section(payload, 'project_files')
         self.assertIn('pyproject.toml', project_files)

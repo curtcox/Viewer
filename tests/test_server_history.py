@@ -3,18 +3,20 @@
 Test script for server definition history functionality.
 """
 
+import os
+import sys
 import unittest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import route helper for testing
-from routes.servers import get_server_definition_history
 import json
 from datetime import datetime, timezone
+
+# Import route helper for testing
+from routes.servers import get_server_definition_history
+
 
 class TestServerHistory(unittest.TestCase):
     """Test server definition history functionality"""

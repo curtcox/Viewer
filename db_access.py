@@ -13,8 +13,8 @@ from alias_definition import (
 )
 from database import db
 from models import (
-    Alias,
     CID,
+    Alias,
     EntityInteraction,
     PageView,
     Secret,

@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 import pytest
+from flask import Flask
 
 from app import create_app
 from cid_presenter import cid_path
 from database import db
 from identity import ensure_default_user
 from models import CID, Server
-from flask import Flask
 
 pytestmark = pytest.mark.integration
 

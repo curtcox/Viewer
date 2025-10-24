@@ -1,11 +1,11 @@
-import pytest
 from unittest.mock import patch
 
+import pytest
+
+from alias_definition import format_primary_alias_line
 from database import db
 from db_access import update_alias_cid_reference, update_cid_references
-from alias_definition import format_primary_alias_line
 from models import Alias, Server
-
 
 pytestmark = pytest.mark.integration
 

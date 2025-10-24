@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
-from models import Server, CID
 from cid_utils import CID_LENGTH, save_server_definition_as_cid
+from models import CID, Server
+
 
 def test_server_cid_functionality():
     """Test that server definitions are saved as CIDs when created/updated"""

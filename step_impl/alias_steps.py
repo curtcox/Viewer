@@ -9,10 +9,10 @@ from typing import Any, Optional
 from flask.testing import FlaskClient
 from getgauge.python import after_scenario, before_scenario, step
 
+from alias_definition import format_primary_alias_line
 from app import create_app
 from database import db
 from identity import ensure_default_user
-from alias_definition import format_primary_alias_line
 from models import Alias
 
 _app = None

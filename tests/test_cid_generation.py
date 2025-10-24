@@ -6,8 +6,8 @@ import unittest
 from cid_utils import (
     CID_LENGTH,
     CID_LENGTH_PREFIX_CHARS,
-    CID_SHA512_CHARS,
     CID_NORMALIZED_PATTERN,
+    CID_SHA512_CHARS,
     encode_cid_length,
     generate_cid,
     is_normalized_cid,
@@ -36,7 +36,7 @@ class TestCIDGeneration(unittest.TestCase):
         cid1 = generate_cid(content)
         cid2 = generate_cid(content)
         cid3 = generate_cid(content)
-        
+
         # All CIDs should be identical since content type no longer affects CID generation
         self.assertEqual(cid1, cid2)
         self.assertEqual(cid1, cid3)
@@ -44,11 +44,11 @@ class TestCIDGeneration(unittest.TestCase):
 
     def test_different_content_different_cids(self):
         """Test that different content produces different CIDs"""
-        
+
         cid1 = generate_cid(b"Hello, World!")
         cid2 = generate_cid(b"Goodbye, World!")
         cid3 = generate_cid(b"")
-        
+
         # All CIDs should be different
         self.assertNotEqual(cid1, cid2)
         self.assertNotEqual(cid1, cid3)
@@ -57,10 +57,10 @@ class TestCIDGeneration(unittest.TestCase):
     def test_identical_content_same_cid(self):
         """Test that identical content produces the same CID"""
         content = b"Test content for CID generation"
-        
+
         cid1 = generate_cid(content)
         cid2 = generate_cid(content)
-        
+
         self.assertEqual(cid1, cid2)
 
     def test_cid_format(self):
@@ -68,7 +68,7 @@ class TestCIDGeneration(unittest.TestCase):
         content = b"Sample content for format testing"
 
         cid = generate_cid(content)
-        
+
         # Should be the expected canonical length for generated CIDs
         self.assertEqual(len(cid), CID_LENGTH)
 
@@ -77,23 +77,23 @@ class TestCIDGeneration(unittest.TestCase):
 
     def test_empty_content(self):
         """Test CID generation with empty content"""
-        
+
         cid1 = generate_cid(b"")
         cid2 = generate_cid(b"")
-        
+
         # Empty content should still generate valid CIDs at the canonical length
         self.assertEqual(len(cid1), CID_LENGTH)
         self.assertEqual(len(cid2), CID_LENGTH)
-        
+
         # Same empty content should produce same CID
         self.assertEqual(cid1, cid2)
 
     def test_unicode_content(self):
         """Test CID generation with unicode characters in content"""
         content = "Content with unicode: ".encode('utf-8')
-        
+
         cid = generate_cid(content)
-        
+
         # Should generate a valid CID
         self.assertEqual(len(cid), CID_LENGTH)
 
@@ -101,28 +101,28 @@ class TestCIDGeneration(unittest.TestCase):
         """Test CID generation with large content"""
         # Create 1MB of content
         large_content = b"A" * (1024 * 1024)
-        
+
         cid = generate_cid(large_content)
-        
+
         # Should still generate a valid CID
         self.assertEqual(len(cid), CID_LENGTH)
 
     def test_binary_content(self):
         """Test CID generation with binary content"""
         binary_content = bytes(range(256))  # All possible byte values
-        
+
         cid = generate_cid(binary_content)
-        
+
         # Should generate a valid CID
         self.assertEqual(len(cid), CID_LENGTH)
 
     def test_content_case_sensitivity(self):
         """Test that content case affects CID generation"""
-        
+
         cid1 = generate_cid(b"text/plain")
         cid2 = generate_cid(b"TEXT/PLAIN")
         cid3 = generate_cid(b"Text/Plain")
-        
+
         # Different cases should produce different CIDs
         self.assertNotEqual(cid1, cid2)
         self.assertNotEqual(cid1, cid3)
@@ -130,11 +130,11 @@ class TestCIDGeneration(unittest.TestCase):
 
     def test_content_with_parameters(self):
         """Test CID generation with content that looks like parameters"""
-        
+
         cid1 = generate_cid(b"text/plain")
         cid2 = generate_cid(b"text/plain; charset=utf-8")
         cid3 = generate_cid(b"text/plain; charset=iso-8859-1")
-        
+
         # Different content should produce different CIDs
         self.assertNotEqual(cid1, cid2)
         self.assertNotEqual(cid1, cid3)
@@ -143,10 +143,10 @@ class TestCIDGeneration(unittest.TestCase):
     def test_deterministic_generation(self):
         """Test that CID generation is deterministic across multiple calls"""
         content = b"Deterministic test content"
-        
+
         # Generate the same CID multiple times
         cids = [generate_cid(content) for _ in range(10)]
-        
+
         # All should be identical
         for cid in cids:
             self.assertEqual(cid, cids[0])
@@ -202,16 +202,16 @@ class TestCIDGeneration(unittest.TestCase):
             b"# Markdown Title\n\nThis is a **bold** text.",
             b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR",  # PNG header
         ]
-        
+
         cids = []
         for i, content in enumerate(test_cases):
             with self.subTest(case=i):
                 cid = generate_cid(content)
                 cids.append(cid)
-                
+
                 # Verify format
                 self.assertEqual(len(cid), CID_LENGTH)
-        
+
         # All CIDs should be unique
         self.assertEqual(len(cids), len(set(cids)))
 

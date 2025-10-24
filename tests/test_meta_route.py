@@ -3,10 +3,11 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from app import app, db
-from alias_definition import format_primary_alias_line
-from models import Alias, CID, Server, ServerInvocation
 from werkzeug.routing import RequestRedirect
+
+from alias_definition import format_primary_alias_line
+from app import app, db
+from models import CID, Alias, Server, ServerInvocation
 
 
 class TestMetaRoute(unittest.TestCase):

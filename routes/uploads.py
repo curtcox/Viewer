@@ -1,10 +1,14 @@
 """Upload-related routes and helpers."""
 
+import logfire
 from flask import abort, flash, render_template, request, url_for
-from identity import current_user
-
 from markupsafe import Markup
 
+from alias_definition import (
+    format_primary_alias_line,
+    get_primary_alias_route,
+    replace_primary_definition_line,
+)
 from cid_presenter import cid_path, format_cid, format_cid_short, render_cid_link
 from cid_utils import (
     generate_cid,
@@ -12,14 +16,6 @@ from cid_utils import (
     process_file_upload,
     process_text_upload,
     process_url_upload,
-)
-from entity_references import (
-    extract_references_from_bytes,
-)
-from alias_definition import (
-    format_primary_alias_line,
-    get_primary_alias_route,
-    replace_primary_definition_line,
 )
 from db_access import (
     create_cid_record,
@@ -32,14 +28,18 @@ from db_access import (
     record_entity_interaction,
     save_entity,
 )
-from models import Alias
+from entity_references import (
+    extract_references_from_bytes,
+)
 from forms import EditCidForm, FileUploadForm
-from upload_templates import get_upload_templates
+from identity import current_user
 from interaction_log import load_interaction_history
+from models import Alias
+from upload_templates import get_upload_templates
 
 from . import main_bp
 from .history import _load_request_referers
-import logfire
+
 
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""

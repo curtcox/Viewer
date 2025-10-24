@@ -11,26 +11,25 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 from flask import Response, current_app, jsonify, url_for
-from identity import current_user
+from markupsafe import Markup, escape
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
 from alias_definition import collect_alias_routes, get_primary_alias_route
 from alias_routing import find_matching_alias, is_potential_alias_path, try_alias_redirect
 from cid_presenter import cid_path, format_cid
-from entity_references import extract_references_from_bytes
 from db_access import (
     find_server_invocations_by_cid,
     get_cid_by_path,
     get_server_by_name,
     get_user_aliases,
 )
+from entity_references import extract_references_from_bytes
+from identity import current_user
 from server_execution import (
     is_potential_server_path,
     is_potential_versioned_server_path,
 )
-
-from markupsafe import Markup, escape
 
 from . import main_bp
 from .core import get_existing_routes

@@ -9,28 +9,19 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
-from app import app
 from alias_definition import format_primary_alias_line
-from models import (
-    Alias,
-    PageView,
-    Server,
-    ServerInvocation,
-    Variable,
-    Secret,
-    db,
-)
+from app import app
 from db_access import (
     count_cids,
     count_page_views,
     count_secrets,
     count_servers,
-    count_variables,
     count_unique_page_view_paths,
+    count_user_page_views,
+    count_user_secrets,
     count_user_servers,
     count_user_variables,
-    count_user_secrets,
-    count_user_page_views,
+    count_variables,
     create_cid_record,
     create_server_invocation,
     find_cids_by_prefix,
@@ -56,6 +47,15 @@ from db_access import (
     save_page_view,
     update_alias_cid_reference,
     update_cid_references,
+)
+from models import (
+    Alias,
+    PageView,
+    Secret,
+    Server,
+    ServerInvocation,
+    Variable,
+    db,
 )
 
 

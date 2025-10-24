@@ -1,6 +1,8 @@
 import signal
 import sys
+
 from app import app
+
 
 def signal_handler(sig, frame):
     print('\nShutting down gracefully...')

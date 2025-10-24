@@ -24,9 +24,10 @@ def test_cid_url_analysis():
     extension = cid_url.split('.')[-1] if '.' in cid_url else None
     print(f"Extension: {extension}")
 
-    # Assertions instead of returns
+    # Assertions and return
     assert base_cid == "bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
     assert extension == "html"
+    return base_cid, extension
 
 def test_cid_serving_logic():
     """Test the CID serving logic from routes.py"""
@@ -59,10 +60,11 @@ def test_cid_path_storage_mismatch():
     print("- User is redirected to '/bafybei....html' (with extension)")
     print("- CID lookup fails because paths don't match")
 
-    # Assertions instead of returns
+    # Assertions and return
     assert stored_path == "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
     assert requested_path == "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.html"
     assert stored_path != requested_path
+    return stored_path, requested_path
 
 def test_serve_cid_content_logic():
     """Analyze the serve_cid_content function logic"""

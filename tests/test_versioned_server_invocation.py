@@ -8,10 +8,10 @@ Covers:
 - Server existence guards
 """
 
+import os
+import sys
 import unittest
 from unittest.mock import Mock, patch
-import sys
-import os
 
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -54,7 +54,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
         mock_get_server_by_name.return_value = object()
         mock_render.return_value = ('not found', 404)
         history_fetcher = Mock(return_value=[])
-        result, status = try_server_execution_with_partial(f'/{self.server_name}/abc', history_fetcher)
+        _, status = try_server_execution_with_partial(f'/{self.server_name}/abc', history_fetcher)
         self.assertEqual(status, 404)
         mock_render.assert_called()
 

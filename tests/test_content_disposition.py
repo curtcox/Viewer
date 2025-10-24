@@ -5,8 +5,8 @@ This test focuses on the path parsing logic without requiring the full Flask app
 """
 
 import unittest
-from unittest.mock import Mock
 from datetime import datetime, timezone
+from unittest.mock import Mock
 
 
 def extract_filename_from_path(path):
@@ -21,22 +21,22 @@ def extract_filename_from_path(path):
     # Remove leading slash
     if path.startswith('/'):
         path = path[1:]
-    
+
     # Handle empty or invalid paths
     if not path or path in ['.', '..']:
         return None
-    
+
     # Split by dots
     parts = path.split('.')
-    
+
     # Need at least 3 parts for filename: CID.filename.ext
     if len(parts) < 3:
         return None
-    
+
     # First part is CID, rest form the filename
     filename_parts = parts[1:]
     filename = '.'.join(filename_parts)
-    
+
     return filename
 
 
@@ -50,7 +50,7 @@ class TestContentDispositionLogic(unittest.TestCase):
             "/abc123",
             "/short",
         ]
-        
+
         for path in test_cases:
             with self.subTest(path=path):
                 result = extract_filename_from_path(path)
@@ -64,7 +64,7 @@ class TestContentDispositionLogic(unittest.TestCase):
             "/bafybeihelloworld123456789012345678901234567890123456.json",
             "/abc123.pdf",
         ]
-        
+
         for path in test_cases:
             with self.subTest(path=path):
                 result = extract_filename_from_path(path)
@@ -79,7 +79,7 @@ class TestContentDispositionLogic(unittest.TestCase):
             ("/bafybeihelloworld123456789012345678901234567890123456.page.html", "page.html"),
             ("/abc123.myfile.csv", "myfile.csv"),
         ]
-        
+
         for path, expected_filename in test_cases:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_path(path)
@@ -93,7 +93,7 @@ class TestContentDispositionLogic(unittest.TestCase):
             ("/abc123.backup.2024.01.15.sql", "backup.2024.01.15.sql"),
             ("/cid.a.b.c.d.e", "a.b.c.d.e"),
         ]
-        
+
         for path, expected_filename in test_cases:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_path(path)
@@ -108,7 +108,7 @@ class TestContentDispositionLogic(unittest.TestCase):
             ("/..", None),  # Two dots
             ("/a.b.c", "b.c"),  # Short CID but valid pattern
         ]
-        
+
         for path, expected in test_cases:
             with self.subTest(path=path, expected=expected):
                 result = extract_filename_from_path(path)
@@ -132,7 +132,7 @@ def mock_serve_cid_content_with_disposition(cid_content, path):
 
     # Determine MIME type from URL extension (existing logic)
     content_type = "text/plain"  # Simplified for test
-    
+
     # Extract filename for content disposition
     filename = extract_filename_from_path(path)
     if filename:
@@ -141,7 +141,7 @@ def mock_serve_cid_content_with_disposition(cid_content, path):
     # Set other headers (simplified)
     response.headers['Content-Type'] = content_type
     response.headers['Content-Length'] = len(cid_content.file_data)
-    
+
     return response
 
 
@@ -158,21 +158,21 @@ class TestMockServeFunction(unittest.TestCase):
         """Test that CID-only paths don't get content disposition"""
         path = "/bafybeihelloworld123456789012345678901234567890123456"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
-        
+
         self.assertNotIn('Content-Disposition', result.headers)
 
     def test_no_content_disposition_for_cid_with_extension(self):
         """Test that CID.ext paths don't get content disposition"""
         path = "/bafybeihelloworld123456789012345678901234567890123456.txt"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
-        
+
         self.assertNotIn('Content-Disposition', result.headers)
 
     def test_content_disposition_for_cid_with_filename(self):
         """Test that CID.filename.ext paths get content disposition"""
         path = "/bafybeihelloworld123456789012345678901234567890123456.document.txt"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
-        
+
         self.assertIn('Content-Disposition', result.headers)
         self.assertEqual(result.headers['Content-Disposition'], 'attachment; filename="document.txt"')
 

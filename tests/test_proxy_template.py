@@ -2,19 +2,18 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
-from app import app
 import requests
-import server_execution
-from text_function_runner import run_text_function
 
+import server_execution
+from app import app
+from text_function_runner import run_text_function
 
 TEMPLATE_PATH = Path("server_templates/definitions/proxy.py")
 
 
 @pytest.fixture()
 def proxy_template_code():
-    return TEMPLATE_PATH.read_text()
+    return TEMPLATE_PATH.read_text(encoding='utf-8')
 
 
 def _set_base_url(template_code: str, new_url: str) -> str:

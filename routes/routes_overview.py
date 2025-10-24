@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Iterable, List, Optional
 
 from flask import current_app, render_template, url_for
-from identity import current_user
 
 from alias_definition import collect_alias_routes
 from db_access import get_user_aliases, get_user_servers
+from identity import current_user
 
 from . import main_bp
 

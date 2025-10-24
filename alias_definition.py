@@ -1,8 +1,8 @@
 """Helpers for parsing and formatting alias definitions."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence
 from urllib.parse import urlsplit
 

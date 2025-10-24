@@ -1,7 +1,7 @@
 from flask import jsonify, request
-from identity import current_user
 
 from db_access import record_entity_interaction
+from identity import current_user
 from interaction_log import load_interaction_history, summarise_interaction
 
 from . import main_bp

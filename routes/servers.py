@@ -4,7 +4,6 @@ import re
 from typing import Dict, Iterable, List, Optional
 
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
-from identity import current_user
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
@@ -25,17 +24,17 @@ from db_access import (
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
+from identity import current_user
+from interaction_log import load_interaction_history
 from models import Server
 from server_execution import analyze_server_definition, describe_main_function_parameters
-from syntax_highlighting import highlight_source
 from server_templates import get_server_templates
-from interaction_log import load_interaction_history
+from syntax_highlighting import highlight_source
 
 from . import main_bp
 from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .history import _load_request_referers
-
 
 _INDEX_ACCESS_PATTERN = re.compile(
     r"context\[['\"](variables|secrets)['\"]\]\[['\"]([^'\"]+)['\"]\]"

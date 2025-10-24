@@ -8,7 +8,6 @@ import pytest
 from database import db
 from models import PageView
 
-
 pytestmark = pytest.mark.integration
 
 

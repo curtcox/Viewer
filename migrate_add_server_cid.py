@@ -1,55 +1,57 @@
 #!/usr/bin/env python3
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import create_app
-from db_access import get_all_servers, save_entity
-from cid_utils import save_server_definition_as_cid
 import sqlite3
+
+from app import create_app
+from cid_utils import save_server_definition_as_cid
+from db_access import get_all_servers, save_entity
 
 app = create_app()
 
 def migrate_add_server_cid():
     """Add definition_cid column to Server table and populate existing servers"""
-    
+
     with app.app_context():
         # Get absolute database path
         db_path = os.path.join(os.getcwd(), 'instance', 'secureapp.db')
-        
+
         if not os.path.exists(db_path):
             print(f"❌ Database file not found: {db_path}")
             return False
-        
+
         print(f"Migrating database: {db_path}")
-        
+
         # Connect directly to SQLite to add column
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
+
         try:
             # Check if column already exists
             cursor.execute("PRAGMA table_info(server)")
             columns = [column[1] for column in cursor.fetchall()]
-            
+
             if 'definition_cid' in columns:
                 print("✓ Column definition_cid already exists")
                 conn.close()
                 return True
-            
+
             # Add the new column
             cursor.execute("ALTER TABLE server ADD COLUMN definition_cid VARCHAR(255)")
             conn.commit()
             print("✓ Added definition_cid column to server table")
-            
+
             # Create index on the new column
             cursor.execute("CREATE INDEX ix_server_definition_cid ON server (definition_cid)")
             conn.commit()
             print("✓ Created index on definition_cid column")
-            
+
             conn.close()
-            
+
             # Now populate existing servers with CIDs
             servers = get_all_servers()
             print(f"Found {len(servers)} existing servers to update")
@@ -65,9 +67,9 @@ def migrate_add_server_cid():
                     updated_servers += 1
 
             print(f"✓ Updated {updated_servers} servers with CIDs")
-            
+
             return True
-            
+
         except Exception as e:
             print(f"❌ Migration failed: {e}")
             conn.rollback()

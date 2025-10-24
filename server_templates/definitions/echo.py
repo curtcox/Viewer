@@ -2,6 +2,7 @@
 # This template executes inside the Viewer runtime where `request` and `context` are provided.
 from html import escape
 
+
 def dict_to_html_ul(data):
     if not isinstance(data, dict):
         raise TypeError("expects a dict at the top level")

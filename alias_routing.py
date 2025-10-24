@@ -1,23 +1,20 @@
 """Helpers for serving named alias redirects."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Iterable, Optional
-
-from functools import lru_cache
 import re
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import Iterable, Optional
 from urllib.parse import urlsplit
 
 from flask import redirect, request
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import Map, Rule
 
-from identity import current_user
-
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
 from db_access import get_user_aliases
-
+from identity import current_user
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
 

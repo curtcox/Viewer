@@ -7,10 +7,7 @@ from unittest.mock import patch
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
-from app import app, db
-from identity import ensure_default_user
 from alias_definition import format_primary_alias_line
-from models import Alias, CID
 from alias_routing import (
     _append_query_string,
     _extract_alias_name,
@@ -19,6 +16,9 @@ from alias_routing import (
     is_potential_alias_path,
     try_alias_redirect,
 )
+from app import app, db
+from identity import ensure_default_user
+from models import CID, Alias
 from routes.core import get_existing_routes, not_found_error
 
 

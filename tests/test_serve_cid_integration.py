@@ -4,9 +4,9 @@ Integration test for the serve_cid_content function with content disposition log
 This test directly imports and tests the extract_filename_from_cid_path function.
 """
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 
 # Add the current directory to the path so we can import modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +25,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             "/short",
             "/bafybeiverylongcidthatrepresentscontentaddressablestorage"
         ]
-        
+
         for path in test_cases:
             with self.subTest(path=path):
                 result = extract_filename_from_cid_path(path)
@@ -41,7 +41,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             "/abc123.csv",
             "/short.py"
         ]
-        
+
         for path in test_cases:
             with self.subTest(path=path):
                 result = extract_filename_from_cid_path(path)
@@ -57,7 +57,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             ("/abc123.myfile.csv", "myfile.csv"),
             ("/cid.test.py", "test.py")
         ]
-        
+
         for path, expected_filename in test_cases:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_cid_path(path)
@@ -71,7 +71,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             ("/abc123.backup.2024.01.15.sql", "backup.2024.01.15.sql"),
             ("/cid.file.name.with.many.dots.ext", "file.name.with.many.dots.ext")
         ]
-        
+
         for path, expected_filename in test_cases:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_cid_path(path)
@@ -87,7 +87,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             ("/a.b.c", "b.c"),  # Minimal valid case
             ("no-leading-slash.file.txt", "file.txt"),  # No leading slash
         ]
-        
+
         for path, expected in test_cases:
             with self.subTest(path=path, expected=expected):
                 result = extract_filename_from_cid_path(path)
@@ -102,7 +102,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             ("/cid.file(with)parentheses.txt", "file(with)parentheses.txt"),
             ("/cid.file[with]brackets.txt", "file[with]brackets.txt"),
         ]
-        
+
         for path, expected_filename in test_cases:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_cid_path(path)
@@ -119,17 +119,17 @@ class TestContentDispositionBehavior(unittest.TestCase):
             "/bafybeihelloworld123456789012345678901234567890123456",
             "/abc123def456",
         ]
-        
+
         for path in cid_only_paths:
             filename = extract_filename_from_cid_path(path)
             self.assertIsNone(filename, f"CID-only path {path} should not have content disposition")
 
-        # Rule 2: /{CID}.{ext} - no content disposition  
+        # Rule 2: /{CID}.{ext} - no content disposition
         cid_ext_paths = [
             "/bafybeihelloworld123456789012345678901234567890123456.txt",
             "/abc123def456.json",
         ]
-        
+
         for path in cid_ext_paths:
             filename = extract_filename_from_cid_path(path)
             self.assertIsNone(filename, f"CID.ext path {path} should not have content disposition")
@@ -139,7 +139,7 @@ class TestContentDispositionBehavior(unittest.TestCase):
             ("/bafybeihelloworld123456789012345678901234567890123456.document.txt", "document.txt"),
             ("/abc123def456.report.pdf", "report.pdf"),
         ]
-        
+
         for path, expected_filename in cid_filename_paths:
             filename = extract_filename_from_cid_path(path)
             self.assertEqual(filename, expected_filename, f"CID.filename.ext path {path} should return filename {expected_filename}")
@@ -149,23 +149,23 @@ class TestContentDispositionBehavior(unittest.TestCase):
         scenarios = [
             # User uploads a file called "resume.pdf"
             ("/bafybeiabcdef123456789.resume.pdf", "resume.pdf"),
-            
-            # User uploads "data-export-2024.csv"  
+
+            # User uploads "data-export-2024.csv"
             ("/bafybei987654321.data-export-2024.csv", "data-export-2024.csv"),
-            
+
             # User uploads "my presentation.pptx"
             ("/bafybeixyz789.my presentation.pptx", "my presentation.pptx"),
-            
+
             # Server generates HTML content (no filename)
             ("/bafybeiserver123.html", None),
-            
+
             # Server generates JSON API response (no filename)
             ("/bafybeiapi456.json", None),
-            
+
             # Direct CID access (no filename)
             ("/bafybeidirect789", None),
         ]
-        
+
         for path, expected_filename in scenarios:
             with self.subTest(path=path, expected=expected_filename):
                 result = extract_filename_from_cid_path(path)

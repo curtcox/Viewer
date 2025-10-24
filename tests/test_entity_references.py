@@ -1,14 +1,14 @@
 import unittest
 import uuid
 
+from alias_definition import format_primary_alias_line
 from app import app, db
 from entity_references import (
     extract_references_from_bytes,
     extract_references_from_target,
     extract_references_from_text,
 )
-from alias_definition import format_primary_alias_line
-from models import Alias, CID, Server
+from models import CID, Alias, Server
 
 
 class TestEntityReferences(unittest.TestCase):

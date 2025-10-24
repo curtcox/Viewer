@@ -1,9 +1,9 @@
 """Integration tests for server execution error pages."""
 from __future__ import annotations
 
+import unittest
 from html.parser import HTMLParser
 from pathlib import Path
-import unittest
 
 from app import create_app
 from database import db

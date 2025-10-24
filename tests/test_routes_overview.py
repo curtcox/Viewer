@@ -5,9 +5,9 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 os.environ.setdefault('TESTING', 'True')
 
+from alias_definition import format_primary_alias_line  # noqa: E402
 from app import create_app  # noqa: E402
 from database import db  # noqa: E402
-from alias_definition import format_primary_alias_line  # noqa: E402
 from models import Alias, Server  # noqa: E402
 
 

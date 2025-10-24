@@ -1,11 +1,11 @@
 """Core application routes and helpers."""
 from __future__ import annotations
 
-from pathlib import Path
 import hashlib
 import re
 import traceback
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from flask import (
@@ -18,15 +18,17 @@ from flask import (
     url_for,
 )
 
-from identity import current_user
 from alias_definition import get_primary_alias_route
+from alias_routing import is_potential_alias_path, try_alias_redirect
+from cid_presenter import cid_path, format_cid, format_cid_short
+from cid_utils import serve_cid_content
 from db_access import (
     count_user_aliases,
     count_user_secrets,
     count_user_servers,
     count_user_variables,
-    get_cids_by_paths,
     get_cid_by_path,
+    get_cids_by_paths,
     get_first_alias_name,
     get_first_secret_name,
     get_first_server_name,
@@ -35,12 +37,12 @@ from db_access import (
     get_user_servers,
     rollback_session,
 )
-from cid_presenter import cid_path, format_cid, format_cid_short
 from entity_references import (
     extract_references_from_bytes,
     extract_references_from_target,
     extract_references_from_text,
 )
+from identity import current_user
 from models import CID
 from server_execution import (
     is_potential_server_path,
@@ -48,8 +50,6 @@ from server_execution import (
     try_server_execution,
     try_server_execution_with_partial,
 )
-from cid_utils import serve_cid_content
-from alias_routing import is_potential_alias_path, try_alias_redirect
 
 from . import main_bp
 
@@ -419,7 +419,7 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
         """Determine if we should create a source link for this file."""
         if not relative_path:
             return False
-        
+
         # Create links for ALL files within the project directory, not just git-tracked ones
         full_path = root_path / relative_path
         try:
@@ -430,7 +430,7 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
                 return True
         except (OSError, ValueError):
             pass
-        
+
         return False
 
     def _get_all_project_files(root_path: Path) -> frozenset[str]:
@@ -444,7 +444,7 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
                     project_files.add(relative)
                 except ValueError:
                     continue
-            
+
             # Also add other common source files
             for pattern in ["*.html", "*.js", "*.css", "*.json", "*.md", "*.txt", "*.yml", "*.yaml"]:
                 for file in root_path.rglob(pattern):
@@ -455,7 +455,7 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
                         continue
         except Exception:
             pass
-        
+
         return frozenset(project_files)
 
     def _get_exception_chain(exc: Exception) -> List[Exception]:
@@ -518,20 +518,20 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
         tracked_paths = _get_tracked_paths(current_app.root_path)
     except Exception:  # pragma: no cover - defensive fallback when git unavailable
         tracked_paths = frozenset()
-    
+
     # Get all project files to ensure comprehensive source link coverage
     all_project_files = _get_all_project_files(root_path)
     # Combine tracked and all project files
     comprehensive_paths = tracked_paths | all_project_files
 
     frames: List[Dict[str, Any]] = []
-    
+
     # Process each exception in the chain
     for exc_index, exc in enumerate(exception_chain):
         traceback_obj = getattr(exc, "__traceback__", None)
         if traceback_obj is None:
             continue
-            
+
         # Add separator for chained exceptions (except for the first one)
         if exc_index > 0:
             frames.append({
@@ -770,13 +770,13 @@ def not_found_error(error):
 def internal_error(error):
     """Enhanced 500 error handler with comprehensive stack trace reporting."""
     rollback_session()
-    
+
     # Always try to build a comprehensive stack trace
     stack_trace = []
     exception = None
     exception_type = "Unknown Error"
     exception_message = "An unexpected error occurred"
-    
+
     try:
         exception = _extract_exception(error)
         exception_type = type(exception).__name__
@@ -786,9 +786,9 @@ def internal_error(error):
         # If stack trace building fails, create a minimal fallback
         try:
             import sys
-            
+
             # Get the current exception info
-            exc_type, exc_value, exc_traceback = sys.exc_info()
+            _, _, exc_traceback = sys.exc_info()
             if exc_traceback:
                 # Create a basic stack trace as fallback
                 stack_trace = [{
@@ -799,13 +799,13 @@ def internal_error(error):
                     "source_link": None,
                     "is_separator": False,
                 }]
-            
+
             # Try to get basic info about the original error
             if not exception:
                 exception = error
                 exception_type = type(error).__name__
                 exception_message = str(error) if str(error) else "Error occurred during error handling"
-                
+
         except Exception:
             # Ultimate fallback - just show basic error info
             stack_trace = [{

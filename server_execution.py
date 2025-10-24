@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
 from urllib.parse import urljoin, urlsplit
 
+import logfire
 from flask import (
     current_app,
     has_app_context,
@@ -20,8 +21,6 @@ from flask import (
     session,
     url_for,
 )
-from identity import current_user
-import logfire
 
 from cid_presenter import cid_path, format_cid
 from cid_utils import (
@@ -41,8 +40,9 @@ from db_access import (
     get_user_variables,
     save_entity,
 )
-from text_function_runner import run_text_function
+from identity import current_user
 from syntax_highlighting import highlight_source
+from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"

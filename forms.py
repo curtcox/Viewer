@@ -1,8 +1,9 @@
+import re
+
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import BooleanField, SubmitField, StringField, TextAreaField, RadioField
+from wtforms import BooleanField, RadioField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
-import re
 
 from alias_definition import AliasDefinitionError, parse_alias_definition
 

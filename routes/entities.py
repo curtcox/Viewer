@@ -2,9 +2,10 @@
 from datetime import datetime, timezone
 from typing import Any, Type
 
-from flask import flash
 import logfire
+from flask import flash
 
+from cid_utils import save_server_definition_as_cid
 from db_access import (
     get_secret_by_name,
     get_server_by_name,
@@ -12,7 +13,6 @@ from db_access import (
     record_entity_interaction,
     save_entity,
 )
-from cid_utils import save_server_definition_as_cid
 
 
 def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:

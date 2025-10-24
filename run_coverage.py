@@ -87,6 +87,7 @@ def run_coverage_report(env: dict[str, str], fail_under: Optional[float]) -> tup
         env=env,
         text=True,
         capture_output=True,
+        check=False,
     )
 
     if completed.stdout:
@@ -104,6 +105,7 @@ def generate_xml_report(env: dict[str, str]) -> int:
         [sys.executable, "-m", "coverage", "xml"],
         cwd=ROOT_DIR,
         env=env,
+        check=False,
     )
 
     if completed.returncode == 0:
@@ -119,6 +121,7 @@ def generate_html_report(env: dict[str, str]) -> int:
         [sys.executable, "-m", "coverage", "html"],
         cwd=ROOT_DIR,
         env=env,
+        check=False,
     )
 
     if completed.returncode == 0:
@@ -202,7 +205,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "pytest",
         *args.pytest_args,
     ]
-    tests_completed = subprocess.run(coverage_cmd, cwd=ROOT_DIR, env=env)
+    tests_completed = subprocess.run(coverage_cmd, cwd=ROOT_DIR, env=env, check=False)
     exit_code = tests_completed.returncode
 
     if not COVERAGE_DATA_FILE.exists():

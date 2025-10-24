@@ -11,7 +11,6 @@ from db_access import (
     save_page_view,
 )
 from identity import current_user
-
 from models import PageView  # noqa: F401
 
 

@@ -1,10 +1,11 @@
 # ruff: noqa: F821, F706
 # This template runs inside the Viewer runtime where helpers like `request`
 # and `load` are provided by the execution sandbox.
-from glom import GlomError, glom
-from html import escape
 import json
+from html import escape
 from urllib.parse import parse_qs
+
+from glom import GlomError, glom
 
 
 def _parse_request_path(info):

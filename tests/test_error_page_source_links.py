@@ -1,7 +1,7 @@
 """Test that error pages show proper source links for all project files in stack traces."""
+import re
 import unittest
 from unittest.mock import Mock, patch
-import re
 
 from app import create_app
 from database import db
@@ -13,12 +13,11 @@ class TestErrorPageSourceLinks(unittest.TestCase):
     def setUp(self):
         """Set up test environment."""
         # Skip tests if app is mocked (during unittest discover)
-        from app import create_app as app_factory
-        app = app_factory()
-        if isinstance(app, Mock):
+        test_app = create_app()
+        if isinstance(test_app, Mock):
             self.skipTest("Skipping due to mocked app during unittest discover")
 
-        self.app = app
+        self.app = test_app
         self.app.config['TESTING'] = True
         self.app.config['WTF_CSRF_ENABLED'] = False
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -47,8 +46,9 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                         mock_current_user.id = self.test_user_id
 
                         # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
-                        from sqlalchemy.exc import OperationalError
                         import sqlite3
+
+                        from sqlalchemy.exc import OperationalError
 
                         # Create a realistic database error like the one in the stack trace
                         sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
@@ -103,8 +103,9 @@ class TestErrorPageSourceLinks(unittest.TestCase):
             # Test the error handler directly to verify it works in debug mode
             try:
                 # Create a realistic error
-                from sqlalchemy.exc import OperationalError
                 import sqlite3
+
+                from sqlalchemy.exc import OperationalError
 
                 sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
                 sqlalchemy_error = OperationalError(
@@ -208,7 +209,6 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 self.assertIn('>>>', html_content, "Should have >>> error markers")
 
                 # Check if we have actual code blocks with line numbers
-                import re
                 # Look for code blocks that contain line numbers
                 code_block_pattern = r'<pre[^>]*><code[^>]*>.*?</code></pre>'
                 code_blocks = re.findall(code_block_pattern, html_content, re.DOTALL)
@@ -322,7 +322,6 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 self.assertEqual(status_code, 500)
 
                 # Find all source links
-                import re
                 source_link_pattern = r'<a[^>]*href="/source/[^"]*"[^>]*>'
                 source_links = re.findall(source_link_pattern, html_content)
 

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from app import create_app
 from database import db
-from routes.core import internal_error, _build_stack_trace
+from routes.core import _build_stack_trace, internal_error
 from routes.source import _get_comprehensive_paths
 
 
@@ -34,19 +34,19 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
                 raise RuntimeError('Test error for comprehensive source links')
             except RuntimeError as exc:
                 response, status = internal_error(exc)
-                
+
                 self.assertEqual(status, 500)
-                
+
                 # Verify the error page contains basic error info
                 self.assertIn('RuntimeError', response)
                 self.assertIn('Test error for comprehensive source links', response)
-                
+
                 # Should have source link to this test file
                 self.assertIn('href="/source/tests/test_enhanced_error_pages.py"', response)
-                
+
                 # Should show enhanced code context with >>> markers
                 self.assertIn('>>>', response)
-                
+
                 # Verify the enhanced error page structure
                 self.assertIn('Stack trace with source links', response)
                 self.assertIn('target="_blank"', response)  # Links should open in new tab
@@ -55,14 +55,14 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
         """Test that comprehensive file discovery includes all project files, not just git-tracked."""
         with self.app.app_context():
             comprehensive_paths = _get_comprehensive_paths(self.app.root_path)
-            
+
             # Should include Python files
             self.assertTrue(any('routes/aliases.py' in path for path in comprehensive_paths))
             self.assertTrue(any('routes/core.py' in path for path in comprehensive_paths))
-            
+
             # Should include template files
             self.assertTrue(any('.html' in path for path in comprehensive_paths))
-            
+
             # Should include this test file
             self.assertTrue(
                 any('tests/test_enhanced_error_pages.py' in path for path in comprehensive_paths)
@@ -78,17 +78,17 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
                 response, status = internal_error(exc)
 
         self.assertEqual(status, 500)
-        
+
         # Check for proper HTML structure
         self.assertIn('<div class="card-header bg-danger text-white">', response)
         self.assertIn('<i class="fas fa-bug me-2"></i>', response)
         self.assertIn('Exception:', response)
         self.assertIn('ValueError', response)
-        
+
         # Check for source link icons and styling
         self.assertIn('<i class="fas fa-external-link-alt me-1 text-primary"></i>', response)
         self.assertIn('target="_blank"', response)
-        
+
         # Check for debugging tips section
         self.assertIn('Debugging Tips:', response)
         self.assertIn('Click the', response)
@@ -108,7 +108,7 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
         # Should have separator frames for exception chain
         separator_frames = [f for f in frames if f.get('is_separator', False)]
         self.assertTrue(len(separator_frames) > 0)
-        
+
         # Check separator styling and content
         separator = separator_frames[0]
         self.assertIn('Exception Chain', separator['display_path'])
@@ -121,7 +121,7 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
             # Test accessing a Python file
             response = client.get('/source/routes/aliases.py')
             self.assertIn(response.status_code, [200, 302])  # 200 for file, 302 for redirect to login
-            
+
             # Test accessing a template file
             response = client.get('/source/templates/500.html')
             self.assertIn(response.status_code, [200, 302])
@@ -137,11 +137,11 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
                     response, status = internal_error(exc)
 
         self.assertEqual(status, 500)
-        
+
         # Should still show basic error information
         self.assertIn('ValueError', response)
         self.assertIn('Original error', response)
-        
+
         # Should show fallback error information
         self.assertIn('Stack trace generation failed', response)
 

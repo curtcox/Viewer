@@ -1,9 +1,8 @@
 import builtins
 import hashlib
 import textwrap
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
-
 import typing
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes

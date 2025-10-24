@@ -77,7 +77,7 @@ return z + w
         argmap = {"x": 42}
 
         # Test with different hash lengths - should all work
-        for hash_len in [8, 12, 16]:
+        for _ in [8, 12, 16]:
             result = self.run_text_function(body, argmap)
             self.assertEqual(result, 42)
 

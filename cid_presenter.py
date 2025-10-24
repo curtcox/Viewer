@@ -7,7 +7,6 @@ from typing import Optional
 
 from markupsafe import Markup, escape
 
-
 _CID_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,}$")
 
 

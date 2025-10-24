@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 
+from alias_definition import format_primary_alias_line
 from database import db
 from db_access import (
     count_user_aliases,
@@ -14,9 +15,7 @@ from db_access import (
     get_first_server_name,
     get_first_variable_name,
 )
-from alias_definition import format_primary_alias_line
 from models import Alias, Secret, Server, Variable
-
 
 pytestmark = pytest.mark.integration
 

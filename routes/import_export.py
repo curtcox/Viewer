@@ -9,13 +9,12 @@ import re
 import sys
 import tomllib
 from datetime import datetime, timezone
+from importlib import metadata
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Tuple
 
 import requests
-from importlib import metadata
 from flask import current_app, flash, redirect, render_template, request, url_for
-from identity import current_user
 
 from alias_definition import (
     AliasDefinitionError,
@@ -24,7 +23,12 @@ from alias_definition import (
     replace_primary_definition_line,
 )
 from cid_presenter import cid_path, format_cid
-from cid_utils import generate_cid, save_server_definition_as_cid, store_cid_from_bytes, store_cid_from_json
+from cid_utils import (
+    generate_cid,
+    save_server_definition_as_cid,
+    store_cid_from_bytes,
+    store_cid_from_json,
+)
 from db_access import (
     find_entity_interaction,
     get_alias_by_name,
@@ -43,6 +47,8 @@ from db_access import (
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
+from identity import current_user
+from interaction_log import load_interaction_history
 from models import Alias, Secret, Server, Variable
 
 from . import main_bp
@@ -50,7 +56,6 @@ from .core import get_existing_routes
 from .secrets import update_secret_definitions_cid
 from .servers import update_server_definitions_cid
 from .variables import update_variable_definitions_cid
-from interaction_log import load_interaction_history
 
 
 def _normalise_cid(value: Any) -> str:

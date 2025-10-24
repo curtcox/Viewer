@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 import server_execution
-from app import app
 import server_templates
+from app import app
 from server_templates import get_server_templates
 
 

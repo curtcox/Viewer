@@ -11,7 +11,6 @@ from urllib.parse import parse_qs, urlencode
 
 from formdown_renderer import render_formdown_html
 
-
 # Test resources live in the repository root outside of ``tests/``.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FORMDOWN_SHOWCASE_PATH = (

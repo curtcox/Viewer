@@ -1,9 +1,9 @@
 """Tests for error page path formatting and source link labels."""
 from __future__ import annotations
 
+import traceback
 import unittest
 from html.parser import HTMLParser
-import traceback
 from unittest.mock import patch
 
 from app import create_app
@@ -71,13 +71,15 @@ class TestErrorPagePathFormatting(unittest.TestCase):
 
     def test_source_links_use_clean_relative_paths(self) -> None:
         """Rendered stack trace should avoid redundant prefixes and align labels with links."""
+        from routes.core import internal_error
+
+        html_content = None
+        status_code = None
         with self.app.app_context():
             with self.app.test_request_context('/path-formatting-test'):
                 try:
                     _trigger_error_chain()
                 except RuntimeError as exc:
-                    from routes.core import internal_error
-
                     html_content, status_code = internal_error(exc)
 
         self.assertEqual(status_code, 500)
@@ -106,6 +108,8 @@ class TestErrorPagePathFormatting(unittest.TestCase):
 
     def test_removes_project_root_from_unmatched_paths(self) -> None:
         """Even when relative resolution fails, redundant project roots should be stripped."""
+        from routes.core import internal_error
+
         project_root = self.app.root_path.replace('\\', '/')
         problematic_path = f"{project_root}/../external/server_execution.py"
 
@@ -116,6 +120,8 @@ class TestErrorPagePathFormatting(unittest.TestCase):
             line='raise RuntimeError("boom")',
         )
 
+        html_content = None
+        status_code = None
         with self.app.app_context():
             with self.app.test_request_context('/path-formatting-test'):
                 with patch('traceback.extract_tb', return_value=[fake_frame]):
@@ -125,8 +131,6 @@ class TestErrorPagePathFormatting(unittest.TestCase):
                                 try:
                                     raise RuntimeError('boom')
                                 except RuntimeError as exc:
-                                    from routes.core import internal_error
-
                                     html_content, status_code = internal_error(exc)
 
         self.assertEqual(status_code, 500)
