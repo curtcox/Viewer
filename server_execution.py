@@ -10,6 +10,7 @@ from urllib.parse import urljoin, urlsplit
 
 import logfire
 from flask import (
+    Response,
     current_app,
     has_app_context,
     has_request_context,
@@ -591,7 +592,7 @@ def build_request_args() -> Dict[str, Any]:
     }
 
 
-def create_server_invocation_record(user_id: str, server_name: str, result_cid: str):
+def create_server_invocation_record(user_id: str, server_name: str, result_cid: str) -> Optional[ServerInvocation]:
     """Create a ServerInvocation record and persist related metadata."""
     servers_cid = get_current_server_definitions_cid(user_id)
     variables_cid = get_current_variable_definitions_cid(user_id)
@@ -707,7 +708,7 @@ def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, conten
         traceback.print_exc()
 
 
-def _handle_successful_execution(output: Any, content_type: str, server_name: str):
+def _handle_successful_execution(output: Any, content_type: str, server_name: str) -> Response:
     output_bytes = _encode_output(output)
     cid_value = format_cid(generate_cid(output_bytes))
 
@@ -796,7 +797,7 @@ def _render_execution_error_html(
 
 def _handle_execution_exception(
     exc: Exception, code: str, args: Dict[str, Any], server_name: Optional[str]
-):
+) -> Response:
     try:
         html_content = _render_execution_error_html(exc, code, args, server_name)
         response = make_response(html_content)
@@ -826,7 +827,7 @@ def _execute_server_code_common(
     *,
     function_name: Optional[str] = "main",
     allow_fallback: bool = True,
-):
+) -> Optional[Response]:
     args = build_request_args()
 
     prepared = _prepare_invocation(
@@ -857,7 +858,7 @@ def _execute_server_code_common(
 
 
 @logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
-def execute_server_code(server, server_name: str):
+def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
         server.definition,
@@ -870,7 +871,7 @@ def execute_server_code(server, server_name: str):
 
 
 @logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
-def execute_server_code_from_definition(definition_text: str, server_name: str):
+def execute_server_code_from_definition(definition_text: str, server_name: str) -> Optional[Response]:
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
         definition_text,
@@ -883,7 +884,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str):
 
 
 @logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
-def execute_server_function(server, server_name: str, function_name: str):
+def execute_server_function(server: Any, server_name: str, function_name: str) -> Optional[Response]:
     """Execute a named helper function within a server definition."""
 
     return _execute_server_code_common(
@@ -899,7 +900,7 @@ def execute_server_function(server, server_name: str, function_name: str):
 @logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
-):
+) -> Optional[Response]:
     """Execute a helper function from a supplied historical definition."""
 
     return _execute_server_code_common(
@@ -927,7 +928,7 @@ def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]
 def try_server_execution_with_partial(
     path: str,
     history_fetcher: Callable[[str, str], Iterable[Dict[str, Any]]],
-):
+) -> Optional[Any]:
     """Execute a server version referenced by a partial CID."""
     parts = [segment for segment in path.split("/") if segment]
     if len(parts) not in {2, 3}:
@@ -991,7 +992,7 @@ def is_potential_server_path(path: str, existing_routes: Iterable[str]) -> bool:
     return True
 
 
-def try_server_execution(path: str):
+def try_server_execution(path: str) -> Optional[Response]:
     """Execute the server whose name matches the request path."""
     parts = [segment for segment in path.split("/") if segment]
     if not parts:
