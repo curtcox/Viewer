@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
+from typing import Any, Iterable, Optional, Sequence
 from urllib.parse import urlsplit
 
 from alias_matching import PatternError, normalise_pattern
@@ -416,7 +416,7 @@ def summarize_definition_lines(
     return summaries
 
 
-def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
+def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
     """Return all routing rules defined for the supplied alias."""
 
     alias_name = getattr(alias, "name", None) or ""
@@ -546,7 +546,7 @@ def collect_alias_routes(alias) -> Sequence[AliasRouteRule]:
     ]
 
 
-def get_primary_alias_route(alias) -> Optional[AliasRouteRule]:
+def get_primary_alias_route(alias: Any) -> Optional[AliasRouteRule]:
     """Return the primary alias routing rule for the provided alias."""
 
     routes = collect_alias_routes(alias)

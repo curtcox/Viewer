@@ -1,6 +1,9 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
-from flask import request, session
+from typing import Any, Dict
+
+from flask import Response, request, session
+from flask_sqlalchemy.pagination import Pagination
 
 from db_access import (
     count_unique_page_view_paths,
@@ -14,12 +17,12 @@ from identity import current_user
 from models import PageView  # noqa: F401
 
 
-def make_session_permanent():
+def make_session_permanent() -> None:
     """Ensure the user's session is marked as permanent."""
     session.permanent = True
 
 
-def should_track_page_view(response):
+def should_track_page_view(response: Response) -> bool:
     """Determine if the current request should be tracked."""
     if response.status_code != 200:
         return False
@@ -36,7 +39,7 @@ def should_track_page_view(response):
     return True
 
 
-def create_page_view_record():
+def create_page_view_record() -> PageView:
     """Create a page view record for the current request."""
     return PageView(
         user_id=current_user.id,
@@ -47,7 +50,7 @@ def create_page_view_record():
     )
 
 
-def track_page_view(response):
+def track_page_view(response: Response) -> Response:
     """Track page views for authenticated users."""
     try:
         if should_track_page_view(response):
@@ -60,7 +63,7 @@ def track_page_view(response):
     return response
 
 
-def get_user_history_statistics(user_id):
+def get_user_history_statistics(user_id: str) -> Dict[str, Any]:
     """Calculate history statistics for a user."""
     # Get total views count
     total_views = count_user_page_views(user_id)
@@ -78,7 +81,7 @@ def get_user_history_statistics(user_id):
     }
 
 
-def get_paginated_page_views(user_id, page, per_page=50):
+def get_paginated_page_views(user_id: str, page: int, per_page: int = 50) -> Pagination:
     """Get paginated page views for a user."""
     return paginate_user_page_views(user_id, page, per_page=per_page)
 

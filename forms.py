@@ -1,14 +1,16 @@
 import re
+from typing import Any, Optional as OptionalType
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import BooleanField, RadioField, StringField, SubmitField, TextAreaField
+from wtforms.fields.core import Field
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 
 from alias_definition import AliasDefinitionError, parse_alias_definition
 
 
-def _strip_filter(value):
+def _strip_filter(value: Any) -> Any:
     return value.strip() if isinstance(value, str) else value
 
 class FileUploadForm(FlaskForm):
@@ -22,7 +24,7 @@ class FileUploadForm(FlaskForm):
     url = StringField('URL', validators=[Optional()], render_kw={'placeholder': 'https://example.com/file.pdf'})
     submit = SubmitField('Upload')
 
-    def validate(self, extra_validators=None):
+    def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
@@ -74,7 +76,7 @@ class ServerForm(FlaskForm):
     definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Server')
 
-    def validate_name(self, field):
+    def validate_name(self, field: Field) -> None:
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Server name contains invalid characters for URLs')
@@ -87,7 +89,7 @@ class VariableForm(FlaskForm):
     definition = TextAreaField('Variable Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Variable')
 
-    def validate_name(self, field):
+    def validate_name(self, field: Field) -> None:
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Variable name contains invalid characters for URLs')
@@ -123,7 +125,7 @@ class AliasForm(FlaskForm):
     def parsed_definition(self):
         return self._parsed_definition
 
-    def validate(self, extra_validators=None):
+    def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
@@ -147,7 +149,7 @@ class SecretForm(FlaskForm):
     definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
     submit = SubmitField('Save Secret')
 
-    def validate_name(self, field):
+    def validate_name(self, field: Field) -> None:
         # Additional validation to ensure URL safety
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Secret name contains invalid characters for URLs')
@@ -169,7 +171,7 @@ class ExportForm(FlaskForm):
     )
     submit = SubmitField('Generate JSON Export')
 
-    def validate(self, extra_validators=None):
+    def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
@@ -216,7 +218,7 @@ class ImportForm(FlaskForm):
     )
     submit = SubmitField('Import Data')
 
-    def validate(self, extra_validators=None):
+    def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
