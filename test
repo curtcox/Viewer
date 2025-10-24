@@ -16,6 +16,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     env = build_test_environment()
 
+    ruff_command = [sys.executable, "-m", "ruff", "check"]
+    ruff_result = subprocess.call(ruff_command, cwd=str(ROOT_DIR), env=env)
+    if ruff_result != 0:
+        return ruff_result
+
     unit_command = [str(ROOT_DIR / "test-unit"), *argv]
     unit_result = subprocess.call(unit_command, cwd=str(ROOT_DIR), env=env)
     if unit_result != 0:
