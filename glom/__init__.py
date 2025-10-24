@@ -1,7 +1,7 @@
 """Minimal glom-compatible helpers for template execution tests."""
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 
@@ -56,7 +56,7 @@ def glom(target: Any, spec: Any) -> Any:
     current = target
 
     for step in steps:
-        if isinstance(step, Callable):
+        if callable(step):
             current = step(current)
             continue
 
