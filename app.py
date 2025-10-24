@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from logfire.exceptions import LogfireConfigError
 from sqlalchemy import inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -74,7 +75,7 @@ def _build_definition_from_legacy_row(row: dict[str, Any]) -> str:
     return primary_line
 
 
-def _migrate_legacy_alias_table(engine, logger: logging.Logger, columns: set[str]) -> None:
+def _migrate_legacy_alias_table(engine: Engine, logger: logging.Logger, columns: set[str]) -> None:
     from models import Alias
 
     logger.info("Upgrading legacy alias table to definition-based schema")
@@ -123,7 +124,7 @@ def _migrate_legacy_alias_table(engine, logger: logging.Logger, columns: set[str
         connection.execute(text("DROP TABLE alias_legacy"))
 
 
-def _ensure_alias_definition_column(engine, logger: logging.Logger) -> None:
+def _ensure_alias_definition_column(engine: Engine, logger: logging.Logger) -> None:
     """Ensure existing databases have the alias definition column."""
 
     try:
@@ -259,7 +260,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     app.register_blueprint(main_bp)
 
     @app.context_processor
-    def inject_identity():
+    def inject_identity() -> dict[str, Any]:
         """Expose the always-on user to templates."""
 
         return {"current_user": current_user}
@@ -274,9 +275,9 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     # Override Flask's debug mode error handling to use our custom handlers
     # This is necessary because Flask's debug mode bypasses custom error handlers
-    def force_custom_error_handling():
+    def force_custom_error_handling() -> None:
         """Force Flask to use our custom error handlers even in debug mode."""
-        def enhanced_handle_exception(e):
+        def enhanced_handle_exception(e: Exception) -> Any:
             # Always use our custom error handlers, even in debug mode
             if hasattr(e, 'code') and e.code == 404:
                 return not_found_error(e)

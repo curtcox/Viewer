@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, or_
 
 import models
@@ -42,11 +43,11 @@ def get_user_profile_data(user_id: str) -> Dict[str, Any]:
     }
 
 
-def get_user_servers(user_id: str):
+def get_user_servers(user_id: str) -> List[Server]:
     return Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
 
 
-def get_server_by_name(user_id: str, name: str):
+def get_server_by_name(user_id: str, name: str) -> Optional[Server]:
     return Server.query.filter_by(user_id=user_id, name=name).first()
 
 
@@ -71,11 +72,11 @@ def get_first_server_name(user_id: str) -> Optional[str]:
     return fallback.name if fallback else None
 
 
-def get_user_aliases(user_id: str):
+def get_user_aliases(user_id: str) -> List[Alias]:
     return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
 
 
-def get_alias_by_name(user_id: str, name: str):
+def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:
     return Alias.query.filter_by(user_id=user_id, name=name).first()
 
 
@@ -100,7 +101,7 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
     return fallback.name if fallback else None
 
 
-def get_alias_by_target_path(user_id: str, target_path: str):
+def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
     normalized = (target_path or "").strip()
     if not normalized:
         return None
@@ -128,11 +129,11 @@ def get_alias_by_target_path(user_id: str, target_path: str):
     return None
 
 
-def get_user_variables(user_id: str):
+def get_user_variables(user_id: str) -> List[Variable]:
     return Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
 
 
-def get_variable_by_name(user_id: str, name: str):
+def get_variable_by_name(user_id: str, name: str) -> Optional[Variable]:
     return Variable.query.filter_by(user_id=user_id, name=name).first()
 
 
@@ -147,11 +148,11 @@ def get_first_variable_name(user_id: str) -> Optional[str]:
     return variable.name if variable else None
 
 
-def get_user_secrets(user_id: str):
+def get_user_secrets(user_id: str) -> List[Secret]:
     return Secret.query.filter_by(user_id=user_id).order_by(Secret.name).all()
 
 
-def get_secret_by_name(user_id: str, name: str):
+def get_secret_by_name(user_id: str, name: str) -> Optional[Secret]:
     return Secret.query.filter_by(user_id=user_id, name=name).first()
 
 
@@ -182,13 +183,13 @@ def count_user_secrets(user_id: str) -> int:
     return Secret.query.filter_by(user_id=user_id).count()
 
 
-def save_entity(entity):
+def save_entity(entity: Any) -> Any:
     db.session.add(entity)
     db.session.commit()
     return entity
 
 
-def delete_entity(entity):
+def delete_entity(entity: Any) -> None:
     db.session.delete(entity)
     db.session.commit()
 
@@ -473,7 +474,7 @@ def count_unique_page_view_paths(user_id: str) -> int:
     )
 
 
-def get_popular_page_paths(user_id: str, limit: int = 5):
+def get_popular_page_paths(user_id: str, limit: int = 5) -> List[Tuple[str, int]]:
     """Return the most frequently viewed paths for a user."""
 
     # pylint: disable=not-callable  # SQLAlchemy func.count is callable
@@ -487,7 +488,7 @@ def get_popular_page_paths(user_id: str, limit: int = 5):
     )
 
 
-def paginate_user_page_views(user_id: str, page: int, per_page: int = 50):
+def paginate_user_page_views(user_id: str, page: int, per_page: int = 50) -> Pagination:
     """Return paginated page view history for a user."""
 
     return (
@@ -618,7 +619,7 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
     return record
 
 
-def get_user_uploads(user_id: str):
+def get_user_uploads(user_id: str) -> List[CID]:
     """Return all CID uploads for a user ordered from newest to oldest."""
 
     session_owner = getattr(models, "db", db)

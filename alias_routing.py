@@ -4,10 +4,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterable, Optional
+from typing import Any, Generator, Iterable, Optional
 from urllib.parse import urlsplit
 
-from flask import redirect, request
+from flask import Response, redirect, request
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import Map, Rule
 
@@ -81,7 +81,7 @@ class AliasMatch:
     route: AliasRouteRule
 
 
-def _alias_routes_for_user_in_declaration_order(user_id: str):
+def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple[Any, AliasRouteRule], None, None]:
     """Yield alias routes in the order they are declared."""
 
     aliases = get_user_aliases(user_id)
@@ -248,7 +248,7 @@ def _resolve_target_path(route: AliasRouteRule, path: str) -> str:
     return target
 
 
-def try_alias_redirect(path: str, *, alias_match: Optional[AliasMatch] = None):
+def try_alias_redirect(path: str, *, alias_match: Optional[AliasMatch] = None) -> Optional[Response]:
     """Return a redirect response for an alias if one matches the path."""
 
     match = alias_match or find_matching_alias(path)

@@ -12,7 +12,7 @@ class CID(db.Model):
     uploaded_by_user_id = db.Column(db.String, nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<CID {self.path}>'
 
 class PageView(db.Model):
@@ -24,7 +24,7 @@ class PageView(db.Model):
     ip_address = db.Column(db.String(45), nullable=True)  # Support IPv6
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
 
 class Server(db.Model):
@@ -39,7 +39,7 @@ class Server(db.Model):
     # Unique constraint: each user can only have one server with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_server_name'),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Server {self.name} by {self.user_id}>'
 
 
@@ -125,7 +125,7 @@ class Alias(db.Model):
         route = get_primary_alias_route(self)
         return bool(route.ignore_case) if route else False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         target = self.get_primary_target_path()
         return f'<Alias {self.name} -> {target}>'
 
@@ -147,7 +147,7 @@ class EntityInteraction(db.Model):
         index=True,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<EntityInteraction {self.entity_type}:{self.entity_name} {self.action}>'
 
 
@@ -162,7 +162,7 @@ class Variable(db.Model):
     # Unique constraint: each user can only have one variable with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_variable_name'),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Variable {self.name} by {self.user_id}>'
 
 class Secret(db.Model):
@@ -176,7 +176,7 @@ class Secret(db.Model):
     # Unique constraint: each user can only have one secret with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<Secret {self.name} by {self.user_id}>'
 
 class ServerInvocation(db.Model):
@@ -191,5 +191,5 @@ class ServerInvocation(db.Model):
     invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
