@@ -6,7 +6,7 @@ import pytest
 
 from app import app
 import server_execution
-from cid_utils import MermaidRenderLocation
+from cid_utils import MermaidRenderLocation, _render_markdown_document
 from server_templates.definitions import auto_main_markdown
 from text_function_runner import run_text_function
 
@@ -110,3 +110,30 @@ def test_auto_main_markdown_executes_via_server_execution(patched_server_executi
     assert result["content_type"] == "text/html"
     assert "Hello from server execution" in result["output"]
     assert "<main class=\"markdown-body\"" in result["output"]
+
+
+def test_auto_main_markdown_matches_markdown_showcase_template():
+    repo_root = Path(__file__).resolve().parent.parent
+    markdown_sample = (
+        repo_root / "upload_templates" / "contents" / "markdown_showcase.md"
+    ).read_text(encoding="utf-8")
+
+    expected_html = _render_markdown_document(markdown_sample)
+    rendered = auto_main_markdown.main(markdown=markdown_sample)
+
+    assert rendered["content_type"] == "text/html"
+    assert rendered["output"] == expected_html
+
+
+def test_auto_main_markdown_matches_formdown_showcase_template():
+    repo_root = Path(__file__).resolve().parent.parent
+    formdown_sample = (
+        repo_root / "upload_templates" / "contents" / "formdown_showcase.formdown"
+    ).read_text(encoding="utf-8")
+
+    expected_html = _render_markdown_document(formdown_sample)
+    rendered = auto_main_markdown.main(markdown=formdown_sample)
+
+    assert rendered["content_type"] == "text/html"
+    assert rendered["output"] == expected_html
+    assert "<div class=\"formdown-document\"" in rendered["output"]
