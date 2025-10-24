@@ -35,8 +35,9 @@ def test_echo_server_lookup_logic():
 
     print("✓ Path correctly identified as potential server")
 
-    # Assertion instead of return
+    # Assertion and return
     assert potential_server_name == "echo"
+    return potential_server_name
 
 def test_server_execution_requirements():
     """Test what's required for server execution to work"""
@@ -51,8 +52,8 @@ def test_server_execution_requirements():
 
 def test_cid_generation_logic():
     """Test CID generation for echo output"""
-    import hashlib
     import base64
+    import hashlib
 
     # Simulate echo server output
     output = "Hello, World!"
@@ -79,11 +80,12 @@ def test_cid_generation_logic():
     print(f"Content type: {content_type}")
     print(f"Expected redirect URL: {redirect_url}")
 
-    # Assertions instead of returns
+    # Assertions and return
     assert cid.startswith("bafybei")
     assert len(cid) > 20  # CID should be reasonably long
     assert redirect_url.endswith(".html")
     assert redirect_url.startswith(f"/{cid}")
+    return cid, redirect_url
 
 def test_missing_echo_server_scenario():
     """Test what happens when echo server doesn't exist"""

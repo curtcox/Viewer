@@ -1,6 +1,5 @@
 """Secret management routes and helpers."""
 from flask import abort, flash, redirect, render_template, request, url_for
-from identity import current_user
 
 from cid_utils import (
     get_current_secret_definitions_cid,
@@ -8,8 +7,9 @@ from cid_utils import (
 )
 from db_access import delete_entity, get_secret_by_name, get_user_secrets
 from forms import SecretForm
-from models import Secret
+from identity import current_user
 from interaction_log import load_interaction_history
+from models import Secret
 
 from . import main_bp
 from .entities import create_entity, update_entity

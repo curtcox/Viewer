@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """End-to-end tests for error page display with comprehensive stack traces and source links."""
 
-import unittest
-from unittest.mock import patch, MagicMock
 import re
+import unittest
+from unittest.mock import MagicMock, patch
 
 from app import create_app
 from database import db
@@ -169,10 +169,10 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
 
     def test_source_browser_accessibility_from_error_links(self):
         """Test that source links from error pages actually work."""
+        from routes.core import internal_error
 
         with self.app.test_request_context('/test-source-links'):
             try:
-                from routes.core import internal_error  # This should appear in traceback
                 raise RuntimeError('Error to generate source links')
             except RuntimeError as exc:
                 html_content, status_code = internal_error(exc)

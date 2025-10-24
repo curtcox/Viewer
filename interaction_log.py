@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import timezone
-from typing import Iterable, List, Dict, Any
+from typing import Any, Dict, Iterable, List
 
 from db_access import get_recent_entity_interactions
 from models import EntityInteraction
-
 
 _PREVIEW_LENGTH = 80
 

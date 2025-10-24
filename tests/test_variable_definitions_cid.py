@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 
-import unittest
-import tempfile
-import os
 import json
+import os
+import tempfile
+import unittest
+
 from app import create_app, db
-from models import Variable, CID
 from cid_utils import (
     generate_all_variable_definitions_json,
-    store_variable_definitions_cid,
     get_current_variable_definitions_cid,
+    store_variable_definitions_cid,
 )
+from models import CID, Variable
 from routes.variables import update_variable_definitions_cid
+
 
 class TestVariableDefinitionsCID(unittest.TestCase):
     def setUp(self):
@@ -33,10 +35,10 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         self.app_context.push()
 
         db.create_all()
-        
+
         # Track a default user identifier for ownership fields
         self.test_user_id = 'test_user_123'
-        
+
         # Create test variables
         self.variable1 = Variable(
             name='test_var1',
@@ -44,7 +46,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
             user_id=self.test_user_id
         )
         self.variable2 = Variable(
-            name='test_var2', 
+            name='test_var2',
             definition='value2',
             user_id=self.test_user_id
         )
@@ -63,17 +65,17 @@ class TestVariableDefinitionsCID(unittest.TestCase):
     def test_generate_all_variable_definitions_json_with_variables(self):
         """Test JSON generation with existing variables"""
         json_content = generate_all_variable_definitions_json(self.test_user_id)
-        
+
         # Parse the JSON to verify structure
         data = json.loads(json_content)
-        
+
         # Should contain both variables
         self.assertEqual(len(data), 2)
         self.assertIn('test_var1', data)
         self.assertIn('test_var2', data)
         self.assertEqual(data['test_var1'], 'value1')
         self.assertEqual(data['test_var2'], 'value2')
-        
+
         # Verify JSON formatting (sorted keys, proper indentation)
         expected_json = json.dumps({
             'test_var1': 'value1',
@@ -88,7 +90,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         json_content = generate_all_variable_definitions_json(empty_user_id)
         data = json.loads(json_content)
-        
+
         # Should be empty dictionary
         self.assertEqual(data, {})
         self.assertEqual(json_content, '{}')
@@ -101,10 +103,10 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         db.session.add(var_z)
         db.session.add(var_a)
         db.session.commit()
-        
+
         json_content = generate_all_variable_definitions_json(self.test_user_id)
         data = json.loads(json_content)
-        
+
         # Keys should be in alphabetical order
         keys = list(data.keys())
         self.assertEqual(keys, ['a_var', 'test_var1', 'test_var2', 'z_var'])
@@ -112,16 +114,16 @@ class TestVariableDefinitionsCID(unittest.TestCase):
     def test_store_variable_definitions_cid(self):
         """Test storing variable definitions as CID"""
         cid = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Should return a valid CID string
         self.assertIsInstance(cid, str)
         self.assertTrue(len(cid) > 0)
-        
+
         # CID record should exist in database
         cid_record = CID.query.filter_by(path=f"/{cid}").first()
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.uploaded_by_user_id, self.test_user_id)
-        
+
         # Verify the stored content matches expected JSON
         expected_json = generate_all_variable_definitions_json(self.test_user_id)
         stored_content = cid_record.file_data.decode('utf-8')
@@ -131,13 +133,13 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         """Test that identical content doesn't create duplicate CIDs"""
         # Store CID first time
         cid1 = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Store again with same content
         cid2 = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Should return same CID
         self.assertEqual(cid1, cid2)
-        
+
         # Should only have one CID record
         cid_records = CID.query.filter_by(path=f"/{cid1}").all()
         self.assertEqual(len(cid_records), 1)
@@ -146,7 +148,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         """Test getting CID when it already exists"""
         # First store a CID
         original_cid = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Get current CID should return the same one
         current_cid = get_current_variable_definitions_cid(self.test_user_id)
         self.assertEqual(current_cid, original_cid)
@@ -155,11 +157,11 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         """Test that CID is created if it doesn't exist"""
         # Get CID without storing first
         cid = get_current_variable_definitions_cid(self.test_user_id)
-        
+
         # Should return a valid CID
         self.assertIsInstance(cid, str)
         self.assertTrue(len(cid) > 0)
-        
+
         # CID should exist in database
         cid_record = CID.query.filter_by(path=f"/{cid}").first()
         self.assertIsNotNone(cid_record)
@@ -168,18 +170,18 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         """Test updating CID after variable changes"""
         # Store initial CID
         original_cid = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Add a new variable
         new_var = Variable(name='new_var', definition='new_value', user_id=self.test_user_id)
         db.session.add(new_var)
         db.session.commit()
-        
+
         # Update CID
         updated_cid = update_variable_definitions_cid(self.test_user_id)
-        
+
         # Should be different from original
         self.assertNotEqual(updated_cid, original_cid)
-        
+
         # New CID should contain the new variable
         cid_record = CID.query.filter_by(path=f"/{updated_cid}").first()
         stored_content = cid_record.file_data.decode('utf-8')
@@ -201,21 +203,21 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         # Both users should get same CID for identical content
         cid1 = store_variable_definitions_cid(self.test_user_id)
         cid2 = store_variable_definitions_cid(user2_id)
-        
+
         self.assertEqual(cid1, cid2)
 
     def test_cid_uniqueness_per_content(self):
         """Test that different variable content produces different CIDs"""
         # Store CID for current variables
         cid1 = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Modify a variable
         self.variable1.definition = 'modified_value1'
         db.session.commit()
-        
+
         # Store CID again
         cid2 = store_variable_definitions_cid(self.test_user_id)
-        
+
         # Should be different CIDs
         self.assertNotEqual(cid1, cid2)
 

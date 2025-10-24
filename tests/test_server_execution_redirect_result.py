@@ -1,7 +1,7 @@
 """Tests covering server execution redirects for preview pages."""
 
-from datetime import datetime, timezone
 import unittest
+from datetime import datetime, timezone
 
 from app import create_app
 from database import db

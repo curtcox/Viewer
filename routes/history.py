@@ -1,10 +1,9 @@
 """History-related routes."""
 import json
-from typing import Dict, Iterable, List, Optional
 from types import SimpleNamespace
+from typing import Dict, Iterable, List, Optional
 
 from flask import render_template, request
-from identity import current_user
 
 from analytics import get_paginated_page_views, get_user_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
@@ -13,6 +12,7 @@ from db_access import (
     get_cids_by_paths,
     get_user_server_invocations_by_result_cids,
 )
+from identity import current_user
 from models import ServerInvocation
 
 from . import main_bp

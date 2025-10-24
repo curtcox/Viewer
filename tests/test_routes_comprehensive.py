@@ -6,10 +6,10 @@ import json
 import os
 import re
 import unittest
-from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
 
 from flask import current_app
 
@@ -18,22 +18,22 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
-from app import create_app
-from database import db
+import server_execution
 from alias_definition import format_primary_alias_line
+from app import create_app
+from cid_utils import CID_LENGTH, generate_cid
+from database import db
 from models import (
     CID,
+    Alias,
     PageView,
+    Secret,
     Server,
     ServerInvocation,
     Variable,
-    Secret,
-    Alias,
 )
-from cid_utils import CID_LENGTH, generate_cid
-import server_execution
-from server_templates import get_server_templates
 from routes.core import _build_cross_reference_data
+from server_templates import get_server_templates
 
 
 def _alias_definition(
@@ -1972,7 +1972,7 @@ class TestSourceRoutes(BaseTestCase):
             from routes.source import _get_all_project_files, _get_tracked_paths
             _get_all_project_files.cache_clear()
             _get_tracked_paths.cache_clear()
-            
+
             response = self.client.get('/source/untracked_test.py')
             # Should now serve untracked project files with enhanced functionality
             self.assertEqual(response.status_code, 200)

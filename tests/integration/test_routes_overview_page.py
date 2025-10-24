@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import pytest
 
+from alias_definition import format_primary_alias_line
 from database import db
 from identity import ensure_default_user
-from alias_definition import format_primary_alias_line
 from models import Alias, Server
 
 pytestmark = pytest.mark.integration

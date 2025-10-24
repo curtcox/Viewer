@@ -5,8 +5,8 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from identity import ensure_default_user
 from db_access import get_alias_by_name, get_server_by_name
+from identity import ensure_default_user
 from models import Alias, Server
 
 

@@ -1,8 +1,11 @@
 # ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
 # This template executes inside the Viewer runtime where `request` and `context` are provided.
-from jinja2 import Environment, FunctionLoader
-import urllib.request
 import json
+import urllib.request
+
+from jinja2 import Environment, FunctionLoader
+
 
 def load_from_url(name):
     with urllib.request.urlopen(name) as r:

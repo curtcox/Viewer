@@ -12,7 +12,7 @@ os.environ['TESTING'] = 'True'
 
 from app import app
 from identity import ExternalUser
-from models import db, CID, PageView, Server, Variable, Secret
+from models import CID, PageView, Secret, Server, Variable, db
 
 
 class TestModels(unittest.TestCase):

@@ -1,26 +1,25 @@
 """Workspace-wide search routes."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import re
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from flask import jsonify, render_template, request, url_for
 from markupsafe import escape
 
-from cid_presenter import cid_path, format_cid
 from alias_definition import collect_alias_routes
+from cid_presenter import cid_path, format_cid
 from db_access import (
     get_user_aliases,
-    get_user_servers,
     get_user_secrets,
+    get_user_servers,
     get_user_uploads,
     get_user_variables,
 )
 from identity import current_user
 
 from . import main_bp
-
 
 _CATEGORY_CONFIG: Dict[str, Dict[str, Any]] = {
     "aliases": {"label": "Aliases"},

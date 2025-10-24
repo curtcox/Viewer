@@ -18,7 +18,6 @@ from database import db
 from identity import ensure_default_user
 from models import CID, Server
 
-
 _scenario_state: dict[str, Any] = {}
 _created_apps: list[Any] = []
 _created_db_paths: list[Path] = []

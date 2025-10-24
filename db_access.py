@@ -13,8 +13,8 @@ from alias_definition import (
 )
 from database import db
 from models import (
-    Alias,
     CID,
+    Alias,
     EntityInteraction,
     PageView,
     Secret,
@@ -464,6 +464,7 @@ def count_user_page_views(user_id: str) -> int:
 def count_unique_page_view_paths(user_id: str) -> int:
     """Return the number of unique paths viewed by a user."""
 
+    # pylint: disable=not-callable  # SQLAlchemy func.count is callable
     return (
         db.session.query(func.count(func.distinct(PageView.path)))
         .filter_by(user_id=user_id)
@@ -475,6 +476,7 @@ def count_unique_page_view_paths(user_id: str) -> int:
 def get_popular_page_paths(user_id: str, limit: int = 5):
     """Return the most frequently viewed paths for a user."""
 
+    # pylint: disable=not-callable  # SQLAlchemy func.count is callable
     return (
         db.session.query(PageView.path, func.count(PageView.path).label('count'))
         .filter_by(user_id=user_id)

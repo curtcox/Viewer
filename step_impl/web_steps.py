@@ -15,6 +15,8 @@ _client: Optional[FlaskClient] = None
 @before_suite()
 def setup_suite() -> None:
     """Create a Flask test client once for the entire suite."""
+    # pylint: disable=global-statement
+    # Gauge test framework requires global state to share context between steps
     global _client
     app = create_app({"TESTING": True})
     _client = app.test_client()

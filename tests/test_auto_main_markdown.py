@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from app import app
 import server_execution
+from app import app
 from cid_utils import MermaidRenderLocation, _render_markdown_document
 from server_templates.definitions import auto_main_markdown
 from text_function_runner import run_text_function
@@ -99,7 +99,7 @@ return auto_main_markdown.main(markdown=markdown)
 
 
 def test_auto_main_markdown_executes_via_server_execution(patched_server_execution):
-    definition = Path("server_templates/definitions/auto_main_markdown.py").read_text()
+    definition = Path("server_templates/definitions/auto_main_markdown.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/markdown", json={"markdown": "Hello from server execution"}):
         result = server_execution.execute_server_code_from_definition(

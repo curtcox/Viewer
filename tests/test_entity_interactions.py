@@ -5,8 +5,8 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
+from db_access import get_recent_entity_interactions, record_entity_interaction
 from identity import ensure_default_user
-from db_access import record_entity_interaction, get_recent_entity_interactions
 
 
 class TestEntityInteractions(unittest.TestCase):

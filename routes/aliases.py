@@ -5,20 +5,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit
 
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
-from identity import current_user
-
-from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
-from entity_references import extract_references_from_target
-from forms import AliasForm
-from models import Alias
 import logfire
-from cid_presenter import extract_cid_from_path
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 
-from . import main_bp
-from .core import derive_name_from_path, get_existing_routes
-from interaction_log import load_interaction_history
-from alias_matching import evaluate_test_strings, matches_path
 from alias_definition import (
     AliasDefinitionError,
     DefinitionLineSummary,
@@ -29,6 +18,17 @@ from alias_definition import (
     replace_primary_definition_line,
     summarize_definition_lines,
 )
+from alias_matching import evaluate_test_strings, matches_path
+from cid_presenter import extract_cid_from_path
+from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
+from entity_references import extract_references_from_target
+from forms import AliasForm
+from identity import current_user
+from interaction_log import load_interaction_history
+from models import Alias
+
+from . import main_bp
+from .core import derive_name_from_path, get_existing_routes
 
 
 def _alias_name_conflicts_with_routes(name: str) -> bool:

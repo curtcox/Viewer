@@ -39,11 +39,11 @@ def _get_all_project_files(root_path: str) -> frozenset[str]:
     """Return all project files for comprehensive source browsing."""
     root = Path(root_path)
     project_files = set()
-    
+
     try:
         # Get all source files recursively, excluding common non-source directories
         exclude_dirs = {'.git', '__pycache__', '.pytest_cache', 'venv', '.venv', 'node_modules', '.tox'}
-        
+
         for pattern in [
             "*.py",
             "*.html",
@@ -64,14 +64,14 @@ def _get_all_project_files(root_path: str) -> frozenset[str]:
                     # Skip files in excluded directories
                     if any(excluded in file_path.parts for excluded in exclude_dirs):
                         continue
-                    
+
                     relative = file_path.relative_to(root).as_posix()
                     project_files.add(relative)
                 except ValueError:
                     continue
     except Exception:
         pass
-    
+
     return frozenset(project_files)
 
 

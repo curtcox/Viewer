@@ -8,7 +8,6 @@ import shlex
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-
 _FIELD_PATTERN = re.compile(
     r"^@(?P<name>[a-zA-Z0-9_]+)(?:\((?P<label>[^)]*)\))?:\s*\[(?P<descriptor>[^\]]+)\]$"
 )

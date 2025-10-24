@@ -32,7 +32,7 @@ def inspect_database():
         print(f"Database URL: {app.config['SQLALCHEMY_DATABASE_URI']}")
         print(f"Generated at: {datetime.now()}")
         print()
-        
+
         # Table counts
         counters = [
             ("CIDs", count_cids),
@@ -48,7 +48,7 @@ def inspect_database():
             count = counter()
             print(f"{name:<20}: {count:>8}")
         print()
-        
+
         # Recent CIDs
         print("RECENT CID RECORDS (Last 10):")
         print("-" * 50)
@@ -64,7 +64,7 @@ def inspect_database():
                 print()
         else:
             print("No CID records found.")
-        
+
         # User records are now managed externally; provide guidance instead of data.
         print("USER DIRECTORY:")
         print("-" * 30)
@@ -81,7 +81,7 @@ def show_cid_details(cid_path=None):
             cid = get_cid_by_path(cid_path)
         else:
             cid = get_first_cid()
-        
+
         if cid:
             print(f"CID DETAILS: {cid.path}")
             print("-" * 40)

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from database import db
 from alias_definition import format_primary_alias_line
+from database import db
 from models import Alias
 
 pytestmark = pytest.mark.integration

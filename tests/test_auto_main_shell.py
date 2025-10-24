@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from app import app
 import server_execution
+from app import app
 from server_templates.definitions import auto_main_shell
 from text_function_runner import run_text_function
 
@@ -60,7 +60,7 @@ return auto_main_shell.main(command=command)
 
 
 def test_auto_main_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("server_templates/definitions/auto_main_shell.py").read_text()
+    definition = Path("server_templates/definitions/auto_main_shell.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/shell", json={"command": "echo server-execution"}):
         result = server_execution.execute_server_code_from_definition(

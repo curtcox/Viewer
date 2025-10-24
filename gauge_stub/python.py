@@ -17,7 +17,7 @@ class StepDefinition:
     named_groups: Dict[str, int]
 
     def match(self, step_text: str) -> Optional["StepMatch"]:
-        match = self.regex.fullmatch(step_text)
+        match = self.regex.fullmatch(step_text)  # pylint: disable=no-member  # re.Pattern has fullmatch
         if match is None:
             return None
         args = [match.group(index) for index in self.positional_groups]

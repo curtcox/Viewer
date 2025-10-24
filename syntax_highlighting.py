@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from pygments import highlight
-from pygments.formatters import HtmlFormatter
+from pygments.formatters import HtmlFormatter  # pylint: disable=no-name-in-module  # HtmlFormatter exists
 from pygments.lexers import get_lexer_by_name, get_lexer_for_filename
 from pygments.lexers.special import TextLexer
 from pygments.util import ClassNotFound

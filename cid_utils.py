@@ -1,8 +1,8 @@
 import base64
 import binascii
+import hashlib
 import html
 import io
-import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -22,7 +22,6 @@ else:
 
 from cid_presenter import cid_path, format_cid
 from formdown_renderer import render_formdown_html
-
 
 CID_CHARACTER_CLASS = "A-Za-z0-9_-"
 CID_LENGTH_PREFIX_BYTES = 6
@@ -54,9 +53,9 @@ try:
     from db_access import (
         create_cid_record,
         get_cid_by_path,
+        get_user_secrets,
         get_user_servers,
         get_user_variables,
-        get_user_secrets,
     )
 except (RuntimeError, ImportError):
     create_cid_record = None
@@ -67,15 +66,15 @@ except (RuntimeError, ImportError):
 
 
 def _ensure_db_access():
+    # pylint: disable=global-statement
+    # Lazy import pattern to avoid circular dependencies between cid_utils and db_access
     global create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets
     if None in (create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets):
-        from db_access import (
-            create_cid_record as _create_cid_record,
-            get_cid_by_path as _get_cid_by_path,
-            get_user_servers as _get_user_servers,
-            get_user_variables as _get_user_variables,
-            get_user_secrets as _get_user_secrets,
-        )
+        from db_access import create_cid_record as _create_cid_record
+        from db_access import get_cid_by_path as _get_cid_by_path
+        from db_access import get_user_secrets as _get_user_secrets
+        from db_access import get_user_servers as _get_user_servers
+        from db_access import get_user_variables as _get_user_variables
 
         if create_cid_record is None:
             create_cid_record = _create_cid_record
@@ -289,9 +288,9 @@ def process_url_upload(form):
         return file_content, mime_type
 
     except requests.exceptions.RequestException as e:
-        raise ValueError(f"Failed to download from URL: {str(e)}")
+        raise ValueError(f"Failed to download from URL: {str(e)}") from e
     except Exception as e:
-        raise ValueError(f"Error processing URL: {str(e)}")
+        raise ValueError(f"Error processing URL: {str(e)}") from e
 
 
 def save_server_definition_as_cid(definition, user_id):
@@ -313,15 +312,15 @@ def store_cid_from_json(json_content, user_id):
     json_bytes = json_content.encode('utf-8')
     return store_cid_from_bytes(json_bytes, user_id)
 
-def store_cid_from_bytes(bytes, user_id):
+def store_cid_from_bytes(content_bytes, user_id):
     """Store content in a CID record and return the CID"""
     _ensure_db_access()
-    cid_value = format_cid(generate_cid(bytes))
+    cid_value = format_cid(generate_cid(content_bytes))
 
     cid_record_path = cid_path(cid_value)
     content = get_cid_by_path(cid_record_path) if cid_record_path else None
     if not content:
-        create_cid_record(cid_value, bytes, user_id)
+        create_cid_record(cid_value, content_bytes, user_id)
 
     return cid_value
 
@@ -807,7 +806,7 @@ def _render_markdown_document(text):
     """Render Markdown text to a standalone HTML document."""
     converted = _convert_github_relative_links(text)
     converted, _ = _replace_mermaid_fences(converted)
-    converted, has_formdown = _replace_formdown_fences(converted)
+    converted, _ = _replace_formdown_fences(converted)
     body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
     title = _extract_markdown_title(text)
     formdown_script = ""

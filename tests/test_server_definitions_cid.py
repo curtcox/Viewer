@@ -1,11 +1,11 @@
-import unittest
 import json
+import unittest
 from unittest.mock import Mock, patch
 
 from cid_utils import (
     generate_all_server_definitions_json,
-    store_server_definitions_cid,
     get_current_server_definitions_cid,
+    store_server_definitions_cid,
 )
 from routes.servers import update_server_definitions_cid
 
@@ -17,12 +17,12 @@ class TestServerDefinitionsCID(unittest.TestCase):
         self.mock_db = Mock()
         self.mock_user = Mock()
         self.mock_user.id = 'test_user_123'
-        
+
         self.mock_server1 = Mock()
         self.mock_server1.name = 'hello_world'
         self.mock_server1.definition = 'print("Hello World")'
         self.mock_server1.user_id = 'test_user_123'
-        
+
         self.mock_server2 = Mock()
         self.mock_server2.name = 'api_server'
         self.mock_server2.definition = 'def handle_request():\n    return {"status": "ok"}'
@@ -36,20 +36,20 @@ class TestServerDefinitionsCID(unittest.TestCase):
     def test_generate_all_server_definitions_json(self, mock_get_servers):
         """Test generating JSON of all server definitions for a user"""
         mock_get_servers.return_value = [self.mock_server1, self.mock_server2]
-        
+
         json_data = generate_all_server_definitions_json('test_user_123')
-        
+
         # Parse the JSON to verify structure
         data = json.loads(json_data)
-        
+
         # Should contain both servers
         self.assertIn('hello_world', data)
         self.assertIn('api_server', data)
-        
+
         # Check server definitions
         self.assertEqual(data['hello_world'], 'print("Hello World")')
         self.assertEqual(data['api_server'], 'def handle_request():\n    return {"status": "ok"}')
-        
+
         # Should be valid JSON
         self.assertIsInstance(data, dict)
 
@@ -57,10 +57,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
     def test_generate_all_server_definitions_json_empty(self, mock_get_servers):
         """Test generating JSON when user has no servers"""
         mock_get_servers.return_value = []
-        
+
         json_data = generate_all_server_definitions_json('empty_user_123')
         data = json.loads(json_data)
-        
+
         # Should be empty dict
         self.assertEqual(data, {})
 
@@ -80,7 +80,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         mock_create_cid.return_value = Mock()
 
         cid_path = store_server_definitions_cid('test_user_123')
-        
+
         # Should return a CID path
         self.assertIsInstance(cid_path, str)
         self.assertTrue(len(cid_path) > 0)
@@ -99,17 +99,17 @@ class TestServerDefinitionsCID(unittest.TestCase):
 
         # Mock CID query to return existing CID
         mock_get_cid.return_value = Mock()
-        
+
         cid_path = get_current_server_definitions_cid('test_user_123')
         self.assertIsNotNone(cid_path)
         self.assertIsInstance(cid_path, str)
-        
+
     @patch('routes.servers.store_server_definitions_cid')
     def test_update_server_definitions_cid(self, mock_store_cid):
         """Test updating server definitions CID when servers change"""
         # Mock the store function to return different CIDs
         mock_store_cid.return_value = 'bafybeihelloworld123456789012345678901234567890123456'
-        
+
         # Should call store function to update CID
         update_server_definitions_cid('test_user_123')
         mock_store_cid.assert_called_once_with('test_user_123')

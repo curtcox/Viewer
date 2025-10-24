@@ -3,7 +3,6 @@ from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Tuple
 
 from flask import abort, flash, redirect, render_template, request, url_for
-from identity import current_user
 
 from cid_utils import (
     get_current_variable_definitions_cid,
@@ -11,8 +10,9 @@ from cid_utils import (
 )
 from db_access import delete_entity, get_user_variables, get_variable_by_name
 from forms import VariableForm
-from models import Variable
+from identity import current_user
 from interaction_log import load_interaction_history
+from models import Variable
 
 from . import main_bp
 from .entities import create_entity, update_entity

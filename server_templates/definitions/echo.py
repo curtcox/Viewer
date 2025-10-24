@@ -1,6 +1,8 @@
 # ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
 # This template executes inside the Viewer runtime where `request` and `context` are provided.
 from html import escape
+
 
 def dict_to_html_ul(data):
     if not isinstance(data, dict):

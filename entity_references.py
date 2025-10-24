@@ -1,8 +1,8 @@
 """Utilities for extracting cross-entity references from text content."""
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional, Sequence
 import re
+from typing import Dict, Iterable, List, Optional, Sequence
 from urllib.parse import urlsplit
 
 from flask import url_for
@@ -11,13 +11,12 @@ from cid_presenter import cid_path, format_cid
 from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
     get_alias_by_name,
-    get_cids_by_paths,
     get_cid_by_path,
+    get_cids_by_paths,
     get_server_by_name,
     get_user_aliases,
     get_user_servers,
 )
-
 
 ReferenceMap = Dict[str, List[Dict[str, str]]]
 

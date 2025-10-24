@@ -1,22 +1,19 @@
+import logging
 import os
 from os import getenv
-import logging
 from typing import Any, Optional
 
-from flask import Flask
-from werkzeug.middleware.proxy_fix import ProxyFix
-from dotenv import load_dotenv
-
 import logfire
+from dotenv import load_dotenv
+from flask import Flask
 from logfire.exceptions import LogfireConfigError
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
+from werkzeug.middleware.proxy_fix import ProxyFix
 
+from ai_defaults import ensure_ai_stub_for_all_users
 from alias_definition import format_primary_alias_line, replace_primary_definition_line
 from alias_matching import PatternError, normalise_pattern
-from database import db, init_db
-from ai_defaults import ensure_ai_stub_for_all_users
-from identity import current_user, ensure_default_user
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -26,6 +23,8 @@ from cid_presenter import (
     is_probable_cid_path,
     render_cid_link,
 )
+from database import db, init_db
+from identity import current_user, ensure_default_user
 from link_presenter import (
     alias_full_url,
     alias_path,
@@ -291,7 +290,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     force_custom_error_handling()
 
     with app.app_context():
-        import models  # noqa: F401 ensure models are registered
+        import models  # noqa: F401  # pylint: disable=unused-import  # ensure models are registered
 
         db.create_all()
         logging.info("Database tables created")

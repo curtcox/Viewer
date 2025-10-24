@@ -1,9 +1,10 @@
 # ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
 # This template executes inside the Viewer runtime where `request` and `context` are provided.
-from flask import request as flask_request
-import requests
 from urllib.parse import urlsplit, urlunsplit
 
+import requests
+from flask import request as flask_request
 
 PLACEHOLDER_TARGET_URL = "https://example.com/replace-me"
 # Update this value to point at the upstream service you want to proxy to when

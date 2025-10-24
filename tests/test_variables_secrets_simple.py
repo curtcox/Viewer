@@ -66,9 +66,10 @@ def test_current_behavior():
     print(f"\nVariables in string: {str(variables)}")
     print(f"Secrets in string: {str(secrets)}")
 
-    # Assertions instead of return
+    # Assertions and return
     assert len(variables) == 2
     assert len(secrets) == 1
+    return args
 
 def test_expected_behavior():
     """Test what should happen with variables and secrets"""
@@ -112,9 +113,10 @@ def test_expected_behavior():
     print(f"\nVariables in string: {str(variables)}")
     print(f"Secrets in string: {str(secrets)}")
 
-    # Assertions instead of return
+    # Assertions and return
     assert len(variables) == 2
     assert len(secrets) == 1
+    return args
 
 def demonstrate_issue():
     """Demonstrate the core issue"""

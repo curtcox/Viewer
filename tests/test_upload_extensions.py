@@ -1,6 +1,7 @@
+import io
 import unittest
 from unittest.mock import Mock, patch
-import io
+
 from app import create_app, db
 from cid_utils import CID_LENGTH, process_file_upload
 
@@ -15,7 +16,7 @@ class TestUploadExtensions(unittest.TestCase):
         })
 
         self.client = self.app.test_client()
-        
+
         with self.app.app_context():
             db.create_all()
             self.test_user_id = 'test_user_123'
@@ -34,9 +35,9 @@ class TestUploadExtensions(unittest.TestCase):
         mock_file.filename = 'test_document.pdf'
         mock_file.read.return_value = b'test file content'
         form.file.data = mock_file
-        
+
         content, filename = process_file_upload(form)
-        
+
         self.assertEqual(content, b'test file content')
         self.assertEqual(filename, 'test_document.pdf')
 
@@ -48,9 +49,9 @@ class TestUploadExtensions(unittest.TestCase):
         mock_file.filename = None
         mock_file.read.return_value = b'test file content'
         form.file.data = mock_file
-        
+
         content, filename = process_file_upload(form)
-        
+
         self.assertEqual(content, b'test file content')
         self.assertEqual(filename, 'upload')
 
@@ -66,11 +67,11 @@ class TestUploadExtensions(unittest.TestCase):
                 'text_content': 'This is some test text content',
                 'submit': 'Upload'
             }, follow_redirects=False)
-            
+
             # Should render upload_success.html template
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'Upload Successful', response.data)
-            
+
             # Check that the response contains .txt extension in the view URL
             self.assertIn(b'.txt', response.data)
 
@@ -83,18 +84,18 @@ class TestUploadExtensions(unittest.TestCase):
             # Create a mock file with .pdf extension
             file_data = io.BytesIO(b'PDF file content')
             file_data.name = 'document.pdf'
-            
+
             # Simulate file upload
             response = self.client.post('/upload', data={
                 'upload_type': 'file',
                 'file': (file_data, 'document.pdf'),
                 'submit': 'Upload'
             }, follow_redirects=False)
-            
+
             # Should render upload_success.html template
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'Upload Successful', response.data)
-            
+
             # Check that the response contains .pdf extension in the view URL
             self.assertIn(b'.pdf', response.data)
 
@@ -107,18 +108,18 @@ class TestUploadExtensions(unittest.TestCase):
             # Create a mock file without extension
             file_data = io.BytesIO(b'File content without extension')
             file_data.name = 'document'
-            
+
             # Simulate file upload
             response = self.client.post('/upload', data={
                 'upload_type': 'file',
                 'file': (file_data, 'document'),
                 'submit': 'Upload'
             }, follow_redirects=False)
-            
+
             # Should render upload_success.html template
             self.assertEqual(response.status_code, 200)
             self.assertIn(b'Upload Successful', response.data)
-            
+
             # Should not have any extension in the view URL (no .txt, .pdf, etc.)
             response_text = response.data.decode('utf-8')
             # The CID should appear without any extension and match the canonical length

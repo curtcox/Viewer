@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import pytest
 
+from alias_definition import format_primary_alias_line
 from cid_utils import generate_cid
 from database import db
-from alias_definition import format_primary_alias_line
-from models import Alias, CID, Server
-
+from models import CID, Alias, Server
 
 pytestmark = pytest.mark.integration
 
@@ -23,7 +22,7 @@ def test_index_page_displays_cross_reference_dashboard(
         cid_value = generate_cid(b"Integration cross-reference sample")
         cid_record = CID(
             path=f"/{cid_value}",
-            file_data=b"Integration cross-reference sample", 
+            file_data=b"Integration cross-reference sample",
             uploaded_by_user_id="default-user",
         )
         alias = Alias(

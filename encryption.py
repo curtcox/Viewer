@@ -4,7 +4,8 @@ from __future__ import annotations
 import base64
 import os
 from hashlib import sha256
-from hmac import compare_digest, new as hmac_new
+from hmac import compare_digest
+from hmac import new as hmac_new
 
 _SECRET_IV_SIZE = 16
 _SECRET_MAC_SIZE = 32

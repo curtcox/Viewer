@@ -9,7 +9,6 @@ from cid_presenter import cid_path
 from database import db
 from models import CID, ServerInvocation
 
-
 pytestmark = pytest.mark.integration
 
 

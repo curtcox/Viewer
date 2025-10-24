@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -9,7 +9,6 @@ os.environ.setdefault("SESSION_SECRET", "test-secret-key")
 
 from flask import session
 
-from app import app, db
 from analytics import (
     create_page_view_record,
     get_paginated_page_views,
@@ -18,6 +17,7 @@ from analytics import (
     should_track_page_view,
     track_page_view,
 )
+from app import app, db
 from models import PageView
 
 

@@ -72,6 +72,8 @@ def _create_default_user() -> ExternalUser:
 def ensure_default_user() -> ExternalUser:
     """Public helper to ensure the default user exists."""
 
+    # pylint: disable=global-statement
+    # Singleton pattern for default user - needs global state
     global _default_user, _cached_default_user
     if _default_user is None:
         _default_user = _create_default_user()
@@ -88,6 +90,8 @@ def ensure_default_user() -> ExternalUser:
 def _load_current_user() -> ExternalUser:
     """Return the current user for the active request or global context."""
 
+    # pylint: disable=global-statement
+    # Access cached default user singleton
     global _cached_default_user
 
     if has_request_context():

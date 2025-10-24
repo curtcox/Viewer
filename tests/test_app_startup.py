@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import pytest
-
-import app as app_module
 from logfire.exceptions import LogfireConfigError
 from sqlalchemy import inspect
 
+import app as app_module
 from database import db
 
 
