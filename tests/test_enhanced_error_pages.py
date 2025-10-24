@@ -70,6 +70,8 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
 
     def test_error_page_template_renders_with_source_links(self):
         """Test that the 500.html template properly renders source links."""
+        response = None
+        status = None
         with self.app.test_request_context('/test'):
             try:
                 # Create a traceback that includes multiple project files
@@ -128,6 +130,8 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
 
     def test_error_handling_robustness(self):
         """Test that error handling is robust even when stack trace building fails."""
+        response = None
+        status = None
         with self.app.test_request_context('/test'):
             # Mock _build_stack_trace to fail
             with patch('routes.core._build_stack_trace', side_effect=Exception('Stack trace building failed')):

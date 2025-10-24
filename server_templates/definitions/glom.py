@@ -1,4 +1,5 @@
 # ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
 # This template runs inside the Viewer runtime where helpers like `request`
 # and `load` are provided by the execution sandbox.
 import json

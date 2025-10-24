@@ -1,4 +1,5 @@
 # ruff: noqa: F401, F706, F821
+# pylint: disable=undefined-variable,return-outside-function
 # This template runs inside the Viewer runtime where helpers such as `request`
 # and `load` are provided by the execution sandbox.
 from html import escape
