@@ -87,8 +87,46 @@ class Alias(db.Model):
         route = get_primary_alias_route(self)
         return bool(route.ignore_case) if route else False
 
+    def get_primary_target_path(self) -> str:
+        """Get the target path from the primary alias rule."""
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        if route and route.target_path:
+            return route.target_path
+
+        # Fallback to name-based path
+        name = getattr(self, 'name', '') or ''
+        return f'/{name}' if name else '/'
+
+    def get_primary_match_type(self) -> str:
+        """Get the match type from the primary alias rule."""
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        return route.match_type if route else 'literal'
+
+    def get_primary_match_pattern(self) -> str:
+        """Get the match pattern from the primary alias rule."""
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        if route and route.match_pattern:
+            return route.match_pattern
+
+        # Fallback to name-based pattern
+        name = getattr(self, 'name', '') or ''
+        return f'/{name}' if name else '/'
+
+    def get_primary_ignore_case(self) -> bool:
+        """Get the ignore_case flag from the primary alias rule."""
+        from alias_definition import get_primary_alias_route
+
+        route = get_primary_alias_route(self)
+        return bool(route.ignore_case) if route else False
+
     def __repr__(self):
-        target = self.target_path or '?'
+        target = self.get_primary_target_path()
         return f'<Alias {self.name} -> {target}>'
 
 

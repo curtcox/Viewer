@@ -391,8 +391,8 @@ class TestCIDFunctionality(unittest.TestCase):
         call_log = {}
 
         class FakeImage:
-            def save(self, buffer, img_format):
-                call_log['format'] = img_format
+            def save(self, buffer, format=None):
+                call_log['format'] = format
                 buffer.write(sample_png_bytes)
 
         class FakeQRCode:
