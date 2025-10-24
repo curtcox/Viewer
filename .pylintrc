@@ -1,0 +1,57 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=4
+
+[MESSAGES CONTROL]
+# Disable messages that are false positives or design choices
+disable=
+    # Design choices - not bugs
+    too-few-public-methods,      # R0903 - Data classes, forms, simple classes are fine
+    too-many-instance-attributes, # R0902 - Some classes legitimately need many attrs
+    too-many-arguments,           # R0913 - Sometimes necessary for complex functions
+    too-many-locals,              # R0914 - Complex functions may need many variables
+    too-many-branches,            # R0912 - Complex logic is sometimes unavoidable
+    too-many-statements,          # R0915 - Long functions exist for good reasons
+    too-many-return-statements,   # R0911 - Guard clauses with early returns are clear
+    too-many-public-methods,      # R0904 - Test classes often have many methods
+    too-many-positional-arguments, # R0917 - Sometimes necessary
+    
+    # Documentation - optional for internal code
+    missing-module-docstring,     # C0114 - Not all modules need docstrings
+    missing-class-docstring,      # C0115 - Not all classes need docstrings  
+    missing-function-docstring,   # C0116 - Not all functions need docstrings
+    
+    # Style preferences
+    invalid-name,                 # C0103 - Project has its own naming conventions
+    line-too-long,                # C0301 - Handled by formatters like black
+    
+    # Code duplication - handle case by case
+    duplicate-code,               # R0801 - Some duplication is acceptable (especially tests)
+    
+    # Import issues - environment specific
+    import-error,                 # E0401 - Dependencies exist but pylint can't find them
+
+[FORMAT]
+# Maximum line length
+max-line-length=100
+
+[DESIGN]
+# Adjust some thresholds to be more reasonable
+max-attributes=10
+max-args=7
+
+[BASIC]
+# Good variable names that don't conform to naming conventions
+good-names=i,j,k,ex,Run,_,id,db,app
+
+[TYPECHECK]
+# Ignore missing members on these modules (Flask/SQLAlchemy generate them dynamically)
+ignored-modules=flask_sqlalchemy,flask_login,flask_wtf
+ignored-classes=scoped_session,Query,SQLAlchemy
+
+# Members that are dynamically generated
+generated-members=query,session
+
+[SIMILARITIES]
+# Minimum lines of duplicate code to report
+min-similarity-lines=10

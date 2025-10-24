@@ -1,3 +1,6 @@
+# pylint: disable=no-member
+# This test file works extensively with Flask-SQLAlchemy models which have
+# dynamically generated attributes (query, session, etc.) that pylint cannot detect
 import base64
 import hashlib
 import re

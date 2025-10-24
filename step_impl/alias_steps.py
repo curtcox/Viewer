@@ -65,6 +65,8 @@ def _login_default_user(client: FlaskClient) -> str:
 def setup_alias_scenario() -> None:
     """Spin up an isolated Flask app and client for each scenario."""
 
+    # pylint: disable=global-statement
+    # Gauge test framework requires global state to share context between steps
     global _app, _client, _db_path
     _scenario_state.clear()
 
@@ -81,6 +83,8 @@ def setup_alias_scenario() -> None:
 def teardown_alias_scenario() -> None:
     """Dispose of database connections and temporary files between scenarios."""
 
+    # pylint: disable=global-statement
+    # Gauge test framework requires global state to share context between steps
     global _app, _client, _db_path
 
     if _app is not None:

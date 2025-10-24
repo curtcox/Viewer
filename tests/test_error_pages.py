@@ -82,7 +82,7 @@ class TestInternalServerErrorPage(unittest.TestCase):
                 frames = _build_stack_trace(exc)
 
         self.assertIsInstance(captured, SyntaxError)
-        self.assertEqual(captured.filename, '<string>')
+        self.assertEqual(captured.filename, '<string>')  # pylint: disable=no-member  # SyntaxError has filename
 
         display_paths = [frame['display_path'] for frame in frames]
         self.assertIn('tests/test_error_pages.py', display_paths)

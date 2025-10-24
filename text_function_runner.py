@@ -128,6 +128,10 @@ def run_text_function(
     ns.update(_SAFE_TYPING_GLOBALS)
 
     # Define and run
+    # pylint: disable=exec-used
+    # This is core functionality - dynamically executing user-defined server code.
+    # Security: Only authenticated users can define servers, and code runs in app context
+    # with proper authentication/authorization checks. All builtins are available by design.
     exec(src, ns, ns)  # defines ns[fn_name]
     fn = ns[fn_name]
     kwargs = {p: arg_map[p] for p in param_names}

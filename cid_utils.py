@@ -66,6 +66,8 @@ except (RuntimeError, ImportError):
 
 
 def _ensure_db_access():
+    # pylint: disable=global-statement
+    # Lazy import pattern to avoid circular dependencies between cid_utils and db_access
     global create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets
     if None in (create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets):
         from db_access import create_cid_record as _create_cid_record
