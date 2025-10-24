@@ -56,6 +56,27 @@ jobs:
       - name: Run Pylint
         run: pylint --errors-only .
 
+  mypy:
+    name: Mypy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install mypy dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run mypy
+        run: mypy
+
   unit-tests:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest

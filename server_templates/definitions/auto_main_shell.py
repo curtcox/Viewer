@@ -33,7 +33,7 @@ def main(
 ):
     """Render a minimal HTML shell runner and execute submitted commands."""
 
-    shell_endpoint = endpoint or os.environ.get("SHELL_ENDPOINT", "/shell")
+    shell_endpoint: str = endpoint or os.environ.get("SHELL_ENDPOINT") or "/shell"
     command_text = command.strip() if isinstance(command, str) else ""
 
     executed = None

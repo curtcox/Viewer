@@ -22,4 +22,5 @@ dependencies = [
     "qrcode[pil]>=7.4.2",
     "glom>=23.3.0",
     "ruff>=0.1.0",
+    "mypy>=1.13.0",
 ]

@@ -21,6 +21,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if ruff_result != 0:
         return ruff_result
 
+    mypy_command = [sys.executable, "-m", "mypy"]
+    mypy_result = subprocess.call(mypy_command, cwd=str(ROOT_DIR), env=env)
+    if mypy_result != 0:
+        return mypy_result
+
     pylint_command = [sys.executable, "-m", "pylint", "--errors-only", "--ignore-patterns=^$", "*.py"]
     pylint_result = subprocess.call(pylint_command, cwd=str(ROOT_DIR), env=env)
     if pylint_result != 0:

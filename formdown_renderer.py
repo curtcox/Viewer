@@ -38,7 +38,8 @@ class FormField:
     attributes: Dict[str, str] = field(default_factory=dict)
 
 
-FormElement = Union[Heading, Paragraph, HorizontalRule, FormField]
+TextNode = Union[Heading, Paragraph, HorizontalRule]
+FormElement = Union[TextNode, FormField]
 
 
 @dataclass
@@ -47,7 +48,7 @@ class FormBlock:
     elements: List[FormElement] = field(default_factory=list)
 
 
-DocumentNode = Union[Heading, Paragraph, HorizontalRule, FormBlock]
+DocumentNode = Union[TextNode, FormBlock]
 
 
 BOOLEAN_ATTRIBUTES = {
@@ -120,7 +121,7 @@ def _parse_field_line(line: str) -> FormField:
     )
 
 
-def _parse_line_as_node(line: str) -> Optional[DocumentNode]:
+def _parse_line_as_node(line: str) -> Optional[TextNode]:
     stripped = line.strip()
     if not stripped:
         return None
