@@ -2,14 +2,14 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1116
-- Unit Tests: 1061
+**Total Tests:** 1119
+- Unit Tests: 1063
 - Integration Tests: 40
-- Gauge Tests: 15
+- Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1061 tests
+Total: 1063 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -912,6 +912,8 @@ Total: 1061 tests
 - [Even when relative resolution fails, redundant project roots should be stripped.](tests/test_error_page_path_formatting.py:109)
 - [test_render_alias_link_full_url](tests/test_link_presenter.py:41)
 - [test_render_alias_link_relative_path](tests/test_link_presenter.py:35)
+- [test_render_browser_screenshot_disables_signal_handlers](tests/test_artifacts.py:61)
+- [test_render_browser_screenshot_supports_legacy_setcontent](tests/test_artifacts.py:94)
 - [test_render_cid_link_empty_values](tests/test_cid_presenter_render.py:7)
 - [test_render_cid_link_includes_expected_elements](tests/test_cid_presenter_render.py:12)
 - [test_render_cid_link_strips_leading_slash](tests/test_cid_presenter_render.py:37)
@@ -1120,7 +1122,7 @@ Total: 40 tests
 
 ## Gauge Tests
 
-Total: 15 scenarios
+Total: 16 scenarios
 
 - [Aliases list shows available shortcuts](specs/alias_management.spec:21)
 - [Default workspace profile is accessible](specs/profile.spec:3)
@@ -1130,6 +1132,7 @@ Total: 15 scenarios
 - [Search page is accessible with filters](specs/search.spec:3)
 - [Secret form is accessible](specs/secret_form.spec:3)
 - [Secrets list is accessible](specs/secrets.spec:3)
+- [Server detail page is accessible](specs/server_view.spec:3)
 - [Server events dashboard is accessible](specs/server_events.spec:3)
 - [Settings dashboard lists resource management links](specs/settings.spec:3)
 - [Source listing renders](specs/source_browser.spec:3)
