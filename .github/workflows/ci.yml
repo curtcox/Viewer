@@ -335,6 +335,7 @@ jobs:
             rm -rf site/gauge-specs/reports
           fi
           python3 <<'PY'
+          import json
           from html import escape
           from pathlib import Path
           
@@ -375,6 +376,71 @@ jobs:
           </html>
           """.format(xml_link=xml_link, log_content=log_content)
           )
+          gauge_base = Path("site/gauge-specs")
+          artifacts_dir = gauge_base / "secureapp-artifacts"
+          gauge_index = gauge_base / "index.html"
+
+          if artifacts_dir.exists() and gauge_index.exists():
+              png_files = sorted(artifacts_dir.glob("*.png"))
+              if png_files:
+                  gallery_items: list[str] = []
+                  for png_path in png_files:
+                      stem = png_path.stem
+                      json_path = artifacts_dir / f"{stem}.json"
+                      label = stem
+                      if json_path.exists():
+                          try:
+                              metadata = json.loads(json_path.read_text(encoding="utf-8"))
+                              label = metadata.get("label", stem)
+                          except json.JSONDecodeError:
+                              label = stem
+                      rel_png = png_path.relative_to(gauge_base).as_posix()
+                      rel_json = None
+                      if json_path.exists():
+                          rel_json = json_path.relative_to(gauge_base).as_posix()
+                      caption = escape(label)
+                      json_link = ""
+                      if rel_json:
+                          json_link = f' (<a href="{rel_json}">request/response</a>)'
+                      gallery_items.append(
+                          "<figure class=\"gauge-screenshot\">"
+                          f'<a href="{rel_png}" target="_blank" rel="noopener">'
+                          f'<img src="{rel_png}" alt="{caption}" loading="lazy" />'
+                          "</a>"
+                          f"<figcaption>{caption}{json_link}</figcaption>"
+                          "</figure>"
+                      )
+
+                  if gallery_items:
+                      index_html = gauge_index.read_text(encoding="utf-8")
+                      if "gauge-screenshot-gallery" not in index_html:
+                          gallery_block = """
+        <section class=\"gauge-screenshot-gallery\">
+          <h2>Captured page screenshots</h2>
+          <div class=\"gallery-grid\">
+        {items}
+          </div>
+        </section>
+        """.format(items="\n".join(f"            {item}" for item in gallery_items))
+
+                          style_block = """
+        <style>
+        .gauge-screenshot-gallery { margin-top: 2rem; }
+        .gauge-screenshot-gallery h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+        .gauge-screenshot-gallery .gallery-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+        .gauge-screenshot-gallery figure { margin: 0; }
+        .gauge-screenshot-gallery img { width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 31, 36, 0.12); }
+        .gauge-screenshot-gallery figcaption { margin-top: 0.5rem; font-size: 0.95rem; }
+        .gauge-screenshot-gallery a { color: #0366d6; text-decoration: none; }
+        .gauge-screenshot-gallery a:hover { text-decoration: underline; }
+        </style>
+        """
+
+                          if "</head>" in index_html:
+                              index_html = index_html.replace("</head>", style_block + "</head>")
+                          if "</body>" in index_html:
+                              index_html = index_html.replace("</body>", gallery_block + "</body>")
+                          gauge_index.write_text(index_html, encoding="utf-8")
           PY
           cat <<'HTML' > site/index.html
           <!DOCTYPE html>

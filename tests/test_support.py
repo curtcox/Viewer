@@ -31,6 +31,11 @@ def build_test_environment() -> dict[str, str]:
     for key, value in DEFAULT_ENV.items():
         env.setdefault(key, value)
 
+    env.setdefault(
+        "GAUGE_ARTIFACT_DIR",
+        str(ROOT_DIR / "reports" / "html-report" / "secureapp-artifacts"),
+    )
+
     return env
 
 

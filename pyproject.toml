@@ -23,4 +23,5 @@ dependencies = [
     "glom>=23.3.0",
     "ruff>=0.1.0",
     "mypy>=1.13.0",
+    "pyppeteer>=1.0.2",
 ]

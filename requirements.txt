@@ -22,6 +22,7 @@ qrcode[pil]>=7.4.2
 glom>=23.3.0
 pytest>=8.2.0
 ruff>=0.1.0
+pyppeteer>=1.0.2
 logfire[all]
 logfire[aiohttp-client]
 opentelemetry-instrumentation-flask>=0.48b0
