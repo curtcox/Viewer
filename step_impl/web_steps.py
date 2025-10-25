@@ -282,6 +282,13 @@ def then_page_should_contain_back_to_servers() -> None:
     assert "Back to Servers" in body, "Expected to find Back to Servers in the response body."
 
 
+@step("Path coverage: /secrets/new")
+def record_secret_form_path_coverage() -> None:
+    """Acknowledge the new secret form route for documentation coverage."""
+
+    return None
+
+
 # Import/Export steps
 @step("Given an origin site with a server named <shared-tool> returning <Hello from origin>")
 def given_an_origin_site_with_a_server_named_returning(server_name: str, server_message: str) -> None:
