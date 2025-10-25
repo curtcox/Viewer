@@ -42,7 +42,7 @@ jobs:
             echo "push=true" >> "$GITHUB_OUTPUT"
           fi
         env:
-          MANUAL_PUSH: ${{ inputs.push_image }}
+          MANUAL_PUSH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.push_image || 'true' }}
 
       - name: Log in to the Container registry
         if: steps.publish.outputs.push == 'true'
