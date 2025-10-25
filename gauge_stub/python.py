@@ -1,9 +1,12 @@
 """Minimal Gauge compatibility layer used for executing specs offline."""
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from uuid import uuid4
 
 
 @dataclass
@@ -155,3 +158,38 @@ def _parse_pattern(pattern: str) -> Tuple[re.Pattern[str], List[int], Dict[str, 
 
     regex = re.compile("^" + "".join(parts) + "$")
     return regex, positional_indices, named_indices
+class Messages:
+    """Minimal Gauge Messages implementation used by the local stub."""
+
+    @staticmethod
+    def write_message(message: str) -> None:
+        print(f"[Gauge] {message}")
+
+    @staticmethod
+    def attach_binary(data: bytes, mime_type: str, file_name: str) -> None:
+        path = Messages._persist_bytes(data, file_name)
+        print(f"[Gauge] Saved attachment to {path} ({mime_type})")
+
+    @staticmethod
+    def add_attachment(file_path: str, description: str | None = None) -> None:
+        source = Path(file_path)
+        if not source.exists():
+            raise FileNotFoundError(f"Attachment not found: {file_path}")
+
+        target = Messages._persist_bytes(source.read_bytes(), source.name)
+        suffix = f" ({description})" if description else ""
+        print(f"[Gauge] Registered attachment {target}{suffix}")
+
+    @staticmethod
+    def _persist_bytes(data: bytes, file_name: str) -> Path:
+        directory = Path(os.environ.get("GAUGE_ARTIFACT_DIR", "gauge-artifacts"))
+        directory.mkdir(parents=True, exist_ok=True)
+
+        sanitized = file_name.replace("/", "-").replace("\\", "-").strip()
+        if not sanitized:
+            sanitized = f"attachment-{uuid4().hex}.bin"
+
+        path = directory / sanitized
+        path.write_bytes(data)
+        return path
+

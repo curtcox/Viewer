@@ -17,6 +17,7 @@ from cid_presenter import cid_path
 from database import db
 from identity import ensure_default_user
 from models import CID, Server
+from step_impl.artifacts import attach_response_snapshot
 
 _scenario_state: dict[str, Any] = {}
 _created_apps: list[Any] = []
@@ -190,6 +191,7 @@ def and_i_export_servers_from_origin() -> None:
             "submit": True,
         },
     )
+    attach_response_snapshot(export_response)
     assert (
         export_response.status_code == 200
     ), f"Expected export to succeed, received {export_response.status_code}."
@@ -236,6 +238,7 @@ def when_i_import_exported_data_into_destination() -> None:
         },
         follow_redirects=False,
     )
+    attach_response_snapshot(import_response)
     assert (
         import_response.status_code == 302
     ), f"Expected import to redirect on success, received {import_response.status_code}."
@@ -311,6 +314,7 @@ def and_executing_destination_route_returns_message(route_path: str, expected_me
     assert destination_client is not None, "Destination client is not configured."
 
     execution_response = destination_client.get(route_path, follow_redirects=False)
+    attach_response_snapshot(execution_response)
     assert (
         execution_response.status_code == 302
     ), f"Expected execution redirect, received {execution_response.status_code}."
@@ -319,6 +323,7 @@ def and_executing_destination_route_returns_message(route_path: str, expected_me
     assert redirect_location, "Execution redirect did not specify a location."
 
     content_response = destination_client.get(redirect_location)
+    attach_response_snapshot(content_response)
     assert content_response.status_code == 200, "CID content request failed."
     assert (
         expected_message in content_response.get_data(as_text=True)

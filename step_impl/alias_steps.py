@@ -14,6 +14,7 @@ from app import create_app
 from database import db
 from identity import ensure_default_user
 from models import Alias
+from step_impl.artifacts import attach_response_snapshot
 
 _app = None
 _client: Optional[FlaskClient] = None
@@ -115,8 +116,9 @@ def when_i_navigate_to_new_alias() -> None:
 
     client = _require_client()
     response = client.get("/aliases/new")
-    assert response.status_code == 200, "Expected alias form to load successfully."
     _scenario_state["response"] = response
+    attach_response_snapshot(response)
+    assert response.status_code == 200, "Expected alias form to load successfully."
 
 
 @step("Then I can enter an alias name and target path")
@@ -145,6 +147,7 @@ def then_submitting_form_creates_alias() -> None:
         },
         follow_redirects=False,
     )
+    attach_response_snapshot(response, label="POST /aliases/new")
     assert response.status_code == 302, "Alias creation should redirect on success."
 
     with _app_context():
@@ -189,9 +192,10 @@ def when_i_visit_path(path: str) -> None:
 
     client = _require_client()
     response = client.get(path)
-    assert response.status_code == 200, f"Expected GET {path} to succeed."
     _scenario_state["response"] = response
     _scenario_state["last_path"] = path
+    attach_response_snapshot(response)
+    assert response.status_code == 200, f"Expected GET {path} to succeed."
 
 
 @step("Then I can update the alias target and save the changes")
@@ -213,6 +217,7 @@ def then_update_alias_target() -> None:
         },
         follow_redirects=False,
     )
+    attach_response_snapshot(response, label=f"POST {edit_path}")
     assert response.status_code == 302, "Alias update should redirect to the detail page."
 
     with _app_context():

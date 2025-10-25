@@ -7,6 +7,7 @@ from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
 
 from app import create_app
+from step_impl.artifacts import attach_response_snapshot
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
 _client: Optional[FlaskClient] = None
@@ -36,6 +37,7 @@ def when_i_request_home_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /profile")
@@ -45,6 +47,7 @@ def when_i_request_profile_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/profile")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /routes")
@@ -54,6 +57,7 @@ def when_i_request_routes_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/routes")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /secrets")
@@ -63,6 +67,7 @@ def when_i_request_secrets_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/secrets")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /secrets/new")
@@ -72,6 +77,7 @@ def when_i_request_new_secret_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/secrets/new")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /server_events")
@@ -81,6 +87,7 @@ def when_i_request_server_events_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/server_events")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /settings")
@@ -90,6 +97,7 @@ def when_i_request_settings_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/settings")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /search")
@@ -99,6 +107,7 @@ def when_i_request_search_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/search")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /servers/new")
@@ -108,6 +117,7 @@ def when_i_request_new_server_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/servers/new")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /aliases/ai")
@@ -117,6 +127,7 @@ def when_i_request_aliases_ai_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/aliases/ai")
     get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /aliases")
