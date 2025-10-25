@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import io
+import os
 import re
 import textwrap
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
@@ -51,7 +53,18 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
     image_bytes = _render_text_image(resolved_label, str(status_code), preview_text)
     filename = _build_filename(resolved_label)
 
-    Messages.attach_binary(image_bytes, "image/png", filename)  # type: ignore[attr-defined]
+    if hasattr(Messages, "attach_binary"):
+        Messages.attach_binary(image_bytes, "image/png", filename)  # type: ignore[attr-defined]
+        return
+
+    artifact_path = _persist_image(image_bytes, filename)
+
+    if hasattr(Messages, "add_attachment"):
+        Messages.add_attachment(str(artifact_path))  # type: ignore[attr-defined]
+        return
+
+    if hasattr(Messages, "write_message"):
+        Messages.write_message(f"Saved response snapshot to {artifact_path}")  # type: ignore[attr-defined]
 
 
 def _prepare_preview_text(body_text: str) -> str:
@@ -100,4 +113,12 @@ def _build_filename(label: str) -> str:
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     filename = f"{sanitized}-{timestamp}.png"
     return filename[:255]
+
+
+def _persist_image(image_bytes: bytes, filename: str) -> Path:
+    directory = Path(os.environ.get("GAUGE_ARTIFACT_DIR", "gauge-artifacts"))
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / filename
+    path.write_bytes(image_bytes)
+    return path
 
