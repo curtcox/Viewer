@@ -83,6 +83,15 @@ def when_i_request_settings_page() -> None:
     get_scenario_state()["response"] = response
 
 
+@step("When I request the page /search")
+def when_i_request_search_page() -> None:
+    """Request the workspace search page."""
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    response = _client.get("/search")
+    get_scenario_state()["response"] = response
+
+
 @step("When I request the page /servers/new")
 def when_i_request_new_server_page() -> None:
     """Request the new server form page."""
@@ -183,6 +192,12 @@ def then_page_should_contain_secrets() -> None:
     assert "Secrets" in body, "Expected to find Secrets in the response body."
 
 
+@step("The page should contain Settings")
+def then_page_should_contain_settings() -> None:
+    """Verify the page contains Settings text."""
+    then_page_should_contain("Settings")
+
+
 @step("The page should contain New Secret")
 def then_page_should_contain_new_secret() -> None:
     """Verify the page contains New Secret text."""
@@ -246,6 +261,24 @@ def then_page_should_contain_aliases() -> None:
     assert "Aliases" in body, "Expected to find Aliases in the response body."
 
 
+@step("The page should contain Servers")
+def then_page_should_contain_servers() -> None:
+    """Verify the page contains Servers text."""
+    then_page_should_contain("Servers")
+
+
+@step("The page should contain CIDs")
+def then_page_should_contain_cids() -> None:
+    """Verify the page contains CIDs text."""
+    then_page_should_contain("CIDs")
+
+
+@step("The page should contain Variables")
+def then_page_should_contain_variables() -> None:
+    """Verify the page contains Variables text."""
+    then_page_should_contain("Variables")
+
+
 @step("The page should contain New Alias")
 def then_page_should_contain_new_alias() -> None:
     """Verify the page contains New Alias text."""
@@ -280,6 +313,42 @@ def then_page_should_contain_back_to_servers() -> None:
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
     assert "Back to Servers" in body, "Expected to find Back to Servers in the response body."
+
+
+@step("The page should contain Workspace Search")
+def then_page_should_contain_workspace_search() -> None:
+    """Verify the page contains Workspace Search text."""
+    then_page_should_contain("Workspace Search")
+
+
+@step("The page should contain Search query")
+def then_page_should_contain_search_query() -> None:
+    """Verify the page contains Search query text."""
+    then_page_should_contain("Search query")
+
+
+@step("The page should contain View All Aliases")
+def then_page_should_contain_view_all_aliases() -> None:
+    """Verify the page contains View All Aliases text."""
+    then_page_should_contain("View All Aliases")
+
+
+@step("The page should contain View All Servers")
+def then_page_should_contain_view_all_servers() -> None:
+    """Verify the page contains View All Servers text."""
+    then_page_should_contain("View All Servers")
+
+
+@step("The page should contain View All Variables")
+def then_page_should_contain_view_all_variables() -> None:
+    """Verify the page contains View All Variables text."""
+    then_page_should_contain("View All Variables")
+
+
+@step("The page should contain View All Secrets")
+def then_page_should_contain_view_all_secrets() -> None:
+    """Verify the page contains View All Secrets text."""
+    then_page_should_contain("View All Secrets")
 
 
 @step("Path coverage: /secrets/new")
