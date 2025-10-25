@@ -2,9 +2,9 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1108
+**Total Tests:** 1109
 - Unit Tests: 1057
-- Integration Tests: 39
+- Integration Tests: 40
 - Gauge Tests: 12
 
 ## Unit Tests
@@ -1071,7 +1071,7 @@ Total: 1057 tests
 
 ## Integration Tests
 
-Total: 39 tests
+Total: 40 tests
 
 - [test_alias_detail_page_displays_alias_information](tests/integration/test_alias_pages.py:62)
 - [test_aliases_page_lists_user_aliases](tests/integration/test_alias_pages.py:13)
@@ -1091,6 +1091,7 @@ Total: 39 tests
 - [test_new_variable_form_renders_for_authenticated_user](tests/integration/test_variable_pages.py:72)
 - [test_profile_page_links_to_workspace](tests/integration/test_profile_page.py:9)
 - [test_routes_overview_lists_user_routes](tests/integration/test_routes_overview_page.py:14)
+- [test_search_page_displays_filters_and_status](tests/integration/test_search_page.py:18)
 - [test_secret_detail_page_displays_secret_information](tests/integration/test_secret_pages.py:65)
 - [test_secrets_list_page_displays_user_secrets](tests/integration/test_secret_pages.py:94)
 - [test_server_detail_page_displays_server_information](tests/integration/test_server_pages.py:151)
