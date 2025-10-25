@@ -2014,6 +2014,32 @@ class TestSourceRoutes(BaseTestCase):
             if created_dir:
                 htmlcov_dir.rmdir()
 
+    def test_source_instance_overview_lists_database_tables(self):
+        """Instance overview should list available database tables and columns."""
+
+        response = self.client.get('/source/instance')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('Database Tables', page)
+        self.assertIn('href="/source/instance/alias"', page)
+        self.assertIn('<code>name</code>', page)
+
+    def test_source_instance_table_renders_existing_rows(self):
+        """Table detail view should render rows for a populated table."""
+
+        alias = Alias(name='overview-alias', definition='print("hi")', user_id=self.test_user_id)
+        db.session.add(alias)
+        db.session.commit()
+
+        response = self.client.get('/source/instance/alias')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('<code>name</code>', page)
+        self.assertIn('overview-alias', page)
+        self.assertIn('Displaying', page)
+
 
 if __name__ == '__main__':
     unittest.main()
