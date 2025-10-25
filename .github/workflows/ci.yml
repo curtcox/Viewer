@@ -338,6 +338,7 @@ jobs:
           import json
           from html import escape
           from pathlib import Path
+          from textwrap import dedent
           
           base = Path("site/integration-tests")
           base.mkdir(parents=True, exist_ok=True)
@@ -416,27 +417,31 @@ jobs:
                   if gallery_items:
                       index_html = gauge_index.read_text(encoding="utf-8")
                       if "gauge-screenshot-gallery" not in index_html:
-                          gallery_block = """
-        <section class=\"gauge-screenshot-gallery\">
-          <h2>Captured page screenshots</h2>
-          <div class=\"gallery-grid\">
-        {items}
-          </div>
-        </section>
-        """.format(items="\n".join(f"            {item}" for item in gallery_items))
+                          gallery_block = dedent(
+                              """
+                              <section class=\"gauge-screenshot-gallery\">
+                                <h2>Captured page screenshots</h2>
+                                <div class=\"gallery-grid\">
+                              {items}
+                                </div>
+                              </section>
+                              """
+                          ).format(items="\n".join(f"            {item}" for item in gallery_items))
 
-                          style_block = """
-        <style>
-        .gauge-screenshot-gallery { margin-top: 2rem; }
-        .gauge-screenshot-gallery h2 { font-size: 1.5rem; margin-bottom: 1rem; }
-        .gauge-screenshot-gallery .gallery-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-        .gauge-screenshot-gallery figure { margin: 0; }
-        .gauge-screenshot-gallery img { width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 31, 36, 0.12); }
-        .gauge-screenshot-gallery figcaption { margin-top: 0.5rem; font-size: 0.95rem; }
-        .gauge-screenshot-gallery a { color: #0366d6; text-decoration: none; }
-        .gauge-screenshot-gallery a:hover { text-decoration: underline; }
-        </style>
-        """
+                          style_block = dedent(
+                              """
+                              <style>
+                              .gauge-screenshot-gallery { margin-top: 2rem; }
+                              .gauge-screenshot-gallery h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+                              .gauge-screenshot-gallery .gallery-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+                              .gauge-screenshot-gallery figure { margin: 0; }
+                              .gauge-screenshot-gallery img { width: 100%; height: auto; border: 1px solid #d0d7de; border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 31, 36, 0.12); }
+                              .gauge-screenshot-gallery figcaption { margin-top: 0.5rem; font-size: 0.95rem; }
+                              .gauge-screenshot-gallery a { color: #0366d6; text-decoration: none; }
+                              .gauge-screenshot-gallery a:hover { text-decoration: underline; }
+                              </style>
+                              """
+                          )
 
                           if "</head>" in index_html:
                               index_html = index_html.replace("</head>", style_block + "</head>")
