@@ -352,7 +352,13 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
         try:
             page = await browser.newPage()
             await page.setViewport({"width": _IMAGE_WIDTH, "height": 720})
-            await page.setContent(html_document, waitUntil="networkidle0")
+            try:
+                await page.setContent(html_document, waitUntil="networkidle0")
+            except TypeError:
+                await page.setContent(html_document)
+                wait_for_function = getattr(page, "waitForFunction", None)
+                if callable(wait_for_function):
+                    await wait_for_function("document.readyState === 'complete'")
             return await page.screenshot(fullPage=True)
         finally:
             await browser.close()
