@@ -65,6 +65,15 @@ def when_i_request_secrets_page() -> None:
     get_scenario_state()["response"] = response
 
 
+@step("When I request the page /secrets/new")
+def when_i_request_new_secret_page() -> None:
+    """Request the new secret form page."""
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    response = _client.get("/secrets/new")
+    get_scenario_state()["response"] = response
+
+
 @step("When I request the page /server_events")
 def when_i_request_server_events_page() -> None:
     """Request the server events page."""
@@ -205,6 +214,33 @@ def then_page_should_contain_new_secret() -> None:
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
     assert "New Secret" in body, "Expected to find New Secret in the response body."
+
+
+@step("The page should contain Create New Secret")
+def then_page_should_contain_create_new_secret() -> None:
+    """Verify the page contains Create New Secret text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Create New Secret" in body, "Expected to find Create New Secret in the response body."
+
+
+@step("The page should contain Secret Configuration")
+def then_page_should_contain_secret_configuration() -> None:
+    """Verify the page contains Secret Configuration text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Secret Configuration" in body, "Expected to find Secret Configuration in the response body."
+
+
+@step("The page should contain Back to Secrets")
+def then_page_should_contain_back_to_secrets() -> None:
+    """Verify the page contains Back to Secrets text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Back to Secrets" in body, "Expected to find Back to Secrets in the response body."
 
 
 @step("The page should contain Server Events")
