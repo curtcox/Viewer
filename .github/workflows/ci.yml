@@ -259,7 +259,9 @@ jobs:
       - name: Install Gauge CLI
         run: |
           curl -SsL https://github.com/getgauge/gauge/releases/download/v1.6.10/gauge-1.6.10-linux.x86_64.zip -o gauge.zip
+          mkdir -p $HOME/.gauge/bin
           unzip -o gauge.zip -d $HOME/.gauge
+          mv $HOME/.gauge/gauge $HOME/.gauge/bin/gauge
           chmod +x $HOME/.gauge/bin/gauge
           echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
 
