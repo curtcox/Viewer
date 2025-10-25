@@ -11,6 +11,7 @@ It outputs a markdown file with links to each test definition.
 """
 
 import ast
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -21,13 +22,14 @@ class TestInfo:
     """Information about a discovered test."""
 
     name: str
+    display_name: str
     file_path: str
     line_number: int
     test_type: str
 
     def to_markdown_link(self) -> str:
         """Generate a markdown link for this test."""
-        return f"- [{self.name}]({self.file_path}:{self.line_number})"
+        return f"- [{self.display_name}]({self.file_path}:{self.line_number})"
 
 
 class TestIndexer:
@@ -90,9 +92,11 @@ class TestIndexer:
 
         # Sort by line number to ensure deterministic ordering
         for node in sorted(test_functions, key=lambda n: n.lineno):
+            display_name = self._get_display_name(node, node.name)
             self.tests.append(
                 TestInfo(
                     name=node.name,
+                    display_name=display_name,
                     file_path=str(rel_path),
                     line_number=node.lineno,
                     test_type=test_type,
@@ -127,9 +131,11 @@ class TestIndexer:
             for item in sorted(test_methods, key=lambda n: n.lineno):
                 # Use class.method format for unittest tests
                 test_name = f"{node.name}.{item.name}"
+                display_name = self._get_display_name(item, test_name)
                 self.tests.append(
                     TestInfo(
                         name=test_name,
+                        display_name=display_name,
                         file_path=str(rel_path),
                         line_number=item.lineno,
                         test_type=test_type,
@@ -169,11 +175,22 @@ class TestIndexer:
             self.tests.append(
                 TestInfo(
                     name=scenario_name,
+                    display_name=scenario_name,
                     file_path=str(rel_path),
                     line_number=line_num,
                     test_type="gauge",
                 )
             )
+
+    def _get_display_name(self, node: ast.AST, fallback: str) -> str:
+        """Return a readable display name for a test node."""
+
+        docstring = ast.get_docstring(node)
+        if not docstring:
+            return fallback
+
+        condensed = re.sub(r"\s+", " ", docstring.strip())
+        return condensed or fallback
 
     def generate_markdown(self) -> str:
         """Generate markdown index of all tests."""
