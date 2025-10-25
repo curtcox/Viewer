@@ -340,6 +340,9 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
     async def _capture() -> bytes:
         browser = await launch(
             headless=True,
+            handleSIGINT=False,
+            handleSIGTERM=False,
+            handleSIGHUP=False,
             args=[
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
