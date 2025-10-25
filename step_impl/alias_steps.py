@@ -116,9 +116,9 @@ def when_i_navigate_to_new_alias() -> None:
 
     client = _require_client()
     response = client.get("/aliases/new")
-    assert response.status_code == 200, "Expected alias form to load successfully."
     _scenario_state["response"] = response
     attach_response_snapshot(response)
+    assert response.status_code == 200, "Expected alias form to load successfully."
 
 
 @step("Then I can enter an alias name and target path")
@@ -147,8 +147,8 @@ def then_submitting_form_creates_alias() -> None:
         },
         follow_redirects=False,
     )
-    assert response.status_code == 302, "Alias creation should redirect on success."
     attach_response_snapshot(response, label="POST /aliases/new")
+    assert response.status_code == 302, "Alias creation should redirect on success."
 
     with _app_context():
         user = ensure_default_user()
@@ -192,10 +192,10 @@ def when_i_visit_path(path: str) -> None:
 
     client = _require_client()
     response = client.get(path)
-    assert response.status_code == 200, f"Expected GET {path} to succeed."
     _scenario_state["response"] = response
     _scenario_state["last_path"] = path
     attach_response_snapshot(response)
+    assert response.status_code == 200, f"Expected GET {path} to succeed."
 
 
 @step("Then I can update the alias target and save the changes")
@@ -217,8 +217,8 @@ def then_update_alias_target() -> None:
         },
         follow_redirects=False,
     )
-    assert response.status_code == 302, "Alias update should redirect to the detail page."
     attach_response_snapshot(response, label=f"POST {edit_path}")
+    assert response.status_code == 302, "Alias update should redirect to the detail page."
 
     with _app_context():
         user = ensure_default_user()
