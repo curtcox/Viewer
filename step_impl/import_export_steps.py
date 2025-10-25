@@ -17,6 +17,7 @@ from cid_presenter import cid_path
 from database import db
 from identity import ensure_default_user
 from models import CID, Server
+from step_impl.artifacts import attach_response_snapshot
 
 _scenario_state: dict[str, Any] = {}
 _created_apps: list[Any] = []
@@ -193,6 +194,7 @@ def and_i_export_servers_from_origin() -> None:
     assert (
         export_response.status_code == 200
     ), f"Expected export to succeed, received {export_response.status_code}."
+    attach_response_snapshot(export_response)
 
     with origin_app.app_context():
         export_record = next(
@@ -239,6 +241,7 @@ def when_i_import_exported_data_into_destination() -> None:
     assert (
         import_response.status_code == 302
     ), f"Expected import to redirect on success, received {import_response.status_code}."
+    attach_response_snapshot(import_response)
 
     _scenario_state.update(
         {
@@ -314,12 +317,14 @@ def and_executing_destination_route_returns_message(route_path: str, expected_me
     assert (
         execution_response.status_code == 302
     ), f"Expected execution redirect, received {execution_response.status_code}."
+    attach_response_snapshot(execution_response)
 
     redirect_location = execution_response.headers.get("Location")
     assert redirect_location, "Execution redirect did not specify a location."
 
     content_response = destination_client.get(redirect_location)
     assert content_response.status_code == 200, "CID content request failed."
+    attach_response_snapshot(content_response)
     assert (
         expected_message in content_response.get_data(as_text=True)
     ), "Imported server did not return the expected output."
