@@ -260,16 +260,20 @@ jobs:
         run: |
           curl -SsL https://github.com/getgauge/gauge/releases/download/v1.6.10/gauge-1.6.10-linux.x86_64.zip -o gauge.zip
           unzip -o gauge.zip -d $HOME/.gauge
+          chmod +x $HOME/.gauge/bin/gauge
           echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
 
       - name: Install Gauge plugins
         run: |
+          export PATH="$HOME/.gauge/bin:$PATH"
           gauge install python
           gauge install html-report
 
       - name: Run Gauge specs
         id: run_gauge
-        run: ./test-gauge
+        run: |
+          export PATH="$HOME/.gauge/bin:$PATH"
+          ./test-gauge
         env:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
