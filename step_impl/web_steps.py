@@ -119,6 +119,15 @@ def when_i_request_aliases_ai_page() -> None:
     get_scenario_state()["response"] = response
 
 
+@step("When I request the page /aliases")
+def when_i_request_aliases_index_page() -> None:
+    """Request the aliases index page."""
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    response = _client.get("/aliases")
+    get_scenario_state()["response"] = response
+
+
 # Content verification steps
 @step("The page should contain <text>")
 def then_page_should_contain(text: str) -> None:
