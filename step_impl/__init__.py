@@ -7,8 +7,10 @@ modules at import time so the decorators execute and Gauge can discover the
 implementations.
 """
 
-# Import the source browser steps so Gauge registers the decorated functions.
-# The module has side effects at import time and does not expose a public API,
-# so we disable the unused import warning.
+# Import each module that declares Gauge steps so the decorators execute during
+# package import. The modules only provide side effects for registration, so we
+# silence unused-import checks.
+from . import alias_steps  # noqa: F401
 from . import import_export_steps  # noqa: F401
 from . import source_steps  # noqa: F401
+from . import web_steps  # noqa: F401
