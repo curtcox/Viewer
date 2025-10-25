@@ -3,13 +3,18 @@ from __future__ import annotations
 
 from typing import Optional
 
+from flask import Flask
 from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
 
 from app import create_app
+from database import db
+from identity import ensure_default_user
+from models import Server
 from step_impl.artifacts import attach_response_snapshot
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
+_app: Optional[Flask] = None
 _client: Optional[FlaskClient] = None
 
 
@@ -18,9 +23,38 @@ def setup_suite() -> None:
     """Create a Flask test client once for the entire suite."""
     # pylint: disable=global-statement
     # Gauge test framework requires global state to share context between steps
-    global _client
-    app = create_app({"TESTING": True})
-    _client = app.test_client()
+    global _app, _client
+    _app = create_app({"TESTING": True})
+    _client = _app.test_client()
+
+
+def _require_app() -> Flask:
+    if _app is None:
+        raise RuntimeError("Gauge test app is not initialized.")
+    return _app
+
+
+def _require_client() -> FlaskClient:
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    return _client
+
+
+def _login_default_user() -> str:
+    """Attach the default user session to the Gauge test client."""
+
+    client = _require_client()
+    app = _require_app()
+
+    with app.app_context():
+        user = ensure_default_user()
+        user_id = user.id
+
+    with client.session_transaction() as session:
+        session["_user_id"] = user_id
+        session["_fresh"] = True
+
+    return user_id
 
 
 @before_scenario()
@@ -137,6 +171,19 @@ def when_i_request_aliases_index_page() -> None:
         raise RuntimeError("Gauge test client is not initialized.")
     response = _client.get("/aliases")
     get_scenario_state()["response"] = response
+
+
+@step("When I request the page /servers/<server_name>")
+def when_i_request_server_detail_page(server_name: str) -> None:
+    """Request the server detail page for the provided server name."""
+
+    client = _require_client()
+    _login_default_user()
+
+    server_name = server_name.strip().strip('"')
+    response = client.get(f"/servers/{server_name}")
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 # Content verification steps
@@ -407,9 +454,37 @@ def then_page_should_contain_view_all_secrets() -> None:
     then_page_should_contain("View All Secrets")
 
 
+@step("Given there is a server named <server_name> returning <message>")
+def given_server_exists(server_name: str, message: str) -> None:
+    """Ensure a server with the provided name exists for the default user."""
+
+    user_id = _login_default_user()
+    app = _require_app()
+
+    server_name = server_name.strip().strip('"')
+    message = message.strip().strip('"')
+    definition = "def main(context):\n    return {message!r}\n".format(message=message)
+
+    with app.app_context():
+        existing = Server.query.filter_by(user_id=user_id, name=server_name).first()
+        if existing is None:
+            server = Server(name=server_name, definition=definition, user_id=user_id)
+            db.session.add(server)
+        else:
+            existing.definition = definition
+        db.session.commit()
+
+
 @step("Path coverage: /secrets/new")
 def record_secret_form_path_coverage() -> None:
     """Acknowledge the new secret form route for documentation coverage."""
+
+    return None
+
+
+@step("Path coverage: /servers/<server_name>")
+def record_server_view_path_coverage(server_name: str) -> None:  # noqa: ARG001 - placeholder only
+    """Acknowledge the server detail route for documentation coverage."""
 
     return None
 

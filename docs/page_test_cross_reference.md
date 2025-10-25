@@ -362,7 +362,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_server_pages.py::test_server_detail_page_displays_server_information`
 
 **Specs:**
-- _None_
+- server_view.spec — Server detail page is accessible
 
 ## templates/servers.html
 
