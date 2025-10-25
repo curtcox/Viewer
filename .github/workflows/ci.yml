@@ -402,7 +402,8 @@ jobs:
                       json_link = ""
                       if rel_json:
                           json_link = f' (<a href="{rel_json}">request/response</a>)'
-                      gallery_items.append(
+
+                      item_html = (
                           "<figure class=\"gauge-screenshot\">"
                           f'<a href="{rel_png}" target="_blank" rel="noopener">'
                           f'<img src="{rel_png}" alt="{caption}" loading="lazy" />'
@@ -410,6 +411,7 @@ jobs:
                           f"<figcaption>{caption}{json_link}</figcaption>"
                           "</figure>"
                       )
+                      gallery_items.append(item_html)
 
                   if gallery_items:
                       index_html = gauge_index.read_text(encoding="utf-8")
