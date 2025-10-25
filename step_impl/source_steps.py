@@ -47,24 +47,33 @@ def when_i_request_the_page(path: str) -> None:
     attach_response_snapshot(response)
 
 
-@step("The response status should be 200")
-def then_status_is_200() -> None:
+@step("The response status should be <status_code>")
+def then_status_is(status_code: str) -> None:
+    """Validate that the captured response returned the expected status code."""
+
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
-    expected = 200
+
+    try:
+        expected = int(status_code)
+    except ValueError as exc:  # pragma: no cover - defensive guard
+        raise AssertionError(f"Invalid status code value: {status_code!r}") from exc
+
     actual = int(response.status_code)
     assert (
         actual == expected
     ), f"Expected HTTP {expected} for {response.request.path!r} but received {actual}."
 
 
-@step("The response should contain Source Browser")
-def then_response_contains_source_browser() -> None:
+@step("The response should contain <text>")
+def then_response_contains(text: str) -> None:
+    """Ensure the raw response body includes the provided text fragment."""
+
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
+
     body = response.get_data(as_text=True)
-    expected_text = "Source Browser"
-    assert expected_text in body, f"Expected to find {expected_text!r} in the response body."
+    assert text in body, f"Expected to find {text!r} in the response body."
 
 
 @step("The page should contain <text>")
