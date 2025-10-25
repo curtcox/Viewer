@@ -228,6 +228,51 @@ def then_page_should_contain_no_server_events_yet() -> None:
     assert "No Server Events Yet" in body, "Expected to find No Server Events Yet in the response body."
 
 
+@step("The page should contain Aliases")
+def then_page_should_contain_aliases() -> None:
+    """Verify the page contains Aliases text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Aliases" in body, "Expected to find Aliases in the response body."
+
+
+@step("The page should contain New Alias")
+def then_page_should_contain_new_alias() -> None:
+    """Verify the page contains New Alias text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "New Alias" in body, "Expected to find New Alias in the response body."
+
+
+@step("The page should contain Create New Server")
+def then_page_should_contain_create_new_server() -> None:
+    """Verify the page contains Create New Server text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Create New Server" in body, "Expected to find Create New Server in the response body."
+
+
+@step("The page should contain Server Configuration")
+def then_page_should_contain_server_configuration() -> None:
+    """Verify the page contains Server Configuration text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Server Configuration" in body, "Expected to find Server Configuration in the response body."
+
+
+@step("The page should contain Back to Servers")
+def then_page_should_contain_back_to_servers() -> None:
+    """Verify the page contains Back to Servers text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Back to Servers" in body, "Expected to find Back to Servers in the response body."
+
+
 # Import/Export steps
 @step("Given an origin site with a server named <shared-tool> returning <Hello from origin>")
 def given_an_origin_site_with_a_server_named_returning(server_name: str, server_message: str) -> None:
