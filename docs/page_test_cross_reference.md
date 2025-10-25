@@ -14,6 +14,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_alias_routing.py::TestAliasRouting::test_create_alias_with_glob_match_type`
 - `tests/test_alias_routing.py::TestAliasRouting::test_edit_alias_rejects_conflicting_route_name`
 - `tests/test_alias_routing.py::TestAliasRouting::test_edit_alias_updates_record`
+- `tests/test_alias_routing.py::TestAliasRouting::test_new_alias_prefills_fields_from_query_parameters`
 - `tests/test_alias_routing.py::TestAliasRouting::test_new_alias_prefills_name_from_path_query`
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
@@ -29,6 +30,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/aliases.py::view_alias` (paths: `/aliases/<alias_name>`)
 
 **Unit tests:**
+- `tests/test_alias_routing.py::TestAliasRouting::test_view_alias_displays_nested_alias_paths`
 - `tests/test_alias_routing.py::TestAliasRouting::test_view_alias_page`
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_detail_displays_cid_link_for_cid_target`
 
@@ -122,7 +124,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_excludes_section`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
 **Integration tests:**
 - `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
@@ -143,7 +145,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_excludes_section`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
 **Integration tests:**
 - `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
@@ -194,14 +196,18 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/core.py::index` (paths: `/`)
 
 **Unit tests:**
+- `tests/test_app_startup.py::test_create_app_handles_logfire_configuration_errors`
+- `tests/test_app_startup.py::test_create_app_handles_logfire_instrumentation_errors`
+- `tests/test_app_startup.py::test_create_app_serves_homepage`
+- `tests/test_app_startup.py::test_create_app_upgrades_legacy_alias_table`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_alias_target_displays_cid_link_for_cid_path`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_authenticated_shows_cross_reference_dashboard`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_cids_include_incoming_highlight_metadata`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_lists_entities_and_relationships`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_shortcuts_link_to_entity_lists`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_skips_cids_without_named_alias`
-- `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_skips_cids_without_named_server`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_unauthenticated`
+- `tests/test_routes_comprehensive.py::TestSearchApi::test_index_cross_reference_skips_cids_without_named_server`
 
 **Integration tests:**
 - `tests/integration/test_index_page.py::test_index_page_displays_cross_reference_dashboard`
@@ -241,6 +247,20 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - routes_overview.spec — Routes overview highlights available route types
 
+## templates/search.html
+
+**Routes:**
+- `routes/search.py::search_page` (paths: `/search`)
+
+**Unit tests:**
+- `tests/test_routes_comprehensive.py::TestPublicRoutes::test_search_page_renders_with_filters`
+
+**Integration tests:**
+- _None_
+
+**Specs:**
+- _None_
+
 ## templates/secret_form.html
 
 **Routes:**
@@ -253,6 +273,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_secret_pages.py::test_edit_secret_form_displays_existing_secret`
+- `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
 - `tests/integration/test_secret_pages.py::test_new_secret_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -283,6 +304,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list`
 
 **Integration tests:**
+- `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
 - `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
 
 **Specs:**
@@ -318,10 +340,11 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_prefills_name_from_path_query`
 
 **Integration tests:**
+- `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
 - `tests/integration/test_server_pages.py::test_new_server_form_renders_for_authenticated_user`
 
 **Specs:**
-- _None_
+- server_form.spec — New server form is accessible
 
 ## templates/server_view.html
 
@@ -351,7 +374,10 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list`
 
 **Integration tests:**
+- `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
+- `tests/integration/test_server_pages.py::test_servers_page_links_auto_main_context_matches`
 - `tests/integration/test_server_pages.py::test_servers_page_lists_user_servers`
+- `tests/integration/test_server_pages.py::test_servers_page_shows_referenced_variables_and_secrets`
 
 **Specs:**
 - _None_
@@ -390,10 +416,39 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_source_browser_page.py::test_source_browser_displays_file_content`
+- `tests/integration/test_source_browser_page.py::test_source_browser_links_to_instance_overview`
 - `tests/integration/test_source_browser_page.py::test_source_browser_lists_directories`
 
 **Specs:**
 - source_browser.spec — Source listing renders
+
+## templates/source_instance.html
+
+**Routes:**
+- `routes/source.py::source_instance_overview` (paths: `/source/instance`)
+
+**Unit tests:**
+- _None_
+
+**Integration tests:**
+- `tests/integration/test_source_browser_page.py::test_source_instance_lists_tables`
+
+**Specs:**
+- _None_
+
+## templates/source_instance_table.html
+
+**Routes:**
+- `routes/source.py::source_instance_table` (paths: `/source/instance/<string:table_name>`)
+
+**Unit tests:**
+- _None_
+
+**Integration tests:**
+- `tests/integration/test_source_browser_page.py::test_source_instance_table_view_displays_rows`
+
+**Specs:**
+- _None_
 
 ## templates/upload.html
 
@@ -477,6 +532,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_variable_pages.py::test_edit_variable_form_displays_existing_variable_details`
+- `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
 - `tests/integration/test_variable_pages.py::test_new_variable_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -506,6 +562,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list`
 
 **Integration tests:**
+- `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
 - `tests/integration/test_variable_pages.py::test_variables_page_lists_user_variables`
 
 **Specs:**
