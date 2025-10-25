@@ -256,7 +256,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_search_page_renders_with_filters`
 
 **Integration tests:**
-- _None_
+- `tests/integration/test_search_page.py::test_search_page_displays_filters_and_status`
 
 **Specs:**
 - _None_
