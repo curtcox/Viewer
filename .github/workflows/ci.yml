@@ -276,7 +276,7 @@ jobs:
         run: |
           export PATH="$HOME/.gauge/bin:$PATH"
           set -o pipefail
-          ./test-gauge 2>&1 | tee gauge-output.log
+          ./test-gauge 2>&1 | grep -v "^DEBUG:" | tee gauge-output.log
         env:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
@@ -290,27 +290,15 @@ jobs:
           echo "### Gauge Specs Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # Show only FAILED specs and their errors (case insensitive, multiple patterns)
-          if grep -qi "failed\|error\|exception" gauge-output.log; then
-            echo "#### Failed Specs and Errors" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            grep -B 5 -A 20 -i "failed\|error\|exception\|✖" gauge-output.log | head -200 >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          # Show summary
-          echo "#### Summary" >> "$GITHUB_STEP_SUMMARY"
+          # Show full spec execution output (excluding DEBUG lines)
+          echo "#### Spec Execution Output" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          grep -E "Specifications:|Scenarios:|Total time" gauge-output.log >> "$GITHUB_STEP_SUMMARY"
+          cat gauge-output.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-          # Print to console too
-          echo "=== FAILED SPECS AND ERRORS ==="
-          grep -B 5 -A 20 -i "failed\|error\|exception\|✖" gauge-output.log | head -200 || echo "No failures found"
-          echo ""
-          echo "=== LAST 100 LINES OF OUTPUT ==="
-          tail -100 gauge-output.log
+          # Print to console
+          echo "=== FULL OUTPUT (DEBUG FILTERED) ==="
+          cat gauge-output.log
           echo ""
           echo "=== SUMMARY ==="
           grep -E "Specifications:|Scenarios:|Total time" gauge-output.log
