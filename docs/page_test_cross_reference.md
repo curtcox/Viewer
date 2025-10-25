@@ -395,7 +395,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_settings_page.py::test_settings_page_displays_resource_counts_and_links`
 
 **Specs:**
-- _None_
+- settings.spec — Settings dashboard lists resource management links
 
 ## templates/source_browser.html
 
