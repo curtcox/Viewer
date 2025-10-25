@@ -275,12 +275,42 @@ jobs:
         id: run_gauge
         run: |
           export PATH="$HOME/.gauge/bin:$PATH"
-          ./test-gauge
+          set -o pipefail
+          ./test-gauge 2>&1 | tee gauge-output.log
         env:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
           PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
+          PYTHONUNBUFFERED: "1"
         continue-on-error: true
+
+      - name: Show failures and summary
+        if: always()
+        run: |
+          echo "### Gauge Specs Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Show only FAILED specs and their errors
+          if grep -q "FAILED" gauge-output.log; then
+            echo "#### Failed Specs" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -A 20 "FAILED" gauge-output.log | head -100 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Show summary
+          echo "#### Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "Specifications:|Scenarios:|Total time" gauge-output.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # Print to console too
+          echo "=== FAILED SPECS ==="
+          grep -A 20 "FAILED" gauge-output.log || echo "No failures found"
+          echo ""
+          echo "=== SUMMARY ==="
+          grep -E "Specifications:|Scenarios:|Total time" gauge-output.log
 
       - name: Upload Gauge HTML report
         if: always()
@@ -290,9 +320,19 @@ jobs:
           path: reports/html-report
           if-no-files-found: warn
 
+      - name: Upload Gauge output log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauge-output-log
+          path: gauge-output.log
+          if-no-files-found: warn
+
       - name: Fail if Gauge specs failed
         if: steps.run_gauge.outcome == 'failure'
-        run: exit 1
+        run: |
+          echo "❌ Gauge specs failed. Check the summary above for details."
+          exit 1
 
   deploy-reports:
     name: Publish Test Reports
