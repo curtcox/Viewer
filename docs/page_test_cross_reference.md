@@ -277,7 +277,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_secret_pages.py::test_new_secret_form_renders_for_authenticated_user`
 
 **Specs:**
-- _None_
+- secret_form.spec — Secret form is accessible
 
 ## templates/secret_view.html
 
