@@ -74,6 +74,15 @@ def when_i_request_server_events_page() -> None:
     get_scenario_state()["response"] = response
 
 
+@step("When I request the page /settings")
+def when_i_request_settings_page() -> None:
+    """Request the settings dashboard page."""
+    if _client is None:
+        raise RuntimeError("Gauge test client is not initialized.")
+    response = _client.get("/settings")
+    get_scenario_state()["response"] = response
+
+
 @step("When I request the page /servers/new")
 def when_i_request_new_server_page() -> None:
     """Request the new server form page."""
