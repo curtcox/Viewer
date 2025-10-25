@@ -365,13 +365,16 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
 
     try:
         return asyncio.run(_capture())
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
+    except (RuntimeError, OSError, Exception):  # Catch Chromium download failures and other errors
         try:
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(_capture())
-        finally:
-            loop.run_until_complete(loop.shutdown_asyncgens())
-            loop.close()
-            asyncio.set_event_loop(None)
+            loop = asyncio.new_event_loop()
+            try:
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(_capture())
+            finally:
+                loop.run_until_complete(loop.shutdown_asyncgens())
+                loop.close()
+                asyncio.set_event_loop(None)
+        except Exception:  # If browser still fails, fall back to text rendering
+            return None
 

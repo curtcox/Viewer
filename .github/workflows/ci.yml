@@ -258,22 +258,50 @@ jobs:
 
       - name: Install Gauge CLI
         run: |
-          curl -fsSL https://downloads.gauge.org/stable | sh
+          curl -SsL https://github.com/getgauge/gauge/releases/download/v1.6.10/gauge-1.6.10-linux.x86_64.zip -o gauge.zip
+          mkdir -p $HOME/.gauge/bin
+          unzip -o gauge.zip -d $HOME/.gauge
+          mv $HOME/.gauge/gauge $HOME/.gauge/bin/gauge
+          chmod +x $HOME/.gauge/bin/gauge
           echo "$HOME/.gauge/bin" >> "$GITHUB_PATH"
 
       - name: Install Gauge plugins
         run: |
+          export PATH="$HOME/.gauge/bin:$PATH"
           gauge install python
           gauge install html-report
 
       - name: Run Gauge specs
         id: run_gauge
-        run: ./test-gauge
+        run: |
+          export PATH="$HOME/.gauge/bin:$PATH"
+          set -o pipefail
+          ./test-gauge 2>&1 | grep -v "^DEBUG:" | tee gauge-output.log
         env:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
           PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
+          PYTHONUNBUFFERED: "1"
         continue-on-error: true
+
+      - name: Show failures and summary
+        if: always()
+        run: |
+          echo "### Gauge Specs Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Show full spec execution output (excluding DEBUG lines)
+          echo "#### Spec Execution Output" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat gauge-output.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # Print to console
+          echo "=== FULL OUTPUT (DEBUG FILTERED) ==="
+          cat gauge-output.log
+          echo ""
+          echo "=== SUMMARY ==="
+          grep -E "Specifications:|Scenarios:|Total time" gauge-output.log
 
       - name: Upload Gauge HTML report
         if: always()
@@ -283,9 +311,19 @@ jobs:
           path: reports/html-report
           if-no-files-found: warn
 
+      - name: Upload Gauge output log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauge-output-log
+          path: gauge-output.log
+          if-no-files-found: warn
+
       - name: Fail if Gauge specs failed
         if: steps.run_gauge.outcome == 'failure'
-        run: exit 1
+        run: |
+          echo "❌ Gauge specs failed. Check the summary above for details."
+          exit 1
 
   deploy-reports:
     name: Publish Test Reports
