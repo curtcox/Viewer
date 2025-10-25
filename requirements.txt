@@ -23,6 +23,7 @@ glom>=23.3.0
 pytest>=8.2.0
 ruff>=0.1.0
 pyppeteer>=1.0.2
+getgauge>=0.4.0
 logfire[all]
 logfire[aiohttp-client]
 opentelemetry-instrumentation-flask>=0.48b0
