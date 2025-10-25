@@ -2,14 +2,14 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1109
-- Unit Tests: 1057
+**Total Tests:** 1113
+- Unit Tests: 1061
 - Integration Tests: 40
 - Gauge Tests: 12
 
 ## Unit Tests
 
-Total: 1057 tests
+Total: 1061 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -456,6 +456,8 @@ Total: 1057 tests
 - [TestSettingsRoutes.test_settings_page_shows_direct_access_links](tests/test_routes_comprehensive.py:1802)
 - [TestSourceRoutes.test_source_htmlcov_serves_raw_content](tests/test_routes_comprehensive.py:1994)
 - [TestSourceRoutes.test_source_index_lists_tracked_files](tests/test_routes_comprehensive.py:1948)
+- [TestSourceRoutes.test_source_instance_overview_lists_database_tables](tests/test_routes_comprehensive.py:2017)
+- [TestSourceRoutes.test_source_instance_table_renders_existing_rows](tests/test_routes_comprehensive.py:2028)
 - [TestSourceRoutes.test_source_rejects_files_outside_project](tests/test_routes_comprehensive.py:1984)
 - [TestSourceRoutes.test_source_rejects_path_traversal](tests/test_routes_comprehensive.py:1989)
 - [TestSourceRoutes.test_source_serves_file_content](tests/test_routes_comprehensive.py:1957)
@@ -965,6 +967,8 @@ Total: 1057 tests
 - [test_source_browser_serves_comprehensive_files](tests/test_enhanced_error_pages.py:120)
 - [test_source_htmlcov_serves_raw_content](tests/test_routes_comprehensive.py:1994)
 - [test_source_index_lists_tracked_files](tests/test_routes_comprehensive.py:1948)
+- [test_source_instance_overview_lists_database_tables](tests/test_routes_comprehensive.py:2017)
+- [test_source_instance_table_renders_existing_rows](tests/test_routes_comprehensive.py:2028)
 - [test_source_link_generation_for_various_file_types](tests/test_error_page_source_links.py:172)
 - [test_source_links_open_in_new_tab](tests/test_error_page_source_links.py:312)
 - [test_source_links_use_clean_relative_paths](tests/test_error_page_path_formatting.py:72)

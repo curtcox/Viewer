@@ -428,7 +428,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/source.py::source_instance_overview` (paths: `/source/instance`)
 
 **Unit tests:**
-- _None_
+- `tests/test_routes_comprehensive.py::TestSourceRoutes::test_source_instance_overview_lists_database_tables`
 
 **Integration tests:**
 - `tests/integration/test_source_browser_page.py::test_source_instance_lists_tables`
@@ -442,7 +442,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/source.py::source_instance_table` (paths: `/source/instance/<string:table_name>`)
 
 **Unit tests:**
-- _None_
+- `tests/test_routes_comprehensive.py::TestSourceRoutes::test_source_instance_table_renders_existing_rows`
 
 **Integration tests:**
 - `tests/integration/test_source_browser_page.py::test_source_instance_table_view_displays_rows`
