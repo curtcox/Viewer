@@ -20,9 +20,17 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Gauge CLI and required plugins
-RUN curl -fsSL https://downloads.gauge.org/stable | sh \
-    && /root/.gauge/bin/gauge install python \
-    && /root/.gauge/bin/gauge install html-report
+ARG GAUGE_VERSION=1.5.6
+ARG GAUGE_DIST_URL="https://github.com/getgauge/gauge/releases/download/v${GAUGE_VERSION}/gauge-${GAUGE_VERSION}-linux.x86_64.zip"
+RUN curl -fsSL "${GAUGE_DIST_URL}" -o /tmp/gauge.zip \
+    && unzip /tmp/gauge.zip -d /tmp/gauge-dist \
+    && GAUGE_DIR="$(find /tmp/gauge-dist -maxdepth 1 -mindepth 1 -type d -name 'gauge-*' | head -n 1)" \
+    && [ -n "${GAUGE_DIR}" ] \
+    && mv "${GAUGE_DIR}" /opt/gauge \
+    && ln -s /opt/gauge/bin/gauge /usr/local/bin/gauge \
+    && rm -rf /tmp/gauge.zip /tmp/gauge-dist \
+    && gauge install python \
+    && gauge install html-report
 
 # Install Python dependencies used in CI
 COPY requirements.txt /tmp/requirements.txt
