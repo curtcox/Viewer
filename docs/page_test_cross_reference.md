@@ -259,7 +259,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_search_page.py::test_search_page_displays_filters_and_status`
 
 **Specs:**
-- _None_
+- search.spec — Search page is accessible with filters
 
 ## templates/secret_form.html
 

@@ -2,10 +2,10 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1114
+**Total Tests:** 1115
 - Unit Tests: 1061
 - Integration Tests: 40
-- Gauge Tests: 13
+- Gauge Tests: 14
 
 ## Unit Tests
 
@@ -1120,13 +1120,14 @@ Total: 40 tests
 
 ## Gauge Tests
 
-Total: 13 scenarios
+Total: 14 scenarios
 
 - [Aliases list shows available shortcuts](specs/alias_management.spec:21)
 - [Default workspace profile is accessible](specs/profile.spec:3)
 - [Info icon links to metadata](specs/meta_navigation.spec:3)
 - [New server form is accessible](specs/server_form.spec:3)
 - [Routes overview highlights available route types](specs/routes_overview.spec:3)
+- [Search page is accessible with filters](specs/search.spec:3)
 - [Secrets list is accessible](specs/secrets.spec:3)
 - [Server events dashboard is accessible](specs/server_events.spec:3)
 - [Settings dashboard lists resource management links](specs/settings.spec:3)
