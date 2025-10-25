@@ -1,60 +1,46 @@
 """Gauge step implementations for web application testing."""
 from __future__ import annotations
 
-from typing import Optional
-
 from flask import Flask
 from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
 
-from app import create_app
 from database import db
-from identity import ensure_default_user
 from models import Server
 from step_impl.artifacts import attach_response_snapshot
+from step_impl.shared_app import get_shared_app, get_shared_client, login_default_user
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
-
-_app: Optional[Flask] = None
-_client: Optional[FlaskClient] = None
 
 
 @before_suite()
 def setup_suite() -> None:
     """Create a Flask test client once for the entire suite."""
-    # pylint: disable=global-statement
-    # Gauge test framework requires global state to share context between steps
-    global _app, _client
-    _app = create_app({"TESTING": True})
-    _client = _app.test_client()
+    get_shared_app()
+    get_shared_client()
 
 
 def _require_app() -> Flask:
-    if _app is None:
-        raise RuntimeError("Gauge test app is not initialized.")
-    return _app
+    return get_shared_app()
 
 
 def _require_client() -> FlaskClient:
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    return _client
+    return get_shared_client()
 
 
 def _login_default_user() -> str:
     """Attach the default user session to the Gauge test client."""
 
+    return login_default_user()
+
+
+def _perform_get_request(path: str) -> None:
+    """Issue a GET request for the provided path and store the response."""
+
     client = _require_client()
-    app = _require_app()
-
-    with app.app_context():
-        user = ensure_default_user()
-        user_id = user.id
-
-    with client.session_transaction() as session:
-        session["_user_id"] = user_id
-        session["_fresh"] = True
-
-    return user_id
+    _login_default_user()
+    response = client.get(path)
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @before_scenario()
@@ -67,110 +53,67 @@ def reset_scenario_store() -> None:
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
     """Request the home page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/")
 
 
 @step("When I request the page /profile")
 def when_i_request_profile_page() -> None:
     """Request the profile page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/profile")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/profile")
 
 
 @step("When I request the page /routes")
 def when_i_request_routes_page() -> None:
     """Request the routes page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/routes")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/routes")
 
 
 @step("When I request the page /secrets")
 def when_i_request_secrets_page() -> None:
     """Request the secrets page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/secrets")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/secrets")
 
 
 @step("When I request the page /secrets/new")
 def when_i_request_new_secret_page() -> None:
     """Request the new secret form page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/secrets/new")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/secrets/new")
 
 
 @step("When I request the page /server_events")
 def when_i_request_server_events_page() -> None:
     """Request the server events page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/server_events")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/server_events")
 
 
 @step("When I request the page /settings")
 def when_i_request_settings_page() -> None:
     """Request the settings dashboard page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/settings")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/settings")
 
 
 @step("When I request the page /search")
 def when_i_request_search_page() -> None:
     """Request the workspace search page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/search")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/search")
 
 
 @step("When I request the page /servers/new")
 def when_i_request_new_server_page() -> None:
     """Request the new server form page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/servers/new")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/servers/new")
 
 
 @step("When I request the page /aliases/ai")
 def when_i_request_aliases_ai_page() -> None:
     """Request the aliases AI page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/aliases/ai")
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
+    _perform_get_request("/aliases/ai")
 
 
 @step("When I request the page /aliases")
 def when_i_request_aliases_index_page() -> None:
     """Request the aliases index page."""
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/aliases")
-    get_scenario_state()["response"] = response
+    _perform_get_request("/aliases")
 
 
 @step("When I request the page /servers/<server_name>")

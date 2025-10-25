@@ -1,26 +1,19 @@
 """Gauge step implementations that exercise the source browser."""
 from __future__ import annotations
 
-from typing import Optional
-
 from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
 
-from app import create_app
 from step_impl.artifacts import attach_response_snapshot
+from step_impl.shared_app import get_shared_app, get_shared_client, login_default_user
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
-
-_client: Optional[FlaskClient] = None
 
 
 @before_suite()
 def setup_suite() -> None:
     """Create a Flask test client once for the entire suite."""
-    # pylint: disable=global-statement
-    # Gauge test framework requires global state to share context between steps
-    global _client
-    app = create_app({"TESTING": True})
-    _client = app.test_client()
+    get_shared_app()
+    get_shared_client()
 
 
 @before_scenario()
@@ -31,18 +24,18 @@ def reset_scenario_store() -> None:
 
 @step("When I request /source")
 def when_i_request_source() -> None:
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get("/source")
+    login_default_user()
+    client: FlaskClient = get_shared_client()
+    response = client.get("/source")
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
 
 
 @step("When I request the page <path>")
 def when_i_request_the_page(path: str) -> None:
-    if _client is None:
-        raise RuntimeError("Gauge test client is not initialized.")
-    response = _client.get(path)
+    login_default_user()
+    client: FlaskClient = get_shared_client()
+    response = client.get(path)
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
 
