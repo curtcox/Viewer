@@ -24,12 +24,15 @@ defaults:
   run:
     shell: bash
 
+env:
+  CI_IMAGE: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+
 jobs:
   ruff:
     name: Ruff
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -42,7 +45,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -55,7 +58,7 @@ jobs:
     name: Mypy
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -68,7 +71,7 @@ jobs:
     name: Test Index Validation
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -90,7 +93,7 @@ jobs:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -151,7 +154,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -206,7 +209,7 @@ jobs:
     name: Gauge Specs
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -251,7 +254,7 @@ jobs:
           needs['gauge-specs'].result == 'success' }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
