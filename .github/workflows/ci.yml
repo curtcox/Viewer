@@ -32,7 +32,7 @@ jobs:
     name: Ruff
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -45,7 +45,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -58,7 +58,7 @@ jobs:
     name: Mypy
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
 
     steps:
       - name: Checkout repository
@@ -90,7 +90,7 @@ jobs:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -138,16 +138,13 @@ jobs:
     name: Property Tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       HYPOTHESIS_PROFILE: ci
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
 
       - name: Run property tests
         run: pytest property_tests
@@ -156,7 +153,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -197,7 +194,7 @@ jobs:
     name: Gauge Specs
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -237,7 +234,7 @@ jobs:
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+      image: ${{ env.CI_IMAGE }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
