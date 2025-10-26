@@ -2,10 +2,10 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1143
+**Total Tests:** 1145
 - Unit Tests: 1086
 - Integration Tests: 40
-- Property Tests: 1
+- Property Tests: 3
 - Gauge Tests: 16
 
 ## Unit Tests
@@ -1146,9 +1146,11 @@ Total: 40 tests
 
 ## Property Tests
 
-Total: 1 tests
+Total: 3 tests
 
-- [Literal patterns should always normalise to a clean, slash-prefixed path.](property_tests/test_alias_matching_properties.py:15)
+- [test_decrypt_rejects_modified_payload](tests/property/test_encryption_properties.py:32)
+- [test_encrypt_decrypt_round_trip](tests/property/test_encryption_properties.py:10)
+- [Literal patterns should always normalise to a clean, slash-prefixed path.](tests/property/test_alias_matching_properties.py:15)
 
 ## Gauge Tests
 
