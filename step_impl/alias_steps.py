@@ -186,6 +186,13 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
     _scenario_state["alias_name"] = alias_name
 
 
+@step('Given there is an alias named <docs> pointing to /guides')
+def ypefci(docs: str) -> None:
+    """Specialised fixture for an alias pointing to /guides."""
+
+    given_alias_exists(docs, "/guides")
+
+
 @step("When I visit <path>")
 def when_i_visit_path(path: str) -> None:
     """Perform a GET request against the provided path."""
@@ -196,6 +203,13 @@ def when_i_visit_path(path: str) -> None:
     _scenario_state["last_path"] = path
     attach_response_snapshot(response)
     assert response.status_code == 200, f"Expected GET {path} to succeed."
+
+
+@step("When I visit /aliases/docs/edit")
+def ypdcaf() -> None:
+    """Load the edit page for the docs alias."""
+
+    when_i_visit_path("/aliases/docs/edit")
 
 
 @step("Then I can update the alias target and save the changes")
@@ -226,6 +240,13 @@ def then_update_alias_target() -> None:
         assert alias is not None, "Alias was not found after attempting to update it."
         expected_target = f"/{alias_name}/updated"
         assert alias.target_path == expected_target, "Alias target path did not update."
+
+
+@step("Path coverage: /aliases/ai")
+def aplfaz() -> None:
+    """Acknowledge the /aliases/ai route for documentation coverage."""
+
+    record_alias_path_coverage("ai")
 
 
 @step("Path coverage: /aliases")
