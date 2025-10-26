@@ -20,9 +20,6 @@ permissions:
   pages: write
   id-token: write
 
-env:
-  CI_IMAGE: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
-
 defaults:
   run:
     shell: bash
@@ -32,7 +29,7 @@ jobs:
     name: Ruff
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -45,7 +42,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -58,7 +55,7 @@ jobs:
     name: Mypy
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -71,7 +68,7 @@ jobs:
     name: Test Index Validation
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -93,7 +90,7 @@ jobs:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -154,7 +151,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -209,7 +206,7 @@ jobs:
     name: Gauge Specs
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -254,7 +251,7 @@ jobs:
           needs['gauge-specs'].result == 'success' }}
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
