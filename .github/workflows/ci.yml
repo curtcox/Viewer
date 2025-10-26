@@ -142,6 +142,7 @@ jobs:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
       TESTING: "True"
+      INTEGRATION_LOG_PATH: integration-tests.log
 
     steps:
       - name: Checkout repository
@@ -150,15 +151,14 @@ jobs:
       - name: Run integration tests
         id: run_integration
         run: |
-          set -o pipefail
-          python run_integration_tests.py -- --junitxml=integration-tests-report.xml | tee integration-tests.log
+          scripts/run-integration.sh -- --junitxml=integration-tests-report.xml
         continue-on-error: true
 
       - name: Publish integration summary
         if: always()
         run: |
           python scripts/publish_integration_summary.py \
-            --log integration-tests.log \
+            --log "$INTEGRATION_LOG_PATH" \
             --junit integration-tests-report.xml
 
       - name: Upload integration test artifacts
@@ -168,7 +168,7 @@ jobs:
           name: integration-tests-results
           path: |
             integration-tests-report.xml
-            integration-tests.log
+            ${{ env.INTEGRATION_LOG_PATH }}
 
       - name: Fail if integration tests failed
         if: steps.run_integration.outcome == 'failure'
