@@ -70,12 +70,15 @@ jobs:
   test-index:
     name: Test Index Validation
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
       - name: Generate test index
         run: python generate_test_index.py
