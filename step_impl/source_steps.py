@@ -1,4 +1,5 @@
 """Gauge step implementations that exercise the source browser."""
+
 from __future__ import annotations
 
 from flask.testing import FlaskClient
