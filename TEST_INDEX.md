@@ -2,14 +2,14 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1132
-- Unit Tests: 1076
+**Total Tests:** 1142
+- Unit Tests: 1086
 - Integration Tests: 40
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1076 tests
+Total: 1086 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -631,11 +631,14 @@ Total: 1076 tests
 - [test_decrypt_surfaces_invalid_payload_encoding](tests/test_encryption.py:38)
 - [test_definition_lists_render_with_dt_and_dd](tests/test_markdown_rendering.py:108)
 - [Test deleting server.](tests/test_routes_comprehensive.py:1532)
+- [test_describe_alias_redirect_includes_status_metadata](tests/test_variables_resolution.py:29)
+- [test_describe_route_resolution_includes_methods_and_rule](tests/test_variables_resolution.py:11)
 - [test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
 - [test_describe_target_path_handles_cids_with_prefix](tests/test_alias_view_definition_targets.py:26)
 - [test_describe_target_path_handles_generic_paths](tests/test_alias_view_definition_targets.py:47)
 - [test_describe_target_path_handles_servers](tests/test_alias_view_definition_targets.py:33)
+- [test_describe_unknown_resolution_type](tests/test_variables_resolution.py:51)
 - [Test that same body_text produces same function name (deterministic).](tests/test_text_function_runner.py:84)
 - [Test that CID generation is deterministic across multiple calls](tests/test_cid_generation.py:143)
 - [Test that different body_text produces different function names.](tests/test_text_function_runner.py:96)
@@ -887,9 +890,16 @@ Total: 1076 tests
 - [Test that function works with available parameters only.](tests/test_text_function_runner.py:155)
 - [Test that when param_order is None, keys are sorted.](tests/test_text_function_runner.py:46)
 - [Test that param_order fixes the function signature.](tests/test_text_function_runner.py:33)
+- [test_parse_import_payload_errors](tests/test_import_export_helpers.py:22)
+- [test_parse_import_payload_success](tests/test_import_export_helpers.py:11)
 - [test_plain_markdown_has_no_formdown_markup](tests/test_markdown_rendering.py:237)
 - [Test plans page.](tests/test_routes_comprehensive.py:561)
 - [test_prepare_alias_import_uses_definition_cid](tests/test_import_export.py:699)
+- [test_prepare_history_event_reports_invalid_timestamp](tests/test_import_export_helpers.py:89)
+- [test_prepare_history_event_truncates_long_messages](tests/test_import_export_helpers.py:71)
+- [test_prepare_server_import_falls_back_to_cid](tests/test_import_export_helpers.py:48)
+- [test_prepare_server_import_prefers_definition](tests/test_import_export_helpers.py:36)
+- [test_prepare_server_import_reports_missing_data](tests/test_import_export_helpers.py:59)
 - [Test privacy page.](tests/test_routes_comprehensive.py:571)
 - [Test that process_file_upload handles files without filename](tests/test_upload_extensions.py:44)
 - [Test that process_file_upload handles files without extension](tests/test_extension_logic.py:23)
