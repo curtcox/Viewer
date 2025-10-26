@@ -444,6 +444,13 @@ def record_server_view_path_coverage(server_name: str) -> None:  # noqa: ARG001 
     return None
 
 
+@step("Path coverage: /servers/weather")
+def record_weather_server_path_coverage() -> None:
+    """Acknowledge the weather server detail route for documentation coverage."""
+
+    record_server_view_path_coverage("weather")
+
+
 @step("Given there is a server named weather returning Weather forecast ready")
 def given_there_is_a_server_named_weather_returning_weather_forecast_ready() -> None:
     """Create a weather server fixture returning the expected message."""
