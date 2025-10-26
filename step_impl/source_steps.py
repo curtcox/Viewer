@@ -70,6 +70,13 @@ def then_response_contains(text: str) -> None:
     assert text in body, f"Expected to find {text!r} in the response body."
 
 
+@step("The response should contain Source Browser")
+def the_response_should_contain_source_browser() -> None:
+    """Verify the source browser page renders the expected heading."""
+
+    then_response_contains("Source Browser")
+
+
 @step("The page should contain <text>")
 def then_page_should_contain(text: str) -> None:
     response = get_scenario_state().get("response")

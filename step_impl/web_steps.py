@@ -49,6 +49,18 @@ def reset_scenario_store() -> None:
     clear_scenario_state()
 
 
+# Shared assertions
+@step("The response status should be 200")
+def the_response_status_should_be_200() -> None:
+    """Validate that the captured response completed successfully."""
+
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert (
+        response.status_code == 200
+    ), f"Expected HTTP 200 but received {response.status_code} for {response.request.path!r}."
+
+
 # Page request steps
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
@@ -430,6 +442,34 @@ def record_server_view_path_coverage(server_name: str) -> None:  # noqa: ARG001 
     """Acknowledge the server detail route for documentation coverage."""
 
     return None
+
+
+@step("Given there is a server named weather returning Weather forecast ready")
+def given_there_is_a_server_named_weather_returning_weather_forecast_ready() -> None:
+    """Create a weather server fixture returning the expected message."""
+
+    given_server_exists("weather", "Weather forecast ready")
+
+
+@step("When I request the page /servers/weather")
+def pvipha() -> None:
+    """Request the weather server detail page."""
+
+    when_i_request_server_detail_page("weather")
+
+
+@step("The page should contain Edit Server")
+def the_page_should_contain_edit_server() -> None:
+    """Assert that the response body lists the Edit Server action."""
+
+    then_page_should_contain("Edit Server")
+
+
+@step("The page should contain Server Definition")
+def the_page_should_contain_server_definition() -> None:
+    """Assert that the response body displays the server definition."""
+
+    then_page_should_contain("Server Definition")
 
 
 # Import/Export steps
