@@ -61,6 +61,11 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
   `scripts/publish-coverage-summary.sh coverage-report.txt coverage-summary.md coverage-output.txt` to print the summary,
   append the Markdown block to `coverage-summary.md`, and capture the generated flag. Omit the extra arguments to fall back to
   `GITHUB_STEP_SUMMARY` and `GITHUB_OUTPUT` when running inside GitHub Actions.
+* `scripts/build-report-site.py` – assemble the static report site from downloaded artifacts. After running the desired test
+  suites, point the script at the artifact directories (for example,
+  `python scripts/build-report-site.py --unit-tests-artifacts site/unit-tests --gauge-artifacts site/gauge-specs --integration-artifacts site/integration-tests --output site`).
+  This reproduces the GitHub Pages bundle locally so you can open `site/index.html` in a browser and validate the rendered
+  reports before pushing a change.
 
 ### Gauge specs
 
