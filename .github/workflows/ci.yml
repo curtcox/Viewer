@@ -84,13 +84,7 @@ jobs:
         run: python generate_test_index.py
 
       - name: Check if test index is up to date
-        run: |
-          if ! git diff --exit-code TEST_INDEX.md; then
-            echo "Error: TEST_INDEX.md is out of date!"
-            echo "Please run 'python generate_test_index.py' and commit the changes."
-            exit 1
-          fi
-          echo "Test index is up to date."
+        run: bash scripts/check-test-index.sh
 
   unit-tests:
     name: Unit Tests and Coverage

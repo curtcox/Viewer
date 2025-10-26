@@ -49,6 +49,8 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `test` – invoke both `test-unit` and `test-gauge` sequentially.
 * `run_integration_tests.py` – execute only the integration tests under `tests/integration`.
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
+* `scripts/check-test-index.sh` – verify `TEST_INDEX.md` matches the output of `python generate_test_index.py` so you can catch
+  drift locally before pushing changes.
 
 ### Gauge specs
 
