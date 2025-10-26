@@ -16,7 +16,7 @@ Visit the [published GitHub Pages site](https://curtcox.github.io/Viewer/) for t
 ./test      # run the full test suite (pytest + Gauge specs)
 ./test-unit  # run only the pytest suite (add --coverage for coverage reports)
 ./test-gauge # run only the Gauge specs
-python run_integration_tests.py  # run the dedicated integration test suite
+scripts/run-integration.sh  # run the dedicated integration test suite (mirrors CI)
 python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
@@ -47,13 +47,14 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `test-unit` – execute the pytest suite (`--coverage` forwards to `run_coverage.py`).
 * `test-gauge` – run the Gauge specifications.
 * `test` – invoke both `test-unit` and `test-gauge` sequentially.
-* `run_integration_tests.py` – execute only the integration tests under `tests/integration`.
+* `scripts/run-integration.sh` – run the integration tests and tee the log to `INTEGRATION_LOG_PATH` (defaults to `integration-tests.log`).
+* `run_integration_tests.py` – execute only the integration tests under `tests/integration` (invoked by the wrapper script).
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 * `scripts/check-test-index.sh` – verify `TEST_INDEX.md` matches the output of `python generate_test_index.py` so you can catch
   drift locally before pushing changes.
 * `scripts/publish_integration_summary.py` – reproduce the CI integration summary by tailing the most recent log output. After
-  running `python run_integration_tests.py -- --junitxml=integration-tests-report.xml | tee integration-tests.log`, invoke
-  `python scripts/publish_integration_summary.py --log integration-tests.log --junit integration-tests-report.xml` to preview
+  running `INTEGRATION_LOG_PATH=integration-tests.log scripts/run-integration.sh -- --junitxml=integration-tests-report.xml`, invoke
+  `python scripts/publish_integration_summary.py --log "$INTEGRATION_LOG_PATH" --junit integration-tests-report.xml` to preview
   the summary locally. Omit `--summary` to print to the terminal or pass a path to write the output to a file for inspection.
 * `scripts/publish-coverage-summary.sh` – mirror the CI coverage summary step. After producing a report with
   `./test-unit --coverage --summary-file coverage-report.txt`, run
@@ -82,8 +83,8 @@ After changing the configuration or dependencies re‑run `./doctor` to ensure y
  the development server started with `./run`.
 
 Run `pytest` (or the `./test` wrapper) before opening a pull request so you catch regressions locally.  Integration scenarios
-live under `tests/integration` and are skipped by default; run `python run_integration_tests.py` when you need to validate
-end-to-end behaviour.
+live under `tests/integration` and are skipped by default; run `scripts/run-integration.sh` when you need to validate
+end-to-end behaviour with the same logging CI captures.
 
 ### Observability
 
