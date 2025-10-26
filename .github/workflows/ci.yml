@@ -6,14 +6,6 @@ on:
       - main
       - master
   pull_request:
-    branches:
-      - main
-      - master
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
 
 permissions:
   contents: read
