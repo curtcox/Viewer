@@ -51,6 +51,22 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 * `scripts/check-test-index.sh` – verify `TEST_INDEX.md` matches the output of `python generate_test_index.py` so you can catch
   drift locally before pushing changes.
+* `scripts/prepare_test_site.py` – bundle downloaded test artifacts into the GitHub Pages site structure used by CI.
+
+### Preparing the test report site locally
+
+CI calls `scripts/prepare_test_site.py` to flatten the downloaded test artifacts and generate landing pages before publishing to
+GitHub Pages. You can run the same workflow locally to inspect a build:
+
+1. Populate the expected input directories under `site/`:
+   * copy the pytest coverage HTML report into `site/unit-tests/htmlcov/` (e.g., from `htmlcov/` produced by
+     `./test-unit --coverage`),
+   * copy the Gauge HTML report (and optional `secureapp-artifacts/` screenshots) into `site/gauge-specs/reports/html-report/`,
+   * save `integration-tests-report.xml` and `integration-tests.log` from `python run_integration_tests.py -- --junitxml=…` into
+     `site/integration-tests/`.
+2. Run `python scripts/prepare_test_site.py` (add `--site-root` if you want to target a different directory).
+3. Open `site/index.html` in a browser (for example, `python -m http.server --directory site 8000`) to explore the coverage,
+   integration, and Gauge reports locally.
 
 ### Gauge specs
 
