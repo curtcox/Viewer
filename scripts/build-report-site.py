@@ -7,15 +7,25 @@ import argparse
 import shutil
 import sys
 from html import escape
+from importlib import import_module
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence, cast
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+EnhanceGaugeReport = Callable[[Path], bool]
 
-from tests.gauge_report import enhance_gauge_report
+
+def _load_enhance_gauge_report() -> EnhanceGaugeReport:
+    repo_root = Path(__file__).resolve().parents[1]
+    repo_root_str = str(repo_root)
+    if repo_root_str not in sys.path:
+        sys.path.insert(0, repo_root_str)
+
+    module = import_module("tests.gauge_report")
+    return cast(EnhanceGaugeReport, module.enhance_gauge_report)
+
+
+enhance_gauge_report = _load_enhance_gauge_report()
 
 
 def _copy_artifacts(source: Path | None, destination: Path) -> None:
