@@ -51,6 +51,10 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 * `scripts/check-test-index.sh` – verify `TEST_INDEX.md` matches the output of `python generate_test_index.py` so you can catch
   drift locally before pushing changes.
+* `scripts/publish_integration_summary.py` – reproduce the CI integration summary by tailing the most recent log output. After
+  running `python run_integration_tests.py -- --junitxml=integration-tests-report.xml | tee integration-tests.log`, invoke
+  `python scripts/publish_integration_summary.py --log integration-tests.log --junit integration-tests-report.xml` to preview
+  the summary locally. Omit `--summary` to print to the terminal or pass a path to write the output to a file for inspection.
 
 ### Gauge specs
 

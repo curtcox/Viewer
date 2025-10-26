@@ -171,23 +171,9 @@ jobs:
       - name: Publish integration summary
         if: always()
         run: |
-          if [ -f integration-tests.log ]; then
-            {
-              echo "### Integration tests"
-              echo
-              echo '```'
-              tail -n 50 integration-tests.log
-              echo '```'
-              echo
-              echo "JUnit XML: integration-tests-report.xml"
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "### Integration tests"
-              echo
-              echo "No integration test log was produced."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
+          python scripts/publish_integration_summary.py \
+            --log integration-tests.log \
+            --junit integration-tests-report.xml
 
       - name: Upload integration test artifacts
         if: always()
