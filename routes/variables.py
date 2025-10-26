@@ -1,6 +1,6 @@
 """Variable management routes and helpers."""
 from http import HTTPStatus
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from flask import abort, flash, redirect, render_template, request, url_for
 
@@ -56,95 +56,137 @@ def _append_detail(details: List[Dict[str, str]], label: str, value: Any) -> Non
     details.append({"label": label, "value": rendered})
 
 
-def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
-    rtype = resolution.get("type")
+def _describe_route_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
-    summary = "Unknown resolution"
-
-    if rtype == "route":
-        endpoint = resolution.get("endpoint")
-        rule = resolution.get("rule")
-        if endpoint and rule:
-            summary = f"Route {endpoint} ({rule})"
-        elif endpoint:
-            summary = f"Route {endpoint}"
-        elif rule:
-            summary = f"Route {rule}"
-        else:
-            summary = "Route"
-        _append_detail(details, "Endpoint", endpoint)
-        _append_detail(details, "Rule", rule)
-        _append_detail(details, "Blueprint", resolution.get("blueprint"))
-        methods = resolution.get("methods")
-        if methods:
-            _append_detail(details, "Methods", ", ".join(methods))
-    elif rtype == "alias_redirect":
-        alias_name = resolution.get("alias")
-        target_path = resolution.get("target_path")
-        if alias_name and target_path:
-            summary = f"Alias {alias_name} → {target_path}"
-        elif alias_name:
-            summary = f"Alias {alias_name}"
-        elif target_path:
-            summary = f"Alias redirect to {target_path}"
-        else:
-            summary = "Alias redirect"
-        _append_detail(details, "Alias", alias_name)
-        _append_detail(details, "Target", target_path)
-        redirect_location = resolution.get("redirect_location")
-        if redirect_location and redirect_location != target_path:
-            _append_detail(details, "Redirect Location", redirect_location)
-        target_metadata = resolution.get("target_metadata") or {}
-        target_status = target_metadata.get("status_code")
-        if target_status is not None:
-            _append_detail(details, "Target Status", _format_status(target_status))
-        resolved_path = target_metadata.get("path")
-        if resolved_path and resolved_path != target_path:
-            _append_detail(details, "Resolved Path", resolved_path)
-    elif rtype in {"server_execution", "server_function_execution"}:
-        server_name = resolution.get("server_name")
-        summary = f"Server {server_name}" if server_name else "Server execution"
-        if rtype == "server_function_execution" and resolution.get("function_name"):
-            summary = f"{summary}.{resolution['function_name']}"
-            _append_detail(details, "Function", resolution.get("function_name"))
-        _append_detail(details, "Server", server_name)
-        if resolution.get("requires_authentication") is not None:
-            _append_detail(details, "Requires Authentication", resolution.get("requires_authentication"))
-    elif rtype in {"versioned_server_execution", "versioned_server_function_execution"}:
-        server_name = resolution.get("server_name")
-        partial = resolution.get("partial_cid")
-        summary = "Versioned server"
-        if server_name:
-            summary = f"{summary} {server_name}"
-        if partial:
-            summary = f"{summary} @ {partial}"
-        if rtype == "versioned_server_function_execution" and resolution.get("function_name"):
-            summary = f"{summary}.{resolution['function_name']}"
-            _append_detail(details, "Function", resolution.get("function_name"))
-        _append_detail(details, "Server", server_name)
-        _append_detail(details, "Partial CID", partial)
-        matches = resolution.get("matches")
-        if isinstance(matches, list):
-            _append_detail(details, "Matches", len(matches))
-    elif rtype == "cid":
-        cid_value = resolution.get("cid")
-        summary = f"CID {cid_value}" if cid_value else "CID content"
-        _append_detail(details, "CID", cid_value)
-        _append_detail(details, "Extension", resolution.get("extension"))
-    elif rtype == "method_not_allowed":
-        summary = "Method not allowed"
-        allowed = resolution.get("allowed_methods") or []
-        if allowed:
-            _append_detail(details, "Allowed Methods", ", ".join(allowed))
-    elif rtype == "redirect":
-        location = resolution.get("location")
-        summary = f"Redirect to {location}" if location else "Redirect"
-        _append_detail(details, "Location", location)
+    endpoint = resolution.get("endpoint")
+    rule = resolution.get("rule")
+    if endpoint and rule:
+        summary = f"Route {endpoint} ({rule})"
+    elif endpoint:
+        summary = f"Route {endpoint}"
+    elif rule:
+        summary = f"Route {rule}"
     else:
-        if rtype:
-            summary = rtype.replace("_", " ").title()
-
+        summary = "Route"
+    _append_detail(details, "Endpoint", endpoint)
+    _append_detail(details, "Rule", rule)
+    _append_detail(details, "Blueprint", resolution.get("blueprint"))
+    methods = resolution.get("methods")
+    if methods:
+        _append_detail(details, "Methods", ", ".join(methods))
     return summary, details
+
+
+def _describe_alias_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    alias_name = resolution.get("alias")
+    target_path = resolution.get("target_path")
+    if alias_name and target_path:
+        summary = f"Alias {alias_name} → {target_path}"
+    elif alias_name:
+        summary = f"Alias {alias_name}"
+    elif target_path:
+        summary = f"Alias redirect to {target_path}"
+    else:
+        summary = "Alias redirect"
+    _append_detail(details, "Alias", alias_name)
+    _append_detail(details, "Target", target_path)
+    redirect_location = resolution.get("redirect_location")
+    if redirect_location and redirect_location != target_path:
+        _append_detail(details, "Redirect Location", redirect_location)
+    target_metadata = resolution.get("target_metadata") or {}
+    target_status = target_metadata.get("status_code")
+    if target_status is not None:
+        _append_detail(details, "Target Status", _format_status(target_status))
+    resolved_path = target_metadata.get("path")
+    if resolved_path and resolved_path != target_path:
+        _append_detail(details, "Resolved Path", resolved_path)
+    return summary, details
+
+
+def _describe_server_execution_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    server_name = resolution.get("server_name")
+    summary = f"Server {server_name}" if server_name else "Server execution"
+    function_name = resolution.get("function_name")
+    if resolution.get("type") == "server_function_execution" and function_name:
+        summary = f"{summary}.{function_name}"
+        _append_detail(details, "Function", function_name)
+    _append_detail(details, "Server", server_name)
+    requires_auth = resolution.get("requires_authentication")
+    if requires_auth is not None:
+        _append_detail(details, "Requires Authentication", requires_auth)
+    return summary, details
+
+
+def _describe_versioned_server_execution_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    server_name = resolution.get("server_name")
+    partial = resolution.get("partial_cid")
+    summary = "Versioned server"
+    if server_name:
+        summary = f"{summary} {server_name}"
+    if partial:
+        summary = f"{summary} @ {partial}"
+    function_name = resolution.get("function_name")
+    if resolution.get("type") == "versioned_server_function_execution" and function_name:
+        summary = f"{summary}.{function_name}"
+        _append_detail(details, "Function", function_name)
+    _append_detail(details, "Server", server_name)
+    _append_detail(details, "Partial CID", partial)
+    matches = resolution.get("matches")
+    if isinstance(matches, list):
+        _append_detail(details, "Matches", len(matches))
+    return summary, details
+
+
+def _describe_cid_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    cid_value = resolution.get("cid")
+    summary = f"CID {cid_value}" if cid_value else "CID content"
+    _append_detail(details, "CID", cid_value)
+    _append_detail(details, "Extension", resolution.get("extension"))
+    return summary, details
+
+
+def _describe_method_not_allowed_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    allowed = resolution.get("allowed_methods") or []
+    summary = "Method not allowed"
+    if allowed:
+        _append_detail(details, "Allowed Methods", ", ".join(allowed))
+    return summary, details
+
+
+def _describe_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    details: List[Dict[str, str]] = []
+    location = resolution.get("location")
+    summary = f"Redirect to {location}" if location else "Redirect"
+    _append_detail(details, "Location", location)
+    return summary, details
+
+
+_RESOLUTION_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Tuple[str, List[Dict[str, str]]]]] = {
+    "route": _describe_route_resolution,
+    "alias_redirect": _describe_alias_redirect_resolution,
+    "server_execution": _describe_server_execution_resolution,
+    "server_function_execution": _describe_server_execution_resolution,
+    "versioned_server_execution": _describe_versioned_server_execution_resolution,
+    "versioned_server_function_execution": _describe_versioned_server_execution_resolution,
+    "cid": _describe_cid_resolution,
+    "method_not_allowed": _describe_method_not_allowed_resolution,
+    "redirect": _describe_redirect_resolution,
+}
+
+
+def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+    rtype = resolution.get("type") or ""
+    handler = _RESOLUTION_HANDLERS.get(rtype)
+    if handler:
+        return handler(resolution)
+    if rtype:
+        return rtype.replace("_", " ").title(), []
+    return "Unknown resolution", []
 
 
 def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:

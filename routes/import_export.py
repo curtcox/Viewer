@@ -10,9 +10,9 @@ import sys
 import tomllib
 from datetime import datetime, timezone
 from importlib import metadata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional, Tuple
+from typing import Any, Callable, Iterable, Iterator, Optional, Tuple
 
 import requests
 from flask import current_app, flash, redirect, render_template, request, url_for
@@ -718,6 +718,24 @@ def _include_unreferenced_cids(
         cid_map_entries[normalised] = _serialise_cid_value(bytes(file_content))
 
 
+def _add_optional_section(
+    sections: dict[str, Any],
+    include_section: bool,
+    section_key: str,
+    builder: Callable[[], Any],
+    *,
+    require_truthy: bool = True,
+) -> None:
+    """Conditionally add an export section produced by a builder callback."""
+
+    if not include_section:
+        return
+
+    section_value = builder()
+    if section_value or not require_truthy:
+        sections[section_key] = section_value
+
+
 def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
     """Return rendered export payload data for the user's selected collections."""
 
@@ -730,47 +748,67 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
     cid_map_entries: dict[str, dict[str, str]] = {}
     include_optional_cids = form.include_cid_map.data
 
-    project_files_payload = _collect_project_files_section(
-        base_path,
-        user_id,
-        include_optional_cids,
-        cid_map_entries,
+    _add_optional_section(
+        sections,
+        True,
+        'project_files',
+        lambda: _collect_project_files_section(
+            base_path,
+            user_id,
+            include_optional_cids,
+            cid_map_entries,
+        ),
     )
-    if project_files_payload:
-        sections['project_files'] = project_files_payload
 
-    if form.include_aliases.data:
-        alias_payload = _collect_alias_section(user_id, include_optional_cids, cid_map_entries)
-        if alias_payload:
-            sections['aliases'] = alias_payload
+    _add_optional_section(
+        sections,
+        form.include_aliases.data,
+        'aliases',
+        lambda: _collect_alias_section(user_id, include_optional_cids, cid_map_entries),
+    )
 
-    if form.include_servers.data:
-        servers_payload = _collect_server_section(user_id, include_optional_cids, cid_map_entries)
-        if servers_payload:
-            sections['servers'] = servers_payload
+    _add_optional_section(
+        sections,
+        form.include_servers.data,
+        'servers',
+        lambda: _collect_server_section(user_id, include_optional_cids, cid_map_entries),
+    )
 
-    if form.include_variables.data:
-        sections['variables'] = _collect_variables_section(user_id)
+    _add_optional_section(
+        sections,
+        form.include_variables.data,
+        'variables',
+        lambda: _collect_variables_section(user_id),
+        require_truthy=False,
+    )
 
-    if form.include_secrets.data:
-        key = form.secret_key.data.strip()
-        sections['secrets'] = _collect_secrets_section(user_id, key)
+    _add_optional_section(
+        sections,
+        form.include_secrets.data,
+        'secrets',
+        lambda: _collect_secrets_section(user_id, form.secret_key.data.strip()),
+        require_truthy=False,
+    )
 
-    if form.include_history.data:
-        history_payload = _collect_history_section(user_id)
-        if history_payload:
-            sections['change_history'] = history_payload
+    _add_optional_section(
+        sections,
+        form.include_history.data,
+        'change_history',
+        lambda: _collect_history_section(user_id),
+    )
 
-    if form.include_source.data:
-        app_source_payload = _collect_app_source_section(
+    _add_optional_section(
+        sections,
+        form.include_source.data,
+        'app_source',
+        lambda: _collect_app_source_section(
             form,
             base_path,
             user_id,
             include_optional_cids,
             cid_map_entries,
-        )
-        if app_source_payload:
-            sections['app_source'] = app_source_payload
+        ),
+    )
 
     _include_unreferenced_cids(form, user_id, cid_map_entries)
 
@@ -830,6 +868,181 @@ def _import_section(
     return imported_count
 
 
+@dataclass
+class _ParsedImportPayload:
+    raw_text: str
+    data: dict[str, Any]
+
+
+@dataclass
+class _ImportContext:
+    form: ImportForm
+    user_id: str
+    change_message: str
+    raw_payload: str
+    data: dict[str, Any]
+    cid_lookup: dict[str, bytes] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    info_messages: list[str] = field(default_factory=list)
+    summaries: list[str] = field(default_factory=list)
+    secret_key: str = ''
+
+
+def _parse_import_payload(raw_payload: str) -> tuple[_ParsedImportPayload | None, str | None]:
+    """Return parsed payload data or an error message if parsing fails."""
+
+    stripped_payload = raw_payload.strip()
+    if not stripped_payload:
+        return None, 'Import data was empty.'
+
+    try:
+        data = json.loads(stripped_payload)
+    except json.JSONDecodeError as exc:
+        return None, f'Failed to parse JSON: {exc}'
+
+    if not isinstance(data, dict):
+        return None, 'Import file must contain a JSON object.'
+
+    return _ParsedImportPayload(raw_text=stripped_payload, data=data), None
+
+
+def _create_import_context(
+    form: ImportForm,
+    change_message: str,
+    parsed_payload: _ParsedImportPayload,
+) -> _ImportContext:
+    secret_key = (form.secret_key.data or '').strip()
+    return _ImportContext(
+        form=form,
+        user_id=current_user.id,
+        change_message=change_message,
+        raw_payload=parsed_payload.raw_text,
+        data=parsed_payload.data,
+        secret_key=secret_key,
+    )
+
+
+def _ingest_import_cid_map(context: _ImportContext) -> None:
+    parsed_cids, cid_map_errors = _parse_cid_values_section(context.data.get('cid_values'))
+    context.errors.extend(cid_map_errors)
+
+    for cid_value, content_bytes in parsed_cids.items():
+        expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
+        if expected_cid and cid_value != expected_cid:
+            context.errors.append(
+                f'CID "{cid_value}" content did not match its hash and was skipped.'
+            )
+            continue
+        context.cid_lookup[cid_value] = content_bytes
+        if context.form.process_cid_map.data:
+            store_cid_from_bytes(content_bytes, context.user_id)
+
+
+def _import_selected_sections(context: _ImportContext) -> None:
+    section_importers: Iterable[tuple[bool, str, Callable[[Any], Tuple[int, list[str]]], str, str]] = [
+        (
+            context.form.include_aliases.data,
+            'aliases',
+            lambda section: _import_aliases(context.user_id, section, context.cid_lookup),
+            'alias',
+            'aliases',
+        ),
+        (
+            context.form.include_servers.data,
+            'servers',
+            lambda section: _import_servers(context.user_id, section, context.cid_lookup),
+            'server',
+            'servers',
+        ),
+        (
+            context.form.include_variables.data,
+            'variables',
+            lambda section: _import_variables(context.user_id, section),
+            'variable',
+            'variables',
+        ),
+        (
+            context.form.include_secrets.data,
+            'secrets',
+            lambda section: _import_secrets(context.user_id, section, context.secret_key),
+            'secret',
+            'secrets',
+        ),
+        (
+            context.form.include_history.data,
+            'change_history',
+            lambda section: _import_change_history(context.user_id, section),
+            'history event',
+            'history events',
+        ),
+    ]
+
+    for include_section, key, importer, singular, plural in section_importers:
+        _import_section(
+            include_section,
+            context.data,
+            key,
+            context.cid_lookup,
+            context.errors,
+            context.summaries,
+            importer,
+            singular,
+            plural,
+        )
+
+
+def _handle_import_source_files(context: _ImportContext) -> None:
+    if not context.form.include_source.data:
+        return
+
+    selected_source_categories = list(_APP_SOURCE_CATEGORIES)
+    app_source_section, app_source_errors, fatal = _load_export_section(
+        context.data,
+        'app_source',
+        context.cid_lookup,
+    )
+    context.errors.extend(app_source_errors)
+
+    if fatal:
+        return
+
+    _verify_import_source_files(
+        app_source_section,
+        selected_source_categories,
+        context.warnings,
+        context.info_messages,
+    )
+
+
+def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) -> Any:
+    for message in context.errors:
+        flash(message, 'danger')
+
+    for message in context.warnings:
+        flash(message, 'warning')
+
+    if context.summaries:
+        summary_text = ', '.join(context.summaries)
+        flash(f'Imported {summary_text}.', 'success')
+
+    for message in context.info_messages:
+        flash(message, 'success')
+
+    if context.errors or context.warnings or context.summaries:
+        record_entity_interaction(
+            context.user_id,
+            'import',
+            'json',
+            'save',
+            context.change_message,
+            context.raw_payload,
+        )
+        return redirect(url_for('main.import_data'))
+
+    return render_form()
+
+
 def _process_import_submission(
     form: ImportForm,
     change_message: str,
@@ -841,143 +1054,18 @@ def _process_import_submission(
     if raw_payload is None:
         return render_form()
 
-    raw_payload = raw_payload.strip()
-    if not raw_payload:
-        flash('Import data was empty.', 'danger')
+    parsed_payload, error_message = _parse_import_payload(raw_payload)
+    if error_message:
+        flash(error_message, 'danger')
         return render_form()
 
-    try:
-        data = json.loads(raw_payload)
-    except json.JSONDecodeError as exc:
-        flash(f'Failed to parse JSON: {exc}', 'danger')
-        return render_form()
+    assert parsed_payload is not None  # For type checkers.
+    context = _create_import_context(form, change_message, parsed_payload)
+    _ingest_import_cid_map(context)
+    _import_selected_sections(context)
+    _handle_import_source_files(context)
 
-    if not isinstance(data, dict):
-        flash('Import file must contain a JSON object.', 'danger')
-        return render_form()
-
-    user_id = current_user.id
-    errors: list[str] = []
-    warnings: list[str] = []
-    info_messages: list[str] = []
-    summaries: list[str] = []
-    cid_lookup: dict[str, bytes] = {}
-
-    parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
-    errors.extend(cid_map_errors)
-
-    for cid_value, content_bytes in parsed_cids.items():
-        expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
-        if expected_cid and cid_value != expected_cid:
-            errors.append(f'CID "{cid_value}" content did not match its hash and was skipped.')
-            continue
-        cid_lookup[cid_value] = content_bytes
-        if form.process_cid_map.data:
-            store_cid_from_bytes(content_bytes, user_id)
-
-    secret_key = (form.secret_key.data or '').strip()
-
-    _import_section(
-        form.include_aliases.data,
-        data,
-        'aliases',
-        cid_lookup,
-        errors,
-        summaries,
-        lambda section: _import_aliases(user_id, section, cid_lookup),
-        'alias',
-        'aliases',
-    )
-    _import_section(
-        form.include_servers.data,
-        data,
-        'servers',
-        cid_lookup,
-        errors,
-        summaries,
-        lambda section: _import_servers(user_id, section, cid_lookup),
-        'server',
-        'servers',
-    )
-    _import_section(
-        form.include_variables.data,
-        data,
-        'variables',
-        cid_lookup,
-        errors,
-        summaries,
-        lambda section: _import_variables(user_id, section),
-        'variable',
-        'variables',
-    )
-    _import_section(
-        form.include_secrets.data,
-        data,
-        'secrets',
-        cid_lookup,
-        errors,
-        summaries,
-        lambda section: _import_secrets(user_id, section, secret_key),
-        'secret',
-        'secrets',
-    )
-    _import_section(
-        form.include_history.data,
-        data,
-        'change_history',
-        cid_lookup,
-        errors,
-        summaries,
-        lambda section: _import_change_history(user_id, section),
-        'history event',
-        'history events',
-    )
-
-    selected_source_categories: list[tuple[str, str]] = []
-    app_source_section: Any = None
-    app_source_fatal = False
-    if form.include_source.data:
-        selected_source_categories = list(_APP_SOURCE_CATEGORIES)
-        app_source_section, app_source_errors, app_source_fatal = _load_export_section(
-            data,
-            'app_source',
-            cid_lookup,
-        )
-        errors.extend(app_source_errors)
-
-    if selected_source_categories and not app_source_fatal:
-        _verify_import_source_files(
-            app_source_section,
-            selected_source_categories,
-            warnings,
-            info_messages,
-        )
-
-    for message in errors:
-        flash(message, 'danger')
-
-    for message in warnings:
-        flash(message, 'warning')
-
-    if summaries:
-        summary_text = ', '.join(summaries)
-        flash(f'Imported {summary_text}.', 'success')
-
-    for message in info_messages:
-        flash(message, 'success')
-
-    if errors or warnings or summaries:
-        record_entity_interaction(
-            user_id,
-            'import',
-            'json',
-            'save',
-            change_message,
-            raw_payload,
-        )
-        return redirect(url_for('main.import_data'))
-
-    return render_form()
+    return _finalise_import(context, render_form)
 
 
 def _verify_import_source_category(
@@ -1130,6 +1218,69 @@ def _import_aliases(
     return imported, errors
 
 
+@dataclass
+class _ServerImport:
+    name: str
+    definition: str
+
+
+def _load_server_definition_from_cid(
+    name: str,
+    definition_cid: str,
+    cid_map: dict[str, bytes],
+    errors: list[str],
+) -> str | None:
+    cid_bytes = _load_cid_bytes(definition_cid, cid_map)
+    if cid_bytes is None:
+        errors.append(
+            f'Server "{name}" definition with CID "{definition_cid}" was not included in the import.'
+        )
+        return None
+    try:
+        return cid_bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        errors.append(
+            f'Server "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
+        )
+        return None
+
+
+def _prepare_server_import(
+    entry: Any,
+    cid_map: dict[str, bytes],
+    errors: list[str],
+) -> _ServerImport | None:
+    if not isinstance(entry, dict):
+        errors.append('Server entries must be objects with name and definition details.')
+        return None
+
+    name_raw = entry.get('name')
+    if not isinstance(name_raw, str) or not name_raw.strip():
+        errors.append('Server entry must include a valid name.')
+        return None
+
+    name = name_raw.strip()
+    definition_text: str | None = None
+    raw_definition = entry.get('definition')
+    if isinstance(raw_definition, str):
+        definition_text = raw_definition
+    elif raw_definition is not None:
+        errors.append(f'Server "{name}" definition must be text.')
+        return None
+
+    definition_cid = _normalise_cid(entry.get('definition_cid'))
+    if definition_text is None and definition_cid:
+        definition_text = _load_server_definition_from_cid(name, definition_cid, cid_map, errors)
+
+    if definition_text is None:
+        errors.append(
+            f'Server "{name}" entry must include either a definition or a definition_cid.'
+        )
+        return None
+
+    return _ServerImport(name=name, definition=definition_text)
+
+
 def _import_servers(
     user_id: str,
     raw_servers: Any,
@@ -1146,59 +1297,21 @@ def _import_servers(
     cid_map = cid_map or {}
 
     for entry in raw_servers:
-        if not isinstance(entry, dict):
-            errors.append('Server entries must be objects with name and definition details.')
+        prepared = _prepare_server_import(entry, cid_map, errors)
+        if prepared is None:
             continue
 
-        name_raw = entry.get('name')
-        if not isinstance(name_raw, str) or not name_raw.strip():
-            errors.append('Server entry must include a valid name.')
-            continue
-
-        name = name_raw.strip()
-
-        definition_text: str | None = None
-        raw_definition = entry.get('definition')
-        if isinstance(raw_definition, str):
-            definition_text = raw_definition
-        elif raw_definition is not None:
-            errors.append(f'Server "{name}" definition must be text.')
-            continue
-
-        definition_cid = _normalise_cid(entry.get('definition_cid'))
-
-        if definition_text is None and definition_cid:
-            cid_bytes = _load_cid_bytes(definition_cid, cid_map)
-            if cid_bytes is None:
-                errors.append(
-                    f'Server "{name}" definition with CID "{definition_cid}" was not included in the import.'
-                )
-                continue
-            try:
-                definition_text = cid_bytes.decode('utf-8')
-            except UnicodeDecodeError:
-                errors.append(
-                    f'Server "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
-                )
-                continue
-
-        if definition_text is None:
-            errors.append(
-                f'Server "{name}" entry must include either a definition or a definition_cid.'
-            )
-            continue
-
-        definition_cid = save_server_definition_as_cid(definition_text, user_id)
-        existing = get_server_by_name(user_id, name)
+        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)
+        existing = get_server_by_name(user_id, prepared.name)
         if existing:
-            existing.definition = definition_text
+            existing.definition = prepared.definition
             existing.definition_cid = definition_cid
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             server = Server(
-                name=name,
-                definition=definition_text,
+                name=prepared.name,
+                definition=prepared.definition,
                 user_id=user_id,
                 definition_cid=definition_cid,
             )
@@ -1360,6 +1473,82 @@ def _parse_history_timestamp(value: str) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+@dataclass
+class _HistoryEvent:
+    timestamp: datetime
+    action: str
+    message: str
+    content: str
+
+
+def _normalise_history_name(
+    collection_key: str,
+    raw_name: Any,
+    errors: list[str],
+) -> str | None:
+    if not isinstance(raw_name, str) or not raw_name.strip():
+        errors.append(f'{collection_key.title()} history entry must include a valid item name.')
+        return None
+    return raw_name.strip()
+
+
+def _prepare_history_event(
+    name: str,
+    raw_event: Any,
+    errors: list[str],
+) -> _HistoryEvent | None:
+    if not isinstance(raw_event, dict):
+        errors.append(f'History events for "{name}" must be objects.')
+        return None
+
+    timestamp_raw = raw_event.get('timestamp')
+    timestamp = _parse_history_timestamp(timestamp_raw or '')
+    if timestamp is None:
+        errors.append(f'History event for "{name}" has an invalid timestamp.')
+        return None
+
+    action_raw = raw_event.get('action')
+    action = (action_raw if isinstance(action_raw, str) else '').strip() or 'save'
+    message_raw = raw_event.get('message')
+    message = (message_raw if isinstance(message_raw, str) else '').strip()
+    if len(message) > 500:
+        message = message[:497] + '…'
+    content_raw = raw_event.get('content')
+    content = (content_raw if isinstance(content_raw, str) else '').strip()
+
+    return _HistoryEvent(
+        timestamp=timestamp,
+        action=action,
+        message=message,
+        content=content,
+    )
+
+
+def _iter_history_events(
+    raw_history: dict[str, Any],
+    collection_key: str,
+    errors: list[str],
+) -> Iterator[tuple[str, _HistoryEvent]]:
+    entries = raw_history.get(collection_key)
+    if entries is None:
+        return
+    if not isinstance(entries, dict):
+        errors.append(f'{collection_key.title()} history must map item names to event lists.')
+        return
+
+    for raw_name, raw_events in entries.items():
+        name = _normalise_history_name(collection_key, raw_name, errors)
+        if not name:
+            continue
+        if not isinstance(raw_events, list):
+            errors.append(f'History for "{raw_name}" must be a list of events.')
+            continue
+        for raw_event in raw_events:
+            event = _prepare_history_event(name, raw_event, errors)
+            if event is not None:
+                yield name, event
+
+
 def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[str]]:
     """Import change history events."""
 
@@ -1379,63 +1568,28 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
     imported = 0
 
     for key, entity_type in collection_map.items():
-        entries = raw_history.get(key)
-        if entries is None:
-            continue
-        if not isinstance(entries, dict):
-            errors.append(f'{key.title()} history must map item names to event lists.')
-            continue
-
-        for raw_name, raw_events in entries.items():
-            if not isinstance(raw_name, str) or not raw_name.strip():
-                errors.append(f'{key.title()} history entry must include a valid item name.')
-                continue
-            if not isinstance(raw_events, list):
-                errors.append(f'History for "{raw_name}" must be a list of events.')
+        for name, event in _iter_history_events(raw_history, key, errors):
+            existing = find_entity_interaction(
+                user_id,
+                entity_type,
+                name,
+                event.action,
+                event.message,
+                event.timestamp,
+            )
+            if existing:
                 continue
 
-            name = raw_name.strip()
-            for raw_event in raw_events:
-                if not isinstance(raw_event, dict):
-                    errors.append(f'History events for "{name}" must be objects.')
-                    continue
-
-                timestamp_raw = raw_event.get('timestamp')
-                timestamp = _parse_history_timestamp(timestamp_raw or '')
-                if timestamp is None:
-                    errors.append(f'History event for "{name}" has an invalid timestamp.')
-                    continue
-
-                action_raw = raw_event.get('action')
-                action = (action_raw if isinstance(action_raw, str) else '').strip() or 'save'
-                message_raw = raw_event.get('message')
-                message = (message_raw if isinstance(message_raw, str) else '').strip()
-                if len(message) > 500:
-                    message = message[:497] + '…'
-                content_raw = raw_event.get('content')
-                content = (content_raw if isinstance(content_raw, str) else '').strip()
-
-                existing = find_entity_interaction(
-                    user_id,
-                    entity_type,
-                    name,
-                    action,
-                    message,
-                    timestamp,
-                )
-                if existing:
-                    continue
-
-                record_entity_interaction(
-                    user_id,
-                    entity_type,
-                    name,
-                    action,
-                    message,
-                    content,
-                    created_at=timestamp,
-                )
-                imported += 1
+            record_entity_interaction(
+                user_id,
+                entity_type,
+                name,
+                event.action,
+                event.message,
+                event.content,
+                created_at=event.timestamp,
+            )
+            imported += 1
 
     return imported, errors
 
