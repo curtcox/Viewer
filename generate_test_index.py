@@ -5,6 +5,7 @@ Generate a markdown index of all tests in the project.
 This script scans the codebase for:
 - Unit tests (tests/test_*.py)
 - Integration tests (tests/integration/test_*.py)
+- Property tests (property_tests/test_*.py)
 - Gauge specs (specs/*.spec)
 
 It outputs a markdown file with links to each test definition.
@@ -61,6 +62,15 @@ class TestIndexer:
         # Sort files to ensure deterministic ordering
         for test_file in sorted(integration_dir.glob("test_*.py")):
             self._parse_python_test_file(test_file, "integration")
+
+    def find_property_tests(self) -> None:
+        """Find all property tests in property_tests/."""
+        property_dir = self.root_dir / "property_tests"
+        if not property_dir.exists():
+            return
+
+        for test_file in sorted(property_dir.glob("test_*.py")):
+            self._parse_python_test_file(test_file, "property")
 
     def find_gauge_tests(self) -> None:
         """Find all Gauge specification scenarios."""
@@ -202,6 +212,10 @@ class TestIndexer:
             [t for t in self.tests if t.test_type == "integration"],
             key=lambda t: t.name,
         )
+        property_tests = sorted(
+            [t for t in self.tests if t.test_type == "property"],
+            key=lambda t: t.name,
+        )
         gauge_tests = sorted(
             [t for t in self.tests if t.test_type == "gauge"], key=lambda t: t.name
         )
@@ -214,6 +228,7 @@ class TestIndexer:
             f"**Total Tests:** {len(self.tests)}",
             f"- Unit Tests: {len(unit_tests)}",
             f"- Integration Tests: {len(integration_tests)}",
+            f"- Property Tests: {len(property_tests)}",
             f"- Gauge Tests: {len(gauge_tests)}",
             "",
         ]
@@ -244,6 +259,19 @@ class TestIndexer:
             lines.extend([test.to_markdown_link() for test in integration_tests])
             lines.append("")
 
+        # Property Tests section
+        if property_tests:
+            lines.extend(
+                [
+                    "## Property Tests",
+                    "",
+                    f"Total: {len(property_tests)} tests",
+                    "",
+                ]
+            )
+            lines.extend([test.to_markdown_link() for test in property_tests])
+            lines.append("")
+
         # Gauge Tests section
         if gauge_tests:
             lines.extend(
@@ -269,6 +297,12 @@ class TestIndexer:
         self.find_integration_tests()
         print(
             f"Found {len([t for t in self.tests if t.test_type == 'integration'])} integration tests"
+        )
+
+        print("Scanning for property tests...")
+        self.find_property_tests()
+        print(
+            f"Found {len([t for t in self.tests if t.test_type == 'property'])} property tests"
         )
 
         print("Scanning for Gauge tests...")

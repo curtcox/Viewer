@@ -20,6 +20,7 @@ Markdown>=3.6
 Pygments>=2.17.2
 qrcode[pil]>=7.4.2
 glom>=23.3.0
+hypothesis>=6.124.1
 pytest>=8.2.0
 ruff>=0.1.0
 pyppeteer>=1.0.2

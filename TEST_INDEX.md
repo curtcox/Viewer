@@ -2,9 +2,10 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1142
+**Total Tests:** 1143
 - Unit Tests: 1086
 - Integration Tests: 40
+- Property Tests: 1
 - Gauge Tests: 16
 
 ## Unit Tests
@@ -1142,6 +1143,12 @@ Total: 40 tests
 - [Exporting from one instance and importing into another should preserve servers.](tests/integration/test_import_export_flow.py:85)
 - [The variable detail page should render the variable metadata.](tests/integration/test_variable_pages.py:45)
 - [The variables index page should list the user's variables.](tests/integration/test_variable_pages.py:18)
+
+## Property Tests
+
+Total: 1 tests
+
+- [Literal patterns should always normalise to a clean, slash-prefixed path.](property_tests/test_alias_matching_properties.py:15)
 
 ## Gauge Tests
 
