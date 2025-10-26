@@ -41,6 +41,7 @@ RUN set -eux; \
 # Install Python dependencies used in CI
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
-    && pip install -r /tmp/requirements.txt
+    && pip install -r /tmp/requirements.txt \
+    && pip install hypothesis pytest
 
 WORKDIR /workspace
