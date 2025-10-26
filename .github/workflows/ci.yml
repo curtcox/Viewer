@@ -95,6 +95,7 @@ jobs:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
       TESTING: "True"
+      HYPOTHESIS_PROFILE: ci
 
     steps:
       - name: Checkout repository
@@ -132,6 +133,21 @@ jobs:
       - name: Fail if tests failed
         if: steps.run_tests.outcome == 'failure'
         run: exit 1
+
+  property-tests:
+    name: Property Tests
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    env:
+      HYPOTHESIS_PROFILE: ci
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run property tests
+        run: pytest property_tests
 
   integration-tests:
     name: Integration Tests
