@@ -51,6 +51,14 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 * `run_coverage.py` – execute the test suite with coverage analysis and optional HTML/XML reports.
 * `scripts/check-test-index.sh` – verify `TEST_INDEX.md` matches the output of `python generate_test_index.py` so you can catch
   drift locally before pushing changes.
+* `scripts/publish-coverage-summary.sh` – format the most recent coverage report from `test-unit/coverage.txt` (falling back to
+  `coverage-report.txt`) and append the result to the GitHub Actions step summary when invoked in CI.
+
+To replicate the CI coverage summary locally, run the unit tests with coverage output and then feed the resulting report to the
+script::
+
+    ./test-unit --coverage --summary-file coverage-report.txt
+    ./scripts/publish-coverage-summary.sh coverage-report.txt
 
 ### Gauge specs
 

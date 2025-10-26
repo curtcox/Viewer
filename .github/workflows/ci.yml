@@ -109,25 +109,7 @@ jobs:
       - name: Publish coverage summary
         id: coverage
         if: always()
-        run: |
-          if [ -f "coverage-report.txt" ]; then
-            cat coverage-report.txt
-            {
-              echo "### Coverage summary"
-              echo '```'
-              cat coverage-report.txt
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "generated=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No coverage data found. Tests may not have run." | tee coverage-report.txt
-            {
-              echo "### Coverage summary"
-              echo
-              echo "No coverage data was generated."
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "generated=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: ./scripts/publish-coverage-summary.sh coverage-report.txt
 
       - name: Upload coverage XML
         if: always() && steps.coverage.outputs.generated == 'true'
