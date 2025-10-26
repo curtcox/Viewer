@@ -55,6 +55,11 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
   running `python run_integration_tests.py -- --junitxml=integration-tests-report.xml | tee integration-tests.log`, invoke
   `python scripts/publish_integration_summary.py --log integration-tests.log --junit integration-tests-report.xml` to preview
   the summary locally. Omit `--summary` to print to the terminal or pass a path to write the output to a file for inspection.
+* `scripts/publish-coverage-summary.sh` – mirror the CI coverage summary step. After producing a report with
+  `./test-unit --coverage --summary-file coverage-report.txt`, run
+  `scripts/publish-coverage-summary.sh coverage-report.txt coverage-summary.md coverage-output.txt` to print the summary,
+  append the Markdown block to `coverage-summary.md`, and capture the generated flag. Omit the extra arguments to fall back to
+  `GITHUB_STEP_SUMMARY` and `GITHUB_OUTPUT` when running inside GitHub Actions.
 
 ### Gauge specs
 
