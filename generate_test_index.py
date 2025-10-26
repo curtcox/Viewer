@@ -5,7 +5,7 @@ Generate a markdown index of all tests in the project.
 This script scans the codebase for:
 - Unit tests (tests/test_*.py)
 - Integration tests (tests/integration/test_*.py)
-- Property tests (property_tests/test_*.py)
+- Property tests (tests/property/test_*.py)
 - Gauge specs (specs/*.spec)
 
 It outputs a markdown file with links to each test definition.
@@ -64,8 +64,8 @@ class TestIndexer:
             self._parse_python_test_file(test_file, "integration")
 
     def find_property_tests(self) -> None:
-        """Find all property tests in property_tests/."""
-        property_dir = self.root_dir / "property_tests"
+        """Find all property tests in tests/property/."""
+        property_dir = self.root_dir / "tests" / "property"
         if not property_dir.exists():
             return
 
