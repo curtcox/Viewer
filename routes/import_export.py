@@ -10,6 +10,7 @@ import sys
 import tomllib
 from datetime import datetime, timezone
 from importlib import metadata
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Tuple
 
@@ -390,6 +391,595 @@ def _build_runtime_section() -> dict[str, dict[str, str]]:
     }
 
 
+@dataclass
+class _SourceEntry:
+    """Structured representation of a source file entry from the import payload."""
+
+    raw_path: str
+    relative_path: Path
+    expected_cid: str
+
+
+@dataclass
+class _AliasImport:
+    """Normalized alias entry produced from import payload data."""
+
+    name: str
+    definition: str
+
+
+def _prepare_alias_import(
+    entry: Any,
+    reserved_routes: set[str],
+    cid_map: dict[str, bytes],
+    errors: list[str],
+) -> _AliasImport | None:
+    """Return a normalized alias import entry when the payload entry is valid."""
+
+    if not isinstance(entry, dict):
+        errors.append('Alias entries must be objects with name and definition details.')
+        return None
+
+    name_raw = entry.get('name')
+    if not isinstance(name_raw, str) or not name_raw.strip():
+        errors.append('Alias entry must include a valid name.')
+        return None
+
+    name = name_raw.strip()
+
+    if f'/{name}' in reserved_routes:
+        errors.append(f'Alias "{name}" conflicts with an existing route and was skipped.')
+        return None
+
+    definition_text: Optional[str] = None
+    raw_definition = entry.get('definition')
+    if isinstance(raw_definition, str):
+        definition_text = raw_definition
+    elif raw_definition is not None:
+        errors.append(f'Alias "{name}" definition must be text when provided.')
+        return None
+
+    definition_cid = _normalise_cid(entry.get('definition_cid'))
+
+    if definition_text is None and definition_cid:
+        cid_bytes = _load_cid_bytes(definition_cid, cid_map)
+        if cid_bytes is None:
+            errors.append(
+                f'Alias "{name}" definition with CID "{definition_cid}" was not included in the import.'
+            )
+            return None
+        try:
+            definition_text = cid_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            errors.append(
+                f'Alias "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
+            )
+            return None
+
+    if definition_text is None:
+        errors.append(f'Alias "{name}" entry must include either a definition or a definition_cid.')
+        return None
+
+    try:
+        parsed_definition = parse_alias_definition(definition_text, alias_name=name)
+    except AliasDefinitionError as exc:
+        errors.append(f'Alias "{name}" definition could not be parsed: {exc}')
+        return None
+
+    canonical_primary = format_primary_alias_line(
+        parsed_definition.match_type,
+        parsed_definition.match_pattern,
+        parsed_definition.target_path,
+        ignore_case=parsed_definition.ignore_case,
+        alias_name=name,
+    )
+    definition_value = replace_primary_definition_line(
+        definition_text,
+        canonical_primary,
+    )
+
+    return _AliasImport(name=name, definition=definition_value)
+
+
+def _parse_source_entry(entry: Any, label_text: str, warnings: list[str]) -> _SourceEntry | None:
+    """Return a parsed source entry when the structure is valid."""
+
+    if not isinstance(entry, dict):
+        warnings.append(f'{label_text} entry must include "path" and "cid" fields.')
+        return None
+
+    raw_path = entry.get('path')
+    expected_cid = _normalise_cid(entry.get('cid'))
+    if not isinstance(raw_path, str) or not expected_cid:
+        warnings.append(f'{label_text} entry must include valid "path" and "cid" values.')
+        return None
+
+    candidate_path = Path(raw_path)
+    if candidate_path.is_absolute() or '..' in candidate_path.parts:
+        warnings.append(f'Source file "{raw_path}" used an invalid path.')
+        return None
+
+    return _SourceEntry(raw_path=raw_path, relative_path=candidate_path, expected_cid=expected_cid)
+
+
+def _resolve_source_entry(
+    entry: _SourceEntry,
+    base_path: Path,
+    base_resolved: Path,
+    warnings: list[str],
+) -> Path | None:
+    """Return the absolute path for a parsed source entry if it exists locally."""
+
+    absolute_path = (base_path / entry.relative_path).resolve()
+    try:
+        absolute_path.relative_to(base_resolved)
+    except ValueError:
+        warnings.append(f'Source file "{entry.raw_path}" used an invalid path.')
+        return None
+
+    if not absolute_path.exists():
+        warnings.append(f'Source file "{entry.raw_path}" is missing locally.')
+        return None
+
+    if not absolute_path.is_file():
+        warnings.append(f'Source path "{entry.raw_path}" is not a file locally.')
+        return None
+
+    return absolute_path
+
+
+def _load_source_entry_bytes(
+    absolute_path: Path,
+    entry: _SourceEntry,
+    warnings: list[str],
+) -> bytes | None:
+    """Return the byte content of an import source entry if readable."""
+
+    try:
+        return absolute_path.read_bytes()
+    except OSError:
+        warnings.append(f'Source file "{entry.raw_path}" could not be read locally.')
+        return None
+
+
+def _source_entry_matches_export(entry: _SourceEntry, local_bytes: bytes, warnings: list[str]) -> bool:
+    """Return True when the local file content matches the export metadata."""
+
+    local_cid = format_cid(generate_cid(local_bytes))
+    if _normalise_cid(entry.expected_cid) != local_cid:
+        warnings.append(f'Source file "{entry.raw_path}" differs from the export.')
+        return False
+    return True
+
+
+def _store_cid_entry(
+    cid_value: str,
+    content: bytes,
+    cid_map_entries: dict[str, dict[str, str]],
+    include_optional: bool,
+    *,
+    optional: bool = True,
+) -> None:
+    """Record a CID value for the export when it should be included."""
+
+    if optional and not include_optional:
+        return
+
+    normalised = _normalise_cid(cid_value)
+    if not normalised or normalised in cid_map_entries:
+        return
+
+    cid_map_entries[normalised] = _serialise_cid_value(content)
+
+
+def _collect_project_files_section(
+    base_path: Path,
+    user_id: str,
+    include_optional_cids: bool,
+    cid_map_entries: dict[str, dict[str, str]],
+) -> dict[str, dict[str, str]]:
+    """Return CID metadata for key project files when available."""
+
+    project_files_payload: dict[str, dict[str, str]] = {}
+    for relative_name in ('pyproject.toml', 'requirements.txt'):
+        absolute_path = base_path / relative_name
+        try:
+            file_content = absolute_path.read_bytes()
+        except OSError:
+            continue
+
+        cid_value = store_cid_from_bytes(file_content, user_id)
+        _store_cid_entry(cid_value, file_content, cid_map_entries, include_optional_cids)
+        project_files_payload[relative_name] = {'cid': cid_value}
+
+    return project_files_payload
+
+
+def _collect_alias_section(
+    user_id: str,
+    include_optional_cids: bool,
+    cid_map_entries: dict[str, dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Return alias export entries including CID references."""
+
+    alias_payload: list[dict[str, Any]] = []
+    for alias in get_user_aliases(user_id):
+        definition_text = alias.definition or ''
+        definition_bytes = definition_text.encode('utf-8')
+        definition_cid = store_cid_from_bytes(definition_bytes, user_id)
+        alias_payload.append({'name': alias.name, 'definition_cid': definition_cid})
+        _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
+
+    return alias_payload
+
+
+def _collect_server_section(
+    user_id: str,
+    include_optional_cids: bool,
+    cid_map_entries: dict[str, dict[str, str]],
+) -> list[dict[str, str]]:
+    """Return server export entries including CID references."""
+
+    servers_payload: list[dict[str, str]] = []
+    for server in get_user_servers(user_id):
+        definition_text = server.definition or ''
+        definition_bytes = definition_text.encode('utf-8')
+        definition_cid = server.definition_cid or save_server_definition_as_cid(
+            definition_text,
+            user_id,
+        )
+        servers_payload.append({'name': server.name, 'definition_cid': definition_cid})
+        _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
+
+    return servers_payload
+
+
+def _collect_variables_section(user_id: str) -> list[dict[str, str]]:
+    """Return variable export entries for the user."""
+
+    return [
+        {'name': variable.name, 'definition': variable.definition}
+        for variable in get_user_variables(user_id)
+    ]
+
+
+def _collect_secrets_section(user_id: str, key: str) -> dict[str, Any]:
+    """Return encrypted secret entries using the provided key."""
+
+    return {
+        'encryption': SECRET_ENCRYPTION_SCHEME,
+        'items': [
+            {
+                'name': secret.name,
+                'ciphertext': encrypt_secret_value(secret.definition, key),
+            }
+            for secret in get_user_secrets(user_id)
+        ],
+    }
+
+
+def _collect_history_section(user_id: str) -> dict[str, dict[str, list[dict[str, str]]]]:
+    """Return change history grouped by collection when available."""
+
+    history_payload = _gather_change_history(user_id)
+    return history_payload if history_payload else {}
+
+
+def _collect_app_source_section(
+    form: ExportForm,
+    base_path: Path,
+    user_id: str,
+    include_optional_cids: bool,
+    cid_map_entries: dict[str, dict[str, str]],
+) -> dict[str, list[dict[str, str]]]:
+    """Return exported application source entries based on the selected categories."""
+
+    app_source_payload: dict[str, list[dict[str, str]]] = {}
+    for category, _label in _APP_SOURCE_CATEGORIES:
+        collector = _APP_SOURCE_COLLECTORS.get(category)
+        if not collector:
+            continue
+
+        entries: list[dict[str, str]] = []
+        for relative_path in collector():
+            absolute_path = base_path / relative_path
+            try:
+                content_bytes = absolute_path.read_bytes()
+            except OSError:
+                continue
+
+            cid_value = store_cid_from_bytes(content_bytes, user_id)
+            _store_cid_entry(cid_value, content_bytes, cid_map_entries, include_optional_cids)
+            entries.append({'path': relative_path.as_posix(), 'cid': cid_value})
+
+        if entries:
+            app_source_payload[category] = entries
+
+    return app_source_payload
+
+
+def _include_unreferenced_cids(
+    form: ExportForm,
+    user_id: str,
+    cid_map_entries: dict[str, dict[str, str]],
+) -> None:
+    """Record uploaded CID content when the user requests unreferenced data."""
+
+    if not form.include_cid_map.data or not form.include_unreferenced_cid_data.data:
+        return
+
+    for record in get_user_uploads(user_id):
+        normalised = _normalise_cid(record.path)
+        if not normalised or normalised in cid_map_entries:
+            continue
+        file_content = record.file_data
+        if file_content is None:
+            continue
+        cid_map_entries[normalised] = _serialise_cid_value(bytes(file_content))
+
+
+def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
+    """Return rendered export payload data for the user's selected collections."""
+
+    payload: dict[str, Any] = {'version': 5}
+    sections: dict[str, Any] = {
+        'generated_at': datetime.now(timezone.utc).isoformat(),
+        'runtime': _build_runtime_section(),
+    }
+    base_path = _app_root_path()
+    cid_map_entries: dict[str, dict[str, str]] = {}
+    include_optional_cids = form.include_cid_map.data
+
+    project_files_payload = _collect_project_files_section(
+        base_path,
+        user_id,
+        include_optional_cids,
+        cid_map_entries,
+    )
+    if project_files_payload:
+        sections['project_files'] = project_files_payload
+
+    if form.include_aliases.data:
+        alias_payload = _collect_alias_section(user_id, include_optional_cids, cid_map_entries)
+        if alias_payload:
+            sections['aliases'] = alias_payload
+
+    if form.include_servers.data:
+        servers_payload = _collect_server_section(user_id, include_optional_cids, cid_map_entries)
+        if servers_payload:
+            sections['servers'] = servers_payload
+
+    if form.include_variables.data:
+        sections['variables'] = _collect_variables_section(user_id)
+
+    if form.include_secrets.data:
+        key = form.secret_key.data.strip()
+        sections['secrets'] = _collect_secrets_section(user_id, key)
+
+    if form.include_history.data:
+        history_payload = _collect_history_section(user_id)
+        if history_payload:
+            sections['change_history'] = history_payload
+
+    if form.include_source.data:
+        app_source_payload = _collect_app_source_section(
+            form,
+            base_path,
+            user_id,
+            include_optional_cids,
+            cid_map_entries,
+        )
+        if app_source_payload:
+            sections['app_source'] = app_source_payload
+
+    _include_unreferenced_cids(form, user_id, cid_map_entries)
+
+    for section_name, section_value in sections.items():
+        section_bytes = _encode_section_content(section_value)
+        section_cid = store_cid_from_bytes(section_bytes, user_id)
+        _store_cid_entry(
+            section_cid,
+            section_bytes,
+            cid_map_entries,
+            include_optional_cids,
+            optional=False,
+        )
+        payload[section_name] = section_cid
+
+    if form.include_cid_map.data and cid_map_entries:
+        payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
+
+    json_payload = json.dumps(payload, indent=2, sort_keys=True)
+    cid_value = store_cid_from_json(json_payload, user_id)
+    download_path = cid_path(cid_value, 'json') or ''
+
+    return {
+        'cid_value': cid_value,
+        'download_path': download_path,
+        'json_payload': json_payload,
+    }
+
+
+def _import_section(
+    include_section: bool,
+    data: dict[str, Any],
+    section_key: str,
+    cid_lookup: dict[str, bytes],
+    errors: list[str],
+    summaries: list[str],
+    importer: Callable[[Any], Tuple[int, list[str]]],
+    singular_label: str,
+    plural_label: str,
+) -> int:
+    """Load and import a selected export section if requested."""
+
+    if not include_section:
+        return 0
+
+    section, load_errors, fatal = _load_export_section(data, section_key, cid_lookup)
+    errors.extend(load_errors)
+    if fatal:
+        return 0
+
+    imported_count, import_errors = importer(section)
+    errors.extend(import_errors)
+    if imported_count:
+        label = plural_label if imported_count != 1 else singular_label
+        summaries.append(f'{imported_count} {label}')
+
+    return imported_count
+
+
+def _process_import_submission(
+    form: ImportForm,
+    change_message: str,
+    render_form: Callable[[], Any],
+) -> Any:
+    """Handle an import form submission and return the appropriate response."""
+
+    raw_payload = _load_import_payload(form)
+    if raw_payload is None:
+        return render_form()
+
+    raw_payload = raw_payload.strip()
+    if not raw_payload:
+        flash('Import data was empty.', 'danger')
+        return render_form()
+
+    try:
+        data = json.loads(raw_payload)
+    except json.JSONDecodeError as exc:
+        flash(f'Failed to parse JSON: {exc}', 'danger')
+        return render_form()
+
+    if not isinstance(data, dict):
+        flash('Import file must contain a JSON object.', 'danger')
+        return render_form()
+
+    user_id = current_user.id
+    errors: list[str] = []
+    warnings: list[str] = []
+    info_messages: list[str] = []
+    summaries: list[str] = []
+    cid_lookup: dict[str, bytes] = {}
+
+    parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
+    errors.extend(cid_map_errors)
+
+    for cid_value, content_bytes in parsed_cids.items():
+        expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
+        if expected_cid and cid_value != expected_cid:
+            errors.append(f'CID "{cid_value}" content did not match its hash and was skipped.')
+            continue
+        cid_lookup[cid_value] = content_bytes
+        if form.process_cid_map.data:
+            store_cid_from_bytes(content_bytes, user_id)
+
+    secret_key = (form.secret_key.data or '').strip()
+
+    _import_section(
+        form.include_aliases.data,
+        data,
+        'aliases',
+        cid_lookup,
+        errors,
+        summaries,
+        lambda section: _import_aliases(user_id, section, cid_lookup),
+        'alias',
+        'aliases',
+    )
+    _import_section(
+        form.include_servers.data,
+        data,
+        'servers',
+        cid_lookup,
+        errors,
+        summaries,
+        lambda section: _import_servers(user_id, section, cid_lookup),
+        'server',
+        'servers',
+    )
+    _import_section(
+        form.include_variables.data,
+        data,
+        'variables',
+        cid_lookup,
+        errors,
+        summaries,
+        lambda section: _import_variables(user_id, section),
+        'variable',
+        'variables',
+    )
+    _import_section(
+        form.include_secrets.data,
+        data,
+        'secrets',
+        cid_lookup,
+        errors,
+        summaries,
+        lambda section: _import_secrets(user_id, section, secret_key),
+        'secret',
+        'secrets',
+    )
+    _import_section(
+        form.include_history.data,
+        data,
+        'change_history',
+        cid_lookup,
+        errors,
+        summaries,
+        lambda section: _import_change_history(user_id, section),
+        'history event',
+        'history events',
+    )
+
+    selected_source_categories: list[tuple[str, str]] = []
+    app_source_section: Any = None
+    app_source_fatal = False
+    if form.include_source.data:
+        selected_source_categories = list(_APP_SOURCE_CATEGORIES)
+        app_source_section, app_source_errors, app_source_fatal = _load_export_section(
+            data,
+            'app_source',
+            cid_lookup,
+        )
+        errors.extend(app_source_errors)
+
+    if selected_source_categories and not app_source_fatal:
+        _verify_import_source_files(
+            app_source_section,
+            selected_source_categories,
+            warnings,
+            info_messages,
+        )
+
+    for message in errors:
+        flash(message, 'danger')
+
+    for message in warnings:
+        flash(message, 'warning')
+
+    if summaries:
+        summary_text = ', '.join(summaries)
+        flash(f'Imported {summary_text}.', 'success')
+
+    for message in info_messages:
+        flash(message, 'success')
+
+    if errors or warnings or summaries:
+        record_entity_interaction(
+            user_id,
+            'import',
+            'json',
+            'save',
+            change_message,
+            raw_payload,
+        )
+        return redirect(url_for('main.import_data'))
+
+    return render_form()
+
+
 def _verify_import_source_category(
     entries: Any,
     label_text: str,
@@ -411,54 +1001,24 @@ def _verify_import_source_category(
     checked_any = False
     mismatches_found = False
 
-    for entry in entries:
-        if not isinstance(entry, dict):
-            warnings.append(f'{label_text} entry must include "path" and "cid" fields.')
+    for raw_entry in entries:
+        parsed_entry = _parse_source_entry(raw_entry, label_text, warnings)
+        if parsed_entry is None:
             mismatches_found = True
             continue
 
-        raw_path = entry.get('path')
-        expected_cid = _normalise_cid(entry.get('cid'))
-        if not isinstance(raw_path, str) or not expected_cid:
-            warnings.append(f'{label_text} entry must include valid "path" and "cid" values.')
-            mismatches_found = True
-            continue
-
-        candidate_path = Path(raw_path)
-        if candidate_path.is_absolute() or '..' in candidate_path.parts:
-            warnings.append(f'Source file "{raw_path}" used an invalid path.')
-            mismatches_found = True
-            continue
-
-        absolute_path = (base_path / candidate_path).resolve()
-        try:
-            absolute_path.relative_to(base_resolved)
-        except ValueError:
-            warnings.append(f'Source file "{raw_path}" used an invalid path.')
-            mismatches_found = True
-            continue
-
-        if not absolute_path.exists():
-            warnings.append(f'Source file "{raw_path}" is missing locally.')
-            mismatches_found = True
-            continue
-
-        if not absolute_path.is_file():
-            warnings.append(f'Source path "{raw_path}" is not a file locally.')
+        absolute_path = _resolve_source_entry(parsed_entry, base_path, base_resolved, warnings)
+        if absolute_path is None:
             mismatches_found = True
             continue
 
         checked_any = True
-        try:
-            local_bytes = absolute_path.read_bytes()
-        except OSError:
-            warnings.append(f'Source file "{raw_path}" could not be read locally.')
+        content = _load_source_entry_bytes(absolute_path, parsed_entry, warnings)
+        if content is None:
             mismatches_found = True
             continue
 
-        local_cid = format_cid(generate_cid(local_bytes))
-        if _normalise_cid(expected_cid) != local_cid:
-            warnings.append(f'Source file "{raw_path}" differs from the export.')
+        if not _source_entry_matches_export(parsed_entry, content, warnings):
             mismatches_found = True
 
     if checked_any and not mismatches_found:
@@ -549,80 +1109,20 @@ def _import_aliases(
     cid_map = cid_map or {}
 
     for entry in raw_aliases:
-        if not isinstance(entry, dict):
-            errors.append('Alias entries must be objects with name and definition details.')
+        prepared = _prepare_alias_import(entry, reserved_routes, cid_map, errors)
+        if prepared is None:
             continue
 
-        name_raw = entry.get('name')
-        if not isinstance(name_raw, str) or not name_raw.strip():
-            errors.append('Alias entry must include a valid name.')
-            continue
-
-        name = name_raw.strip()
-
-        if f'/{name}' in reserved_routes:
-            errors.append(f'Alias "{name}" conflicts with an existing route and was skipped.')
-            continue
-
-        definition_text: Optional[str] = None
-        raw_definition = entry.get('definition')
-        if isinstance(raw_definition, str):
-            definition_text = raw_definition
-        elif raw_definition is not None:
-            errors.append(f'Alias "{name}" definition must be text when provided.')
-            continue
-
-        definition_cid = _normalise_cid(entry.get('definition_cid'))
-
-        if definition_text is None and definition_cid:
-            cid_bytes = _load_cid_bytes(definition_cid, cid_map)
-            if cid_bytes is None:
-                errors.append(
-                    f'Alias "{name}" definition with CID "{definition_cid}" was not included in the import.'
-                )
-                continue
-            try:
-                definition_text = cid_bytes.decode('utf-8')
-            except UnicodeDecodeError:
-                errors.append(
-                    f'Alias "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
-                )
-                continue
-
-        if definition_text is None:
-            errors.append(
-                f'Alias "{name}" entry must include either a definition or a definition_cid.'
-            )
-            continue
-
-        try:
-            parsed_definition = parse_alias_definition(definition_text, alias_name=name)
-        except AliasDefinitionError as exc:
-            errors.append(f'Alias "{name}" definition could not be parsed: {exc}')
-            continue
-
-        canonical_primary = format_primary_alias_line(
-            parsed_definition.match_type,
-            parsed_definition.match_pattern,
-            parsed_definition.target_path,
-            ignore_case=parsed_definition.ignore_case,
-            alias_name=name,
-        )
-        definition_value = replace_primary_definition_line(
-            definition_text,
-            canonical_primary,
-        )
-
-        existing = get_alias_by_name(user_id, name)
+        existing = get_alias_by_name(user_id, prepared.name)
         if existing:
-            existing.definition = definition_value
+            existing.definition = prepared.definition
             existing.updated_at = datetime.now(timezone.utc)
             save_entity(existing)
         else:
             alias = Alias(
-                name=name,
+                name=prepared.name,
                 user_id=user_id,
-                definition=definition_value,
+                definition=prepared.definition,
             )
             save_entity(alias)
         imported += 1
@@ -945,156 +1445,8 @@ def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     if form.validate_on_submit():
-        payload: dict[str, Any] = {'version': 5}
-        sections: dict[str, Any] = {
-            'generated_at': datetime.now(timezone.utc).isoformat(),
-            'runtime': _build_runtime_section(),
-        }
-
-        cid_map_entries: dict[str, dict[str, str]] = {}
-        base_path = _app_root_path()
-
-        def _record_cid_value(cid_value: str, content: bytes, *, optional: bool = True) -> None:
-            if optional and not form.include_cid_map.data:
-                return
-            normalised = _normalise_cid(cid_value)
-            if not normalised or normalised in cid_map_entries:
-                return
-            cid_map_entries[normalised] = _serialise_cid_value(content)
-
-        project_files_payload: dict[str, dict[str, str]] = {}
-        for relative_name in ('pyproject.toml', 'requirements.txt'):
-            absolute_path = base_path / relative_name
-            try:
-                file_content = absolute_path.read_bytes()
-            except OSError:
-                continue
-
-            cid_value = store_cid_from_bytes(file_content, current_user.id)
-            _record_cid_value(cid_value, file_content)
-            project_files_payload[relative_name] = {'cid': cid_value}
-
-        if project_files_payload:
-            sections['project_files'] = project_files_payload
-
-        if form.include_aliases.data:
-            alias_payload: list[dict[str, Any]] = []
-            for alias in get_user_aliases(current_user.id):
-                definition_text = alias.definition or ''
-                definition_bytes = definition_text.encode('utf-8')
-                definition_cid = store_cid_from_bytes(definition_bytes, current_user.id)
-                alias_payload.append(
-                    {
-                        'name': alias.name,
-                        'definition_cid': definition_cid,
-                    }
-                )
-                _record_cid_value(definition_cid, definition_bytes)
-            if alias_payload:
-                sections['aliases'] = alias_payload
-
-        if form.include_servers.data:
-            servers_payload: list[dict[str, str]] = []
-            for server in get_user_servers(current_user.id):
-                definition_text = server.definition or ''
-                definition_bytes = definition_text.encode('utf-8')
-                definition_cid = server.definition_cid or save_server_definition_as_cid(
-                    definition_text,
-                    current_user.id,
-                )
-                servers_payload.append(
-                    {
-                        'name': server.name,
-                        'definition_cid': definition_cid,
-                    }
-                )
-                _record_cid_value(definition_cid, definition_bytes)
-            if servers_payload:
-                sections['servers'] = servers_payload
-
-        if form.include_variables.data:
-            sections['variables'] = [
-                {
-                    'name': variable.name,
-                    'definition': variable.definition,
-                }
-                for variable in get_user_variables(current_user.id)
-            ]
-
-        if form.include_secrets.data:
-            key = form.secret_key.data.strip()
-            sections['secrets'] = {
-                'encryption': SECRET_ENCRYPTION_SCHEME,
-                'items': [
-                    {
-                        'name': secret.name,
-                        'ciphertext': encrypt_secret_value(secret.definition, key),
-                    }
-                    for secret in get_user_secrets(current_user.id)
-                ],
-            }
-
-        if form.include_history.data:
-            history_payload = _gather_change_history(current_user.id)
-            if history_payload:
-                sections['change_history'] = history_payload
-
-        app_source_payload: dict[str, list[dict[str, str]]] = {}
-        if form.include_source.data:
-            for category, _label in _APP_SOURCE_CATEGORIES:
-                collector = _APP_SOURCE_COLLECTORS.get(category)
-                if not collector:
-                    continue
-
-                entries: list[dict[str, str]] = []
-                for relative_path in collector():
-                    absolute_path = base_path / relative_path
-                    try:
-                        content_bytes = absolute_path.read_bytes()
-                    except OSError:
-                        continue
-
-                    cid_value = store_cid_from_bytes(content_bytes, current_user.id)
-                    _record_cid_value(cid_value, content_bytes)
-                    entries.append({
-                        'path': relative_path.as_posix(),
-                        'cid': cid_value,
-                    })
-
-                if entries:
-                    app_source_payload[category] = entries
-
-        if app_source_payload:
-            sections['app_source'] = app_source_payload
-
-        if form.include_cid_map.data and form.include_unreferenced_cid_data.data:
-            for record in get_user_uploads(current_user.id):
-                normalised = _normalise_cid(record.path)
-                if not normalised or normalised in cid_map_entries:
-                    continue
-                file_content = record.file_data
-                if file_content is None:
-                    continue
-                cid_map_entries[normalised] = _serialise_cid_value(bytes(file_content))
-
-        for section_name, section_value in sections.items():
-            section_bytes = _encode_section_content(section_value)
-            section_cid = store_cid_from_bytes(section_bytes, current_user.id)
-            _record_cid_value(section_cid, section_bytes, optional=False)
-            payload[section_name] = section_cid
-
-        if form.include_cid_map.data and cid_map_entries:
-            payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
-
-        json_payload = json.dumps(payload, indent=2, sort_keys=True)
-        cid_value = store_cid_from_json(json_payload, current_user.id)
-        download_path = cid_path(cid_value, 'json') or ''
-        return render_template(
-            'export_result.html',
-            cid_value=cid_value,
-            download_path=download_path,
-            json_payload=json_payload,
-        )
+        export_result = _build_export_payload(form, current_user.id)
+        return render_template('export_result.html', **export_result)
 
     return render_template('export.html', form=form)
 
@@ -1110,178 +1462,7 @@ def import_data():
         return render_template('import.html', form=form, import_interactions=interactions)
 
     if form.validate_on_submit():
-        raw_payload = _load_import_payload(form)
-        if raw_payload is None:
-            return _render_import_form()
-
-        raw_payload = raw_payload.strip()
-        if not raw_payload:
-            flash('Import data was empty.', 'danger')
-            return _render_import_form()
-
-        try:
-            data = json.loads(raw_payload)
-        except json.JSONDecodeError as exc:
-            flash(f'Failed to parse JSON: {exc}', 'danger')
-            return _render_import_form()
-
-        if not isinstance(data, dict):
-            flash('Import file must contain a JSON object.', 'danger')
-            return _render_import_form()
-
-        user_id = current_user.id
-        errors: list[str] = []
-        warnings: list[str] = []
-        info_messages: list[str] = []
-        summaries: list[str] = []
-        cid_lookup: dict[str, bytes] = {}
-
-        parsed_cids, cid_map_errors = _parse_cid_values_section(data.get('cid_values'))
-        errors.extend(cid_map_errors)
-
-        for cid_value, content_bytes in parsed_cids.items():
-            expected_cid = _normalise_cid(format_cid(generate_cid(content_bytes)))
-            if expected_cid and cid_value != expected_cid:
-                errors.append(
-                    f'CID "{cid_value}" content did not match its hash and was skipped.'
-                )
-                continue
-            cid_lookup[cid_value] = content_bytes
-            if form.process_cid_map.data:
-                store_cid_from_bytes(content_bytes, user_id)
-
-        imported_aliases = 0
-        if form.include_aliases.data:
-            aliases_section, alias_load_errors, alias_fatal = _load_export_section(
-                data,
-                'aliases',
-                cid_lookup,
-            )
-            errors.extend(alias_load_errors)
-            if not alias_fatal:
-                imported_aliases, alias_errors = _import_aliases(
-                    user_id,
-                    aliases_section,
-                    cid_lookup,
-                )
-                errors.extend(alias_errors)
-                if imported_aliases:
-                    label = 'aliases' if imported_aliases != 1 else 'alias'
-                    summaries.append(f'{imported_aliases} {label}')
-
-        imported_servers = 0
-        if form.include_servers.data:
-            servers_section, server_load_errors, server_fatal = _load_export_section(
-                data,
-                'servers',
-                cid_lookup,
-            )
-            errors.extend(server_load_errors)
-            if not server_fatal:
-                imported_servers, server_errors = _import_servers(
-                    user_id,
-                    servers_section,
-                    cid_lookup,
-                )
-                errors.extend(server_errors)
-                if imported_servers:
-                    label = 'servers' if imported_servers != 1 else 'server'
-                    summaries.append(f'{imported_servers} {label}')
-
-        imported_variables = 0
-        if form.include_variables.data:
-            variables_section, variable_load_errors, variable_fatal = _load_export_section(
-                data,
-                'variables',
-                cid_lookup,
-            )
-            errors.extend(variable_load_errors)
-            if not variable_fatal:
-                imported_variables, variable_errors = _import_variables(user_id, variables_section)
-                errors.extend(variable_errors)
-                if imported_variables:
-                    label = 'variables' if imported_variables != 1 else 'variable'
-                    summaries.append(f'{imported_variables} {label}')
-
-        imported_secrets = 0
-        if form.include_secrets.data:
-            secrets_section, secret_load_errors, secret_fatal = _load_export_section(
-                data,
-                'secrets',
-                cid_lookup,
-            )
-            errors.extend(secret_load_errors)
-            if not secret_fatal:
-                imported_secrets, secret_errors = _import_secrets(
-                    user_id,
-                    secrets_section,
-                    form.secret_key.data.strip(),
-                )
-                errors.extend(secret_errors)
-                if imported_secrets:
-                    label = 'secrets' if imported_secrets != 1 else 'secret'
-                    summaries.append(f'{imported_secrets} {label}')
-
-        imported_history = 0
-        if form.include_history.data:
-            history_section, history_load_errors, history_fatal = _load_export_section(
-                data,
-                'change_history',
-                cid_lookup,
-            )
-            errors.extend(history_load_errors)
-            if not history_fatal:
-                imported_history, history_errors = _import_change_history(user_id, history_section)
-                errors.extend(history_errors)
-                if imported_history:
-                    label = 'history events' if imported_history != 1 else 'history event'
-                    summaries.append(f'{imported_history} {label}')
-
-        selected_source_categories: list[tuple[str, str]] = []
-        app_source_section: Any = None
-        app_source_fatal = False
-        if form.include_source.data:
-            selected_source_categories = list(_APP_SOURCE_CATEGORIES)
-            app_source_section, app_source_errors, app_source_fatal = _load_export_section(
-                data,
-                'app_source',
-                cid_lookup,
-            )
-            errors.extend(app_source_errors)
-
-        if selected_source_categories and not app_source_fatal:
-            _verify_import_source_files(
-                app_source_section,
-                selected_source_categories,
-                warnings,
-                info_messages,
-            )
-
-        for message in errors:
-            flash(message, 'danger')
-
-        for message in warnings:
-            flash(message, 'warning')
-
-        if summaries:
-            summary_text = ', '.join(summaries)
-            flash(f'Imported {summary_text}.', 'success')
-
-        for message in info_messages:
-            flash(message, 'success')
-
-        if errors or warnings or summaries:
-            record_entity_interaction(
-                user_id,
-                'import',
-                'json',
-                'save',
-                change_message,
-                raw_payload,
-            )
-
-        if errors or warnings or summaries:
-            return redirect(url_for('main.import_data'))
+        return _process_import_submission(form, change_message, _render_import_form)
 
     return _render_import_form()
 

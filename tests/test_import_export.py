@@ -11,12 +11,17 @@ from importlib import metadata
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
+from types import SimpleNamespace
+import tempfile
+
+import routes.import_export as import_export
 
 from alias_definition import format_primary_alias_line
 from app import create_app, db
 from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
+from forms import ExportForm, ImportForm
 from models import CID, Alias, EntityInteraction, Secret, Server, Variable
 
 
@@ -652,6 +657,207 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             secret = Secret.query.filter_by(user_id=self.user_id, name='secret-b').first()
             self.assertIsNotNone(secret)
             self.assertEqual(secret.definition, 'value')
+
+    def test_source_entry_helpers_validate_local_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+            (base_path / 'module').mkdir()
+            local_file = base_path / 'module' / 'example.py'
+            file_bytes = b'print("hello")\n'
+            local_file.write_bytes(file_bytes)
+
+            warnings: list[str] = []
+            parsed = import_export._parse_source_entry(
+                {'path': 'module/example.py', 'cid': 'demo-cid'},
+                'Python Source Files',
+                warnings,
+            )
+            self.assertIsNotNone(parsed)
+            assert parsed is not None
+            self.assertEqual(parsed.relative_path.as_posix(), 'module/example.py')
+
+            resolved = import_export._resolve_source_entry(
+                parsed,
+                base_path,
+                base_path.resolve(),
+                warnings,
+            )
+            self.assertEqual(resolved, local_file)
+
+            content = import_export._load_source_entry_bytes(resolved, parsed, warnings)
+            self.assertEqual(content, file_bytes)
+
+            correct_cid = format_cid(generate_cid(file_bytes))
+            parsed.expected_cid = correct_cid
+            self.assertTrue(import_export._source_entry_matches_export(parsed, content, warnings))
+            self.assertEqual(warnings, [])
+
+            parsed.expected_cid = 'different'
+            self.assertFalse(import_export._source_entry_matches_export(parsed, content, warnings))
+            self.assertIn('differs from the export', warnings[-1])
+
+    def test_prepare_alias_import_uses_definition_cid(self):
+        alias_line = format_primary_alias_line(
+            'glob',
+            '/demo/*',
+            '/target',
+            ignore_case=True,
+            alias_name='example',
+        )
+        definition_text = f"{alias_line}\n# sample"
+        cid_map = {'alias-cid': definition_text.encode('utf-8')}
+        errors: list[str] = []
+
+        prepared = import_export._prepare_alias_import(
+            {'name': 'example', 'definition_cid': 'alias-cid'},
+            set(),
+            cid_map,
+            errors,
+        )
+
+        self.assertIsNotNone(prepared)
+        assert prepared is not None
+        self.assertEqual(prepared.name, 'example')
+        self.assertIn(alias_line, prepared.definition)
+        self.assertEqual(errors, [])
+
+    def test_store_cid_entry_optional_behaviour(self):
+        cid_entries: dict[str, dict[str, str]] = {}
+        import_export._store_cid_entry('test-cid', b'data', cid_entries, include_optional=False)
+        self.assertEqual(cid_entries, {})
+
+        import_export._store_cid_entry('test-cid', b'data', cid_entries, include_optional=True)
+        self.assertIn('test-cid', cid_entries)
+        original_entry = cid_entries['test-cid']
+
+        import_export._store_cid_entry('test-cid', b'updated', cid_entries, include_optional=True)
+        self.assertIs(cid_entries['test-cid'], original_entry)
+
+    def test_import_section_records_summary(self):
+        data = {'aliases': ['entry']}
+        cid_lookup: dict[str, bytes] = {}
+        errors: list[str] = []
+        summaries: list[str] = []
+
+        count = import_export._import_section(
+            True,
+            data,
+            'aliases',
+            cid_lookup,
+            errors,
+            summaries,
+            lambda section: (2, []) if section == ['entry'] else (0, ['wrong section']),
+            'alias',
+            'aliases',
+        )
+
+        self.assertEqual(count, 2)
+        self.assertEqual(errors, [])
+        self.assertEqual(summaries, ['2 aliases'])
+
+        sentinel: dict[str, Any] = {}
+        import_export._import_section(
+            False,
+            data,
+            'aliases',
+            cid_lookup,
+            errors,
+            summaries,
+            lambda section: sentinel.setdefault('called', True) or (0, []),
+            'alias',
+            'aliases',
+        )
+        self.assertNotIn('called', sentinel)
+
+    def test_build_export_payload_collects_aliases(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_path = Path(tmpdir)
+            (base_path / 'pyproject.toml').write_text('[project]\nname = "demo"\n', 'utf-8')
+            (base_path / 'requirements.txt').write_text('flask\n', 'utf-8')
+
+            alias_line = format_primary_alias_line(
+                'glob',
+                '/demo/*',
+                '/target',
+                ignore_case=True,
+                alias_name='example',
+            )
+            alias_definition = f"{alias_line}\n# export"
+
+            class StoreBytesStub:
+                def __init__(self):
+                    self.calls: list[bytes] = []
+
+                def __call__(self, content: bytes, user_id: str) -> str:
+                    self.calls.append(content)
+                    return f'cid-{len(self.calls)}'
+
+            class StoreJsonStub:
+                def __init__(self):
+                    self.payloads: list[str] = []
+
+                def __call__(self, json_payload: str, user_id: str) -> str:
+                    self.payloads.append(json_payload)
+                    return 'payload-cid'
+
+            store_bytes_stub = StoreBytesStub()
+            store_json_stub = StoreJsonStub()
+
+            with self.app.app_context():
+                with ExitStack() as stack:
+                    stack.enter_context(patch('routes.import_export._app_root_path', return_value=base_path))
+                    stack.enter_context(patch('routes.import_export.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
+                    stack.enter_context(patch('routes.import_export.get_user_servers', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.get_user_variables', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.get_user_secrets', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.get_user_uploads', return_value=[]))
+                    stack.enter_context(patch('routes.import_export._gather_change_history', return_value={}))
+                    stack.enter_context(patch('routes.import_export.store_cid_from_bytes', side_effect=store_bytes_stub))
+                    stack.enter_context(patch('routes.import_export.store_cid_from_json', side_effect=store_json_stub))
+                    stack.enter_context(patch('routes.import_export.cid_path', return_value='/downloads/export.json'))
+
+                    with self.app.test_request_context():
+                        form = ExportForm()
+                        form.include_aliases.data = True
+                        form.include_cid_map.data = True
+                        form.include_unreferenced_cid_data.data = False
+                        form.include_servers.data = False
+                        form.include_variables.data = False
+                        form.include_secrets.data = False
+                        form.include_history.data = False
+                        form.include_source.data = False
+
+                        result = import_export._build_export_payload(form, self.user_id)
+
+        self.assertEqual(result['cid_value'], 'payload-cid')
+        self.assertEqual(result['download_path'], '/downloads/export.json')
+        self.assertEqual(len(store_json_stub.payloads), 1)
+        payload = json.loads(store_json_stub.payloads[0])
+        self.assertIn('aliases', payload)
+        self.assertIn('cid_values', payload)
+        cid_values = payload['cid_values']
+        self.assertTrue(
+            any('export' in entry.get('value', '') for entry in cid_values.values())
+        )
+
+    def test_process_import_submission_returns_form_on_empty_payload(self):
+        with self.app.test_request_context():
+            form = ImportForm()
+
+            with ExitStack() as stack:
+                stack.enter_context(patch('routes.import_export._load_import_payload', return_value=' '))
+                stack.enter_context(patch('routes.import_export.flash'))
+
+                render_calls: list[str] = []
+
+                def render_form() -> str:
+                    render_calls.append('called')
+                    return 'rendered-form'
+
+                response = import_export._process_import_submission(form, 'note', render_form)
+
+        self.assertEqual(response, 'rendered-form')
+        self.assertEqual(render_calls, ['called'])
 
     def test_import_change_history_creates_events(self):
         timestamp = datetime(2024, 1, 2, 12, 0, 0, tzinfo=timezone.utc)
