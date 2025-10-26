@@ -110,3 +110,16 @@ def test_render_browser_screenshot_supports_legacy_setcontent(monkeypatch) -> No
     assert page.html_document == "<html></html>"
     assert page.wait_until is None
     assert page.wait_for_function == "document.readyState === 'complete'"
+
+
+def test_render_browser_screenshot_falls_back_when_launch_fails(monkeypatch) -> None:
+    async def _fake_launch(**_: object) -> _FakeBrowser:
+        raise RuntimeError("chromium download failed")
+
+    fake_module = types.ModuleType("pyppeteer")
+    fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
+    monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
+
+    result = artifacts._render_browser_screenshot("<html></html>")
+
+    assert result is None

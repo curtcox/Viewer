@@ -337,19 +337,20 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
     except ImportError:  # pragma: no cover - optional dependency in tests
         return None
 
-    async def _capture() -> bytes:
-        browser = await launch(
-            headless=True,
-            handleSIGINT=False,
-            handleSIGTERM=False,
-            handleSIGHUP=False,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-            ],
-        )
+    async def _capture() -> bytes | None:
+        browser = None
         try:
+            browser = await launch(
+                headless=True,
+                handleSIGINT=False,
+                handleSIGTERM=False,
+                handleSIGHUP=False,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                ],
+            )
             page = await browser.newPage()
             await page.setViewport({"width": _IMAGE_WIDTH, "height": 720})
             try:
@@ -360,8 +361,14 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
                 if callable(wait_for_function):
                     await wait_for_function("document.readyState === 'complete'")
             return await page.screenshot(fullPage=True)
+        except Exception:  # noqa: BLE001 - best effort fallback for CI environments
+            return None
         finally:
-            await browser.close()
+            if browser is not None:
+                try:
+                    await browser.close()
+                except Exception:  # noqa: BLE001 - ignore cleanup failures
+                    pass
 
     try:
         return asyncio.run(_capture())
@@ -370,8 +377,12 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
         try:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(_capture())
+        except Exception:  # noqa: BLE001 - ensure Gauge keeps running without screenshots
+            return None
         finally:
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
             asyncio.set_event_loop(None)
+    except Exception:  # noqa: BLE001 - pyppeteer may fail when Chromium cannot be downloaded
+        return None
 
