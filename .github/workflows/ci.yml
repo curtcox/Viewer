@@ -249,12 +249,7 @@ jobs:
       - unit-tests
       - integration-tests
       - gauge-specs
-    if: >-
-      ${{ github.event_name == 'push' &&
-          github.ref == 'refs/heads/main' &&
-          needs['unit-tests'].result == 'success' &&
-          needs['integration-tests'].result == 'success' &&
-          needs['gauge-specs'].result == 'success' }}
+    if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
@@ -265,18 +260,21 @@ jobs:
     steps:
       - name: Download unit test report
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: unit-tests-html
           path: site/unit-tests
 
       - name: Download Gauge report
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: gauge-html
           path: site/gauge-specs
 
       - name: Download integration test results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: integration-tests-results
           path: site/integration-tests
