@@ -6,25 +6,33 @@ on:
       - main
       - master
   pull_request:
+    branches:
+      - main
+      - master
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-env:
-  CI_IMAGE: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
-
 defaults:
   run:
     shell: bash
+
+env:
+  CI_IMAGE: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
 jobs:
   ruff:
     name: Ruff
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -37,7 +45,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -50,7 +58,7 @@ jobs:
     name: Mypy
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -63,7 +71,7 @@ jobs:
     name: Test Index Validation
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
 
     steps:
       - name: Checkout repository
@@ -85,7 +93,7 @@ jobs:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -146,7 +154,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -201,7 +209,7 @@ jobs:
     name: Gauge Specs
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -246,7 +254,7 @@ jobs:
           needs['gauge-specs'].result == 'success' }}
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -286,22 +294,22 @@ jobs:
           from pathlib import Path
 
           from tests.gauge_report import enhance_gauge_report
-          
+
           base = Path("site/integration-tests")
           base.mkdir(parents=True, exist_ok=True)
-          
+
           log_path = base / "integration-tests.log"
           xml_path = base / "integration-tests-report.xml"
           index_path = base / "index.html"
-          
+
           log_content = "No log output was captured."
           if log_path.exists():
               log_content = escape(log_path.read_text())
-          
+
           xml_link = ""
           if xml_path.exists():
               xml_link = '<p><a href="integration-tests-report.xml">Download the JUnit XML report</a></p>'
-          
+
           index_path.write_text(
               """<!DOCTYPE html>
           <html lang=\"en\">

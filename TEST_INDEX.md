@@ -2,14 +2,14 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1119
-- Unit Tests: 1063
+**Total Tests:** 1120
+- Unit Tests: 1064
 - Integration Tests: 40
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1063 tests
+Total: 1064 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -913,6 +913,7 @@ Total: 1063 tests
 - [test_render_alias_link_full_url](tests/test_link_presenter.py:41)
 - [test_render_alias_link_relative_path](tests/test_link_presenter.py:35)
 - [test_render_browser_screenshot_disables_signal_handlers](tests/test_artifacts.py:61)
+- [test_render_browser_screenshot_falls_back_when_launch_fails](tests/test_artifacts.py:115)
 - [test_render_browser_screenshot_supports_legacy_setcontent](tests/test_artifacts.py:94)
 - [test_render_cid_link_empty_values](tests/test_cid_presenter_render.py:7)
 - [test_render_cid_link_includes_expected_elements](tests/test_cid_presenter_render.py:12)
