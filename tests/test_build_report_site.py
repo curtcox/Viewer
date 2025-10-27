@@ -44,9 +44,10 @@ def test_collect_screenshot_issues_counts_placeholders(tmp_path) -> None:
         json.dumps(
             {
                 "screenshot": {
-                    "captured": False,
-                    "placeholder": True,
+                    "captured": True,
+                    "placeholder": False,
                     "details": "Response body is not HTML; browser screenshot skipped.",
+                    "generated": "text-preview",
                 }
             }
         ),
@@ -68,11 +69,10 @@ def test_collect_screenshot_issues_counts_placeholders(tmp_path) -> None:
 
     count, reasons = build_report._collect_screenshot_issues(gauge_dir)
 
-    assert count == 2
+    assert count == 1
     assert reasons == [
         "pyppeteer is not installed.",
         "Unable to read the shared placeholder image.",
-        "Response body is not HTML; browser screenshot skipped.",
     ]
 
 

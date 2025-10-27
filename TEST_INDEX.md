@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1150
-- Unit Tests: 1088
+**Total Tests:** 1154
+- Unit Tests: 1092
 - Integration Tests: 40
 - Property Tests: 6
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1088 tests
+Total: 1092 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -526,6 +526,7 @@ Total: 1088 tests
 - [test_api_records_and_returns_updated_history](tests/test_entity_interactions.py:44)
 - [test_api_requires_entity_details](tests/test_entity_interactions.py:71)
 - [test_append_query_string_with_empty_query](tests/test_alias_routing.py:97)
+- [test_attach_response_snapshot_generates_text_preview_for_non_html](tests/test_artifacts.py:146)
 - [Test error page display when user is authenticated.](tests/test_error_pages_e2e.py:224)
 - [test_auto_main_allows_request_context_parameter](tests/test_server_auto_main.py:202)
 - [test_auto_main_error_page_includes_debug_details](tests/test_server_auto_main.py:91)
@@ -593,6 +594,7 @@ Total: 1088 tests
 - [Test collecting routes from a multi-line alias.](tests/test_alias_routes_integration.py:66)
 - [Test collecting routes from a regex alias.](tests/test_alias_routes_integration.py:101)
 - [Test collecting routes from a simple alias.](tests/test_alias_routes_integration.py:11)
+- [test_collect_screenshot_issues_counts_placeholders](tests/test_build_report_site.py:22)
 - [Test helper methods with complex definitions including options.](tests/test_alias_model.py:154)
 - [Test function with complex logic including conditionals.](tests/test_text_function_runner.py:114)
 - [Test that stack trace building discovers all project files, not just git-tracked ones.](tests/test_error_page_source_links.py:333)
@@ -734,6 +736,7 @@ Total: 1088 tests
 - [Test helper methods with Flask route definitions.](tests/test_alias_model.py:182)
 - [Following the redirect should produce CID-backed HTML content.](tests/test_server_execution_redirect_result.py:50)
 - [test_form_sketch_preserves_literal_characters_in_code_block](tests/test_markdown_rendering.py:174)
+- [test_format_screenshot_notice_builds_section](tests/test_build_report_site.py:79)
 - [test_formdown_document_renders_without_client_script](tests/test_markdown_rendering.py:225)
 - [test_formdown_fence_renders_form_component](tests/test_markdown_rendering.py:206)
 - [test_formdown_file_fields_enable_multipart_submission](tests/test_markdown_rendering.py:242)
@@ -934,9 +937,9 @@ Total: 1088 tests
 - [Even when relative resolution fails, redundant project roots should be stripped.](tests/test_error_page_path_formatting.py:109)
 - [test_render_alias_link_full_url](tests/test_link_presenter.py:41)
 - [test_render_alias_link_relative_path](tests/test_link_presenter.py:35)
-- [test_render_browser_screenshot_disables_signal_handlers](tests/test_artifacts.py:61)
-- [test_render_browser_screenshot_falls_back_when_launch_fails](tests/test_artifacts.py:115)
-- [test_render_browser_screenshot_supports_legacy_setcontent](tests/test_artifacts.py:94)
+- [test_render_browser_screenshot_disables_signal_handlers](tests/test_artifacts.py:75)
+- [test_render_browser_screenshot_falls_back_when_launch_fails](tests/test_artifacts.py:131)
+- [test_render_browser_screenshot_supports_legacy_setcontent](tests/test_artifacts.py:109)
 - [test_render_cid_link_empty_values](tests/test_cid_presenter_render.py:7)
 - [test_render_cid_link_includes_expected_elements](tests/test_cid_presenter_render.py:12)
 - [test_render_cid_link_strips_leading_slash](tests/test_cid_presenter_render.py:37)
@@ -1100,6 +1103,7 @@ Total: 1088 tests
 - [When no main() exists a key/value textarea should be displayed.](tests/test_routes_comprehensive.py:1386)
 - [Server detail page should surface parameter inputs when main() is present.](tests/test_routes_comprehensive.py:1348)
 - [Server detail page should show invocation events in table format.](tests/test_routes_comprehensive.py:1407)
+- [test_write_landing_page_includes_notice](tests/test_build_report_site.py:90)
 
 ## Integration Tests
 
