@@ -1,5 +1,6 @@
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, or_
@@ -26,6 +27,23 @@ from models import (
 
 _DEFAULT_AI_SERVER_NAME = "ai_stub"
 _DEFAULT_AI_ALIAS_NAME = "ai"
+
+
+@dataclass(frozen=True)
+class ServerInvocationInput:
+    """Optional CID metadata recorded alongside a ``ServerInvocation``.
+
+    Instances capture the optional content identifiers associated with an
+    invocation.  ``create_server_invocation`` always requires ``user_id``,
+    ``server_name``, and ``result_cid`` arguments while all attributes on this
+    helper remain optional.
+    """
+
+    servers_cid: Optional[str] = None
+    variables_cid: Optional[str] = None
+    secrets_cid: Optional[str] = None
+    request_details_cid: Optional[str] = None
+    invocation_cid: Optional[str] = None
 
 
 def get_user_profile_data(user_id: str) -> Dict[str, Any]:
@@ -502,21 +520,52 @@ def create_server_invocation(
     user_id: str,
     server_name: str,
     result_cid: str,
-    servers_cid: Optional[str] = None,
-    variables_cid: Optional[str] = None,
-    secrets_cid: Optional[str] = None,
-    request_details_cid: Optional[str] = None,
-    invocation_cid: Optional[str] = None,
+    cid_metadata: Optional[Union[ServerInvocationInput, Dict[str, Optional[str]]]] = None,
+    **legacy_kwargs: Optional[str],
 ) -> ServerInvocation:
+    """Persist a ``ServerInvocation`` record.
+
+    Args:
+        user_id: Identifier for the user who triggered the invocation.
+        server_name: Name of the executed server.
+        result_cid: CID that stores the invocation result payload.
+        cid_metadata: Optional ``ServerInvocationInput`` (or mapping with the
+            same keys) that captures auxiliary CIDs.  All fields on the data
+            structure are optional.
+        **legacy_kwargs: Backwards compatible keyword arguments matching the
+            ``ServerInvocationInput`` fields.  This supports older call sites
+            that have not yet adopted the container helper.
+
+    Raises:
+        TypeError: If ``cid_metadata`` is neither ``ServerInvocationInput`` nor
+            a mapping of optional CID values.
+    """
+
+    field_names = set(ServerInvocationInput.__annotations__)
+    merged: Dict[str, Optional[str]] = {}
+
+    if isinstance(cid_metadata, ServerInvocationInput):
+        merged.update(asdict(cid_metadata))
+    elif isinstance(cid_metadata, dict):
+        merged.update({k: cid_metadata[k] for k in cid_metadata if k in field_names})
+    elif cid_metadata is not None:
+        raise TypeError(
+            "cid_metadata must be a ServerInvocationInput or mapping of optional CID fields"
+        )
+
+    merged.update({k: v for k, v in legacy_kwargs.items() if k in field_names})
+
+    cid_data = ServerInvocationInput(**merged)
+
     invocation = ServerInvocation(
         user_id=user_id,
         server_name=server_name,
         result_cid=result_cid,
-        servers_cid=servers_cid,
-        variables_cid=variables_cid,
-        secrets_cid=secrets_cid,
-        request_details_cid=request_details_cid,
-        invocation_cid=invocation_cid,
+        servers_cid=cid_data.servers_cid,
+        variables_cid=cid_data.variables_cid,
+        secrets_cid=cid_data.secrets_cid,
+        request_details_cid=cid_data.request_details_cid,
+        invocation_cid=cid_data.invocation_cid,
     )
     save_entity(invocation)
     return invocation

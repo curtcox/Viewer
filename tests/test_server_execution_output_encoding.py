@@ -37,6 +37,26 @@ mock_db_access.get_user_secrets = lambda *a, **k: []
 mock_db_access.get_user_servers = lambda *a, **k: []
 mock_db_access.get_user_variables = lambda *a, **k: []
 mock_db_access.save_entity = lambda *a, **k: None
+
+
+class _ServerInvocationInput:
+    def __init__(
+        self,
+        *,
+        servers_cid=None,
+        variables_cid=None,
+        secrets_cid=None,
+        request_details_cid=None,
+        invocation_cid=None,
+    ):
+        self.servers_cid = servers_cid
+        self.variables_cid = variables_cid
+        self.secrets_cid = secrets_cid
+        self.request_details_cid = request_details_cid
+        self.invocation_cid = invocation_cid
+
+
+mock_db_access.ServerInvocationInput = _ServerInvocationInput
 sys.modules.setdefault("db_access", mock_db_access)
 
 mock_runner = types.ModuleType("text_function_runner")

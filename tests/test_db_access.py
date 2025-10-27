@@ -42,6 +42,7 @@ from db_access import (
     get_user_uploads,
     get_variable_by_name,
     paginate_user_page_views,
+    ServerInvocationInput,
     record_entity_interaction,
     save_entity,
     save_page_view,
@@ -106,7 +107,12 @@ class TestDBAccess(unittest.TestCase):
     def test_server_invocation_and_cid_helpers(self):
         create_cid_record('cid1', b'data', self.user_id)
         self.assertIsNotNone(get_cid_by_path('/cid1'))
-        invocation = create_server_invocation(self.user_id, 'srv', 'cid1')
+        invocation = create_server_invocation(
+            self.user_id,
+            'srv',
+            'cid1',
+            ServerInvocationInput(),
+        )
         self.assertIsNotNone(invocation.id)
 
     def test_find_cids_by_prefix_filters_and_orders_matches(self):
