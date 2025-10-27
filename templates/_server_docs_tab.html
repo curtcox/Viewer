@@ -1,0 +1,46 @@
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><i class="fas fa-book me-2"></i>Server authoring reference</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">
+            Server definitions run as Python modules executed by
+            <a href="/source/server_execution.py" class="text-decoration-none">server_execution.py</a>.
+            When a <code>main()</code> function is present, Viewer automatically maps request data into its
+            parameters so the handler can focus on rendering a response.
+        </p>
+        <p class="mb-3">
+            Parameters are populated in priority order from the query string, JSON or form body, HTTP headers
+            (hyphen/underscore normalised), explicit invocation arguments, saved variables, then saved secrets.
+            Missing required parameters receive a JSON 400 response describing how to provide each value.
+        </p>
+        <p class="mb-3">
+            The return value can be a dictionary with <code>output</code> and <code>content_type</code>, a tuple of
+            <code>(output, content_type)</code>, or any other value which is sent as HTML. The execution layer stores the
+            rendered payload as a CID and redirects the caller to that resource. Helper functions can be invoked by
+            appending their name to the server URL when their signatures pass validation. Tested starting points live in
+            <a href="/source/server_templates/definitions" class="text-decoration-none">server_templates/definitions</a>.
+        </p>
+        <p class="mb-2">Key automated checks covering this behaviour:</p>
+        <ul class="mb-3">
+            <li>
+                <a href="/source/tests/test_server_auto_main.py" class="text-decoration-none">tests/test_server_auto_main.py</a>
+                exercises auto-mapped parameters, helper execution, and error handling.
+            </li>
+            <li>
+                <a href="/source/tests/test_server_execution_output_encoding.py" class="text-decoration-none">tests/test_server_execution_output_encoding.py</a>
+                ensures return values are encoded, logged, and redirected consistently.
+            </li>
+            <li>
+                <a href="/source/tests/integration/test_server_pages.py" class="text-decoration-none">tests/integration/test_server_pages.py</a>
+                verifies the UI surfaces server metadata, history snapshots, and invocation records.
+            </li>
+        </ul>
+        <p class="mb-0">
+            For a broader catalogue of coverage, see the cross references in
+            <a href="/source/docs/page_test_cross_reference.md" class="text-decoration-none">docs/page_test_cross_reference.md</a>
+            and the index entries in
+            <a href="/source/TEST_INDEX.md" class="text-decoration-none">TEST_INDEX.md</a>.
+        </p>
+    </div>
+</div>
