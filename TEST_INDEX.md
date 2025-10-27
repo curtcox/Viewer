@@ -2,10 +2,10 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1147
+**Total Tests:** 1149
 - Unit Tests: 1087
 - Integration Tests: 40
-- Property Tests: 4
+- Property Tests: 6
 - Gauge Tests: 16
 
 ## Unit Tests
@@ -137,24 +137,24 @@ Total: 1087 tests
 - [Test dashboard redirects users without access to profile.](tests/test_routes_comprehensive.py:603)
 - [Display a metadata inspector shortcut in the site navigation.](tests/test_routes_comprehensive.py:624)
 - [Test profile page.](tests/test_routes_comprehensive.py:618)
-- [Test that CID model only has the required fields](tests/test_cid_functionality.py:499)
+- [Test that CID model only has the required fields](tests/test_cid_functionality.py:493)
 - [Test creating CID record with all required fields](tests/test_cid_functionality.py:147)
 - [Test that CID generation produces expected hash](tests/test_cid_functionality.py:72)
 - [Test that CID generation only uses file data, not MIME type](tests/test_cid_functionality.py:51)
-- [The QR code helper should build PNG data using the qrcode library API.](tests/test_cid_functionality.py:384)
+- [The QR code helper should build PNG data using the qrcode library API.](tests/test_cid_functionality.py:378)
 - [Test MIME type detection from file extensions](tests/test_cid_functionality.py:87)
-- [TestCIDFunctionality.test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:567)
-- [TestCIDFunctionality.test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:571)
-- [Test that proper caching headers are set for CID content](tests/test_cid_functionality.py:436)
-- [Test ETag-based caching returns 304 when content hasn't changed](tests/test_cid_functionality.py:468)
-- [Requests with a .qr extension should render a QR code landing page.](tests/test_cid_functionality.py:341)
+- [TestCIDFunctionality.test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:561)
+- [TestCIDFunctionality.test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:565)
+- [Test that proper caching headers are set for CID content](tests/test_cid_functionality.py:430)
+- [Test ETag-based caching returns 304 when content hasn't changed](tests/test_cid_functionality.py:462)
+- [Requests with a .qr extension should render a QR code landing page.](tests/test_cid_functionality.py:335)
 - [Test serving CID content with file extension for MIME type detection](tests/test_cid_functionality.py:173)
-- [Test that serving None CID record returns None](tests/test_cid_functionality.py:560)
-- [Test that serving CID content with None file_data returns None (fixed behavior)](tests/test_cid_functionality.py:537)
+- [Test that serving None CID record returns None](tests/test_cid_functionality.py:554)
+- [Test that serving CID content with None file_data returns None (fixed behavior)](tests/test_cid_functionality.py:531)
 - [CID content requested with .txt extension should render as UTF-8 text when possible.](tests/test_cid_functionality.py:243)
 - [Test serving CID content without extension defaults to UTF-8 text when possible.](tests/test_cid_functionality.py:210)
 - [Plain source files without Markdown cues should not be rendered.](tests/test_cid_functionality.py:270)
-- [Markdown content without an extension should render to HTML.](tests/test_cid_functionality.py:299)
+- [Markdown content without an extension should be served without rendering.](tests/test_cid_functionality.py:299)
 - [Test CID generation with binary content](tests/test_cid_generation.py:110)
 - [Test that generated CIDs have the correct format](tests/test_cid_generation.py:66)
 - [Test helper functions that validate and parse CID values.](tests/test_cid_generation.py:218)
@@ -417,9 +417,9 @@ Total: 1087 tests
 - [TestServeCidContent.test_conditional_requests_with_filename](tests/test_serve_cid_content.py:126)
 - [TestServeCidContent.test_content_with_none_file_data_returns_none](tests/test_serve_cid_content.py:112)
 - [TestServeCidContent.test_edge_cases](tests/test_serve_cid_content.py:77)
-- [TestServeCidContent.test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:157)
+- [TestServeCidContent.test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:156)
 - [TestServeCidContent.test_filename_with_special_characters](tests/test_serve_cid_content.py:94)
-- [TestServeCidContent.test_markdown_without_extension_renders_html_document](tests/test_serve_cid_content.py:143)
+- [TestServeCidContent.test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:143)
 - [TestServeCidContent.test_none_content_returns_none](tests/test_serve_cid_content.py:108)
 - [Definition validation remains accessible in the default workspace.](tests/test_server_definition_validation_route.py:104)
 - [Unsupported auto main signatures should include helpful reasons.](tests/test_server_definition_validation_route.py:82)
@@ -566,7 +566,7 @@ Total: 1087 tests
 - [Test helper functions that validate and parse CID values.](tests/test_cid_generation.py:218)
 - [test_cid_lookup_helpers](tests/test_db_access.py:301)
 - [Simulate the CID lookup with the fix](tests/test_fix_validation.py:33)
-- [Test that CID model only has the required fields](tests/test_cid_functionality.py:499)
+- [Test that CID model only has the required fields](tests/test_cid_functionality.py:493)
 - [test_cid_only_no_content_disposition](tests/test_serve_cid_content.py:28)
 - [Test /{CID} - should return None (no content disposition)](tests/test_content_disposition.py:46)
 - [Test /{CID} - should return None](tests/test_serve_cid_integration.py:20)
@@ -709,7 +709,7 @@ Total: 1087 tests
 - [test_execute_functions_share_error_flow](tests/test_server_execution_output_encoding.py:162)
 - [test_execute_functions_share_success_flow](tests/test_server_execution_output_encoding.py:141)
 - [Test what should happen with variables and secrets](tests/test_variables_secrets_simple.py:74)
-- [test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:157)
+- [test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:156)
 - [test_export_allows_runtime_only](tests/test_import_export.py:249)
 - [test_export_excludes_unreferenced_cids_by_default](tests/test_import_export.py:306)
 - [test_export_excludes_virtualenv_python_files](tests/test_import_export.py:444)
@@ -754,7 +754,7 @@ Total: 1087 tests
 - [Test CID generation function.](tests/test_routes_comprehensive.py:97)
 - [Test that CID generation produces expected hash](tests/test_cid_functionality.py:72)
 - [Test that CID generation only uses file data, not MIME type](tests/test_cid_functionality.py:51)
-- [The QR code helper should build PNG data using the qrcode library API.](tests/test_cid_functionality.py:384)
+- [The QR code helper should build PNG data using the qrcode library API.](tests/test_cid_functionality.py:378)
 - [Test with complex definition including options.](tests/test_db_access_alias_integration.py:149)
 - [Test when alias has empty definition.](tests/test_db_access_alias_integration.py:112)
 - [Test with multi-line definition (should use primary rule).](tests/test_db_access_alias_integration.py:128)
@@ -839,9 +839,9 @@ Total: 1087 tests
 - [load() should return raw bytes when encoding is disabled.](tests/test_text_function_runner.py:283)
 - [test_make_session_permanent_marks_session](tests/test_analytics.py:44)
 - [Test that the CID matches expected hash calculation](tests/test_cid_generation.py:154)
-- [test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:567)
-- [test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:571)
-- [test_markdown_without_extension_renders_html_document](tests/test_serve_cid_content.py:143)
+- [test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:561)
+- [test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:565)
+- [test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:143)
 - [test_mermaid_fenced_block_renders_to_svg_image](tests/test_markdown_rendering.py:133)
 - [test_mermaid_renderer_falls_back_to_remote_svg_on_error](tests/test_markdown_rendering.py:154)
 - [test_meta_route_handles_versioned_server_multiple_matches](tests/test_meta_route.py:267)
@@ -960,17 +960,17 @@ Total: 1087 tests
 - [Search results should highlight matches across every enabled category.](tests/test_routes_comprehensive.py:382)
 - [Test secrets list page.](tests/test_routes_comprehensive.py:1661)
 - [Test the serialize_model_objects function](tests/test_serialization_fix.py:55)
-- [Test that proper caching headers are set for CID content](tests/test_cid_functionality.py:436)
-- [Test ETag-based caching returns 304 when content hasn't changed](tests/test_cid_functionality.py:468)
+- [Test that proper caching headers are set for CID content](tests/test_cid_functionality.py:430)
+- [Test ETag-based caching returns 304 when content hasn't changed](tests/test_cid_functionality.py:462)
 - [Analyze the serve_cid_content function logic](tests/test_cid_serving_issue.py:69)
-- [Requests with a .qr extension should render a QR code landing page.](tests/test_cid_functionality.py:341)
+- [Requests with a .qr extension should render a QR code landing page.](tests/test_cid_functionality.py:335)
 - [Test serving CID content with file extension for MIME type detection](tests/test_cid_functionality.py:173)
-- [Test that serving None CID record returns None](tests/test_cid_functionality.py:560)
-- [Test that serving CID content with None file_data returns None (fixed behavior)](tests/test_cid_functionality.py:537)
+- [Test that serving None CID record returns None](tests/test_cid_functionality.py:554)
+- [Test that serving CID content with None file_data returns None (fixed behavior)](tests/test_cid_functionality.py:531)
 - [CID content requested with .txt extension should render as UTF-8 text when possible.](tests/test_cid_functionality.py:243)
 - [Test serving CID content without extension defaults to UTF-8 text when possible.](tests/test_cid_functionality.py:210)
 - [Plain source files without Markdown cues should not be rendered.](tests/test_cid_functionality.py:270)
-- [Markdown content without an extension should render to HTML.](tests/test_cid_functionality.py:299)
+- [Markdown content without an extension should be served without rendering.](tests/test_cid_functionality.py:299)
 - [Test that server definitions are saved as CIDs when created/updated](tests/test_server_cid_functionality.py:13)
 - [Server events page should list invocation details and required links.](tests/test_routes_comprehensive.py:854)
 - [Test what's required for server execution to work](tests/test_echo_simple.py:42)
@@ -1147,8 +1147,10 @@ Total: 40 tests
 
 ## Property Tests
 
-Total: 4 tests
+Total: 6 tests
 
+- [When an extension is provided, the MIME type matches the extension.](tests/property/test_serve_cid_content_properties.py:33)
+- [A /CID request returns exactly the stored content.](tests/property/test_serve_cid_content_properties.py:15)
 - [test_decrypt_rejects_modified_payload](tests/property/test_encryption_properties.py:32)
 - [Round-tripping the CID components preserves the values.](tests/property/test_cid_properties.py:27)
 - [test_encrypt_decrypt_round_trip](tests/property/test_encryption_properties.py:10)

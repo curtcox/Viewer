@@ -997,21 +997,6 @@ def _render_markdown_document(text):
         "</html>\n"
     )
 
-def _maybe_render_markdown(data, *, path_has_extension):
-    if path_has_extension:
-        return data, False
-
-    text = _decode_text_safely(data)
-    if text is None:
-        return data, False
-
-    if not _looks_like_markdown(text):
-        return data, False
-
-    html_document = _render_markdown_document(text)
-    return html_document.encode('utf-8'), True
-
-
 def get_mime_type_from_extension(path):
     """Determine MIME type from file extension in URL path"""
     if '.' in path:
@@ -1103,10 +1088,7 @@ def serve_cid_content(cid_content, path):
             response_body = _render_markdown_document(text).encode('utf-8')
             content_type = 'text/html'
     elif content_type == 'application/octet-stream':
-        response_body, rendered = _maybe_render_markdown(response_body, path_has_extension=has_extension)
-        if rendered:
-            content_type = 'text/html'
-        elif not has_extension:
+        if not has_extension:
             text = _decode_text_safely(response_body)
             if text is not None:
                 response_body = text.encode('utf-8')
@@ -1115,9 +1097,7 @@ def serve_cid_content(cid_content, path):
         text = _decode_text_safely(response_body)
         if text is not None:
             response_body = text.encode('utf-8')
-            content_type = 'text/plain; charset=utf-8'
-        else:
-            content_type = 'application/octet-stream'
+        content_type = 'text/plain; charset=utf-8'
     elif content_type == 'text/plain':
         text = _decode_text_safely(response_body)
         if text is not None:

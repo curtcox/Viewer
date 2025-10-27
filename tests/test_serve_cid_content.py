@@ -140,7 +140,7 @@ class TestServeCidContent(unittest.TestCase):
         self.assertIn('Last-Modified', response.headers)
         self.assertIn('ETag', response.headers)
 
-    def test_markdown_without_extension_renders_html_document(self):
+    def test_markdown_without_extension_serves_raw_content(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456"
         markdown_content = SimpleNamespace(
             file_data=b"# Heading\n\n- item one\n- item two\n",
@@ -149,10 +149,9 @@ class TestServeCidContent(unittest.TestCase):
 
         response = self._serve(path, content=markdown_content)
         self.assertIsNotNone(response)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
+        self.assertEqual(response.headers.get('Content-Type'), 'text/plain; charset=utf-8')
         body = response.get_data(as_text=True)
-        self.assertIn('<h1>Heading</h1>', body)
-        self.assertIn('<li>item one</li>', body)
+        self.assertEqual(body, "# Heading\n\n- item one\n- item two\n")
 
     def test_explicit_markdown_html_extension_renders_markdown(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.notes.md.html"
