@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -118,39 +117,14 @@ def test_create_app_handles_logfire_instrumentation_errors(
         assert "requests instrumentation failed" in status["logfire_reason"]
 
 
-def test_create_app_upgrades_legacy_alias_table(monkeypatch: pytest.MonkeyPatch, app_config_factory):
-    """A database missing the alias.definition column should be upgraded on startup."""
+def test_create_app_creates_alias_definition_column(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    """New databases should include the alias.definition column without migration."""
 
     monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
 
-    config = app_config_factory("legacy-alias")
-    db_uri = config["SQLALCHEMY_DATABASE_URI"]
-    assert isinstance(db_uri, str) and db_uri.startswith("sqlite:///")
-
-    legacy_db_path = Path(db_uri.replace("sqlite:///", ""))
-
-    # Create a legacy alias table without the definition column
-    with sqlite3.connect(legacy_db_path) as connection:
-        connection.execute(
-            """
-            CREATE TABLE alias (
-                id INTEGER NOT NULL,
-                name VARCHAR(100) NOT NULL,
-                target_path VARCHAR(255) NOT NULL,
-                match_type VARCHAR(20) NOT NULL,
-                match_pattern VARCHAR(255) NOT NULL,
-                ignore_case BOOLEAN NOT NULL DEFAULT 0,
-                user_id VARCHAR NOT NULL,
-                created_at DATETIME,
-                updated_at DATETIME,
-                PRIMARY KEY (id),
-                UNIQUE (user_id, name)
-            )
-            """
-        )
-        connection.commit()
-
-    app_instance = app_module.create_app(config)
+    app_instance = app_module.create_app(app_config_factory("modern-alias"))
     client = app_instance.test_client()
 
     response = client.get("/")

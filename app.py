@@ -7,14 +7,9 @@ import logfire
 from dotenv import load_dotenv
 from flask import Flask
 from logfire.exceptions import LogfireConfigError
-from sqlalchemy import inspect, text
-from sqlalchemy.engine import Engine
-from sqlalchemy.exc import NoSuchTableError, SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from ai_defaults import ensure_ai_stub_for_all_users
-from alias_definition import format_primary_alias_line, replace_primary_definition_line
-from alias_matching import PatternError, normalise_pattern
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -41,115 +36,6 @@ load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
-
-
-def _build_definition_from_legacy_row(row: dict[str, Any]) -> str:
-    name = (row.get("name") or "").strip()
-    target_path = (row.get("target_path") or "").strip()
-    if not target_path:
-        existing_definition = row.get("definition")
-        return existing_definition or ""
-
-    match_type = (row.get("match_type") or "literal").lower()
-    match_pattern = row.get("match_pattern")
-    ignore_case = bool(row.get("ignore_case"))
-
-    try:
-        normalised_pattern = normalise_pattern(match_type, match_pattern, name)
-        canonical_match_type = match_type
-    except PatternError:
-        canonical_match_type = "literal"
-        normalised_pattern = None
-
-    primary_line = format_primary_alias_line(
-        canonical_match_type,
-        normalised_pattern,
-        target_path,
-        ignore_case=ignore_case,
-        alias_name=name,
-    )
-
-    existing_definition = row.get("definition")
-    if existing_definition:
-        return replace_primary_definition_line(existing_definition, primary_line)
-    return primary_line
-
-
-def _migrate_legacy_alias_table(engine: Engine, logger: logging.Logger, columns: set[str]) -> None:
-    from models import Alias
-
-    logger.info("Upgrading legacy alias table to definition-based schema")
-
-    select_columns = [
-        "id",
-        "name",
-        "user_id",
-        "created_at",
-        "updated_at",
-        "target_path",
-        "match_type",
-        "match_pattern",
-        "ignore_case",
-    ]
-    if "definition" in columns:
-        select_columns.append("definition")
-    else:
-        select_columns.append("NULL AS definition")
-
-    query = f"SELECT {', '.join(select_columns)} FROM alias ORDER BY id"
-
-    with engine.begin() as connection:
-        rows = connection.execute(text(query)).mappings().all()
-
-        connection.execute(text("ALTER TABLE alias RENAME TO alias_legacy"))
-        Alias.__table__.create(connection)
-
-        insert_stmt = Alias.__table__.insert()
-
-        for row in rows:
-            row_dict = dict(row)
-            definition_text = _build_definition_from_legacy_row(row_dict)
-            connection.execute(
-                insert_stmt,
-                {
-                    "id": row_dict.get("id"),
-                    "name": row_dict.get("name"),
-                    "definition": definition_text,
-                    "user_id": row_dict.get("user_id"),
-                    "created_at": row_dict.get("created_at"),
-                    "updated_at": row_dict.get("updated_at"),
-                },
-            )
-
-        connection.execute(text("DROP TABLE alias_legacy"))
-
-
-def _ensure_alias_definition_column(engine: Engine, logger: logging.Logger) -> None:
-    """Ensure existing databases have the alias definition column."""
-
-    try:
-        inspector = inspect(engine)
-        columns = {column_info["name"] for column_info in inspector.get_columns("alias")}
-    except NoSuchTableError:
-        logger.debug("Alias table not found; skipping definition column check")
-        return
-
-    legacy_columns = {"target_path", "match_type", "match_pattern", "ignore_case"}
-    if legacy_columns & columns:
-        _migrate_legacy_alias_table(engine, logger, columns)
-        return
-
-    if "definition" in columns:
-        return
-
-    logger.info("Adding missing alias.definition column to existing database")
-
-    try:
-        with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE alias ADD COLUMN definition TEXT"))
-    except SQLAlchemyError as exc:  # pragma: no cover - defensive guard
-        logger.warning("Failed to add alias.definition column: %s", exc)
-
 
 
 def create_app(config_override: Optional[dict] = None) -> Flask:
@@ -295,8 +181,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
         db.create_all()
         logging.info("Database tables created")
-
-        _ensure_alias_definition_column(db.engine, logger)
 
         ensure_default_user()
 
