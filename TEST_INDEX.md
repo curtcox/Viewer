@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1149
-- Unit Tests: 1087
+**Total Tests:** 1150
+- Unit Tests: 1088
 - Integration Tests: 40
 - Property Tests: 6
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1087 tests
+Total: 1088 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -978,7 +978,8 @@ Total: 1087 tests
 - [test_server_invocation_and_cid_helpers](tests/test_db_access.py:107)
 - [test_server_invocation_helpers](tests/test_db_access.py:163)
 - [test_server_path_normalizes_input](tests/test_link_presenter.py:18)
-- [test_server_template_sources_retain_ruff_controls](tests/test_server_auto_main.py:339)
+- [test_server_template_sources_retain_ruff_controls](tests/test_server_auto_main.py:356)
+- [test_server_templates_include_suggested_name_field](tests/test_server_auto_main.py:339)
 - [test_server_templates_strip_internal_ruff_controls](tests/test_server_auto_main.py:324)
 - [Test servers list page.](tests/test_routes_comprehensive.py:1238)
 - [Test settings page.](tests/test_routes_comprehensive.py:1796)
