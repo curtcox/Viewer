@@ -32,6 +32,7 @@ from cid_utils import (
     get_extension_from_mime_type,
 )
 from db_access import (
+    ServerInvocationInput,
     create_cid_record,
     create_server_invocation,
     get_cid_by_path,
@@ -614,11 +615,12 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
         user_id,
         server_name,
         result_cid,
-        servers_cid=servers_cid,
-        variables_cid=variables_cid,
-        secrets_cid=secrets_cid,
-        request_details_cid=req_cid,
-        invocation_cid=None,
+        ServerInvocationInput(
+            servers_cid=servers_cid,
+            variables_cid=variables_cid,
+            secrets_cid=secrets_cid,
+            request_details_cid=req_cid,
+        ),
     )
 
     try:
