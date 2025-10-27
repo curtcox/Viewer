@@ -54,12 +54,12 @@ RUN set -eux; \
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
     && pip install -r /tmp/requirements.txt \
-    && pip install hypothesis pytest pyppeteer
+    && pip install hypothesis pytest "pyppeteer>=1.0.2,<2.0.0"
 
 # Pre-download Chromium so container users (and any jobs that retain /root as
 # $HOME) already have a browser binary before Gauge runs. GitHub Actions swaps
 # HOME to /github/home at runtime, so the workflow reruns the installer there.
-RUN pip install pyppeteer
+RUN pip install "pyppeteer>=1.0.2,<2.0.0"
 RUN python -m pyppeteer.install
 
 WORKDIR /workspace
