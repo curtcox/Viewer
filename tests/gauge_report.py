@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from html import escape
 from pathlib import Path
 from textwrap import dedent
@@ -13,6 +14,11 @@ _STYLE_START = "<!-- secureapp-gauge-gallery-style:start -->"
 _STYLE_END = "<!-- secureapp-gauge-gallery-style:end -->"
 _GALLERY_START = "<!-- secureapp-gauge-gallery:start -->"
 _GALLERY_END = "<!-- secureapp-gauge-gallery:end -->"
+
+_ARTIFACT_REF_RE = re.compile(
+    r"((?:\.{2}/)*reports/html-report/secureapp-artifacts/[A-Za-z0-9._/-]+|"
+    r"secureapp-artifacts/[A-Za-z0-9._/-]+)\.(png|json)"
+)
 
 
 def enhance_gauge_report(gauge_base: Path, *, artifacts_subdir: str = "secureapp-artifacts") -> bool:
@@ -43,9 +49,12 @@ def enhance_gauge_report(gauge_base: Path, *, artifacts_subdir: str = "secureapp
     if not png_files:
         return False
 
+    labels = _collect_artifact_labels(png_files)
+    inline_updated = _inject_inline_artifact_links(gauge_base, labels)
+
     gallery_items = list(_build_gallery_items(png_files, gauge_base))
     if not gallery_items:
-        return False
+        return inline_updated
 
     index_html = index_path.read_text(encoding="utf-8")
     index_html = _strip_marked_block(index_html, _STYLE_START, _STYLE_END)
@@ -97,6 +106,84 @@ def enhance_gauge_report(gauge_base: Path, *, artifacts_subdir: str = "secureapp
 
     index_path.write_text(index_html, encoding="utf-8")
     return True
+
+
+def _collect_artifact_labels(png_files: Iterable[Path]) -> dict[str, str]:
+    labels: dict[str, str] = {}
+    for png_path in png_files:
+        stem = png_path.stem
+        label = stem
+        json_path = png_path.with_suffix(".json")
+        if json_path.exists():
+            try:
+                metadata = json.loads(json_path.read_text(encoding="utf-8"))
+                candidate = metadata.get("label") if isinstance(metadata, dict) else None
+                if candidate:
+                    label = str(candidate)
+            except json.JSONDecodeError:
+                pass
+        labels[stem] = label
+    return labels
+
+
+def _inject_inline_artifact_links(gauge_base: Path, labels: dict[str, str]) -> bool:
+    changed_any = False
+
+    for html_path in sorted(gauge_base.rglob("*.html")):
+        if html_path.is_dir():
+            continue
+        original = html_path.read_text(encoding="utf-8")
+        rewritten, changed = _replace_artifact_references(original, labels)
+        if changed:
+            html_path.write_text(rewritten, encoding="utf-8")
+            changed_any = True
+
+    return changed_any
+
+
+def _replace_artifact_references(html: str, labels: dict[str, str]) -> tuple[str, bool]:
+    changed = False
+
+    def _replacement(match: re.Match[str]) -> str:
+        nonlocal changed
+
+        start = match.start()
+        if html[max(0, start - 2) : start].endswith(("=\"", "='")):
+            return match.group(0)
+
+        rel_base = match.group(1)
+        extension = match.group(2)
+        rel_path = f"{rel_base}.{extension}"
+        stem = Path(rel_base).name
+        label = labels.get(stem, stem)
+        title_attr = escape(rel_path)
+
+        if extension == "png":
+            alt_text = escape(label)
+            snippet = (
+                f'<a class="secureapp-inline-snapshot" href="{rel_path}" '
+                f'target="_blank" rel="noopener" title="{title_attr}">' 
+                f'<img src="{rel_path}" alt="{alt_text}" loading="lazy" '
+                'style="max-width: 100%; border: 1px solid #d0d7de; border-radius: 6px;" />'
+                "</a>"
+            )
+        else:
+            if label and label != stem:
+                link_text = f"Metadata for {label}"
+            else:
+                link_text = "JSON metadata"
+            link_body = escape(link_text)
+            snippet = (
+                f'<a class="secureapp-inline-metadata" href="{rel_path}" '
+                f'target="_blank" rel="noopener" title="{title_attr}">'
+                f"{link_body}</a>"
+            )
+
+        changed = True
+        return snippet
+
+    rewritten = _ARTIFACT_REF_RE.sub(_replacement, html)
+    return rewritten, changed
 
 
 def _build_gallery_items(png_files: Iterable[Path], gauge_base: Path) -> Iterable[str]:
