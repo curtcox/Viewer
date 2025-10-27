@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1146
-- Unit Tests: 1086
+**Total Tests:** 1147
+- Unit Tests: 1087
 - Integration Tests: 40
 - Property Tests: 4
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1086 tests
+Total: 1087 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -681,6 +681,7 @@ Total: 1086 tests
 - [test_encode_str_to_utf8](tests/test_server_execution_output_encoding.py:75)
 - [test_encrypt_handles_empty_plaintext_roundtrip](tests/test_encryption.py:15)
 - [test_encrypt_requires_non_empty_key](tests/test_encryption.py:21)
+- [test_enhance_gauge_report_converts_artifact_paths](tests/test_gauge_report_enhancements.py:18)
 - [Test that enhanced error pages show 5+ lines of context around errors.](tests/test_error_pages.py:113)
 - [Test that enhanced code context shows line numbers and error markers.](tests/test_error_page_source_links.py:195)
 - [Test that code context includes proper line numbers and markers.](tests/test_error_pages.py:347)
