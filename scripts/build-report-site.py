@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -244,8 +245,77 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
-def _write_landing_page(site_dir: Path) -> None:
+def _collect_screenshot_issues(
+    gauge_dir: Path, *, artifacts_subdir: str = "secureapp-artifacts"
+) -> tuple[int, list[str]]:
+    artifacts_dir = gauge_dir / artifacts_subdir
+    if not artifacts_dir.is_dir():
+        return 0, []
+
+    placeholder_count = 0
+    reasons: list[str] = []
+
+    for json_path in sorted(artifacts_dir.glob("*.json")):
+        try:
+            metadata = json.loads(json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        screenshot_info = metadata.get("screenshot")
+        if not isinstance(screenshot_info, dict):
+            continue
+        if screenshot_info.get("captured"):
+            continue
+
+        placeholder_count += 1
+
+        details = screenshot_info.get("details")
+        if isinstance(details, str):
+            reasons.append(details)
+        elif isinstance(details, list):
+            for entry in details:
+                if isinstance(entry, str):
+                    reasons.append(entry)
+                else:
+                    reasons.append(str(entry))
+
+    normalized = [reason.strip() for reason in reasons if reason and reason.strip()]
+    unique_reasons = list(dict.fromkeys(normalized))
+    return placeholder_count, unique_reasons
+
+
+def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
+    if count <= 0:
+        return None
+
+    count_text = "capture" if count == 1 else "captures"
+    intro = (
+        f"  <section class=\"screenshot-status\">\n"
+        "    <h2>Gauge screenshot status</h2>\n"
+        f"    <p>Browser screenshots were unavailable for {count} {count_text}. "
+        "The shared placeholder image has been published in their place.</p>\n"
+    )
+
+    if reasons:
+        reason_items = "\n".join(
+            f"      <li>{escape(reason)}</li>" for reason in reasons
+        )
+        reason_block = (
+            "    <p>Reported reasons:</p>\n"
+            "    <ul>\n"
+            f"{reason_items}\n"
+            "    </ul>\n"
+        )
+    else:
+        reason_block = "    <p>No specific error details were recorded.</p>\n"
+
+    closing = "  </section>"
+    return intro + reason_block + closing
+
+
+def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None) -> None:
     index_path = site_dir / "index.html"
+    notice_html = (screenshot_notice + "\n") if screenshot_notice else ""
     index_path.write_text(
         """<!DOCTYPE html>
 <html lang=\"en\">
@@ -258,6 +328,9 @@ def _write_landing_page(site_dir: Path) -> None:
     ul {{ list-style: disc; padding-left: 1.5rem; }}
     a {{ color: #0366d6; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
+    .screenshot-status {{ margin-top: 2rem; padding: 1rem; background: #fff8c5; border-left: 4px solid #9a6700; }}
+    .screenshot-status h2 {{ margin-top: 0; }}
+    .screenshot-status ul {{ margin-top: 0.5rem; }}
   </style>
 </head>
 <body>
@@ -268,9 +341,10 @@ def _write_landing_page(site_dir: Path) -> None:
     <li><a href=\"gauge-specs/index.html\">Gauge HTML report</a></li>
     <li><a href=\"property-tests/index.html\">Property test results</a></li>
   </ul>
+{notice_html}
 </body>
 </html>
-""",
+""".format(notice_html=notice_html),
         encoding="utf-8",
     )
 
@@ -302,9 +376,11 @@ def build_site(
 
     gauge_public_base = _compose_public_url(public_base_url, "gauge-specs")
     enhance_gauge_report(gauge_dir, public_base_url=gauge_public_base)
+    placeholder_count, screenshot_reasons = _collect_screenshot_issues(gauge_dir)
+    screenshot_notice = _format_screenshot_notice(placeholder_count, screenshot_reasons)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
-    _write_landing_page(output_dir)
+    _write_landing_page(output_dir, screenshot_notice=screenshot_notice)
 
 
 

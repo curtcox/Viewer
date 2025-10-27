@@ -10,6 +10,7 @@ import json
 import os
 import re
 import textwrap
+from functools import lru_cache
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,12 @@ _IMAGE_WIDTH = 1280
 _MARGIN = 24
 _LINE_SPACING = 6
 _ARTIFACT_DIR_FALLBACK = "reports/html-report/secureapp-artifacts"
+_PLACEHOLDER_IMAGE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "static"
+    / "images"
+    / "no-screenshot-available.png"
+)
 
 
 def attach_response_snapshot(response: Any, label: str | None = None) -> None:
@@ -56,12 +63,32 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
     preview_text = _prepare_preview_text(body_text)
 
     screenshot_bytes: bytes | None = None
+    screenshot_error: str | None = None
+    screenshot_details: dict[str, Any] = {
+        "captured": False,
+        "placeholder": False,
+    }
     if _looks_like_html(response, body_text):
         html_document = _prepare_html_document(body_text)
-        screenshot_bytes = _render_browser_screenshot(html_document)
+        screenshot_bytes, screenshot_error = _render_browser_screenshot(html_document)
+        if screenshot_bytes is not None:
+            screenshot_details["captured"] = True
+    else:
+        screenshot_error = "Response body is not HTML; browser screenshot skipped."
 
     if screenshot_bytes is None:
-        screenshot_bytes = _render_text_image(resolved_label, str(status_code), preview_text)
+        placeholder_bytes, placeholder_error = _load_placeholder_image()
+        screenshot_bytes = placeholder_bytes
+        screenshot_details["placeholder"] = True
+        screenshot_details["asset"] = _PLACEHOLDER_IMAGE_PATH.name
+        details: list[str] = []
+        if screenshot_error:
+            details.append(screenshot_error)
+        if placeholder_error:
+            details.append(placeholder_error)
+            screenshot_details["asset"] = "generated-text"
+        if details:
+            screenshot_details["details"] = details
 
     base_name = _build_base_filename(resolved_label)
     artifact_dir = _ensure_artifact_directory()
@@ -76,6 +103,7 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
         preview_text=preview_text,
         body_bytes=body_bytes,
     )
+    metadata["screenshot"] = screenshot_details
     json_path = artifact_dir / f"{base_name}.json"
     json_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -331,13 +359,13 @@ def _resolve_asset_path(root: Path, href: str) -> Path | None:
     return None
 
 
-def _render_browser_screenshot(html_document: str) -> bytes | None:
+def _render_browser_screenshot(html_document: str) -> tuple[bytes | None, str | None]:
     try:
         from pyppeteer import launch
     except ImportError:  # pragma: no cover - optional dependency in tests
-        return None
+        return None, "pyppeteer is not installed."
 
-    async def _capture() -> bytes | None:
+    async def _capture() -> tuple[bytes | None, str | None]:
         browser = None
         try:
             browser = await launch(
@@ -360,9 +388,10 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
                 wait_for_function = getattr(page, "waitForFunction", None)
                 if callable(wait_for_function):
                     await wait_for_function("document.readyState === 'complete'")
-            return await page.screenshot(fullPage=True)
-        except Exception:  # noqa: BLE001 - best effort fallback for CI environments
-            return None
+            screenshot = await page.screenshot(fullPage=True)
+            return screenshot, None
+        except Exception as exc:  # noqa: BLE001 - best effort fallback for CI environments
+            return None, _summarize_exception(exc)
         finally:
             if browser is not None:
                 try:
@@ -377,12 +406,39 @@ def _render_browser_screenshot(html_document: str) -> bytes | None:
         try:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(_capture())
-        except Exception:  # noqa: BLE001 - ensure Gauge keeps running without screenshots
-            return None
+        except Exception as exc:  # noqa: BLE001 - ensure Gauge keeps running without screenshots
+            return None, _summarize_exception(exc)
         finally:
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
             asyncio.set_event_loop(None)
-    except Exception:  # noqa: BLE001 - pyppeteer may fail when Chromium cannot be downloaded
-        return None
+    except Exception as exc:  # noqa: BLE001 - pyppeteer may fail when Chromium cannot be downloaded
+        return None, _summarize_exception(exc)
+
+
+def _summarize_exception(exc: BaseException) -> str:
+    message = str(exc).strip()
+    name = exc.__class__.__name__
+    if message:
+        return f"{name}: {message}"
+    return name
+
+
+@lru_cache(maxsize=1)
+def _load_placeholder_image() -> tuple[bytes, str | None]:
+    try:
+        data = _PLACEHOLDER_IMAGE_PATH.read_bytes()
+        return data, None
+    except OSError as exc:
+        message = (
+            "Unable to read the shared placeholder image. Generated a textual "
+            "fallback instead. "
+            + _summarize_exception(exc)
+        )
+        fallback = _render_text_image(
+            "Screenshot unavailable",
+            "?",
+            message,
+        )
+        return fallback, message
 
