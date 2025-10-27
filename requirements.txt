@@ -23,7 +23,7 @@ glom>=23.3.0
 hypothesis>=6.124.1
 pytest>=8.2.0
 ruff>=0.1.0
-pyppeteer>=1.0.2
+pyppeteer>=1.0.2,<2.0.0
 logfire[all]
 logfire[aiohttp-client]
 opentelemetry-instrumentation-flask>=0.48b0
