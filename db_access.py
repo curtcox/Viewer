@@ -5,7 +5,18 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import func, or_
 
+from database import db
 import models
+from models import (
+    CID,
+    Alias,
+    EntityInteraction,
+    PageView,
+    Secret,
+    Server,
+    ServerInvocation,
+    Variable,
+)
 from alias_definition import (
     AliasDefinitionError,
     collect_alias_routes,
@@ -38,17 +49,6 @@ class EntityInteractionLookup:
     action: str
     message: str
     created_at: datetime | None = None
-from database import db
-from models import (
-    CID,
-    Alias,
-    EntityInteraction,
-    PageView,
-    Secret,
-    Server,
-    ServerInvocation,
-    Variable,
-)
 
 _DEFAULT_AI_SERVER_NAME = "ai_stub"
 _DEFAULT_AI_ALIAS_NAME = "ai"
