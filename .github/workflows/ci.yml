@@ -150,7 +150,27 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Run property tests
-        run: pytest tests/property
+        id: run_property_tests
+        run: |
+          set -o pipefail
+          pytest tests/property \
+            --junitxml=property-tests-report.xml \
+            | tee property-tests.log
+        continue-on-error: true
+
+      - name: Upload property test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-tests-results
+          path: |
+            property-tests-report.xml
+            property-tests.log
+          if-no-files-found: warn
+
+      - name: Fail if property tests failed
+        if: steps.run_property_tests.outcome == 'failure'
+        run: exit 1
 
   integration-tests:
     name: Integration Tests
@@ -234,6 +254,7 @@ jobs:
       - unit-tests
       - integration-tests
       - gauge-specs
+      - property-tests
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
@@ -267,12 +288,20 @@ jobs:
           name: integration-tests-results
           path: site/integration-tests
 
+      - name: Download property test results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: property-tests-results
+          path: site/property-tests
+
       - name: Prepare site content
         run: |
           python scripts/build-report-site.py \
             --unit-tests-artifacts site/unit-tests \
             --gauge-artifacts site/gauge-specs \
             --integration-artifacts site/integration-tests \
+            --property-artifacts site/property-tests \
             --output site
 
       - name: Upload artifact for GitHub Pages

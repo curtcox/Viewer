@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
+import xml.etree.ElementTree as ET
 from html import escape
 from importlib import import_module
 from pathlib import Path
@@ -132,6 +133,97 @@ def _build_integration_index(integration_dir: Path) -> None:
     )
 
 
+def _build_property_summary(xml_path: Path) -> str:
+    """Return an HTML summary snippet for a JUnit XML report."""
+
+    def _get_int(attrib: dict[str, str], key: str) -> int:
+        value = attrib.get(key)
+        if value is None:
+            return 0
+        try:
+            return int(float(value))
+        except ValueError:
+            return 0
+
+    try:
+        tree = ET.parse(xml_path)
+    except (ET.ParseError, OSError):
+        return "<p>Unable to parse the JUnit XML report.</p>"
+
+    root = tree.getroot()
+    metric_keys = ("tests", "failures", "errors", "skipped")
+
+    counts = {key: 0 for key in metric_keys}
+    if root.tag == "testsuite":
+        counts = {key: _get_int(root.attrib, key) for key in metric_keys}
+    elif root.tag == "testsuites":
+        if any(key in root.attrib for key in metric_keys):
+            counts = {key: _get_int(root.attrib, key) for key in metric_keys}
+        else:
+            for suite in root.findall("testsuite"):
+                for key in metric_keys:
+                    counts[key] += _get_int(suite.attrib, key)
+    else:
+        return "<p>Unrecognized JUnit XML structure.</p>"
+
+    passed = max(
+        counts["tests"] - counts["failures"] - counts["errors"] - counts["skipped"],
+        0,
+    )
+
+    summary = [
+        f"  <li>Total tests: {counts['tests']}</li>",
+        f"  <li>Passed: {passed}</li>",
+        f"  <li>Failures: {counts['failures']}</li>",
+        f"  <li>Errors: {counts['errors']}</li>",
+        f"  <li>Skipped: {counts['skipped']}</li>",
+    ]
+
+    return "<h2>Summary</h2><ul>\n" + "\n".join(summary) + "\n</ul>"
+
+
+def _build_property_index(property_dir: Path) -> None:
+    property_dir.mkdir(parents=True, exist_ok=True)
+
+    log_path = property_dir / "property-tests.log"
+    xml_path = property_dir / "property-tests-report.xml"
+    index_path = property_dir / "index.html"
+
+    log_content = "No log output was captured."
+    if log_path.exists():
+        log_content = escape(log_path.read_text(encoding="utf-8"))
+
+    summary_html = "<p>No JUnit XML report was generated.</p>"
+    xml_link = ""
+    if xml_path.exists():
+        summary_html = _build_property_summary(xml_path)
+        xml_link = '<p><a href="property-tests-report.xml">Download the JUnit XML report</a></p>'
+
+    index_path.write_text(
+        """<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <title>Property test results</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
+    pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
+    a {{ color: #0366d6; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <h1>Property test results</h1>
+  {xml_link}
+  {summary_html}
+  <h2>Latest log output</h2>
+  <pre>{log_content}</pre>
+</body>
+</html>
+""".format(xml_link=xml_link, summary_html=summary_html, log_content=log_content),
+        encoding="utf-8",
+    )
+
 
 def _write_landing_page(site_dir: Path) -> None:
     index_path = site_dir / "index.html"
@@ -155,6 +247,7 @@ def _write_landing_page(site_dir: Path) -> None:
     <li><a href=\"unit-tests/index.html\">Unit test coverage report</a></li>
     <li><a href=\"integration-tests/index.html\">Integration test results</a></li>
     <li><a href=\"gauge-specs/index.html\">Gauge HTML report</a></li>
+    <li><a href=\"property-tests/index.html\">Property test results</a></li>
   </ul>
 </body>
 </html>
@@ -169,6 +262,7 @@ def build_site(
     unit_tests_artifacts: Path | None,
     gauge_artifacts: Path | None,
     integration_artifacts: Path | None,
+    property_artifacts: Path | None,
     output_dir: Path,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -176,16 +270,19 @@ def build_site(
     unit_tests_dir = output_dir / "unit-tests"
     gauge_dir = output_dir / "gauge-specs"
     integration_dir = output_dir / "integration-tests"
+    property_dir = output_dir / "property-tests"
 
     _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
     _copy_artifacts(integration_artifacts, integration_dir)
+    _copy_artifacts(property_artifacts, property_dir)
 
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
 
     enhance_gauge_report(gauge_dir)
     _build_integration_index(integration_dir)
+    _build_property_index(property_dir)
     _write_landing_page(output_dir)
 
 
@@ -211,6 +308,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the integration test artifact.",
     )
     parser.add_argument(
+        "--property-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the property test artifacts.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         required=True,
@@ -227,6 +330,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         unit_tests_artifacts=parsed.unit_tests_artifacts,
         gauge_artifacts=parsed.gauge_artifacts,
         integration_artifacts=parsed.integration_artifacts,
+        property_artifacts=parsed.property_artifacts,
         output_dir=parsed.output,
     )
     return 0
