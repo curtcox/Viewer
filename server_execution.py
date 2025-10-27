@@ -5,7 +5,7 @@ import json
 import textwrap
 import traceback
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 from urllib.parse import urljoin, urlsplit
 
 import logfire
@@ -23,6 +23,7 @@ from flask import (
     url_for,
 )
 
+from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
 from cid_utils import (
     generate_cid,
@@ -380,7 +381,9 @@ def _extract_request_body_values() -> Dict[str, Any]:
 def _resolve_function_parameters(
     details: FunctionDetails,
     base_args: Dict[str, Any],
-) -> Dict[str, Any]:
+    *,
+    allow_partial: bool = False,
+) -> Any:
     required = set(details.required_parameters)
     resolved: Dict[str, Any] = {}
     missing: List[str] = []
@@ -448,7 +451,12 @@ def _resolve_function_parameters(
             missing.append(name)
 
     if missing:
+        if allow_partial:
+            return resolved, missing, available
         raise MissingParameterError(missing, available)
+
+    if allow_partial:
+        return resolved, [], available
 
     return resolved
 
@@ -474,6 +482,208 @@ def _build_missing_parameter_response(
     return response
 
 
+def _build_multi_parameter_error_page(
+    server_name: Optional[str],
+    function_name: str,
+    missing: Iterable[str],
+    supplied: Iterable[str],
+    available: Dict[str, List[str]],
+) -> Response:
+    request_path = ""
+    query_string = ""
+    method = ""
+    if has_request_context():
+        request_path = request.path
+        query_string = request.query_string.decode("utf-8")
+        method = request.method
+
+    html = render_template(
+        "auto_main_multi_parameter_error.html",
+        server_name=server_name,
+        function_name=function_name,
+        missing_parameters=sorted(missing),
+        supplied_parameters=sorted(supplied),
+        available_sources=available,
+        request_path=request_path,
+        request_method=method,
+        query_string=query_string,
+    )
+
+    response = make_response(html)
+    response.status_code = 400
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    return response
+
+
+def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
+    if isinstance(result, dict):
+        return result.get("output", ""), result.get("content_type", "text/html")
+    if isinstance(result, tuple) and len(result) == 2:
+        return result[0], result[1]
+    return result, "text/html"
+
+
+def _split_path_segments(path: Optional[str]) -> List[str]:
+    if not path:
+        return []
+    return [segment for segment in path.split("/") if segment]
+
+
+def _remaining_path_segments(server_name: Optional[str]) -> List[str]:
+    if not server_name or not has_request_context():
+        return []
+    segments = _split_path_segments(request.path)
+    if not segments or segments[0] != server_name:
+        return []
+    return segments[1:]
+
+
+def _clone_request_context_kwargs(path: str) -> Dict[str, Any]:
+    kwargs: Dict[str, Any] = {"path": path}
+    if has_request_context():
+        kwargs["method"] = request.method
+        kwargs["query_string"] = request.query_string.decode("utf-8")
+        headers = [(k, v) for k, v in request.headers if k.lower() != "cookie"]
+        if headers:
+            kwargs["headers"] = headers
+        json_payload = request.get_json(silent=True)
+        if json_payload is not None:
+            kwargs["json"] = json_payload
+        else:
+            data = request.get_data()
+            if data:
+                kwargs["data"] = data
+    else:
+        kwargs["method"] = "GET"
+        kwargs["query_string"] = ""
+    return kwargs
+
+
+def _execute_nested_server_to_value(
+    server: Any, server_name: str, path: str
+) -> Any:
+    if not has_app_context():
+        return None
+
+    kwargs = _clone_request_context_kwargs(path)
+    with current_app.test_request_context(**kwargs):
+        args = build_request_args()
+        prepared = _prepare_invocation(
+            server.definition,
+            args,
+            function_name="main",
+            allow_fallback=True,
+            server_name=server_name,
+        )
+
+        if prepared is None:
+            return None
+
+        if isinstance(prepared, tuple):
+            code_to_run, args_to_use = prepared
+        else:
+            return prepared
+
+        try:
+            result = run_text_function(code_to_run, args_to_use)
+        except Exception as exc:
+            return _handle_execution_exception(exc, code_to_run, args_to_use, server_name)
+
+        output, _ = _normalize_execution_result(result)
+        output_bytes = _encode_output(output)
+        try:
+            return output_bytes.decode("utf-8")
+        except Exception:
+            return output_bytes.decode("utf-8", errors="replace")
+
+
+def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None) -> Any:
+    normalized = (path or "").strip()
+    if not normalized:
+        return None
+
+    if not normalized.startswith("/"):
+        normalized = f"/{normalized}"
+
+    if visited is None:
+        visited = set()
+
+    if normalized in visited:
+        return None
+
+    visited.add(normalized)
+
+    segments = _split_path_segments(normalized)
+    if not segments:
+        return None
+
+    server_name = segments[0]
+
+    user_id = getattr(current_user, "id", None)
+    if callable(user_id):
+        try:
+            user_id = user_id()
+        except TypeError:
+            user_id = None
+    if not user_id:
+        getter = getattr(current_user, "get_id", None)
+        if callable(getter):
+            user_id = getter()
+
+    server = get_server_by_name(user_id, server_name) if user_id else None
+    if server:
+        return _execute_nested_server_to_value(server, server_name, normalized)
+
+    alias_match = find_matching_alias(normalized)
+    if alias_match and getattr(alias_match, "route", None):
+        target = getattr(alias_match.route, "target_path", None)
+        if target:
+            return _evaluate_nested_path_to_value(target, visited)
+
+    if len(segments) == 1:
+        normalized_cid = format_cid(segments[0])
+        cid_record_path = cid_path(normalized_cid)
+        if cid_record_path:
+            cid_record = get_cid_by_path(cid_record_path)
+            if cid_record and getattr(cid_record, "file_data", None) is not None:
+                try:
+                    return cid_record.file_data.decode("utf-8")
+                except Exception:
+                    return cid_record.file_data.decode("utf-8", errors="replace")
+
+    return None
+
+
+def _inject_nested_parameter_value(
+    server_name: Optional[str],
+    function_name: str,
+    resolved: Dict[str, Any],
+    missing: List[str],
+    available: Dict[str, List[str]],
+) -> Any:
+    if not missing:
+        return {}
+
+    if len(missing) != 1:
+        return _build_multi_parameter_error_page(
+            server_name,
+            function_name,
+            missing,
+            resolved.keys(),
+            available,
+        )
+
+    remainder_segments = _remaining_path_segments(server_name)
+    if not remainder_segments:
+        return None
+
+    nested_path = "/" + "/".join(remainder_segments)
+    nested_value = _evaluate_nested_path_to_value(nested_path)
+    if isinstance(nested_value, Response):
+        return nested_value
+    if nested_value is None:
+        return None
+    return {missing[0]: nested_value}
 def _build_unsupported_signature_response(
     function_name: str, details: FunctionDetails
 ):
@@ -495,6 +705,7 @@ def _prepare_invocation(
     *,
     function_name: Optional[str],
     allow_fallback: bool,
+    server_name: Optional[str] = None,
 ) -> Any:
     if not function_name:
         return code, base_args
@@ -506,13 +717,51 @@ def _prepare_invocation(
     if details.unsupported_reasons:
         return _build_unsupported_signature_response(function_name, details)
 
-    try:
-        resolved = _resolve_function_parameters(details, base_args)
-    except MissingParameterError as error:
-        return _build_missing_parameter_response(function_name, error)
+    resolved, missing, available = _resolve_function_parameters(
+        details, base_args, allow_partial=True
+    )
 
-    new_args = dict(base_args)
-    new_args[AUTO_MAIN_PARAMS_NAME] = resolved
+    working_args = dict(base_args)
+    working_resolved = dict(resolved)
+    remaining_missing = list(missing)
+    available_sources = available
+
+    if remaining_missing:
+        if function_name != "main":
+            return _build_missing_parameter_response(
+                function_name, MissingParameterError(remaining_missing, available_sources)
+            )
+
+        injected = _inject_nested_parameter_value(
+            server_name,
+            function_name,
+            working_resolved,
+            remaining_missing,
+            available_sources,
+        )
+
+        if isinstance(injected, Response):
+            return injected
+
+        if not injected:
+            return _build_missing_parameter_response(
+                function_name, MissingParameterError(remaining_missing, available_sources)
+            )
+
+        working_args.update(injected)
+        working_resolved, remaining_missing, available_sources = _resolve_function_parameters(
+            details,
+            working_args,
+            allow_partial=True,
+        )
+
+        if remaining_missing:
+            return _build_missing_parameter_response(
+                function_name, MissingParameterError(remaining_missing, available_sources)
+            )
+
+    new_args = dict(working_args)
+    new_args[AUTO_MAIN_PARAMS_NAME] = working_resolved
 
     snippet = textwrap.dedent(
         f"""
@@ -834,7 +1083,11 @@ def _execute_server_code_common(
     args = build_request_args()
 
     prepared = _prepare_invocation(
-        code, args, function_name=function_name, allow_fallback=allow_fallback
+        code,
+        args,
+        function_name=function_name,
+        allow_fallback=allow_fallback,
+        server_name=server_name,
     )
     if prepared is None:
         return None
@@ -989,9 +1242,6 @@ def is_potential_server_path(path: str, existing_routes: Iterable[str]) -> bool:
     if f"/{parts[0]}" in existing_routes:
         return False
 
-    if len(parts) > 2:
-        return False
-
     return True
 
 
@@ -1009,8 +1259,15 @@ def try_server_execution(path: str) -> Optional[Response]:
     if len(parts) == 1:
         return execute_server_code(server, server_name)
 
+    if len(parts) > 2:
+        return execute_server_code(server, server_name)
+
     function_name = parts[1]
     if not function_name.isidentifier():
         return execute_server_code(server, server_name)
 
-    return execute_server_function(server, server_name, function_name)
+    result = execute_server_function(server, server_name, function_name)
+    if result is None:
+        return execute_server_code(server, server_name)
+
+    return result

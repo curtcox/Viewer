@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1154
-- Unit Tests: 1092
-- Integration Tests: 40
+**Total Tests:** 1163
+- Unit Tests: 1097
+- Integration Tests: 44
 - Property Tests: 6
 - Gauge Tests: 16
 
 ## Unit Tests
 
-Total: 1092 tests
+Total: 1097 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -528,9 +528,11 @@ Total: 1092 tests
 - [test_append_query_string_with_empty_query](tests/test_alias_routing.py:97)
 - [test_attach_response_snapshot_generates_text_preview_for_non_html](tests/test_artifacts.py:146)
 - [Test error page display when user is authenticated.](tests/test_error_pages_e2e.py:224)
-- [test_auto_main_allows_request_context_parameter](tests/test_server_auto_main.py:202)
+- [test_auto_main_accepts_alias_result_for_remaining_parameter](tests/test_server_auto_main.py:233)
+- [test_auto_main_allows_request_context_parameter](tests/test_server_auto_main.py:355)
 - [test_auto_main_error_page_includes_debug_details](tests/test_server_auto_main.py:91)
 - [test_auto_main_falls_back_to_context_variables](tests/test_server_auto_main.py:140)
+- [test_auto_main_handles_mixed_sources_with_single_remaining_parameter](tests/test_server_auto_main.py:300)
 - [test_auto_main_honors_optional_defaults](tests/test_server_auto_main.py:178)
 - [test_auto_main_markdown_executes_via_server_execution](tests/test_auto_main_markdown.py:101)
 - [test_auto_main_markdown_main_normalizes_input](tests/test_auto_main_markdown.py:14)
@@ -540,17 +542,20 @@ Total: 1092 tests
 - [test_auto_main_markdown_supports_mermaid_and_formdown](tests/test_auto_main_markdown.py:30)
 - [test_auto_main_matches_hyphenated_headers](tests/test_server_auto_main.py:108)
 - [test_auto_main_missing_required_parameter_returns_detailed_error](tests/test_server_auto_main.py:120)
+- [test_auto_main_multiple_missing_parameters_render_error_page](tests/test_server_auto_main.py:330)
 - [Auto main parameters should count as context references when names match.](tests/test_server_template_references.py:47)
 - [Auto main parameters without matching context names should be ignored.](tests/test_server_template_references.py:65)
 - [test_auto_main_prefers_body_over_headers](tests/test_server_auto_main.py:65)
+- [test_auto_main_reads_cid_content_for_remaining_parameter](tests/test_server_auto_main.py:271)
 - [test_auto_main_reads_headers_when_query_and_body_missing](tests/test_server_auto_main.py:79)
 - [test_auto_main_reads_request_body_when_query_missing](tests/test_server_auto_main.py:53)
-- [test_auto_main_rejects_unsupported_signatures](tests/test_server_auto_main.py:228)
+- [test_auto_main_rejects_unsupported_signatures](tests/test_server_auto_main.py:381)
 - [test_auto_main_shell_executes_via_server_execution](tests/test_auto_main_shell.py:62)
 - [test_auto_main_shell_main_executes_shell_command](tests/test_auto_main_shell.py:37)
 - [test_auto_main_shell_runs_through_text_function_runner](tests/test_auto_main_shell.py:47)
-- [test_auto_main_skips_when_explicit_return_present](tests/test_server_auto_main.py:214)
+- [test_auto_main_skips_when_explicit_return_present](tests/test_server_auto_main.py:367)
 - [test_auto_main_supports_keyword_only_parameters](tests/test_server_auto_main.py:190)
+- [test_auto_main_uses_nested_server_response](tests/test_server_auto_main.py:202)
 - [test_auto_main_uses_query_parameters_over_other_sources](tests/test_server_auto_main.py:35)
 - [test_auto_main_uses_secrets_when_variables_missing](tests/test_server_auto_main.py:159)
 - [Test the base path extraction logic that was added to not_found_error](tests/test_fix_validation.py:6)
@@ -798,8 +803,8 @@ Total: 1092 tests
 - [test_get_user_uploads_returns_latest_first](tests/test_db_access.py:134)
 - [Test that hash_len affects the generated function name length.](tests/test_text_function_runner.py:74)
 - [test_heading_levels_render_to_semantic_html](tests/test_markdown_rendering.py:25)
-- [test_helper_function_missing_parameter_returns_error](tests/test_server_auto_main.py:266)
-- [test_helper_function_routes_map_parameters](tests/test_server_auto_main.py:243)
+- [test_helper_function_missing_parameter_returns_error](tests/test_server_auto_main.py:419)
+- [test_helper_function_routes_map_parameters](tests/test_server_auto_main.py:396)
 - [test_highlights_python_source_based_on_extension](tests/test_pygments_server_template.py:57)
 - [Test history page.](tests/test_routes_comprehensive.py:1161)
 - [Test history page pagination.](tests/test_routes_comprehensive.py:1219)
@@ -981,9 +986,9 @@ Total: 1092 tests
 - [test_server_invocation_and_cid_helpers](tests/test_db_access.py:107)
 - [test_server_invocation_helpers](tests/test_db_access.py:163)
 - [test_server_path_normalizes_input](tests/test_link_presenter.py:18)
-- [test_server_template_sources_retain_ruff_controls](tests/test_server_auto_main.py:356)
-- [test_server_templates_include_suggested_name_field](tests/test_server_auto_main.py:339)
-- [test_server_templates_strip_internal_ruff_controls](tests/test_server_auto_main.py:324)
+- [test_server_template_sources_retain_ruff_controls](tests/test_server_auto_main.py:509)
+- [test_server_templates_include_suggested_name_field](tests/test_server_auto_main.py:492)
+- [test_server_templates_strip_internal_ruff_controls](tests/test_server_auto_main.py:477)
 - [Test servers list page.](tests/test_routes_comprehensive.py:1238)
 - [Test settings page.](tests/test_routes_comprehensive.py:1796)
 - [Settings page should render clickable direct access examples.](tests/test_routes_comprehensive.py:1802)
@@ -1055,8 +1060,8 @@ Total: 1092 tests
 - [test_try_partial_no_matches_returns_404](tests/test_versioned_server_invocation.py:52)
 - [test_try_partial_server_missing](tests/test_versioned_server_invocation.py:43)
 - [test_try_partial_single_match_executes](tests/test_versioned_server_invocation.py:81)
-- [test_try_server_execution_handles_helper_routes](tests/test_server_auto_main.py:283)
-- [test_try_server_execution_returns_none_for_unknown_helper](tests/test_server_auto_main.py:304)
+- [test_try_server_execution_handles_helper_routes](tests/test_server_auto_main.py:436)
+- [test_try_server_execution_returns_none_for_unknown_helper](tests/test_server_auto_main.py:457)
 - [Test that server execution fails when authenticated but no echo server exists](tests/test_echo_functionality.py:56)
 - [Test TypeError when argmap is not a dict.](tests/test_text_function_runner.py:150)
 - [Test TypeError when body_text is not a string.](tests/test_text_function_runner.py:145)
@@ -1107,7 +1112,7 @@ Total: 1092 tests
 
 ## Integration Tests
 
-Total: 40 tests
+Total: 44 tests
 
 - [Viewing an alias should show its saved details.](tests/integration/test_alias_pages.py:62)
 - [The aliases index should render saved aliases for the default user.](tests/integration/test_alias_pages.py:13)
@@ -1121,11 +1126,15 @@ Total: 40 tests
 - [The history page should render recorded page views for the user.](tests/integration/test_history_page.py:15)
 - [Authenticated users should see saved entities on the cross-reference dashboard.](tests/integration/test_index_page.py:14)
 - [The interactions API should persist requests and return updated history.](tests/integration/test_interactions_api.py:47)
+- [Alias targets should execute and feed their output into auto-main servers.](tests/integration/test_server_execution_auto_main.py:100)
+- [CID path segments should supply their decoded contents to auto-main servers.](tests/integration/test_server_execution_auto_main.py:140)
+- [Multiple nested servers should resolve sequentially for auto-main input.](tests/integration/test_server_execution_auto_main.py:58)
 - [The new-alias form should render when the user is logged in.](tests/integration/test_alias_pages.py:44)
 - [The new-secret form should render when the user is logged in.](tests/integration/test_secret_pages.py:18)
 - [The new-server form should render the creation UI when logged in.](tests/integration/test_server_pages.py:133)
 - [The new-variable form should render for logged-in users.](tests/integration/test_variable_pages.py:72)
 - [Authenticated users should see the workspace shortcut on the profile page.](tests/integration/test_profile_page.py:9)
+- [Auto-main should merge standard request parameters with nested server results.](tests/integration/test_server_execution_auto_main.py:170)
 - [The overview should include built-in, alias, and server entries.](tests/integration/test_routes_overview_page.py:14)
 - [The search page should render with all filters enabled and helpful copy.](tests/integration/test_search_page.py:18)
 - [Viewing a secret should show its metadata and controls.](tests/integration/test_secret_pages.py:65)

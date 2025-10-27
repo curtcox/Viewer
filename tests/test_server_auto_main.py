@@ -199,6 +199,159 @@ def test_auto_main_supports_keyword_only_parameters():
     assert result["output"] == "kw"
 
 
+def test_auto_main_uses_nested_server_response(monkeypatch):
+    outer_definition = """
+ def main(message):
+     return {"output": message.upper(), "content_type": "text/plain"}
+ """
+
+    inner_definition = """
+ def main():
+     return {"output": "nested", "content_type": "text/plain"}
+ """
+
+    servers = {
+        "outer": SimpleNamespace(definition=outer_definition),
+        "inner": SimpleNamespace(definition=inner_definition),
+    }
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: servers.get(name),
+    )
+
+    with app.test_request_context("/outer/inner"):
+        result = server_execution.execute_server_code_from_definition(
+            outer_definition, "outer"
+        )
+
+    assert result["output"] == "NESTED"
+    assert result["content_type"] == "text/plain"
+
+
+def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
+    outer_definition = """
+ def main(payload):
+     return {"output": payload, "content_type": "text/plain"}
+ """
+
+    inner_definition = """
+ def main():
+     return {"output": "from-alias", "content_type": "text/plain"}
+ """
+
+    servers = {
+        "outer": SimpleNamespace(definition=outer_definition),
+        "inner": SimpleNamespace(definition=inner_definition),
+    }
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: servers.get(name),
+    )
+
+    def fake_find_matching_alias(path):
+        if path == "/alias-to-inner":
+            return SimpleNamespace(route=SimpleNamespace(target_path="/inner"))
+        return None
+
+    monkeypatch.setattr(server_execution, "find_matching_alias", fake_find_matching_alias)
+
+    with app.test_request_context("/outer/alias-to-inner"):
+        result = server_execution.execute_server_code_from_definition(
+            outer_definition, "outer"
+        )
+
+    assert result["output"] == "from-alias"
+    assert result["content_type"] == "text/plain"
+
+
+def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
+    outer_definition = """
+ def main(body):
+     return {"output": body, "content_type": "text/plain"}
+ """
+
+    cid_value = "bafyexamplecid"
+    cid_bytes = b"payload-from-cid"
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: None,
+    )
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_cid_by_path",
+        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+    )
+
+    with app.test_request_context(f"/outer/{cid_value}"):
+        result = server_execution.execute_server_code_from_definition(
+            outer_definition, "outer"
+        )
+
+    assert result["output"] == "payload-from-cid"
+
+
+def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeypatch):
+    outer_definition = """
+ def main(prefix, message):
+     return {"output": f"{prefix}:{message}", "content_type": "text/plain"}
+ """
+
+    inner_definition = """
+ def main():
+     return {"output": "value", "content_type": "text/plain"}
+ """
+
+    servers = {
+        "outer": SimpleNamespace(definition=outer_definition),
+        "inner": SimpleNamespace(definition=inner_definition),
+    }
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: servers.get(name),
+    )
+
+    with app.test_request_context("/outer/inner?prefix=start"):
+        result = server_execution.execute_server_code_from_definition(
+            outer_definition, "outer"
+        )
+
+    assert result["output"] == "start:value"
+
+
+def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
+    outer_definition = """
+ def main(first, second):
+     return {"output": f"{first}:{second}", "content_type": "text/plain"}
+ """
+
+    monkeypatch.setattr(
+        server_execution,
+        "get_server_by_name",
+        lambda user_id, name: None,
+    )
+
+    with app.test_request_context("/outer/inner"):
+        response = server_execution.execute_server_code_from_definition(
+            outer_definition, "outer"
+        )
+
+    assert response.status_code == 400
+    body = response.get_data(as_text=True)
+    assert "Missing parameters" in body
+    assert "first" in body
+    assert "second" in body
+    assert "Supplied parameters" in body
+
+
 def test_auto_main_allows_request_context_parameter():
     definition = """
  def main(request):

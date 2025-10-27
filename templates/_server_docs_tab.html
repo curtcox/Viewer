@@ -13,6 +13,15 @@
             Parameters are populated in priority order from the query string, JSON or form body, HTTP headers
             (hyphen/underscore normalised), explicit invocation arguments, saved variables, then saved secrets.
             Missing required parameters receive a JSON 400 response describing how to provide each value.
+            When an auto-main server only needs a single value, the segment immediately following its name in the URL can also
+            satisfy that parameter by resolving another server, alias, or CID before invoking the outer server (for example,
+            <code>/outer/&lt;nested-server&gt;</code> runs the nested server first and passes its output to <code>outer</code>).
+        </p>
+        <p class="mb-3">
+            If a server has multiple parameters, Viewer attempts to resolve as many values as possible using the usual sources.
+            When exactly one parameter remains unresolved, that final value is filled using the next URL segment with the same
+            nested server/alias/CID lookup rules described above. If more than one parameter is still missing after these
+            lookups, Viewer renders an HTML 400 page describing every supplied and missing parameter to help debug the request.
         </p>
         <p class="mb-3">
             The return value can be a dictionary with <code>output</code> and <code>content_type</code>, a tuple of
