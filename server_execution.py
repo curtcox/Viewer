@@ -538,6 +538,18 @@ def _remaining_path_segments(server_name: Optional[str]) -> List[str]:
     return segments[1:]
 
 
+def _auto_main_accepts_additional_path(server: Any) -> bool:
+    definition = getattr(server, "definition", "")
+    if not isinstance(definition, str):
+        return False
+
+    details = _analyze_server_definition_for_function(definition, "main")
+    if not details or details.unsupported_reasons:
+        return False
+
+    return bool(details.parameter_order)
+
+
 def _clone_request_context_kwargs(path: str) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"path": path}
     if has_request_context():
@@ -1268,6 +1280,8 @@ def try_server_execution(path: str) -> Optional[Response]:
 
     result = execute_server_function(server, server_name, function_name)
     if result is None:
-        return execute_server_code(server, server_name)
+        if _auto_main_accepts_additional_path(server):
+            return execute_server_code(server, server_name)
+        return None
 
     return result
