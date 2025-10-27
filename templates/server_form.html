@@ -341,6 +341,7 @@ function loadHistoricalDefinition(index) {
         document.addEventListener('DOMContentLoaded', function () {
             const templateButtons = document.querySelectorAll('[data-server-template-id]');
             const definitionField = document.getElementById('{{ form.definition.id }}');
+            const nameField = document.getElementById('{{ form.name.id }}');
             const templates = {{ server_templates|tojson }};
 
             if (!templateButtons.length || !definitionField) {
@@ -349,7 +350,7 @@ function loadHistoricalDefinition(index) {
 
             const templateMap = {};
             templates.forEach(function (template) {
-                templateMap[template.id] = template.definition;
+                templateMap[template.id] = template;
             });
 
             templateButtons.forEach(function (button) {
@@ -359,7 +360,12 @@ function loadHistoricalDefinition(index) {
                         return;
                     }
 
-                    const definition = templateMap[templateId];
+                    const templateData = templateMap[templateId];
+                    if (!templateData) {
+                        return;
+                    }
+
+                    const definition = templateData.definition;
                     if (typeof definition === 'undefined') {
                         return;
                     }
@@ -367,6 +373,16 @@ function loadHistoricalDefinition(index) {
                     definitionField.value = definition;
                     definitionField.dispatchEvent(new Event('input', { bubbles: true }));
                     definitionField.focus();
+
+                    const suggestedName = templateData.suggested_name;
+                    if (
+                        nameField &&
+                        typeof suggestedName === 'string' &&
+                        suggestedName.trim().length > 0
+                    ) {
+                        nameField.value = suggestedName;
+                        nameField.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
                 });
             });
         });
