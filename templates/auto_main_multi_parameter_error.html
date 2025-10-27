@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Parameter resolution issue{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="alert alert-warning" role="alert">
+        <h1 class="h4 mb-2">Unable to resolve parameters for {{ server_name or 'server' }}</h1>
+        <p class="mb-2">Viewer could not automatically supply all parameters for the <code>{{ function_name }}()</code> function.</p>
+        {% if request_path %}<p class="mb-1"><strong>Request path:</strong> <code>{{ request_path }}</code></p>{% endif %}
+        {% if query_string %}<p class="mb-1"><strong>Query string:</strong> <code>{{ query_string }}</code></p>{% endif %}
+        {% if request_method %}<p class="mb-0"><strong>HTTP method:</strong> {{ request_method }}</p>{% endif %}
+    </div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">Missing parameters</div>
+                <div class="card-body">
+                    {% if missing_parameters %}
+                        <ul class="mb-0">
+                            {% for name in missing_parameters %}
+                                <li><code>{{ name }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mb-0 text-muted">No missing parameters were detected.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">Supplied parameters</div>
+                <div class="card-body">
+                    {% if supplied_parameters %}
+                        <ul class="mb-0">
+                            {% for name in supplied_parameters %}
+                                <li><code>{{ name }}</code></li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mb-0 text-muted">No parameters were successfully resolved.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card mt-3">
+        <div class="card-header">Sources examined</div>
+        <div class="card-body">
+            {% if available_sources %}
+                <ul class="mb-0">
+                    {% for source, keys in available_sources.items() %}
+                        <li>
+                            <strong>{{ source.replace('_', ' ').title() }}:</strong>
+                            {% if keys %}
+                                {{ keys|join(', ') }}
+                            {% else %}
+                                <span class="text-muted">none</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="mb-0 text-muted">No supplemental data sources were checked.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
