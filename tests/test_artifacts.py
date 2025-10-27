@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import types
 
 import importlib.util
 from pathlib import Path
+
+
+class _FakeResponse:
+    def __init__(self, *, body: bytes, mimetype: str, status: int = 200) -> None:
+        self._body = body
+        self.mimetype = mimetype
+        self.status_code = status
+        self.request = types.SimpleNamespace(method="GET", path="/example")
+
+    def get_data(self, as_text: bool = False):  # type: ignore[override]
+        if as_text:
+            return self._body.decode("utf-8")
+        return self._body
 
 
 def _load_artifacts_module():
@@ -70,9 +84,10 @@ def test_render_browser_screenshot_disables_signal_handlers(monkeypatch) -> None
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result == b"fake screenshot"
+    assert error is None
     assert captured["handleSIGINT"] is False
     assert captured["handleSIGTERM"] is False
     assert captured["handleSIGHUP"] is False
@@ -104,9 +119,10 @@ def test_render_browser_screenshot_supports_legacy_setcontent(monkeypatch) -> No
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result == b"fake screenshot"
+    assert error is None
     assert page.html_document == "<html></html>"
     assert page.wait_until is None
     assert page.wait_for_function == "document.readyState === 'complete'"
@@ -120,6 +136,46 @@ def test_render_browser_screenshot_falls_back_when_launch_fails(monkeypatch) -> 
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result is None
+    assert error is not None
+    assert "chromium download failed" in error
+
+
+def test_attach_response_snapshot_generates_text_preview_for_non_html(tmp_path, monkeypatch) -> None:
+    response = _FakeResponse(body=b"{\"ok\": true}", mimetype="application/json")
+
+    attachments: list[tuple[str, str]] = []
+
+    class _StubMessages:
+        @staticmethod
+        def attach_binary(data: bytes, mime_type: str, name: str) -> None:  # noqa: D401 - match Gauge API
+            attachments.append((mime_type, name))
+
+        @staticmethod
+        def write_message(message: str) -> None:
+            attachments.append(("message", message))
+
+    monkeypatch.setenv("GAUGE_ARTIFACT_DIR", str(tmp_path))
+    monkeypatch.setattr(artifacts, "Messages", _StubMessages)
+
+    artifacts.attach_response_snapshot(response, label="API response")
+
+    png_files = sorted(tmp_path.glob("*.png"))
+    json_files = sorted(tmp_path.glob("*.json"))
+
+    assert len(png_files) == 1
+    assert len(json_files) == 1
+    assert ("image/png", png_files[0].name) in attachments
+    assert ("application/json", json_files[0].name) in attachments
+
+    metadata = json.loads(json_files[0].read_text(encoding="utf-8"))
+    screenshot = metadata["screenshot"]
+
+    assert screenshot["captured"] is True
+    assert screenshot["placeholder"] is False
+    assert screenshot["generated"] == "text-preview"
+    assert screenshot["details"] == [
+        "Response body is not HTML; browser screenshot skipped."
+    ]
