@@ -445,37 +445,48 @@ def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
     routes: list[AliasRouteRule] = []
     seen: set[tuple[str, str, str, bool]] = set()
 
-    def _register(
-        alias_path: Optional[str],
-        route_match_type: str,
-        route_pattern: Optional[str],
-        route_target: Optional[str],
-        route_ignore_case: bool,
-        source: Optional[DefinitionLineSummary] = None,
-    ) -> None:
-        if not route_pattern or not route_target:
+    @dataclass(frozen=True)
+    class _RouteRegistration:
+        alias_path: Optional[str]
+        match_type: str
+        match_pattern: Optional[str]
+        target_path: Optional[str]
+        ignore_case: bool
+        source: Optional[DefinitionLineSummary] = None
+
+    def _register(registration: _RouteRegistration) -> None:
+        if not registration.match_pattern or not registration.target_path:
             return
 
-        key = (route_match_type, route_pattern, route_target, route_ignore_case)
+        key = (
+            registration.match_type,
+            registration.match_pattern,
+            registration.target_path,
+            registration.ignore_case,
+        )
         if key in seen:
             return
 
         seen.add(key)
         # Use alias_name as alias_path for consistency with tests
         # Only use entry alias_path for nested routes (depth > 0)
-        if source and source.depth > 0:
-            effective_alias_path = alias_path or alias_name
+        if registration.source and registration.source.depth > 0:
+            effective_alias_path = registration.alias_path or alias_name
         else:
             effective_alias_path = alias_name
         # Don't set source for simple cases to match test expectations
-        source_to_use = None if source and source.depth == 0 else source
+        source_to_use = (
+            None
+            if registration.source and registration.source.depth == 0
+            else registration.source
+        )
         routes.append(
             AliasRouteRule(
                 alias_path=effective_alias_path,
-                match_type=route_match_type,
-                match_pattern=route_pattern,
-                target_path=route_target,
-                ignore_case=route_ignore_case,
+                match_type=registration.match_type,
+                match_pattern=registration.match_pattern,
+                target_path=registration.target_path,
+                ignore_case=registration.ignore_case,
                 source=source_to_use,
             )
         )
@@ -490,7 +501,16 @@ def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
         )
         route_target = entry.target_path
         route_ignore_case = entry.ignore_case
-        _register(entry.alias_path, route_match_type, route_pattern, route_target, route_ignore_case, entry)
+        _register(
+            _RouteRegistration(
+                alias_path=entry.alias_path,
+                match_type=route_match_type,
+                match_pattern=route_pattern,
+                target_path=route_target,
+                ignore_case=route_ignore_case,
+                source=entry,
+            )
+        )
 
     if routes:
         return routes

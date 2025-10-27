@@ -20,7 +20,13 @@ from alias_definition import (
 )
 from alias_matching import evaluate_test_strings, matches_path
 from cid_presenter import extract_cid_from_path
-from db_access import get_alias_by_name, get_user_aliases, record_entity_interaction, save_entity
+from db_access import (
+    EntityInteractionRequest,
+    get_alias_by_name,
+    get_user_aliases,
+    record_entity_interaction,
+    save_entity,
+)
 from entity_references import extract_references_from_target
 from forms import AliasForm
 from identity import current_user
@@ -254,12 +260,14 @@ def new_alias():
             )
             _persist_alias(alias)
             record_entity_interaction(
-                current_user.id,
-                'alias',
-                alias.name,
-                'save',
-                change_message,
-                form.definition.data or '',
+                EntityInteractionRequest(
+                    user_id=current_user.id,
+                    entity_type='alias',
+                    entity_name=alias.name,
+                    action='save',
+                    message=change_message,
+                    content=form.definition.data or '',
+                )
             )
             flash(f'Alias "{name}" created successfully!', 'success')
             return redirect(url_for('main.aliases'))
@@ -370,12 +378,14 @@ def edit_alias(alias_name: str):
         alias.updated_at = datetime.now(timezone.utc)
         _persist_alias(alias)
         record_entity_interaction(
-            current_user.id,
-            'alias',
-            alias.name,
-            'save',
-            change_message,
-            form.definition.data or '',
+            EntityInteractionRequest(
+                user_id=current_user.id,
+                entity_type='alias',
+                entity_name=alias.name,
+                action='save',
+                message=change_message,
+                content=form.definition.data or '',
+            )
         )
 
         flash(f'Alias "{alias.name}" updated successfully!', 'success')

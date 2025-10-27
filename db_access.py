@@ -13,6 +13,31 @@ from alias_definition import (
     parse_alias_definition,
     replace_primary_definition_line,
 )
+
+
+@dataclass(frozen=True)
+class EntityInteractionRequest:
+    """Structured payload describing an interaction to persist."""
+
+    user_id: str
+    entity_type: str
+    entity_name: str
+    action: str
+    message: str | None
+    content: str
+    created_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class EntityInteractionLookup:
+    """Identify a previously stored interaction."""
+
+    user_id: str
+    entity_type: str
+    entity_name: str
+    action: str
+    message: str
+    created_at: datetime | None = None
 from database import db
 from models import (
     CID,
@@ -710,26 +735,19 @@ def get_first_cid() -> Optional[CID]:
 
 
 def record_entity_interaction(
-    user_id: str,
-    entity_type: str,
-    entity_name: str,
-    action: str,
-    message: str | None,
-    content: str,
-    *,
-    created_at: datetime | None = None,
-):
+    request: EntityInteractionRequest,
+) -> EntityInteraction | None:
     """Persist a change or AI interaction for later recall."""
 
-    if not user_id or not entity_type or not entity_name:
+    if not request.user_id or not request.entity_type or not request.entity_name:
         return None
 
-    action_value = (action or '').strip() or 'save'
-    message_value = (message or '').strip()
+    action_value = (request.action or '').strip() or 'save'
+    message_value = (request.message or '').strip()
     if len(message_value) > 500:
         message_value = message_value[:497] + '…'
 
-    created_at_value = created_at
+    created_at_value = request.created_at
     if created_at_value is not None:
         if created_at_value.tzinfo is None:
             created_at_value = created_at_value.replace(tzinfo=timezone.utc)
@@ -739,9 +757,9 @@ def record_entity_interaction(
         existing = (
             EntityInteraction.query
             .filter_by(
-                user_id=user_id,
-                entity_type=entity_type,
-                entity_name=entity_name,
+                user_id=request.user_id,
+                entity_type=request.entity_type,
+                entity_name=request.entity_name,
                 action=action_value,
                 message=message_value,
             )
@@ -749,18 +767,18 @@ def record_entity_interaction(
             .first()
         )
         if existing:
-            if content and content != existing.content:
-                existing.content = content
+            if request.content and request.content != existing.content:
+                existing.content = request.content
                 db.session.commit()
             return existing
 
     interaction = EntityInteraction(
-        user_id=user_id,
-        entity_type=entity_type,
-        entity_name=entity_name,
+        user_id=request.user_id,
+        entity_type=request.entity_type,
+        entity_name=request.entity_name,
         action=action_value,
         message=message_value,
-        content=content or '',
+        content=request.content or '',
         created_at=created_at_value,
     )
     db.session.add(interaction)
@@ -791,26 +809,19 @@ def get_recent_entity_interactions(
     return list(query.all())
 
 
-def find_entity_interaction(
-    user_id: str,
-    entity_type: str,
-    entity_name: str,
-    action: str,
-    message: str,
-    created_at,
-):
+def find_entity_interaction(lookup: EntityInteractionLookup) -> EntityInteraction | None:
     """Return a single interaction matching the supplied criteria."""
 
     query = EntityInteraction.query.filter_by(
-        user_id=user_id,
-        entity_type=entity_type,
-        entity_name=entity_name,
-        action=action,
-        message=message,
+        user_id=lookup.user_id,
+        entity_type=lookup.entity_type,
+        entity_name=lookup.entity_name,
+        action=lookup.action,
+        message=lookup.message,
     )
 
-    if created_at is not None:
-        query = query.filter(EntityInteraction.created_at == created_at)
+    if lookup.created_at is not None:
+        query = query.filter(EntityInteraction.created_at == lookup.created_at)
 
     return query.first()
 

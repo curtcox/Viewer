@@ -7,6 +7,7 @@ from flask import flash
 
 from cid_utils import save_server_definition_as_cid
 from db_access import (
+    EntityInteractionRequest,
     get_secret_by_name,
     get_server_by_name,
     get_variable_by_name,
@@ -37,6 +38,7 @@ def create_entity(
     form,
     user_id: str,
     entity_type: str,
+    *,
     change_message: str | None = None,
     content_text: str | None = None,
 ) -> bool:
@@ -66,12 +68,14 @@ def create_entity(
             content_text = ''
 
     record_entity_interaction(
-        user_id,
-        entity_type,
-        form.name.data,
-        'save',
-        change_message or '',
-        content_text,
+        EntityInteractionRequest(
+            user_id=user_id,
+            entity_type=entity_type,
+            entity_name=form.name.data,
+            action='save',
+            message=change_message or '',
+            content=content_text,
+        )
     )
 
     if model_class.__name__ == 'Server':
@@ -124,12 +128,14 @@ def update_entity(
             content_text = ''
 
     record_entity_interaction(
-        entity.user_id,
-        entity_type,
-        entity.name,
-        'save',
-        change_message or '',
-        content_text,
+        EntityInteractionRequest(
+            user_id=entity.user_id,
+            entity_type=entity_type,
+            entity_name=entity.name,
+            action='save',
+            message=change_message or '',
+            content=content_text,
+        )
     )
 
     if type(entity).__name__ == 'Server':

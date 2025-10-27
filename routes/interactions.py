@@ -1,6 +1,6 @@
 from flask import jsonify, request
 
-from db_access import record_entity_interaction
+from db_access import EntityInteractionRequest, record_entity_interaction
 from identity import current_user
 from interaction_log import load_interaction_history, summarise_interaction
 
@@ -26,12 +26,14 @@ def create_interaction_entry():
         content = ''
 
     interaction = record_entity_interaction(
-        current_user.id,
-        entity_type,
-        entity_name,
-        action,
-        message,
-        content,
+        EntityInteractionRequest(
+            user_id=current_user.id,
+            entity_type=entity_type,
+            entity_name=entity_name,
+            action=action,
+            message=message,
+            content=content,
+        )
     )
 
     history = load_interaction_history(current_user.id, entity_type, entity_name)

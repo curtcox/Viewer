@@ -1,11 +1,16 @@
 import os
 import unittest
+from typing import cast
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from db_access import get_recent_entity_interactions, record_entity_interaction
+from db_access import (
+    EntityInteractionRequest,
+    get_recent_entity_interactions,
+    record_entity_interaction,
+)
 from identity import ensure_default_user
 
 
@@ -28,12 +33,14 @@ class TestEntityInteractions(unittest.TestCase):
 
     def test_record_entity_interaction_persists(self):
         record_entity_interaction(
-            self.user.id,
-            'server',
-            'example',
-            'save',
-            'initial setup',
-            'print("hello world")',
+            EntityInteractionRequest(
+                user_id=self.user.id,
+                entity_type='server',
+                entity_name='example',
+                action='save',
+                message='initial setup',
+                content='print("hello world")',
+            )
         )
 
         interactions = get_recent_entity_interactions(self.user.id, 'server', 'example')
@@ -43,12 +50,14 @@ class TestEntityInteractions(unittest.TestCase):
 
     def test_api_records_and_returns_updated_history(self):
         record_entity_interaction(
-            self.user.id,
-            'server',
-            'example',
-            'save',
-            'initial setup',
-            'print("hello world")',
+            EntityInteractionRequest(
+                user_id=self.user.id,
+                entity_type='server',
+                entity_name='example',
+                action='save',
+                message='initial setup',
+                content='print("hello world")',
+            )
         )
 
         payload = {
@@ -73,6 +82,10 @@ class TestEntityInteractions(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         data = response.get_json()
         self.assertIn('error', data)
+
+    def test_record_entity_interaction_rejects_invalid_payload(self):
+        with self.assertRaises(AttributeError):
+            record_entity_interaction(cast(EntityInteractionRequest, object()))
 
 
 if __name__ == '__main__':
