@@ -38,6 +38,9 @@ def iter_server_templates() -> Iterable[Dict[str, Any]]:
             if isinstance(definition, str):
                 template["definition"] = _strip_ruff_control_lines(definition)
 
+            # Provide the file stem so the UI can suggest a default server name
+            template["suggested_name"] = template_file.stem
+
             # If the template has a definition file, load its content
             if 'definition_file' in template:
                 definition_path = base_dir / template['definition_file']
