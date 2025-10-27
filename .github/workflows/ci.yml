@@ -231,7 +231,7 @@ jobs:
         # GitHub Actions runs the container with HOME=/github/home, so the
         # per-job workspace still needs its own Chromium download even though
         # the base image already warmed /root/.local/share/pyppeteer.
-        run: python -m pyppeteer.install
+        run: pyppeteer-install
 
       - name: Run Gauge specs
         id: run_gauge
