@@ -59,6 +59,7 @@ RUN python -m pip install --upgrade pip \
 # Pre-download Chromium so container users (and any jobs that retain /root as
 # $HOME) already have a browser binary before Gauge runs. GitHub Actions swaps
 # HOME to /github/home at runtime, so the workflow reruns the installer there.
+RUN pip install pyppeteer
 RUN python -m pyppeteer.install
 
 WORKDIR /workspace
