@@ -343,6 +343,19 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
 
     monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
 
+    monkeypatch.setattr(
+        server_execution,
+        "render_template",
+        lambda template_name, **context: "\n".join(
+            [
+                "Missing parameters",
+                *context["missing_parameters"],
+                "Supplied parameters",
+                *context["supplied_parameters"],
+            ]
+        ),
+    )
+
     with app.test_request_context("/outer/inner"):
         response = server_execution.execute_server_code_from_definition(
             outer_definition, "outer"
