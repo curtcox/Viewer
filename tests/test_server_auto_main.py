@@ -336,6 +336,23 @@ def test_server_templates_strip_internal_ruff_controls():
     assert "Automatic main() mapping" in definition
 
 
+def test_server_templates_include_suggested_name_field():
+    templates = get_server_templates()
+    assert templates, "At least one server template should be registered"
+
+    base_dir = Path(server_templates.__file__).parent
+    template_dir = base_dir / "templates"
+    available_template_stems = {path.stem for path in template_dir.glob("*.json")}
+    assert available_template_stems, "Expected server template files to exist"
+
+    for template in templates:
+        suggested_name = template.get("suggested_name")
+        assert suggested_name, f"Template {template.get('id')} should expose a suggested_name"
+        assert (
+            suggested_name in available_template_stems
+        ), f"suggested_name {suggested_name} should match a template file"
+
+
 def test_server_template_sources_retain_ruff_controls():
     base_dir = Path(server_templates.__file__).parent
     definitions_dir = base_dir / "definitions"
