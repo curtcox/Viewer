@@ -86,7 +86,7 @@ def test_format_screenshot_notice_builds_section() -> None:
     assert "<li>First reason</li>" in notice
     assert "<li>Second reason</li>" in notice
     assert "gauge-specs/secureapp-artifacts" in notice
-    assert "python -m pyppeteer install" in notice
+    assert "pyppeteer-install" in notice
     assert "libnss3" in notice
 
 

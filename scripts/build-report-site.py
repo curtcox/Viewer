@@ -321,7 +321,7 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
         "      <li>Install the project dependencies so <code>pyppeteer</code> is "
         "available (for example, <code>pip install -r requirements.txt</code>).</li>\n"
         "      <li>Download Chromium inside the environment that runs the Gauge "
-        "suite by executing <code>python -m pyppeteer install</code> before "
+        "suite by executing <code>pyppeteer-install</code> before "
         "<code>./test-gauge</code>.</li>\n"
         "      <li>Ensure the runtime image provides the shared libraries that "
         "Chromium requires. On the Ubuntu-based CI container this means adding "
