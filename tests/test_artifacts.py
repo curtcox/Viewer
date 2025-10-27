@@ -70,9 +70,10 @@ def test_render_browser_screenshot_disables_signal_handlers(monkeypatch) -> None
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result == b"fake screenshot"
+    assert error is None
     assert captured["handleSIGINT"] is False
     assert captured["handleSIGTERM"] is False
     assert captured["handleSIGHUP"] is False
@@ -104,9 +105,10 @@ def test_render_browser_screenshot_supports_legacy_setcontent(monkeypatch) -> No
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result == b"fake screenshot"
+    assert error is None
     assert page.html_document == "<html></html>"
     assert page.wait_until is None
     assert page.wait_for_function == "document.readyState === 'complete'"
@@ -120,6 +122,8 @@ def test_render_browser_screenshot_falls_back_when_launch_fails(monkeypatch) -> 
     fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
-    result = artifacts._render_browser_screenshot("<html></html>")
+    result, error = artifacts._render_browser_screenshot("<html></html>")
 
     assert result is None
+    assert error is not None
+    assert "chromium download failed" in error
