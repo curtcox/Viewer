@@ -10,10 +10,18 @@ import xml.etree.ElementTree as ET
 from html import escape
 from importlib import import_module
 from pathlib import Path
-from typing import Callable, Sequence, cast
+from typing import Protocol, Sequence, cast
 
 
-EnhanceGaugeReport = Callable[[Path], bool]
+class EnhanceGaugeReport(Protocol):
+    def __call__(
+        self,
+        gauge_base: Path,
+        *,
+        artifacts_subdir: str = ...,
+        public_base_url: str | None = ...,
+    ) -> bool:
+        ...
 
 
 def _load_enhance_gauge_report() -> EnhanceGaugeReport:
@@ -27,6 +35,17 @@ def _load_enhance_gauge_report() -> EnhanceGaugeReport:
 
 
 enhance_gauge_report = _load_enhance_gauge_report()
+
+
+def _compose_public_url(base: str | None, segment: str) -> str | None:
+    if not base:
+        return None
+
+    base = base.rstrip('/')
+    segment = segment.strip('/')
+    if not segment:
+        return base or None
+    return f"{base}/{segment}"
 
 
 def _copy_artifacts(source: Path | None, destination: Path) -> None:
@@ -264,6 +283,7 @@ def build_site(
     integration_artifacts: Path | None,
     property_artifacts: Path | None,
     output_dir: Path,
+    public_base_url: str | None = None,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -280,7 +300,8 @@ def build_site(
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
 
-    enhance_gauge_report(gauge_dir)
+    gauge_public_base = _compose_public_url(public_base_url, "gauge-specs")
+    enhance_gauge_report(gauge_dir, public_base_url=gauge_public_base)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
     _write_landing_page(output_dir)
@@ -314,6 +335,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the property test artifacts.",
     )
     parser.add_argument(
+        "--public-base-url",
+        default="https://curtcox.github.io/Viewer",
+        help="Base URL where the report site is published.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         required=True,
@@ -332,6 +358,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         integration_artifacts=parsed.integration_artifacts,
         property_artifacts=parsed.property_artifacts,
         output_dir=parsed.output,
+        public_base_url=parsed.public_base_url,
     )
     return 0
 
