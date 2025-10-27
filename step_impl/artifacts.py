@@ -75,6 +75,14 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
             screenshot_details["captured"] = True
     else:
         screenshot_error = "Response body is not HTML; browser screenshot skipped."
+        screenshot_bytes = _render_text_image(
+            resolved_label,
+            str(status_code),
+            preview_text,
+        )
+        screenshot_details["captured"] = True
+        screenshot_details["generated"] = "text-preview"
+        screenshot_details["details"] = [screenshot_error]
 
     if screenshot_bytes is None:
         placeholder_bytes, placeholder_error = _load_placeholder_image()
@@ -82,7 +90,7 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
         screenshot_details["placeholder"] = True
         screenshot_details["asset"] = _PLACEHOLDER_IMAGE_PATH.name
         details: list[str] = []
-        if screenshot_error:
+        if screenshot_error and "details" not in screenshot_details:
             details.append(screenshot_error)
         if placeholder_error:
             details.append(placeholder_error)
