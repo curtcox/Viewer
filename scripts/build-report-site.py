@@ -309,8 +309,38 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
     else:
         reason_block = "    <p>No specific error details were recorded.</p>\n"
 
+    guidance_block = (
+        "    <p>Gauge stores per-step artifacts under "
+        "<code>gauge-specs/secureapp-artifacts</code>. "
+        "Each <code>.json</code> file in that directory preserves the raw error "
+        "messages listed above, and the screenshot helper lives in "
+        "<code>step_impl/artifacts.py</code>, where pyppeteer launches a "
+        "headless Chromium instance to render the HTML under test.</p>\n"
+        "    <p>To restore real browser screenshots:</p>\n"
+        "    <ol>\n"
+        "      <li>Install the project dependencies so <code>pyppeteer</code> is "
+        "available (for example, <code>pip install -r requirements.txt</code>).</li>\n"
+        "      <li>Download Chromium inside the environment that runs the Gauge "
+        "suite by executing <code>python -m pyppeteer.install</code> before "
+        "<code>./test-gauge</code>.</li>\n"
+        "      <li>Ensure the runtime image provides the shared libraries that "
+        "Chromium requires. On the Ubuntu-based CI container this means adding "
+        "<code>apt-get install -y --no-install-recommends libnss3 libatk1.0-0 "
+        "libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 "
+        "libxrandr2 libgbm1 libgtk-3-0 libasound2 fonts-liberation</code>. "
+        "Missing these packages produces the \"Browser closed unexpectedly\" "
+        "error shown in the report.</li>\n"
+        "      <li>Re-run <code>./test-gauge</code> locally (or rerun the GitHub "
+        "Actions <code>gauge-specs</code> job) and confirm that new PNG files "
+        "appear next to the JSON metadata in "
+        "<code>gauge-specs/secureapp-artifacts</code>.</li>\n"
+        "    </ol>\n"
+        "    <p>Once those steps succeed, rebuilding the published site will "
+        "replace the placeholder art with the captured browser screenshots.</p>\n"
+    )
+
     closing = "  </section>"
-    return intro + reason_block + closing
+    return intro + reason_block + guidance_block + closing
 
 
 def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None) -> None:
