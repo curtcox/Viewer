@@ -79,6 +79,7 @@ def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> Al
         entry = {
             "name": name,
             "url": url_for("main.view_alias", alias_name=name),
+            "enabled": bool(getattr(alias, "enabled", True)),
         }
 
         for route in routes:
@@ -246,6 +247,7 @@ def _alias_results(
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
                 "alias_form_url": _alias_form_url(canonical_path),
+                "enabled": bool(getattr(alias, "enabled", True)),
             }
         )
     return results
@@ -281,6 +283,7 @@ def _server_results(
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
                 "alias_form_url": _alias_form_url(canonical_path, name_text),
+                "enabled": bool(getattr(server, "enabled", True)),
             }
         )
     return results
@@ -316,6 +319,7 @@ def _variable_results(
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
                 "alias_form_url": _alias_form_url(canonical_path, name_text),
+                "enabled": bool(getattr(variable, "enabled", True)),
             }
         )
     return results
@@ -351,6 +355,7 @@ def _secret_results(
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
                 "alias_form_url": _alias_form_url(canonical_path, name_text),
+                "enabled": bool(getattr(secret, "enabled", True)),
             }
         )
     return results

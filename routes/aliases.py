@@ -257,6 +257,7 @@ def new_alias():
                 name=name,
                 user_id=current_user.id,
                 definition=definition_value,
+                enabled=bool(form.enabled.data),
             )
             _persist_alias(alias)
             record_entity_interaction(
@@ -376,6 +377,7 @@ def edit_alias(alias_name: str):
 
         alias.definition = definition_value or None
         alias.updated_at = datetime.now(timezone.utc)
+        alias.enabled = bool(form.enabled.data)
         _persist_alias(alias)
         record_entity_interaction(
             EntityInteractionRequest(

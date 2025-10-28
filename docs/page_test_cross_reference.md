@@ -118,6 +118,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
@@ -139,6 +140,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
@@ -159,7 +161,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/history.py::history` (paths: `/history`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_page`
+- `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_page_displays_invocation_and_referer_details`
 - `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_pagination`
 
 **Integration tests:**
@@ -222,7 +224,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestAuthenticatedRoutes::test_navigation_includes_meta_inspector_link`
-- `tests/test_routes_comprehensive.py::TestAuthenticatedRoutes::test_profile_page`
+- `tests/test_routes_comprehensive.py::TestAuthenticatedRoutes::test_profile_page_returns_success_for_authenticated_user`
 - `tests/test_routes_comprehensive.py::TestPageViewTracking::test_page_view_tracking_authenticated`
 
 **Integration tests:**
@@ -353,10 +355,10 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_nonexistent_server`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_falls_back_to_query_test_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_includes_main_test_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_invocation_history_table`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_renders_referenced_entities_and_returns_ok`
 
 **Integration tests:**
 - `tests/integration/test_server_pages.py::test_server_detail_page_displays_server_information`
@@ -457,7 +459,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file`
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_success`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
@@ -490,7 +492,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_cid_save_updates_existing_alias_target`
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_requires_login`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file`
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_success`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
@@ -510,7 +512,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/uploads.py::uploads` (paths: `/uploads`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_uploads_list`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_uploads_list_displays_reference_placeholder`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_uploads_list_excludes_server_events`
 
 **Integration tests:**
@@ -559,7 +561,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post`
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list`
+- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list_shows_sorted_user_variables`
 
 **Integration tests:**
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`

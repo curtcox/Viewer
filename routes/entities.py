@@ -53,6 +53,10 @@ def create_entity(
         'user_id': user_id,
     }
 
+    enabled_field = getattr(form, 'enabled', None)
+    if enabled_field is not None:
+        entity_data['enabled'] = bool(enabled_field.data)
+
     if model_class.__name__ == 'Server':
         definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
         entity_data['definition_cid'] = definition_cid
@@ -117,6 +121,10 @@ def update_entity(
     entity.name = form.name.data
     entity.definition = form.definition.data
     entity.updated_at = datetime.now(timezone.utc)
+
+    enabled_field = getattr(form, 'enabled', None)
+    if enabled_field is not None:
+        entity.enabled = bool(enabled_field.data)
 
     save_entity(entity)
 

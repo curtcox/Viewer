@@ -335,6 +335,8 @@ def generate_all_server_definitions_json(user_id):
 
     server_definitions = {}
     for server in servers:
+        if not getattr(server, "enabled", True):
+            continue
         server_definitions[server.name] = server.definition
 
     return json.dumps(server_definitions, indent=2, sort_keys=True)
@@ -368,6 +370,8 @@ def generate_all_variable_definitions_json(user_id):
 
     variable_definitions = {}
     for variable in variables:
+        if not getattr(variable, "enabled", True):
+            continue
         variable_definitions[variable.name] = variable.definition
 
     return json.dumps(variable_definitions, indent=2, sort_keys=True)
@@ -401,6 +405,8 @@ def generate_all_secret_definitions_json(user_id):
 
     secret_definitions = {}
     for secret in secrets:
+        if not getattr(secret, "enabled", True):
+            continue
         secret_definitions[secret.name] = secret.definition
 
     return json.dumps(secret_definitions, indent=2, sort_keys=True)

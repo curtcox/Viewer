@@ -86,6 +86,8 @@ def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple
 
     aliases = get_user_aliases(user_id)
     for alias in aliases:
+        if not getattr(alias, "enabled", True):
+            continue
         for route in collect_alias_routes(alias):
             yield alias, route
 

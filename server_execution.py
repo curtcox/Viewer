@@ -643,6 +643,8 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             user_id = getter()
 
     server = get_server_by_name(user_id, server_name) if user_id else None
+    if server and not getattr(server, "enabled", True):
+        server = None
     if server:
         return _execute_nested_server_to_value(server, server_name, normalized)
 
@@ -808,6 +810,8 @@ def model_as_dict(model_objects: Optional[Iterable[Any]]) -> Dict[str, Any]:
 
     result: Dict[str, Any] = {}
     for obj in model_objects:
+        if not getattr(obj, "enabled", True):
+            continue
         if hasattr(obj, "name") and hasattr(obj, "definition"):
             result[obj.name] = obj.definition
         else:
@@ -1205,6 +1209,8 @@ def try_server_execution_with_partial(
     function_name = parts[2] if len(parts) == 3 else None
 
     server = get_server_by_name(current_user.id, server_name)
+    if server and not getattr(server, "enabled", True):
+        server = None
     if not server:
         return None
 
@@ -1265,6 +1271,8 @@ def try_server_execution(path: str) -> Optional[Response]:
 
     server_name = parts[0]
     server = get_server_by_name(current_user.id, server_name)
+    if server and not getattr(server, "enabled", True):
+        server = None
     if not server:
         return None
 

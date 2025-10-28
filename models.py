@@ -35,6 +35,7 @@ class Server(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
 
     # Unique constraint: each user can only have one server with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_server_name'),)
@@ -50,6 +51,7 @@ class Alias(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
 
@@ -158,6 +160,7 @@ class Variable(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
 
     # Unique constraint: each user can only have one variable with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_variable_name'),)
@@ -172,6 +175,7 @@ class Secret(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
 
     # Unique constraint: each user can only have one secret with a given name
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)

@@ -131,6 +131,14 @@
                             <code>{{ server.name }}</code>
                         </div>
                         <div class="col-lg-6">
+                            <strong>Status:</strong><br>
+                            {% if server.enabled %}
+                            <span class="badge text-bg-success">Enabled</span>
+                            {% else %}
+                            <span class="badge text-bg-warning text-dark">Disabled</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-lg-6">
                             <strong>Direct URL:</strong><br>
                             {{ server_public_link }}
                         </div>
