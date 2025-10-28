@@ -1555,11 +1555,30 @@ class TestServerRoutes(BaseTestCase):
 class TestVariableRoutes(BaseTestCase):
     """Test variable management routes."""
 
-    def test_variables_list(self):
-        """Test variables list page."""
+    def test_variables_list_shows_sorted_user_variables(self):
+        """Variables page should: 1) return 200, 2) show user variables, 3) sort them alphabetically."""
+
+        variable_a = Variable(
+            name='alpha',
+            definition='First variable',
+            user_id=self.test_user_id,
+        )
+        variable_b = Variable(
+            name='beta',
+            definition='Second variable',
+            user_id=self.test_user_id,
+        )
+        db.session.add_all([variable_b, variable_a])
+        db.session.commit()
+
         self.login_user()
         response = self.client.get('/variables')
         self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('alpha', page)
+        self.assertIn('beta', page)
+        self.assertLess(page.index('alpha'), page.index('beta'))
 
     def test_new_variable_post(self):
         """Test creating new variable."""
