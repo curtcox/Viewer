@@ -233,6 +233,76 @@ jobs:
         # the base image already warmed /root/.local/share/pyppeteer.
         run: pyppeteer-install
 
+      - name: Verify Chromium installation
+        run: |
+          echo "=== Checking pyppeteer installation ==="
+          python3 -c "import pyppeteer; print(f'pyppeteer version: {pyppeteer.__version__}')"
+
+          echo "=== Checking Chromium browser path ==="
+          python3 -c "
+          import asyncio
+          from pyppeteer import launch
+          from pyppeteer.chromium_downloader import current_platform, chromium_executable
+          print(f'Platform: {current_platform()}')
+          print(f'Expected Chromium path: {chromium_executable()}')
+          import os
+          if os.path.exists(chromium_executable()):
+              print('✓ Chromium binary exists')
+              print(f'Permissions: {oct(os.stat(chromium_executable()).st_mode)[-3:]}')
+              print(f'Size: {os.stat(chromium_executable()).st_size} bytes')
+          else:
+              print('✗ Chromium binary NOT FOUND')
+          "
+
+          echo "=== Listing pyppeteer directory ==="
+          ls -la ~/.local/share/pyppeteer/ || echo "pyppeteer directory not found"
+          ls -la ~/.local/share/pyppeteer/local-chromium/ || echo "chromium directory not found"
+
+          echo "=== Environment info ==="
+          echo "HOME: $HOME"
+          echo "USER: $USER"
+          echo "PWD: $PWD"
+
+      - name: Test browser launch directly
+        run: |
+          python3 <<'EOF'
+          import asyncio
+          from pyppeteer import launch
+
+          async def test():
+              try:
+                  print("Attempting to launch browser...")
+                  browser = await launch(
+                      headless=True,
+                      handleSIGINT=False,
+                      handleSIGTERM=False,
+                      handleSIGHUP=False,
+                      args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+                  )
+                  print("✓ Browser launched successfully")
+                  page = await browser.newPage()
+                  await page.setContent("<html><body><h1>Test Screenshot</h1></body></html>")
+                  await page.screenshot(path='/tmp/test-screenshot.png')
+                  print("✓ Screenshot captured successfully")
+                  await browser.close()
+                  print("✓ Browser closed cleanly")
+              except Exception as e:
+                  print(f"✗ Browser launch failed: {e}")
+                  import traceback
+                  traceback.print_exc()
+                  raise
+
+          asyncio.run(test())
+          EOF
+
+          if [ -f /tmp/test-screenshot.png ]; then
+              echo "Screenshot file created successfully"
+              echo "File size: $(stat -c%s /tmp/test-screenshot.png) bytes"
+          else
+              echo "✗ Screenshot file was not created"
+              exit 1
+          fi
+
       - name: Run Gauge specs
         id: run_gauge
         run: ./test-gauge
@@ -240,6 +310,8 @@ jobs:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
           PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
+          PYPPETEER_DEBUG: "1"
+          DEBUG: "pyppeteer:*"
         continue-on-error: true
 
       - name: Upload Gauge HTML report
