@@ -722,8 +722,8 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
 
-    def test_upload_duplicate_file(self):
-        """Test uploading duplicate file."""
+    def test_upload_duplicate_file_is_deduplicated(self):
+        """Uploading identical content reuses the existing CID instead of creating a duplicate record."""
         self.login_user()
 
         test_data = b"Duplicate content"
@@ -749,7 +749,7 @@ class TestFileUploadRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Should not create duplicate
+        # The existing CID should still be the only record for this content.
         count = CID.query.filter_by(path=f"/{cid}").count()
         self.assertEqual(count, 1)
 
