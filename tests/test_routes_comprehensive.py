@@ -1221,9 +1221,9 @@ class TestHistoryRoutes(BaseTestCase):
 
     @patch('routes.history.get_user_history_statistics')
     @patch('routes.history.get_paginated_page_views')
-    def test_history_pagination(self, mock_paginated, mock_stats):
-        """Test history page pagination."""
-        # Mock the functions to avoid SQLAlchemy func issues
+    def test_history_pagination_second_page_empty_results(self, mock_paginated, mock_stats):
+        """Requesting page 2 returns 200 even when pagination yields no results."""
+        # Mock pagination/statistics to simulate requesting an empty second page.
         mock_stats.return_value = {
             'total_views': 1,
             'unique_paths': 1,
