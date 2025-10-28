@@ -23,6 +23,8 @@ RUN apt-get update \
         libxdamage1 \
         libxfixes3 \
         libxrandr2 \
+        libxss1 \
+        libxtst6 \
         libgbm1 \
         libgtk-3-0 \
         libasound2 \

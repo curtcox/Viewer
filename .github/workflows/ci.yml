@@ -233,6 +233,75 @@ jobs:
         # the base image already warmed /root/.local/share/pyppeteer.
         run: pyppeteer-install
 
+      - name: Verify Chromium installation
+        run: |
+          python3 scripts/verify-chromium.py
+
+          echo ""
+          echo "=== Listing pyppeteer directory ==="
+          ls -la ~/.local/share/pyppeteer/ || echo "pyppeteer directory not found"
+          ls -la ~/.local/share/pyppeteer/local-chromium/ || echo "chromium directory not found"
+
+          echo ""
+          echo "=== Environment info ==="
+          echo "HOME: $HOME"
+          echo "USER: $USER"
+          echo "PWD: $PWD"
+
+      - name: Check shared library dependencies
+        run: |
+          echo "=== Finding Chromium binary ==="
+          CHROMIUM_PATH=$(python3 -c "from pyppeteer.chromium_downloader import chromium_executable; print(chromium_executable())")
+          echo "Chromium path: $CHROMIUM_PATH"
+
+          if [ -f "$CHROMIUM_PATH" ]; then
+              echo ""
+              echo "=== Checking for missing shared libraries ==="
+              ldd "$CHROMIUM_PATH" | grep "not found" || echo "✓ All shared libraries found"
+
+              echo ""
+              echo "=== Listing all shared library dependencies (first 30 lines) ==="
+              ldd "$CHROMIUM_PATH" | head -30
+          else
+              echo "✗ Chromium binary not found at expected path"
+              exit 1
+          fi
+
+      - name: Check system resources
+        run: |
+          echo "=== /dev/shm status ==="
+          df -h /dev/shm || echo "/dev/shm not available"
+          ls -ld /dev/shm || echo "/dev/shm directory check failed"
+
+          echo ""
+          echo "=== Memory info ==="
+          free -h
+
+          echo ""
+          echo "=== Disk space ==="
+          df -h /tmp
+
+      - name: Test Chromium binary directly
+        run: |
+          echo "=== Running Chromium directly to capture crash output ==="
+          CHROMIUM_PATH=$(python3 -c "from pyppeteer.chromium_downloader import chromium_executable; print(chromium_executable())")
+
+          echo "Attempting to run: $CHROMIUM_PATH --version"
+          timeout 5s "$CHROMIUM_PATH" --version 2>&1 || echo "Exit code: $?"
+
+          echo ""
+          echo "=== Attempting to run Chromium with browser flags ==="
+          timeout 5s "$CHROMIUM_PATH" \
+            --headless \
+            --no-sandbox \
+            --disable-dev-shm-usage \
+            --disable-gpu \
+            --dump-dom \
+            data:text/html,test 2>&1 || echo "Exit code: $?"
+
+      - name: Test browser launch with pyppeteer
+        run: python3 scripts/test-browser-launch.py
+
       - name: Run Gauge specs
         id: run_gauge
         run: ./test-gauge
@@ -240,6 +309,8 @@ jobs:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
           PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
+          PYPPETEER_DEBUG: "1"
+          DEBUG: "pyppeteer:*"
         continue-on-error: true
 
       - name: Upload Gauge HTML report
