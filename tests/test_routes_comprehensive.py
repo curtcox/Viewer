@@ -1315,8 +1315,8 @@ class TestServerRoutes(BaseTestCase):
         count = Server.query.filter_by(user_id=self.test_user_id, name='duplicate-server').count()
         self.assertEqual(count, 1)
 
-    def test_view_server(self):
-        """Test viewing specific server."""
+    def test_view_server_renders_referenced_entities_and_returns_ok(self):
+        """Viewing a server returns 200 and surfaces referenced metadata in the page."""
         helper_server = Server(name='helper', definition='print("helper")', user_id=self.test_user_id)
         alias = Alias(
             name='docs-link',
@@ -1342,6 +1342,7 @@ class TestServerRoutes(BaseTestCase):
 
         self.login_user()
         response = self.client.get('/servers/view-server')
+        # Viewing the server should succeed and expose referenced resources to the user.
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         self.assertIn('Referenced Entities', page)
