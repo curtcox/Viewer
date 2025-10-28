@@ -1161,8 +1161,8 @@ class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
 
     @patch('routes.history.get_user_history_statistics')
-    def test_history_page(self, mock_stats):
-        """Test history page."""
+    def test_history_page_displays_invocation_and_referer_details(self, mock_stats):
+        """Ensure history page renders invocation links, server events, and referer metadata for page views."""
         result_cid = 'A' * CID_LENGTH
         invocation_cid = 'B' * CID_LENGTH
 
@@ -1212,6 +1212,7 @@ class TestHistoryRoutes(BaseTestCase):
         response = self.client.get('/history')
         self.assertEqual(response.status_code, 200)
 
+        # Success criteria: invocation link, server event details, and referer metadata are visible.
         page = response.get_data(as_text=True)
         self.assertIn(f'/{invocation_cid}.json', page)
         self.assertIn('Server event: test-server', page)
