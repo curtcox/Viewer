@@ -615,10 +615,11 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
 
-    def test_profile_page(self):
-        """Test profile page."""
+    def test_profile_page_returns_success_for_authenticated_user(self):
+        """Ensure authenticated users can load their profile page with a 200 response."""
         self.login_user()
         response = self.client.get('/profile')
+        # Authenticated access should successfully render the profile page.
         self.assertEqual(response.status_code, 200)
 
     def test_navigation_includes_meta_inspector_link(self):
