@@ -18,6 +18,7 @@ from cid_utils import (
     process_url_upload,
 )
 from db_access import (
+    EntityInteractionRequest,
     create_cid_record,
     find_cids_by_prefix,
     get_alias_by_name,
@@ -111,12 +112,14 @@ def upload():
         if form.upload_type.data == 'text':
             view_url_extension = "txt"
             record_entity_interaction(
-                current_user.id,
-                'upload',
-                'text',
-                'save',
-                change_message,
-                form.text_content.data or '',
+                EntityInteractionRequest(
+                    user_id=current_user.id,
+                    entity_type='upload',
+                    entity_name='text',
+                    action='save',
+                    message=change_message,
+                    content=form.text_content.data or '',
+                )
             )
         elif form.upload_type.data == 'file' and original_filename:
             if '.' in original_filename:
@@ -300,12 +303,14 @@ def edit_cid(cid_prefix):
             _persist_alias_from_upload(new_alias)
 
         record_entity_interaction(
-            current_user.id,
-            'cid',
-            full_cid,
-            'save',
-            change_message,
-            text_content,
+            EntityInteractionRequest(
+                user_id=current_user.id,
+                entity_type='cid',
+                entity_name=full_cid,
+                action='save',
+                message=change_message,
+                content=text_content,
+            )
         )
 
         return render_template(

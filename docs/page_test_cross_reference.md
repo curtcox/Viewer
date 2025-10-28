@@ -196,10 +196,10 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/core.py::index` (paths: `/`)
 
 **Unit tests:**
+- `tests/test_app_startup.py::test_create_app_creates_alias_definition_column`
 - `tests/test_app_startup.py::test_create_app_handles_logfire_configuration_errors`
 - `tests/test_app_startup.py::test_create_app_handles_logfire_instrumentation_errors`
 - `tests/test_app_startup.py::test_create_app_serves_homepage`
-- `tests/test_app_startup.py::test_create_app_upgrades_legacy_alias_table`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_alias_target_displays_cid_link_for_cid_path`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_authenticated_shows_cross_reference_dashboard`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_cids_include_incoming_highlight_metadata`

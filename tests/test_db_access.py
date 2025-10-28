@@ -42,6 +42,8 @@ from db_access import (
     get_user_uploads,
     get_variable_by_name,
     paginate_user_page_views,
+    EntityInteractionLookup,
+    EntityInteractionRequest,
     ServerInvocationInput,
     record_entity_interaction,
     save_entity,
@@ -317,13 +319,15 @@ class TestDBAccess(unittest.TestCase):
     def test_entity_interaction_helpers(self):
         timestamp = datetime.now(timezone.utc)
         record_entity_interaction(
-            self.user_id,
-            'server',
-            'demo',
-            'save',
-            'Created demo',
-            'content',
-            created_at=timestamp,
+            EntityInteractionRequest(
+                user_id=self.user_id,
+                entity_type='server',
+                entity_name='demo',
+                action='save',
+                message='Created demo',
+                content='content',
+                created_at=timestamp,
+            )
         )
 
         interactions = get_entity_interactions(self.user_id, 'server', 'demo')
@@ -331,12 +335,14 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(interactions[0].message, 'Created demo')
 
         match = find_entity_interaction(
-            self.user_id,
-            'server',
-            'demo',
-            'save',
-            'Created demo',
-            timestamp,
+            EntityInteractionLookup(
+                user_id=self.user_id,
+                entity_type='server',
+                entity_name='demo',
+                action='save',
+                message='Created demo',
+                created_at=timestamp,
+            )
         )
         self.assertIsNotNone(match)
 

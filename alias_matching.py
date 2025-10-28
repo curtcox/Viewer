@@ -51,7 +51,7 @@ def normalise_pattern(match_type: str, pattern: str | None, fallback_name: str |
             raw_pattern = fallback_name
         if "\n" in raw_pattern:
             raise PatternError("Literal patterns must be a single line.")
-        return _ensure_leading_slash(raw_pattern)
+        return _normalize_literal_path(_ensure_leading_slash(raw_pattern))
 
     if match_type == "glob":
         if not raw_pattern:

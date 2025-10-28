@@ -31,6 +31,8 @@ from cid_utils import (
     store_cid_from_json,
 )
 from db_access import (
+    EntityInteractionLookup,
+    EntityInteractionRequest,
     find_entity_interaction,
     get_alias_by_name,
     get_cid_by_path,
@@ -838,32 +840,26 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
     }
 
 
-def _import_section(
-    include_section: bool,
-    data: dict[str, Any],
-    section_key: str,
-    cid_lookup: dict[str, bytes],
-    errors: list[str],
-    summaries: list[str],
-    importer: Callable[[Any], Tuple[int, list[str]]],
-    singular_label: str,
-    plural_label: str,
-) -> int:
+def _import_section(context: _ImportContext, plan: _SectionImportPlan) -> int:
     """Load and import a selected export section if requested."""
 
-    if not include_section:
+    if not plan.include:
         return 0
 
-    section, load_errors, fatal = _load_export_section(data, section_key, cid_lookup)
-    errors.extend(load_errors)
+    section, load_errors, fatal = _load_export_section(
+        context.data,
+        plan.section_key,
+        context.cid_lookup,
+    )
+    context.errors.extend(load_errors)
     if fatal:
         return 0
 
-    imported_count, import_errors = importer(section)
-    errors.extend(import_errors)
+    imported_count, import_errors = plan.importer(section)
+    context.errors.extend(import_errors)
     if imported_count:
-        label = plural_label if imported_count != 1 else singular_label
-        summaries.append(f'{imported_count} {label}')
+        label = plan.plural_label if imported_count != 1 else plan.singular_label
+        context.summaries.append(f'{imported_count} {label}')
 
     return imported_count
 
@@ -887,6 +883,15 @@ class _ImportContext:
     info_messages: list[str] = field(default_factory=list)
     summaries: list[str] = field(default_factory=list)
     secret_key: str = ''
+
+
+@dataclass(frozen=True)
+class _SectionImportPlan:
+    include: bool
+    section_key: str
+    importer: Callable[[Any], Tuple[int, list[str]]]
+    singular_label: str
+    plural_label: str
 
 
 def _parse_import_payload(raw_payload: str) -> tuple[_ParsedImportPayload | None, str | None]:
@@ -940,56 +945,54 @@ def _ingest_import_cid_map(context: _ImportContext) -> None:
 
 
 def _import_selected_sections(context: _ImportContext) -> None:
-    section_importers: Iterable[tuple[bool, str, Callable[[Any], Tuple[int, list[str]]], str, str]] = [
-        (
-            context.form.include_aliases.data,
-            'aliases',
-            lambda section: _import_aliases(context.user_id, section, context.cid_lookup),
-            'alias',
-            'aliases',
+    section_importers: Iterable[_SectionImportPlan] = [
+        _SectionImportPlan(
+            include=context.form.include_aliases.data,
+            section_key='aliases',
+            importer=lambda section: _import_aliases(
+                context.user_id, section, context.cid_lookup
+            ),
+            singular_label='alias',
+            plural_label='aliases',
         ),
-        (
-            context.form.include_servers.data,
-            'servers',
-            lambda section: _import_servers(context.user_id, section, context.cid_lookup),
-            'server',
-            'servers',
+        _SectionImportPlan(
+            include=context.form.include_servers.data,
+            section_key='servers',
+            importer=lambda section: _import_servers(
+                context.user_id, section, context.cid_lookup
+            ),
+            singular_label='server',
+            plural_label='servers',
         ),
-        (
-            context.form.include_variables.data,
-            'variables',
-            lambda section: _import_variables(context.user_id, section),
-            'variable',
-            'variables',
+        _SectionImportPlan(
+            include=context.form.include_variables.data,
+            section_key='variables',
+            importer=lambda section: _import_variables(context.user_id, section),
+            singular_label='variable',
+            plural_label='variables',
         ),
-        (
-            context.form.include_secrets.data,
-            'secrets',
-            lambda section: _import_secrets(context.user_id, section, context.secret_key),
-            'secret',
-            'secrets',
+        _SectionImportPlan(
+            include=context.form.include_secrets.data,
+            section_key='secrets',
+            importer=lambda section: _import_secrets(
+                context.user_id, section, context.secret_key
+            ),
+            singular_label='secret',
+            plural_label='secrets',
         ),
-        (
-            context.form.include_history.data,
-            'change_history',
-            lambda section: _import_change_history(context.user_id, section),
-            'history event',
-            'history events',
+        _SectionImportPlan(
+            include=context.form.include_history.data,
+            section_key='change_history',
+            importer=lambda section: _import_change_history(
+                context.user_id, section
+            ),
+            singular_label='history event',
+            plural_label='history events',
         ),
     ]
 
-    for include_section, key, importer, singular, plural in section_importers:
-        _import_section(
-            include_section,
-            context.data,
-            key,
-            context.cid_lookup,
-            context.errors,
-            context.summaries,
-            importer,
-            singular,
-            plural,
-        )
+    for plan in section_importers:
+        _import_section(context, plan)
 
 
 def _handle_import_source_files(context: _ImportContext) -> None:
@@ -1031,12 +1034,14 @@ def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) ->
 
     if context.errors or context.warnings or context.summaries:
         record_entity_interaction(
-            context.user_id,
-            'import',
-            'json',
-            'save',
-            context.change_message,
-            context.raw_payload,
+            EntityInteractionRequest(
+                user_id=context.user_id,
+                entity_type='import',
+                entity_name='json',
+                action='save',
+                message=context.change_message,
+                content=context.raw_payload,
+            )
         )
         return redirect(url_for('main.import_data'))
 
@@ -1570,24 +1575,28 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
     for key, entity_type in collection_map.items():
         for name, event in _iter_history_events(raw_history, key, errors):
             existing = find_entity_interaction(
-                user_id,
-                entity_type,
-                name,
-                event.action,
-                event.message,
-                event.timestamp,
+                EntityInteractionLookup(
+                    user_id=user_id,
+                    entity_type=entity_type,
+                    entity_name=name,
+                    action=event.action,
+                    message=event.message,
+                    created_at=event.timestamp,
+                )
             )
             if existing:
                 continue
 
             record_entity_interaction(
-                user_id,
-                entity_type,
-                name,
-                event.action,
-                event.message,
-                event.content,
-                created_at=event.timestamp,
+                EntityInteractionRequest(
+                    user_id=user_id,
+                    entity_type=entity_type,
+                    entity_name=name,
+                    action=event.action,
+                    message=event.message,
+                    content=event.content,
+                    created_at=event.timestamp,
+                )
             )
             imported += 1
 

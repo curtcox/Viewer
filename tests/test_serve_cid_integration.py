@@ -77,15 +77,15 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
                 result = extract_filename_from_cid_path(path)
                 self.assertEqual(result, expected_filename)
 
-    def test_edge_cases(self):
-        """Test edge cases"""
+    def test_handles_empty_and_nonstandard_cid_paths(self):
+        """Paths without a usable filename should return None; minimal filename fragments are preserved."""
         test_cases = [
-            ("", None),  # Empty string
-            ("/", None),  # Just slash
-            ("/.", None),  # Just dot
-            ("/..", None),  # Two dots
-            ("/a.b.c", "b.c"),  # Minimal valid case
-            ("no-leading-slash.file.txt", "file.txt"),  # No leading slash
+            ("", None),  # Empty path must not produce a filename
+            ("/", None),  # Bare slash should yield no filename component
+            ("/.", None),  # Single dot path is treated as no filename
+            ("/..", None),  # Parent directory path should not expose a filename
+            ("/a.b.c", "b.c"),  # Minimal CID stub with filename should return just the filename
+            ("no-leading-slash.file.txt", "file.txt"),  # Missing leading slash still extracts the terminal filename
         ]
 
         for path, expected in test_cases:

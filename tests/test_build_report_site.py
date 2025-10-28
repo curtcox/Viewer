@@ -85,6 +85,9 @@ def test_format_screenshot_notice_builds_section() -> None:
     assert "Gauge screenshot status" in notice
     assert "<li>First reason</li>" in notice
     assert "<li>Second reason</li>" in notice
+    assert "gauge-specs/secureapp-artifacts" in notice
+    assert "pyppeteer-install" in notice
+    assert "libnss3" in notice
 
 
 def test_write_landing_page_includes_notice(tmp_path) -> None:

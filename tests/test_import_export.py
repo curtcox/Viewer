@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from html import escape
 from importlib import metadata
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 from types import SimpleNamespace
 import tempfile
@@ -735,39 +735,55 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
     def test_import_section_records_summary(self):
         data = {'aliases': ['entry']}
-        cid_lookup: dict[str, bytes] = {}
-        errors: list[str] = []
-        summaries: list[str] = []
-
-        count = import_export._import_section(
-            True,
-            data,
-            'aliases',
-            cid_lookup,
-            errors,
-            summaries,
-            lambda section: (2, []) if section == ['entry'] else (0, ['wrong section']),
-            'alias',
-            'aliases',
+        context = import_export._ImportContext(
+            form=cast(ImportForm, object()),
+            user_id='user',
+            change_message='',
+            raw_payload='{}',
+            data=data,
         )
+
+        plan = import_export._SectionImportPlan(
+            include=True,
+            section_key='aliases',
+            importer=lambda section: (2, [])
+            if section == ['entry']
+            else (0, ['wrong section']),
+            singular_label='alias',
+            plural_label='aliases',
+        )
+
+        count = import_export._import_section(context, plan)
 
         self.assertEqual(count, 2)
-        self.assertEqual(errors, [])
-        self.assertEqual(summaries, ['2 aliases'])
+        self.assertEqual(context.errors, [])
+        self.assertEqual(context.summaries, ['2 aliases'])
 
         sentinel: dict[str, Any] = {}
-        import_export._import_section(
-            False,
-            data,
-            'aliases',
-            cid_lookup,
-            errors,
-            summaries,
-            lambda section: sentinel.setdefault('called', True) or (0, []),
-            'alias',
-            'aliases',
+        skipped_plan = import_export._SectionImportPlan(
+            include=False,
+            section_key='aliases',
+            importer=lambda section: sentinel.setdefault('called', True) or (0, []),
+            singular_label='alias',
+            plural_label='aliases',
         )
+        import_export._import_section(context, skipped_plan)
         self.assertNotIn('called', sentinel)
+
+    def test_import_section_rejects_invalid_plan_shape(self):
+        context = import_export._ImportContext(
+            form=cast(ImportForm, object()),
+            user_id='user',
+            change_message='',
+            raw_payload='{}',
+            data={},
+        )
+
+        with self.assertRaises(AttributeError):
+            import_export._import_section(
+                context,
+                cast(import_export._SectionImportPlan, object()),
+            )
 
     def test_build_export_payload_collects_aliases(self):
         with tempfile.TemporaryDirectory() as tmpdir:

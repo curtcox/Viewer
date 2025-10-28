@@ -15,6 +15,20 @@ RUN apt-get update \
         git \
         gnupg \
         unzip \
+        libnss3 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libx11-xcb1 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libxss1 \
+        libxtst6 \
+        libgbm1 \
+        libgtk-3-0 \
+        libasound2 \
+        fonts-liberation \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -41,7 +55,12 @@ RUN set -eux; \
 # Install Python dependencies used in CI
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
-    && pip install -r /tmp/requirements.txt \
-    && pip install hypothesis pytest
+    && python -m pip install -r /tmp/requirements.txt \
+    && python -m pip install hypothesis pytest
+
+# Pre-download Chromium so container users (and any jobs that retain /root as
+# $HOME) already have a browser binary before Gauge runs. GitHub Actions swaps
+# HOME to /github/home at runtime, so the workflow reruns the installer there.
+RUN pyppeteer-install
 
 WORKDIR /workspace

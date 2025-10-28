@@ -21,6 +21,11 @@
                 <i class="fas fa-pen-to-square me-1"></i>Definition
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-form-docs-tab" data-bs-toggle="tab" data-bs-target="#server-form-docs" type="button" role="tab" aria-controls="server-form-docs" aria-selected="false">
+                <i class="fas fa-book me-1"></i>Docs
+            </button>
+        </li>
         {% if server_test_config is defined and server_test_config %}
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="server-form-test-tab" data-bs-toggle="tab" data-bs-target="#server-form-test" type="button" role="tab" aria-controls="server-form-test" aria-selected="false">
@@ -137,6 +142,10 @@
                     </form>
                 </div>
             </div>
+        </div>
+
+        <div class="tab-pane fade" id="server-form-docs" role="tabpanel" aria-labelledby="server-form-docs-tab">
+            {% include "_server_docs_tab.html" %}
         </div>
 
         {% if server_test_config is defined and server_test_config %}

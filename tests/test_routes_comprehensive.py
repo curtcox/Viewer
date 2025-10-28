@@ -687,13 +687,15 @@ class TestRemovedLegacyRoutes(BaseTestCase):
 class TestFileUploadRoutes(BaseTestCase):
     """Test file upload routes."""
 
-    def test_upload_get(self):
-        """Test upload page GET request."""
+    def test_upload_get_returns_200_with_text_ai_markup(self):
+        """GET /upload returns HTTP 200 and renders the text AI input markup."""
         self.login_user()
         response = self.client.get('/upload')
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
+        # The upload page must render the AI-enhanced text input so users can submit
+        # content with the correct identifiers.
         self.assertIn('text_content-ai-input', page)
         self.assertIn('data-ai-target-id="text_content"', page)
 
@@ -750,8 +752,8 @@ class TestFileUploadRoutes(BaseTestCase):
         count = CID.query.filter_by(path=f"/{cid}").count()
         self.assertEqual(count, 1)
 
-    def test_uploads_list(self):
-        """Test uploads list page."""
+    def test_uploads_list_displays_reference_placeholder(self):
+        """Uploads list renders manual uploads with a reference placeholder."""
         self.login_user()
 
         # Create test upload
@@ -767,6 +769,7 @@ class TestFileUploadRoutes(BaseTestCase):
         response = self.client.get('/uploads')
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
+        # Success requires the manual upload to appear with its reference section.
         self.assertIn('References', page)
         self.assertIn('None', page)
 
