@@ -700,11 +700,11 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIn('text_content-ai-input', page)
         self.assertIn('data-ai-target-id="text_content"', page)
 
-    def test_upload_post_success(self):
-        """Test successful file upload."""
+    def test_upload_post_stores_file_and_returns_success_page(self):
+        """Uploading a new file persists its content for the user and renders the success page."""
         self.login_user()
 
-        # Create test file data
+        # Create test file data to submit through the upload form.
         test_data = b"Test file content"
         test_file = (BytesIO(test_data), 'test.txt')
 
@@ -717,7 +717,7 @@ class TestFileUploadRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check file was stored
+        # The user's upload must be stored in the database so it can be referenced later.
         cid_record = CID.query.filter_by(uploaded_by_user_id=self.test_user_id).first()
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
