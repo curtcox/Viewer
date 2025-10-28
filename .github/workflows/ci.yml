@@ -257,7 +257,12 @@ jobs:
           if [ -f "$CHROMIUM_PATH" ]; then
               echo ""
               echo "=== Checking for missing shared libraries ==="
-              ldd "$CHROMIUM_PATH" | grep "not found" || echo "✓ All shared libraries found"
+              if ldd "$CHROMIUM_PATH" | grep -q "not found"; then
+                  echo "✗ Missing shared libraries detected"
+                  ldd "$CHROMIUM_PATH" | grep "not found"
+              else
+                  echo "✓ All shared libraries found"
+              fi
 
               echo ""
               echo "=== Listing all shared library dependencies (first 30 lines) ==="
