@@ -1525,7 +1525,7 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.post('/servers/edit-server/edit', data={
             'name': 'edited-server',
             'definition': 'Updated definition',
-            'submit': 'Save Server'
+            'submit': 'Rename to edited-server'
         }, follow_redirects=False)
 
         self.assertEqual(response.status_code, 302)
@@ -1534,6 +1534,34 @@ class TestServerRoutes(BaseTestCase):
         db.session.refresh(server)
         self.assertEqual(server.name, 'edited-server')
         self.assertEqual(server.definition, 'Updated definition')
+
+    def test_edit_server_save_as_creates_new_server(self):
+        """Saving a server as a new copy should keep the original intact."""
+        server = Server(
+            name='copy-source',
+            definition='Copy me',
+            user_id=self.test_user_id
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.post('/servers/copy-source/edit', data={
+            'name': 'copy-target',
+            'definition': 'Copy me',
+            'enabled': 'y',
+            'submit_action': 'save-as'
+        }, follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers['Location'].endswith('/servers/copy-target'))
+
+        db.session.refresh(server)
+        self.assertEqual(server.name, 'copy-source')
+
+        duplicate = Server.query.filter_by(user_id=self.test_user_id, name='copy-target').first()
+        self.assertIsNotNone(duplicate)
+        self.assertEqual(duplicate.definition, 'Copy me')
 
     def test_delete_server(self):
         """Test deleting server."""
@@ -1757,6 +1785,58 @@ class TestAliasRoutes(BaseTestCase):
         self.assertIn('definition-ai-input', page)
         self.assertIn('data-ai-target-id="definition"', page)
         self.assertIn('Ask AI to edit the alias definition', page)
+
+    def test_edit_alias_post_updates_alias(self):
+        """Renaming an alias should update its name and retain a valid definition."""
+        alias = Alias(
+            name='docs-link',
+            user_id=self.test_user_id,
+            definition=_alias_definition('docs-link', '/docs'),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.post(f'/aliases/{alias.name}/edit', data={
+            'name': 'docs-guide',
+            'definition': _alias_definition('docs-link', '/docs'),
+            'enabled': 'y',
+            'submit': 'Rename to docs-guide',
+        }, follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+
+        db.session.refresh(alias)
+        self.assertEqual(alias.name, 'docs-guide')
+        self.assertEqual(alias.definition, _alias_definition('docs-guide', '/docs'))
+
+    def test_edit_alias_save_as_creates_new_alias(self):
+        """Saving an alias as a copy should not modify the original alias."""
+        alias = Alias(
+            name='alias-source',
+            user_id=self.test_user_id,
+            definition=_alias_definition('alias-source', '/docs/source'),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        self.login_user()
+        response = self.client.post(f'/aliases/{alias.name}/edit', data={
+            'name': 'alias-copy',
+            'definition': _alias_definition('alias-source', '/docs/source'),
+            'enabled': 'y',
+            'submit_action': 'save-as',
+        }, follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers['Location'].endswith('/aliases/alias-copy'))
+
+        db.session.refresh(alias)
+        self.assertEqual(alias.name, 'alias-source')
+
+        alias_copy = Alias.query.filter_by(user_id=self.test_user_id, name='alias-copy').first()
+        self.assertIsNotNone(alias_copy)
+        self.assertEqual(alias_copy.definition, _alias_definition('alias-copy', '/docs/source'))
 
     def test_alias_list_displays_cid_link_for_cid_target(self):
         """Alias listings should render CID targets with the standard link widget."""

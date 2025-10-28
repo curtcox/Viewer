@@ -67,18 +67,52 @@
                         {{ form.hidden_tag() }}
                         <div class="col-12">
                             {{ form.name.label(class="form-label") }}
-                            {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
-                            {% if form.name.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.name.errors %}
-                                        {{ error }}
-                                    {% endfor %}
+                            <div
+                                class="d-flex flex-wrap align-items-start gap-2"
+                                data-rename-control
+                                data-name-field="{{ form.name.id }}"
+                                data-original-name="{{ server.name if server else '' }}"
+                                data-rename-template="Rename to __name__"
+                                data-save-as-template="Save As __name__"
+                                data-name-pattern="^[a-zA-Z0-9._-]+$"
+                            >
+                                <div class="flex-grow-1">
+                                    {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.name.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="form-text">
+                                            Server name can only contain letters, numbers, dots, hyphens, and underscores. This will be used in URLs.
+                                        </div>
+                                    {% endif %}
                                 </div>
-                            {% else %}
-                                <div class="form-text">
-                                    Server name can only contain letters, numbers, dots, hyphens, and underscores. This will be used in URLs.
+                                <div class="d-flex flex-column gap-2 align-items-start">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        {{ form.submit(
+                                            class="btn btn-primary",
+                                            id=form.submit.id,
+                                            **{
+                                                'data-primary-save': 'true',
+                                                'data-default-label': form.submit.label.text,
+                                            }
+                                        ) }}
+                                        <button
+                                            type="submit"
+                                            name="submit_action"
+                                            value="save-as"
+                                            class="btn btn-outline-primary d-none"
+                                            data-save-as-button
+                                            data-default-label="Save As"
+                                        >
+                                            Save As
+                                        </button>
+                                    </div>
                                 </div>
-                            {% endif %}
+                            </div>
                         </div>
 
                         {% if server_templates is defined and server_templates %}
@@ -144,7 +178,6 @@
                             </a>
                             <div class="d-flex gap-2 flex-wrap">
                                 {{ ai_action_button(form.definition.id, button_label='AI', extra_classes='btn-outline-primary') }}
-                                {{ form.submit(class="btn btn-primary") }}
                             </div>
                         </div>
                     </form>
@@ -352,6 +385,7 @@ function loadHistoricalDefinition(index) {
 
 {% block scripts %}
     {{ super() }}
+    <script src="{{ url_for('static', filename='js/rename_controls.js') }}"></script>
     <script src="{{ url_for('static', filename='js/server_form.js') }}"></script>
     {% if server_templates is defined and server_templates %}
     <script>

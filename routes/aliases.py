@@ -324,6 +324,17 @@ def edit_alias(alias_name: str):
     change_message = (request.form.get('change_message') or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
 
+    def render_edit_form() -> str:
+        return render_template(
+            'alias_form.html',
+            form=form,
+            title=f'Edit Alias "{alias.name}"',
+            alias=alias,
+            interaction_history=interaction_history,
+            ai_entity_name=alias.name,
+            ai_entity_name_field=form.name.id,
+        )
+
     if request.method == 'GET':
         primary_line = _primary_definition_line_for_alias(alias)
         if primary_line:
@@ -331,35 +342,10 @@ def edit_alias(alias_name: str):
 
     if form.validate_on_submit():
         parsed = form.parsed_definition
-        new_name = form.name.data
-
-        if new_name != alias.name:
-            if _alias_name_conflicts_with_routes(new_name):
-                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
-                return render_template(
-                    'alias_form.html',
-                    form=form,
-                    title=f'Edit Alias "{alias.name}"',
-                    alias=alias,
-                    interaction_history=interaction_history,
-                    ai_entity_name=alias.name,
-                    ai_entity_name_field=form.name.id,
-                )
-
-            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
-                flash(f'An alias named "{new_name}" already exists.', 'danger')
-                return render_template(
-                    'alias_form.html',
-                    form=form,
-                    title=f'Edit Alias "{alias.name}"',
-                    alias=alias,
-                    interaction_history=interaction_history,
-                    ai_entity_name=alias.name,
-                    ai_entity_name_field=form.name.id,
-                )
-
-        alias.name = new_name
+        new_name = form.name.data or ''
+        save_action = (request.form.get('submit_action') or '').strip().lower()
         definition_text = form.definition.data or ""
+
         if parsed:
             primary_line = format_primary_alias_line(
                 parsed.match_type,
@@ -375,6 +361,49 @@ def edit_alias(alias_name: str):
         else:
             definition_value = definition_text
 
+        if save_action == 'save-as':
+            if not new_name or new_name == alias.name:
+                flash('Choose a new name to save this alias as a copy.', 'danger')
+                return render_edit_form()
+
+            if _alias_name_conflicts_with_routes(new_name):
+                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
+                return render_edit_form()
+
+            if _alias_with_name_exists(current_user.id, new_name):
+                flash(f'An alias named "{new_name}" already exists.', 'danger')
+                return render_edit_form()
+
+            new_alias = Alias(
+                name=new_name,
+                user_id=current_user.id,
+                definition=definition_value or None,
+                enabled=bool(form.enabled.data),
+            )
+            _persist_alias(new_alias)
+            record_entity_interaction(
+                EntityInteractionRequest(
+                    user_id=current_user.id,
+                    entity_type='alias',
+                    entity_name=new_alias.name,
+                    action='save',
+                    message=change_message,
+                    content=form.definition.data or '',
+                )
+            )
+            flash(f'Alias "{new_alias.name}" created successfully!', 'success')
+            return redirect(url_for('main.view_alias', alias_name=new_alias.name))
+
+        if new_name != alias.name:
+            if _alias_name_conflicts_with_routes(new_name):
+                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
+                return render_edit_form()
+
+            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
+                flash(f'An alias named "{new_name}" already exists.', 'danger')
+                return render_edit_form()
+
+        alias.name = new_name
         alias.definition = definition_value or None
         alias.updated_at = datetime.now(timezone.utc)
         alias.enabled = bool(form.enabled.data)
@@ -393,15 +422,7 @@ def edit_alias(alias_name: str):
         flash(f'Alias "{alias.name}" updated successfully!', 'success')
         return redirect(url_for('main.view_alias', alias_name=alias.name))
 
-    return render_template(
-        'alias_form.html',
-        form=form,
-        title=f'Edit Alias "{alias.name}"',
-        alias=alias,
-        interaction_history=interaction_history,
-        ai_entity_name=alias.name,
-        ai_entity_name_field=form.name.id,
-    )
+    return render_edit_form()
 
 
 @main_bp.route('/aliases/match-preview', methods=['POST'])
