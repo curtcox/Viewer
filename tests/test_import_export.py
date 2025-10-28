@@ -117,7 +117,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     parsed = json.loads(text)
                 except json.JSONDecodeError:
                     continue
-                if isinstance(parsed, dict) and parsed.get('version') == 5:
+                if isinstance(parsed, dict) and parsed.get('version') == 6:
                     export_record = record
                     export_payload = parsed
                     break
@@ -167,7 +167,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         export_record, payload = self._load_export_payload()
         cid_value = export_record.path.lstrip('/')
 
-        self.assertEqual(payload['version'], 5)
+        self.assertEqual(payload['version'], 6)
 
         generated_at_value = self._load_section(payload, 'generated_at')
         self.assertIsInstance(generated_at_value, str)
@@ -184,12 +184,16 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(aliases[0]['name'], 'alias-one')
         self.assertIn('definition_cid', aliases[0])
         self.assertNotIn('definition', aliases[0])
+        self.assertIn('enabled', aliases[0])
+        self.assertTrue(aliases[0]['enabled'])
         alias_definition_cid = aliases[0]['definition_cid']
 
         servers = self._load_section(payload, 'servers')
         self.assertEqual(len(servers), 1)
         self.assertIn('definition_cid', servers[0])
         self.assertNotIn('definition', servers[0])
+        self.assertIn('enabled', servers[0])
+        self.assertTrue(servers[0]['enabled'])
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(alias_definition_cid, cid_values)
@@ -207,9 +211,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         variables = self._load_section(payload, 'variables')
         self.assertEqual(variables[0]['definition'], 'value')
+        self.assertIn('enabled', variables[0])
+        self.assertTrue(variables[0]['enabled'])
 
         secrets_section = self._load_section(payload, 'secrets')
         self.assertEqual(secrets_section.get('encryption'), SECRET_ENCRYPTION_SCHEME)
+        self.assertIn('enabled', secrets_section['items'][0])
+        self.assertTrue(secrets_section['items'][0]['enabled'])
         ciphertext = secrets_section['items'][0]['ciphertext']
         self.assertEqual(decrypt_secret_value(ciphertext, 'passphrase'), 'super-secret')
 
@@ -217,6 +225,122 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         download_path = f"/{cid_value}.json"
         self.assertIn(download_path.encode('utf-8'), response.data)
+
+    def test_export_and_import_preserve_enablement(self):
+        alias_definition = format_primary_alias_line(
+            'literal',
+            '/alias-disabled',
+            '/target',
+            alias_name='alias-disabled',
+        )
+
+        with self.app.app_context():
+            db.session.add_all(
+                [
+                    Alias(
+                        name='alias-disabled',
+                        user_id=self.user_id,
+                        definition=alias_definition,
+                        enabled=False,
+                    ),
+                    Server(
+                        name='server-disabled',
+                        user_id=self.user_id,
+                        definition='def main():\n    return "disabled"\n',
+                        enabled=False,
+                    ),
+                    Variable(
+                        name='variable-disabled',
+                        user_id=self.user_id,
+                        definition='value',
+                        enabled=False,
+                    ),
+                    Secret(
+                        name='secret-disabled',
+                        user_id=self.user_id,
+                        definition='super-secret',
+                        enabled=False,
+                    ),
+                ]
+            )
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_servers': 'y',
+                    'include_variables': 'y',
+                    'include_secrets': 'y',
+                    'include_history': '',
+                    'include_cid_map': 'y',
+                    'secret_key': 'passphrase',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+
+        alias_entries = self._load_section(payload, 'aliases')
+        server_entries = self._load_section(payload, 'servers')
+        variable_entries = self._load_section(payload, 'variables')
+        secrets_section = self._load_section(payload, 'secrets')
+
+        self.assertFalse(alias_entries[0]['enabled'])
+        self.assertFalse(server_entries[0]['enabled'])
+        self.assertFalse(variable_entries[0]['enabled'])
+        self.assertFalse(secrets_section['items'][0]['enabled'])
+
+        with self.app.app_context():
+            Alias.query.delete()
+            Server.query.delete()
+            Variable.query.delete()
+            Secret.query.delete()
+            db.session.commit()
+
+            cid_map, errors = import_export._parse_cid_values_section(payload.get('cid_values'))
+            self.assertEqual(errors, [])
+
+            alias_count, alias_errors = import_export._import_aliases(
+                self.user_id, alias_entries, cid_map
+            )
+            server_count, server_errors = import_export._import_servers(
+                self.user_id, server_entries, cid_map
+            )
+            variable_count, variable_errors = import_export._import_variables(
+                self.user_id, variable_entries
+            )
+            secret_count, secret_errors = import_export._import_secrets(
+                self.user_id, secrets_section, 'passphrase'
+            )
+
+            self.assertEqual(alias_errors, [])
+            self.assertEqual(server_errors, [])
+            self.assertEqual(variable_errors, [])
+            self.assertEqual(secret_errors, [])
+            self.assertEqual(alias_count, 1)
+            self.assertEqual(server_count, 1)
+            self.assertEqual(variable_count, 1)
+            self.assertEqual(secret_count, 1)
+
+            imported_alias = Alias.query.filter_by(name='alias-disabled').first()
+            imported_server = Server.query.filter_by(name='server-disabled').first()
+            imported_variable = Variable.query.filter_by(name='variable-disabled').first()
+            imported_secret = Secret.query.filter_by(name='secret-disabled').first()
+
+            self.assertIsNotNone(imported_alias)
+            self.assertIsNotNone(imported_server)
+            self.assertIsNotNone(imported_variable)
+            self.assertIsNotNone(imported_secret)
+
+            assert imported_alias and imported_server and imported_variable and imported_secret
+            self.assertFalse(imported_alias.enabled)
+            self.assertFalse(imported_server.enabled)
+            self.assertFalse(imported_variable.enabled)
+            self.assertFalse(imported_secret.enabled)
 
     def test_export_includes_runtime_section(self):
         with self.logged_in():
@@ -719,6 +843,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         assert prepared is not None
         self.assertEqual(prepared.name, 'example')
         self.assertIn(alias_line, prepared.definition)
+        self.assertTrue(prepared.enabled)
         self.assertEqual(errors, [])
 
     def test_store_cid_entry_optional_behaviour(self):

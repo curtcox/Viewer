@@ -95,6 +95,14 @@
                                 history_label='Recent alias edits and requests'
                             ) }}
                         </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                {{ form.enabled(class="form-check-input", role="switch") }}
+                                {{ form.enabled.label(class="form-check-label") }}
+                                <div class="form-text">Disabled aliases remain visible for editing and search but will not route requests.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

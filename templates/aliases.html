@@ -33,6 +33,9 @@
                                     class_name="badge bg-secondary me-2 text-decoration-none",
                                 ) }}
                                 {{ alias.name }}
+                                {% if not alias.enabled %}
+                                <span class="badge text-bg-warning ms-2">Disabled</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <div><code>{{ alias.match_pattern }}</code></div>

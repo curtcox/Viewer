@@ -185,7 +185,10 @@
                         }
 
                         const badge = alias.url ? document.createElement('a') : document.createElement('span');
-                        badge.className = 'badge text-bg-secondary text-decoration-none position-relative';
+                        const aliasEnabled = alias.enabled !== false;
+                        badge.className = aliasEnabled
+                            ? 'badge text-bg-secondary text-decoration-none position-relative'
+                            : 'badge text-bg-warning text-dark text-decoration-none position-relative';
                         if (alias.url) {
                             badge.href = alias.url;
                         }
@@ -202,6 +205,13 @@
                         aliasGroup.appendChild(aliasLabel);
                         aliasGroup.appendChild(aliasBadgeContainer);
                         headerRow.appendChild(aliasGroup);
+                    }
+
+                    if (item.enabled === false) {
+                        const statusBadge = document.createElement('span');
+                        statusBadge.className = 'badge text-bg-warning text-dark ms-2';
+                        statusBadge.textContent = 'Disabled';
+                        headerRow.appendChild(statusBadge);
                     }
 
                     if (item.alias_form_url) {

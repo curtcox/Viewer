@@ -74,6 +74,7 @@ class ServerForm(FlaskForm):
         Regexp(r'^[a-zA-Z0-9._-]+$', message='Server name can only contain letters, numbers, dots, hyphens, and underscores')
     ])
     definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
+    enabled = BooleanField('Enabled', default=True)
     submit = SubmitField('Save Server')
 
     def validate_name(self, field: Field) -> None:
@@ -87,6 +88,7 @@ class VariableForm(FlaskForm):
         Regexp(r'^[a-zA-Z0-9._-]+$', message='Variable name can only contain letters, numbers, dots, hyphens, and underscores')
     ])
     definition = TextAreaField('Variable Definition', validators=[DataRequired()], render_kw={'rows': 15})
+    enabled = BooleanField('Enabled', default=True)
     submit = SubmitField('Save Variable')
 
     def validate_name(self, field: Field) -> None:
@@ -115,6 +117,7 @@ class AliasForm(FlaskForm):
             'placeholder': 'pattern -> /target [glob]\n# Add related aliases or notes on following lines',
         },
     )
+    enabled = BooleanField('Enabled', default=True)
     submit = SubmitField('Save Alias')
 
     def __init__(self, *args, **kwargs):
@@ -147,6 +150,7 @@ class SecretForm(FlaskForm):
         Regexp(r'^[a-zA-Z0-9._-]+$', message='Secret name can only contain letters, numbers, dots, hyphens, and underscores')
     ])
     definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
+    enabled = BooleanField('Enabled', default=True)
     submit = SubmitField('Save Secret')
 
     def validate_name(self, field: Field) -> None:

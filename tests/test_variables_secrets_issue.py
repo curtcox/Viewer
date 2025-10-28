@@ -4,6 +4,7 @@ Unit tests to demonstrate the variables and secrets issue with server execution
 """
 import sys
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 # Add current directory to path
@@ -11,7 +12,7 @@ sys.path.insert(0, '.')
 
 from routes.secrets import user_secrets
 from routes.variables import user_variables
-from server_execution import build_request_args
+from server_execution import build_request_args, model_as_dict
 
 
 class TestVariablesSecretsIssue(unittest.TestCase):
@@ -143,6 +144,63 @@ class TestVariablesSecretsIssue(unittest.TestCase):
             # Check that the dictionary contains the expected key-value pairs
             self.assertEqual(args['context']['variables']['test_var'], 'test_value')
             self.assertEqual(args['context']['secrets']['test_secret'], 'secret_value')
+
+    @patch('server_execution.get_user_variables')
+    @patch('server_execution.get_user_secrets')
+    @patch('server_execution.get_user_servers')
+    @patch('server_execution.current_user')
+    def test_build_request_args_skips_disabled_entries(
+        self,
+        mock_current_user,
+        mock_user_servers,
+        mock_user_secrets,
+        mock_user_variables,
+    ):
+        mock_current_user.id = 'test_user_123'
+
+        mock_user_variables.return_value = [
+            SimpleNamespace(name='active_var', definition='value', enabled=True),
+            SimpleNamespace(name='inactive_var', definition='value', enabled=False),
+        ]
+
+        mock_user_secrets.return_value = [
+            SimpleNamespace(name='active_secret', definition='value', enabled=True),
+            SimpleNamespace(name='inactive_secret', definition='value', enabled=False),
+        ]
+
+        mock_user_servers.return_value = []
+
+        mock_request = Mock()
+        mock_request.path = '/echo1'
+        mock_request.method = 'GET'
+        mock_request.headers = {}
+        mock_request.query_string = b''
+        mock_request.remote_addr = '127.0.0.1'
+        mock_request.user_agent = Mock()
+        mock_request.user_agent.string = 'test-agent'
+        mock_request.form = {}
+        mock_request.args = {}
+        mock_request.endpoint = None
+        mock_request.scheme = 'http'
+        mock_request.host = 'localhost'
+
+        with patch.dict('server_execution.__dict__', {'request': mock_request}):
+            args = build_request_args()
+
+        self.assertIn('active_var', args['context']['variables'])
+        self.assertNotIn('inactive_var', args['context']['variables'])
+        self.assertIn('active_secret', args['context']['secrets'])
+        self.assertNotIn('inactive_secret', args['context']['secrets'])
+
+    def test_model_as_dict_ignores_disabled_entries(self):
+        entries = [
+            SimpleNamespace(name='alpha', definition='A', enabled=True),
+            SimpleNamespace(name='beta', definition='B', enabled=False),
+        ]
+
+        result = model_as_dict(entries)
+
+        self.assertEqual(result, {'alpha': 'A'})
 
 
 if __name__ == '__main__':

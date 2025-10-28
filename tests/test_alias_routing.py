@@ -134,6 +134,33 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?download=1&format=html')
 
+    def test_disabled_alias_not_matched(self):
+        alias = self.create_alias(target='/cid123')
+        alias.enabled = False
+        db.session.commit()
+
+        with app.test_request_context('/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                self.assertIsNone(try_alias_redirect('/latest'))
+
+    def test_reenabled_alias_matches_requests(self):
+        alias = self.create_alias(target='/cid123')
+        alias.enabled = False
+        db.session.commit()
+
+        with app.test_request_context('/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                self.assertIsNone(try_alias_redirect('/latest'))
+
+        alias.enabled = True
+        db.session.commit()
+
+        with app.test_request_context('/latest'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                response = try_alias_redirect('/latest')
+                self.assertIsNotNone(response)
+                self.assertEqual(response.location, '/cid123')
+
     def test_try_alias_redirect_combines_existing_query_and_fragment(self):
         self.create_alias(target='/cid123?existing=1#files')
         with app.test_request_context('/latest?download=1'):

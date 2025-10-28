@@ -39,6 +39,9 @@
                             <td>
                                 <div class="fw-semibold">
                                     <i class="fas fa-server me-2 text-secondary"></i>{{ server.name }}
+                                    {% if not server.enabled %}
+                                    <span class="badge text-bg-warning ms-2">Disabled</span>
+                                    {% endif %}
                                 </div>
                                 <div class="small text-muted">/servers/{{ server.name }}</div>
                             </td>

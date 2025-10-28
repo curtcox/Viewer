@@ -34,7 +34,7 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def _create_server(self, name: str, definition: str) -> Server:
+    def _create_server(self, name: str, definition: str, *, enabled: bool = True) -> Server:
         server = Server(
             id=None,
             name=name,
@@ -42,6 +42,7 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
             user_id=self.user_id,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
+            enabled=enabled,
         )
         db.session.add(server)
         db.session.commit()
@@ -72,6 +73,27 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
 
         direct_response = self.client.get(final_path)
         self.assertEqual(response.data, direct_response.data)
+
+    def test_server_enablement_controls_execution(self):
+        server = self._create_server(
+            "markdown",
+            (
+                "def main():\n"
+                "    return \"\"\"<html><body><h1>Preview</h1></body></html>\"\"\"\n"
+            ),
+        )
+
+        server.enabled = False
+        db.session.commit()
+
+        disabled_response = self.client.get(f"/{server.name}")
+        self.assertEqual(disabled_response.status_code, 404)
+
+        server.enabled = True
+        db.session.commit()
+
+        enabled_response = self.client.get(f"/{server.name}", follow_redirects=True)
+        self.assertEqual(enabled_response.status_code, 200)
 
 
 if __name__ == "__main__":

@@ -71,6 +71,25 @@ def _normalise_cid(value: Any) -> str:
     return cleaned.lstrip('/')
 
 
+def _coerce_enabled_flag(value: Any) -> bool:
+    """Return a best-effort boolean for enabled flags in import payloads."""
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {'false', '0', 'off', 'no'}:
+            return False
+        if normalized in {'true', '1', 'on', 'yes'}:
+            return True
+
+    if isinstance(value, (int, float)):
+        return bool(value)
+
+    return True if value is None else bool(value)
+
+
 def _serialise_cid_value(content: bytes) -> dict[str, str]:
     try:
         return {'encoding': 'utf-8', 'value': content.decode('utf-8')}
@@ -408,6 +427,7 @@ class _AliasImport:
 
     name: str
     definition: str
+    enabled: bool
 
 
 def _prepare_alias_import(
@@ -480,7 +500,9 @@ def _prepare_alias_import(
         canonical_primary,
     )
 
-    return _AliasImport(name=name, definition=definition_value)
+    enabled = _coerce_enabled_flag(entry.get('enabled'))
+
+    return _AliasImport(name=name, definition=definition_value, enabled=enabled)
 
 
 def _parse_source_entry(entry: Any, label_text: str, warnings: list[str]) -> _SourceEntry | None:
@@ -609,7 +631,13 @@ def _collect_alias_section(
         definition_text = alias.definition or ''
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = store_cid_from_bytes(definition_bytes, user_id)
-        alias_payload.append({'name': alias.name, 'definition_cid': definition_cid})
+        alias_payload.append(
+            {
+                'name': alias.name,
+                'definition_cid': definition_cid,
+                'enabled': bool(getattr(alias, 'enabled', True)),
+            }
+        )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
 
     return alias_payload
@@ -630,7 +658,13 @@ def _collect_server_section(
             definition_text,
             user_id,
         )
-        servers_payload.append({'name': server.name, 'definition_cid': definition_cid})
+        servers_payload.append(
+            {
+                'name': server.name,
+                'definition_cid': definition_cid,
+                'enabled': bool(getattr(server, 'enabled', True)),
+            }
+        )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
 
     return servers_payload
@@ -640,7 +674,11 @@ def _collect_variables_section(user_id: str) -> list[dict[str, str]]:
     """Return variable export entries for the user."""
 
     return [
-        {'name': variable.name, 'definition': variable.definition}
+        {
+            'name': variable.name,
+            'definition': variable.definition,
+            'enabled': bool(getattr(variable, 'enabled', True)),
+        }
         for variable in get_user_variables(user_id)
     ]
 
@@ -654,6 +692,7 @@ def _collect_secrets_section(user_id: str, key: str) -> dict[str, Any]:
             {
                 'name': secret.name,
                 'ciphertext': encrypt_secret_value(secret.definition, key),
+                'enabled': bool(getattr(secret, 'enabled', True)),
             }
             for secret in get_user_secrets(user_id)
         ],
@@ -741,7 +780,7 @@ def _add_optional_section(
 def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
     """Return rendered export payload data for the user's selected collections."""
 
-    payload: dict[str, Any] = {'version': 5}
+    payload: dict[str, Any] = {'version': 6}
     sections: dict[str, Any] = {
         'generated_at': datetime.now(timezone.utc).isoformat(),
         'runtime': _build_runtime_section(),
@@ -1210,12 +1249,14 @@ def _import_aliases(
         if existing:
             existing.definition = prepared.definition
             existing.updated_at = datetime.now(timezone.utc)
+            existing.enabled = prepared.enabled
             save_entity(existing)
         else:
             alias = Alias(
                 name=prepared.name,
                 user_id=user_id,
                 definition=prepared.definition,
+                enabled=prepared.enabled,
             )
             save_entity(alias)
         imported += 1
@@ -1227,6 +1268,7 @@ def _import_aliases(
 class _ServerImport:
     name: str
     definition: str
+    enabled: bool
 
 
 def _load_server_definition_from_cid(
@@ -1283,7 +1325,9 @@ def _prepare_server_import(
         )
         return None
 
-    return _ServerImport(name=name, definition=definition_text)
+    enabled = _coerce_enabled_flag(entry.get('enabled'))
+
+    return _ServerImport(name=name, definition=definition_text, enabled=enabled)
 
 
 def _import_servers(
@@ -1312,6 +1356,7 @@ def _import_servers(
             existing.definition = prepared.definition
             existing.definition_cid = definition_cid
             existing.updated_at = datetime.now(timezone.utc)
+            existing.enabled = prepared.enabled
             save_entity(existing)
         else:
             server = Server(
@@ -1319,6 +1364,7 @@ def _import_servers(
                 definition=prepared.definition,
                 user_id=user_id,
                 definition_cid=definition_cid,
+                enabled=prepared.enabled,
             )
             save_entity(server)
         imported += 1
@@ -1350,13 +1396,16 @@ def _import_variables(user_id: str, raw_variables: Any) -> Tuple[int, list[str]]
             errors.append('Variable entry must include both name and definition.')
             continue
 
+        enabled = _coerce_enabled_flag(entry.get('enabled'))
+
         existing = get_variable_by_name(user_id, name)
         if existing:
             existing.definition = definition
             existing.updated_at = datetime.now(timezone.utc)
+            existing.enabled = enabled
             save_entity(existing)
         else:
-            variable = Variable(name=name, definition=definition, user_id=user_id)
+            variable = Variable(name=name, definition=definition, user_id=user_id, enabled=enabled)
             save_entity(variable)
         imported += 1
 
@@ -1400,13 +1449,15 @@ def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> Tuple[int, list
                 continue
 
             plaintext = decrypt_secret_value(ciphertext, key)
+            enabled = _coerce_enabled_flag(entry.get('enabled'))
             existing = get_secret_by_name(user_id, name)
             if existing:
                 existing.definition = plaintext
                 existing.updated_at = datetime.now(timezone.utc)
+                existing.enabled = enabled
                 save_entity(existing)
             else:
-                secret = Secret(name=name, definition=plaintext, user_id=user_id)
+                secret = Secret(name=name, definition=plaintext, user_id=user_id, enabled=enabled)
                 save_entity(secret)
             imported += 1
     except ValueError:

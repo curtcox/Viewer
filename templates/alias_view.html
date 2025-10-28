@@ -30,6 +30,15 @@
                         <dt class="col-sm-3">Alias Name</dt>
                         <dd class="col-sm-9"><code>{{ alias.name }}</code></dd>
 
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            {% if alias.enabled %}
+                            <span class="badge text-bg-success">Enabled</span>
+                            {% else %}
+                            <span class="badge text-bg-warning text-dark">Disabled</span>
+                            {% endif %}
+                        </dd>
+
                         <dt class="col-sm-3">Redirect Path</dt>
                         <dd class="col-sm-9">
                             {% if alias_target_cid %}
