@@ -630,14 +630,26 @@ def edit_server(server_name):
     upload_url = url_for('main.upload_server_test_page', server_name=server.name)
 
     if form.validate_on_submit():
-        if update_entity(
-            server,
-            form,
-            'server',
-            change_message=change_message,
-            content_text=definition_text_current,
-        ):
-            return redirect(url_for('main.view_server', server_name=server.name))
+        save_action = (request.form.get('submit_action') or '').strip().lower()
+        if save_action == 'save-as':
+            if create_entity(
+                Server,
+                form,
+                current_user.id,
+                'server',
+                change_message=change_message,
+                content_text=definition_text_current,
+            ):
+                return redirect(url_for('main.view_server', server_name=form.name.data))
+        else:
+            if update_entity(
+                server,
+                form,
+                'server',
+                change_message=change_message,
+                content_text=definition_text_current,
+            ):
+                return redirect(url_for('main.view_server', server_name=server.name))
         return render_template(
             'server_form.html',
             form=form,

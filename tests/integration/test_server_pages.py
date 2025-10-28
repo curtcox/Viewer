@@ -221,7 +221,7 @@ def test_edit_server_updates_definition_snapshots(
             "name": "forecast",
             "definition": updated_definition,
             "change_message": "rename server",
-            "submit": "Save Server",
+            "submit": "Rename to forecast",
         },
         follow_redirects=False,
     )
