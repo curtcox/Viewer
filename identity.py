@@ -9,6 +9,7 @@ from flask import g, has_request_context, session
 from werkzeug.local import LocalProxy
 
 from ai_defaults import ensure_ai_stub_for_user
+from css_defaults import ensure_css_alias_for_user
 
 _DEFAULT_USER_ID = "default-user"
 _DEFAULT_EMAIL = "default@example.com"
@@ -66,6 +67,7 @@ def _create_default_user() -> ExternalUser:
         current_terms_accepted=True,
     )
     ensure_ai_stub_for_user(user.id)
+    ensure_css_alias_for_user(user.id)
     return user
 
 
@@ -83,6 +85,7 @@ def ensure_default_user() -> ExternalUser:
         # AI stub resources are present for the active database on every
         # invocation.
         ensure_ai_stub_for_user(_default_user.id)
+        ensure_css_alias_for_user(_default_user.id)
     _cached_default_user = _default_user
     return _default_user
 
@@ -106,6 +109,7 @@ def _load_current_user() -> ExternalUser:
                     current_terms_accepted=True,
                 )
                 ensure_ai_stub_for_user(user.id)
+                ensure_css_alias_for_user(user.id)
                 g._default_user = user
             return user
 
