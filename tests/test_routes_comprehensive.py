@@ -559,7 +559,7 @@ def main(request):
         )
 
     def test_plans_page(self):
-        """Test plans page."""
+        """Plans endpoint should stay disabled and answer with a 404."""
         response = self.client.get('/plans')
         self.assertEqual(response.status_code, 404)
 
