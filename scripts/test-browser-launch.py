@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 from pathlib import Path
 
@@ -80,7 +79,7 @@ def main() -> int:
     # Verify the screenshot file was created
     if output_path.exists():
         file_size = output_path.stat().st_size
-        print(f"\nScreenshot file created successfully")
+        print("\nScreenshot file created successfully")
         print(f"File size: {file_size} bytes")
         if file_size > 0:
             return 0
