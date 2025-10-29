@@ -1,8 +1,6 @@
 """Integration tests for the source browser and instance pages."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from database import db
@@ -77,8 +75,8 @@ def test_source_browser_displays_running_commit_link(
 
     page = response.get_data(as_text=True)
 
-    repository_root = Path(__file__).resolve().parents[2]
-    sha = get_current_commit_sha(str(repository_root))
+    repository_root = client.application.root_path
+    sha = get_current_commit_sha(repository_root)
 
     if not sha:
         pytest.skip("The running commit SHA could not be determined")
