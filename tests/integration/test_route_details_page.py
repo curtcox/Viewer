@@ -1,12 +1,42 @@
 from __future__ import annotations
 
+import re
+from urllib.parse import urlsplit
+
 import pytest
 
 from cid_presenter import format_cid
 from database import db
-from models import CID, Server
+from models import Alias, CID, Server
 
 pytestmark = pytest.mark.integration
+
+
+def _normalize_location(location: str) -> str:
+    parsed = urlsplit(location)
+    return parsed.path or "/"
+
+
+def _create_alias_chain(app, base_name: str, redirect_count: int, final_target: str) -> list[str]:
+    names: list[str] = []
+    with app.app_context():
+        for index in range(redirect_count):
+            alias_name = f"{base_name}-{index + 1}"
+            next_path = final_target if index + 1 == redirect_count else f"/{base_name}-{index + 2}"
+            db.session.add(
+                Alias(
+                    name=alias_name,
+                    definition=f"{alias_name} -> {next_path}",
+                    user_id="default-user",
+                )
+            )
+            names.append(alias_name)
+        db.session.commit()
+    return names
+
+
+def _extract_request_paths(page: str) -> list[str]:
+    return re.findall(r'data-request-path="([^"]+)"', page)
 
 
 def test_route_details_for_builtin_index(client, login_default_user):
@@ -104,3 +134,115 @@ def test_route_details_for_direct_cid(client, integration_app, login_default_use
     assert "CID" in page
     assert "cid-display" in page
     assert cid_value in page
+
+
+@pytest.mark.parametrize("redirect_count", [2, 3])
+def test_route_details_follow_alias_chain_to_server(
+    client, integration_app, login_default_user, redirect_count
+):
+    server_name = f"chain-server-destination-{redirect_count}"
+    base_name = f"chain-server-{redirect_count}"
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name=server_name,
+                definition=(
+                    "def main():\n"
+                    "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"
+                ),
+                user_id="default-user",
+            )
+        )
+        db.session.commit()
+
+    alias_names = _create_alias_chain(
+        integration_app, base_name, redirect_count, final_target=f"/{server_name}"
+    )
+
+    login_default_user()
+
+    current_path = f"/{base_name}-1"
+    visited_paths = [current_path]
+    for _ in range(redirect_count):
+        response = client.get(current_path, follow_redirects=False)
+        assert response.status_code == 302
+        location = response.headers.get("Location")
+        assert location
+        current_path = _normalize_location(location)
+        visited_paths.append(current_path)
+
+    assert visited_paths[-1] == f"/{server_name}"
+
+    server_response = client.get(current_path, follow_redirects=False)
+    assert server_response.status_code == 302
+
+    detail_response = client.get(f"/routes/{base_name}-1")
+    assert detail_response.status_code == 200
+    page = detail_response.get_data(as_text=True)
+
+    path_order = _extract_request_paths(page)
+    assert path_order == visited_paths
+
+    for alias_name in alias_names:
+        assert f'href="/aliases/{alias_name}"' in page
+
+    assert f'href="/servers/{server_name}"' in page
+
+    for path in visited_paths:
+        assert f'href="{path}"' in page
+
+
+@pytest.mark.parametrize("redirect_count", [4, 5])
+def test_route_details_follow_alias_chain_to_cid(
+    client, integration_app, login_default_user, redirect_count
+):
+    cid_value = format_cid(f"cidchain{redirect_count}abcdef")
+    base_name = f"chain-cid-{redirect_count}"
+
+    with integration_app.app_context():
+        db.session.add(
+            CID(
+                path=f"/{cid_value}",
+                file_data=b"cid target",
+                uploaded_by_user_id="default-user",
+            )
+        )
+        db.session.commit()
+
+    alias_names = _create_alias_chain(
+        integration_app, base_name, redirect_count, final_target=f"/{cid_value}"
+    )
+
+    login_default_user()
+
+    current_path = f"/{base_name}-1"
+    visited_paths = [current_path]
+    for _ in range(redirect_count):
+        response = client.get(current_path, follow_redirects=False)
+        assert response.status_code == 302
+        location = response.headers.get("Location")
+        assert location
+        current_path = _normalize_location(location)
+        visited_paths.append(current_path)
+
+    assert visited_paths[-1] == f"/{cid_value}"
+
+    final_response = client.get(current_path, follow_redirects=False)
+    assert final_response.status_code == 200
+
+    detail_response = client.get(f"/routes/{base_name}-1")
+    assert detail_response.status_code == 200
+    page = detail_response.get_data(as_text=True)
+
+    path_order = _extract_request_paths(page)
+    assert path_order == visited_paths
+
+    for alias_name in alias_names:
+        assert f'href="/aliases/{alias_name}"' in page
+
+    assert f'href="/{cid_value}"' in page
+    assert "cid-display" in page
+
+    for path in visited_paths:
+        assert f'href="{path}"' in page

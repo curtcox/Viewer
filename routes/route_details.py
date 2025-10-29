@@ -30,6 +30,7 @@ class RouteStep:
     category: str
     title: str
     description: str
+    request_path: str
     link_label: Optional[str] = None
     link_url: Optional[str] = None
     cid_markup: Optional[Markup] = None
@@ -72,6 +73,10 @@ class RouteStep:
     def badge_class(self) -> str:
         return self._BADGE_CLASSES.get(self.category, "text-bg-secondary")
 
+    @property
+    def request_url(self) -> str:
+        return self.request_path
+
 
 @dataclass
 class RouteResolution:
@@ -82,6 +87,9 @@ class RouteResolution:
     final_summary: str
     redirect_target: Optional[str]
     steps: List[RouteStep]
+    redirects_followed: int = 0
+    chain_limited: bool = False
+    loop_detected: bool = False
 
 
 def _normalize_requested_path(raw: str) -> str:
@@ -146,6 +154,7 @@ def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
         category="builtin",
         title=endpoint,
         description=description,
+        request_path=path,
         link_label="View source" if definition_url else None,
         link_url=definition_url,
         extra_details=definition_label,
@@ -187,6 +196,7 @@ def _alias_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResol
         category="alias",
         title=alias_name,
         description=description,
+        request_path=path,
         link_label="View alias definition",
         link_url=definition_url,
         extra_details=extra,
@@ -244,6 +254,7 @@ def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteReso
         category="server",
         title=server.name,
         description=description,
+        request_path=path,
         link_label="View server definition",
         link_url=link_url,
         extra_details="Response redirects to generated CID content.",
@@ -314,6 +325,7 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         category="server",
         title=f"{server.name} (historical)",
         description=description,
+        request_path=path,
         link_label="View server definition",
         link_url=link_url,
         extra_details=extra_details,
@@ -349,6 +361,7 @@ def _cid_step_for(path: str) -> Optional[RouteResolution]:
         category="cid",
         title=cid_value,
         description=description,
+        request_path=path,
         cid_markup=cid_markup,
         extra_details=extra,
     )
@@ -368,6 +381,7 @@ def _not_found_resolution(path: str) -> RouteResolution:
         category="not_found",
         title="No matching handler",
         description="No alias, server, or CID matched the requested path.",
+        request_path=path,
     )
     return RouteResolution(
         normalized_path=path,
@@ -378,34 +392,96 @@ def _not_found_resolution(path: str) -> RouteResolution:
     )
 
 
+def _describe_single_step(path: str, existing_routes: set[str]) -> RouteResolution:
+    builtin_resolution = _describe_builtin_route(path)
+    if builtin_resolution is not None:
+        return builtin_resolution
+
+    alias_resolution = _alias_step_for(path, existing_routes)
+    if alias_resolution is not None:
+        return alias_resolution
+
+    server_resolution = _server_step_for(path, existing_routes)
+    if server_resolution is not None:
+        return server_resolution
+
+    versioned_resolution = _versioned_server_step_for(path, existing_routes)
+    if versioned_resolution is not None:
+        return versioned_resolution
+
+    cid_resolution = _cid_step_for(path)
+    if cid_resolution is not None:
+        return cid_resolution
+
+    return _not_found_resolution(path)
+
+
 def describe_request_path(path: str) -> RouteResolution:
     """Return a structured description of how ``path`` is handled."""
 
     normalized = _normalize_requested_path(path)
 
-    builtin_resolution = _describe_builtin_route(normalized)
-    if builtin_resolution is not None:
-        return builtin_resolution
-
     existing_routes = set(get_existing_routes())
+    steps: list[RouteStep] = []
+    visited: set[str] = set()
+    current_path = normalized
+    final_status: Optional[int] = None
+    final_summary: str = ""
+    redirect_target: Optional[str] = None
+    redirects_followed = 0
+    chain_limited = False
+    loop_detected = False
 
-    alias_resolution = _alias_step_for(normalized, existing_routes)
-    if alias_resolution is not None:
-        return alias_resolution
+    while True:
+        if current_path in visited:
+            loop_detected = True
+            chain_limited = True
+            break
 
-    server_resolution = _server_step_for(normalized, existing_routes)
-    if server_resolution is not None:
-        return server_resolution
+        visited.add(current_path)
 
-    versioned_resolution = _versioned_server_step_for(normalized, existing_routes)
-    if versioned_resolution is not None:
-        return versioned_resolution
+        resolution = _describe_single_step(current_path, existing_routes)
+        steps.extend(resolution.steps)
+        final_status = resolution.final_status
+        final_summary = resolution.final_summary
+        redirect_target = resolution.redirect_target
 
-    cid_resolution = _cid_step_for(normalized)
-    if cid_resolution is not None:
-        return cid_resolution
+        if not redirect_target:
+            break
 
-    return _not_found_resolution(normalized)
+        redirects_followed += 1
+        next_path = _normalize_requested_path(redirect_target)
+
+        if redirects_followed >= 20:
+            chain_limited = True
+            break
+
+        if next_path in visited:
+            loop_detected = True
+            chain_limited = True
+            break
+
+        current_path = next_path
+
+    summary_text = final_summary or ""
+    if chain_limited:
+        suffix = (
+            f" Redirect loop detected after {redirects_followed} redirects."
+            if loop_detected
+            else f" Redirect chain truncated after {redirects_followed} redirects."
+        )
+        summary_text = (summary_text + suffix).strip()
+
+    return RouteResolution(
+        normalized_path=normalized,
+        final_status=final_status,
+        final_summary=summary_text,
+        redirect_target=redirect_target,
+        steps=steps,
+        redirects_followed=redirects_followed,
+        chain_limited=chain_limited,
+        loop_detected=loop_detected,
+    )
 
 
 @main_bp.route("/routes/", defaults={"requested_path": ""})

@@ -4,7 +4,13 @@
 <div class="container py-4">
     <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
         <h1 class="h3 mb-0">Route Explorer</h1>
-        <span class="badge bg-secondary text-wrap">Path: <span class="font-monospace">{{ resolution.normalized_path }}</span></span>
+        <span class="badge bg-secondary text-wrap">
+            Path:
+            <a class="font-monospace link-light text-decoration-none"
+               href="{{ resolution.normalized_path }}">
+                {{ resolution.normalized_path }}
+            </a>
+        </span>
     </div>
 
     <div class="card shadow-sm mb-4">
@@ -23,6 +29,15 @@
                     {% if resolution.redirect_target %}
                     <div class="text-muted small mt-2">Redirect target: <code>{{ resolution.redirect_target }}</code></div>
                     {% endif %}
+                    {% if resolution.chain_limited %}
+                    <div class="text-warning small mt-2">
+                        {% if resolution.loop_detected %}
+                        Redirect loop detected after {{ resolution.redirects_followed }} redirects.
+                        {% else %}
+                        Redirect chain truncated after {{ resolution.redirects_followed }} redirects.
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -30,7 +45,7 @@
 
     <div class="list-group">
         {% for step in resolution.steps %}
-        <div class="list-group-item py-4">
+        <div class="list-group-item py-4" data-request-path="{{ step.request_path }}">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div class="flex-grow-1">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -38,6 +53,9 @@
                             <i class="fas {{ step.icon_class }} me-1"></i>{{ step.category_label }}
                         </span>
                         <span class="fw-semibold">{{ step.title }}</span>
+                    </div>
+                    <div class="mb-2 small">
+                        <a class="link-primary text-decoration-none" href="{{ step.request_url }}">{{ step.request_path }}</a>
                     </div>
                     <p class="mb-2">{{ step.description }}</p>
                     {% if step.extra_details %}
