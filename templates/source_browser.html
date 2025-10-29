@@ -4,8 +4,22 @@
 
 {% block content %}
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="mb-0"><i class="fas fa-code me-2"></i>Source Browser</h2>
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-3 gap-2">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-code me-2"></i>Source Browser</h2>
+            {% if github_commit_sha %}
+                <div class="small text-muted">
+                    Running commit:
+                    {% if github_commit_url %}
+                        <a href="{{ github_commit_url }}" target="_blank" rel="noopener noreferrer">
+                            {{ github_commit_short_sha or github_commit_sha }}
+                        </a>
+                    {% else %}
+                        <code>{{ github_commit_short_sha or github_commit_sha }}</code>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
         <a class="btn btn-outline-primary" href="{{ url_for('main.source_instance_overview') }}">
             <i class="fas fa-database me-2"></i>Database Tables
         </a>

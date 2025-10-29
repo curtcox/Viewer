@@ -81,6 +81,48 @@ def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
     all_files = _get_all_project_files(root_path)
     return tracked | all_files
 
+
+@lru_cache(maxsize=1)
+def _get_current_commit_sha(root_path: str) -> str | None:
+    """Return the current git commit SHA for the repository."""
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+
+    sha = result.stdout.strip()
+    return sha or None
+
+
+def _build_commit_context(root_path: str, repository_url: str | None) -> dict[str, str | None]:
+    """Return template context values for linking to the running commit."""
+
+    sha = _get_current_commit_sha(root_path)
+    if not sha:
+        return {
+            "github_commit_url": None,
+            "github_commit_sha": None,
+            "github_commit_short_sha": None,
+        }
+
+    commit_url: str | None = None
+    if repository_url:
+        commit_url = f"{repository_url.rstrip('/')}/tree/{sha}"
+
+    return {
+        "github_commit_url": commit_url,
+        "github_commit_sha": sha,
+        "github_commit_short_sha": sha[:7],
+    }
+
+
 def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     """Create breadcrumbs for the requested path."""
     breadcrumbs: List[Tuple[str, str]] = [("", "Source")]
@@ -120,6 +162,9 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
     """Render the directory listing template."""
     directories, files = _directory_listing(path, tracked_paths)
     breadcrumbs = _build_breadcrumbs(path)
+    commit_context = _build_commit_context(
+        current_app.root_path, current_app.config.get("GITHUB_REPOSITORY_URL")
+    )
 
     return render_template(
         "source_browser.html",
@@ -132,6 +177,7 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
         syntax_css=None,
         is_file=False,
         path_prefix=f"{path}/" if path else "",
+        **commit_context,
     )
 
 
@@ -161,6 +207,10 @@ def _render_file(path: str, root_path: Path):
         filename=path,
     )
 
+    commit_context = _build_commit_context(
+        current_app.root_path, current_app.config.get("GITHUB_REPOSITORY_URL")
+    )
+
     return render_template(
         "source_browser.html",
         breadcrumbs=breadcrumbs,
@@ -172,6 +222,7 @@ def _render_file(path: str, root_path: Path):
         syntax_css=syntax_css,
         is_file=True,
         path_prefix=f"{path}/" if path else "",
+        **commit_context,
     )
 
 

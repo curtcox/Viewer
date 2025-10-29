@@ -112,6 +112,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         },
     )
 
+    app.config.setdefault(
+        "GITHUB_REPOSITORY_URL",
+        os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
+    )
+
     if config_override:
         app.config.update(config_override)
 

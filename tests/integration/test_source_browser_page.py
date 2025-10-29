@@ -1,6 +1,9 @@
 """Integration tests for the source browser and instance pages."""
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
 import pytest
 
 from database import db
@@ -58,6 +61,32 @@ def test_source_browser_links_to_instance_overview(
     page = response.get_data(as_text=True)
     assert "/source/instance" in page
     assert "Database Tables" in page
+
+
+def test_source_browser_displays_running_commit_link(
+    client,
+    login_default_user,
+):
+    """The source browser should display a link to the running commit."""
+
+    login_default_user()
+
+    response = client.get("/source")
+
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+
+    repository_root = Path(__file__).resolve().parents[2]
+    sha = (
+        subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repository_root)
+        .decode()
+        .strip()
+    )
+
+    expected_url = f"https://github.com/curtcox/Viewer/tree/{sha}"
+    assert expected_url in page
+    assert sha[:7] in page
 
 
 def test_source_instance_lists_tables(
