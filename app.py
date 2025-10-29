@@ -10,6 +10,7 @@ from logfire.exceptions import LogfireConfigError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from ai_defaults import ensure_ai_stub_for_all_users
+from css_defaults import ensure_css_alias_for_all_users
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -198,6 +199,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         }
 
         ensure_ai_stub_for_all_users()
+        ensure_css_alias_for_all_users()
 
     return app
 

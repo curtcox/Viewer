@@ -1,0 +1,2 @@
+/* Proxy stylesheet that resolves through the CSS alias chain. */
+@import url("/css/custom.css");

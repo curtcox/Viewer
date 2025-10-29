@@ -1,0 +1,7 @@
+{
+  "id": "css-dark-mode",
+  "name": "CSS Dark Mode Theme",
+  "description": "A dark mode stylesheet that can replace /static/css/custom.css via the CSS alias.",
+  "content_file": "contents/css_dark_mode.css",
+  "suggested_filename": "custom.css"
+}

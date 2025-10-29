@@ -1,0 +1,7 @@
+{
+  "id": "css-light-mode",
+  "name": "CSS Light Mode Theme",
+  "description": "Default light mode stylesheet matching the bundled /static/css/custom.css theme.",
+  "content_file": "contents/css_light_mode.css",
+  "suggested_filename": "custom.css"
+}
