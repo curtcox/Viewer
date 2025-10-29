@@ -36,8 +36,22 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.assertIn('css/lightmode -> /static/css/custom.css', lines)
         self.assertIn('css/darkmode -> /static/css/custom.css', lines)
 
-    def test_css_alias_respects_user_customizations(self):
+    def test_css_alias_created_when_missing(self):
         alias = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(alias)
+        db.session.delete(alias)
+        db.session.commit()
+
+        changed = ensure_css_alias_for_user(self.user.id)
+        self.assertTrue(changed)
+
+        recreated = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(recreated)
+        self.assertIn('css/custom.css -> /css/default', recreated.definition)
+
+    def test_css_alias_preserved_when_already_defined(self):
+        alias = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(alias)
         alias.definition = 'css/custom.css -> /css/darkmode'
         db.session.add(alias)
         db.session.commit()
@@ -47,6 +61,16 @@ class TestCssAliasDefaults(unittest.TestCase):
 
         refreshed = get_alias_by_name(self.user.id, 'CSS')
         self.assertEqual(refreshed.definition.strip(), 'css/custom.css -> /css/darkmode')
+
+    def test_css_alias_definition_can_be_updated_by_user(self):
+        alias = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(alias)
+        alias.definition = 'css/custom.css -> /css/darkmode'
+        db.session.add(alias)
+        db.session.commit()
+
+        fetched = get_alias_by_name(self.user.id, 'CSS')
+        self.assertEqual(fetched.definition.strip(), 'css/custom.css -> /css/darkmode')
 
     def test_css_alias_redirect_chain(self):
         first = self.client.get('/css/custom.css', follow_redirects=False)

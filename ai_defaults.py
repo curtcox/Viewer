@@ -6,11 +6,7 @@ from typing import Optional
 
 from flask import current_app
 
-from alias_definition import (
-    format_primary_alias_line,
-    get_primary_alias_route,
-    replace_primary_definition_line,
-)
+from alias_definition import format_primary_alias_line
 from db_access import (
     get_alias_by_name,
     get_server_by_name,
@@ -45,14 +41,7 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
     if not user_id:
         return False
 
-    # Respect any existing customisations.
     alias = get_alias_by_name(user_id, AI_ALIAS_NAME)
-    if alias:
-        primary_route = get_primary_alias_route(alias)
-        if not primary_route:
-            return False
-        if primary_route.target_path not in {f"/{AI_SERVER_NAME}", f"{AI_SERVER_NAME}"}:
-            return False
 
     if get_server_by_name(user_id, AI_ALIAS_NAME):
         return False
@@ -77,46 +66,28 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
     desired_target = f"/{AI_SERVER_NAME}"
     desired_pattern = f"/{AI_ALIAS_NAME}"
-    if alias:
-        primary_route = get_primary_alias_route(alias)
-        needs_update = (
-            not primary_route
-            or primary_route.target_path != desired_target
-            or primary_route.match_pattern != desired_pattern
-            or primary_route.match_type != "literal"
-            or primary_route.ignore_case
-        )
-        if needs_update:
-            primary_line = format_primary_alias_line(
-                "literal",
-                desired_pattern,
-                desired_target,
-                ignore_case=False,
-                alias_name=getattr(alias, "name", None),
-            )
-            alias.definition = replace_primary_definition_line(
-                getattr(alias, "definition", None),
-                primary_line,
-            )
-            save_entity(alias)
-            created = True
-    else:
-        primary_line = format_primary_alias_line(
-            "literal",
-            desired_pattern,
-            desired_target,
-            ignore_case=False,
-            alias_name=AI_ALIAS_NAME,
-        )
-        alias = Alias(
-            name=AI_ALIAS_NAME,
-            user_id=user_id,
-            definition=primary_line,
-        )
-        save_entity(alias)
-        created = True
+    primary_line = format_primary_alias_line(
+        "literal",
+        desired_pattern,
+        desired_target,
+        ignore_case=False,
+        alias_name=AI_ALIAS_NAME,
+    )
 
-    return created
+    if alias:
+        if alias.definition and alias.definition.strip():
+            return created
+        alias.definition = primary_line
+        save_entity(alias)
+        return True
+
+    alias = Alias(
+        name=AI_ALIAS_NAME,
+        user_id=user_id,
+        definition=primary_line,
+    )
+    save_entity(alias)
+    return True
 
 
 def ensure_ai_stub_for_all_users() -> None:
