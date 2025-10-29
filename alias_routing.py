@@ -326,4 +326,32 @@ def try_alias_redirect(path: str, *, alias_match: Optional[AliasMatch] = None) -
     return redirect(target, code=status_code)
 
 
-__all__ = ["AliasMatch", "find_matching_alias", "is_potential_alias_path", "try_alias_redirect"]
+@dataclass(frozen=True)
+class AliasResolution:
+    """Describe how an alias would handle a request path."""
+
+    match: AliasMatch
+    target: Optional[str]
+    is_relative: bool
+
+
+def resolve_alias_target(path: str, *, alias_match: Optional[AliasMatch] = None) -> Optional[AliasResolution]:
+    """Return alias resolution details without creating a redirect response."""
+
+    match = alias_match or find_matching_alias(path)
+    if not match:
+        return None
+
+    target = _resolve_target_path(match.route, path)
+    is_relative = bool(target and _is_relative_target(target))
+    return AliasResolution(match=match, target=target, is_relative=is_relative)
+
+
+__all__ = [
+    "AliasMatch",
+    "AliasResolution",
+    "find_matching_alias",
+    "is_potential_alias_path",
+    "resolve_alias_target",
+    "try_alias_redirect",
+]

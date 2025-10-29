@@ -10,6 +10,7 @@ from . import history  # noqa: F401,E402
 from . import import_export  # noqa: F401,E402
 from . import interactions  # noqa: F401,E402
 from . import meta  # noqa: F401,E402
+from . import route_details  # noqa: F401,E402
 from . import routes_overview  # noqa: F401,E402
 from . import search  # noqa: F401,E402
 from . import secrets  # noqa: F401,E402

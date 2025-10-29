@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+        <h1 class="h3 mb-0">Route Explorer</h1>
+        <span class="badge bg-secondary text-wrap">Path: <span class="font-monospace">{{ resolution.normalized_path }}</span></span>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between gap-3">
+                <div>
+                    <div class="text-uppercase text-muted small">Final response</div>
+                    <div class="fs-5 fw-semibold">
+                        {% if resolution.final_status is not none %}
+                        <span class="badge text-bg-primary me-2">{{ resolution.final_status }}</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary me-2">Varies</span>
+                        {% endif %}
+                        {{ resolution.final_summary }}
+                    </div>
+                    {% if resolution.redirect_target %}
+                    <div class="text-muted small mt-2">Redirect target: <code>{{ resolution.redirect_target }}</code></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="list-group">
+        {% for step in resolution.steps %}
+        <div class="list-group-item py-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge {{ step.badge_class }}">
+                            <i class="fas {{ step.icon_class }} me-1"></i>{{ step.category_label }}
+                        </span>
+                        <span class="fw-semibold">{{ step.title }}</span>
+                    </div>
+                    <p class="mb-2">{{ step.description }}</p>
+                    {% if step.extra_details %}
+                    <div class="text-muted small mb-2">{{ step.extra_details }}</div>
+                    {% endif %}
+                    {% if step.redirect_target %}
+                    <div class="text-muted small mb-2">Redirects to <code>{{ step.redirect_target }}</code></div>
+                    {% endif %}
+                    {% if step.cid_markup %}
+                    <div class="mt-2">{{ step.cid_markup }}</div>
+                    {% endif %}
+                </div>
+                {% if step.link_url %}
+                <div class="text-end">
+                    <a class="btn btn-outline-primary btn-sm" href="{{ step.link_url }}">{{ step.link_label }}</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="list-group-item py-4 text-muted">No routing steps recorded.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
