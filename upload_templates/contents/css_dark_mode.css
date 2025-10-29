@@ -1,16 +1,16 @@
 /* Midnight neon dark mode preset for Viewer */
 
 :root {
-    --surface-base: #121212;
-    --surface-panel: #181b2a;
-    --surface-overlay: rgba(59, 130, 246, 0.12);
-    --text-strong: #f8fafc;
-    --text-muted: #cbd5f5;
+    --surface-base: #05070f;
+    --surface-panel: #11162a;
+    --surface-overlay: rgba(56, 189, 248, 0.18);
+    --text-strong: #f9fbff;
+    --text-muted: #d6dcff;
     --primary: #818cf8;
     --primary-strong: #6366f1;
     --accent: #22d3ee;
-    --border: rgba(129, 140, 248, 0.35);
-    --shadow: rgba(2, 6, 23, 0.8);
+    --border: rgba(129, 140, 248, 0.42);
+    --shadow: rgba(2, 6, 23, 0.9);
 }
 
 body {
@@ -18,9 +18,10 @@ body {
     line-height: 1.7;
     margin: 0;
     color: var(--text-strong);
-    background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.25), transparent 45%),
-        radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.22), transparent 50%),
-        #121212;
+    background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.32), transparent 45%),
+        radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.28), transparent 50%),
+        var(--surface-base);
+    color-scheme: dark;
     min-height: 100vh;
 }
 
@@ -46,7 +47,7 @@ a:focus {
 }
 
 .navbar {
-    background: rgba(18, 18, 18, 0.85) !important;
+    background: rgba(5, 7, 15, 0.85) !important;
     border-bottom: 1px solid var(--border);
     border-radius: 1.5rem;
     padding: 0.85rem 1.6rem;
@@ -77,8 +78,8 @@ a:focus {
 .card {
     border-radius: 1.3rem;
     border: 1px solid var(--border);
-    background: linear-gradient(160deg, rgba(24, 27, 42, 0.92), rgba(16, 20, 38, 0.92));
-    box-shadow: 0 1.5rem 3rem var(--shadow);
+    background: linear-gradient(160deg, rgba(17, 22, 42, 0.95), rgba(11, 15, 32, 0.94));
+    box-shadow: 0 1.8rem 3.6rem var(--shadow);
     position: relative;
     overflow: hidden;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -88,14 +89,14 @@ a:focus {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 20% -10%, rgba(34, 211, 238, 0.25), transparent 60%);
+    background: radial-gradient(circle at 20% -10%, rgba(34, 211, 238, 0.32), transparent 60%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
 
 .card:hover {
     transform: translateY(-0.3rem) scale(1.01);
-    box-shadow: 0 2rem 3.5rem rgba(34, 211, 238, 0.28);
+    box-shadow: 0 2.2rem 3.8rem rgba(34, 211, 238, 0.32);
 }
 
 .card:hover::after {
@@ -103,7 +104,7 @@ a:focus {
 }
 
 .card-header {
-    background: rgba(99, 102, 241, 0.18);
+    background: rgba(99, 102, 241, 0.22);
     border-bottom: 1px solid var(--border);
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -126,15 +127,15 @@ a:focus {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 45%, var(--primary-strong) 100%);
-    color: #020617;
-    box-shadow: 0 1.4rem 3rem rgba(129, 140, 248, 0.38);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 40%, var(--primary-strong) 100%);
+    color: #05070f;
+    box-shadow: 0 1.6rem 3.2rem rgba(129, 140, 248, 0.42);
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
     transform: translateY(-3px);
-    box-shadow: 0 1.8rem 3.4rem rgba(99, 102, 241, 0.45);
+    box-shadow: 0 2rem 3.6rem rgba(99, 102, 241, 0.5);
 }
 
 .btn-outline-secondary {
@@ -149,7 +150,7 @@ a:focus {
 }
 
 .badge {
-    background: rgba(34, 211, 238, 0.22);
+    background: rgba(34, 211, 238, 0.28);
     border-radius: 999px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -159,8 +160,8 @@ a:focus {
 }
 
 .alert {
-    background: rgba(99, 102, 241, 0.18);
-    border: 1px solid var(--border);
+    background: rgba(99, 102, 241, 0.28);
+    border: 1px solid rgba(129, 140, 248, 0.36);
     border-radius: 1rem;
     color: var(--text-strong);
 }
@@ -168,12 +169,12 @@ a:focus {
 .table {
     border-radius: 1.1rem;
     border: 1px solid var(--border);
-    background: rgba(24, 27, 42, 0.92);
+    background: rgba(15, 20, 39, 0.95);
     color: var(--text-strong);
 }
 
 .table th {
-    background: rgba(99, 102, 241, 0.18);
+    background: rgba(99, 102, 241, 0.26);
     color: var(--accent);
     text-transform: uppercase;
     letter-spacing: 0.16em;
@@ -184,7 +185,7 @@ a:focus {
 }
 
 code {
-    background: rgba(34, 211, 238, 0.18);
+    background: rgba(34, 211, 238, 0.24);
     padding: 0.35rem 0.5rem;
     border-radius: 0.65rem;
     font-size: 0.9rem;
