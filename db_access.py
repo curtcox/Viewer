@@ -52,6 +52,7 @@ class EntityInteractionLookup:
 
 _DEFAULT_AI_SERVER_NAME = "ai_stub"
 _DEFAULT_AI_ALIAS_NAME = "ai"
+_DEFAULT_CSS_ALIAS_NAME = "CSS"
 
 
 @dataclass(frozen=True)
@@ -129,7 +130,7 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
     # Prefer user-created aliases over the default AI helper when available.
     preferred = (
         Alias.query.filter_by(user_id=user_id)
-        .filter(Alias.name != _DEFAULT_AI_ALIAS_NAME)
+        .filter(Alias.name.notin_([_DEFAULT_AI_ALIAS_NAME, _DEFAULT_CSS_ALIAS_NAME]))
         .order_by(Alias.name.asc())
         .first()
     )

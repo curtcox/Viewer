@@ -1937,10 +1937,17 @@ class TestSettingsRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('<a href="/docs">/docs</a>', page)
-        self.assertIn('<a href="/servers/engine">/servers/engine</a>', page)
-        self.assertIn('<a href="/variables/app-config">/variables/app-config</a>', page)
-        self.assertIn('<a href="/secrets/api-key">/secrets/api-key</a>', page)
+        self.assertIn('<code><a href="/docs">/docs</a></code>', page)
+        self.assertIn(
+            '<code><a href="/servers/engine">/servers/engine</a></code>', page
+        )
+        self.assertIn(
+            '<code><a href="/variables/app-config">/variables/app-config</a></code>',
+            page,
+        )
+        self.assertIn(
+            '<code><a href="/secrets/api-key">/secrets/api-key</a></code>', page
+        )
 
     def test_import_form_includes_ai_controls(self):
         """Import form should expose AI helper controls."""
