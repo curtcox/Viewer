@@ -1,6 +1,8 @@
 """Gauge step implementations for web application testing."""
 from __future__ import annotations
 
+from typing import Optional
+
 from flask import Flask
 from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
@@ -43,6 +45,28 @@ def _perform_get_request(path: str) -> None:
     attach_response_snapshot(response)
 
 
+def _normalize_path(path: str) -> str:
+    return path.strip().strip('"')
+
+
+def _set_session_user(user_id: Optional[str]) -> None:
+    client = _require_client()
+    with client.session_transaction() as session:
+        session.pop('_user_id', None)
+        session.pop('_fresh', None)
+        if user_id:
+            session['_user_id'] = user_id
+            session['_fresh'] = True
+
+
+def _perform_get_request_for_user(path: str, user_id: Optional[str]) -> None:
+    client = _require_client()
+    _set_session_user(user_id)
+    response = client.get(path)
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
 @before_scenario()
 def reset_scenario_store() -> None:
     """Clear scenario data before each spec scenario."""
@@ -72,6 +96,23 @@ def when_i_request_home_page() -> None:
 def when_i_request_profile_page() -> None:
     """Request the profile page."""
     _perform_get_request("/profile")
+
+
+@step("When I request the page <path> as user <user_id>")
+def when_i_request_page_as_user(path: str, user_id: str) -> None:
+    """Request a page while impersonating a specific user."""
+
+    normalized_path = _normalize_path(path)
+    normalized_user = _normalize_path(user_id)
+    _perform_get_request_for_user(normalized_path, normalized_user)
+
+
+@step("When I request the page <path> without a user session")
+def when_i_request_page_without_user(path: str) -> None:
+    """Request a page without an authenticated user session."""
+
+    normalized_path = _normalize_path(path)
+    _perform_get_request_for_user(normalized_path, None)
 
 
 @step("When I request the page /routes")

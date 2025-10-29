@@ -134,6 +134,34 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?download=1&format=html')
 
+    def test_alias_redirect_consistent_across_users(self):
+        self.create_alias(name='shared', target='/cid-shared')
+        shared_definition = format_primary_alias_line(
+            'literal',
+            '/shared',
+            '/cid-shared',
+            alias_name='shared',
+        )
+        alternate_alias = Alias(
+            name='shared',
+            user_id='alternate-user',
+            definition=shared_definition,
+        )
+        db.session.add(alternate_alias)
+        db.session.commit()
+
+        with app.test_request_context('/shared'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                default_response = try_alias_redirect('/shared')
+
+        with app.test_request_context('/shared'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id='alternate-user')):
+                alternate_response = try_alias_redirect('/shared')
+
+        self.assertIsNotNone(default_response)
+        self.assertIsNotNone(alternate_response)
+        self.assertEqual(default_response.location, alternate_response.location)
+
     def test_disabled_alias_not_matched(self):
         alias = self.create_alias(target='/cid123')
         alias.enabled = False

@@ -24,3 +24,11 @@
 * The response status should be 200
 * The page should contain Aliases
 * The page should contain New Alias
+
+## Alias form responds the same for all users
+* When I request the page /aliases/new as user "alternate-user"
+* The response status should be 200
+* The page should contain Create New Alias
+* When I request the page /aliases/new without a user session
+* The response status should be 200
+* The page should contain Create New Alias

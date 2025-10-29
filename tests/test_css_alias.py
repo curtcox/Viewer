@@ -1,12 +1,14 @@
 import os
 import unittest
+from pathlib import Path
+from textwrap import dedent
 
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
 from css_defaults import ensure_css_alias_for_user
-from db_access import get_alias_by_name
+from db_access import create_cid_record, get_alias_by_name
 from identity import ensure_default_user
 from upload_templates import get_upload_templates
 
@@ -93,6 +95,49 @@ class TestCssAliasDefaults(unittest.TestCase):
         template_ids = {template['id'] for template in get_upload_templates()}
         self.assertIn('css-light-mode', template_ids)
         self.assertIn('css-dark-mode', template_ids)
+
+    def _update_css_alias_definition(self, definition: str) -> None:
+        alias = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(alias)
+        alias.definition = dedent(definition).strip()
+        db.session.add(alias)
+        db.session.commit()
+
+    def _create_theme_cid(self, slug: str, css_text: str) -> str:
+        record = create_cid_record(slug, css_text.encode('utf-8'), self.user.id)
+        return record.path
+
+    def test_css_alias_light_mode_theme_content_changes(self):
+        light_css = Path('upload_templates/contents/css_light_mode.css').read_text(encoding='utf-8')
+        light_path = self._create_theme_cid('css/light-theme', light_css)
+
+        self._update_css_alias_definition(
+            f"""
+            css/custom.css -> /css/lightmode
+            css/lightmode -> {light_path}.css
+            """
+        )
+
+        response = self.client.get('/css/custom.css', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'#f8f9fa', response.data)
+        self.assertNotIn(b'#121212', response.data)
+
+    def test_css_alias_dark_mode_theme_content_changes(self):
+        dark_css = Path('upload_templates/contents/css_dark_mode.css').read_text(encoding='utf-8')
+        dark_path = self._create_theme_cid('css/dark-theme', dark_css)
+
+        self._update_css_alias_definition(
+            f"""
+            css/custom.css -> /css/darkmode
+            css/darkmode -> {dark_path}.css
+            """
+        )
+
+        response = self.client.get('/css/custom.css', follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'#121212', response.data)
+        self.assertNotIn(b'#f8f9fa', response.data)
 
 
 if __name__ == '__main__':
