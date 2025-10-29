@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from textwrap import dedent
 
@@ -9,6 +10,7 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 from app import app, db
 from css_defaults import ensure_css_alias_for_user
 from db_access import create_cid_record, get_alias_by_name
+import identity
 from identity import ensure_default_user
 from upload_templates import get_upload_templates
 
@@ -90,6 +92,27 @@ class TestCssAliasDefaults(unittest.TestCase):
         final = self.client.get(third.headers['Location'], follow_redirects=False)
         self.assertEqual(final.status_code, 200)
         self.assertIn(b'/* Custom styles for Viewer */', final.data)
+
+    def test_css_alias_falls_back_to_default_user_when_missing(self):
+        missing_user = 'missing-css-user'
+
+        original_ensure = identity.ensure_css_alias_for_user
+
+        def _maybe_ensure(user_id: str) -> bool:
+            if user_id == missing_user:
+                return False
+            return original_ensure(user_id)
+
+        with self.client.session_transaction() as session:
+            session['_user_id'] = missing_user
+
+        with patch('identity.ensure_css_alias_for_user', side_effect=_maybe_ensure):
+            self.assertIsNone(get_alias_by_name(missing_user, 'CSS'))
+            response = self.client.get('/css/custom.css', follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers['Location'], '/css/default')
+        self.assertIsNone(get_alias_by_name(missing_user, 'CSS'))
 
     def test_css_upload_templates_available(self):
         template_ids = {template['id'] for template in get_upload_templates()}

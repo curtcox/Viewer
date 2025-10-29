@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from typing import Optional
 
+from unittest.mock import patch
+
 from db_access import get_alias_by_name, get_server_by_name
+import identity
 
 
 def _set_user_session(client, user_id: Optional[str]) -> None:
@@ -66,3 +69,24 @@ def test_server_creation_redirects_consistently(client):
     alternate_server = get_server_by_name('alternate-user', server_name)
     assert alternate_server is not None
     assert alternate_server.definition == default_server.definition
+
+
+def test_css_alias_resolves_without_user_specific_alias(client):
+    missing_user = 'missing-css-user'
+
+    default_response = client.get('/css/custom.css', follow_redirects=True)
+    assert default_response.status_code == 200
+
+    original_ensure = identity.ensure_css_alias_for_user
+
+    def _maybe_ensure(user_id: str) -> bool:
+        if user_id == missing_user:
+            return False
+        return original_ensure(user_id)
+
+    _set_user_session(client, missing_user)
+    with patch('identity.ensure_css_alias_for_user', side_effect=_maybe_ensure):
+        missing_response = client.get('/css/custom.css', follow_redirects=True)
+
+    assert missing_response.status_code == default_response.status_code
+    assert missing_response.data == default_response.data

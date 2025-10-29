@@ -14,7 +14,7 @@ from werkzeug.routing import Map, Rule
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
 from db_access import get_user_aliases
-from identity import current_user
+from identity import current_user, ensure_default_user
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
 
@@ -81,8 +81,11 @@ class AliasMatch:
     route: AliasRouteRule
 
 
-def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple[Any, AliasRouteRule], None, None]:
+def _alias_routes_for_user_in_declaration_order(user_id: str | None) -> Generator[tuple[Any, AliasRouteRule], None, None]:
     """Yield alias routes in the order they are declared."""
+
+    if not user_id:
+        return
 
     aliases = get_user_aliases(user_id)
     for alias in aliases:
@@ -92,12 +95,36 @@ def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple
             yield alias, route
 
 
-def find_matching_alias(path: str) -> Optional[AliasMatch]:
-    """Return the first alias route belonging to the current user that matches the path."""
+def _match_alias_for_user(path: str, user_id: str | None) -> Optional[AliasMatch]:
+    """Return the first alias route for ``user_id`` that matches ``path``."""
 
-    for alias, route in _alias_routes_for_user_in_declaration_order(current_user.id):
+    if not user_id:
+        return None
+
+    for alias, route in _alias_routes_for_user_in_declaration_order(user_id):
         if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
             return AliasMatch(alias=alias, route=route)
+    return None
+
+
+def find_matching_alias(path: str) -> Optional[AliasMatch]:
+    """Return the first alias route that matches the path.
+
+    Aliases are resolved for the active user first. When that user has no
+    matching alias, fall back to the default user's aliases so shared
+    resources such as the CSS helper remain available for every visitor.
+    """
+
+    active_user_id = getattr(current_user, "id", None)
+    match = _match_alias_for_user(path, active_user_id)
+    if match is not None:
+        return match
+
+    default_user = ensure_default_user()
+    default_user_id = getattr(default_user, "id", None)
+    if default_user_id and default_user_id != active_user_id:
+        return _match_alias_for_user(path, default_user_id)
+
     return None
 
 
