@@ -14,7 +14,7 @@ from werkzeug.routing import Map, Rule
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
 from db_access import get_user_aliases
-from identity import current_user
+from identity import current_user, ensure_default_user
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
 
@@ -81,8 +81,11 @@ class AliasMatch:
     route: AliasRouteRule
 
 
-def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple[Any, AliasRouteRule], None, None]:
+def _alias_routes_for_user_in_declaration_order(user_id: str | None) -> Generator[tuple[Any, AliasRouteRule], None, None]:
     """Yield alias routes in the order they are declared."""
+
+    if not user_id:
+        return
 
     aliases = get_user_aliases(user_id)
     for alias in aliases:
@@ -92,12 +95,64 @@ def _alias_routes_for_user_in_declaration_order(user_id: str) -> Generator[tuple
             yield alias, route
 
 
-def find_matching_alias(path: str) -> Optional[AliasMatch]:
-    """Return the first alias route belonging to the current user that matches the path."""
+def _match_alias_for_user(path: str, user_id: str | None) -> Optional[AliasMatch]:
+    """Return the first alias route for ``user_id`` that matches ``path``."""
 
-    for alias, route in _alias_routes_for_user_in_declaration_order(current_user.id):
+    if not user_id:
+        return None
+
+    for alias, route in _alias_routes_for_user_in_declaration_order(user_id):
         if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
             return AliasMatch(alias=alias, route=route)
+    return None
+
+
+def _resolve_user_id(user: Any) -> Optional[str]:
+    """Return a string identifier for ``user`` when available."""
+
+    if user is None:
+        return None
+
+    user_id = getattr(user, "id", None)
+    if callable(user_id):
+        try:
+            user_id = user_id()
+        except TypeError:
+            user_id = None
+
+    if not user_id:
+        getter = getattr(user, "get_id", None)
+        if callable(getter):
+            user_id = getter()
+
+    return user_id
+
+
+def find_matching_alias(path: str) -> Optional[AliasMatch]:
+    """Return the first alias route that matches the path.
+
+    Aliases are resolved for the active user first. When that user has no
+    matching alias, fall back to the default user's aliases so shared
+    resources such as the CSS helper remain available for every visitor.
+    """
+
+    default_user = ensure_default_user()
+    default_user_id = _resolve_user_id(default_user)
+
+    active_user_id = _resolve_user_id(current_user)
+    candidate_ids: list[str] = []
+
+    if active_user_id:
+        candidate_ids.append(active_user_id)
+
+    if default_user_id and default_user_id not in candidate_ids:
+        candidate_ids.append(default_user_id)
+
+    for user_id in candidate_ids:
+        match = _match_alias_for_user(path, user_id)
+        if match is not None:
+            return match
+
     return None
 
 

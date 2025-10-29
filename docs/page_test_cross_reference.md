@@ -9,6 +9,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/aliases.py::edit_alias` (paths: `/aliases/<alias_name>/edit`)
 
 **Unit tests:**
+- `tests/integration/test_identity_responses.py::test_alias_creation_redirects_consistently`
 - `tests/test_alias_routing.py::TestAliasRouting::test_create_alias_rejects_conflicting_route`
 - `tests/test_alias_routing.py::TestAliasRouting::test_create_alias_via_form`
 - `tests/test_alias_routing.py::TestAliasRouting::test_create_alias_with_glob_match_type`
@@ -16,12 +17,15 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_alias_routing.py::TestAliasRouting::test_edit_alias_updates_record`
 - `tests/test_alias_routing.py::TestAliasRouting::test_new_alias_prefills_fields_from_query_parameters`
 - `tests/test_alias_routing.py::TestAliasRouting::test_new_alias_prefills_name_from_path_query`
+- `tests/test_routes_comprehensive.py::TestAliasRoutes::test_edit_alias_post_updates_alias`
+- `tests/test_routes_comprehensive.py::TestAliasRoutes::test_edit_alias_save_as_creates_new_alias`
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
 **Integration tests:**
 - `tests/integration/test_alias_pages.py::test_new_alias_form_renders_for_authenticated_user`
 
 **Specs:**
+- alias_management.spec — Alias form responds the same for all users
 - alias_management.spec — Users can create aliases through the form
 
 ## templates/alias_view.html
@@ -162,7 +166,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_page_displays_invocation_and_referer_details`
-- `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_pagination`
+- `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_pagination_second_page_empty_results`
 
 **Integration tests:**
 - `tests/integration/test_history_page.py::test_history_page_displays_recent_activity`
@@ -333,9 +337,11 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/servers.py::edit_server` (paths: `/servers/<server_name>/edit`)
 
 **Unit tests:**
+- `tests/integration/test_identity_responses.py::test_server_creation_redirects_consistently`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_get`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_includes_test_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_post`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_save_as_creates_new_server`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_duplicate_name`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_get`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post`
@@ -347,6 +353,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Specs:**
 - server_form.spec — New server form is accessible
+- server_form.spec — Server form stays available without a user session
 
 ## templates/server_view.html
 
@@ -458,9 +465,9 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/uploads.py::upload` (paths: `/upload`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file_is_deduplicated`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_success`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_stores_file_and_returns_success_page`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
@@ -491,9 +498,9 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_cid_save_existing_content`
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_cid_save_updates_existing_alias_target`
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_requires_login`
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file_is_deduplicated`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
-- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_success`
+- `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_stores_file_and_returns_success_page`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`

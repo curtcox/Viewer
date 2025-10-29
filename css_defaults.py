@@ -19,6 +19,26 @@ _CSS_ALIAS_DEFINITION = dedent(
 ).strip()
 
 
+def _css_alias_needs_upgrade(definition: str | None) -> bool:
+    """Return True when the stored definition lacks the theme redirects."""
+
+    if not definition:
+        return True
+
+    lines = [line.strip() for line in definition.splitlines() if line.strip()]
+    if "css/custom.css -> /css/default" not in lines:
+        return False
+
+    has_light = any(line.startswith("css/lightmode ->") for line in lines)
+    has_dark = any(line.startswith("css/darkmode ->") for line in lines)
+    outdated_default = any(line == "css/default -> /static/css/custom.css" for line in lines)
+
+    if outdated_default:
+        return True
+
+    return not has_light or not has_dark
+
+
 def ensure_css_alias_for_user(user_id: str) -> bool:
     """Ensure the CSS alias exists for the supplied user."""
 
@@ -27,7 +47,8 @@ def ensure_css_alias_for_user(user_id: str) -> bool:
 
     alias = get_alias_by_name(user_id, CSS_ALIAS_NAME)
     if alias:
-        if alias.definition and alias.definition.strip():
+        needs_upgrade = _css_alias_needs_upgrade(getattr(alias, "definition", None))
+        if alias.definition and alias.definition.strip() and not needs_upgrade:
             return False
         alias.definition = _CSS_ALIAS_DEFINITION
         save_entity(alias)

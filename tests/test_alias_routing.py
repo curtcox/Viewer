@@ -134,6 +134,61 @@ class TestAliasRouting(unittest.TestCase):
                 self.assertIsNotNone(response)
                 self.assertEqual(response.location, '/cid123?download=1&format=html')
 
+    def test_alias_redirect_consistent_across_users(self):
+        self.create_alias(name='shared', target='/cid-shared')
+        shared_definition = format_primary_alias_line(
+            'literal',
+            '/shared',
+            '/cid-shared',
+            alias_name='shared',
+        )
+        alternate_alias = Alias(
+            name='shared',
+            user_id='alternate-user',
+            definition=shared_definition,
+        )
+        db.session.add(alternate_alias)
+        db.session.commit()
+
+        with app.test_request_context('/shared'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=self.default_user.id)):
+                default_response = try_alias_redirect('/shared')
+
+        with app.test_request_context('/shared'):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id='alternate-user')):
+                alternate_response = try_alias_redirect('/shared')
+
+        self.assertIsNotNone(default_response)
+        self.assertIsNotNone(alternate_response)
+        self.assertEqual(default_response.location, alternate_response.location)
+
+    def test_find_matching_alias_uses_get_id_for_current_user(self):
+        user_definition = 'css/custom.css -> /user-specific'
+        default_definition = 'css/custom.css -> /default-target'
+
+        user_alias = SimpleNamespace(name='CSS', definition=user_definition, enabled=True)
+        default_alias = SimpleNamespace(name='CSS', definition=default_definition, enabled=True)
+
+        def _fake_aliases(user_id):
+            if user_id == 'special-user':
+                return [user_alias]
+            if user_id == 'default-user':
+                return [default_alias]
+            return []
+
+        class _FlaskLoginUser:
+            def get_id(self):
+                return 'special-user'
+
+        with app.test_request_context('/css/custom.css'):
+            with patch('alias_routing.ensure_default_user', return_value=SimpleNamespace(id='default-user')):
+                with patch('alias_routing.get_user_aliases', side_effect=_fake_aliases):
+                    with patch('alias_routing.current_user', new=_FlaskLoginUser()):
+                        match = find_matching_alias('/css/custom.css')
+
+        self.assertIsNotNone(match)
+        self.assertEqual(match.route.target_path, '/user-specific')
+
     def test_disabled_alias_not_matched(self):
         alias = self.create_alias(target='/cid123')
         alias.enabled = False
