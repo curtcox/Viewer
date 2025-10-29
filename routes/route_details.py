@@ -31,11 +31,13 @@ class RouteStep:
     title: str
     description: str
     request_path: str
+    title_url: Optional[str] = None
     link_label: Optional[str] = None
     link_url: Optional[str] = None
     cid_markup: Optional[Markup] = None
     extra_details: Optional[str] = None
     redirect_target: Optional[str] = None
+    definition_excerpt: Optional[str] = None
 
     _CATEGORY_LABELS = {
         "alias": "Alias",
@@ -114,6 +116,36 @@ def _relative_path(candidate: Path, root: Path) -> Optional[str]:
         return None
 
 
+def _truncate_line(line: str, limit: int = 100) -> str:
+    if len(line) <= limit:
+        return line
+    return f"{line[:limit].rstrip()}…"
+
+
+def _extract_main_signature(definition: str) -> Optional[str]:
+    if not definition:
+        return None
+
+    for raw_line in definition.splitlines():
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("def main") or stripped.startswith("async def main"):
+            return stripped
+    return None
+
+
+def _first_non_empty_line(definition: str) -> Optional[str]:
+    if not definition:
+        return None
+
+    for raw_line in definition.splitlines():
+        stripped = raw_line.strip()
+        if stripped:
+            return stripped
+    return None
+
+
 def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
     binder = current_app.url_map.bind("", url_scheme="http")
     try:
@@ -170,6 +202,26 @@ def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
     )
 
 
+def _alias_definition_excerpt(alias: object, route: object) -> Optional[str]:
+    source = getattr(route, "source", None)
+    if source is not None:
+        text = getattr(source, "text", None)
+        if text:
+            return _truncate_line(text.strip())
+
+    definition = getattr(alias, "definition", None)
+    if not definition:
+        return None
+
+    for raw_line in definition.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "->" in stripped:
+            return _truncate_line(stripped)
+    return None
+
+
 def _alias_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResolution]:
     if not is_potential_alias_path(path, existing_routes):
         return None
@@ -187,19 +239,18 @@ def _alias_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResol
     pattern = route.match_pattern or f"/{alias_name}"
     target = resolution.target or "(no target)"
     description = f"{match_type} match using pattern {pattern!r}."
-    extra = f"Redirects to {target}."
-
     target_cid = extract_cid_from_path(target)
     cid_markup = render_cid_link(target_cid) if target_cid else None
+
+    definition_excerpt = _alias_definition_excerpt(alias, route)
 
     step = RouteStep(
         category="alias",
         title=alias_name,
         description=description,
         request_path=path,
-        link_label="View alias definition",
-        link_url=definition_url,
-        extra_details=extra,
+        title_url=definition_url,
+        definition_excerpt=definition_excerpt,
         redirect_target=target,
         cid_markup=cid_markup,
     )
@@ -212,6 +263,21 @@ def _alias_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResol
         redirect_target=target,
         steps=[step],
     )
+
+
+def _server_definition_excerpt(server: object) -> Optional[str]:
+    definition = getattr(server, "definition", None)
+    if not definition:
+        return None
+
+    signature = _extract_main_signature(definition)
+    if signature:
+        return _truncate_line(signature)
+
+    first_line = _first_non_empty_line(definition)
+    if first_line:
+        return _truncate_line(first_line)
+    return None
 
 
 def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResolution]:
@@ -250,15 +316,17 @@ def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteReso
     definition_cid = format_cid(getattr(server, "definition_cid", ""))
     cid_markup = render_cid_link(definition_cid) if definition_cid else None
 
+    definition_excerpt = _server_definition_excerpt(server)
+
     step = RouteStep(
         category="server",
         title=server.name,
         description=description,
         request_path=path,
-        link_label="View server definition",
-        link_url=link_url,
+        title_url=link_url,
         extra_details="Response redirects to generated CID content.",
         cid_markup=cid_markup,
+        definition_excerpt=definition_excerpt,
     )
 
     summary = "Executes server code and redirects to generated CID output."
@@ -326,10 +394,10 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         title=f"{server.name} (historical)",
         description=description,
         request_path=path,
-        link_label="View server definition",
-        link_url=link_url,
+        title_url=link_url,
         extra_details=extra_details,
         cid_markup=cid_markup,
+        definition_excerpt=_server_definition_excerpt(server),
     )
 
     return RouteResolution(
@@ -357,6 +425,14 @@ def _cid_step_for(path: str) -> Optional[RouteResolution]:
         if extension:
             extra = f"Requested extension: {extension}"
 
+    file_data = getattr(cid_record, "file_data", b"") or b""
+    try:
+        rendered = file_data.decode("utf-8", errors="replace")
+    except Exception:  # pragma: no cover - defensive decoding guard
+        rendered = ""
+    first_line = rendered.splitlines()[0].strip() if rendered else ""
+    definition_excerpt = _truncate_line(first_line) if first_line else None
+
     step = RouteStep(
         category="cid",
         title=cid_value,
@@ -364,6 +440,7 @@ def _cid_step_for(path: str) -> Optional[RouteResolution]:
         request_path=path,
         cid_markup=cid_markup,
         extra_details=extra,
+        definition_excerpt=definition_excerpt,
     )
 
     summary = "Served from CID storage."

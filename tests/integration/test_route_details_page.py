@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import re
 from urllib.parse import urlsplit
 
@@ -74,6 +75,22 @@ def test_route_details_for_alias_redirect(client, login_default_user):
     assert "CSS" in page
     assert target in page
 
+    # The alias title should link directly to the definition.
+    assert re.search(
+        r'class="fw-semibold text-decoration-none" href="/aliases/CSS">CSS</a>',
+        page,
+    )
+
+    # Redirect messaging should include a hyperlink to the destination.
+    assert re.search(
+        r"Redirects to\s*<a class=\"text-decoration-none\" href=\""
+        + re.escape(target)
+        + r"\">"
+        + re.escape(target)
+        + r"</a>",
+        page,
+    )
+
 
 def test_route_details_for_server_execution(client, integration_app, login_default_user):
     """Server-backed routes should report the server definition."""
@@ -105,6 +122,7 @@ def test_route_details_for_server_execution(client, integration_app, login_defau
     assert "Server" in page
     assert "demo" in page
     assert "Executes server code" in page
+    assert "def main():" in page
 
 
 def test_route_details_for_direct_cid(client, integration_app, login_default_user):
@@ -134,6 +152,7 @@ def test_route_details_for_direct_cid(client, integration_app, login_default_use
     assert "CID" in page
     assert "cid-display" in page
     assert cid_value in page
+    assert "hello world" in page
 
 
 @pytest.mark.parametrize("redirect_count", [2, 3])
@@ -192,6 +211,39 @@ def test_route_details_follow_alias_chain_to_server(
     for path in visited_paths:
         assert f'href="{path}"' in page
 
+    assert page.count("Redirects to") == redirect_count
+
+    for index, alias_name in enumerate(alias_names):
+        target_path = visited_paths[index + 1]
+        escaped_line = html.escape(f"{alias_name} -> {target_path}")
+        assert escaped_line in page
+        alias_pattern = (
+            r'class="fw-semibold text-decoration-none" href="/aliases/'
+            + re.escape(alias_name)
+            + r'">'
+            + re.escape(alias_name)
+            + r"</a>"
+        )
+        assert re.search(alias_pattern, page)
+        assert re.search(
+            r"Redirects to\s*<a class=\"text-decoration-none\" href=\""
+            + re.escape(target_path)
+            + r"\">"
+            + re.escape(target_path)
+            + r"</a>",
+            page,
+        )
+
+    assert "def main():" in page
+    server_pattern = (
+        r'class="fw-semibold text-decoration-none" href="/servers/'
+        + re.escape(server_name)
+        + r'">'
+        + re.escape(server_name)
+        + r"</a>"
+    )
+    assert re.search(server_pattern, page)
+
 
 @pytest.mark.parametrize("redirect_count", [4, 5])
 def test_route_details_follow_alias_chain_to_cid(
@@ -246,3 +298,20 @@ def test_route_details_follow_alias_chain_to_cid(
 
     for path in visited_paths:
         assert f'href="{path}"' in page
+
+    assert page.count("Redirects to") == redirect_count
+
+    for index, alias_name in enumerate(alias_names):
+        target_path = visited_paths[index + 1]
+        escaped_line = html.escape(f"{alias_name} -> {target_path}")
+        assert escaped_line in page
+        assert re.search(
+            r"Redirects to\s*<a class=\"text-decoration-none\" href=\""
+            + re.escape(target_path)
+            + r"\">"
+            + re.escape(target_path)
+            + r"</a>",
+            page,
+        )
+
+    assert "cid target" in page

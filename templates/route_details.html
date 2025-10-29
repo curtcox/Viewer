@@ -52,27 +52,37 @@
                         <span class="badge {{ step.badge_class }}">
                             <i class="fas {{ step.icon_class }} me-1"></i>{{ step.category_label }}
                         </span>
+                        {% if step.title_url %}
+                        <a class="fw-semibold text-decoration-none" href="{{ step.title_url }}">{{ step.title }}</a>
+                        {% else %}
                         <span class="fw-semibold">{{ step.title }}</span>
+                        {% endif %}
                     </div>
                     <div class="mb-2 small">
                         <a class="link-primary text-decoration-none" href="{{ step.request_url }}">{{ step.request_path }}</a>
                     </div>
+                    {% if step.definition_excerpt %}
+                    <pre class="bg-light border rounded small px-3 py-2 font-monospace mb-2">{{ step.definition_excerpt }}</pre>
+                    {% endif %}
                     <p class="mb-2">{{ step.description }}</p>
                     {% if step.extra_details %}
                     <div class="text-muted small mb-2">{{ step.extra_details }}</div>
                     {% endif %}
                     {% if step.redirect_target %}
-                    <div class="text-muted small mb-2">Redirects to <code>{{ step.redirect_target }}</code></div>
+                    <div class="text-muted small mb-2">
+                        Redirects to
+                        <a class="text-decoration-none" href="{{ step.redirect_target }}">{{ step.redirect_target }}</a>
+                    </div>
                     {% endif %}
                     {% if step.cid_markup %}
                     <div class="mt-2">{{ step.cid_markup }}</div>
                     {% endif %}
+                    {% if step.link_url %}
+                    <div class="small">
+                        <a class="link-secondary text-decoration-none" href="{{ step.link_url }}">{{ step.link_label or 'View details' }}</a>
+                    </div>
+                    {% endif %}
                 </div>
-                {% if step.link_url %}
-                <div class="text-end">
-                    <a class="btn btn-outline-primary btn-sm" href="{{ step.link_url }}">{{ step.link_label }}</a>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% else %}
