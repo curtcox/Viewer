@@ -11,9 +11,7 @@
         body {
             margin: 0;
             font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: radial-gradient(circle at 0% 0%, rgba(255, 180, 0, 0.2), transparent 55%),
-                radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.18), transparent 55%),
-                #0f172a;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #e2e8f0;
             min-height: 100vh;
             display: flex;
@@ -49,16 +47,16 @@
         }
 
         .preview-card {
-            background: rgba(15, 23, 42, 0.75);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.28);
             border-radius: 1.5rem;
-            box-shadow: 0 2rem 4rem rgba(15, 23, 42, 0.45);
+            box-shadow: 0 2rem 4rem rgba(15, 23, 42, 0.5);
             overflow: hidden;
             backdrop-filter: blur(12px);
         }
 
         .preview-card header {
-            background: rgba(15, 23, 42, 0.7);
+            background: rgba(15, 23, 42, 0.78);
             padding: 1.25rem 1.5rem 1rem;
             text-align: left;
         }
@@ -81,6 +79,15 @@
             height: 480px;
             border: none;
             display: block;
+            background: #0f172a;
+        }
+
+        .preview-card--light iframe {
+            background: #f8f9fa;
+        }
+
+        .preview-card--dark iframe {
+            background: #121212;
         }
 
         .link-hint {
@@ -130,20 +137,20 @@
     </header>
 
     <main class="comparison-grid">
-        <section class="preview-card">
+        <section class="preview-card preview-card--light">
             <header>
                 <h2>Light Mode</h2>
                 <p class="link-hint">Uses <code>/css/lightmode</code> · <a class="link-hint__anchor" href="/css/lightmode" target="_blank" rel="noopener">Open stylesheet</a></p>
             </header>
-            <iframe title="Viewer light mode preview"
+            <iframe title="Viewer light mode preview" loading="lazy"
                 srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="/css/lightmode"><title>Viewer Light Mode</title></head><body class="p-4"><div class="container py-5"><nav class="navbar navbar-light rounded-pill px-4 mb-4"><span class="navbar-brand">Viewer Light</span><div class="ms-auto d-flex gap-2"><a class="nav-link" href="#">Home</a><a class="nav-link" href="#">Docs</a><a class="nav-link" href="#">Status</a></div></nav><div class="row g-4"><div class="col-lg-6"><div class="card h-100"><div class="card-header">Upload Summary</div><div class="card-body"><p class="card-text">Tailor the Viewer interface by uploading customized CSS to match your brand.</p><button class="btn btn-primary me-2">Get Started</button><button class="btn btn-outline-secondary">Learn More</button></div></div></div><div class="col-lg-6"><div class="card h-100"><div class="card-header">Recent Activity</div><div class="card-body"><ul class="list-unstyled mb-4"><li class="mb-3"><span class="badge">New</span> Theme comparison demo uploaded</li><li class="mb-3"><span class="badge">Sync</span> Assets updated 2 minutes ago</li></ul><div class="alert" role="alert">Remember to map <code>/css/lightmode</code> to your light theme asset.</div></div></div></div></div></div></body></html>'></iframe>
         </section>
-        <section class="preview-card">
+        <section class="preview-card preview-card--dark">
             <header>
                 <h2>Dark Mode</h2>
                 <p class="link-hint">Uses <code>/css/darkmode</code> · <a class="link-hint__anchor" href="/css/darkmode" target="_blank" rel="noopener">Open stylesheet</a></p>
             </header>
-            <iframe title="Viewer dark mode preview"
+            <iframe title="Viewer dark mode preview" loading="lazy"
                 srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="/css/darkmode"><title>Viewer Dark Mode</title></head><body class="p-4"><div class="container py-5"><nav class="navbar rounded-pill px-4 mb-4"><span class="navbar-brand">Viewer Dark</span><div class="ms-auto d-flex gap-2"><a class="nav-link" href="#">Home</a><a class="nav-link" href="#">Docs</a><a class="nav-link" href="#">Status</a></div></nav><div class="row g-4"><div class="col-lg-6"><div class="card h-100"><div class="card-header">Upload Summary</div><div class="card-body"><p class="card-text">Tailor the Viewer interface by uploading customized CSS to match your brand.</p><button class="btn btn-primary me-2">Get Started</button><button class="btn btn-outline-secondary">Learn More</button></div></div></div><div class="col-lg-6"><div class="card h-100"><div class="card-header">Recent Activity</div><div class="card-body"><ul class="list-unstyled mb-4"><li class="mb-3"><span class="badge">New</span> Theme comparison demo uploaded</li><li class="mb-3"><span class="badge">Sync</span> Assets updated 2 minutes ago</li></ul><div class="alert" role="alert">Remember to map <code>/css/darkmode</code> to your dark theme asset.</div></div></div></div></div></div></body></html>'></iframe>
         </section>
     </main>
