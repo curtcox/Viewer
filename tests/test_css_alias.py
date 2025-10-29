@@ -66,6 +66,25 @@ class TestCssAliasDefaults(unittest.TestCase):
         refreshed = get_alias_by_name(self.user.id, 'CSS')
         self.assertEqual(refreshed.definition.strip(), 'css/custom.css -> /css/darkmode')
 
+    def test_css_alias_upgraded_when_theme_routes_missing(self):
+        alias = get_alias_by_name(self.user.id, 'CSS')
+        self.assertIsNotNone(alias)
+        alias.definition = 'css/custom.css -> /css/default\ncss/default -> /static/css/custom.css'
+        db.session.add(alias)
+        db.session.commit()
+
+        changed = ensure_css_alias_for_user(self.user.id)
+        self.assertTrue(changed)
+
+        refreshed = get_alias_by_name(self.user.id, 'CSS')
+        self.assertEqual(
+            refreshed.definition,
+            'css/custom.css -> /css/default\n'
+            'css/default -> /css/lightmode\n'
+            'css/lightmode -> /static/css/custom.css\n'
+            'css/darkmode -> /static/css/custom.css',
+        )
+
     def test_css_alias_definition_can_be_updated_by_user(self):
         alias = get_alias_by_name(self.user.id, 'CSS')
         self.assertIsNotNone(alias)

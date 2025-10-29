@@ -5,6 +5,7 @@ from typing import Optional
 
 from unittest.mock import patch
 
+from database import db
 from db_access import get_alias_by_name, get_server_by_name
 import identity
 
@@ -122,3 +123,25 @@ def test_css_alias_redirect_chain_is_consistent_with_session(client):
     _set_user_session(client, 'alternate-user')
     alternate_chain = _collect_css_redirect_chain(client)
     assert alternate_chain == default_chain
+
+
+def test_css_alias_outdated_definition_is_upgraded(client):
+    with client.application.app_context():
+        alias = get_alias_by_name('default-user', 'CSS')
+        assert alias is not None
+        alias.definition = 'css/custom.css -> /css/default\ncss/default -> /static/css/custom.css'
+        db.session.add(alias)
+        db.session.commit()
+
+    response = client.get('/css/custom.css', follow_redirects=True)
+    assert response.status_code == 200
+
+    with client.application.app_context():
+        refreshed = get_alias_by_name('default-user', 'CSS')
+        assert refreshed is not None
+        assert 'css/lightmode ->' in refreshed.definition
+        assert 'css/darkmode ->' in refreshed.definition
+
+    _set_user_session(client, 'alternate-user')
+    alternate_response = client.get('/css/custom.css', follow_redirects=True)
+    assert alternate_response.status_code == 200
