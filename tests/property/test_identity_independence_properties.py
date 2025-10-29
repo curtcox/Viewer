@@ -30,13 +30,15 @@ def test_alias_matching_independent_of_user(alias_name: str, target_slug: str, o
     alternate_alias = Alias(name=alias_name, user_id=other_user, definition=definition)
     alternate_alias.enabled = True
 
-    with patch('alias_routing.get_user_aliases', return_value=[default_alias]):
-        with patch('alias_routing.current_user', new=SimpleNamespace(id='default-user')):
-            default_match = find_matching_alias(path)
+    with patch('alias_routing.ensure_default_user', return_value=SimpleNamespace(id='default-user')):
+        with patch('alias_routing.get_user_aliases', return_value=[default_alias]):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id='default-user')):
+                default_match = find_matching_alias(path)
 
-    with patch('alias_routing.get_user_aliases', return_value=[alternate_alias]):
-        with patch('alias_routing.current_user', new=SimpleNamespace(id=other_user)):
-            alternate_match = find_matching_alias(path)
+    with patch('alias_routing.ensure_default_user', return_value=SimpleNamespace(id='default-user')):
+        with patch('alias_routing.get_user_aliases', return_value=[alternate_alias]):
+            with patch('alias_routing.current_user', new=SimpleNamespace(id=other_user)):
+                alternate_match = find_matching_alias(path)
 
     assert default_match is not None
     assert alternate_match is not None

@@ -18,6 +18,27 @@ def _set_user_session(client, user_id: Optional[str]) -> None:
             session['_fresh'] = True
 
 
+def _collect_css_redirect_chain(client):
+    hops: list[tuple[int, Optional[str]]] = []
+    response = client.get('/css/custom.css', follow_redirects=False)
+    hops.append((response.status_code, response.headers.get('Location')))
+
+    redirect_codes = {301, 302, 303, 307, 308}
+    remaining = 5
+
+    while (
+        remaining > 0
+        and response.status_code in redirect_codes
+        and response.headers.get('Location')
+    ):
+        remaining -= 1
+        next_path = response.headers['Location']
+        response = client.get(next_path, follow_redirects=False)
+        hops.append((response.status_code, response.headers.get('Location')))
+
+    return hops
+
+
 def test_alias_creation_redirects_consistently(client):
     alias_name = 'shared-alias'
     payload = {
@@ -90,3 +111,14 @@ def test_css_alias_resolves_without_user_specific_alias(client):
 
     assert missing_response.status_code == default_response.status_code
     assert missing_response.data == default_response.data
+
+
+def test_css_alias_redirect_chain_is_consistent_with_session(client):
+    default_chain = _collect_css_redirect_chain(client)
+    assert default_chain
+    assert default_chain[-1][0] == 200
+    assert default_chain[-1][1] is None
+
+    _set_user_session(client, 'alternate-user')
+    alternate_chain = _collect_css_redirect_chain(client)
+    assert alternate_chain == default_chain

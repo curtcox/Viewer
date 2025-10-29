@@ -107,6 +107,27 @@ def _match_alias_for_user(path: str, user_id: str | None) -> Optional[AliasMatch
     return None
 
 
+def _resolve_user_id(user: Any) -> Optional[str]:
+    """Return a string identifier for ``user`` when available."""
+
+    if user is None:
+        return None
+
+    user_id = getattr(user, "id", None)
+    if callable(user_id):
+        try:
+            user_id = user_id()
+        except TypeError:
+            user_id = None
+
+    if not user_id:
+        getter = getattr(user, "get_id", None)
+        if callable(getter):
+            user_id = getter()
+
+    return user_id
+
+
 def find_matching_alias(path: str) -> Optional[AliasMatch]:
     """Return the first alias route that matches the path.
 
@@ -115,15 +136,22 @@ def find_matching_alias(path: str) -> Optional[AliasMatch]:
     resources such as the CSS helper remain available for every visitor.
     """
 
-    active_user_id = getattr(current_user, "id", None)
-    match = _match_alias_for_user(path, active_user_id)
-    if match is not None:
-        return match
-
     default_user = ensure_default_user()
-    default_user_id = getattr(default_user, "id", None)
-    if default_user_id and default_user_id != active_user_id:
-        return _match_alias_for_user(path, default_user_id)
+    default_user_id = _resolve_user_id(default_user)
+
+    active_user_id = _resolve_user_id(current_user)
+    candidate_ids: list[str] = []
+
+    if active_user_id:
+        candidate_ids.append(active_user_id)
+
+    if default_user_id and default_user_id not in candidate_ids:
+        candidate_ids.append(default_user_id)
+
+    for user_id in candidate_ids:
+        match = _match_alias_for_user(path, user_id)
+        if match is not None:
+            return match
 
     return None
 
