@@ -87,6 +87,11 @@ both the pytest suite and the Gauge specs succeed.
 After changing the configuration or dependencies re‑run `./doctor` to ensure your setup is healthy.  Use `Ctrl+C` to stop
  the development server started with `./run`.
 
+### UI design principles
+
+* If a UI element with text could be a link to something useful it should be, especially when there is a single obvious target. Make links look like links so people recognise them immediately.
+* Reserve buttons for actions that make changes. If interacting with a control simply navigates to another location without side effects, use a link instead of a button.
+
 Run `pytest` (or the `./test` wrapper) before opening a pull request so you catch regressions locally.  Integration scenarios
 live under `tests/integration` and are skipped by default; run `scripts/run-integration.sh` when you need to validate
 end-to-end behaviour with the same logging CI captures.
