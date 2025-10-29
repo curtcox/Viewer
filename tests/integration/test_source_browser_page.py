@@ -1,13 +1,13 @@
 """Integration tests for the source browser and instance pages."""
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
 from database import db
 from models import Variable
+from routes.source import get_current_commit_sha
 
 pytestmark = pytest.mark.integration
 
@@ -78,11 +78,10 @@ def test_source_browser_displays_running_commit_link(
     page = response.get_data(as_text=True)
 
     repository_root = Path(__file__).resolve().parents[2]
-    sha = (
-        subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repository_root)
-        .decode()
-        .strip()
-    )
+    sha = get_current_commit_sha(str(repository_root))
+
+    if not sha:
+        pytest.skip("The running commit SHA could not be determined")
 
     expected_url = f"https://github.com/curtcox/Viewer/tree/{sha}"
     assert expected_url in page

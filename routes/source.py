@@ -83,7 +83,7 @@ def _get_comprehensive_paths(root_path: str) -> frozenset[str]:
 
 
 @lru_cache(maxsize=1)
-def _get_current_commit_sha(root_path: str) -> str | None:
+def get_current_commit_sha(root_path: str) -> str | None:
     """Return the current git commit SHA for the repository."""
 
     try:
@@ -104,7 +104,7 @@ def _get_current_commit_sha(root_path: str) -> str | None:
 def _build_commit_context(root_path: str, repository_url: str | None) -> dict[str, str | None]:
     """Return template context values for linking to the running commit."""
 
-    sha = _get_current_commit_sha(root_path)
+    sha = get_current_commit_sha(root_path)
     if not sha:
         return {
             "github_commit_url": None,
