@@ -2,9 +2,9 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1226
+**Total Tests:** 1227
 - Unit Tests: 1151
-- Integration Tests: 49
+- Integration Tests: 50
 - Property Tests: 8
 - Gauge Tests: 18
 
@@ -1166,7 +1166,7 @@ Total: 1151 tests
 
 ## Integration Tests
 
-Total: 49 tests
+Total: 50 tests
 
 - [test_alias_creation_redirects_consistently](tests/integration/test_identity_responses.py:43)
 - [Viewing an alias should show its saved details.](tests/integration/test_alias_pages.py:62)
@@ -1204,11 +1204,12 @@ Total: 49 tests
 - [The servers index page should list servers belonging to the user.](tests/integration/test_server_pages.py:19)
 - [Server reference badges should mirror context usage in definitions.](tests/integration/test_server_pages.py:50)
 - [Settings page should list saved resources and expose direct access links.](tests/integration/test_settings_page.py:23)
-- [Viewing an individual file should render its contents.](tests/integration/test_source_browser_page.py:29)
-- [The source browser should link to the database instance overview.](tests/integration/test_source_browser_page.py:46)
-- [The source browser should render a directory listing for the project root.](tests/integration/test_source_browser_page.py:12)
-- [The instance page should enumerate database tables and their columns.](tests/integration/test_source_browser_page.py:63)
-- [Viewing a specific table should render its rows in an HTML table.](tests/integration/test_source_browser_page.py:81)
+- [Viewing an individual file should render its contents.](tests/integration/test_source_browser_page.py:32)
+- [The source browser should display a link to the running commit.](tests/integration/test_source_browser_page.py:66)
+- [The source browser should link to the database instance overview.](tests/integration/test_source_browser_page.py:49)
+- [The source browser should render a directory listing for the project root.](tests/integration/test_source_browser_page.py:15)
+- [The instance page should enumerate database tables and their columns.](tests/integration/test_source_browser_page.py:92)
+- [Viewing a specific table should render its rows in an HTML table.](tests/integration/test_source_browser_page.py:110)
 - [test_update_alias_cid_reference_creates_alias_when_missing](tests/integration/test_cid_reference_updates.py:110)
 - [test_update_alias_cid_reference_updates_existing_alias](tests/integration/test_cid_reference_updates.py:72)
 - [test_update_cid_references_refreshes_alias_and_server_state](tests/integration/test_cid_reference_updates.py:13)

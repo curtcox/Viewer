@@ -425,6 +425,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_source_browser_page.py::test_source_browser_displays_file_content`
+- `tests/integration/test_source_browser_page.py::test_source_browser_displays_running_commit_link`
 - `tests/integration/test_source_browser_page.py::test_source_browser_links_to_instance_overview`
 - `tests/integration/test_source_browser_page.py::test_source_browser_lists_directories`
 
