@@ -22,6 +22,7 @@ from alias_matching import evaluate_test_strings, matches_path
 from cid_presenter import extract_cid_from_path
 from db_access import (
     EntityInteractionRequest,
+    delete_entity,
     get_alias_by_name,
     get_user_aliases,
     record_entity_interaction,
@@ -425,6 +426,19 @@ def edit_alias(alias_name: str):
     return render_edit_form()
 
 
+@main_bp.route('/aliases/<alias_name>/delete', methods=['POST'])
+def delete_alias(alias_name: str):
+    """Delete an existing alias."""
+
+    alias = get_alias_by_name(current_user.id, alias_name)
+    if not alias:
+        abort(404)
+
+    delete_entity(alias)
+    flash(f'Alias "{alias_name}" deleted successfully!', 'success')
+    return redirect(url_for('main.aliases'))
+
+
 @main_bp.route('/aliases/match-preview', methods=['POST'])
 def alias_match_preview():
     """Return live matching results for the provided alias configuration."""
@@ -514,4 +528,4 @@ def alias_match_preview():
     )
 
 
-__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'alias_match_preview']
+__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'delete_alias', 'alias_match_preview']

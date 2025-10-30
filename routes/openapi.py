@@ -146,75 +146,925 @@ def _error_schema() -> Dict[str, Any]:
     }
 
 
+def _html_response(description: str) -> Dict[str, Any]:
+    """Standard HTML response metadata."""
+
+    return {
+        "description": description,
+        "content": {
+            "text/html": {
+                "schema": {
+                    "type": "string",
+                    "description": "Rendered HTML response.",
+                }
+            }
+        },
+    }
+
+
+def _redirect_response(description: str) -> Dict[str, Any]:
+    """Metadata for routes that redirect after processing."""
+
+    return {
+        "description": description,
+        "headers": {
+            "Location": {
+                "description": "Destination URL for the redirect.",
+                "schema": {
+                    "type": "string",
+                    "format": "uri",
+                },
+            }
+        },
+    }
+
+
+def _form_request_body(schema_name: str) -> Dict[str, Any]:
+    """Describe an x-www-form-urlencoded request body referencing a schema."""
+
+    return {
+        "required": True,
+        "content": {
+            "application/x-www-form-urlencoded": {
+                "schema": {"$ref": f"#/components/schemas/{schema_name}"}
+            }
+        },
+    }
+
+
+def _multipart_request_body(schema_name: str) -> Dict[str, Any]:
+    """Describe a multipart/form-data request body referencing a schema."""
+
+    return {
+        "required": True,
+        "content": {
+            "multipart/form-data": {
+                "schema": {"$ref": f"#/components/schemas/{schema_name}"}
+            }
+        },
+    }
+
+
+def _path_parameter(name: str, description: str) -> Dict[str, Any]:
+    """Return a reusable path parameter description."""
+
+    return {
+        "name": name,
+        "in": "path",
+        "required": True,
+        "description": description,
+        "schema": {"type": "string"},
+    }
+
+
+def _alias_form_schema() -> Dict[str, Any]:
+    """Schema for alias create/edit submissions."""
+
+    return {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Unique path-friendly name for the alias.",
+                "example": "docs",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Primary alias definition text.",
+                "example": "docs -> /documentation",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "When true the alias actively routes traffic.",
+            },
+            "submit_action": {
+                "type": "string",
+                "description": "Optional control for alternate save actions such as Save As.",
+                "example": "save-as",
+            },
+            "change_message": {
+                "type": "string",
+                "description": "Optional note stored alongside the change history entry.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _server_form_schema() -> Dict[str, Any]:
+    """Schema for server create/edit submissions."""
+
+    return {
+        "type": "object",
+        "required": ["name", "definition"],
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Unique server name.",
+                "example": "echo",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Python source code defining the server.",
+                "example": "def main(query):\n    return query",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the server is active.",
+            },
+            "submit_action": {
+                "type": "string",
+                "description": "Optional alternate submission action such as save-as.",
+                "example": "save-as",
+            },
+            "change_message": {
+                "type": "string",
+                "description": "Optional note recorded with the change history entry.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _variable_form_schema() -> Dict[str, Any]:
+    """Schema for variable create/edit submissions."""
+
+    return {
+        "type": "object",
+        "required": ["name", "definition"],
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Unique variable name.",
+                "example": "api_token",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Variable content or serialized value.",
+                "example": "token-123",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the variable is active.",
+            },
+            "change_message": {
+                "type": "string",
+                "description": "Optional note captured with the change history entry.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _secret_form_schema() -> Dict[str, Any]:
+    """Schema for secret create/edit submissions."""
+
+    return {
+        "type": "object",
+        "required": ["name", "definition"],
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Unique secret name.",
+                "example": "service-password",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Secret value or serialized content.",
+                "example": "p@ssw0rd",
+            },
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the secret is active.",
+            },
+            "change_message": {
+                "type": "string",
+                "description": "Optional note stored with the change history entry.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _deletion_form_schema() -> Dict[str, Any]:
+    """Schema for delete confirmation submissions."""
+
+    return {
+        "type": "object",
+        "properties": {
+            "confirm": {
+                "type": "string",
+                "description": "Optional confirmation field used by UI flows.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
+def _alias_match_preview_request_schema() -> Dict[str, Any]:
+    """Schema describing the alias matcher preview request body."""
+
+    return {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Alias name under construction.",
+                "example": "docs",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Candidate alias definition text.",
+                "example": "docs -> /documentation",
+            },
+            "paths": {
+                "type": "array",
+                "description": "Paths to evaluate against the alias definition.",
+                "items": {
+                    "type": "string",
+                    "example": "/docs/api",
+                },
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
+def _alias_match_preview_response_schema() -> Dict[str, Any]:
+    """Schema describing the alias matcher preview response."""
+
+    return {
+        "type": "object",
+        "required": ["ok", "results", "definition"],
+        "properties": {
+            "ok": {
+                "type": "boolean",
+                "description": "Indicates whether the definition parsed successfully.",
+            },
+            "pattern": {
+                "type": "string",
+                "description": "Primary match pattern derived from the definition.",
+                "example": "/docs/*",
+            },
+            "results": {
+                "type": "array",
+                "description": "Evaluation results for each supplied path.",
+                "items": {
+                    "type": "object",
+                    "required": ["value", "matches"],
+                    "properties": {
+                        "value": {
+                            "type": "string",
+                            "example": "/docs/api",
+                        },
+                        "matches": {
+                            "type": "boolean",
+                        },
+                    },
+                },
+            },
+            "definition": {
+                "type": "object",
+                "properties": {
+                    "has_active_paths": {
+                        "type": "boolean",
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "number": {"type": "integer"},
+                                "text": {"type": "string"},
+                                "is_mapping": {"type": "boolean"},
+                                "matches_any": {"type": "boolean"},
+                                "has_error": {"type": "boolean"},
+                                "parse_error": {"type": ["string", "null"]},
+                            },
+                        },
+                    },
+                },
+            },
+            "error": {
+                "type": "string",
+                "description": "Present when parsing fails.",
+            },
+        },
+    }
+
+
+def _server_definition_analysis_schema() -> Dict[str, Any]:
+    """Schema for the server definition analysis endpoint."""
+
+    return {
+        "type": "object",
+        "required": [
+            "is_valid",
+            "errors",
+            "auto_main",
+            "auto_main_errors",
+            "parameters",
+            "has_main",
+            "mode",
+        ],
+        "properties": {
+            "is_valid": {"type": "boolean"},
+            "errors": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"},
+                        "line": {"type": "integer"},
+                        "column": {"type": "integer"},
+                        "text": {"type": "string"},
+                    },
+                },
+            },
+            "auto_main": {"type": "boolean"},
+            "auto_main_errors": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "parameters": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "required": {"type": "boolean"},
+                    },
+                },
+            },
+            "has_main": {"type": "boolean"},
+            "mode": {"type": "string", "example": "query"},
+        },
+    }
+
+
+def _server_test_upload_response_schema() -> Dict[str, Any]:
+    """Schema describing the payload returned when uploading server test pages."""
+
+    return {
+        "type": "object",
+        "required": ["redirect_url", "cid"],
+        "properties": {
+            "redirect_url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL that renders the generated Formdown document.",
+            },
+            "cid": {
+                "type": "string",
+                "description": "Content identifier associated with the uploaded page.",
+                "example": "bafybeigdyrzt",
+            },
+        },
+    }
+
+
+def _upload_form_schema() -> Dict[str, Any]:
+    """Schema describing the CID upload form fields."""
+
+    return {
+        "type": "object",
+        "required": ["upload_type"],
+        "properties": {
+            "upload_type": {
+                "type": "string",
+                "description": "Selected upload mode (file, text, or url).",
+                "enum": ["file", "text", "url"],
+            },
+            "file": {
+                "type": "string",
+                "format": "binary",
+                "description": "File contents when using file upload.",
+            },
+            "text_content": {
+                "type": "string",
+                "description": "Raw text content when using text upload.",
+            },
+            "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Source URL when requesting remote fetch.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
 def _build_openapi_spec() -> Dict[str, Any]:
     """Assemble the OpenAPI schema for the application."""
 
     server_url = request.host_url.rstrip("/")
+    paths: Dict[str, Any] = {
+        "/api/interactions": {
+            "post": {
+                "tags": ["Interactions"],
+                "summary": "Record entity interaction",
+                "operationId": "createInteraction",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/InteractionRequest"},
+                            "examples": {
+                                "interaction": {
+                                    "summary": "Record AI assistance for a server",
+                                    "value": {
+                                        "entity_type": "server",
+                                        "entity_name": "example",
+                                        "action": "ai",
+                                        "message": "Trim trailing spaces",
+                                        "content": "print(\"hello world\")",
+                                    },
+                                }
+                            },
+                        }
+                    },
+                },
+                "responses": {
+                    "200": {
+                        "description": "Interaction persisted and history returned.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/InteractionHistory"},
+                            }
+                        },
+                    },
+                    "400": {
+                        "description": "Invalid input provided.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"},
+                            }
+                        },
+                    },
+                },
+            }
+        },
+        "/aliases": {
+            "get": {
+                "tags": ["Aliases"],
+                "summary": "List aliases",
+                "description": "Render the HTML workspace page that lists the current user's aliases.",
+                "responses": {"200": _html_response("Aliases listing rendered.")},
+            }
+        },
+        "/aliases/new": {
+            "get": {
+                "tags": ["Aliases"],
+                "summary": "Show alias creation form",
+                "responses": {"200": _html_response("Alias creation form rendered.")},
+            },
+            "post": {
+                "tags": ["Aliases"],
+                "summary": "Create alias",
+                "requestBody": _form_request_body("AliasFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Alias created and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/aliases/{alias_name}": {
+            "parameters": [_path_parameter("alias_name", "Alias name to view.")],
+            "get": {
+                "tags": ["Aliases"],
+                "summary": "View alias",
+                "responses": {"200": _html_response("Alias details rendered.")},
+            },
+        },
+        "/aliases/{alias_name}/edit": {
+            "parameters": [_path_parameter("alias_name", "Alias name to update.")],
+            "get": {
+                "tags": ["Aliases"],
+                "summary": "Show alias edit form",
+                "responses": {"200": _html_response("Alias edit form rendered.")},
+            },
+            "post": {
+                "tags": ["Aliases"],
+                "summary": "Update alias",
+                "requestBody": _form_request_body("AliasFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Alias updated and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/aliases/{alias_name}/delete": {
+            "parameters": [_path_parameter("alias_name", "Alias name to delete.")],
+            "post": {
+                "tags": ["Aliases"],
+                "summary": "Delete alias",
+                "requestBody": _form_request_body("DeletionConfirmation"),
+                "responses": {
+                    "302": _redirect_response("Alias deleted and browser redirected."),
+                    "404": {
+                        "description": "Alias not found.",
+                        "content": {
+                            "text/html": {
+                                "schema": {"type": "string"},
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        "/aliases/match-preview": {
+            "post": {
+                "tags": ["Aliases"],
+                "summary": "Preview alias matches",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/AliasMatchPreviewRequest"}
+                        }
+                    },
+                },
+                "responses": {
+                    "200": {
+                        "description": "Alias match evaluation results.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/AliasMatchPreviewResponse"}
+                            }
+                        },
+                    },
+                    "400": {
+                        "description": "Validation failure while parsing the alias definition.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"},
+                            }
+                        },
+                    },
+                    "401": {
+                        "description": "Authentication required to preview alias matches.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"}
+                            }
+                        },
+                    },
+                },
+            }
+        },
+        "/servers": {
+            "get": {
+                "tags": ["Servers"],
+                "summary": "List servers",
+                "responses": {"200": _html_response("Servers listing rendered.")},
+            }
+        },
+        "/servers/new": {
+            "get": {
+                "tags": ["Servers"],
+                "summary": "Show server creation form",
+                "responses": {"200": _html_response("Server creation form rendered.")},
+            },
+            "post": {
+                "tags": ["Servers"],
+                "summary": "Create server",
+                "requestBody": _form_request_body("ServerFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Server created and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/servers/{server_name}": {
+            "parameters": [_path_parameter("server_name", "Server name to view.")],
+            "get": {
+                "tags": ["Servers"],
+                "summary": "View server",
+                "responses": {"200": _html_response("Server details rendered.")},
+            },
+        },
+        "/servers/{server_name}/edit": {
+            "parameters": [_path_parameter("server_name", "Server name to update.")],
+            "get": {
+                "tags": ["Servers"],
+                "summary": "Show server edit form",
+                "responses": {"200": _html_response("Server edit form rendered.")},
+            },
+            "post": {
+                "tags": ["Servers"],
+                "summary": "Update server",
+                "requestBody": _form_request_body("ServerFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Server updated and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/servers/{server_name}/delete": {
+            "parameters": [_path_parameter("server_name", "Server name to delete.")],
+            "post": {
+                "tags": ["Servers"],
+                "summary": "Delete server",
+                "requestBody": _form_request_body("DeletionConfirmation"),
+                "responses": {
+                    "302": _redirect_response("Server deleted and browser redirected."),
+                    "404": {
+                        "description": "Server not found.",
+                        "content": {
+                            "text/html": {
+                                "schema": {"type": "string"},
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        "/servers/validate-definition": {
+            "post": {
+                "tags": ["Servers"],
+                "summary": "Validate server definition",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["definition"],
+                                "properties": {
+                                    "definition": {
+                                        "type": "string",
+                                        "description": "Server definition to analyze.",
+                                    }
+                                },
+                                "additionalProperties": False,
+                            }
+                        }
+                    },
+                },
+                "responses": {
+                    "200": {
+                        "description": "Analysis results describing auto-main compatibility.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ServerDefinitionAnalysis"}
+                            }
+                        },
+                    },
+                    "400": {
+                        "description": "Payload was not JSON or missing a definition field.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"},
+                            }
+                        },
+                    },
+                },
+            }
+        },
+        "/servers/{server_name}/upload-test-page": {
+            "parameters": [_path_parameter("server_name", "Server name supplying the test form.")],
+            "post": {
+                "tags": ["Servers"],
+                "summary": "Upload server test page",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "values": {
+                                        "type": "object",
+                                        "description": "Default values used to pre-populate the generated form.",
+                                        "additionalProperties": {"type": ["string", "number", "boolean", "null"]},
+                                    }
+                                },
+                                "additionalProperties": False,
+                            }
+                        }
+                    },
+                },
+                "responses": {
+                    "200": {
+                        "description": "Generated Formdown document persisted as a CID-backed upload.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ServerTestUploadResponse"}
+                            }
+                        },
+                    },
+                    "400": {
+                        "description": "Validation failure while creating the upload.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"},
+                            }
+                        },
+                    },
+                    "404": {
+                        "description": "Server or test configuration not available.",
+                        "content": {
+                            "text/html": {
+                                "schema": {"type": "string"},
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        "/variables": {
+            "get": {
+                "tags": ["Variables"],
+                "summary": "List variables",
+                "responses": {"200": _html_response("Variables listing rendered.")},
+            }
+        },
+        "/variables/new": {
+            "get": {
+                "tags": ["Variables"],
+                "summary": "Show variable creation form",
+                "responses": {"200": _html_response("Variable creation form rendered.")},
+            },
+            "post": {
+                "tags": ["Variables"],
+                "summary": "Create variable",
+                "requestBody": _form_request_body("VariableFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Variable created and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/variables/{variable_name}": {
+            "parameters": [_path_parameter("variable_name", "Variable name to view.")],
+            "get": {
+                "tags": ["Variables"],
+                "summary": "View variable",
+                "responses": {"200": _html_response("Variable details rendered.")},
+            },
+        },
+        "/variables/{variable_name}/edit": {
+            "parameters": [_path_parameter("variable_name", "Variable name to update.")],
+            "get": {
+                "tags": ["Variables"],
+                "summary": "Show variable edit form",
+                "responses": {"200": _html_response("Variable edit form rendered.")},
+            },
+            "post": {
+                "tags": ["Variables"],
+                "summary": "Update variable",
+                "requestBody": _form_request_body("VariableFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Variable updated and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/variables/{variable_name}/delete": {
+            "parameters": [_path_parameter("variable_name", "Variable name to delete.")],
+            "post": {
+                "tags": ["Variables"],
+                "summary": "Delete variable",
+                "requestBody": _form_request_body("DeletionConfirmation"),
+                "responses": {
+                    "302": _redirect_response("Variable deleted and browser redirected."),
+                    "404": {
+                        "description": "Variable not found.",
+                        "content": {
+                            "text/html": {
+                                "schema": {"type": "string"},
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        "/secrets": {
+            "get": {
+                "tags": ["Secrets"],
+                "summary": "List secrets",
+                "responses": {"200": _html_response("Secrets listing rendered.")},
+            }
+        },
+        "/secrets/new": {
+            "get": {
+                "tags": ["Secrets"],
+                "summary": "Show secret creation form",
+                "responses": {"200": _html_response("Secret creation form rendered.")},
+            },
+            "post": {
+                "tags": ["Secrets"],
+                "summary": "Create secret",
+                "requestBody": _form_request_body("SecretFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Secret created and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/secrets/{secret_name}": {
+            "parameters": [_path_parameter("secret_name", "Secret name to view.")],
+            "get": {
+                "tags": ["Secrets"],
+                "summary": "View secret",
+                "responses": {"200": _html_response("Secret details rendered.")},
+            },
+        },
+        "/secrets/{secret_name}/edit": {
+            "parameters": [_path_parameter("secret_name", "Secret name to update.")],
+            "get": {
+                "tags": ["Secrets"],
+                "summary": "Show secret edit form",
+                "responses": {"200": _html_response("Secret edit form rendered.")},
+            },
+            "post": {
+                "tags": ["Secrets"],
+                "summary": "Update secret",
+                "requestBody": _form_request_body("SecretFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Secret updated and browser redirected."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/secrets/{secret_name}/delete": {
+            "parameters": [_path_parameter("secret_name", "Secret name to delete.")],
+            "post": {
+                "tags": ["Secrets"],
+                "summary": "Delete secret",
+                "requestBody": _form_request_body("DeletionConfirmation"),
+                "responses": {
+                    "302": _redirect_response("Secret deleted and browser redirected."),
+                    "404": {
+                        "description": "Secret not found.",
+                        "content": {
+                            "text/html": {
+                                "schema": {"type": "string"},
+                            }
+                        },
+                    },
+                },
+            },
+        },
+        "/upload": {
+            "get": {
+                "tags": ["Uploads"],
+                "summary": "Show CID upload form",
+                "responses": {"200": _html_response("Upload form rendered.")},
+            },
+            "post": {
+                "tags": ["Uploads"],
+                "summary": "Upload CID content",
+                "requestBody": _multipart_request_body("UploadFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Upload processed and browser redirected to the success page."),
+                    "200": _html_response("Form re-rendered with validation errors."),
+                },
+            },
+        },
+        "/uploads": {
+            "get": {
+                "tags": ["Uploads"],
+                "summary": "List uploaded CID content",
+                "responses": {"200": _html_response("Uploads listing rendered.")},
+            }
+        },
+    }
+
     spec: Dict[str, Any] = {
         "openapi": "3.0.3",
         "info": {
             "title": "Viewer API",
             "version": "1.0.0",
-            "description": "Programmatic interface for recording entity interactions.",
+            "description": (
+                "Endpoints that power the Viewer workspace, including the HTML forms "
+                "and JSON APIs used to manage aliases, servers, variables, secrets, "
+                "and uploads."
+            ),
             "contact": {
                 "name": "Viewer Project",
                 "url": request.url_root.rstrip("/"),
             },
         },
         "servers": [{"url": server_url}],
-        "paths": {
-            "/api/interactions": {
-                "post": {
-                    "tags": ["Interactions"],
-                    "summary": "Record entity interaction",
-                    "operationId": "createInteraction",
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {"$ref": "#/components/schemas/InteractionRequest"},
-                                "examples": {
-                                    "interaction": {
-                                        "summary": "Record AI assistance for a server",
-                                        "value": {
-                                            "entity_type": "server",
-                                            "entity_name": "example",
-                                            "action": "ai",
-                                            "message": "Trim trailing spaces",
-                                            "content": "print(\"hello world\")",
-                                        },
-                                    }
-                                },
-                            }
-                        },
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "Interaction persisted and history returned.",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/InteractionHistory"},
-                                }
-                            },
-                        },
-                        "400": {
-                            "description": "Invalid input provided.",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/Error"},
-                                }
-                            },
-                        },
-                    },
-                }
-            }
-        },
+        "paths": paths,
         "components": {
             "schemas": {
                 "InteractionRequest": _interaction_request_schema(),
                 "InteractionSummary": _interaction_summary_schema(),
                 "InteractionHistory": _interaction_history_schema(),
                 "Error": _error_schema(),
+                "AliasFormSubmission": _alias_form_schema(),
+                "ServerFormSubmission": _server_form_schema(),
+                "VariableFormSubmission": _variable_form_schema(),
+                "SecretFormSubmission": _secret_form_schema(),
+                "DeletionConfirmation": _deletion_form_schema(),
+                "AliasMatchPreviewRequest": _alias_match_preview_request_schema(),
+                "AliasMatchPreviewResponse": _alias_match_preview_response_schema(),
+                "ServerDefinitionAnalysis": _server_definition_analysis_schema(),
+                "ServerTestUploadResponse": _server_test_upload_response_schema(),
+                "UploadFormSubmission": _upload_form_schema(),
             }
         },
     }

@@ -54,6 +54,57 @@ class TestOpenAPI(unittest.TestCase):
         self.assertIn('SwaggerUIBundle', html)
         self.assertIn('/openapi.json', html)
 
+    def test_openapi_schema_includes_entity_management_paths(self):
+        response = self.client.get('/openapi.json')
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.get_json()
+        paths = payload['paths']
+
+        expected_paths = {
+            '/aliases': ['get'],
+            '/aliases/new': ['get', 'post'],
+            '/aliases/{alias_name}': ['get'],
+            '/aliases/{alias_name}/edit': ['get', 'post'],
+            '/aliases/{alias_name}/delete': ['post'],
+            '/aliases/match-preview': ['post'],
+            '/servers': ['get'],
+            '/servers/new': ['get', 'post'],
+            '/servers/{server_name}': ['get'],
+            '/servers/{server_name}/edit': ['get', 'post'],
+            '/servers/{server_name}/delete': ['post'],
+            '/servers/validate-definition': ['post'],
+            '/servers/{server_name}/upload-test-page': ['post'],
+            '/variables': ['get'],
+            '/variables/new': ['get', 'post'],
+            '/variables/{variable_name}': ['get'],
+            '/variables/{variable_name}/edit': ['get', 'post'],
+            '/variables/{variable_name}/delete': ['post'],
+            '/secrets': ['get'],
+            '/secrets/new': ['get', 'post'],
+            '/secrets/{secret_name}': ['get'],
+            '/secrets/{secret_name}/edit': ['get', 'post'],
+            '/secrets/{secret_name}/delete': ['post'],
+            '/upload': ['get', 'post'],
+            '/uploads': ['get'],
+        }
+
+        for path, methods in expected_paths.items():
+            self.assertIn(path, paths, msg=f'Missing path {path}')
+            for method in methods:
+                self.assertIn(method, paths[path], msg=f'Missing {method.upper()} for {path}')
+
+        schemas = payload['components']['schemas']
+        for schema_name in [
+            'AliasFormSubmission',
+            'ServerFormSubmission',
+            'VariableFormSubmission',
+            'SecretFormSubmission',
+            'DeletionConfirmation',
+            'UploadFormSubmission',
+        ]:
+            self.assertIn(schema_name, schemas, msg=f'Missing schema {schema_name}')
+
 
 if __name__ == '__main__':
     unittest.main()
