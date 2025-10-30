@@ -40,7 +40,17 @@
 
                         <div class="mb-3">
                             {{ form.definition.label(class="form-label") }}
-                            {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
+                            <div class="position-relative">
+                                {{ form.definition(
+                                    class="form-control font-monospace" + (" is-invalid" if form.definition.errors else ""),
+                                ) }}
+                                <div
+                                    class="form-control p-0 code-editor d-none{{ ' is-invalid' if form.definition.errors else '' }}"
+                                    data-code-editor-for="{{ form.definition.id }}"
+                                    data-code-editor-language="text"
+                                    data-code-editor-detect-language="true"
+                                ></div>
+                            </div>
                             {% if form.definition.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.definition.errors %}
@@ -128,4 +138,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
+    <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
 {% endblock %}

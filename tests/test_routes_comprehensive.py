@@ -1635,6 +1635,8 @@ class TestVariableRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('definition-ai-input', page)
         self.assertIn('Ask AI to edit the variable definition', page)
+        self.assertIn('data-code-editor-for="definition"', page)
+        self.assertIn('code_editor.js', page)
 
     def test_variable_view_shows_matching_route_summary(self):
         """Variable detail view should render matching route information."""
@@ -1742,6 +1744,8 @@ class TestSecretRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('definition-ai-input', page)
         self.assertIn('Ask AI to edit the secret definition', page)
+        self.assertIn('data-code-editor-for="definition"', page)
+        self.assertIn('code_editor.js', page)
 
     def test_view_secret_page_displays_secret_details(self):
         """Secret detail page should render secret metadata and definition."""
@@ -1785,6 +1789,8 @@ class TestAliasRoutes(BaseTestCase):
         self.assertIn('definition-ai-input', page)
         self.assertIn('data-ai-target-id="definition"', page)
         self.assertIn('Ask AI to edit the alias definition', page)
+        self.assertIn('data-code-editor-for="definition"', page)
+        self.assertIn('code_editor.js', page)
 
     def test_edit_alias_post_updates_alias(self):
         """Renaming an alias should update its name and retain a valid definition."""
