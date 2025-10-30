@@ -78,6 +78,15 @@
             suppressAceChange = false;
         }
 
+        function determineEditorHeight() {
+            const textareaHeight = definitionField
+                ? Math.max(definitionField.scrollHeight || 0, definitionField.offsetHeight || 0)
+                : 0;
+            const containerHeight = editorContainer ? editorContainer.offsetHeight || 0 : 0;
+            const defaultHeight = 384; // 24rem assuming 16px base font size
+            return Math.max(textareaHeight, containerHeight, defaultHeight);
+        }
+
         function ensureAceEditor() {
             if (!editorContainer || typeof window.ace === 'undefined') {
                 return null;
@@ -85,6 +94,11 @@
 
             if (typeof editorContainer.classList?.remove === 'function') {
                 editorContainer.classList.remove('d-none');
+            }
+
+            const desiredHeight = determineEditorHeight();
+            if (editorContainer && typeof editorContainer.style !== 'undefined') {
+                editorContainer.style.height = `${desiredHeight}px`;
             }
 
             try {
@@ -107,6 +121,8 @@
                     fontSize: '0.95rem',
                     highlightGutterLine: true,
                 });
+
+                editor.resize(true);
 
                 if (typeof editor.setTheme === 'function') {
                     editor.setTheme('ace/theme/github');
@@ -136,14 +152,49 @@
         if (!aceEditor) {
             if (editorContainer) {
                 editorContainer.classList.add('d-none');
+                editorContainer.style.height = '';
             }
             definitionField.classList.remove('d-none');
         } else {
-            if (editorContainer) {
-                editorContainer.classList.remove('d-none');
-            }
-            definitionField.classList.add('d-none');
+            requestAnimationFrame(() => {
+                const visibleHeight = editorContainer?.getBoundingClientRect().height || 0;
+                if (visibleHeight < 32) {
+                    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                        console.error('Ace editor failed to render with a visible height; falling back to textarea.');
+                    }
+
+                    if (typeof aceEditor.destroy === 'function') {
+                        aceEditor.destroy();
+                    }
+
+                    aceEditor = null;
+
+                    if (editorContainer) {
+                        editorContainer.classList.add('d-none');
+                        editorContainer.style.height = '';
+                    }
+
+                    definitionField.classList.remove('d-none');
+                    return;
+                }
+
+                if (editorContainer) {
+                    editorContainer.classList.remove('d-none');
+                }
+                definitionField.classList.add('d-none');
+            });
         }
+
+        window.addEventListener('resize', () => {
+            if (!aceEditor) {
+                return;
+            }
+            const updatedHeight = determineEditorHeight();
+            if (editorContainer && typeof editorContainer.style !== 'undefined') {
+                editorContainer.style.height = `${updatedHeight}px`;
+            }
+            aceEditor.resize(true);
+        });
 
         const definitionController = {
             getValue() {
