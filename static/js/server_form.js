@@ -38,8 +38,115 @@
         const aiWrapper = document.getElementById('server-test-ai-wrapper');
         const resultContainer = document.getElementById('server-test-result');
 
+        const editorContainer = document.getElementById('server-definition-editor');
+        const aceBasePath = 'https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/';
+
         let debounceHandle = null;
         let requestCounter = 0;
+        let aceEditor = null;
+        let suppressAceChange = false;
+
+        function updateTextareaFromEditor() {
+            if (!aceEditor || suppressAceChange) {
+                return;
+            }
+
+            const value = aceEditor.getValue();
+            if (definitionField.value === value) {
+                return;
+            }
+
+            definitionField.value = value;
+            definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function syncEditorWithTextarea() {
+            if (!aceEditor) {
+                return;
+            }
+
+            const value = definitionField.value;
+            if (aceEditor.getValue() === value) {
+                return;
+            }
+
+            suppressAceChange = true;
+            const cursorPosition = aceEditor.getCursorPosition();
+            aceEditor.session.setValue(value);
+            aceEditor.moveCursorToPosition(cursorPosition);
+            aceEditor.session.selection.clearSelection();
+            suppressAceChange = false;
+        }
+
+        function ensureAceEditor() {
+            if (!editorContainer || typeof window.ace === 'undefined') {
+                return null;
+            }
+
+            if (typeof window.ace.config?.set === 'function') {
+                window.ace.config.set('basePath', aceBasePath);
+                window.ace.config.set('modePath', aceBasePath);
+                window.ace.config.set('themePath', aceBasePath);
+            }
+
+            const editor = window.ace.edit(editorContainer);
+            editor.session.setMode('ace/mode/python');
+            editor.session.setUseSoftTabs(true);
+            editor.session.setTabSize(4);
+            editor.session.setUseWrapMode(true);
+            editor.session.setValue(definitionField.value || '');
+            editor.setShowPrintMargin(false);
+            editor.setHighlightActiveLine(true);
+            editor.renderer.setScrollMargin(12, 12, 0, 0);
+            editor.setOptions({
+                fontSize: '0.95rem',
+                highlightGutterLine: true,
+            });
+
+            if (typeof editor.setTheme === 'function') {
+                editor.setTheme('ace/theme/github');
+            }
+
+            editor.session.on('change', () => {
+                if (suppressAceChange) {
+                    return;
+                }
+                updateTextareaFromEditor();
+            });
+
+            return editor;
+        }
+
+        aceEditor = ensureAceEditor();
+
+        const definitionController = {
+            getValue() {
+                return aceEditor ? aceEditor.getValue() : definitionField.value;
+            },
+            setValue(value) {
+                definitionField.value = typeof value === 'string' ? value : '';
+                definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+            },
+            focus() {
+                if (aceEditor) {
+                    aceEditor.focus();
+                } else {
+                    definitionField.focus();
+                }
+            },
+            scrollIntoView() {
+                const target = editorContainer || definitionField;
+                if (target && typeof target.scrollIntoView === 'function') {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            },
+        };
+
+        window.serverDefinitionEditor = definitionController;
+
+        if (aceEditor) {
+            syncEditorWithTextarea();
+        }
 
         function clearTestResult() {
             if (!resultContainer) {
@@ -282,6 +389,7 @@
         }
 
         definitionField.addEventListener('input', () => {
+            syncEditorWithTextarea();
             clearTestResult();
 
             if (!validationUrl) {
@@ -299,6 +407,19 @@
 
         if (validationUrl) {
             scheduleValidation();
+        }
+
+        if (aceEditor) {
+            aceEditor.commands.addCommand({
+                name: 'saveServerDefinition',
+                bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
+                exec() {
+                    const submitButton = document.querySelector('[data-primary-save="true"]');
+                    if (submitButton && typeof submitButton.click === 'function') {
+                        submitButton.click();
+                    }
+                },
+            });
         }
     });
 })();
