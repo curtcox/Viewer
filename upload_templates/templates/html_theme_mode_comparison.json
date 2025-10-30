@@ -1,0 +1,7 @@
+{
+  "id": "html-theme-mode-comparison",
+  "name": "HTML Theme Mode Comparison",
+  "description": "Sample page rendering the Viewer UI with /css/lightmode and /css/darkmode side-by-side.",
+  "content_file": "contents/theme_mode_comparison.html",
+  "suggested_filename": "theme-mode-comparison.html"
+}
