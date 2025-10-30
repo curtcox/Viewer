@@ -135,12 +135,12 @@
                             {{ form.definition.label(class="form-label") }}
                             <div class="position-relative">
                                 {{ form.definition(
-                                    class="form-control d-none" + (" is-invalid" if form.definition.errors else ""),
+                                    class="form-control" + (" is-invalid" if form.definition.errors else ""),
                                     style="font-family: monospace;"
                                 ) }}
                                 <div
                                     id="server-definition-editor"
-                                    class="form-control p-0 server-definition-editor{{ ' is-invalid' if form.definition.errors else '' }}"
+                                    class="form-control p-0 server-definition-editor d-none{{ ' is-invalid' if form.definition.errors else '' }}"
                                     data-editor-language="python"
                                 ></div>
                             </div>

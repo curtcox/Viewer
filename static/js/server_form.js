@@ -83,38 +83,52 @@
                 return null;
             }
 
-            if (typeof window.ace.config?.set === 'function') {
-                window.ace.config.set('basePath', aceBasePath);
-                window.ace.config.set('modePath', aceBasePath);
-                window.ace.config.set('themePath', aceBasePath);
+            if (typeof editorContainer.classList?.remove === 'function') {
+                editorContainer.classList.remove('d-none');
             }
 
-            const editor = window.ace.edit(editorContainer);
-            editor.session.setMode('ace/mode/python');
-            editor.session.setUseSoftTabs(true);
-            editor.session.setTabSize(4);
-            editor.session.setUseWrapMode(true);
-            editor.session.setValue(definitionField.value || '');
-            editor.setShowPrintMargin(false);
-            editor.setHighlightActiveLine(true);
-            editor.renderer.setScrollMargin(12, 12, 0, 0);
-            editor.setOptions({
-                fontSize: '0.95rem',
-                highlightGutterLine: true,
-            });
-
-            if (typeof editor.setTheme === 'function') {
-                editor.setTheme('ace/theme/github');
-            }
-
-            editor.session.on('change', () => {
-                if (suppressAceChange) {
-                    return;
+            try {
+                if (typeof window.ace.config?.set === 'function') {
+                    window.ace.config.set('basePath', aceBasePath);
+                    window.ace.config.set('modePath', aceBasePath);
+                    window.ace.config.set('themePath', aceBasePath);
                 }
-                updateTextareaFromEditor();
-            });
 
-            return editor;
+                const editor = window.ace.edit(editorContainer);
+                editor.session.setMode('ace/mode/python');
+                editor.session.setUseSoftTabs(true);
+                editor.session.setTabSize(4);
+                editor.session.setUseWrapMode(true);
+                editor.session.setValue(definitionField.value || '');
+                editor.setShowPrintMargin(false);
+                editor.setHighlightActiveLine(true);
+                editor.renderer.setScrollMargin(12, 12, 0, 0);
+                editor.setOptions({
+                    fontSize: '0.95rem',
+                    highlightGutterLine: true,
+                });
+
+                if (typeof editor.setTheme === 'function') {
+                    editor.setTheme('ace/theme/github');
+                }
+
+                editor.session.on('change', () => {
+                    if (suppressAceChange) {
+                        return;
+                    }
+                    updateTextareaFromEditor();
+                });
+
+                return editor;
+            } catch (error) {
+                if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                    console.error('Failed to initialise Ace editor for server definition', error);
+                }
+                if (typeof editorContainer.classList?.add === 'function') {
+                    editorContainer.classList.add('d-none');
+                }
+                return null;
+            }
         }
 
         aceEditor = ensureAceEditor();
