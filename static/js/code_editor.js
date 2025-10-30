@@ -365,7 +365,12 @@
         function ensureVisible(attempt) {
             const tries = typeof attempt === 'number' ? attempt : 0;
             const visibleHeight = container.getBoundingClientRect().height;
-            if (visibleHeight >= 32 && isElementVisible(container)) {
+            const containerVisible = isElementVisible(container);
+            const hiddenByInitialSetup = !containerVisible
+                && container.style.visibility === 'hidden'
+                && container.style.position === 'absolute';
+
+            if (visibleHeight >= 32 && (containerVisible || hiddenByInitialSetup)) {
                 showEditor();
                 return;
             }
