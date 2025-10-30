@@ -27,66 +27,241 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto align-items-lg-center">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('main.search_page') }}">
                             <i class="fas fa-magnifying-glass me-1"></i>Search
                         </a>
                     </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="workspaceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-toolbox me-1"></i>Workspace
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="workspaceDropdown">
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.uploads') }}">
-                                    <i class="fas fa-upload me-2 text-muted"></i>Uploads
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.server_events') }}">
-                                    <i class="fas fa-server me-2 text-muted"></i>Server Events
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.aliases') }}">
-                                    <i class="fas fa-link me-2 text-muted"></i>Aliases
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.history') }}">
-                                    <i class="fas fa-history me-2 text-muted"></i>History
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.export_data') }}">
-                                    <i class="fas fa-download me-2 text-muted"></i>Export Data
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.import_data') }}">
-                                    <i class="fas fa-file-import me-2 text-muted"></i>Import Data
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="accountDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-cog me-1"></i>Account
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="accountDropdown">
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.profile') }}">
-                                    <i class="fas fa-id-badge me-2 text-muted"></i>Profile
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('main.settings') }}">
-                                    <i class="fas fa-sliders-h me-2 text-muted"></i>Settings
-                                </a>
-                            </li>
-                        </ul>
+                    <li class="nav-item dropdown viewer-menu">
+                        <div class="btn-group viewer-menu-group" role="group">
+                            <a class="nav-link viewer-menu-home" href="{{ url_for('main.index') }}">
+                                <i class="fas fa-shield-alt me-1"></i>Viewer
+                            </a>
+                            <a
+                                class="nav-link dropdown-toggle dropdown-toggle-split viewer-menu-toggle"
+                                href="#"
+                                id="viewerMenuToggle"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside"
+                                aria-expanded="false"
+                                aria-label="Open Viewer navigation menu"
+                            ></a>
+                            <ul class="dropdown-menu shadow" aria-labelledby="viewerMenuToggle" data-viewer-menu>
+                                <li class="dropdown-header text-uppercase small text-muted">Workspace</li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.uploads') }}">
+                                        <i class="fas fa-upload text-muted"></i>
+                                        <span>Uploads</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.server_events') }}">
+                                        <i class="fas fa-server text-muted"></i>
+                                        <span>Server Events</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.history') }}">
+                                        <i class="fas fa-history text-muted"></i>
+                                        <span>History</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.export_data') }}">
+                                        <i class="fas fa-download text-muted"></i>
+                                        <span>Export Data</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.import_data') }}">
+                                        <i class="fas fa-file-import text-muted"></i>
+                                        <span>Import Data</span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-submenu dropend">
+                                    <a
+                                        class="dropdown-item dropdown-toggle d-flex align-items-center gap-2"
+                                        href="#"
+                                        role="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                    >
+                                        <i class="fas fa-link text-muted"></i>
+                                        <span>Aliases</span>
+                                    </a>
+                                    <ul class="dropdown-menu" data-viewer-aliases>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.aliases') }}">
+                                                <i class="fas fa-list text-muted"></i>
+                                                <span>All aliases</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% if nav_aliases %}
+                                            {% for alias in nav_aliases %}
+                                                {% set alias_name = alias.name or 'Unnamed alias' %}
+                                                <li>
+                                                    {% if alias.name %}
+                                                        <a class="dropdown-item" href="{{ url_for('main.view_alias', alias_name=alias.name) }}">{{ alias_name }}</a>
+                                                    {% else %}
+                                                        <span class="dropdown-item-text text-muted small">{{ alias_name }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li>
+                                                <span class="dropdown-item-text text-muted small">No aliases yet</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                                <li class="dropdown-submenu dropend">
+                                    <a
+                                        class="dropdown-item dropdown-toggle d-flex align-items-center gap-2"
+                                        href="#"
+                                        role="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                    >
+                                        <i class="fas fa-server text-muted"></i>
+                                        <span>Servers</span>
+                                    </a>
+                                    <ul class="dropdown-menu" data-viewer-servers>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.servers') }}">
+                                                <i class="fas fa-list text-muted"></i>
+                                                <span>All servers</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% if nav_servers %}
+                                            {% for server in nav_servers %}
+                                                {% set server_name = server.name or 'Unnamed server' %}
+                                                <li>
+                                                    {% if server.name %}
+                                                        <a class="dropdown-item" href="{{ url_for('main.view_server', server_name=server.name) }}">{{ server_name }}</a>
+                                                    {% else %}
+                                                        <span class="dropdown-item-text text-muted small">{{ server_name }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li>
+                                                <span class="dropdown-item-text text-muted small">No servers yet</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                                <li class="dropdown-submenu dropend">
+                                    <a
+                                        class="dropdown-item dropdown-toggle d-flex align-items-center gap-2"
+                                        href="#"
+                                        role="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                    >
+                                        <i class="fas fa-code text-muted"></i>
+                                        <span>Variables</span>
+                                    </a>
+                                    <ul class="dropdown-menu" data-viewer-variables>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.variables') }}">
+                                                <i class="fas fa-list text-muted"></i>
+                                                <span>All variables</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% if nav_variables %}
+                                            {% for variable in nav_variables %}
+                                                {% set variable_name = variable.name or 'Unnamed variable' %}
+                                                <li>
+                                                    {% if variable.name %}
+                                                        <a class="dropdown-item" href="{{ url_for('main.view_variable', variable_name=variable.name) }}">{{ variable_name }}</a>
+                                                    {% else %}
+                                                        <span class="dropdown-item-text text-muted small">{{ variable_name }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li>
+                                                <span class="dropdown-item-text text-muted small">No variables yet</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                                <li class="dropdown-submenu dropend">
+                                    <a
+                                        class="dropdown-item dropdown-toggle d-flex align-items-center gap-2"
+                                        href="#"
+                                        role="button"
+                                        data-bs-toggle="dropdown"
+                                        data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                    >
+                                        <i class="fas fa-key text-muted"></i>
+                                        <span>Secrets</span>
+                                    </a>
+                                    <ul class="dropdown-menu" data-viewer-secrets>
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.secrets') }}">
+                                                <i class="fas fa-list text-muted"></i>
+                                                <span>All secrets</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% if nav_secrets %}
+                                            {% for secret in nav_secrets %}
+                                                {% set secret_name = secret.name or 'Unnamed secret' %}
+                                                <li>
+                                                    {% if secret.name %}
+                                                        <a class="dropdown-item" href="{{ url_for('main.view_secret', secret_name=secret.name) }}">{{ secret_name }}</a>
+                                                    {% else %}
+                                                        <span class="dropdown-item-text text-muted small">{{ secret_name }}</span>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li>
+                                                <span class="dropdown-item-text text-muted small">No secrets yet</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.routes_overview') }}">
+                                        <i class="fas fa-diagram-project text-muted"></i>
+                                        <span>Routes</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.source_browser') }}">
+                                        <i class="fas fa-file-code text-muted"></i>
+                                        <span>Source</span>
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="dropdown-header text-uppercase small text-muted">Account</li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.profile') }}">
+                                        <i class="fas fa-id-badge text-muted"></i>
+                                        <span>Profile</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('main.settings') }}">
+                                        <i class="fas fa-sliders-h text-muted"></i>
+                                        <span>Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                 </ul>
 

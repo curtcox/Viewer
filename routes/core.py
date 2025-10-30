@@ -34,7 +34,9 @@ from db_access import (
     get_first_server_name,
     get_first_variable_name,
     get_user_aliases,
+    get_user_secrets,
     get_user_servers,
+    get_user_variables,
     rollback_session,
 )
 from entity_references import (
@@ -43,6 +45,7 @@ from entity_references import (
     extract_references_from_text,
 )
 from identity import current_user
+from sqlalchemy.exc import SQLAlchemyError
 from models import CID
 from server_execution import (
     is_potential_server_path,
@@ -630,6 +633,37 @@ def inject_meta_inspector_link():
 
     meta_url = url_for("main.meta_route", requested_path=requested_path)
     return {"meta_inspector_url": meta_url}
+
+
+@main_bp.app_context_processor
+def inject_viewer_navigation():
+    """Expose collections used by the unified Viewer navigation menu."""
+
+    if not has_request_context():
+        return {}
+
+    user_id = getattr(current_user, "id", None)
+    if not user_id:
+        return {}
+
+    try:
+        aliases = get_user_aliases(user_id)
+        servers = get_user_servers(user_id)
+        variables = get_user_variables(user_id)
+        secrets = get_user_secrets(user_id)
+    except SQLAlchemyError:
+        rollback_session()
+        aliases = []
+        servers = []
+        variables = []
+        secrets = []
+
+    return {
+        "nav_aliases": aliases,
+        "nav_servers": servers,
+        "nav_variables": variables,
+        "nav_secrets": secrets,
+    }
 
 
 @main_bp.route('/')
