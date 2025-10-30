@@ -119,6 +119,18 @@
 
         aceEditor = ensureAceEditor();
 
+        if (!aceEditor) {
+            if (editorContainer) {
+                editorContainer.classList.add('d-none');
+            }
+            definitionField.classList.remove('d-none');
+        } else {
+            if (editorContainer) {
+                editorContainer.classList.remove('d-none');
+            }
+            definitionField.classList.add('d-none');
+        }
+
         const definitionController = {
             getValue() {
                 return aceEditor ? aceEditor.getValue() : definitionField.value;
@@ -126,6 +138,7 @@
             setValue(value) {
                 definitionField.value = typeof value === 'string' ? value : '';
                 definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+                syncEditorWithTextarea();
             },
             focus() {
                 if (aceEditor) {
@@ -144,9 +157,7 @@
 
         window.serverDefinitionEditor = definitionController;
 
-        if (aceEditor) {
-            syncEditorWithTextarea();
-        }
+        syncEditorWithTextarea();
 
         function clearTestResult() {
             if (!resultContainer) {
