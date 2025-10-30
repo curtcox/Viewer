@@ -133,7 +133,17 @@
 
                         <div class="col-12">
                             {{ form.definition.label(class="form-label") }}
-                            {{ form.definition(class="form-control" + (" is-invalid" if form.definition.errors else ""), style="font-family: monospace;") }}
+                            <div class="position-relative">
+                                {{ form.definition(
+                                    class="form-control" + (" is-invalid" if form.definition.errors else ""),
+                                    style="font-family: monospace;"
+                                ) }}
+                                <div
+                                    id="server-definition-editor"
+                                    class="form-control p-0 server-definition-editor d-none{{ ' is-invalid' if form.definition.errors else '' }}"
+                                    data-editor-language="python"
+                                ></div>
+                            </div>
                             <input type="hidden" id="server-definition-validate-url" value="{{ url_for('main.validate_server_definition') }}">
                             {% if form.definition.errors %}
                                 <div class="invalid-feedback">
@@ -361,30 +371,55 @@
 <script>
 function loadHistoricalDefinition(index) {
     const definitionElement = document.querySelector(`#definition-${index} .historical-definition`);
-    if (definitionElement) {
-        const definition = definitionElement.textContent;
-        const textarea = document.getElementById('definition');
-        if (textarea) {
-            if (confirm('This will replace the current definition in the editor. Are you sure?')) {
-                textarea.value = definition;
-                textarea.scrollIntoView({ behavior: 'smooth' });
-                textarea.focus();
-
-                const button = event.target.closest('button');
-                const originalContent = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check text-success"></i> Loaded!';
-                setTimeout(() => {
-                    button.innerHTML = originalContent;
-                }, 2000);
-            }
-        }
+    if (!definitionElement) {
+        return;
     }
+
+    const definition = definitionElement.textContent;
+    const textarea = document.getElementById('definition');
+    const editor = window.serverDefinitionEditor;
+
+    if (!definition || (!textarea && !(editor && typeof editor.setValue === 'function'))) {
+        return;
+    }
+
+    if (!confirm('This will replace the current definition in the editor. Are you sure?')) {
+        return;
+    }
+
+    if (editor && typeof editor.setValue === 'function') {
+        editor.setValue(definition);
+        if (typeof editor.focus === 'function') {
+            editor.focus();
+        }
+        if (typeof editor.scrollIntoView === 'function') {
+            editor.scrollIntoView();
+        }
+    } else if (textarea) {
+        textarea.value = definition;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.scrollIntoView({ behavior: 'smooth' });
+        textarea.focus();
+    }
+
+    const currentEvent = window.event;
+    const button = currentEvent && currentEvent.target ? currentEvent.target.closest('button') : null;
+    if (!button) {
+        return;
+    }
+
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check text-success"></i> Loaded!';
+    setTimeout(() => {
+        button.innerHTML = originalContent;
+    }, 2000);
 }
 </script>
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
     <script src="{{ url_for('static', filename='js/rename_controls.js') }}"></script>
     <script src="{{ url_for('static', filename='js/server_form.js') }}"></script>
     {% if server_templates is defined and server_templates %}
@@ -393,6 +428,7 @@ function loadHistoricalDefinition(index) {
             const templateButtons = document.querySelectorAll('[data-server-template-id]');
             const definitionField = document.getElementById('{{ form.definition.id }}');
             const nameField = document.getElementById('{{ form.name.id }}');
+            const definitionEditor = window.serverDefinitionEditor;
             const templates = {{ server_templates|tojson }};
 
             if (!templateButtons.length || !definitionField) {
@@ -421,9 +457,16 @@ function loadHistoricalDefinition(index) {
                         return;
                     }
 
-                    definitionField.value = definition;
-                    definitionField.dispatchEvent(new Event('input', { bubbles: true }));
-                    definitionField.focus();
+                    if (definitionEditor && typeof definitionEditor.setValue === 'function') {
+                        definitionEditor.setValue(definition);
+                        if (typeof definitionEditor.focus === 'function') {
+                            definitionEditor.focus();
+                        }
+                    } else {
+                        definitionField.value = definition;
+                        definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+                        definitionField.focus();
+                    }
 
                     const suggestedName = templateData.suggested_name;
                     if (

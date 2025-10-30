@@ -199,6 +199,22 @@ code {
     }
 }
 
+/* Ace editor container for server definitions */
+.server-definition-editor {
+    min-height: 24rem;
+    font-family: var(--bs-font-monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    border: 1px solid #ced4da;
+}
+
+.server-definition-editor .ace_content {
+    font-family: inherit;
+}
+
+.server-definition-editor.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
 /* Hero section */
 .hero-section {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

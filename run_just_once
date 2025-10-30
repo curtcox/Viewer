@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if [ -d "venv" ]; then
+  source venv/bin/activate
+fi
+
+export PYTHONUNBUFFERED=1
+export DATABASE_URL="${DATABASE_URL:-sqlite:///secureapp.db}"
+export SESSION_SECRET="${SESSION_SECRET:-dev-session-secret}"
+export LOGFIRE_SERVICE_NAME="${LOGFIRE_SERVICE_NAME:-secureapp}"
+export LOGFIRE_ENVIRONMENT="${LOGFIRE_ENVIRONMENT:-development}"
+unset LOGFIRE_SEND_TO_LOGFIRE
+
+python main.py
