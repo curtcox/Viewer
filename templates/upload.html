@@ -186,6 +186,13 @@
             urlSection.style.display = 'block';
         }
 
+        if (textRadio.checked && window.codeEditors && window.codeEditors['{{ form.text_content.id }}']) {
+            const editorController = window.codeEditors['{{ form.text_content.id }}'];
+            if (editorController && typeof editorController.refreshLayout === 'function') {
+                setTimeout(() => editorController.refreshLayout(), 0);
+            }
+        }
+
         if (aiButton) {
             aiButton.classList.toggle('d-none', !textRadio.checked);
         }

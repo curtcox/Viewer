@@ -158,6 +158,46 @@
         return fallback || 'text';
     }
 
+    function isElementVisible(element) {
+        if (!element || !element.isConnected) {
+            return false;
+        }
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        if (style.display === 'none' || style.visibility === 'hidden' || Number.parseFloat(style.opacity) === 0) {
+            return false;
+        }
+        if (rect.width === 0 && rect.height === 0 && style.position !== 'fixed') {
+            return false;
+        }
+        if (element.offsetParent === null && style.position !== 'fixed') {
+            return false;
+        }
+        return true;
+    }
+
+    function watchVisibility(element, callback) {
+        if (!element || typeof callback !== 'function') {
+            return null;
+        }
+        let current = element.parentElement;
+        if (!current) {
+            return null;
+        }
+        const observer = new MutationObserver(() => {
+            if (!isElementVisible(element)) {
+                return;
+            }
+            observer.disconnect();
+            callback();
+        });
+        while (current) {
+            observer.observe(current, { attributes: true, attributeFilter: ['style', 'class'] });
+            current = current.parentElement;
+        }
+        return observer;
+    }
+
     function determineEditorHeight(textarea, container, minimum) {
         const minHeight = typeof minimum === 'number' && minimum > 0 ? minimum : 320;
         const textareaHeight = textarea
@@ -199,6 +239,19 @@
         }
 
         const desiredHeight = determineEditorHeight(textarea, container, minimumHeight || undefined);
+
+        const removedHiddenClass = container.classList.contains('d-none');
+        if (removedHiddenClass) {
+            container.classList.remove('d-none');
+        }
+
+        const previousVisibility = container.style.visibility;
+        const previousPosition = container.style.position;
+        const previousDisplay = container.style.display;
+
+        container.style.visibility = 'hidden';
+        container.style.position = 'absolute';
+        container.style.display = 'block';
         container.style.height = `${desiredHeight}px`;
 
         let editor;
@@ -211,6 +264,7 @@
             return null;
         }
 
+        let visibilityObserver = null;
         editor.session.setUseSoftTabs(true);
         editor.session.setTabSize(4);
         editor.session.setUseWrapMode(true);
@@ -275,20 +329,74 @@
         applyLanguage(textarea.value || '');
         editor.resize(true);
 
-        requestAnimationFrame(() => {
-            const visibleHeight = container.getBoundingClientRect().height;
-            if (visibleHeight < 32) {
-                console.error('Ace editor failed to render a visible height; reverting to textarea fallback.');
-                if (typeof editor.destroy === 'function') {
-                    editor.destroy();
-                }
+        function showEditor() {
+            container.style.visibility = previousVisibility || '';
+            container.style.position = previousPosition || '';
+            container.style.display = previousDisplay || '';
+            container.style.height = `${determineEditorHeight(textarea, container, minimumHeight || undefined)}px`;
+            textarea.classList.add('d-none');
+            textarea.setAttribute('aria-hidden', 'true');
+        }
+
+        function revertToTextarea() {
+            if (visibilityObserver) {
+                visibilityObserver.disconnect();
+                visibilityObserver = null;
+            }
+            if (typeof editor.destroy === 'function') {
+                editor.destroy();
+            }
+            textarea.removeEventListener('input', syncEditorWithTextarea);
+            container.style.visibility = previousVisibility || '';
+            container.style.position = previousPosition || '';
+            container.style.display = previousDisplay || '';
+            container.style.height = '';
+            if (removedHiddenClass) {
                 container.classList.add('d-none');
-                container.style.height = '';
-                textarea.classList.remove('d-none');
+            }
+            textarea.classList.remove('d-none');
+            textarea.removeAttribute('aria-hidden');
+            delete container.__aceInitialised;
+            if (window.codeEditors && window.codeEditors[targetId]) {
+                delete window.codeEditors[targetId];
+            }
+        }
+
+        function ensureVisible(attempt) {
+            const tries = typeof attempt === 'number' ? attempt : 0;
+            const visibleHeight = container.getBoundingClientRect().height;
+            if (visibleHeight >= 32 && isElementVisible(container)) {
+                showEditor();
                 return;
             }
-            container.classList.remove('d-none');
-            textarea.classList.add('d-none');
+
+            if (!isElementVisible(container)) {
+                if (!visibilityObserver) {
+                    visibilityObserver = watchVisibility(container, () => {
+                        visibilityObserver = null;
+                        const newHeight = determineEditorHeight(textarea, container, minimumHeight || undefined);
+                        container.style.height = `${newHeight}px`;
+                        editor.resize(true);
+                        ensureVisible(0);
+                    });
+                }
+                return;
+            }
+
+            if (tries < 5) {
+                const newHeight = determineEditorHeight(textarea, container, minimumHeight || undefined);
+                container.style.height = `${newHeight}px`;
+                editor.resize(true);
+                setTimeout(() => ensureVisible(tries + 1), 150);
+                return;
+            }
+
+            console.error('Ace editor failed to render a visible height; reverting to textarea fallback.');
+            revertToTextarea();
+        }
+
+        requestAnimationFrame(() => {
+            ensureVisible(0);
         });
 
         window.addEventListener('resize', () => {
@@ -324,6 +432,12 @@
             getAceEditor() {
                 return editor;
             },
+            refreshLayout() {
+                const newHeight = determineEditorHeight(textarea, container, minimumHeight || undefined);
+                container.style.height = `${newHeight}px`;
+                editor.resize(true);
+                ensureVisible(0);
+            },
         };
 
         if (!window.codeEditors) {
@@ -348,5 +462,6 @@
 
     onReady(() => {
         initialiseEditors();
+        window.initialiseCodeEditors = initialiseEditors;
     });
 })();
