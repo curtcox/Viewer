@@ -82,7 +82,18 @@
                             {% endif %}
                             <div class="mb-3">
                                 {{ form.text_content.label(class="form-label") }}
-                                {{ form.text_content(class="form-control") }}
+                                <div class="position-relative">
+                                    {{ form.text_content(
+                                        class="form-control font-monospace" + (" is-invalid" if form.text_content.errors else ""),
+                                    ) }}
+                                    <div
+                                        class="form-control p-0 code-editor d-none{{ ' is-invalid' if form.text_content.errors else '' }}"
+                                        data-code-editor-for="{{ form.text_content.id }}"
+                                        data-code-editor-language="text"
+                                        data-code-editor-detect-language="true"
+                                        data-code-editor-min-height="320"
+                                    ></div>
+                                </div>
                                 {% if form.text_content.errors %}
                                     <div class="text-danger mt-1">
                                         {% for error in form.text_content.errors %}
@@ -144,78 +155,83 @@
     </div>
 </div>
 
-<script>
-function toggleUploadMethod() {
-    const fileRadio = document.getElementById('upload_type_file');
-    const textRadio = document.getElementById('upload_type_text');
-    const urlRadio = document.getElementById('upload_type_url');
-    const fileSection = document.getElementById('fileUploadSection');
-    const textSection = document.getElementById('textUploadSection');
-    const urlSection = document.getElementById('urlUploadSection');
-    const aiButton = document.querySelector('[data-ai-trigger][data-ai-target-id="{{ form.text_content.id }}"]');
-    const aiAssistant = document.querySelector('.ai-text-assistant[data-ai-target-id="{{ form.text_content.id }}"]');
+{% endblock %}
 
-    if (fileRadio.checked) {
-        fileSection.style.display = 'block';
-        textSection.style.display = 'none';
-        urlSection.style.display = 'none';
-    } else if (textRadio.checked) {
-        fileSection.style.display = 'none';
-        textSection.style.display = 'block';
-        urlSection.style.display = 'none';
-    } else if (urlRadio.checked) {
-        fileSection.style.display = 'none';
-        textSection.style.display = 'none';
-        urlSection.style.display = 'block';
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
+    <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
+    <script>
+    function toggleUploadMethod() {
+        const fileRadio = document.getElementById('upload_type_file');
+        const textRadio = document.getElementById('upload_type_text');
+        const urlRadio = document.getElementById('upload_type_url');
+        const fileSection = document.getElementById('fileUploadSection');
+        const textSection = document.getElementById('textUploadSection');
+        const urlSection = document.getElementById('urlUploadSection');
+        const aiButton = document.querySelector('[data-ai-trigger][data-ai-target-id="{{ form.text_content.id }}"]');
+        const aiAssistant = document.querySelector('.ai-text-assistant[data-ai-target-id="{{ form.text_content.id }}"]');
+
+        if (fileRadio.checked) {
+            fileSection.style.display = 'block';
+            textSection.style.display = 'none';
+            urlSection.style.display = 'none';
+        } else if (textRadio.checked) {
+            fileSection.style.display = 'none';
+            textSection.style.display = 'block';
+            urlSection.style.display = 'none';
+        } else if (urlRadio.checked) {
+            fileSection.style.display = 'none';
+            textSection.style.display = 'none';
+            urlSection.style.display = 'block';
+        }
+
+        if (aiButton) {
+            aiButton.classList.toggle('d-none', !textRadio.checked);
+        }
+        if (aiAssistant) {
+            aiAssistant.classList.toggle('d-none', !textRadio.checked);
+        }
     }
 
-    if (aiButton) {
-        aiButton.classList.toggle('d-none', !textRadio.checked);
-    }
-    if (aiAssistant) {
-        aiAssistant.classList.toggle('d-none', !textRadio.checked);
-    }
-}
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleUploadMethod();
+        {% if upload_templates is defined and upload_templates %}
+        const templateButtons = document.querySelectorAll('[data-upload-template-id]');
+        const textField = document.getElementById('{{ form.text_content.id }}');
+        const templates = {{ upload_templates|tojson }};
 
-// Initialize the correct section on page load
-document.addEventListener('DOMContentLoaded', function() {
-    toggleUploadMethod();
-    {% if upload_templates is defined and upload_templates %}
-    const templateButtons = document.querySelectorAll('[data-upload-template-id]');
-    const textField = document.getElementById('{{ form.text_content.id }}');
-    const templates = {{ upload_templates|tojson }};
-
-    if (templateButtons.length && textField) {
-        const templateMap = {};
-        templates.forEach(function(template) {
-            templateMap[template.id] = template.content;
-        });
-
-        templateButtons.forEach(function(button) {
-            button.addEventListener('click', function() {
-                const templateId = button.getAttribute('data-upload-template-id');
-                if (!templateId) {
-                    return;
-                }
-
-                const templateContent = templateMap[templateId];
-                if (typeof templateContent === 'undefined') {
-                    return;
-                }
-
-                const textRadio = document.getElementById('upload_type_text');
-                if (textRadio && !textRadio.checked) {
-                    textRadio.checked = true;
-                    toggleUploadMethod();
-                }
-
-                textField.value = templateContent;
-                textField.dispatchEvent(new Event('input', { bubbles: true }));
-                textField.focus();
+        if (templateButtons.length && textField) {
+            const templateMap = {};
+            templates.forEach(function (template) {
+                templateMap[template.id] = template.content;
             });
-        });
-    }
-    {% endif %}
-});
-</script>
+
+            templateButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const templateId = button.getAttribute('data-upload-template-id');
+                    if (!templateId) {
+                        return;
+                    }
+
+                    const templateContent = templateMap[templateId];
+                    if (typeof templateContent === 'undefined') {
+                        return;
+                    }
+
+                    const textRadio = document.getElementById('upload_type_text');
+                    if (textRadio && !textRadio.checked) {
+                        textRadio.checked = true;
+                        toggleUploadMethod();
+                    }
+
+                    textField.value = templateContent;
+                    textField.dispatchEvent(new Event('input', { bubbles: true }));
+                    textField.focus();
+                });
+            });
+        }
+        {% endif %}
+    });
+    </script>
 {% endblock %}
