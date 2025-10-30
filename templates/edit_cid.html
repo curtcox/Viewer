@@ -68,7 +68,18 @@
                         {{ form.hidden_tag() }}
                         <div class="mb-3">
                             {{ form.text_content.label(class="form-label") }}
-                            {{ form.text_content(class="form-control font-monospace") }}
+                            <div class="position-relative">
+                                {{ form.text_content(
+                                    class="form-control font-monospace" + (" is-invalid" if form.text_content.errors else ""),
+                                ) }}
+                                <div
+                                    class="form-control p-0 code-editor d-none{{ ' is-invalid' if form.text_content.errors else '' }}"
+                                    data-code-editor-for="{{ form.text_content.id }}"
+                                    data-code-editor-language="text"
+                                    data-code-editor-detect-language="true"
+                                    data-code-editor-min-height="320"
+                                ></div>
+                            </div>
                             {% if form.text_content.errors %}
                                 <div class="text-danger mt-1">
                                     {% for error in form.text_content.errors %}
@@ -130,4 +141,10 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
+    <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
 {% endblock %}
