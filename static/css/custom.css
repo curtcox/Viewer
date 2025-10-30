@@ -33,6 +33,11 @@ body {
     color: #007bff !important;
 }
 
+.viewer-menu {
+    display: flex;
+    align-items: stretch;
+}
+
 .viewer-menu .viewer-menu-group {
     display: flex;
     align-items: stretch;
@@ -42,6 +47,7 @@ body {
     display: flex;
     align-items: center;
     padding-right: 0.5rem;
+    margin-right: 0;
 }
 
 .viewer-menu .viewer-menu-toggle {
@@ -49,10 +55,26 @@ body {
     align-items: center;
     padding-left: 0.35rem;
     padding-right: 0.35rem;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.viewer-menu .viewer-menu-toggle:focus {
+    box-shadow: none;
 }
 
 .viewer-menu .viewer-menu-toggle::after {
     margin-left: 0;
+}
+
+.navbar-dark .viewer-menu .viewer-menu-toggle:hover,
+.navbar-dark .viewer-menu .viewer-menu-toggle:focus,
+.navbar-dark .viewer-menu .viewer-menu-toggle:active {
+    color: #fff;
+}
+
+.viewer-menu .viewer-menu-toggle.btn-link {
+    text-decoration: none;
 }
 
 .viewer-menu .dropdown-menu {
