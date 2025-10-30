@@ -180,6 +180,9 @@
             fileSection.style.display = 'none';
             textSection.style.display = 'block';
             urlSection.style.display = 'none';
+            if (typeof window.initialiseCodeEditors === 'function') {
+                window.initialiseCodeEditors();
+            }
         } else if (urlRadio.checked) {
             fileSection.style.display = 'none';
             textSection.style.display = 'none';
@@ -203,6 +206,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         toggleUploadMethod();
+        if (typeof window.initialiseCodeEditors === 'function') {
+            window.initialiseCodeEditors();
+        }
         {% if upload_templates is defined and upload_templates %}
         const templateButtons = document.querySelectorAll('[data-upload-template-id]');
         const textField = document.getElementById('{{ form.text_content.id }}');

@@ -461,7 +461,26 @@
     }
 
     onReady(() => {
-        initialiseEditors();
+        const triggerInitialisation = () => {
+            initialiseEditors();
+        };
+
+        if (typeof window.ace !== 'undefined') {
+            triggerInitialisation();
+        } else {
+            const aceScript = document.querySelector('script[src*="ace-builds"][src*="ace.js"]')
+                || document.querySelector('script[src*="ace.js"]');
+            if (aceScript && !aceScript.__viewerAceListenerAttached) {
+                aceScript.__viewerAceListenerAttached = true;
+                aceScript.addEventListener('load', triggerInitialisation, { once: true });
+            }
+        }
+
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(() => initialiseEditors());
+        } else {
+            setTimeout(() => initialiseEditors(), 50);
+        }
         window.initialiseCodeEditors = initialiseEditors;
     });
 })();
