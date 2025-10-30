@@ -1,11 +1,16 @@
 """Routes that expose the application's OpenAPI schema and Swagger UI."""
 from __future__ import annotations
 
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Set
+from urllib.parse import urlsplit, urlunsplit
 
-from flask import Response, jsonify, render_template, request, url_for
+from flask import Flask, Response, jsonify, render_template, request, url_for
 
 from . import main_bp
+
+
+_PATH_PARAMETER_PATTERN = re.compile(r"{([^}/]+)}")
 
 
 def _interaction_request_schema() -> Dict[str, Any]:
@@ -147,19 +152,62 @@ def _error_schema() -> Dict[str, Any]:
 
 
 def _html_response(description: str) -> Dict[str, Any]:
-    """Standard HTML response metadata."""
+    """Describe responses that originate as HTML but support multiple formats."""
+
+    content = _string_media_content()
+    content["application/json"] = {
+        "schema": {
+            "type": "object",
+            "required": ["content", "content_type"],
+            "properties": {
+                "content": {"type": "string"},
+                "content_type": {
+                    "type": "string",
+                    "enum": ["text/html"],
+                    "description": "Original media type of the rendered response.",
+                },
+            },
+        }
+    }
+
+    return {"description": description, "content": content}
+
+
+def _string_media_content() -> Dict[str, Any]:
+    """Return content descriptors for string-based representations."""
 
     return {
-        "description": description,
-        "content": {
-            "text/html": {
-                "schema": {
-                    "type": "string",
-                    "description": "Rendered HTML response.",
-                }
-            }
-        },
+        "text/html": {"schema": {"type": "string"}},
+        "text/plain": {"schema": {"type": "string"}},
+        "text/markdown": {"schema": {"type": "string"}},
+        "application/xml": {"schema": {"type": "string"}},
     }
+
+
+def _augment_json_content(paths: Dict[str, Any]) -> None:
+    """Ensure JSON responses advertise alternative representations."""
+
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses", {})
+            for response in responses.values():
+                content = response.get("content")
+                if not isinstance(content, dict):
+                    continue
+                if "application/json" not in content:
+                    continue
+                for mimetype, descriptor in _string_media_content().items():
+                    content.setdefault(mimetype, descriptor)
+
+
+def _convert_path_to_rule(path: str) -> str:
+    """Translate an OpenAPI path template to a Flask routing rule."""
+
+    return _PATH_PARAMETER_PATTERN.sub(lambda match: f"<{match.group(1)}>", path)
 
 
 def _redirect_response(description: str) -> Dict[str, Any]:
@@ -559,6 +607,14 @@ def _build_openapi_spec() -> Dict[str, Any]:
     """Assemble the OpenAPI schema for the application."""
 
     server_url = request.host_url.rstrip("/")
+    parsed = urlsplit(server_url)
+    hostname = parsed.hostname or ""
+    port = parsed.port
+    if hostname and (port in (None, 80, 443) or (hostname == "localhost" and port == 5000)):
+        netloc = hostname
+    else:
+        netloc = parsed.netloc
+    server_url = urlunsplit((parsed.scheme, netloc, "", "", ""))
     paths: Dict[str, Any] = {
         "/api/interactions": {
             "post": {
@@ -662,14 +718,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Alias deleted and browser redirected."),
-                    "404": {
-                        "description": "Alias not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Alias not found."),
                 },
             },
         },
@@ -769,14 +818,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Server deleted and browser redirected."),
-                    "404": {
-                        "description": "Server not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Server not found."),
                 },
             },
         },
@@ -862,14 +904,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                             }
                         },
                     },
-                    "404": {
-                        "description": "Server or test configuration not available.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Server or test configuration not available."),
                 },
             },
         },
@@ -929,14 +964,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Variable deleted and browser redirected."),
-                    "404": {
-                        "description": "Variable not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Variable not found."),
                 },
             },
         },
@@ -996,14 +1024,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Secret deleted and browser redirected."),
-                    "404": {
-                        "description": "Secret not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Secret not found."),
                 },
             },
         },
@@ -1031,6 +1052,8 @@ def _build_openapi_spec() -> Dict[str, Any]:
             }
         },
     }
+
+    _augment_json_content(paths)
 
     spec: Dict[str, Any] = {
         "openapi": "3.0.3",
@@ -1072,6 +1095,14 @@ def _build_openapi_spec() -> Dict[str, Any]:
     return spec
 
 
+def openapi_route_rules(app: Flask) -> Set[str]:
+    """Return the Flask routing rules documented in the OpenAPI schema."""
+
+    with app.test_request_context("/"):
+        spec = _build_openapi_spec()
+    return {_convert_path_to_rule(path) for path in spec["paths"].keys()}
+
+
 @main_bp.route("/openapi.json")
 def openapi_spec() -> Response:
     """Return the OpenAPI specification describing the HTTP API."""
@@ -1087,4 +1118,4 @@ def openapi_docs() -> str:
     return render_template("swagger.html", title="API Explorer", spec_url=spec_url)
 
 
-__all__ = ["openapi_spec", "openapi_docs"]
+__all__ = ["openapi_spec", "openapi_docs", "openapi_route_rules"]

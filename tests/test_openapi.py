@@ -105,6 +105,19 @@ class TestOpenAPI(unittest.TestCase):
         ]:
             self.assertIn(schema_name, schemas, msg=f'Missing schema {schema_name}')
 
+    def test_openapi_schema_describes_multi_format_responses(self):
+        response = self.client.get('/openapi.json')
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.get_json()
+        interactions = payload['paths']['/api/interactions']['post']['responses']['200']['content']
+        for mimetype in ['text/html', 'text/plain', 'text/markdown', 'application/xml']:
+            self.assertIn(mimetype, interactions)
+
+        alias_listing = payload['paths']['/aliases']['get']['responses']['200']['content']
+        self.assertIn('application/json', alias_listing)
+        self.assertIn('content', alias_listing['application/json']['schema']['properties'])
+
 
 if __name__ == '__main__':
     unittest.main()

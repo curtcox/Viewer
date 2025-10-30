@@ -31,6 +31,7 @@ from link_presenter import (
     server_full_url,
     server_path,
 )
+from response_formats import register_response_format_handlers
 
 # Load environment variables from .env file
 load_dotenv()
@@ -150,6 +151,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     app.after_request(track_page_view)
 
     app.register_blueprint(main_bp)
+    register_response_format_handlers(app)
 
     @app.context_processor
     def inject_identity() -> dict[str, Any]:

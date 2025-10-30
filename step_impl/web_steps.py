@@ -85,6 +85,20 @@ def the_response_status_should_be_200() -> None:
     ), f"Expected HTTP 200 but received {response.status_code} for {response.request.path!r}."
 
 
+@step("The response content type should be <content_type>")
+def the_response_content_type_should_be(content_type: str) -> None:
+    """Validate that the captured response used the expected media type."""
+
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    expected = _normalize_path(content_type)
+    actual = response.headers.get("Content-Type", "")
+    assert actual.split(";")[0] == expected, (
+        f"Expected Content-Type {expected!r} but received {actual!r}."
+    )
+
+
 # Page request steps
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
@@ -167,6 +181,28 @@ def when_i_request_aliases_ai_page() -> None:
 def when_i_request_aliases_index_page() -> None:
     """Request the aliases index page."""
     _perform_get_request("/aliases")
+
+
+@step("When I request the resource <path>")
+def when_i_request_resource(path: str) -> None:
+    """Request an arbitrary resource path."""
+
+    normalized_path = _normalize_path(path)
+    _perform_get_request(normalized_path)
+
+
+@step("When I request the resource <path> with accept header <accept_header>")
+def when_i_request_resource_with_accept_header(path: str, accept_header: str) -> None:
+    """Request a resource while specifying an Accept header."""
+
+    normalized_path = _normalize_path(path)
+    normalized_accept = _normalize_path(accept_header)
+
+    client = _require_client()
+    _login_default_user()
+    response = client.get(normalized_path, headers={"Accept": normalized_accept})
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /servers/<server_name>")
