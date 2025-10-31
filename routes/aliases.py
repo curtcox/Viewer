@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any, Dict, Optional
 from urllib.parse import urlsplit
 
@@ -25,6 +26,7 @@ from db_access import (
     delete_entity,
     get_alias_by_name,
     get_user_aliases,
+    get_user_variables,
     record_entity_interaction,
     save_entity,
 )
@@ -534,7 +536,68 @@ def alias_match_preview():
     )
 
 
-__all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'delete_alias', 'alias_match_preview']
+@main_bp.route('/aliases/definition-status', methods=['POST'])
+def alias_definition_status():
+    """Return the validation status for an alias definition."""
+
+    if not getattr(current_user, 'id', None):
+        abort(401)
+
+    payload = request.get_json(silent=True) or {}
+    raw_definition = payload.get('definition')
+    alias_name = payload.get('name')
+
+    if raw_definition is None:
+        definition_text = ''
+    elif isinstance(raw_definition, str):
+        definition_text = raw_definition
+    else:
+        definition_text = str(raw_definition)
+
+    if alias_name is not None and not isinstance(alias_name, str):
+        alias_name = str(alias_name)
+
+    try:
+        variables = get_user_variables(current_user.id)
+    except Exception:  # pragma: no cover - defensive fallback when database fails
+        variables = []
+
+    variable_map: dict[str, str] = {}
+    for entry in variables:
+        name = getattr(entry, 'name', None)
+        if not name:
+            continue
+        value = getattr(entry, 'definition', '')
+        variable_map[str(name)] = '' if value is None else str(value)
+
+    variable_pattern = re.compile(r"\{([A-Za-z0-9._-]+)\}")
+
+    def _replace(match: re.Match[str]) -> str:
+        placeholder = match.group(0)
+        name = match.group(1)
+        if not name:
+            return placeholder
+        return variable_map.get(name, placeholder)
+
+    substituted_definition = variable_pattern.sub(_replace, definition_text)
+
+    try:
+        parse_alias_definition(substituted_definition, alias_name=alias_name or None)
+    except AliasDefinitionError as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 400
+
+    return jsonify({'ok': True, 'message': 'Alias definition parses correctly.'})
+
+
+__all__ = [
+    'aliases',
+    'new_alias',
+    'view_alias',
+    'edit_alias',
+    'delete_alias',
+    'alias_match_preview',
+    'alias_definition_status',
+]
 
 
 def _wants_structured_response() -> bool:

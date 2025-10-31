@@ -97,6 +97,15 @@
                                             Save As
                                         </button>
                                     </div>
+                                    <div
+                                        class="d-flex align-items-center gap-2 small"
+                                        data-alias-parse-indicator
+                                        data-alias-parse-endpoint="{{ url_for('main.alias_definition_status') }}"
+                                        aria-live="polite"
+                                    >
+                                        <span class="badge text-bg-secondary" data-alias-parse-label>Checking…</span>
+                                        <span class="text-muted" data-alias-parse-message>Validating definition…</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -214,6 +223,14 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
     var matcherContainer = document.querySelector('[data-alias-matcher]');
+    var nameField = document.getElementById({{ form.name.id|tojson }});
+    var definitionField = document.getElementById({{ form.definition.id|tojson }});
+    var parseIndicator = document.querySelector('[data-alias-parse-indicator]');
+    var parseEndpoint = parseIndicator ? parseIndicator.getAttribute('data-alias-parse-endpoint') : null;
+    var parseLabel = parseIndicator ? parseIndicator.querySelector('[data-alias-parse-label]') : null;
+    var parseMessage = parseIndicator ? parseIndicator.querySelector('[data-alias-parse-message]') : null;
+    var parseDebounceTimer;
+    var parseController;
 
     function escapeHtml(value) {
         return value.replace(/[&<>"']/g, function (character) {
@@ -234,12 +251,117 @@
         });
     }
 
+    function setParseIndicator(state, message) {
+        if (!parseIndicator || !parseLabel || !parseMessage) {
+            return;
+        }
+
+        parseIndicator.classList.remove('d-none');
+
+        if (state === 'valid') {
+            parseLabel.className = 'badge text-bg-success';
+            parseLabel.textContent = 'Valid';
+            parseMessage.className = 'small text-success';
+            if (message) {
+                parseMessage.textContent = message;
+                parseMessage.classList.remove('d-none');
+            } else {
+                parseMessage.textContent = '';
+                parseMessage.classList.add('d-none');
+            }
+        } else if (state === 'invalid') {
+            parseLabel.className = 'badge text-bg-danger';
+            parseLabel.textContent = 'Invalid';
+            parseMessage.className = 'small text-danger';
+            parseMessage.textContent = message || 'Alias definition does not parse.';
+            parseMessage.classList.remove('d-none');
+        } else {
+            parseLabel.className = 'badge text-bg-secondary';
+            parseLabel.textContent = 'Checking…';
+            parseMessage.className = 'small text-muted';
+            parseMessage.textContent = message || 'Validating definition…';
+            parseMessage.classList.remove('d-none');
+        }
+    }
+
+    function scheduleParseCheck() {
+        if (!parseEndpoint) {
+            return;
+        }
+
+        clearTimeout(parseDebounceTimer);
+        parseDebounceTimer = setTimeout(runParseCheck, 300);
+    }
+
+    function runParseCheck() {
+        if (!parseEndpoint) {
+            return;
+        }
+
+        if (parseController) {
+            parseController.abort();
+        }
+
+        parseController = new AbortController();
+        setParseIndicator('checking');
+
+        fetch(parseEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: nameField ? nameField.value : '',
+                definition: definitionField ? definitionField.value : ''
+            }),
+            signal: parseController.signal
+        })
+            .then(function (response) {
+                return response.json()
+                    .then(function (data) {
+                        return { ok: response.ok, data: data };
+                    })
+                    .catch(function () {
+                        return { ok: response.ok, data: {} };
+                    });
+            })
+            .then(function (result) {
+                parseController = null;
+
+                if (result.ok && result.data && result.data.ok) {
+                    var successMessage = result.data.message ? String(result.data.message) : '';
+                    setParseIndicator('valid', successMessage);
+                    return;
+                }
+
+                var errorMessage = '';
+                if (result.data && result.data.error) {
+                    errorMessage = String(result.data.error);
+                } else if (!result.ok) {
+                    errorMessage = 'Unable to validate definition.';
+                }
+                setParseIndicator('invalid', errorMessage);
+            })
+            .catch(function (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                parseController = null;
+                setParseIndicator('invalid', 'Unable to validate definition.');
+            });
+    }
+
+    if (nameField) {
+        nameField.addEventListener('input', scheduleParseCheck);
+    }
+    if (definitionField) {
+        definitionField.addEventListener('input', scheduleParseCheck);
+    }
+
     if (matcherContainer) {
         var matcherInput = matcherContainer.querySelector('[data-alias-matcher-input]');
         var matcherResults = matcherContainer.querySelector('[data-alias-matcher-results]');
         var matcherEndpoint = matcherContainer.getAttribute('data-alias-matcher-endpoint');
-        var nameField = document.getElementById({{ form.name.id|tojson }});
-        var definitionField = document.getElementById({{ form.definition.id|tojson }});
         var definitionPreview = matcherContainer.querySelector('[data-alias-definition-display]');
         var debounceTimer;
         var pendingController;
@@ -458,6 +580,10 @@
         }
 
         renderPlaceholder();
+    }
+
+    if (parseEndpoint) {
+        runParseCheck();
     }
 });
 </script>
