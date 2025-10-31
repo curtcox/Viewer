@@ -251,6 +251,16 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
 
     target_path = _normalize_target_path(target_text)
 
+    # Ensure that every mapping line in the definition is valid.  The alias
+    # editing UI should surface problems anywhere in the definition, not only
+    # on the primary line.  ``summarize_definition_lines`` records parse
+    # errors for individual lines which we convert into a single validation
+    # failure here.
+    for entry in summarize_definition_lines(definition, alias_name=alias_name):
+        if not entry.is_mapping or not entry.parse_error:
+            continue
+        raise AliasDefinitionError(f"Line {entry.number}: {entry.parse_error}")
+
     return ParsedAliasDefinition(
         match_type=match_type,
         match_pattern=normalised_pattern,

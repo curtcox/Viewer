@@ -2,7 +2,12 @@ import textwrap
 import unittest
 from types import SimpleNamespace
 
-from alias_definition import collect_alias_routes, summarize_definition_lines
+from alias_definition import (
+    AliasDefinitionError,
+    collect_alias_routes,
+    parse_alias_definition,
+    summarize_definition_lines,
+)
 
 
 class SummarizeDefinitionLinesTests(unittest.TestCase):
@@ -121,6 +126,51 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertTrue(summary[0].is_mapping)
         self.assertIsNotNone(summary[0].parse_error)
         self.assertIn("only one match type", summary[0].parse_error.lower())
+
+
+class ParseAliasDefinitionValidationTests(unittest.TestCase):
+    def test_rejects_invalid_nested_mapping_lines(self):
+        invalid_definitions = [
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api ->
+                    """
+                ).strip("\n"),
+                "line 2",
+                'target path after "->"',
+            ),
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api -> /docs/api [glob, regex]
+                    """
+                ).strip("\n"),
+                "line 2",
+                "only one match type",
+            ),
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api -> /docs/api [unknown]
+                    """
+                ).strip("\n"),
+                "line 2",
+                "unknown alias option",
+            ),
+        ]
+
+        for definition, expected_line, expected_message in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition, alias_name="docs")
+
+                message = str(exc_info.exception).lower()
+                self.assertIn(expected_line, message)
+                self.assertIn(expected_message, message)
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution
