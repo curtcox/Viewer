@@ -159,7 +159,7 @@ __all__ = [
 
 
 def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml"}
+    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _secret_to_json(secret: Secret) -> Dict[str, object]:

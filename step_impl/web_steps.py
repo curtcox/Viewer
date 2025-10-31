@@ -1,6 +1,8 @@
 """Gauge step implementations for web application testing."""
 from __future__ import annotations
 
+import csv
+import io
 import xml.etree.ElementTree as ET
 from typing import Optional
 
@@ -610,6 +612,35 @@ def the_response_xml_should_describe_server(server_name: str) -> None:
         f"Expected server name {expected_name!r} but received {document.findtext('name')!r}."
     )
     assert document.find("definition") is not None, "Server XML payload should include definition"
+
+
+@step("The response CSV should include alias records")
+def the_response_csv_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert rows, "Expected alias records in CSV payload"
+    first = rows[0]
+    assert "name" in first and first["name"], "Alias CSV records must include a name column"
+    assert "match_pattern" in first, "Alias CSV records must include match metadata"
+
+
+@step("The response CSV should describe a server named <server_name>")
+def the_response_csv_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert rows, "Expected server record in CSV payload"
+    expected_name = _normalize_path(server_name)
+    record = rows[0]
+    assert record.get("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {record.get('name')!r}."
+    )
+    assert "definition" in record, "Server CSV payload should include the definition column"
 
 
 # Import/Export steps

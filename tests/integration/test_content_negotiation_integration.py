@@ -1,6 +1,8 @@
 """Integration tests for content negotiation across documented endpoints."""
 from __future__ import annotations
 
+import csv
+import io
 import json
 import xml.etree.ElementTree as ET
 from typing import Dict
@@ -72,6 +74,19 @@ def test_aliases_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
+def test_aliases_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get("/aliases.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert any(row.get("name") == sample_entities["alias"] for row in rows)
+
+
+@pytest.mark.integration
 def test_alias_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
     login_default_user()
     response = client.get(f"/aliases/{sample_entities['alias']}.json")
@@ -82,6 +97,22 @@ def test_alias_detail_endpoint_returns_record(client, login_default_user, sample
     payload = response.get_json()
     assert payload["name"] == sample_entities["alias"]
     assert payload["match_type"] == "literal"
+
+
+@pytest.mark.integration
+def test_alias_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get(f"/aliases/{sample_entities['alias']}.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert len(rows) == 1
+    record = rows[0]
+    assert record.get("name") == sample_entities["alias"]
+    assert record.get("match_type") == "literal"
 
 
 @pytest.mark.integration
@@ -157,6 +188,19 @@ def test_servers_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
+def test_servers_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get("/servers.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert any(row.get("name") == sample_entities["server"] for row in rows)
+
+
+@pytest.mark.integration
 def test_server_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
     login_default_user()
     response = client.get(f"/servers/{sample_entities['server']}.json")
@@ -167,6 +211,22 @@ def test_server_detail_endpoint_returns_record(client, login_default_user, sampl
     payload = response.get_json()
     assert payload["name"] == sample_entities["server"]
     assert payload["definition"].startswith("def main")
+
+
+@pytest.mark.integration
+def test_server_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get(f"/servers/{sample_entities['server']}.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert len(rows) == 1
+    record = rows[0]
+    assert record.get("name") == sample_entities["server"]
+    assert record.get("definition", "").startswith("def main")
 
 
 @pytest.mark.integration
@@ -210,6 +270,19 @@ def test_variables_endpoint_supports_json_extension(client, login_default_user, 
 
 
 @pytest.mark.integration
+def test_variables_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get("/variables.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert any(row.get("name") == sample_entities["variable"] for row in rows)
+
+
+@pytest.mark.integration
 def test_variable_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
     login_default_user()
     response = client.get(f"/variables/{sample_entities['variable']}.json")
@@ -220,6 +293,22 @@ def test_variable_detail_endpoint_returns_record(client, login_default_user, sam
     payload = response.get_json()
     assert payload["name"] == sample_entities["variable"]
     assert payload["definition"] == "value"
+
+
+@pytest.mark.integration
+def test_variable_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get(f"/variables/{sample_entities['variable']}.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert len(rows) == 1
+    record = rows[0]
+    assert record.get("name") == sample_entities["variable"]
+    assert record.get("definition") == "value"
 
 
 @pytest.mark.integration
@@ -262,6 +351,19 @@ def test_secrets_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
+def test_secrets_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get("/secrets.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert any(row.get("name") == sample_entities["secret"] for row in rows)
+
+
+@pytest.mark.integration
 def test_secret_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
     login_default_user()
     response = client.get(f"/secrets/{sample_entities['secret']}.json")
@@ -272,6 +374,22 @@ def test_secret_detail_endpoint_returns_record(client, login_default_user, sampl
     payload = response.get_json()
     assert payload["name"] == sample_entities["secret"]
     assert payload["definition"] == "secret-value"
+
+
+@pytest.mark.integration
+def test_secret_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
+    login_default_user()
+    response = client.get(f"/secrets/{sample_entities['secret']}.csv")
+
+    assert response.status_code == 200
+    assert response.mimetype == "text/csv"
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert len(rows) == 1
+    record = rows[0]
+    assert record.get("name") == sample_entities["secret"]
+    assert record.get("definition") == "secret-value"
 
 
 @pytest.mark.integration

@@ -772,7 +772,7 @@ __all__ = [
 
 
 def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml"}
+    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _server_to_json(server: Server) -> Dict[str, object]:

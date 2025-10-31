@@ -538,7 +538,7 @@ __all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'delete_alias', '
 
 
 def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml"}
+    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _alias_to_json(alias: Alias) -> Dict[str, Any]:

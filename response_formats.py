@@ -1,10 +1,12 @@
 """Utilities for serving OpenAPI-documented routes in multiple formats."""
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 from html import escape as html_escape, unescape as html_unescape
-from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from flask import Flask, Response, current_app, g, request
 from werkzeug.datastructures import MIMEAccept
@@ -15,6 +17,7 @@ SUPPORTED_FORMATS: Mapping[str, str] = {
     "txt": "text/plain",
     "md": "text/markdown",
     "xml": "application/xml",
+    "csv": "text/csv",
 }
 
 ACCEPT_ALIASES: Mapping[str, str] = {
@@ -27,6 +30,7 @@ ACCEPT_ALIASES: Mapping[str, str] = {
     "text/x-markdown": "md",
     "application/xml": "xml",
     "text/xml": "xml",
+    "text/csv": "csv",
 }
 
 _XML_TAG_RE = re.compile(r"[^0-9A-Za-z_]")
@@ -206,7 +210,7 @@ def resolve_format_from_accept(accept: MIMEAccept, default_format: str = "html")
 
 
 def _prefer(candidate: str, current: str) -> bool:
-    priority = ["json", "html", "txt", "md", "xml"]
+    priority = ["json", "csv", "html", "txt", "md", "xml"]
     return priority.index(candidate) < priority.index(current)
 
 
@@ -239,6 +243,7 @@ def _convert_response(response: Response, target_format: str) -> Response:
         "txt": _convert_to_text,
         "md": _convert_to_markdown,
         "xml": _convert_to_xml,
+        "csv": _convert_to_csv,
     }
 
     converter = converters.get(target_format)
@@ -291,6 +296,66 @@ def _convert_to_xml(payload: Any, source_format: str, original: str) -> str:
 def _strip_html(text: str) -> str:
     stripped = _HTML_TAG_RE.sub("", text)
     return html_unescape(stripped)
+
+
+def _convert_to_csv(payload: Any, source_format: str, original: str) -> str:
+    if source_format == "json":
+        return _json_to_csv(payload)
+
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["content_type", "content"])
+    writer.writerow([original, _strip_html(str(payload))])
+    return buffer.getvalue()
+
+
+def _json_to_csv(payload: Any) -> str:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+
+    if isinstance(payload, Mapping):
+        _write_csv_row(writer, payload.keys(), [payload.get(key) for key in payload.keys()])
+        return buffer.getvalue()
+
+    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+        rows = list(payload)
+        if not rows:
+            return ""
+
+        if all(isinstance(item, Mapping) for item in rows):
+            header: list[str] = []
+            for item in rows:
+                for key in item.keys():
+                    if key not in header:
+                        header.append(str(key))
+
+            writer.writerow(header)
+            for item in rows:
+                writer.writerow([_stringify_csv_value(item.get(column)) for column in header])
+            return buffer.getvalue()
+
+        writer.writerow(["value"])
+        for item in rows:
+            writer.writerow([_stringify_csv_value(item)])
+        return buffer.getvalue()
+
+    writer.writerow(["value"])
+    writer.writerow([_stringify_csv_value(payload)])
+    return buffer.getvalue()
+
+
+def _write_csv_row(writer: csv.writer, header: Iterable[str], values: Iterable[Any]) -> None:
+    header_list = [str(column) for column in header]
+    writer.writerow(header_list)
+    writer.writerow([_stringify_csv_value(value) for value in values])
+
+
+def _stringify_csv_value(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set, Mapping)):
+        return json.dumps(value, sort_keys=True)
+    return str(value)
 
 
 def _value_to_xml(value: Any, tag: str) -> str:

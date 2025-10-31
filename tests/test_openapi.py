@@ -111,12 +111,13 @@ class TestOpenAPI(unittest.TestCase):
 
         payload = response.get_json()
         interactions = payload['paths']['/api/interactions']['post']['responses']['200']['content']
-        for mimetype in ['text/html', 'text/plain', 'text/markdown', 'application/xml']:
+        for mimetype in ['text/html', 'text/plain', 'text/markdown', 'application/xml', 'text/csv']:
             self.assertIn(mimetype, interactions)
 
         alias_listing = payload['paths']['/aliases']['get']['responses']['200']['content']
         self.assertIn('application/json', alias_listing)
         self.assertIn('application/xml', alias_listing)
+        self.assertIn('text/csv', alias_listing)
         alias_json_schema = alias_listing['application/json']['schema']
         self.assertEqual(alias_json_schema['type'], 'array')
         self.assertEqual(
@@ -126,6 +127,7 @@ class TestOpenAPI(unittest.TestCase):
         server_detail = payload['paths']['/servers/{server_name}']['get']['responses']['200']['content']
         self.assertIn('application/json', server_detail)
         self.assertIn('application/xml', server_detail)
+        self.assertIn('text/csv', server_detail)
 
         schemas = payload['components']['schemas']
         for record_schema in ['AliasRecord', 'ServerRecord', 'VariableRecord', 'SecretRecord']:

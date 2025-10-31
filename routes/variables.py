@@ -374,7 +374,7 @@ __all__ = [
 
 
 def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml"}
+    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _variable_to_json(variable: Variable) -> Dict[str, Any]:

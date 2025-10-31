@@ -181,6 +181,7 @@ def _string_media_content() -> Dict[str, Any]:
         "text/plain": {"schema": {"type": "string"}},
         "text/markdown": {"schema": {"type": "string"}},
         "application/xml": {"schema": {"type": "string"}},
+        "text/csv": {"schema": {"type": "string"}},
     }
 
 

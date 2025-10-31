@@ -1,6 +1,8 @@
 """Unit tests for response format negotiation utilities."""
 from __future__ import annotations
 
+import csv
+import io
 import json
 import xml.etree.ElementTree as ET
 
@@ -55,3 +57,18 @@ def test_convert_response_transforms_json_payload_to_xml() -> None:
     document = ET.fromstring(converted.get_data(as_text=True))
     assert document.findtext("name") == "alias"
     assert document.find("enabled") is not None
+
+
+def test_convert_response_transforms_json_payload_to_csv() -> None:
+    payload = [{"name": "alias", "enabled": True}, {"name": "other", "enabled": False}]
+    response = Response(json.dumps(payload), mimetype="application/json")
+
+    converted = _convert_response(response, "csv")
+
+    assert converted.mimetype == "text/csv"
+    body = converted.get_data(as_text=True)
+    reader = csv.DictReader(io.StringIO(body))
+    rows = list(reader)
+    assert len(rows) == 2
+    assert rows[0]["name"] == "alias"
+    assert rows[0]["enabled"] == "True"
