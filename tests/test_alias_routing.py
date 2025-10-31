@@ -18,7 +18,7 @@ from alias_routing import (
 )
 from app import app, db
 from identity import ensure_default_user
-from models import CID, Alias
+from models import CID, Alias, Variable
 from routes.core import get_existing_routes, not_found_error
 
 
@@ -637,6 +637,40 @@ class TestAliasRouting(unittest.TestCase):
         data = response.get_json()
         self.assertFalse(data['ok'])
         self.assertIn('Invalid regular expression', data['error'])
+
+    def test_alias_definition_status_valid_with_variables(self):
+        variable = Variable(
+            name='docs-path',
+            definition='/docs',
+            user_id=self.default_user.id,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        payload = {
+            'name': 'docs',
+            'definition': 'docs -> {docs-path}',
+        }
+
+        response = self.client.post('/aliases/definition-status', json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data['ok'])
+        self.assertIn('message', data)
+
+    def test_alias_definition_status_invalid_returns_error(self):
+        payload = {
+            'name': 'docs',
+            'definition': 'docs -> ',
+        }
+
+        response = self.client.post('/aliases/definition-status', json=payload)
+
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertFalse(data['ok'])
+        self.assertIn('target path', data['error'])
 
 
 if __name__ == '__main__':
