@@ -187,7 +187,12 @@ def extract_references_from_target(target_path: Optional[str], user_id: Optional
         return references
 
     if user_id:
-        alias = get_alias_by_name(user_id, normalized_path.lstrip("/"))
+        alias_identifier = normalized_path.lstrip("/")
+        alias = get_alias_by_name(user_id, alias_identifier)
+        if not alias and alias_identifier.startswith("aliases/"):
+            _, alias_name = alias_identifier.split("/", 1)
+            if alias_name:
+                alias = get_alias_by_name(user_id, alias_name)
         if alias:
             references["aliases"].append(_build_alias_reference(alias.name))
 

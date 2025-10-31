@@ -242,9 +242,13 @@ document.addEventListener('DOMContentLoaded', function () {
         return value.replace(/(["'\\#.:;,!?+<>=~*^$\[\](){}|\/-])/g, '\\$1');
     };
 
+    const HOVER_TARGET_SELECTOR = '[data-entity-key], [data-reference-key]';
+    let activeTarget = null;
+
     const clearHighlight = function () {
+        activeTarget = null;
         container.classList.remove('is-hovering');
-        container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach((el) => {
+        container.querySelectorAll(HOVER_TARGET_SELECTOR).forEach((el) => {
             el.classList.remove('is-highlighted', 'is-related', 'is-reference', 'is-dimmed');
         });
     };
@@ -268,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const markDimmed = function () {
         const active = new Set();
         container.querySelectorAll('.is-highlighted, .is-related, .is-reference').forEach((el) => active.add(el));
-        container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach((el) => {
+        container.querySelectorAll(HOVER_TARGET_SELECTOR).forEach((el) => {
             if (!active.has(el)) {
                 el.classList.add('is-dimmed');
             }
@@ -276,11 +280,15 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const applyHighlight = function (element) {
-        clearHighlight();
-        if (!element) {
+        if (!element || element === activeTarget) {
+            if (!element) {
+                clearHighlight();
+            }
             return;
         }
 
+        clearHighlight();
+        activeTarget = element;
         container.classList.add('is-hovering');
         element.classList.add('is-highlighted');
 
@@ -307,17 +315,88 @@ document.addEventListener('DOMContentLoaded', function () {
         markDimmed();
     };
 
-    const attachListeners = function (element) {
-        const enter = () => applyHighlight(element);
-        const leave = () => clearHighlight();
-        element.addEventListener('mouseenter', enter);
-        element.addEventListener('focus', enter);
-        element.addEventListener('mouseleave', leave);
-        element.addEventListener('blur', leave);
+    const findHoverTarget = function (node) {
+        if (!node) {
+            return null;
+        }
+        if (typeof node.closest !== 'function') {
+            return null;
+        }
+        const match = node.closest(HOVER_TARGET_SELECTOR);
+        if (match && container.contains(match)) {
+            return match;
+        }
+        return null;
     };
 
-    container.querySelectorAll('[data-entity-key], [data-reference-key]').forEach(attachListeners);
+    const handlePointerOver = function (event) {
+        const target = findHoverTarget(event.target);
+        if (target) {
+            applyHighlight(target);
+        }
+    };
+
+    const handlePointerOut = function (event) {
+        const fromTarget = findHoverTarget(event.target);
+        if (!fromTarget) {
+            return;
+        }
+
+        const toTarget = findHoverTarget(event.relatedTarget);
+        if (toTarget) {
+            return;
+        }
+
+        if (event.relatedTarget && container.contains(event.relatedTarget)) {
+            clearHighlight();
+            return;
+        }
+
+        if (!event.relatedTarget) {
+            clearHighlight();
+        }
+    };
+
+    const handleFocusIn = function (event) {
+        const target = findHoverTarget(event.target);
+        if (target) {
+            applyHighlight(target);
+        }
+    };
+
+    const handleFocusOut = function (event) {
+        const nextTarget = findHoverTarget(event.relatedTarget);
+        if (nextTarget) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            const active = findHoverTarget(document.activeElement);
+            if (active) {
+                applyHighlight(active);
+            } else {
+                clearHighlight();
+            }
+        });
+    };
+
+    container.addEventListener('mouseover', handlePointerOver);
+    container.addEventListener('mouseout', handlePointerOut);
     container.addEventListener('mouseleave', clearHighlight);
+    container.addEventListener('focusin', handleFocusIn);
+    container.addEventListener('focusout', handleFocusOut);
+    container.addEventListener('touchstart', (event) => {
+        const target = findHoverTarget(event.target);
+        if (target) {
+            applyHighlight(target);
+        }
+    });
+    container.addEventListener('touchend', (event) => {
+        const target = findHoverTarget(event.target);
+        if (!target) {
+            clearHighlight();
+        }
+    });
 });
 </script>
 {% endif %}
