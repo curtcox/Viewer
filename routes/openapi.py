@@ -582,6 +582,27 @@ def _variable_form_schema() -> Dict[str, Any]:
     }
 
 
+def _variables_bulk_edit_form_schema() -> Dict[str, Any]:
+    """Schema for bulk variable JSON submissions."""
+
+    return {
+        "type": "object",
+        "required": ["variables_json"],
+        "properties": {
+            "variables_json": {
+                "type": "string",
+                "description": "JSON object mapping variable names to their values.",
+                "example": '{"region": "us-east", "city": "Boston"}',
+            },
+            "submit": {
+                "type": "string",
+                "description": "Label of the submit button invoked by the browser.",
+            },
+        },
+        "additionalProperties": True,
+    }
+
+
 def _secret_form_schema() -> Dict[str, Any]:
     """Schema for secret create/edit submissions."""
 
@@ -1173,6 +1194,22 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 },
             },
         },
+        "/variables/./edit": {
+            "get": {
+                "tags": ["Variables"],
+                "summary": "Show bulk variable editor",
+                "responses": {"200": _html_response("Bulk variable editor rendered.")},
+            },
+            "post": {
+                "tags": ["Variables"],
+                "summary": "Replace variables from JSON",
+                "requestBody": _form_request_body("VariablesBulkEditFormSubmission"),
+                "responses": {
+                    "302": _redirect_response("Variables updated and browser redirected."),
+                    "200": _html_response("Bulk editor re-rendered with validation errors."),
+                },
+            },
+        },
         "/variables/{variable_name}": {
             "parameters": [_path_parameter("variable_name", "Variable name to view.")],
             "get": {
@@ -1342,6 +1379,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "AliasFormSubmission": _alias_form_schema(),
                 "ServerFormSubmission": _server_form_schema(),
                 "VariableFormSubmission": _variable_form_schema(),
+                "VariablesBulkEditFormSubmission": _variables_bulk_edit_form_schema(),
                 "SecretFormSubmission": _secret_form_schema(),
                 "DeletionConfirmation": _deletion_form_schema(),
                 "AliasMatchPreviewRequest": _alias_match_preview_request_schema(),

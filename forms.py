@@ -96,6 +96,15 @@ class VariableForm(FlaskForm):
         if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
             raise ValidationError('Variable name contains invalid characters for URLs')
 
+
+class BulkVariablesForm(FlaskForm):
+    variables_json = TextAreaField(
+        'Variables JSON',
+        validators=[DataRequired()],
+        render_kw={'rows': 18, 'spellcheck': 'false'},
+    )
+    submit = SubmitField('Save Variables')
+
 class AliasForm(FlaskForm):
     name = StringField(
         'Alias Name',
