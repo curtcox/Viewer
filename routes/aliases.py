@@ -207,7 +207,7 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
 def aliases():
     """Display the authenticated user's aliases."""
     alias_list = get_user_aliases(current_user.id)
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify([_alias_to_json(alias) for alias in alias_list])
     return render_template('aliases.html', aliases=alias_list)
 
@@ -309,7 +309,7 @@ def view_alias(alias_name: str):
     )
     definition_lines = [_serialize_definition_line(entry) for entry in definition_summary]
 
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify(_alias_to_json(alias))
 
     return render_template(
@@ -536,8 +536,9 @@ def alias_match_preview():
 
 __all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'delete_alias', 'alias_match_preview']
 
-def _wants_json_response() -> bool:
-    return getattr(g, "response_format", None) == "json"
+
+def _wants_structured_response() -> bool:
+    return getattr(g, "response_format", None) in {"json", "xml"}
 
 
 def _alias_to_json(alias: Alias) -> Dict[str, Any]:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import xml.etree.ElementTree as ET
 
 from flask import Response
 from werkzeug.datastructures import MIMEAccept
@@ -42,3 +43,15 @@ def test_convert_response_leaves_json_payload_when_already_target() -> None:
 
     assert converted.mimetype == "application/json"
     assert json.loads(converted.get_data(as_text=True)) == payload
+
+
+def test_convert_response_transforms_json_payload_to_xml() -> None:
+    payload = {"name": "alias", "enabled": True}
+    response = Response(json.dumps(payload), mimetype="application/json")
+
+    converted = _convert_response(response, "xml")
+
+    assert converted.mimetype == "application/xml"
+    document = ET.fromstring(converted.get_data(as_text=True))
+    assert document.findtext("name") == "alias"
+    assert document.find("enabled") is not None

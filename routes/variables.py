@@ -235,7 +235,7 @@ def variables():
     variable_definitions_cid = None
     if variables_list:
         variable_definitions_cid = get_current_variable_definitions_cid(current_user.id)
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify([_variable_to_json(variable) for variable in variables_list])
     return render_template(
         'variables.html',
@@ -287,7 +287,7 @@ def view_variable(variable_name):
 
     matching_route = build_matching_route_info(variable.definition)
 
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify(_variable_to_json(variable))
 
     return render_template(
@@ -371,8 +371,10 @@ __all__ = [
     'variables',
     'view_variable',
 ]
-def _wants_json_response() -> bool:
-    return getattr(g, "response_format", None) == "json"
+
+
+def _wants_structured_response() -> bool:
+    return getattr(g, "response_format", None) in {"json", "xml"}
 
 
 def _variable_to_json(variable: Variable) -> Dict[str, Any]:

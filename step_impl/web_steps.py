@@ -1,6 +1,7 @@
 """Gauge step implementations for web application testing."""
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from typing import Optional
 
 from flask import Flask
@@ -581,6 +582,34 @@ def the_response_json_should_describe_server(server_name: str) -> None:
         f"Expected server name {expected_name!r} but received {payload.get('name')!r}."
     )
     assert "definition" in payload, "Server records should include the definition"
+
+
+@step("The response XML should include alias records")
+def the_response_xml_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    body = response.get_data(as_text=True)
+    document = ET.fromstring(body)
+    items = document.findall("item")
+    assert items, "Expected alias records in XML payload"
+    first = items[0]
+    assert first.find("name") is not None, "Alias XML records must include a name element"
+    assert first.find("match_pattern") is not None, "Alias XML records must include match metadata"
+
+
+@step("The response XML should describe a server named <server_name>")
+def the_response_xml_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    body = response.get_data(as_text=True)
+    document = ET.fromstring(body)
+    expected_name = _normalize_path(server_name)
+    assert document.findtext("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {document.findtext('name')!r}."
+    )
+    assert document.find("definition") is not None, "Server XML payload should include definition"
 
 
 # Import/Export steps

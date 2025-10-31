@@ -445,7 +445,7 @@ def user_servers():
 def servers():
     """Display user's servers."""
     servers_list = user_servers()
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify([_server_to_json(server) for server in servers_list])
     server_definitions_cid = None
     server_rows: List[Dict[str, object]] = []
@@ -584,7 +584,7 @@ def view_server(server_name):
             test_config.get('action'),
         )
 
-    if _wants_json_response():
+    if _wants_structured_response():
         return jsonify(_server_to_json(server))
 
     return render_template(
@@ -770,8 +770,9 @@ __all__ = [
     'validate_server_definition',
 ]
 
-def _wants_json_response() -> bool:
-    return getattr(g, "response_format", None) == "json"
+
+def _wants_structured_response() -> bool:
+    return getattr(g, "response_format", None) in {"json", "xml"}
 
 
 def _server_to_json(server: Server) -> Dict[str, object]:
