@@ -137,7 +137,7 @@ def _persist_alias_from_upload(alias: Alias) -> Alias:
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
 def upload():
-    """File upload page with IPFS CID storage."""
+    """File upload page with CID storage."""
     form = FileUploadForm()
     upload_templates = get_upload_templates()
 
