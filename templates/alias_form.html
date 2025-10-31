@@ -126,21 +126,6 @@
                         </div>
 
                         <div class="col-12">
-                            {{ ai_text_controls(
-                                form.definition.id,
-                                'alias definition',
-                                request_label='Ask AI to edit the alias definition',
-                                helper_text='Describe how the AI should adjust the alias definition before saving.',
-                                context={'form': 'alias_form'},
-                                entity_type='alias',
-                                entity_name=ai_entity_name|default(''),
-                                entity_name_field=ai_entity_name_field|default(''),
-                                interactions=interaction_history|default([]),
-                                history_label='Recent alias edits and requests'
-                            ) }}
-                        </div>
-
-                        <div class="col-12">
                             <div class="form-check form-switch">
                                 {{ form.enabled(class="form-check-input", role="switch") }}
                                 {{ form.enabled.label(class="form-check-label") }}
@@ -201,6 +186,21 @@
             <div class="d-flex gap-2 flex-wrap align-items-center">
                 {{ ai_action_button(form.definition.id, button_label='AI', extra_classes='btn-outline-primary') }}
             </div>
+        </div>
+
+        <div class="card-body border-top bg-body-tertiary">
+            {{ ai_text_controls(
+                form.definition.id,
+                'alias definition',
+                request_label='Ask AI to edit the alias definition',
+                helper_text='Describe how the AI should adjust the alias definition before saving.',
+                context={'form': 'alias_form'},
+                entity_type='alias',
+                entity_name=ai_entity_name|default(''),
+                entity_name_field=ai_entity_name_field|default(''),
+                interactions=interaction_history|default([]),
+                history_label='Recent alias edits and requests'
+            ) }}
         </div>
     </form>
 </div>

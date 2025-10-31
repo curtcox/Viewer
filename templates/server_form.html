@@ -159,21 +159,6 @@
                             <div id="server-definition-errors" class="alert alert-danger mt-3 d-none" role="alert"></div>
                         </div>
 
-                        <div class="col-12">
-                            {{ ai_text_controls(
-                                form.definition.id,
-                                'server definition',
-                                request_label='Ask AI to edit the server definition',
-                                helper_text='Describe how the AI should adjust the server definition before saving.',
-                                context={'form': 'server_form'},
-                                entity_type='server',
-                                entity_name=ai_entity_name|default(''),
-                                entity_name_field=ai_entity_name_field|default(''),
-                                interactions=interaction_history|default([]),
-                                history_label='Recent edits and requests'
-                            ) }}
-                        </div>
-
                         <div class="col-12 col-lg-6">
                             <div class="form-check form-switch">
                                 {{ form.enabled(class="form-check-input", role="switch") }}
@@ -189,6 +174,21 @@
                             <div class="d-flex gap-2 flex-wrap">
                                 {{ ai_action_button(form.definition.id, button_label='AI', extra_classes='btn-outline-primary') }}
                             </div>
+                        </div>
+
+                        <div class="col-12 mt-3">
+                            {{ ai_text_controls(
+                                form.definition.id,
+                                'server definition',
+                                request_label='Ask AI to edit the server definition',
+                                helper_text='Describe how the AI should adjust the server definition before saving.',
+                                context={'form': 'server_form'},
+                                entity_type='server',
+                                entity_name=ai_entity_name|default(''),
+                                entity_name_field=ai_entity_name_field|default(''),
+                                interactions=interaction_history|default([]),
+                                history_label='Recent edits and requests'
+                            ) }}
                         </div>
                     </form>
                 </div>
