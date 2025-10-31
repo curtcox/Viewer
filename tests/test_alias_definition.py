@@ -2,7 +2,12 @@ import textwrap
 import unittest
 from types import SimpleNamespace
 
-from alias_definition import collect_alias_routes, summarize_definition_lines
+from alias_definition import (
+    AliasDefinitionError,
+    collect_alias_routes,
+    parse_alias_definition,
+    summarize_definition_lines,
+)
 
 
 class SummarizeDefinitionLinesTests(unittest.TestCase):
@@ -121,6 +126,140 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertTrue(summary[0].is_mapping)
         self.assertIsNotNone(summary[0].parse_error)
         self.assertIn("only one match type", summary[0].parse_error.lower())
+
+    def test_summarize_definition_lines_flags_text_without_mapping(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+            invalid text
+            """
+        ).strip("\n")
+
+        summary = summarize_definition_lines(definition, alias_name="docs")
+
+        self.assertEqual(len(summary), 2)
+        self.assertTrue(summary[1].is_mapping)
+        self.assertIsNotNone(summary[1].parse_error)
+        self.assertIn("does not contain an alias mapping", summary[1].parse_error.lower())
+
+
+class ParseAliasDefinitionValidationTests(unittest.TestCase):
+    def test_rejects_definitions_without_mapping_lines(self):
+        invalid_definitions = [
+            "stuff # invalid",
+            "stuff thing # invalid",
+            "stuff - thing # invalid",
+        ]
+
+        for definition in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition)
+
+                message = str(exc_info.exception).lower()
+                self.assertIn('pattern -> target', message)
+
+    def test_rejects_invalid_nested_mapping_lines(self):
+        invalid_definitions = [
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api ->
+                    """
+                ).strip("\n"),
+                "line 2",
+                'target path after "->"',
+            ),
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api -> /docs/api [glob, regex]
+                    """
+                ).strip("\n"),
+                "line 2",
+                "only one match type",
+            ),
+            (
+                textwrap.dedent(
+                    """
+                    docs -> /documentation
+                      api -> /docs/api [unknown]
+                    """
+                ).strip("\n"),
+                "line 2",
+                "unknown alias option",
+            ),
+        ]
+
+        for definition, expected_line, expected_message in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition, alias_name="docs")
+
+                message = str(exc_info.exception).lower()
+                self.assertIn(expected_line, message)
+                self.assertIn(expected_message, message)
+
+    def test_rejects_definitions_with_non_mapping_lines(self):
+        invalid_lines = [
+            "stuff # invalid",  # missing mapping arrow
+            "stuff thing # invalid",  # missing mapping arrow
+            "stuff - thing # invalid",  # missing mapping arrow
+        ]
+
+        for invalid_line in invalid_lines:
+            definition = textwrap.dedent(
+                f"""
+                docs -> /documentation
+                {invalid_line}
+                """
+            ).strip("\n")
+
+            with self.subTest(invalid_line=invalid_line):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition, alias_name="docs")
+
+                message = str(exc_info.exception).lower()
+                self.assertIn("line 2", message)
+                self.assertIn("does not contain an alias mapping", message)
+
+    def test_rejects_invalid_target_paths(self):
+        invalid_definitions = [
+            "stuff -> }",
+            "stuff -> {",
+            "stuff -> {}",
+            "stuff -> {thing}",
+            "xy -> {xdd",
+        ]
+
+        for definition in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition)
+
+                message = str(exc_info.exception).lower()
+                self.assertIn("valid alias or url", message)
+
+    def test_rejects_invalid_nested_target_paths(self):
+        invalid_targets = ["}", "{", "{}", "{thing}", "{xdd"]
+
+        for target in invalid_targets:
+            definition = textwrap.dedent(
+                f"""
+                docs -> /documentation
+                  nested -> {target}
+                """
+            ).strip("\n")
+
+            with self.subTest(target=target):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition, alias_name="docs")
+
+                message = str(exc_info.exception).lower()
+                self.assertIn("line 2", message)
+                self.assertIn("valid alias or url", message)
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution

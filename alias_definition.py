@@ -72,6 +72,23 @@ def _normalize_target_path(raw: str) -> str:
     value = (raw or "").strip()
     if not value:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
+    brace_balance = 0
+    for character in value:
+        if character == "{":
+            brace_balance += 1
+        elif character == "}":
+            if brace_balance == 0:
+                raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+            brace_balance -= 1
+    if brace_balance != 0:
+        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+    if value.startswith("{") and value.endswith("}"):
+        inner = value[1:-1].strip()
+        if not inner:
+            raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+    if not any(character.isalnum() for character in value):
+        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("//"):
         raise AliasDefinitionError('Alias target path must stay within this application.')
 
@@ -250,6 +267,16 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
         raise AliasDefinitionError(str(exc)) from exc
 
     target_path = _normalize_target_path(target_text)
+
+    # Ensure that every mapping line in the definition is valid.  The alias
+    # editing UI should surface problems anywhere in the definition, not only
+    # on the primary line.  ``summarize_definition_lines`` records parse
+    # errors for individual lines which we convert into a single validation
+    # failure here.
+    for entry in summarize_definition_lines(definition, alias_name=alias_name):
+        if not entry.is_mapping or not entry.parse_error:
+            continue
+        raise AliasDefinitionError(f"Line {entry.number}: {entry.parse_error}")
 
     return ParsedAliasDefinition(
         match_type=match_type,
@@ -432,12 +459,35 @@ def summarize_definition_lines(
         depth = indent_length // 2 if indent_length > 0 else 0
         stripped = text.strip()
 
-        if not stripped or stripped.startswith("#") or "->" not in stripped:
+        if not stripped:
             summaries.append(
                 DefinitionLineSummary(
                     number=index,
                     text=text,
                     is_mapping=False,
+                    depth=depth,
+                )
+            )
+            continue
+
+        if stripped.startswith("#"):
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=False,
+                    depth=depth,
+                )
+            )
+            continue
+
+        if "->" not in stripped:
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=True,
+                    parse_error="Line does not contain an alias mapping.",
                     depth=depth,
                 )
             )
