@@ -105,17 +105,6 @@
                                     Paste or type your text content here. A unique IPFS CID will be generated based on the content.
                                 </small>
                             </div>
-                            {{ ai_text_controls(
-                                form.text_content.id,
-                                'text content',
-                                request_label='Ask AI to edit the text content',
-                                helper_text='Describe how the AI should adjust your text before uploading.',
-                                context={'form': 'upload_text'},
-                                entity_type='upload',
-                                entity_name='text',
-                                interactions=upload_interactions|default([]),
-                                history_label='Recent uploads and requests'
-                            ) }}
                         </div>
 
                         <!-- URL Upload Section -->
@@ -141,6 +130,19 @@
                             {{ form.submit(class="btn btn-success") }}
                             {{ ai_action_button(form.text_content.id, button_label='AI', extra_classes='btn-outline-primary') }}
                             <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                        <div id="textAiAssistantSection" class="mt-4 d-none">
+                            {{ ai_text_controls(
+                                form.text_content.id,
+                                'text content',
+                                request_label='Ask AI to edit the text content',
+                                helper_text='Describe how the AI should adjust your text before uploading.',
+                                context={'form': 'upload_text'},
+                                entity_type='upload',
+                                entity_name='text',
+                                interactions=upload_interactions|default([]),
+                                history_label='Recent uploads and requests'
+                            ) }}
                         </div>
                     </form>
                 </div>
@@ -171,6 +173,7 @@
         const urlSection = document.getElementById('urlUploadSection');
         const aiButton = document.querySelector('[data-ai-trigger][data-ai-target-id="{{ form.text_content.id }}"]');
         const aiAssistant = document.querySelector('.ai-text-assistant[data-ai-target-id="{{ form.text_content.id }}"]');
+        const aiAssistantWrapper = document.getElementById('textAiAssistantSection');
 
         if (fileRadio.checked) {
             fileSection.style.display = 'block';
@@ -201,6 +204,9 @@
         }
         if (aiAssistant) {
             aiAssistant.classList.toggle('d-none', !textRadio.checked);
+        }
+        if (aiAssistantWrapper) {
+            aiAssistantWrapper.classList.toggle('d-none', !textRadio.checked);
         }
     }
 
