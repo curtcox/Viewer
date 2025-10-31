@@ -332,6 +332,117 @@ def main(request):
         incoming_values = set(incoming_match.group(1).split())
         self.assertTrue(incoming_values >= incoming_reference_keys)
 
+    def test_index_cross_reference_alias_and_server_highlight_metadata(self):
+        """Alias and server entries should expose highlight metadata for related entities."""
+        self.login_user()
+
+        cid_value = generate_cid(b'Highlight metadata for alias and server entries')
+        cid_record = CID(
+            path=f'/{cid_value}',
+            file_data=b'Content used to link alias, server, and CID',
+            uploaded_by_user_id=self.test_user_id,
+        )
+        alias_to_server = Alias(
+            name='relay-server',
+            user_id=self.test_user_id,
+            definition=_alias_definition('relay-server', '/servers/highlighted'),
+        )
+        alias_to_cid = Alias(
+            name='relay-cid',
+            user_id=self.test_user_id,
+            definition=_alias_definition('relay-cid', f'/{cid_value}'),
+        )
+        server_definition = """
+def main(request):
+    return "See /aliases/relay-cid for details"
+""".strip()
+        server = Server(
+            name='highlighted',
+            definition=server_definition,
+            user_id=self.test_user_id,
+            definition_cid=f'/{cid_value}',
+        )
+
+        db.session.add_all([cid_record, alias_to_server, alias_to_cid, server])
+        db.session.commit()
+
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+
+        with self.app.test_request_context('/'):
+            cross_reference = _build_cross_reference_data(self.test_user_id)
+
+        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-server')
+        relay_cid_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-cid')
+        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'highlighted')
+        cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
+
+        alias_key = alias_entry['entity_key']
+        relay_cid_key = relay_cid_entry['entity_key']
+        server_key = server_entry['entity_key']
+        cid_key = cid_entry['entity_key']
+
+        alias_outgoing_keys = set(alias_entry['outgoing_refs'])
+        server_outgoing_keys = set(server_entry['outgoing_refs'])
+        self.assertTrue(alias_outgoing_keys, 'Alias should expose outgoing reference keys')
+        self.assertTrue(server_outgoing_keys, 'Server should expose outgoing reference keys')
+
+        alias_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(alias_key)}"[^>]*>')
+        alias_match = alias_pattern.search(page)
+        self.assertIsNotNone(alias_match, 'Alias entry should render data attributes for highlighting')
+        alias_tag = alias_match.group(0)
+
+        alias_implies_match = re.search(r'data-implies="([^"]*)"', alias_tag)
+        self.assertIsNotNone(alias_implies_match, 'Alias entry should list implied entity keys')
+        alias_implies_values = set(filter(None, alias_implies_match.group(1).split()))
+        self.assertIn(server_key, alias_implies_values)
+
+        alias_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', alias_tag)
+        self.assertIsNotNone(alias_outgoing_match, 'Alias entry should list outgoing reference keys')
+        alias_outgoing_values = set(filter(None, alias_outgoing_match.group(1).split()))
+        self.assertTrue(alias_outgoing_keys <= alias_outgoing_values)
+
+        server_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(server_key)}"[^>]*>')
+        server_match = server_pattern.search(page)
+        self.assertIsNotNone(server_match, 'Server entry should render data attributes for highlighting')
+        server_tag = server_match.group(0)
+
+        server_implies_match = re.search(r'data-implies="([^"]*)"', server_tag)
+        self.assertIsNotNone(server_implies_match, 'Server entry should list implied entity keys')
+        server_implies_values = set(filter(None, server_implies_match.group(1).split()))
+        self.assertIn(alias_key, server_implies_values)
+        self.assertIn(relay_cid_key, server_implies_values)
+
+        server_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', server_tag)
+        self.assertIsNotNone(server_outgoing_match, 'Server entry should list outgoing reference keys')
+        server_outgoing_values = set(filter(None, server_outgoing_match.group(1).split()))
+        self.assertTrue(server_outgoing_keys <= server_outgoing_values)
+
+        alias_server_reference = next(
+            ref
+            for ref in cross_reference['references']
+            if ref['source_key'] == alias_entry['entity_key']
+            and ref['target_key'] == server_entry['entity_key']
+        )
+
+        reference_key = alias_server_reference['key']
+        reference_pattern = re.compile(rf'<div[^>]*data-reference-key="{re.escape(reference_key)}"[^>]*>')
+        reference_match = reference_pattern.search(page)
+        self.assertIsNotNone(reference_match, 'Reference entry should render data attributes for highlighting')
+        reference_tag = reference_match.group(0)
+
+        self.assertIn(f'data-source-key="{alias_server_reference["source_key"]}"', reference_tag)
+        self.assertIn(f'data-target-key="{alias_server_reference["target_key"]}"', reference_tag)
+
+        server_cid_reference = next(
+            ref
+            for ref in cross_reference['references']
+            if ref['source_key'] == server_entry['entity_key']
+            and ref['target_key'] == cid_key
+        )
+        self.assertIn(server_cid_reference['key'], server_outgoing_values)
+
     def test_index_cross_reference_skips_cids_without_named_alias(self):
         """Orphaned CIDs from aliases without names should not appear in the dashboard."""
         self.login_user()
