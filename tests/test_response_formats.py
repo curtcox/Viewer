@@ -1,9 +1,12 @@
 """Unit tests for response format negotiation utilities."""
 from __future__ import annotations
 
+import json
+
+from flask import Response
 from werkzeug.datastructures import MIMEAccept
 
-from response_formats import resolve_format_from_accept
+from response_formats import _convert_response, resolve_format_from_accept
 
 
 def test_resolve_format_prefers_highest_quality_html() -> None:
@@ -29,3 +32,13 @@ def test_resolve_format_falls_back_to_wildcard_application() -> None:
 def test_resolve_format_defaults_to_html_when_header_missing() -> None:
     accept = MIMEAccept([])
     assert resolve_format_from_accept(accept) == "html"
+
+
+def test_convert_response_leaves_json_payload_when_already_target() -> None:
+    payload = {"name": "alias", "enabled": True}
+    response = Response(json.dumps(payload), mimetype="application/json")
+
+    converted = _convert_response(response, "json")
+
+    assert converted.mimetype == "application/json"
+    assert json.loads(converted.get_data(as_text=True)) == payload

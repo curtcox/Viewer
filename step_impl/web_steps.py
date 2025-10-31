@@ -556,6 +556,33 @@ def the_page_should_contain_server_definition() -> None:
     then_page_should_contain("Server Definition")
 
 
+@step("The response JSON should include alias records")
+def the_response_json_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    payload = response.get_json()
+    assert isinstance(payload, list), "Expected JSON array of alias records"
+    assert payload, "Expected at least one alias record"
+    first_record = payload[0]
+    assert "name" in first_record, "Alias records must include a name"
+    assert "match_pattern" in first_record, "Alias records must include match metadata"
+
+
+@step("The response JSON should describe a server named <server_name>")
+def the_response_json_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    payload = response.get_json()
+    expected_name = _normalize_path(server_name)
+    assert isinstance(payload, dict), "Expected a server object"
+    assert payload.get("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {payload.get('name')!r}."
+    )
+    assert "definition" in payload, "Server records should include the definition"
+
+
 # Import/Export steps
 @step("Given an origin site with a server named <shared-tool> returning <Hello from origin>")
 def given_an_origin_site_with_a_server_named_returning(server_name: str, server_message: str) -> None:

@@ -3,7 +3,7 @@
 import re
 from typing import Dict, Iterable, List, Optional
 
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
@@ -27,6 +27,7 @@ from forms import ServerForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Server
+from serialization import model_to_dict
 from server_execution import analyze_server_definition, describe_main_function_parameters
 from server_templates import get_server_templates
 from syntax_highlighting import highlight_source
@@ -444,6 +445,8 @@ def user_servers():
 def servers():
     """Display user's servers."""
     servers_list = user_servers()
+    if _wants_json_response():
+        return jsonify([_server_to_json(server) for server in servers_list])
     server_definitions_cid = None
     server_rows: List[Dict[str, object]] = []
     if servers_list:
@@ -580,6 +583,9 @@ def view_server(server_name):
             'server-test',
             test_config.get('action'),
         )
+
+    if _wants_json_response():
+        return jsonify(_server_to_json(server))
 
     return render_template(
         'server_view.html',
@@ -763,3 +769,11 @@ __all__ = [
     'upload_server_test_page',
     'validate_server_definition',
 ]
+
+def _wants_json_response() -> bool:
+    return getattr(g, "response_format", None) == "json"
+
+
+def _server_to_json(server: Server) -> Dict[str, object]:
+    return model_to_dict(server)
+

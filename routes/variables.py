@@ -2,7 +2,7 @@
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
 from cid_utils import (
     get_current_variable_definitions_cid,
@@ -13,6 +13,7 @@ from forms import VariableForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Variable
+from serialization import model_to_dict
 
 from . import main_bp
 from .entities import create_entity, update_entity
@@ -234,6 +235,8 @@ def variables():
     variable_definitions_cid = None
     if variables_list:
         variable_definitions_cid = get_current_variable_definitions_cid(current_user.id)
+    if _wants_json_response():
+        return jsonify([_variable_to_json(variable) for variable in variables_list])
     return render_template(
         'variables.html',
         variables=variables_list,
@@ -283,6 +286,9 @@ def view_variable(variable_name):
         abort(404)
 
     matching_route = build_matching_route_info(variable.definition)
+
+    if _wants_json_response():
+        return jsonify(_variable_to_json(variable))
 
     return render_template(
         'variable_view.html',
@@ -365,3 +371,10 @@ __all__ = [
     'variables',
     'view_variable',
 ]
+def _wants_json_response() -> bool:
+    return getattr(g, "response_format", None) == "json"
+
+
+def _variable_to_json(variable: Variable) -> Dict[str, Any]:
+    return model_to_dict(variable)
+

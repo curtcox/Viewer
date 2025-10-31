@@ -184,6 +184,23 @@ def _string_media_content() -> Dict[str, Any]:
     }
 
 
+def _entity_collection_response(description: str, schema_ref: str) -> Dict[str, Any]:
+    content = _string_media_content()
+    content["application/json"] = {
+        "schema": {
+            "type": "array",
+            "items": {"$ref": schema_ref},
+        }
+    }
+    return {"description": description, "content": content}
+
+
+def _entity_resource_response(description: str, schema_ref: str) -> Dict[str, Any]:
+    content = _string_media_content()
+    content["application/json"] = {"schema": {"$ref": schema_ref}}
+    return {"description": description, "content": content}
+
+
 def _augment_json_content(paths: Dict[str, Any]) -> None:
     """Ensure JSON responses advertise alternative representations."""
 
@@ -262,6 +279,205 @@ def _path_parameter(name: str, description: str) -> Dict[str, Any]:
         "required": True,
         "description": description,
         "schema": {"type": "string"},
+    }
+
+
+def _alias_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "user_id",
+            "enabled",
+            "match_type",
+            "match_pattern",
+            "ignore_case",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Alias name",
+                "example": "docs",
+            },
+            "definition": {
+                "type": ["string", "null"],
+                "description": "Stored alias definition text.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the alias is active."},
+            "match_type": {
+                "type": "string",
+                "description": "Primary route match type.",
+                "example": "literal",
+            },
+            "match_pattern": {
+                "type": "string",
+                "description": "Pattern matched by the primary alias rule.",
+                "example": "/docs",
+            },
+            "target_path": {
+                "type": ["string", "null"],
+                "description": "Primary target path resolved by the alias.",
+                "example": "/documentation",
+            },
+            "ignore_case": {
+                "type": "boolean",
+                "description": "Whether the alias ignores case when matching.",
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
+def _server_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Server name",
+                "example": "echo",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Python source code defining the server.",
+            },
+            "definition_cid": {
+                "type": ["string", "null"],
+                "description": "CID referencing the stored definition, when available.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the server is active."},
+        },
+        "additionalProperties": False,
+    }
+
+
+def _variable_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Variable name",
+                "example": "api_token",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Variable definition value.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the variable is active."},
+        },
+        "additionalProperties": False,
+    }
+
+
+def _secret_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Secret name",
+                "example": "service-password",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Secret definition value.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the secret is active."},
+        },
+        "additionalProperties": False,
     }
 
 
@@ -666,7 +882,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "tags": ["Aliases"],
                 "summary": "List aliases",
                 "description": "Render the HTML workspace page that lists the current user's aliases.",
-                "responses": {"200": _html_response("Aliases listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Aliases listing rendered.",
+                        "#/components/schemas/AliasRecord",
+                    )
+                },
             }
         },
         "/aliases/new": {
@@ -690,7 +911,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Aliases"],
                 "summary": "View alias",
-                "responses": {"200": _html_response("Alias details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Alias details rendered.",
+                        "#/components/schemas/AliasRecord",
+                    )
+                },
             },
         },
         "/aliases/{alias_name}/edit": {
@@ -766,7 +992,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Servers"],
                 "summary": "List servers",
-                "responses": {"200": _html_response("Servers listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Servers listing rendered.",
+                        "#/components/schemas/ServerRecord",
+                    )
+                },
             }
         },
         "/servers/new": {
@@ -790,7 +1021,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Servers"],
                 "summary": "View server",
-                "responses": {"200": _html_response("Server details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Server details rendered.",
+                        "#/components/schemas/ServerRecord",
+                    )
+                },
             },
         },
         "/servers/{server_name}/edit": {
@@ -912,7 +1148,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Variables"],
                 "summary": "List variables",
-                "responses": {"200": _html_response("Variables listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Variables listing rendered.",
+                        "#/components/schemas/VariableRecord",
+                    )
+                },
             }
         },
         "/variables/new": {
@@ -936,7 +1177,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Variables"],
                 "summary": "View variable",
-                "responses": {"200": _html_response("Variable details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Variable details rendered.",
+                        "#/components/schemas/VariableRecord",
+                    )
+                },
             },
         },
         "/variables/{variable_name}/edit": {
@@ -972,7 +1218,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Secrets"],
                 "summary": "List secrets",
-                "responses": {"200": _html_response("Secrets listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Secrets listing rendered.",
+                        "#/components/schemas/SecretRecord",
+                    )
+                },
             }
         },
         "/secrets/new": {
@@ -996,7 +1247,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Secrets"],
                 "summary": "View secret",
-                "responses": {"200": _html_response("Secret details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Secret details rendered.",
+                        "#/components/schemas/SecretRecord",
+                    )
+                },
             },
         },
         "/secrets/{secret_name}/edit": {
@@ -1078,6 +1334,10 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "InteractionSummary": _interaction_summary_schema(),
                 "InteractionHistory": _interaction_history_schema(),
                 "Error": _error_schema(),
+                "AliasRecord": _alias_record_schema(),
+                "ServerRecord": _server_record_schema(),
+                "VariableRecord": _variable_record_schema(),
+                "SecretRecord": _secret_record_schema(),
                 "AliasFormSubmission": _alias_form_schema(),
                 "ServerFormSubmission": _server_form_schema(),
                 "VariableFormSubmission": _variable_form_schema(),

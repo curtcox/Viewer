@@ -116,7 +116,15 @@ class TestOpenAPI(unittest.TestCase):
 
         alias_listing = payload['paths']['/aliases']['get']['responses']['200']['content']
         self.assertIn('application/json', alias_listing)
-        self.assertIn('content', alias_listing['application/json']['schema']['properties'])
+        alias_json_schema = alias_listing['application/json']['schema']
+        self.assertEqual(alias_json_schema['type'], 'array')
+        self.assertEqual(
+            alias_json_schema['items']['$ref'], '#/components/schemas/AliasRecord'
+        )
+
+        schemas = payload['components']['schemas']
+        for record_schema in ['AliasRecord', 'ServerRecord', 'VariableRecord', 'SecretRecord']:
+            self.assertIn(record_schema, schemas)
 
 
 if __name__ == '__main__':

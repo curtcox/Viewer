@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlsplit
 
 import logfire
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
 from alias_definition import (
     AliasDefinitionError,
@@ -33,6 +33,7 @@ from forms import AliasForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias
+from serialization import model_to_dict
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
@@ -206,6 +207,8 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
 def aliases():
     """Display the authenticated user's aliases."""
     alias_list = get_user_aliases(current_user.id)
+    if _wants_json_response():
+        return jsonify([_alias_to_json(alias) for alias in alias_list])
     return render_template('aliases.html', aliases=alias_list)
 
 
@@ -305,6 +308,9 @@ def view_alias(alias_name: str):
         getattr(alias, "definition", None), alias_name=getattr(alias, "name", None)
     )
     definition_lines = [_serialize_definition_line(entry) for entry in definition_summary]
+
+    if _wants_json_response():
+        return jsonify(_alias_to_json(alias))
 
     return render_template(
         'alias_view.html',
@@ -529,3 +535,19 @@ def alias_match_preview():
 
 
 __all__ = ['aliases', 'new_alias', 'view_alias', 'edit_alias', 'delete_alias', 'alias_match_preview']
+
+def _wants_json_response() -> bool:
+    return getattr(g, "response_format", None) == "json"
+
+
+def _alias_to_json(alias: Alias) -> Dict[str, Any]:
+    return model_to_dict(
+        alias,
+        {
+            "match_type": alias.get_primary_match_type(),
+            "match_pattern": alias.get_primary_match_pattern(),
+            "target_path": alias.get_primary_target_path(),
+            "ignore_case": alias.get_primary_ignore_case(),
+        },
+    )
+

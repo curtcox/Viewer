@@ -214,8 +214,13 @@ def _convert_response(response: Response, target_format: str) -> Response:
     if target_format not in SUPPORTED_FORMATS:
         return response
 
+    desired_mimetype = SUPPORTED_FORMATS[target_format]
+
     if 300 <= response.status_code < 400:
-        response.mimetype = SUPPORTED_FORMATS[target_format]
+        response.mimetype = desired_mimetype
+        return response
+
+    if (response.mimetype or "").split(";")[0] == desired_mimetype:
         return response
 
     original_mimetype = response.mimetype or "text/html"
@@ -242,7 +247,7 @@ def _convert_response(response: Response, target_format: str) -> Response:
 
     body = converter(payload, source_format, original_mimetype)
     response.set_data(body)
-    response.mimetype = SUPPORTED_FORMATS[target_format]
+    response.mimetype = desired_mimetype
     response.charset = "utf-8"
     return response
 
