@@ -1,5 +1,7 @@
 """Secret management routes and helpers."""
-from flask import abort, flash, redirect, render_template, request, url_for
+from typing import Dict
+
+from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
 from cid_utils import (
     get_current_secret_definitions_cid,
@@ -10,6 +12,7 @@ from forms import SecretForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Secret
+from serialization import model_to_dict
 
 from . import main_bp
 from .entities import create_entity, update_entity
@@ -31,6 +34,8 @@ def secrets():
     secret_definitions_cid = None
     if secrets_list:
         secret_definitions_cid = get_current_secret_definitions_cid(current_user.id)
+    if _wants_structured_response():
+        return jsonify([_secret_to_json(secret) for secret in secrets_list])
     return render_template(
         'secrets.html',
         secrets=secrets_list,
@@ -77,6 +82,9 @@ def view_secret(secret_name):
     secret = get_secret_by_name(current_user.id, secret_name)
     if not secret:
         abort(404)
+
+    if _wants_structured_response():
+        return jsonify(_secret_to_json(secret))
 
     return render_template('secret_view.html', secret=secret)
 
@@ -148,3 +156,12 @@ __all__ = [
     'user_secrets',
     'view_secret',
 ]
+
+
+def _wants_structured_response() -> bool:
+    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
+
+
+def _secret_to_json(secret: Secret) -> Dict[str, object]:
+    return model_to_dict(secret)
+

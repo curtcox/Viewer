@@ -1,6 +1,9 @@
 """Gauge step implementations for web application testing."""
 from __future__ import annotations
 
+import csv
+import io
+import xml.etree.ElementTree as ET
 from typing import Optional
 
 from flask import Flask
@@ -85,6 +88,20 @@ def the_response_status_should_be_200() -> None:
     ), f"Expected HTTP 200 but received {response.status_code} for {response.request.path!r}."
 
 
+@step("The response content type should be <content_type>")
+def the_response_content_type_should_be(content_type: str) -> None:
+    """Validate that the captured response used the expected media type."""
+
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    expected = _normalize_path(content_type)
+    actual = response.headers.get("Content-Type", "")
+    assert actual.split(";")[0] == expected, (
+        f"Expected Content-Type {expected!r} but received {actual!r}."
+    )
+
+
 # Page request steps
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
@@ -167,6 +184,28 @@ def when_i_request_aliases_ai_page() -> None:
 def when_i_request_aliases_index_page() -> None:
     """Request the aliases index page."""
     _perform_get_request("/aliases")
+
+
+@step("When I request the resource <path>")
+def when_i_request_resource(path: str) -> None:
+    """Request an arbitrary resource path."""
+
+    normalized_path = _normalize_path(path)
+    _perform_get_request(normalized_path)
+
+
+@step("When I request the resource <path> with accept header <accept_header>")
+def when_i_request_resource_with_accept_header(path: str, accept_header: str) -> None:
+    """Request a resource while specifying an Accept header."""
+
+    normalized_path = _normalize_path(path)
+    normalized_accept = _normalize_path(accept_header)
+
+    client = _require_client()
+    _login_default_user()
+    response = client.get(normalized_path, headers={"Accept": normalized_accept})
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
 
 
 @step("When I request the page /servers/<server_name>")
@@ -518,6 +557,90 @@ def the_page_should_contain_server_definition() -> None:
     """Assert that the response body displays the server definition."""
 
     then_page_should_contain("Server Definition")
+
+
+@step("The response JSON should include alias records")
+def the_response_json_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    payload = response.get_json()
+    assert isinstance(payload, list), "Expected JSON array of alias records"
+    assert payload, "Expected at least one alias record"
+    first_record = payload[0]
+    assert "name" in first_record, "Alias records must include a name"
+    assert "match_pattern" in first_record, "Alias records must include match metadata"
+
+
+@step("The response JSON should describe a server named <server_name>")
+def the_response_json_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    payload = response.get_json()
+    expected_name = _normalize_path(server_name)
+    assert isinstance(payload, dict), "Expected a server object"
+    assert payload.get("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {payload.get('name')!r}."
+    )
+    assert "definition" in payload, "Server records should include the definition"
+
+
+@step("The response XML should include alias records")
+def the_response_xml_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    body = response.get_data(as_text=True)
+    document = ET.fromstring(body)
+    items = document.findall("item")
+    assert items, "Expected alias records in XML payload"
+    first = items[0]
+    assert first.find("name") is not None, "Alias XML records must include a name element"
+    assert first.find("match_pattern") is not None, "Alias XML records must include match metadata"
+
+
+@step("The response XML should describe a server named <server_name>")
+def the_response_xml_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    body = response.get_data(as_text=True)
+    document = ET.fromstring(body)
+    expected_name = _normalize_path(server_name)
+    assert document.findtext("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {document.findtext('name')!r}."
+    )
+    assert document.find("definition") is not None, "Server XML payload should include definition"
+
+
+@step("The response CSV should include alias records")
+def the_response_csv_should_include_alias_records() -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert rows, "Expected alias records in CSV payload"
+    first = rows[0]
+    assert "name" in first and first["name"], "Alias CSV records must include a name column"
+    assert "match_pattern" in first, "Alias CSV records must include match metadata"
+
+
+@step("The response CSV should describe a server named <server_name>")
+def the_response_csv_should_describe_server(server_name: str) -> None:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+
+    reader = csv.DictReader(io.StringIO(response.get_data(as_text=True)))
+    rows = list(reader)
+    assert rows, "Expected server record in CSV payload"
+    expected_name = _normalize_path(server_name)
+    record = rows[0]
+    assert record.get("name") == expected_name, (
+        f"Expected server name {expected_name!r} but received {record.get('name')!r}."
+    )
+    assert "definition" in record, "Server CSV payload should include the definition column"
 
 
 # Import/Export steps

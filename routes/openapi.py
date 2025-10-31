@@ -1,11 +1,16 @@
 """Routes that expose the application's OpenAPI schema and Swagger UI."""
 from __future__ import annotations
 
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Set
+from urllib.parse import urlsplit, urlunsplit
 
-from flask import Response, jsonify, render_template, request, url_for
+from flask import Flask, Response, jsonify, render_template, request, url_for
 
 from . import main_bp
+
+
+_PATH_PARAMETER_PATTERN = re.compile(r"{([^}/]+)}")
 
 
 def _interaction_request_schema() -> Dict[str, Any]:
@@ -147,19 +152,80 @@ def _error_schema() -> Dict[str, Any]:
 
 
 def _html_response(description: str) -> Dict[str, Any]:
-    """Standard HTML response metadata."""
+    """Describe responses that originate as HTML but support multiple formats."""
+
+    content = _string_media_content()
+    content["application/json"] = {
+        "schema": {
+            "type": "object",
+            "required": ["content", "content_type"],
+            "properties": {
+                "content": {"type": "string"},
+                "content_type": {
+                    "type": "string",
+                    "enum": ["text/html"],
+                    "description": "Original media type of the rendered response.",
+                },
+            },
+        }
+    }
+
+    return {"description": description, "content": content}
+
+
+def _string_media_content() -> Dict[str, Any]:
+    """Return content descriptors for string-based representations."""
 
     return {
-        "description": description,
-        "content": {
-            "text/html": {
-                "schema": {
-                    "type": "string",
-                    "description": "Rendered HTML response.",
-                }
-            }
-        },
+        "text/html": {"schema": {"type": "string"}},
+        "text/plain": {"schema": {"type": "string"}},
+        "text/markdown": {"schema": {"type": "string"}},
+        "application/xml": {"schema": {"type": "string"}},
+        "text/csv": {"schema": {"type": "string"}},
     }
+
+
+def _entity_collection_response(description: str, schema_ref: str) -> Dict[str, Any]:
+    content = _string_media_content()
+    content["application/json"] = {
+        "schema": {
+            "type": "array",
+            "items": {"$ref": schema_ref},
+        }
+    }
+    return {"description": description, "content": content}
+
+
+def _entity_resource_response(description: str, schema_ref: str) -> Dict[str, Any]:
+    content = _string_media_content()
+    content["application/json"] = {"schema": {"$ref": schema_ref}}
+    return {"description": description, "content": content}
+
+
+def _augment_json_content(paths: Dict[str, Any]) -> None:
+    """Ensure JSON responses advertise alternative representations."""
+
+    for path_item in paths.values():
+        if not isinstance(path_item, dict):
+            continue
+        for operation in path_item.values():
+            if not isinstance(operation, dict):
+                continue
+            responses = operation.get("responses", {})
+            for response in responses.values():
+                content = response.get("content")
+                if not isinstance(content, dict):
+                    continue
+                if "application/json" not in content:
+                    continue
+                for mimetype, descriptor in _string_media_content().items():
+                    content.setdefault(mimetype, descriptor)
+
+
+def _convert_path_to_rule(path: str) -> str:
+    """Translate an OpenAPI path template to a Flask routing rule."""
+
+    return _PATH_PARAMETER_PATTERN.sub(lambda match: f"<{match.group(1)}>", path)
 
 
 def _redirect_response(description: str) -> Dict[str, Any]:
@@ -214,6 +280,205 @@ def _path_parameter(name: str, description: str) -> Dict[str, Any]:
         "required": True,
         "description": description,
         "schema": {"type": "string"},
+    }
+
+
+def _alias_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "user_id",
+            "enabled",
+            "match_type",
+            "match_pattern",
+            "ignore_case",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Alias name",
+                "example": "docs",
+            },
+            "definition": {
+                "type": ["string", "null"],
+                "description": "Stored alias definition text.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the alias is active."},
+            "match_type": {
+                "type": "string",
+                "description": "Primary route match type.",
+                "example": "literal",
+            },
+            "match_pattern": {
+                "type": "string",
+                "description": "Pattern matched by the primary alias rule.",
+                "example": "/docs",
+            },
+            "target_path": {
+                "type": ["string", "null"],
+                "description": "Primary target path resolved by the alias.",
+                "example": "/documentation",
+            },
+            "ignore_case": {
+                "type": "boolean",
+                "description": "Whether the alias ignores case when matching.",
+            },
+        },
+        "additionalProperties": False,
+    }
+
+
+def _server_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Server name",
+                "example": "echo",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Python source code defining the server.",
+            },
+            "definition_cid": {
+                "type": ["string", "null"],
+                "description": "CID referencing the stored definition, when available.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the server is active."},
+        },
+        "additionalProperties": False,
+    }
+
+
+def _variable_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Variable name",
+                "example": "api_token",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Variable definition value.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the variable is active."},
+        },
+        "additionalProperties": False,
+    }
+
+
+def _secret_record_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "required": [
+            "id",
+            "name",
+            "definition",
+            "user_id",
+            "created_at",
+            "updated_at",
+            "enabled",
+        ],
+        "properties": {
+            "id": {"type": "integer", "format": "int64", "example": 1},
+            "name": {
+                "type": "string",
+                "description": "Secret name",
+                "example": "service-password",
+            },
+            "definition": {
+                "type": "string",
+                "description": "Secret definition value.",
+            },
+            "user_id": {
+                "type": "string",
+                "description": "Owner identifier",
+                "example": "default-user",
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Creation timestamp in ISO-8601 format.",
+            },
+            "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Last update timestamp in ISO-8601 format.",
+            },
+            "enabled": {"type": "boolean", "description": "Whether the secret is active."},
+        },
+        "additionalProperties": False,
     }
 
 
@@ -559,6 +824,14 @@ def _build_openapi_spec() -> Dict[str, Any]:
     """Assemble the OpenAPI schema for the application."""
 
     server_url = request.host_url.rstrip("/")
+    parsed = urlsplit(server_url)
+    hostname = parsed.hostname or ""
+    port = parsed.port
+    if hostname and (port in (None, 80, 443) or (hostname == "localhost" and port == 5000)):
+        netloc = hostname
+    else:
+        netloc = parsed.netloc
+    server_url = urlunsplit((parsed.scheme, netloc, "", "", ""))
     paths: Dict[str, Any] = {
         "/api/interactions": {
             "post": {
@@ -610,7 +883,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "tags": ["Aliases"],
                 "summary": "List aliases",
                 "description": "Render the HTML workspace page that lists the current user's aliases.",
-                "responses": {"200": _html_response("Aliases listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Aliases listing rendered.",
+                        "#/components/schemas/AliasRecord",
+                    )
+                },
             }
         },
         "/aliases/new": {
@@ -634,7 +912,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Aliases"],
                 "summary": "View alias",
-                "responses": {"200": _html_response("Alias details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Alias details rendered.",
+                        "#/components/schemas/AliasRecord",
+                    )
+                },
             },
         },
         "/aliases/{alias_name}/edit": {
@@ -662,14 +945,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Alias deleted and browser redirected."),
-                    "404": {
-                        "description": "Alias not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Alias not found."),
                 },
             },
         },
@@ -717,7 +993,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Servers"],
                 "summary": "List servers",
-                "responses": {"200": _html_response("Servers listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Servers listing rendered.",
+                        "#/components/schemas/ServerRecord",
+                    )
+                },
             }
         },
         "/servers/new": {
@@ -741,7 +1022,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Servers"],
                 "summary": "View server",
-                "responses": {"200": _html_response("Server details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Server details rendered.",
+                        "#/components/schemas/ServerRecord",
+                    )
+                },
             },
         },
         "/servers/{server_name}/edit": {
@@ -769,14 +1055,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Server deleted and browser redirected."),
-                    "404": {
-                        "description": "Server not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Server not found."),
                 },
             },
         },
@@ -862,14 +1141,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                             }
                         },
                     },
-                    "404": {
-                        "description": "Server or test configuration not available.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Server or test configuration not available."),
                 },
             },
         },
@@ -877,7 +1149,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Variables"],
                 "summary": "List variables",
-                "responses": {"200": _html_response("Variables listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Variables listing rendered.",
+                        "#/components/schemas/VariableRecord",
+                    )
+                },
             }
         },
         "/variables/new": {
@@ -901,7 +1178,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Variables"],
                 "summary": "View variable",
-                "responses": {"200": _html_response("Variable details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Variable details rendered.",
+                        "#/components/schemas/VariableRecord",
+                    )
+                },
             },
         },
         "/variables/{variable_name}/edit": {
@@ -929,14 +1211,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Variable deleted and browser redirected."),
-                    "404": {
-                        "description": "Variable not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Variable not found."),
                 },
             },
         },
@@ -944,7 +1219,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Secrets"],
                 "summary": "List secrets",
-                "responses": {"200": _html_response("Secrets listing rendered.")},
+                "responses": {
+                    "200": _entity_collection_response(
+                        "Secrets listing rendered.",
+                        "#/components/schemas/SecretRecord",
+                    )
+                },
             }
         },
         "/secrets/new": {
@@ -968,7 +1248,12 @@ def _build_openapi_spec() -> Dict[str, Any]:
             "get": {
                 "tags": ["Secrets"],
                 "summary": "View secret",
-                "responses": {"200": _html_response("Secret details rendered.")},
+                "responses": {
+                    "200": _entity_resource_response(
+                        "Secret details rendered.",
+                        "#/components/schemas/SecretRecord",
+                    )
+                },
             },
         },
         "/secrets/{secret_name}/edit": {
@@ -996,14 +1281,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": _form_request_body("DeletionConfirmation"),
                 "responses": {
                     "302": _redirect_response("Secret deleted and browser redirected."),
-                    "404": {
-                        "description": "Secret not found.",
-                        "content": {
-                            "text/html": {
-                                "schema": {"type": "string"},
-                            }
-                        },
-                    },
+                    "404": _html_response("Secret not found."),
                 },
             },
         },
@@ -1032,6 +1310,8 @@ def _build_openapi_spec() -> Dict[str, Any]:
         },
     }
 
+    _augment_json_content(paths)
+
     spec: Dict[str, Any] = {
         "openapi": "3.0.3",
         "info": {
@@ -1055,6 +1335,10 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "InteractionSummary": _interaction_summary_schema(),
                 "InteractionHistory": _interaction_history_schema(),
                 "Error": _error_schema(),
+                "AliasRecord": _alias_record_schema(),
+                "ServerRecord": _server_record_schema(),
+                "VariableRecord": _variable_record_schema(),
+                "SecretRecord": _secret_record_schema(),
                 "AliasFormSubmission": _alias_form_schema(),
                 "ServerFormSubmission": _server_form_schema(),
                 "VariableFormSubmission": _variable_form_schema(),
@@ -1072,6 +1356,14 @@ def _build_openapi_spec() -> Dict[str, Any]:
     return spec
 
 
+def openapi_route_rules(app: Flask) -> Set[str]:
+    """Return the Flask routing rules documented in the OpenAPI schema."""
+
+    with app.test_request_context("/"):
+        spec = _build_openapi_spec()
+    return {_convert_path_to_rule(path) for path in spec["paths"].keys()}
+
+
 @main_bp.route("/openapi.json")
 def openapi_spec() -> Response:
     """Return the OpenAPI specification describing the HTTP API."""
@@ -1087,4 +1379,4 @@ def openapi_docs() -> str:
     return render_template("swagger.html", title="API Explorer", spec_url=spec_url)
 
 
-__all__ = ["openapi_spec", "openapi_docs"]
+__all__ = ["openapi_spec", "openapi_docs", "openapi_route_rules"]
