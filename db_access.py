@@ -160,8 +160,21 @@ def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
         .all()
     )
 
+    try:
+        variables = get_user_variables(user_id)
+    except Exception:  # pragma: no cover - defensive guard for unexpected database issues
+        variables = []
+
+    variable_map = {
+        variable.name: variable.definition
+        for variable in variables
+        if getattr(variable, "enabled", True)
+        and getattr(variable, "name", None)
+        and getattr(variable, "definition", None) is not None
+    }
+
     for alias in aliases:
-        for route in collect_alias_routes(alias):
+        for route in collect_alias_routes(alias, variables=variable_map):
             if route.match_type != "literal":
                 continue
             route_target = (route.target_path or "").strip()
