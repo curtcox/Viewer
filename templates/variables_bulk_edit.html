@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Variables as JSON{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="fas fa-code me-2"></i>Edit Variables</h2>
+        <a href="{{ url_for('main.variables') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Variables
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <p class="text-muted">
+                Provide a JSON object mapping variable names to their values. Removing a key will delete the corresponding
+                variable when you save.
+            </p>
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.variables_json.label(class="form-label") }}
+                    {{ form.variables_json(
+                        class="form-control" + (" is-invalid" if form.variables_json.errors else ""),
+                        autocomplete="off",
+                    ) }}
+                    <div
+                        id="variables-json-editor"
+                        class="form-control p-0 code-editor d-none{{ ' is-invalid' if form.variables_json.errors else '' }}"
+                        data-code-editor-for="{{ form.variables_json.id }}"
+                        data-code-editor-language="json"
+                        data-code-editor-detect-language="false"
+                        data-code-editor-min-height="320"
+                    ></div>
+                </div>
+
+                <div
+                    id="variables-json-error"
+                    class="alert alert-danger{{ '' if error_message else ' d-none' }}"
+                    role="alert"
+                >
+                    {{ error_message if error_message else '' }}
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <a href="{{ url_for('main.variables') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </a>
+                    {{ form.submit(class="btn btn-primary", id="variables-json-submit") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
+    <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/variables_bulk_edit.js') }}"></script>
+{% endblock %}
