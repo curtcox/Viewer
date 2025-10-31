@@ -129,6 +129,21 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
 
 
 class ParseAliasDefinitionValidationTests(unittest.TestCase):
+    def test_rejects_definitions_without_mapping_lines(self):
+        invalid_definitions = [
+            "stuff # invalid",
+            "stuff thing # invalid",
+            "stuff - thing # invalid",
+        ]
+
+        for definition in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition)
+
+                message = str(exc_info.exception).lower()
+                self.assertIn('pattern -> target', message)
+
     def test_rejects_invalid_nested_mapping_lines(self):
         invalid_definitions = [
             (
@@ -171,6 +186,22 @@ class ParseAliasDefinitionValidationTests(unittest.TestCase):
                 message = str(exc_info.exception).lower()
                 self.assertIn(expected_line, message)
                 self.assertIn(expected_message, message)
+
+    def test_rejects_invalid_target_paths(self):
+        invalid_definitions = [
+            "stuff -> }",
+            "stuff -> {",
+            "stuff -> {}",
+            "stuff -> {thing}",
+        ]
+
+        for definition in invalid_definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition)
+
+                message = str(exc_info.exception).lower()
+                self.assertIn("valid alias or url", message)
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution

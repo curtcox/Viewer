@@ -72,6 +72,13 @@ def _normalize_target_path(raw: str) -> str:
     value = (raw or "").strip()
     if not value:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
+    if value.startswith("{") and value.endswith("}"):
+        inner = value[1:-1].strip()
+        if not inner:
+            raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+    if not any(character.isalnum() for character in value):
+        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("//"):
         raise AliasDefinitionError('Alias target path must stay within this application.')
 
