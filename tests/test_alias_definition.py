@@ -231,6 +231,7 @@ class ParseAliasDefinitionValidationTests(unittest.TestCase):
             "stuff -> {",
             "stuff -> {}",
             "stuff -> {thing}",
+            "xy -> {xdd",
         ]
 
         for definition in invalid_definitions:
@@ -242,7 +243,7 @@ class ParseAliasDefinitionValidationTests(unittest.TestCase):
                 self.assertIn("valid alias or url", message)
 
     def test_rejects_invalid_nested_target_paths(self):
-        invalid_targets = ["}", "{", "{}", "{thing}"]
+        invalid_targets = ["}", "{", "{}", "{thing}", "{xdd"]
 
         for target in invalid_targets:
             definition = textwrap.dedent(
