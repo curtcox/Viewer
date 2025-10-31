@@ -15,6 +15,17 @@ class AliasModelTests(unittest.TestCase):
         )
         self.assertEqual(alias.get_primary_target_path(), "/target")
 
+    def test_get_primary_target_path_with_variable_reference(self):
+        """Test that variable placeholders resolve before accessing the target path."""
+        alias = Alias(
+            name="status",
+            definition="status -> {status-page}",
+            user_id="user1",
+        )
+        alias._resolved_variables = {"status-page": "/beageghugragegar"}
+
+        self.assertEqual(alias.get_primary_target_path(), "/beageghugragegar")
+
     def test_get_primary_target_path_fallback(self):
         """Test fallback when definition parsing fails."""
         alias = Alias(

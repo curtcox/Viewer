@@ -13,7 +13,7 @@ from werkzeug.routing import Map, Rule
 
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
-from db_access import get_user_aliases
+from db_access import get_user_aliases, get_user_variables
 from identity import current_user, ensure_default_user
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
@@ -81,6 +81,31 @@ class AliasMatch:
     route: AliasRouteRule
 
 
+def _user_variable_map(user_id: str | None) -> dict[str, str]:
+    """Return a mapping of enabled variable names to their values for ``user_id``."""
+
+    if not user_id:
+        return {}
+
+    try:
+        variables = get_user_variables(user_id)
+    except Exception:  # pragma: no cover - defensive guard for unexpected database errors
+        return {}
+
+    result: dict[str, str] = {}
+    for variable in variables:
+        if not getattr(variable, "enabled", True):
+            continue
+        name = getattr(variable, "name", None)
+        if not name:
+            continue
+        value = getattr(variable, "definition", None)
+        if value is None:
+            continue
+        result[str(name)] = str(value)
+    return result
+
+
 def _alias_routes_for_user_in_declaration_order(user_id: str | None) -> Generator[tuple[Any, AliasRouteRule], None, None]:
     """Yield alias routes in the order they are declared."""
 
@@ -88,10 +113,11 @@ def _alias_routes_for_user_in_declaration_order(user_id: str | None) -> Generato
         return
 
     aliases = get_user_aliases(user_id)
+    variable_map = _user_variable_map(user_id)
     for alias in aliases:
         if not getattr(alias, "enabled", True):
             continue
-        for route in collect_alias_routes(alias):
+        for route in collect_alias_routes(alias, variables=variable_map):
             yield alias, route
 
 

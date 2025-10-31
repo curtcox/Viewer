@@ -27,6 +27,54 @@ class AliasRoutesIntegrationTests(unittest.TestCase):
         self.assertFalse(route.ignore_case)
         self.assertIsNone(route.source)
 
+    def test_collect_routes_substitutes_variables_in_target(self):
+        """Test that target placeholders pull from resolved variables."""
+        alias = Alias(
+            name="status",
+            definition="status -> {status-page}",
+            user_id="user1",
+        )
+
+        routes = collect_alias_routes(
+            alias, variables={"status-page": "/beageghugragegar"}
+        )
+
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].target_path, "/beageghugragegar")
+
+    def test_collect_routes_with_multiple_variables(self):
+        """Test resolving multiple variables and repeated placeholders."""
+        alias = Alias(
+            name="reports",
+            definition="reports -> /{region}/{section}/{region}",
+            user_id="user1",
+        )
+
+        variables = {"region": "emea", "section": "status"}
+
+        routes = collect_alias_routes(alias, variables=variables)
+
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].target_path, "/emea/status/emea")
+
+    def test_collect_routes_substitutes_variables_in_pattern(self):
+        """Test that placeholders in the pattern resolve before parsing."""
+        definition = """{prefix} -> /root
+  guide -> /guides/{prefix}
+        """.strip()
+        alias = Alias(
+            name="docs",
+            definition=definition,
+            user_id="user1",
+        )
+
+        routes = collect_alias_routes(alias, variables={"prefix": "docs"})
+
+        self.assertGreaterEqual(len(routes), 2)
+        nested = next(route for route in routes if route.alias_path == "docs/guide")
+        self.assertEqual(nested.match_pattern, "/docs/guide")
+        self.assertEqual(nested.target_path, "/guides/docs")
+
     def test_collect_routes_glob_alias(self):
         """Test collecting routes from a glob alias."""
         alias = Alias(

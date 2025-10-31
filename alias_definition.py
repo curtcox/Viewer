@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
 from alias_matching import PatternError, normalise_pattern
@@ -55,6 +55,7 @@ class AliasRouteRule:
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
 _MATCH_TYPE_OPTIONS = {"literal", "glob", "regex", "flask"}
 _IGNORE_CASE_OPTIONS = {"ignore-case", "ignorecase"}
+_VARIABLE_PATTERN = re.compile(r"\{([A-Za-z0-9._-]+)\}")
 
 
 def _strip_inline_comment(line: str) -> str:
@@ -91,6 +92,102 @@ def _extract_primary_line(definition: str) -> Optional[str]:
             continue
         return stripped
     return None
+
+
+def _normalize_variable_map(variable_source: Any) -> dict[str, str]:
+    """Return a mapping of variable names to their string values."""
+
+    if not variable_source:
+        return {}
+
+    items: Iterable[tuple[Any, Any]]
+
+    if isinstance(variable_source, Mapping):
+        items = variable_source.items()
+    else:
+        collected: list[tuple[Any, Any]] = []
+        try:
+            iterator = iter(variable_source)
+        except TypeError:
+            iterator = iter(())
+        for entry in iterator:
+            if entry is None:
+                continue
+            name = getattr(entry, "name", None)
+            if not name:
+                continue
+            if hasattr(entry, "enabled") and not getattr(entry, "enabled", True):
+                continue
+            value = getattr(entry, "definition", None)
+            if value is None:
+                continue
+            collected.append((name, value))
+        items = collected
+
+    normalized: dict[str, str] = {}
+    for raw_name, raw_value in items:
+        if raw_name is None:
+            continue
+        name_text = str(raw_name).strip()
+        if not name_text:
+            continue
+        value_text = "" if raw_value is None else str(raw_value)
+        normalized[name_text] = value_text
+    return normalized
+
+
+def _resolve_alias_variables(alias: Any, provided: Optional[Mapping[str, Any]]) -> dict[str, str]:
+    """Return resolved variable values for ``alias``."""
+
+    if provided:
+        return _normalize_variable_map(provided)
+
+    for attribute in ("_resolved_variables", "resolved_variables", "variable_values"):
+        candidate = getattr(alias, attribute, None)
+        if candidate:
+            resolved = _normalize_variable_map(candidate)
+            if resolved:
+                return resolved
+
+    user_id = getattr(alias, "user_id", None)
+    if not user_id:
+        return {}
+
+    try:
+        from db_access import get_user_variables  # Local import avoids circular dependency.
+    except Exception:  # pragma: no cover - defensive fallback when import fails
+        return {}
+
+    try:
+        variables = get_user_variables(user_id)
+    except Exception:  # pragma: no cover - defensive guard when database access fails
+        variables = []
+
+    resolved = _normalize_variable_map(variables)
+    try:
+        setattr(alias, "_resolved_variables", resolved)
+    except Exception:
+        pass
+    return resolved
+
+
+def _substitute_variables(text: Optional[str], variables: Mapping[str, str]) -> Optional[str]:
+    """Replace ``{variable}`` placeholders in ``text`` with their values."""
+
+    if text is None:
+        return None
+    if not text or not variables:
+        return text
+
+    def _replace(match: re.Match[str]) -> str:
+        name = match.group(1)
+        if not name:
+            return match.group(0)
+        if name not in variables:
+            return match.group(0)
+        return variables[name]
+
+    return _VARIABLE_PATTERN.sub(_replace, text)
 
 
 def parse_alias_definition(definition: str, alias_name: Optional[str] = None) -> ParsedAliasDefinition:
@@ -416,11 +513,20 @@ def summarize_definition_lines(
     return summaries
 
 
-def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
+def collect_alias_routes(
+    alias: Any, *, variables: Optional[Mapping[str, Any]] = None
+) -> Sequence[AliasRouteRule]:
     """Return all routing rules defined for the supplied alias."""
 
     alias_name = getattr(alias, "name", None) or ""
-    definition = getattr(alias, "definition", None)
+    raw_definition = getattr(alias, "definition", None)
+    if raw_definition is not None and not isinstance(raw_definition, str):
+        definition = str(raw_definition)
+    else:
+        definition = raw_definition
+    variable_values = _resolve_alias_variables(alias, variables)
+    resolved_definition = _substitute_variables(definition, variable_values)
+    definition_text = resolved_definition if resolved_definition is not None else definition
 
     # Check if alias has helper methods (new-style) or not (old-style)
     has_helper_methods = hasattr(alias, 'get_primary_target_path')
@@ -440,7 +546,7 @@ def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
             )
         ]
 
-    summary = summarize_definition_lines(definition, alias_name=alias_name)
+    summary = summarize_definition_lines(definition_text, alias_name=alias_name)
 
     routes: list[AliasRouteRule] = []
     seen: set[tuple[str, str, str, bool]] = set()
@@ -516,7 +622,7 @@ def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
         return routes
 
     # Handle empty definition case - create fallback route
-    if definition is None or not definition.strip():
+    if definition_text is None or not str(definition_text).strip():
         if alias_name:
             return [
                 AliasRouteRule(
@@ -531,7 +637,9 @@ def collect_alias_routes(alias: Any) -> Sequence[AliasRouteRule]:
         return []
 
     try:
-        parsed = parse_alias_definition(definition, alias_name=alias_name or None)
+        parsed = parse_alias_definition(
+            definition_text, alias_name=alias_name or None
+        )
     except AliasDefinitionError as e:
         # Check if the error is due to external target
         if "must stay within this application" in str(e):

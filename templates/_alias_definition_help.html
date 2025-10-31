@@ -4,7 +4,9 @@
         Use the alias definition field to capture multi-line context for related shortcuts, nested routes,
         and pattern behaviour. Start each alias with <code>pattern -> /target [options]</code>—even a single-line
         alias follows this format. The text you enter here travels with workspace exports and returns on import,
-        keeping documentation and routing intent in sync.
+        keeping documentation and routing intent in sync. Embed saved variables inside braces
+        (for example <code>{status-page}</code>) to reuse workspace configuration when generating targets or
+        patterns.
     </p>
     <p class="mb-3">
         Automated coverage for these examples lives in
@@ -22,6 +24,10 @@ docs -> /documentation                         # redirects /docs to /documentati
 # Pair literal roots with glob aliases for deeper paths
 status -> /status-page                         # /status stays on the overview
 status/* -> /status/sections/* [glob]          # nested paths reuse the captured suffix
+
+# Reuse saved variables in aliases
+status -> {status-page}                        # redirect /status using a saved variable value
+status/* -> {status-page}/sections/* [glob]    # combine variables with captured segments
 
 # Declaration order controls overlapping matches
 docs/* -> /preferred [glob]                    # first matching declaration wins for /docs/topic/guide
