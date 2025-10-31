@@ -449,12 +449,35 @@ def summarize_definition_lines(
         depth = indent_length // 2 if indent_length > 0 else 0
         stripped = text.strip()
 
-        if not stripped or stripped.startswith("#") or "->" not in stripped:
+        if not stripped:
             summaries.append(
                 DefinitionLineSummary(
                     number=index,
                     text=text,
                     is_mapping=False,
+                    depth=depth,
+                )
+            )
+            continue
+
+        if stripped.startswith("#"):
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=False,
+                    depth=depth,
+                )
+            )
+            continue
+
+        if "->" not in stripped:
+            summaries.append(
+                DefinitionLineSummary(
+                    number=index,
+                    text=text,
+                    is_mapping=True,
+                    parse_error="Line does not contain an alias mapping.",
                     depth=depth,
                 )
             )
