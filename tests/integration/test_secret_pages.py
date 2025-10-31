@@ -1,6 +1,8 @@
 """Integration coverage for secret management pages."""
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from cid_presenter import format_cid
@@ -189,3 +191,110 @@ def test_edit_secret_updates_definition_snapshot(
     assert "/secrets/api-token" not in page
     assert expected_snapshot_cid in page
     assert initial_snapshot_cid not in page
+
+
+def test_bulk_secret_editor_prefills_existing_secrets(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """The bulk editor should render the current secrets as JSON."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Secret(name="api_key", definition="super-secret", user_id="default-user")
+        )
+        db.session.add(
+            Secret(name="db_password", definition="hunter2", user_id="default-user")
+        )
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/secrets/_/edit")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert 'api_key' in page
+    assert 'super-secret' in page
+    assert 'db_password' in page
+
+
+def test_bulk_secret_editor_updates_and_deletes_secrets(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Saving from the bulk editor should upsert provided secrets and remove omissions."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Secret(name="api_key", definition="super-secret", user_id="default-user")
+        )
+        db.session.add(
+            Secret(name="db_password", definition="hunter2", user_id="default-user")
+        )
+        db.session.commit()
+
+    login_default_user()
+
+    payload = {"api_key": "rotate-me", "service_token": "abc123"}
+    response = client.post(
+        "/secrets/_/edit",
+        data={
+            "secrets_json": json.dumps(payload),
+            "submit": "Save Secrets",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/secrets")
+
+    with integration_app.app_context():
+        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        service_token = Secret.query.filter_by(
+            user_id="default-user", name="service_token"
+        ).one()
+        db_password = Secret.query.filter_by(
+            user_id="default-user", name="db_password"
+        ).first()
+
+        assert api_key.definition == "rotate-me"
+        assert service_token.definition == "abc123"
+        assert service_token.enabled is True
+        assert db_password is None
+
+
+def test_bulk_secret_editor_invalid_json_displays_errors(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Invalid JSON submissions should be rejected and show an error message."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Secret(name="api_key", definition="super-secret", user_id="default-user")
+        )
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.post(
+        "/secrets/_/edit",
+        data={
+            "secrets_json": '{"api_key": "super-secret"',
+            "submit": "Save Secrets",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Invalid JSON" in page
+
+    with integration_app.app_context():
+        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        assert api_key.definition == "super-secret"

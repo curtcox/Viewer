@@ -105,6 +105,15 @@ class BulkVariablesForm(FlaskForm):
     )
     submit = SubmitField('Save Variables')
 
+
+class BulkSecretsForm(FlaskForm):
+    secrets_json = TextAreaField(
+        'Secrets JSON',
+        validators=[DataRequired()],
+        render_kw={'rows': 18, 'spellcheck': 'false'},
+    )
+    submit = SubmitField('Save Secrets')
+
 class AliasForm(FlaskForm):
     name = StringField(
         'Alias Name',
