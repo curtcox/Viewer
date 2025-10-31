@@ -1,7 +1,12 @@
 """Upload-related routes and helpers."""
 
+from __future__ import annotations
+
+import re
+from datetime import datetime, timezone
+
 import logfire
-from flask import abort, flash, render_template, request, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from markupsafe import Markup
 
 from alias_definition import (
@@ -26,6 +31,8 @@ from db_access import (
     get_cid_by_path,
     get_user_server_invocations,
     get_user_uploads,
+    get_user_variables,
+    get_variable_by_name,
     record_entity_interaction,
     save_entity,
 )
@@ -35,16 +42,89 @@ from entity_references import (
 from forms import EditCidForm, FileUploadForm
 from identity import current_user
 from interaction_log import load_interaction_history
-from models import Alias
+from models import Alias, Variable
 from upload_templates import get_upload_templates
 
 from . import main_bp
 from .history import _load_request_referers
 
 
+_VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+
 def _shorten_cid(cid, length=6):
     """Return a shortened CID label for display."""
     return format_cid_short(cid, length)
+
+
+def _resolve_file_size(record, default: int | None = None) -> int:
+    """Return a best-effort file size from a CID record."""
+
+    if default is not None:
+        return default
+
+    if not record:
+        return 0
+
+    size = getattr(record, "file_size", None)
+    if size is not None:
+        return int(size)
+
+    file_data = getattr(record, "file_data", None)
+    if file_data:
+        return len(file_data)
+
+    return 0
+
+
+def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Variable], Variable | None]:
+    """Return the user's variables and the one currently pointing at ``cid_value``."""
+
+    variables = get_user_variables(user_id)
+    normalized = format_cid(cid_value)
+    if not normalized:
+        return variables, None
+
+    candidate_values = {value for value in {cid_path(normalized), normalized} if value}
+    assigned = None
+
+    if candidate_values:
+        for variable in variables:
+            definition = (getattr(variable, "definition", "") or "").strip()
+            if definition in candidate_values:
+                assigned = variable
+                break
+
+    return variables, assigned
+
+
+def _render_upload_success(
+    cid_value: str,
+    *,
+    file_size: int | None = None,
+    detected_mime_type: str | None = None,
+    view_url_extension: str | None = None,
+    filename: str | None = None,
+    assignment_variable_name: str | None = None,
+):
+    """Render the upload success page with variable assignment helpers."""
+
+    normalized = format_cid(cid_value)
+    record = get_cid_by_path(cid_path(normalized)) if normalized else None
+    resolved_size = _resolve_file_size(record, file_size)
+    variables, assigned_variable = _collect_variable_assignment(normalized, current_user.id)
+
+    return render_template(
+        'upload_success.html',
+        cid=normalized,
+        file_size=resolved_size,
+        detected_mime_type=detected_mime_type,
+        view_url_extension=view_url_extension,
+        filename=filename,
+        variables=variables,
+        assigned_variable=assigned_variable,
+        assignment_variable_name=assignment_variable_name or '',
+    )
 
 
 @logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
@@ -129,12 +209,18 @@ def upload():
             if extension:
                 view_url_extension = extension.lstrip('.')
 
-        return render_template(
-            'upload_success.html',
-            cid=cid_value,
+        filename = None
+        if form.upload_type.data == 'file':
+            filename = original_filename
+        elif form.upload_type.data == 'url':
+            filename = form.url.data or None
+
+        return _render_upload_success(
+            cid_value,
             file_size=len(file_content),
             detected_mime_type=detected_mime_type,
             view_url_extension=view_url_extension,
+            filename=filename,
         )
 
     return _render_form()
@@ -313,12 +399,12 @@ def edit_cid(cid_prefix):
             )
         )
 
-        return render_template(
-            'upload_success.html',
-            cid=cid_value,
+        return _render_upload_success(
+            cid_value,
             file_size=len(file_content),
             detected_mime_type='text/plain',
             view_url_extension='txt',
+            filename=None,
         )
 
     if request.method == 'GET':
@@ -334,6 +420,99 @@ def edit_cid(cid_prefix):
         show_alias_field=alias_for_cid is None,
         interaction_history=interaction_history,
         content_references=content_references,
+    )
+
+
+@main_bp.route('/upload/assign-variable', methods=['POST'])
+def assign_cid_variable():
+    """Assign the supplied CID to an existing or new variable."""
+
+    cid_value = format_cid(request.form.get('cid'))
+    variable_name = (request.form.get('variable_name') or '').strip()
+    view_url_extension = (request.form.get('view_url_extension') or '').strip() or None
+    filename = (request.form.get('filename') or '').strip() or None
+    detected_mime_type = (request.form.get('detected_mime_type') or '').strip() or None
+
+    if not cid_value:
+        flash('A CID is required to assign it to a variable.', 'error')
+        return redirect(url_for('main.upload'))
+
+    cid_record = get_cid_by_path(cid_path(cid_value))
+    if not cid_record:
+        flash('CID not found. Upload content before assigning it to a variable.', 'error')
+        return redirect(url_for('main.upload'))
+
+    file_size = _resolve_file_size(cid_record)
+    assignment_value = cid_path(cid_value) or cid_value
+
+    if not variable_name:
+        flash('Enter a variable name to assign this CID.', 'error')
+        return _render_upload_success(
+            cid_value,
+            file_size=file_size,
+            detected_mime_type=detected_mime_type,
+            view_url_extension=view_url_extension,
+            filename=filename,
+            assignment_variable_name=variable_name,
+        )
+
+    if not _VARIABLE_NAME_PATTERN.fullmatch(variable_name):
+        flash(
+            'Variable names may only contain letters, numbers, dots, hyphens, and underscores.',
+            'error',
+        )
+        return _render_upload_success(
+            cid_value,
+            file_size=file_size,
+            detected_mime_type=detected_mime_type,
+            view_url_extension=view_url_extension,
+            filename=filename,
+            assignment_variable_name=variable_name,
+        )
+
+    existing_variable = get_variable_by_name(current_user.id, variable_name)
+    assignment_message = None
+
+    if existing_variable:
+        current_value = (existing_variable.definition or '').strip()
+        if current_value == assignment_value:
+            flash(f'CID already assigned to variable "{variable_name}".', 'info')
+        else:
+            existing_variable.definition = assignment_value
+            existing_variable.updated_at = datetime.now(timezone.utc)
+            save_entity(existing_variable)
+            assignment_message = f'Updated variable "{variable_name}" to use the CID.'
+    else:
+        new_variable = Variable(
+            name=variable_name,
+            definition=assignment_value,
+            user_id=current_user.id,
+        )
+        save_entity(new_variable)
+        assignment_message = f'Created variable "{variable_name}" using this CID.'
+
+    if assignment_message:
+        from .variables import update_variable_definitions_cid
+
+        update_variable_definitions_cid(current_user.id)
+        record_entity_interaction(
+            EntityInteractionRequest(
+                user_id=current_user.id,
+                entity_type='variable',
+                entity_name=variable_name,
+                action='save',
+                message='Assigned CID from upload page',
+                content=assignment_value,
+            )
+        )
+        flash(assignment_message, 'success')
+
+    return _render_upload_success(
+        cid_value,
+        file_size=file_size,
+        detected_mime_type=detected_mime_type,
+        view_url_extension=view_url_extension,
+        filename=filename,
     )
 
 
