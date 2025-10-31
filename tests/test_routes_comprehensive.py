@@ -443,6 +443,87 @@ def main(request):
         )
         self.assertIn(server_cid_reference['key'], server_outgoing_values)
 
+    def test_index_cross_reference_alias_to_alias_highlight_metadata(self):
+        """Alias entries should expose highlight metadata when targeting another alias."""
+        self.login_user()
+
+        server_definition = """
+def main(request):
+    return "alias target"
+""".strip()
+        server = Server(
+            name='alias-target-backend',
+            definition=server_definition,
+            user_id=self.test_user_id,
+        )
+
+        alias_target = Alias(
+            name='alias-target',
+            user_id=self.test_user_id,
+            definition=_alias_definition('alias-target', '/servers/alias-target-backend'),
+        )
+        alias_source = Alias(
+            name='alias-source',
+            user_id=self.test_user_id,
+            definition=_alias_definition('alias-source', '/aliases/alias-target'),
+        )
+
+        db.session.add_all([server, alias_target, alias_source])
+        db.session.commit()
+
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+
+        with self.app.test_request_context('/'):
+            cross_reference = _build_cross_reference_data(self.test_user_id)
+
+        source_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-source')
+        target_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-target')
+        reference_entry = next(
+            item
+            for item in cross_reference['references']
+            if item['source_name'] == 'alias-source' and item['target_name'] == 'alias-target'
+        )
+
+        source_key = source_entry['entity_key']
+        target_key = target_entry['entity_key']
+        reference_key = reference_entry['key']
+
+        self.assertIn(target_key, source_entry['implied_keys'])
+        self.assertIn(source_key, target_entry['implied_keys'])
+
+        source_outgoing = set(filter(None, source_entry['outgoing_refs']))
+        target_incoming = set(filter(None, target_entry['incoming_refs']))
+        self.assertIn(reference_key, source_outgoing)
+        self.assertIn(reference_key, target_incoming)
+
+        source_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(source_key)}"[^>]*>')
+        source_match = source_pattern.search(page)
+        self.assertIsNotNone(source_match, 'Source alias entry should include data attributes for highlighting')
+        source_tag = source_match.group(0)
+
+        source_implies_match = re.search(r'data-implies="([^"]*)"', source_tag)
+        self.assertIsNotNone(source_implies_match, 'Source alias should expose implied entity keys')
+        self.assertIn(target_key, source_implies_match.group(1).split())
+
+        source_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', source_tag)
+        self.assertIsNotNone(source_outgoing_match, 'Source alias should list outgoing reference keys')
+        self.assertIn(reference_key, source_outgoing_match.group(1).split())
+
+        target_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(target_key)}"[^>]*>')
+        target_match = target_pattern.search(page)
+        self.assertIsNotNone(target_match, 'Target alias entry should include data attributes for highlighting')
+        target_tag = target_match.group(0)
+
+        target_implies_match = re.search(r'data-implies="([^"]*)"', target_tag)
+        self.assertIsNotNone(target_implies_match, 'Target alias should expose implied entity keys')
+        self.assertIn(source_key, target_implies_match.group(1).split())
+
+        target_incoming_match = re.search(r'data-incoming-refs="([^"]*)"', target_tag)
+        self.assertIsNotNone(target_incoming_match, 'Target alias should list incoming reference keys')
+        self.assertIn(reference_key, target_incoming_match.group(1).split())
+
     def test_index_cross_reference_skips_cids_without_named_alias(self):
         """Orphaned CIDs from aliases without names should not appear in the dashboard."""
         self.login_user()
