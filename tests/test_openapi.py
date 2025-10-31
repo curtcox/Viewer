@@ -77,7 +77,7 @@ class TestOpenAPI(unittest.TestCase):
             '/servers/{server_name}/upload-test-page': ['post'],
             '/variables': ['get'],
             '/variables/new': ['get', 'post'],
-            '/variables/./edit': ['get', 'post'],
+            '/variables/_/edit': ['get', 'post'],
             '/variables/{variable_name}': ['get'],
             '/variables/{variable_name}/edit': ['get', 'post'],
             '/variables/{variable_name}/delete': ['post'],

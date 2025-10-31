@@ -317,7 +317,7 @@ def variables():
     )
 
 
-@main_bp.route('/variables/./edit', methods=['GET', 'POST'])
+@main_bp.route('/variables/_/edit', methods=['GET', 'POST'])
 def bulk_edit_variables():
     """Edit all variables at once using a JSON payload."""
 

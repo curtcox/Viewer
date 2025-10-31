@@ -1194,7 +1194,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 },
             },
         },
-        "/variables/./edit": {
+        "/variables/_/edit": {
             "get": {
                 "tags": ["Variables"],
                 "summary": "Show bulk variable editor",

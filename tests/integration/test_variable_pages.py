@@ -201,7 +201,7 @@ def test_bulk_variable_editor_prefills_existing_variables(
 
     login_default_user()
 
-    response = client.get("/variables/./edit")
+    response = client.get("/variables/_/edit")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
@@ -230,7 +230,7 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
 
     payload = {"city": "Berlin", "timezone": "CET"}
     response = client.post(
-        "/variables/./edit",
+        "/variables/_/edit",
         data={
             "variables_json": json.dumps(payload),
             "submit": "Save Variables",
@@ -268,7 +268,7 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
     login_default_user()
 
     response = client.post(
-        "/variables/./edit",
+        "/variables/_/edit",
         data={
             "variables_json": '{"city": "Paris"',
             "submit": "Save Variables",
