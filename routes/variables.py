@@ -11,7 +11,13 @@ from cid_utils import (
     get_current_variable_definitions_cid,
     store_variable_definitions_cid,
 )
-from db_access import delete_entity, get_user_variables, get_variable_by_name, save_entity
+from db_access import (
+    delete_entity,
+    get_user_template_variables,
+    get_user_variables,
+    get_variable_by_name,
+    save_entity,
+)
 from forms import BulkVariablesForm, VariableForm
 from identity import current_user
 from interaction_log import load_interaction_history
@@ -357,6 +363,16 @@ def new_variable():
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or ''
 
+    variable_templates = [
+        {
+            'id': variable.id,
+            'name': variable.name,
+            'definition': variable.definition or '',
+            'suggested_name': f"{variable.name}-copy" if variable.name else '',
+        }
+        for variable in get_user_template_variables(current_user.id)
+    ]
+
     if form.validate_on_submit():
         if create_entity(
             Variable,
@@ -380,6 +396,7 @@ def new_variable():
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
         matching_route=None,
+        variable_templates=variable_templates,
     )
 
 

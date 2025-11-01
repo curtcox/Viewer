@@ -89,6 +89,34 @@ def test_new_variable_form_renders_for_authenticated_user(
     assert 'name="definition"' in page
 
 
+def test_new_variable_form_includes_templates(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Variables marked as templates should appear on the creation form."""
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="TEMPLATE_VAR",
+            definition="sample-value",
+            user_id="default-user",
+            template=True,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/variables/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "data-variable-template-id" in page
+    assert "TEMPLATE_VAR" in page
+    assert "name=\"template\"" in page
+
+
 def test_edit_variable_form_displays_existing_variable_details(
     client,
     integration_app,

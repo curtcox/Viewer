@@ -19,6 +19,7 @@ from db_access import (
     get_user_secrets,
     get_user_server_invocations_by_server,
     get_user_servers,
+    get_user_template_servers,
     get_user_uploads,
     get_user_variables,
 )
@@ -527,6 +528,16 @@ def new_server():
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or ''
 
+    user_server_templates = [
+        {
+            'id': f'user-{server.id}',
+            'name': server.name,
+            'definition': server.definition or '',
+            'suggested_name': f"{server.name}-copy" if server.name else '',
+        }
+        for server in get_user_template_servers(current_user.id)
+    ]
+
     if form.validate_on_submit():
         if create_entity(
             Server,
@@ -546,6 +557,7 @@ def new_server():
         form=form,
         title='Create New Server',
         server_templates=get_server_templates(),
+        user_server_templates=user_server_templates,
         server=None,
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,

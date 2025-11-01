@@ -36,6 +36,9 @@
                                 {% if not alias.enabled %}
                                 <span class="badge text-bg-warning ms-2">Disabled</span>
                                 {% endif %}
+                                {% if alias.template %}
+                                <span class="badge text-bg-info ms-2">Template</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <div><code>{{ alias.match_pattern }}</code></div>

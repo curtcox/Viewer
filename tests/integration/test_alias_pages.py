@@ -89,3 +89,36 @@ def test_alias_detail_page_displays_alias_information(
     assert "Alias Details" in page
     assert "<code>docs</code>" in page
     assert "<code>/docs</code>" in page
+
+
+def test_new_alias_form_includes_template_options(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Template aliases should surface as reusable buttons on the new form."""
+
+    with integration_app.app_context():
+        alias = Alias(
+            name="template-source",
+            user_id="default-user",
+            definition=format_primary_alias_line(
+                'literal',
+                '/template-source',
+                '/target',
+                alias_name='template-source',
+            ),
+            template=True,
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/aliases/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "data-alias-template-id" in page
+    assert "template-source" in page
+    assert "name=\"template\"" in page

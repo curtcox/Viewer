@@ -26,6 +26,7 @@ from db_access import (
     delete_entity,
     get_alias_by_name,
     get_user_aliases,
+    get_user_template_aliases,
     get_user_variables,
     record_entity_interaction,
     save_entity,
@@ -234,6 +235,16 @@ def new_alias():
 
         _prefill_definition_from_hints(form, target_hint, path_hint)
 
+    alias_templates = [
+        {
+            'id': alias.id,
+            'name': alias.name,
+            'definition': alias.definition or '',
+            'suggested_name': f"{alias.name}-copy" if alias.name else '',
+        }
+        for alias in get_user_template_aliases(current_user.id)
+    ]
+
     if form.validate_on_submit():
         parsed = form.parsed_definition
         name = form.name.data
@@ -264,6 +275,7 @@ def new_alias():
                 user_id=current_user.id,
                 definition=definition_value,
                 enabled=bool(form.enabled.data),
+                template=bool(form.template.data),
             )
             _persist_alias(alias)
             record_entity_interaction(
@@ -290,6 +302,7 @@ def new_alias():
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
+        alias_templates=alias_templates,
     )
 
 
@@ -388,6 +401,7 @@ def edit_alias(alias_name: str):
                 user_id=current_user.id,
                 definition=definition_value or None,
                 enabled=bool(form.enabled.data),
+                template=bool(form.template.data),
             )
             _persist_alias(new_alias)
             record_entity_interaction(
@@ -416,6 +430,7 @@ def edit_alias(alias_name: str):
         alias.definition = definition_value or None
         alias.updated_at = datetime.now(timezone.utc)
         alias.enabled = bool(form.enabled.data)
+        alias.template = bool(form.template.data)
         _persist_alias(alias)
         record_entity_interaction(
             EntityInteractionRequest(

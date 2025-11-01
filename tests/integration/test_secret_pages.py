@@ -35,6 +35,34 @@ def test_new_secret_form_renders_for_authenticated_user(
     assert "name=\"definition\"" in page
 
 
+def test_new_secret_form_includes_templates(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Secrets flagged as templates should appear on the new form."""
+
+    with integration_app.app_context():
+        secret = Secret(
+            name="templated-secret",
+            definition="return 'secret'",
+            user_id="default-user",
+            template=True,
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/secrets/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "data-secret-template-id" in page
+    assert "templated-secret" in page
+    assert "name=\"template\"" in page
+
+
 def test_edit_secret_form_displays_existing_secret(
     client,
     integration_app,

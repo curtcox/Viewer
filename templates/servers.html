@@ -42,6 +42,9 @@
                                     {% if not server.enabled %}
                                     <span class="badge text-bg-warning ms-2">Disabled</span>
                                     {% endif %}
+                                    {% if server.template %}
+                                    <span class="badge text-bg-info ms-2">Template</span>
+                                    {% endif %}
                                 </div>
                                 <div class="small text-muted">/servers/{{ server.name }}</div>
                             </td>

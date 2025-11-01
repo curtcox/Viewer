@@ -186,6 +186,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertNotIn('definition', aliases[0])
         self.assertIn('enabled', aliases[0])
         self.assertTrue(aliases[0]['enabled'])
+        self.assertIn('template', aliases[0])
+        self.assertFalse(aliases[0]['template'])
         alias_definition_cid = aliases[0]['definition_cid']
 
         servers = self._load_section(payload, 'servers')
@@ -194,6 +196,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertNotIn('definition', servers[0])
         self.assertIn('enabled', servers[0])
         self.assertTrue(servers[0]['enabled'])
+        self.assertIn('template', servers[0])
+        self.assertFalse(servers[0]['template'])
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(alias_definition_cid, cid_values)
@@ -213,11 +217,15 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(variables[0]['definition'], 'value')
         self.assertIn('enabled', variables[0])
         self.assertTrue(variables[0]['enabled'])
+        self.assertIn('template', variables[0])
+        self.assertFalse(variables[0]['template'])
 
         secrets_section = self._load_section(payload, 'secrets')
         self.assertEqual(secrets_section.get('encryption'), SECRET_ENCRYPTION_SCHEME)
         self.assertIn('enabled', secrets_section['items'][0])
         self.assertTrue(secrets_section['items'][0]['enabled'])
+        self.assertIn('template', secrets_section['items'][0])
+        self.assertFalse(secrets_section['items'][0]['template'])
         ciphertext = secrets_section['items'][0]['ciphertext']
         self.assertEqual(decrypt_secret_value(ciphertext, 'passphrase'), 'super-secret')
 
@@ -290,9 +298,17 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         secrets_section = self._load_section(payload, 'secrets')
 
         self.assertFalse(alias_entries[0]['enabled'])
+        self.assertIn('template', alias_entries[0])
+        self.assertFalse(alias_entries[0]['template'])
         self.assertFalse(server_entries[0]['enabled'])
+        self.assertIn('template', server_entries[0])
+        self.assertFalse(server_entries[0]['template'])
         self.assertFalse(variable_entries[0]['enabled'])
+        self.assertIn('template', variable_entries[0])
+        self.assertFalse(variable_entries[0]['template'])
         self.assertFalse(secrets_section['items'][0]['enabled'])
+        self.assertIn('template', secrets_section['items'][0])
+        self.assertFalse(secrets_section['items'][0]['template'])
 
         with self.app.app_context():
             Alias.query.delete()

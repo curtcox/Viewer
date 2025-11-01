@@ -10,7 +10,13 @@ from cid_utils import (
     get_current_secret_definitions_cid,
     store_secret_definitions_cid,
 )
-from db_access import delete_entity, get_secret_by_name, get_user_secrets, save_entity
+from db_access import (
+    delete_entity,
+    get_secret_by_name,
+    get_user_secrets,
+    get_user_template_secrets,
+    save_entity,
+)
 from forms import BulkSecretsForm, SecretForm
 from identity import current_user
 from interaction_log import load_interaction_history
@@ -156,6 +162,16 @@ def new_secret():
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or ''
 
+    secret_templates = [
+        {
+            'id': secret.id,
+            'name': secret.name,
+            'definition': secret.definition or '',
+            'suggested_name': f"{secret.name}-copy" if secret.name else '',
+        }
+        for secret in get_user_template_secrets(current_user.id)
+    ]
+
     if form.validate_on_submit():
         if create_entity(
             Secret,
@@ -178,6 +194,7 @@ def new_secret():
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
+        secret_templates=secret_templates,
     )
 
 
