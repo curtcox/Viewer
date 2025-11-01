@@ -29,14 +29,19 @@ CID_LENGTH_PREFIX_CHARS = 8
 SHA512_DIGEST_SIZE = hashlib.sha512().digest_size
 CID_SHA512_CHARS = 86
 CID_LENGTH = CID_LENGTH_PREFIX_CHARS + CID_SHA512_CHARS
+CID_MIN_LENGTH = CID_LENGTH_PREFIX_CHARS
 CID_MIN_REFERENCE_LENGTH = 6
-CID_STRICT_MIN_LENGTH = 30
+CID_STRICT_MIN_LENGTH = CID_MIN_LENGTH
 
 MAX_CONTENT_LENGTH = (1 << (CID_LENGTH_PREFIX_BYTES * 8)) - 1
 
-CID_NORMALIZED_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_LENGTH}}}$")
+CID_NORMALIZED_PATTERN = re.compile(
+    rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_LENGTH},{CID_LENGTH}}}$"
+)
 CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
 CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LENGTH},}}$")
+
+DIRECT_CONTENT_EMBED_LIMIT = 64
 CID_PATH_CAPTURE_PATTERN = re.compile(
     rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
 )
@@ -122,7 +127,13 @@ def is_normalized_cid(value: Optional[str]) -> bool:
     normalized = _normalize_component(value)
     if not normalized or "." in normalized:
         return False
-    return bool(CID_NORMALIZED_PATTERN.fullmatch(normalized))
+    if not CID_NORMALIZED_PATTERN.fullmatch(normalized):
+        return False
+    try:
+        parse_cid_components(normalized)
+    except ValueError:
+        return False
+    return True
 
 
 def split_cid_path(value: Optional[str]) -> Optional[Tuple[str, Optional[str]]]:
@@ -188,37 +199,71 @@ def encode_cid_length(length: int) -> str:
 
 
 def parse_cid_components(cid: str) -> Tuple[int, bytes]:
-    """Return the encoded content length and SHA-512 digest for a CID.
+    """Return the encoded content length and payload for a CID.
+
+    For CIDs embedding their content directly (lengths up to
+    ``DIRECT_CONTENT_EMBED_LIMIT``) the payload is the original content.
+    Otherwise, the payload is the SHA-512 digest.
 
     Raises ValueError if the CID is malformed or not in the normalized format.
     """
 
     normalized = _normalize_component(cid)
-    if len(normalized) != CID_LENGTH:
-        raise ValueError("CID must be normalized to 94 characters")
+    if len(normalized) < CID_MIN_LENGTH:
+        raise ValueError("CID is missing the length prefix")
+    if not CID_NORMALIZED_PATTERN.fullmatch(normalized):
+        raise ValueError("CID contains invalid characters")
 
     length_part = normalized[:CID_LENGTH_PREFIX_CHARS]
-    digest_part = normalized[CID_LENGTH_PREFIX_CHARS:]
+    payload_part = normalized[CID_LENGTH_PREFIX_CHARS:]
 
     try:
         length_bytes = _base64url_decode(length_part)
-        digest_bytes = _base64url_decode(digest_part)
     except (binascii.Error, ValueError) as exc:
         raise ValueError("CID contains invalid base64 encoding") from exc
 
     if len(length_bytes) != CID_LENGTH_PREFIX_BYTES:
         raise ValueError("CID length prefix has an unexpected size")
+
+    content_length = int.from_bytes(length_bytes, "big")
+
+    if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
+        try:
+            payload_bytes = _base64url_decode(payload_part)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("CID content payload is not valid base64") from exc
+
+        if len(payload_bytes) != content_length:
+            raise ValueError("CID embedded content length mismatch")
+        if _base64url_encode(payload_bytes) != payload_part:
+            raise ValueError("CID embedded content is not in canonical form")
+        return content_length, payload_bytes
+
+    if len(payload_part) != CID_SHA512_CHARS:
+        raise ValueError("CID digest must be 86 characters long")
+
+    try:
+        digest_bytes = _base64url_decode(payload_part)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("CID digest payload is not valid base64") from exc
+
     if len(digest_bytes) != SHA512_DIGEST_SIZE:
         raise ValueError("CID digest has an unexpected size")
+    if _base64url_encode(digest_bytes) != payload_part:
+        raise ValueError("CID digest is not in canonical form")
 
-    return int.from_bytes(length_bytes, "big"), digest_bytes
+    return content_length, digest_bytes
 
 
 def generate_cid(file_data):
-    """Generate a CID consisting of a length prefix and SHA-512 digest."""
+    """Generate a CID consisting of a length prefix and content payload."""
 
     content_length = len(file_data)
     length_part = encode_cid_length(content_length)
+
+    if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
+        content_part = _base64url_encode(file_data)
+        return f"{length_part}{content_part}"
 
     digest = hashlib.sha512(file_data).digest()
     digest_part = _base64url_encode(digest)

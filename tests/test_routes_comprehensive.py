@@ -21,7 +21,7 @@ os.environ['TESTING'] = 'True'
 import server_execution
 from alias_definition import format_primary_alias_line
 from app import create_app
-from cid_utils import CID_LENGTH, generate_cid
+from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, generate_cid
 from database import db
 from models import (
     CID,
@@ -99,8 +99,11 @@ class TestUtilityFunctions(BaseTestCase):
         test_data = b"Hello, World!"
         cid = generate_cid(test_data)
 
-        # Should be the canonical length and deterministic
-        self.assertEqual(len(cid), CID_LENGTH)
+        # Should be canonical for direct encoding and deterministic
+        expected = encode_cid_length(len(test_data)) + _base64url_encode(test_data)
+        self.assertEqual(cid, expected)
+        self.assertGreaterEqual(len(cid), CID_MIN_LENGTH)
+        self.assertLessEqual(len(cid), CID_LENGTH)
 
         # Should be deterministic
         cid2 = generate_cid(test_data)
@@ -110,8 +113,8 @@ class TestUtilityFunctions(BaseTestCase):
         different_cid = generate_cid(b"Different data")
         self.assertNotEqual(cid, different_cid)
 
-        # Should be expected fixed length for generated CIDs
-        self.assertEqual(len(cid), CID_LENGTH)
+        # Should use canonical direct encoding length
+        self.assertEqual(cid, expected)
 
 
 class TestContextProcessors(BaseTestCase):

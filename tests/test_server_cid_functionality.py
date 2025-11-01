@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
-from cid_utils import CID_LENGTH, save_server_definition_as_cid
+from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, save_server_definition_as_cid
 from models import CID, Server
 
 
@@ -38,7 +38,9 @@ def test_server_cid_functionality():
 
         # Verify CID was generated
         assert cid1 is not None
-        assert len(cid1) == CID_LENGTH
+        expected_cid = encode_cid_length(len(definition1.encode('utf-8'))) + _base64url_encode(definition1.encode('utf-8'))
+        assert cid1 == expected_cid
+        assert CID_MIN_LENGTH <= len(cid1) <= CID_LENGTH
         print(f"✓ CID generated: {cid1}")
 
         # Verify CID record was created in database
@@ -80,7 +82,9 @@ def test_server_cid_functionality():
         # Verify server was created with CID
         assert server.definition == "print('Server code')"
         assert server.definition_cid is not None
-        assert len(server.definition_cid) == CID_LENGTH
+        expected_definition_cid = encode_cid_length(len(definition.encode('utf-8'))) + _base64url_encode(definition.encode('utf-8'))
+        assert server.definition_cid == expected_definition_cid
+        assert CID_MIN_LENGTH <= len(server.definition_cid) <= CID_LENGTH
         print(f"✓ Server created with CID: {server.definition_cid}")
 
         # Verify CID record exists for server definition

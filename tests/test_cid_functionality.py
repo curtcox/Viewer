@@ -11,8 +11,9 @@ from unittest.mock import MagicMock, patch
 import cid_utils
 from app import app, db
 from cid_utils import (
-    CID_LENGTH,
     CID_NORMALIZED_PATTERN,
+    DIRECT_CONTENT_EMBED_LIMIT,
+    _base64url_encode,
     _looks_like_markdown,
     encode_cid_length,
     generate_cid,
@@ -54,11 +55,12 @@ class TestCIDFunctionality(unittest.TestCase):
 
         # Generate CID
         cid = generate_cid(file_data)
+        expected = encode_cid_length(len(file_data)) + _base64url_encode(file_data)
 
         # Verify CID format matches the canonical specification
-        self.assertEqual(len(cid), CID_LENGTH)
         self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid))
         self.assertTrue(is_normalized_cid(cid))
+        self.assertEqual(cid, expected)
 
         # Verify CID is deterministic (same input = same output)
         cid2 = generate_cid(file_data)
@@ -75,9 +77,11 @@ class TestCIDFunctionality(unittest.TestCase):
 
         # Calculate expected CID manually
         length_prefix = encode_cid_length(len(file_data))
-        digest = hashlib.sha512(file_data).digest()
-        digest_part = base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
-        expected_cid = f"{length_prefix}{digest_part}"
+        if len(file_data) <= DIRECT_CONTENT_EMBED_LIMIT:
+            expected_cid = f"{length_prefix}{_base64url_encode(file_data)}"
+        else:
+            digest = hashlib.sha512(file_data).digest()
+            expected_cid = f"{length_prefix}{_base64url_encode(digest)}"
 
         # Generate CID using function
         actual_cid = generate_cid(file_data)
