@@ -183,9 +183,17 @@ class SecretForm(FlaskForm):
 
 class ExportForm(FlaskForm):
     include_aliases = BooleanField('Aliases')
+    include_disabled_aliases = BooleanField('Disabled aliases')
+    include_template_aliases = BooleanField('Template aliases')
     include_servers = BooleanField('Servers')
+    include_disabled_servers = BooleanField('Disabled servers')
+    include_template_servers = BooleanField('Template servers')
     include_variables = BooleanField('Variables')
+    include_disabled_variables = BooleanField('Disabled variables')
+    include_template_variables = BooleanField('Template variables')
     include_secrets = BooleanField('Secrets')
+    include_disabled_secrets = BooleanField('Disabled secrets')
+    include_template_secrets = BooleanField('Template secrets')
     include_history = BooleanField('Change History')
     include_source = BooleanField('Application Source Files')
     include_cid_map = BooleanField('CID Content Map', default=True)
