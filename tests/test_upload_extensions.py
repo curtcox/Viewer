@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from app import create_app, db
 from cid_presenter import format_cid
-from cid_utils import CID_LENGTH, generate_cid, process_file_upload
+from cid_utils import CID_LENGTH, CID_MIN_LENGTH, generate_cid, process_file_upload
 from models import Variable
 
 
@@ -112,7 +112,7 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn(b'Upload Successful', response.data)
 
         response_text = response.data.decode('utf-8')
-        cid_pattern = rf'/[A-Za-z0-9_-]{{{CID_LENGTH}}}(?!\.)'
+        cid_pattern = rf'/[A-Za-z0-9_-]{{{CID_MIN_LENGTH},{CID_LENGTH}}}(?!\.)'
         self.assertRegex(response_text, cid_pattern)
 
     @patch('routes.uploads.current_user')

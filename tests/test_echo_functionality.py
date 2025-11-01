@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 
 from app import app, db
-from cid_utils import CID_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
+from cid_utils import CID_LENGTH, CID_MIN_LENGTH, CID_NORMALIZED_PATTERN, is_normalized_cid
 from models import Server
 from routes.core import get_existing_routes, not_found_error
 from server_execution import execute_server_code, is_potential_server_path, try_server_execution
@@ -140,7 +140,8 @@ class TestEchoFunctionality(unittest.TestCase):
 
                     # Validate CID format using the canonical helpers
                     cid_part = location.lstrip('/').split('.')[0]
-                    self.assertEqual(len(cid_part), CID_LENGTH)
+                    self.assertGreaterEqual(len(cid_part), CID_MIN_LENGTH)
+                    self.assertLessEqual(len(cid_part), CID_LENGTH)
                     self.assertTrue(CID_NORMALIZED_PATTERN.fullmatch(cid_part))
                     self.assertTrue(is_normalized_cid(cid_part))
 
