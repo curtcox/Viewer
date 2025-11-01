@@ -128,6 +128,46 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         assert export_payload is not None
         return export_record, export_payload
 
+    def test_export_form_defaults_enable_core_sections(self):
+        with self.app.test_request_context():
+            form = ExportForm()
+
+        self.assertTrue(form.include_aliases.data)
+        self.assertTrue(form.include_servers.data)
+        self.assertTrue(form.include_variables.data)
+
+    def test_export_size_endpoint_returns_estimate(self):
+        with self.logged_in():
+            with ExitStack() as stack:
+                mock_builder = stack.enter_context(
+                    patch(
+                        'routes.import_export._build_export_payload',
+                        return_value={'json_payload': '{"size": 1}'},
+                    )
+                )
+
+                response = self.client.post('/export/size', data={'include_aliases': 'y'})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        assert payload is not None
+        self.assertTrue(payload['ok'])
+        self.assertEqual(payload['size_bytes'], len(b'{"size": 1}'))
+        self.assertEqual(payload['formatted_size'], '11 bytes')
+        self.assertEqual(mock_builder.call_count, 1)
+        _args, kwargs = mock_builder.call_args
+        self.assertFalse(kwargs.get('store_content', True))
+
+    def test_export_size_endpoint_returns_errors(self):
+        with self.logged_in():
+            response = self.client.post('/export/size', data={'include_secrets': 'y'})
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.get_json()
+        assert payload is not None
+        self.assertFalse(payload['ok'])
+        self.assertIn('secret_key', payload['errors'])
+
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
             definition_text = format_primary_alias_line(
@@ -1212,16 +1252,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     self.calls.append(content)
                     return f'cid-{len(self.calls)}'
 
-            class StoreJsonStub:
-                def __init__(self):
-                    self.payloads: list[str] = []
-
-                def __call__(self, json_payload: str, user_id: str) -> str:
-                    self.payloads.append(json_payload)
-                    return 'payload-cid'
-
             store_bytes_stub = StoreBytesStub()
-            store_json_stub = StoreJsonStub()
 
             with self.app.app_context():
                 with ExitStack() as stack:
@@ -1233,7 +1264,6 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     stack.enter_context(patch('routes.import_export.get_user_uploads', return_value=[]))
                     stack.enter_context(patch('routes.import_export._gather_change_history', return_value={}))
                     stack.enter_context(patch('routes.import_export.store_cid_from_bytes', side_effect=store_bytes_stub))
-                    stack.enter_context(patch('routes.import_export.store_cid_from_json', side_effect=store_json_stub))
                     stack.enter_context(patch('routes.import_export.cid_path', return_value='/downloads/export.json'))
 
                     with self.app.test_request_context():
@@ -1257,10 +1287,10 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
                         result = import_export._build_export_payload(form, self.user_id)
 
-        self.assertEqual(result['cid_value'], 'payload-cid')
+        self.assertEqual(result['cid_value'], f'cid-{len(store_bytes_stub.calls)}')
         self.assertEqual(result['download_path'], '/downloads/export.json')
-        self.assertEqual(len(store_json_stub.payloads), 1)
-        payload = json.loads(store_json_stub.payloads[0])
+        self.assertGreaterEqual(len(store_bytes_stub.calls), 1)
+        payload = json.loads(store_bytes_stub.calls[-1].decode('utf-8'))
         self.assertIn('aliases', payload)
         self.assertIn('cid_values', payload)
         cid_values = payload['cid_values']

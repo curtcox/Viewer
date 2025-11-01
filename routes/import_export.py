@@ -28,7 +28,6 @@ from cid_utils import (
     generate_cid,
     save_server_definition_as_cid,
     store_cid_from_bytes,
-    store_cid_from_json,
 )
 from db_access import (
     EntityInteractionLookup,
@@ -95,6 +94,49 @@ def _serialise_cid_value(content: bytes) -> dict[str, str]:
         return {'encoding': 'utf-8', 'value': content.decode('utf-8')}
     except UnicodeDecodeError:
         return {'encoding': 'base64', 'value': base64.b64encode(content).decode('ascii')}
+
+
+def _format_size(num_bytes: int) -> str:
+    units = ['bytes', 'KB', 'MB', 'GB', 'TB']
+    size = float(num_bytes)
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            if unit == 'bytes':
+                return f'{int(size)} bytes'
+            return f'{size:.1f} {unit}'
+        size /= 1024
+    return f'{int(num_bytes)} bytes'
+
+
+@dataclass
+class _CidWriter:
+    user_id: str
+    include_optional: bool
+    store_content: bool
+    cid_map_entries: dict[str, dict[str, str]] = field(default_factory=dict)
+
+    def cid_for_content(
+        self,
+        content: bytes,
+        *,
+        optional: bool = True,
+        include_in_map: bool = True,
+    ) -> str:
+        if self.store_content:
+            cid_value = store_cid_from_bytes(content, self.user_id)
+        else:
+            cid_value = format_cid(generate_cid(content))
+
+        if include_in_map:
+            _store_cid_entry(
+                cid_value,
+                content,
+                self.cid_map_entries,
+                self.include_optional,
+                optional=optional,
+            )
+
+        return cid_value
 
 
 def _deserialise_cid_value(raw_value: Any) -> tuple[bytes | None, str | None]:
@@ -605,9 +647,7 @@ def _store_cid_entry(
 
 def _collect_project_files_section(
     base_path: Path,
-    user_id: str,
-    include_optional_cids: bool,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_writer: _CidWriter,
 ) -> dict[str, dict[str, str]]:
     """Return CID metadata for key project files when available."""
 
@@ -619,8 +659,7 @@ def _collect_project_files_section(
         except OSError:
             continue
 
-        cid_value = store_cid_from_bytes(file_content, user_id)
-        _store_cid_entry(cid_value, file_content, cid_map_entries, include_optional_cids)
+        cid_value = cid_writer.cid_for_content(file_content)
         project_files_payload[relative_name] = {'cid': cid_value}
 
     return project_files_payload
@@ -649,8 +688,7 @@ def _should_export_entry(
 def _collect_alias_section(
     form: ExportForm,
     user_id: str,
-    include_optional_cids: bool,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_writer: _CidWriter,
 ) -> list[dict[str, Any]]:
     """Return alias export entries including CID references."""
 
@@ -658,7 +696,7 @@ def _collect_alias_section(
     for alias in get_user_aliases(user_id):
         definition_text = alias.definition or ''
         definition_bytes = definition_text.encode('utf-8')
-        definition_cid = store_cid_from_bytes(definition_bytes, user_id)
+        definition_cid = cid_writer.cid_for_content(definition_bytes)
         enabled = bool(getattr(alias, 'enabled', True))
         template = bool(getattr(alias, 'template', False))
 
@@ -678,7 +716,6 @@ def _collect_alias_section(
                 'template': template,
             }
         )
-        _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
 
     return alias_payload
 
@@ -686,8 +723,7 @@ def _collect_alias_section(
 def _collect_server_section(
     form: ExportForm,
     user_id: str,
-    include_optional_cids: bool,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_writer: _CidWriter,
 ) -> list[dict[str, str]]:
     """Return server export entries including CID references."""
 
@@ -695,10 +731,7 @@ def _collect_server_section(
     for server in get_user_servers(user_id):
         definition_text = server.definition or ''
         definition_bytes = definition_text.encode('utf-8')
-        definition_cid = server.definition_cid or save_server_definition_as_cid(
-            definition_text,
-            user_id,
-        )
+        definition_cid = cid_writer.cid_for_content(definition_bytes)
         enabled = bool(getattr(server, 'enabled', True))
         template = bool(getattr(server, 'template', False))
 
@@ -718,7 +751,6 @@ def _collect_server_section(
                 'template': template,
             }
         )
-        _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
 
     return servers_payload
 
@@ -797,9 +829,7 @@ def _collect_history_section(user_id: str) -> dict[str, dict[str, list[dict[str,
 def _collect_app_source_section(
     form: ExportForm,
     base_path: Path,
-    user_id: str,
-    include_optional_cids: bool,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_writer: _CidWriter,
 ) -> dict[str, list[dict[str, str]]]:
     """Return exported application source entries based on the selected categories."""
 
@@ -817,8 +847,7 @@ def _collect_app_source_section(
             except OSError:
                 continue
 
-            cid_value = store_cid_from_bytes(content_bytes, user_id)
-            _store_cid_entry(cid_value, content_bytes, cid_map_entries, include_optional_cids)
+            cid_value = cid_writer.cid_for_content(content_bytes)
             entries.append({'path': relative_path.as_posix(), 'cid': cid_value})
 
         if entries:
@@ -865,7 +894,12 @@ def _add_optional_section(
         sections[section_key] = section_value
 
 
-def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
+def _build_export_payload(
+    form: ExportForm,
+    user_id: str,
+    *,
+    store_content: bool = True,
+) -> dict[str, Any]:
     """Return rendered export payload data for the user's selected collections."""
 
     payload: dict[str, Any] = {'version': 6}
@@ -874,43 +908,31 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
         'runtime': _build_runtime_section(),
     }
     base_path = _app_root_path()
-    cid_map_entries: dict[str, dict[str, str]] = {}
-    include_optional_cids = form.include_cid_map.data
+    cid_writer = _CidWriter(
+        user_id=user_id,
+        include_optional=form.include_cid_map.data,
+        store_content=store_content,
+    )
 
     _add_optional_section(
         sections,
         True,
         'project_files',
-        lambda: _collect_project_files_section(
-            base_path,
-            user_id,
-            include_optional_cids,
-            cid_map_entries,
-        ),
+        lambda: _collect_project_files_section(base_path, cid_writer),
     )
 
     _add_optional_section(
         sections,
         form.include_aliases.data,
         'aliases',
-        lambda: _collect_alias_section(
-            form,
-            user_id,
-            include_optional_cids,
-            cid_map_entries,
-        ),
+        lambda: _collect_alias_section(form, user_id, cid_writer),
     )
 
     _add_optional_section(
         sections,
         form.include_servers.data,
         'servers',
-        lambda: _collect_server_section(
-            form,
-            user_id,
-            include_optional_cids,
-            cid_map_entries,
-        ),
+        lambda: _collect_server_section(form, user_id, cid_writer),
     )
 
     _add_optional_section(
@@ -945,35 +967,30 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
         sections,
         form.include_source.data,
         'app_source',
-        lambda: _collect_app_source_section(
-            form,
-            base_path,
-            user_id,
-            include_optional_cids,
-            cid_map_entries,
-        ),
+        lambda: _collect_app_source_section(form, base_path, cid_writer),
     )
 
-    _include_unreferenced_cids(form, user_id, cid_map_entries)
+    _include_unreferenced_cids(form, user_id, cid_writer.cid_map_entries)
 
     for section_name, section_value in sections.items():
         section_bytes = _encode_section_content(section_value)
-        section_cid = store_cid_from_bytes(section_bytes, user_id)
-        _store_cid_entry(
-            section_cid,
-            section_bytes,
-            cid_map_entries,
-            include_optional_cids,
-            optional=False,
-        )
+        section_cid = cid_writer.cid_for_content(section_bytes, optional=False)
         payload[section_name] = section_cid
 
-    if form.include_cid_map.data and cid_map_entries:
-        payload['cid_values'] = {cid: cid_map_entries[cid] for cid in sorted(cid_map_entries)}
+    if form.include_cid_map.data and cid_writer.cid_map_entries:
+        payload['cid_values'] = {
+            cid: cid_writer.cid_map_entries[cid] for cid in sorted(cid_writer.cid_map_entries)
+        }
 
     json_payload = json.dumps(payload, indent=2, sort_keys=True)
-    cid_value = store_cid_from_json(json_payload, user_id)
-    download_path = cid_path(cid_value, 'json') or ''
+    json_bytes = json_payload.encode('utf-8')
+
+    if store_content:
+        cid_value = cid_writer.cid_for_content(json_bytes, optional=False, include_in_map=False)
+        download_path = cid_path(cid_value, 'json') or ''
+    else:
+        cid_value = format_cid(generate_cid(json_bytes))
+        download_path = ''
 
     return {
         'cid_value': cid_value,
@@ -1795,6 +1812,28 @@ def export_data():
     return render_template('export.html', form=form)
 
 
+@main_bp.route('/export/size', methods=['POST'])
+def export_size():
+    """Return the size of the export JSON for the current selections."""
+
+    form = ExportForm()
+    if form.validate():
+        export_result = _build_export_payload(
+            form,
+            current_user.id,
+            store_content=False,
+        )
+        json_bytes = export_result['json_payload'].encode('utf-8')
+        size_bytes = len(json_bytes)
+        return {
+            'ok': True,
+            'size_bytes': size_bytes,
+            'formatted_size': _format_size(size_bytes),
+        }
+
+    return {'ok': False, 'errors': form.errors}, 400
+
+
 @main_bp.route('/import', methods=['GET', 'POST'])
 def import_data():
     """Allow users to import data collections from JSON content."""
@@ -1811,4 +1850,4 @@ def import_data():
     return _render_import_form()
 
 
-__all__ = ['export_data', 'import_data']
+__all__ = ['export_data', 'export_size', 'import_data']

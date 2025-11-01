@@ -23,6 +23,14 @@
 
                         <p class="text-muted">Choose the collections you want to include in the exported JSON file.</p>
 
+                        <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" id="export-size-indicator">
+                            <div>
+                                <strong>Estimated export size:</strong>
+                                <span id="export-size-value">—</span>
+                            </div>
+                            <div class="text-muted small" id="export-size-status"></div>
+                        </div>
+
                         {% if form.include_aliases.errors %}
                         <div class="alert alert-danger">
                             {% for error in form.include_aliases.errors %}
@@ -191,6 +199,102 @@
     {{ super() }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            var exportForm = document.querySelector('form');
+            var sizeValue = document.getElementById('export-size-value');
+            var sizeStatus = document.getElementById('export-size-status');
+            var updateTimeoutId = null;
+            var activeController = null;
+
+            function updateSizeStatus(message, isError) {
+                if (!sizeStatus) {
+                    return;
+                }
+                sizeStatus.textContent = message || '';
+                if (isError) {
+                    sizeStatus.classList.add('text-danger');
+                    sizeStatus.classList.remove('text-muted');
+                } else {
+                    sizeStatus.classList.remove('text-danger');
+                    sizeStatus.classList.add('text-muted');
+                }
+            }
+
+            function updateExportSize() {
+                if (!exportForm || !sizeValue) {
+                    return;
+                }
+
+                if (activeController && typeof activeController.abort === 'function') {
+                    activeController.abort();
+                }
+
+                activeController = window.AbortController ? new AbortController() : null;
+
+                var requestInit = {
+                    method: 'POST',
+                    body: new FormData(exportForm),
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                };
+
+                if (activeController) {
+                    requestInit.signal = activeController.signal;
+                }
+
+                updateSizeStatus('Calculating…', false);
+
+                fetch('{{ url_for('main.export_size') }}', requestInit)
+                    .then(function (response) {
+                        return response.json().catch(function () {
+                            return {};
+                        }).then(function (data) {
+                            if (!response.ok) {
+                                data.ok = false;
+                                throw data;
+                            }
+                            return data;
+                        });
+                    })
+                    .then(function (data) {
+                        if (!data || !data.ok) {
+                            throw data;
+                        }
+                        sizeValue.textContent = data.formatted_size;
+                        updateSizeStatus('', false);
+                    })
+                    .catch(function (error) {
+                        if (error && error.name === 'AbortError') {
+                            return;
+                        }
+
+                        sizeValue.textContent = '—';
+                        var message = 'Unable to calculate size.';
+                        if (error && error.errors) {
+                            var errorLists = Object.values(error.errors).filter(function (value) {
+                                return Array.isArray(value) && value.length;
+                            });
+                            if (errorLists.length) {
+                                message = errorLists[0][0];
+                            }
+                        }
+                        updateSizeStatus(message, true);
+                    });
+            }
+
+            function scheduleExportSizeUpdate() {
+                if (!exportForm) {
+                    return;
+                }
+
+                if (updateTimeoutId) {
+                    clearTimeout(updateTimeoutId);
+                }
+
+                updateTimeoutId = window.setTimeout(function () {
+                    updateTimeoutId = null;
+                    updateExportSize();
+                }, 200);
+            }
+
             function setupDependentOptions(triggerId, containerId, optionIds) {
                 var trigger = document.getElementById(triggerId);
                 var container = document.getElementById(containerId);
@@ -211,6 +315,7 @@
                             input.checked = false;
                         }
                     });
+                    scheduleExportSizeUpdate();
                 }
 
                 trigger.addEventListener('change', sync);
@@ -250,6 +355,24 @@
 
                 cidMapCheckbox.addEventListener('change', syncUnreferencedVisibility);
                 syncUnreferencedVisibility();
+            }
+
+            if (exportForm) {
+                exportForm.addEventListener('submit', function () {
+                    if (activeController && typeof activeController.abort === 'function') {
+                        activeController.abort();
+                    }
+                });
+
+                var watchedInputs = exportForm.querySelectorAll('input, select, textarea');
+                watchedInputs.forEach(function (input) {
+                    input.addEventListener('change', scheduleExportSizeUpdate);
+                    if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password') {
+                        input.addEventListener('input', scheduleExportSizeUpdate);
+                    }
+                });
+
+                scheduleExportSizeUpdate();
             }
         });
     </script>
