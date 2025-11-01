@@ -39,12 +39,42 @@
                             </label>
                         </div>
 
+                        <div class="ms-4 mt-2{{ '' if form.include_aliases.data else ' d-none' }}" id="alias-options">
+                            <div class="form-check mb-1">
+                                {{ form.include_disabled_aliases(class="form-check-input", id="include-disabled-aliases", disabled=(not form.include_aliases.data)) }}
+                                <label class="form-check-label" for="include-disabled-aliases">
+                                    <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_aliases.label.text }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.include_template_aliases(class="form-check-input", id="include-template-aliases", disabled=(not form.include_aliases.data)) }}
+                                <label class="form-check-label" for="include-template-aliases">
+                                    <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_aliases.label.text }}
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="form-check mb-2">
                             {{ form.include_servers(class="form-check-input", id="include-servers") }}
                             <label class="form-check-label" for="include-servers">
                                 <i class="fas fa-server me-1 text-primary"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.servers') }}">{{ form.include_servers.label.text }}</a>
                             </label>
+                        </div>
+
+                        <div class="ms-4 mt-2{{ '' if form.include_servers.data else ' d-none' }}" id="server-options">
+                            <div class="form-check mb-1">
+                                {{ form.include_disabled_servers(class="form-check-input", id="include-disabled-servers", disabled=(not form.include_servers.data)) }}
+                                <label class="form-check-label" for="include-disabled-servers">
+                                    <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_servers.label.text }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.include_template_servers(class="form-check-input", id="include-template-servers", disabled=(not form.include_servers.data)) }}
+                                <label class="form-check-label" for="include-template-servers">
+                                    <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_servers.label.text }}
+                                </label>
+                            </div>
                         </div>
 
                         <div class="form-check mb-2">
@@ -55,12 +85,42 @@
                             </label>
                         </div>
 
+                        <div class="ms-4 mt-2{{ '' if form.include_variables.data else ' d-none' }}" id="variable-options">
+                            <div class="form-check mb-1">
+                                {{ form.include_disabled_variables(class="form-check-input", id="include-disabled-variables", disabled=(not form.include_variables.data)) }}
+                                <label class="form-check-label" for="include-disabled-variables">
+                                    <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_variables.label.text }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.include_template_variables(class="form-check-input", id="include-template-variables", disabled=(not form.include_variables.data)) }}
+                                <label class="form-check-label" for="include-template-variables">
+                                    <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_variables.label.text }}
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="form-check mb-2">
                             {{ form.include_secrets(class="form-check-input", id="include-secrets") }}
                             <label class="form-check-label" for="include-secrets">
                                 <i class="fas fa-key me-1 text-warning"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.secrets') }}">{{ form.include_secrets.label.text }}</a>
                             </label>
+                        </div>
+
+                        <div class="ms-4 mt-2{{ '' if form.include_secrets.data else ' d-none' }}" id="secret-options">
+                            <div class="form-check mb-1">
+                                {{ form.include_disabled_secrets(class="form-check-input", id="include-disabled-secrets", disabled=(not form.include_secrets.data)) }}
+                                <label class="form-check-label" for="include-disabled-secrets">
+                                    <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_secrets.label.text }}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.include_template_secrets(class="form-check-input", id="include-template-secrets", disabled=(not form.include_secrets.data)) }}
+                                <label class="form-check-label" for="include-template-secrets">
+                                    <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_secrets.label.text }}
+                                </label>
+                            </div>
                         </div>
 
                         <div class="form-check mb-3">
@@ -131,25 +191,66 @@
     {{ super() }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            function setupDependentOptions(triggerId, containerId, optionIds) {
+                var trigger = document.getElementById(triggerId);
+                var container = document.getElementById(containerId);
+                if (!trigger || !container) {
+                    return;
+                }
+
+                var inputs = optionIds
+                    .map(function (id) { return document.getElementById(id); })
+                    .filter(function (element) { return !!element; });
+
+                function sync() {
+                    var enabled = trigger.checked;
+                    container.classList.toggle('d-none', !enabled);
+                    inputs.forEach(function (input) {
+                        input.disabled = !enabled;
+                        if (!enabled) {
+                            input.checked = false;
+                        }
+                    });
+                }
+
+                trigger.addEventListener('change', sync);
+                sync();
+            }
+
+            setupDependentOptions('include-aliases', 'alias-options', [
+                'include-disabled-aliases',
+                'include-template-aliases',
+            ]);
+            setupDependentOptions('include-servers', 'server-options', [
+                'include-disabled-servers',
+                'include-template-servers',
+            ]);
+            setupDependentOptions('include-variables', 'variable-options', [
+                'include-disabled-variables',
+                'include-template-variables',
+            ]);
+            setupDependentOptions('include-secrets', 'secret-options', [
+                'include-disabled-secrets',
+                'include-template-secrets',
+            ]);
+
             var cidMapCheckbox = document.getElementById('include-cid-map');
             var unreferencedContainer = document.getElementById('include-unreferenced-cid-container');
             var unreferencedInput = document.getElementById('include-unreferenced-cid-data');
 
-            if (!cidMapCheckbox || !unreferencedContainer || !unreferencedInput) {
-                return;
-            }
-
-            function syncUnreferencedVisibility() {
-                var enabled = cidMapCheckbox.checked;
-                unreferencedContainer.classList.toggle('d-none', !enabled);
-                unreferencedInput.disabled = !enabled;
-                if (!enabled) {
-                    unreferencedInput.checked = false;
+            if (cidMapCheckbox && unreferencedContainer && unreferencedInput) {
+                function syncUnreferencedVisibility() {
+                    var enabled = cidMapCheckbox.checked;
+                    unreferencedContainer.classList.toggle('d-none', !enabled);
+                    unreferencedInput.disabled = !enabled;
+                    if (!enabled) {
+                        unreferencedInput.checked = false;
+                    }
                 }
-            }
 
-            cidMapCheckbox.addEventListener('change', syncUnreferencedVisibility);
-            syncUnreferencedVisibility();
+                cidMapCheckbox.addEventListener('change', syncUnreferencedVisibility);
+                syncUnreferencedVisibility();
+            }
         });
     </script>
 {% endblock %}

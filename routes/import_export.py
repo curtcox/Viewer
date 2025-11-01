@@ -626,7 +626,28 @@ def _collect_project_files_section(
     return project_files_payload
 
 
+def _should_export_entry(
+    enabled: bool,
+    template: bool,
+    *,
+    include_disabled: bool,
+    include_templates: bool,
+) -> bool:
+    """Return True when the entry should be included in the export."""
+
+    if template:
+        if not include_templates:
+            return False
+        return True
+
+    if not enabled:
+        return include_disabled
+
+    return True
+
+
 def _collect_alias_section(
+    form: ExportForm,
     user_id: str,
     include_optional_cids: bool,
     cid_map_entries: dict[str, dict[str, str]],
@@ -638,12 +659,23 @@ def _collect_alias_section(
         definition_text = alias.definition or ''
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = store_cid_from_bytes(definition_bytes, user_id)
+        enabled = bool(getattr(alias, 'enabled', True))
+        template = bool(getattr(alias, 'template', False))
+
+        if not _should_export_entry(
+            enabled,
+            template,
+            include_disabled=form.include_disabled_aliases.data,
+            include_templates=form.include_template_aliases.data,
+        ):
+            continue
+
         alias_payload.append(
             {
                 'name': alias.name,
                 'definition_cid': definition_cid,
-                'enabled': bool(getattr(alias, 'enabled', True)),
-                'template': bool(getattr(alias, 'template', False)),
+                'enabled': enabled,
+                'template': template,
             }
         )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
@@ -652,6 +684,7 @@ def _collect_alias_section(
 
 
 def _collect_server_section(
+    form: ExportForm,
     user_id: str,
     include_optional_cids: bool,
     cid_map_entries: dict[str, dict[str, str]],
@@ -666,12 +699,23 @@ def _collect_server_section(
             definition_text,
             user_id,
         )
+        enabled = bool(getattr(server, 'enabled', True))
+        template = bool(getattr(server, 'template', False))
+
+        if not _should_export_entry(
+            enabled,
+            template,
+            include_disabled=form.include_disabled_servers.data,
+            include_templates=form.include_template_servers.data,
+        ):
+            continue
+
         servers_payload.append(
             {
                 'name': server.name,
                 'definition_cid': definition_cid,
-                'enabled': bool(getattr(server, 'enabled', True)),
-                'template': bool(getattr(server, 'template', False)),
+                'enabled': enabled,
+                'template': template,
             }
         )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
@@ -679,34 +723,67 @@ def _collect_server_section(
     return servers_payload
 
 
-def _collect_variables_section(user_id: str) -> list[dict[str, str]]:
+def _collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, str]]:
     """Return variable export entries for the user."""
 
-    return [
-        {
-            'name': variable.name,
-            'definition': variable.definition,
-            'enabled': bool(getattr(variable, 'enabled', True)),
-            'template': bool(getattr(variable, 'template', False)),
-        }
-        for variable in get_user_variables(user_id)
-    ]
+    variable_payload: list[dict[str, str]] = []
+    for variable in get_user_variables(user_id):
+        enabled = bool(getattr(variable, 'enabled', True))
+        template = bool(getattr(variable, 'template', False))
+
+        if not _should_export_entry(
+            enabled,
+            template,
+            include_disabled=form.include_disabled_variables.data,
+            include_templates=form.include_template_variables.data,
+        ):
+            continue
+
+        variable_payload.append(
+            {
+                'name': variable.name,
+                'definition': variable.definition,
+                'enabled': enabled,
+                'template': template,
+            }
+        )
+
+    return variable_payload
 
 
-def _collect_secrets_section(user_id: str, key: str) -> dict[str, Any]:
+def _collect_secrets_section(
+    user_id: str,
+    key: str,
+    include_disabled: bool,
+    include_templates: bool,
+) -> dict[str, Any]:
     """Return encrypted secret entries using the provided key."""
 
-    return {
-        'encryption': SECRET_ENCRYPTION_SCHEME,
-        'items': [
+    items: list[dict[str, Any]] = []
+    for secret in get_user_secrets(user_id):
+        enabled = bool(getattr(secret, 'enabled', True))
+        template = bool(getattr(secret, 'template', False))
+
+        if not _should_export_entry(
+            enabled,
+            template,
+            include_disabled=include_disabled,
+            include_templates=include_templates,
+        ):
+            continue
+
+        items.append(
             {
                 'name': secret.name,
                 'ciphertext': encrypt_secret_value(secret.definition, key),
-                'enabled': bool(getattr(secret, 'enabled', True)),
-                'template': bool(getattr(secret, 'template', False)),
+                'enabled': enabled,
+                'template': template,
             }
-            for secret in get_user_secrets(user_id)
-        ],
+        )
+
+    return {
+        'encryption': SECRET_ENCRYPTION_SCHEME,
+        'items': items,
     }
 
 
@@ -816,21 +893,31 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
         sections,
         form.include_aliases.data,
         'aliases',
-        lambda: _collect_alias_section(user_id, include_optional_cids, cid_map_entries),
+        lambda: _collect_alias_section(
+            form,
+            user_id,
+            include_optional_cids,
+            cid_map_entries,
+        ),
     )
 
     _add_optional_section(
         sections,
         form.include_servers.data,
         'servers',
-        lambda: _collect_server_section(user_id, include_optional_cids, cid_map_entries),
+        lambda: _collect_server_section(
+            form,
+            user_id,
+            include_optional_cids,
+            cid_map_entries,
+        ),
     )
 
     _add_optional_section(
         sections,
         form.include_variables.data,
         'variables',
-        lambda: _collect_variables_section(user_id),
+        lambda: _collect_variables_section(form, user_id),
         require_truthy=False,
     )
 
@@ -838,7 +925,12 @@ def _build_export_payload(form: ExportForm, user_id: str) -> dict[str, Any]:
         sections,
         form.include_secrets.data,
         'secrets',
-        lambda: _collect_secrets_section(user_id, form.secret_key.data.strip()),
+        lambda: _collect_secrets_section(
+            user_id,
+            form.secret_key.data.strip(),
+            form.include_disabled_secrets.data,
+            form.include_template_secrets.data,
+        ),
         require_truthy=False,
     )
 

@@ -278,9 +278,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 '/export',
                 data={
                     'include_aliases': 'y',
+                    'include_disabled_aliases': 'y',
                     'include_servers': 'y',
+                    'include_disabled_servers': 'y',
                     'include_variables': 'y',
+                    'include_disabled_variables': 'y',
                     'include_secrets': 'y',
+                    'include_disabled_secrets': 'y',
                     'include_history': '',
                     'include_cid_map': 'y',
                     'secret_key': 'passphrase',
@@ -357,6 +361,265 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             self.assertFalse(imported_server.enabled)
             self.assertFalse(imported_variable.enabled)
             self.assertFalse(imported_secret.enabled)
+
+    def test_export_omits_disabled_items_without_selection(self):
+        alias_definition = format_primary_alias_line(
+            'literal',
+            '/disabled',
+            '/target',
+            alias_name='disabled-alias',
+        )
+
+        with self.app.app_context():
+            db.session.add_all(
+                [
+                    Alias(
+                        name='disabled-alias',
+                        user_id=self.user_id,
+                        definition=alias_definition,
+                        enabled=False,
+                    ),
+                    Server(
+                        name='disabled-server',
+                        user_id=self.user_id,
+                        definition='print("disabled")',
+                        enabled=False,
+                    ),
+                    Variable(
+                        name='disabled-variable',
+                        user_id=self.user_id,
+                        definition='value',
+                        enabled=False,
+                    ),
+                    Secret(
+                        name='disabled-secret',
+                        user_id=self.user_id,
+                        definition='secret-value',
+                        enabled=False,
+                    ),
+                ]
+            )
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_servers': 'y',
+                    'include_variables': 'y',
+                    'include_secrets': 'y',
+                    'secret_key': 'key',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+
+        self.assertIsNone(self._load_section(payload, 'aliases'))
+        self.assertIsNone(self._load_section(payload, 'servers'))
+
+        variable_entries = self._load_section(payload, 'variables')
+        self.assertEqual(variable_entries, [])
+
+        secrets_section = self._load_section(payload, 'secrets')
+        assert secrets_section is not None
+        self.assertEqual(secrets_section.get('items'), [])
+
+    def test_export_requires_template_selection_for_templates(self):
+        alias_definition = format_primary_alias_line(
+            'literal',
+            '/template',
+            '/target',
+            alias_name='template-alias',
+        )
+
+        with self.app.app_context():
+            db.session.add_all(
+                [
+                    Alias(
+                        name='template-alias',
+                        user_id=self.user_id,
+                        definition=alias_definition,
+                        template=True,
+                    ),
+                    Server(
+                        name='template-server',
+                        user_id=self.user_id,
+                        definition='print("template")',
+                        template=True,
+                    ),
+                    Variable(
+                        name='template-variable',
+                        user_id=self.user_id,
+                        definition='value',
+                        template=True,
+                    ),
+                    Secret(
+                        name='template-secret',
+                        user_id=self.user_id,
+                        definition='secret-value',
+                        template=True,
+                    ),
+                ]
+            )
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_servers': 'y',
+                    'include_variables': 'y',
+                    'include_secrets': 'y',
+                    'secret_key': 'key',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+
+        self.assertIsNone(self._load_section(payload, 'aliases'))
+        self.assertIsNone(self._load_section(payload, 'servers'))
+
+        variable_entries = self._load_section(payload, 'variables')
+        self.assertEqual(variable_entries, [])
+
+        secrets_section = self._load_section(payload, 'secrets')
+        assert secrets_section is not None
+        self.assertEqual(secrets_section.get('items'), [])
+
+        with self.app.app_context():
+            CID.query.delete()
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_template_aliases': 'y',
+                    'include_servers': 'y',
+                    'include_template_servers': 'y',
+                    'include_variables': 'y',
+                    'include_template_variables': 'y',
+                    'include_secrets': 'y',
+                    'include_template_secrets': 'y',
+                    'secret_key': 'key',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+
+        alias_entries = self._load_section(payload, 'aliases')
+        assert alias_entries is not None
+        self.assertEqual(len(alias_entries), 1)
+        self.assertTrue(alias_entries[0]['template'])
+
+        server_entries = self._load_section(payload, 'servers')
+        assert server_entries is not None
+        self.assertEqual(len(server_entries), 1)
+        self.assertTrue(server_entries[0]['template'])
+
+        variable_entries = self._load_section(payload, 'variables')
+        self.assertEqual(len(variable_entries), 1)
+        self.assertTrue(variable_entries[0]['template'])
+
+        secrets_section = self._load_section(payload, 'secrets')
+        assert secrets_section is not None
+        self.assertEqual(len(secrets_section.get('items', [])), 1)
+        self.assertTrue(secrets_section['items'][0]['template'])
+
+    def test_export_includes_disabled_templates_with_template_selection(self):
+        alias_definition = format_primary_alias_line(
+            'literal',
+            '/disabled-template',
+            '/target',
+            alias_name='disabled-template-alias',
+        )
+
+        with self.app.app_context():
+            db.session.add_all(
+                [
+                    Alias(
+                        name='disabled-template-alias',
+                        user_id=self.user_id,
+                        definition=alias_definition,
+                        enabled=False,
+                        template=True,
+                    ),
+                    Server(
+                        name='disabled-template-server',
+                        user_id=self.user_id,
+                        definition='print("disabled template")',
+                        enabled=False,
+                        template=True,
+                    ),
+                    Variable(
+                        name='disabled-template-variable',
+                        user_id=self.user_id,
+                        definition='value',
+                        enabled=False,
+                        template=True,
+                    ),
+                    Secret(
+                        name='disabled-template-secret',
+                        user_id=self.user_id,
+                        definition='secret-value',
+                        enabled=False,
+                        template=True,
+                    ),
+                ]
+            )
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_template_aliases': 'y',
+                    'include_servers': 'y',
+                    'include_template_servers': 'y',
+                    'include_variables': 'y',
+                    'include_template_variables': 'y',
+                    'include_secrets': 'y',
+                    'include_template_secrets': 'y',
+                    'secret_key': 'key',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+
+        alias_entries = self._load_section(payload, 'aliases')
+        assert alias_entries is not None
+        self.assertEqual(alias_entries[0]['enabled'], False)
+        self.assertTrue(alias_entries[0]['template'])
+
+        server_entries = self._load_section(payload, 'servers')
+        assert server_entries is not None
+        self.assertEqual(server_entries[0]['enabled'], False)
+        self.assertTrue(server_entries[0]['template'])
+
+        variable_entries = self._load_section(payload, 'variables')
+        self.assertEqual(variable_entries[0]['enabled'], False)
+        self.assertTrue(variable_entries[0]['template'])
+
+        secrets_section = self._load_section(payload, 'secrets')
+        assert secrets_section is not None
+        self.assertEqual(secrets_section['items'][0]['enabled'], False)
+        self.assertTrue(secrets_section['items'][0]['template'])
 
     def test_export_includes_runtime_section(self):
         with self.logged_in():
@@ -976,11 +1239,19 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                     with self.app.test_request_context():
                         form = ExportForm()
                         form.include_aliases.data = True
+                        form.include_disabled_aliases.data = False
+                        form.include_template_aliases.data = False
                         form.include_cid_map.data = True
                         form.include_unreferenced_cid_data.data = False
                         form.include_servers.data = False
+                        form.include_disabled_servers.data = False
+                        form.include_template_servers.data = False
                         form.include_variables.data = False
+                        form.include_disabled_variables.data = False
+                        form.include_template_variables.data = False
                         form.include_secrets.data = False
+                        form.include_disabled_secrets.data = False
+                        form.include_template_secrets.data = False
                         form.include_history.data = False
                         form.include_source.data = False
 
