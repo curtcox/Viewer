@@ -16,6 +16,8 @@ omit =
     .ruff_cache/*
     migrations/*
     */migrations/*
+    specs/*
+    step_impl/*
 
 # Include patterns
 include = 
