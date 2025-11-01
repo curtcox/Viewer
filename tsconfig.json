@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "noEmit": true,
+    "target": "ES2015"
+  },
+  "include": ["static/**/*.js"]
+}
