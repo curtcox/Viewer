@@ -148,6 +148,34 @@ def test_new_server_form_renders_for_authenticated_user(
     assert "name=\"definition\"" in page
 
 
+def test_new_server_form_includes_saved_templates(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """User-marked server templates should appear as reusable buttons."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="templated-server",
+            definition="def main():\n    return {'output': 'ok'}\n",
+            user_id="default-user",
+            template=True,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "data-server-template-id" in page
+    assert "templated-server" in page
+    assert "name=\"template\"" in page
+
+
 def test_server_detail_page_displays_server_information(
     client,
     integration_app,

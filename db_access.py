@@ -91,6 +91,14 @@ def get_user_servers(user_id: str) -> List[Server]:
     return Server.query.filter_by(user_id=user_id).order_by(Server.name).all()
 
 
+def get_user_template_servers(user_id: str) -> List[Server]:
+    return (
+        Server.query.filter_by(user_id=user_id, template=True)
+        .order_by(Server.name)
+        .all()
+    )
+
+
 def get_server_by_name(user_id: str, name: str) -> Optional[Server]:
     return Server.query.filter_by(user_id=user_id, name=name).first()
 
@@ -118,6 +126,14 @@ def get_first_server_name(user_id: str) -> Optional[str]:
 
 def get_user_aliases(user_id: str) -> List[Alias]:
     return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
+
+
+def get_user_template_aliases(user_id: str) -> List[Alias]:
+    return (
+        Alias.query.filter_by(user_id=user_id, template=True)
+        .order_by(Alias.name)
+        .all()
+    )
 
 
 def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:
@@ -190,6 +206,14 @@ def get_user_variables(user_id: str) -> List[Variable]:
     return Variable.query.filter_by(user_id=user_id).order_by(Variable.name).all()
 
 
+def get_user_template_variables(user_id: str) -> List[Variable]:
+    return (
+        Variable.query.filter_by(user_id=user_id, template=True)
+        .order_by(Variable.name)
+        .all()
+    )
+
+
 def get_variable_by_name(user_id: str, name: str) -> Optional[Variable]:
     return Variable.query.filter_by(user_id=user_id, name=name).first()
 
@@ -207,6 +231,14 @@ def get_first_variable_name(user_id: str) -> Optional[str]:
 
 def get_user_secrets(user_id: str) -> List[Secret]:
     return Secret.query.filter_by(user_id=user_id).order_by(Secret.name).all()
+
+
+def get_user_template_secrets(user_id: str) -> List[Secret]:
+    return (
+        Secret.query.filter_by(user_id=user_id, template=True)
+        .order_by(Secret.name)
+        .all()
+    )
 
 
 def get_secret_by_name(user_id: str, name: str) -> Optional[Secret]:

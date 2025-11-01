@@ -134,11 +134,36 @@
                             {% endif %}
                         </div>
 
+                        {% if alias_templates|default([]) %}
                         <div class="col-12">
-                            <div class="form-check form-switch">
-                                {{ form.enabled(class="form-check-input", role="switch") }}
-                                {{ form.enabled.label(class="form-check-label") }}
-                                <div class="form-text">Disabled aliases remain visible for editing and search but will not route requests.</div>
+                            <label class="form-label" for="alias-template-select">Start from an Alias Template</label>
+                            <div id="alias-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Alias templates">
+                                {% for template in alias_templates %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-alias-template-id="{{ template.id }}">
+                                    {{ template.name }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Click a template to load its suggested name and definition. You can adjust the details before saving.</div>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-12">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.enabled(class="form-check-input", role="switch") }}
+                                        {{ form.enabled.label(class="form-check-label") }}
+                                        <div class="form-text">Disabled aliases remain visible for editing and search but will not route requests.</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.template(class="form-check-input", role="switch") }}
+                                        {{ form.template.label(class="form-check-label") }}
+                                        <div class="form-text">Mark this alias as a reusable template. Templates appear as starting points on the create page.</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -231,6 +256,59 @@
     var parseMessage = parseIndicator ? parseIndicator.querySelector('[data-alias-parse-message]') : null;
     var parseDebounceTimer;
     var parseController;
+
+    var aliasTemplateButtons = document.querySelectorAll('[data-alias-template-id]');
+    var aliasTemplates = {{ alias_templates|default([])|tojson }};
+    if (aliasTemplateButtons.length && aliasTemplates.length) {
+        var aliasTemplateMap = {};
+        aliasTemplates.forEach(function (template) {
+            if (template && typeof template.id !== 'undefined') {
+                aliasTemplateMap[String(template.id)] = template;
+            }
+        });
+
+        aliasTemplateButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                var templateId = button.getAttribute('data-alias-template-id');
+                if (!templateId) {
+                    return;
+                }
+                var templateData = aliasTemplateMap[String(templateId)];
+                if (!templateData) {
+                    return;
+                }
+
+                var suggestedName = templateData.suggested_name || templateData.name || '';
+                if (nameField && suggestedName) {
+                    nameField.value = suggestedName;
+                    nameField.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
+                var definitionValue = templateData.definition || '';
+                if (definitionField) {
+                    var editorController = window.codeEditors ? window.codeEditors[definitionField.id] : null;
+                    if (editorController && typeof editorController.setValue === 'function') {
+                        editorController.setValue(definitionValue);
+                        if (typeof editorController.focus === 'function') {
+                            editorController.focus();
+                        }
+                        if (typeof editorController.scrollIntoView === 'function') {
+                            editorController.scrollIntoView();
+                        }
+                    } else {
+                        definitionField.value = definitionValue;
+                        definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+                        definitionField.focus();
+                    }
+                }
+
+                button.classList.add('active');
+                setTimeout(function () {
+                    button.classList.remove('active');
+                }, 1200);
+            });
+        });
+    }
 
     function escapeHtml(value) {
         return value.replace(/[&<>"']/g, function (character) {

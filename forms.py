@@ -75,6 +75,7 @@ class ServerForm(FlaskForm):
     ])
     definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
     enabled = BooleanField('Enabled', default=True)
+    template = BooleanField('Template', default=False)
     submit = SubmitField('Save Server')
 
     def validate_name(self, field: Field) -> None:
@@ -89,6 +90,7 @@ class VariableForm(FlaskForm):
     ])
     definition = TextAreaField('Variable Definition', validators=[DataRequired()], render_kw={'rows': 15})
     enabled = BooleanField('Enabled', default=True)
+    template = BooleanField('Template', default=False)
     submit = SubmitField('Save Variable')
 
     def validate_name(self, field: Field) -> None:
@@ -136,6 +138,7 @@ class AliasForm(FlaskForm):
         },
     )
     enabled = BooleanField('Enabled', default=True)
+    template = BooleanField('Template', default=False)
     submit = SubmitField('Save Alias')
 
     def __init__(self, *args, **kwargs):
@@ -169,6 +172,7 @@ class SecretForm(FlaskForm):
     ])
     definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
     enabled = BooleanField('Enabled', default=True)
+    template = BooleanField('Template', default=False)
     submit = SubmitField('Save Secret')
 
     def validate_name(self, field: Field) -> None:

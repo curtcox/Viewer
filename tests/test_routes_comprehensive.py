@@ -1483,6 +1483,7 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.post('/servers/new', data={
             'name': 'test-server',
             'definition': 'Test server definition',
+            'template': 'y',
             'submit': 'Save Server'
         }, follow_redirects=True)
 
@@ -1492,6 +1493,7 @@ class TestServerRoutes(BaseTestCase):
         server = Server.query.filter_by(user_id=self.test_user_id, name='test-server').first()
         self.assertIsNotNone(server)
         self.assertEqual(server.definition, 'Test server definition')
+        self.assertTrue(server.template)
 
     def test_new_server_duplicate_name(self):
         """Test creating server with duplicate name."""
@@ -1817,6 +1819,7 @@ class TestVariableRoutes(BaseTestCase):
         response = self.client.post('/variables/new', data={
             'name': 'test-variable',
             'definition': 'Test variable definition',
+            'template': 'y',
             'submit': 'Save Variable'
         }, follow_redirects=True)
 
@@ -1826,6 +1829,7 @@ class TestVariableRoutes(BaseTestCase):
         variable = Variable.query.filter_by(user_id=self.test_user_id, name='test-variable').first()
         self.assertIsNotNone(variable)
         self.assertEqual(variable.definition, 'Test variable definition')
+        self.assertTrue(variable.template)
 
     def test_new_variable_form_includes_ai_controls(self):
         """Variable form should expose AI helper controls."""
@@ -1926,6 +1930,7 @@ class TestSecretRoutes(BaseTestCase):
         response = self.client.post('/secrets/new', data={
             'name': 'test-secret',
             'definition': 'Test secret definition',
+            'template': 'y',
             'submit': 'Save Secret'
         }, follow_redirects=True)
 
@@ -1935,6 +1940,7 @@ class TestSecretRoutes(BaseTestCase):
         secret = Secret.query.filter_by(user_id=self.test_user_id, name='test-secret').first()
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
+        self.assertTrue(secret.template)
 
     def test_new_secret_form_includes_ai_controls(self):
         """Secret form should expose AI helper controls."""

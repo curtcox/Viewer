@@ -32,6 +32,9 @@
                                 {% if not variable.enabled %}
                                 <span class="badge text-bg-warning ms-2">Disabled</span>
                                 {% endif %}
+                                {% if variable.template %}
+                                <span class="badge text-bg-info ms-2">Template</span>
+                                {% endif %}
                             </h5>
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ url_for('main.view_variable', variable_name=variable.name) }}" class="btn btn-outline-primary btn-sm">

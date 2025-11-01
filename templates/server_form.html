@@ -131,6 +131,20 @@
                         </div>
                         {% endif %}
 
+                        {% if user_server_templates|default([]) %}
+                        <div class="col-12">
+                            <label class="form-label" for="user-server-template-select">Start from My Template</label>
+                            <div id="user-server-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Saved server templates">
+                                {% for template in user_server_templates %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-server-template-id="{{ template.id }}">
+                                    {{ template.name }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Use one of your saved templates as the starting point for this server.</div>
+                        </div>
+                        {% endif %}
+
                         <div class="col-12">
                             {{ form.definition.label(class="form-label") }}
                             <div class="position-relative">
@@ -159,11 +173,22 @@
                             <div id="server-definition-errors" class="alert alert-danger mt-3 d-none" role="alert"></div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
-                            <div class="form-check form-switch">
-                                {{ form.enabled(class="form-check-input", role="switch") }}
-                                {{ form.enabled.label(class="form-check-label") }}
-                                <div class="form-text">Disable a server to keep its definition without allowing execution.</div>
+                        <div class="col-12">
+                            <div class="row g-3">
+                                <div class="col-12 col-lg-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.enabled(class="form-check-input", role="switch") }}
+                                        {{ form.enabled.label(class="form-check-label") }}
+                                        <div class="form-text">Disable a server to keep its definition without allowing execution.</div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.template(class="form-check-input", role="switch") }}
+                                        {{ form.template.label(class="form-check-label") }}
+                                        <div class="form-text">Mark this server as a reusable template so it appears on the create page.</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -422,14 +447,16 @@ function loadHistoricalDefinition(index) {
     <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
     <script src="{{ url_for('static', filename='js/rename_controls.js') }}"></script>
     <script src="{{ url_for('static', filename='js/server_form.js') }}"></script>
-    {% if server_templates is defined and server_templates %}
+    {% if (server_templates is defined and server_templates) or user_server_templates|default([]) %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const templateButtons = document.querySelectorAll('[data-server-template-id]');
             const definitionField = document.getElementById('{{ form.definition.id }}');
             const nameField = document.getElementById('{{ form.name.id }}');
             const definitionEditor = window.serverDefinitionEditor;
-            const templates = {{ server_templates|tojson }};
+            const builtinTemplates = {{ server_templates|default([])|tojson }};
+            const savedTemplates = {{ user_server_templates|default([])|tojson }};
+            const templates = builtinTemplates.concat(savedTemplates);
 
             if (!templateButtons.length || !definitionField) {
                 return;
@@ -437,7 +464,10 @@ function loadHistoricalDefinition(index) {
 
             const templateMap = {};
             templates.forEach(function (template) {
-                templateMap[template.id] = template;
+                if (!template || typeof template.id === 'undefined') {
+                    return;
+                }
+                templateMap[String(template.id)] = template;
             });
 
             templateButtons.forEach(function (button) {
@@ -447,7 +477,7 @@ function loadHistoricalDefinition(index) {
                         return;
                     }
 
-                    const templateData = templateMap[templateId];
+                    const templateData = templateMap[String(templateId)];
                     if (!templateData) {
                         return;
                     }

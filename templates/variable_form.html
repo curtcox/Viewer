@@ -63,6 +63,21 @@
                                 </div>
                             {% endif %}
                         </div>
+
+                        {% if variable_templates|default([]) %}
+                        <div class="mb-3">
+                            <label class="form-label" for="variable-template-select">Start from a Variable Template</label>
+                            <div id="variable-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Variable templates">
+                                {% for template in variable_templates %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-variable-template-id="{{ template.id }}">
+                                    {{ template.name }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Load the saved value from a template and adjust it before saving.</div>
+                        </div>
+                        {% endif %}
+
                         {{ ai_text_controls(
                             form.definition.id,
                             'variable definition',
@@ -76,10 +91,21 @@
                             history_label='Recent edits and requests'
                         ) }}
 
-                        <div class="form-check form-switch mb-3">
-                            {{ form.enabled(class="form-check-input", role="switch") }}
-                            {{ form.enabled.label(class="form-check-label") }}
-                            <div class="form-text">Disable a variable to keep its value out of request contexts.</div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <div class="form-check form-switch">
+                                    {{ form.enabled(class="form-check-input", role="switch") }}
+                                    {{ form.enabled.label(class="form-check-label") }}
+                                    <div class="form-text">Disable a variable to keep its value out of request contexts.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-check form-switch">
+                                    {{ form.template(class="form-check-input", role="switch") }}
+                                    {{ form.template.label(class="form-check-label") }}
+                                    <div class="form-text">Mark this variable as a template so it appears on the create page.</div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -144,4 +170,65 @@
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
     <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
+    {% if variable_templates %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const templateButtons = document.querySelectorAll('[data-variable-template-id]');
+            if (!templateButtons.length) {
+                return;
+            }
+
+            const templates = {{ variable_templates|default([])|tojson }};
+            const templateMap = {};
+            templates.forEach(function (template) {
+                if (template && typeof template.id !== 'undefined') {
+                    templateMap[String(template.id)] = template;
+                }
+            });
+
+            const nameField = document.getElementById('{{ form.name.id }}');
+            const definitionField = document.getElementById('{{ form.definition.id }}');
+
+            templateButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const templateId = button.getAttribute('data-variable-template-id');
+                    if (!templateId) {
+                        return;
+                    }
+
+                    const templateData = templateMap[String(templateId)];
+                    if (!templateData) {
+                        return;
+                    }
+
+                    const suggestedName = templateData.suggested_name || templateData.name || '';
+                    if (nameField && suggestedName) {
+                        nameField.value = suggestedName;
+                        nameField.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+
+                    const definitionValue = templateData.definition || '';
+                    if (definitionField) {
+                        const editorController = window.codeEditors ? window.codeEditors[definitionField.id] : null;
+                        if (editorController && typeof editorController.setValue === 'function') {
+                            editorController.setValue(definitionValue);
+                            if (typeof editorController.focus === 'function') {
+                                editorController.focus();
+                            }
+                        } else {
+                            definitionField.value = definitionValue;
+                            definitionField.dispatchEvent(new Event('input', { bubbles: true }));
+                            definitionField.focus();
+                        }
+                    }
+
+                    button.classList.add('active');
+                    setTimeout(function () {
+                        button.classList.remove('active');
+                    }, 1200);
+                });
+            });
+        });
+    </script>
+    {% endif %}
 {% endblock %}

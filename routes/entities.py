@@ -57,6 +57,10 @@ def create_entity(
     if enabled_field is not None:
         entity_data['enabled'] = bool(enabled_field.data)
 
+    template_field = getattr(form, 'template', None)
+    if template_field is not None:
+        entity_data['template'] = bool(template_field.data)
+
     if model_class.__name__ == 'Server':
         definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
         entity_data['definition_cid'] = definition_cid
@@ -125,6 +129,10 @@ def update_entity(
     enabled_field = getattr(form, 'enabled', None)
     if enabled_field is not None:
         entity.enabled = bool(enabled_field.data)
+
+    template_field = getattr(form, 'template', None)
+    if template_field is not None:
+        entity.template = bool(template_field.data)
 
     save_entity(entity)
 

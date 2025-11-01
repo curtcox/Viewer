@@ -428,6 +428,7 @@ class _AliasImport:
     name: str
     definition: str
     enabled: bool
+    template: bool
 
 
 def _prepare_alias_import(
@@ -501,8 +502,14 @@ def _prepare_alias_import(
     )
 
     enabled = _coerce_enabled_flag(entry.get('enabled'))
+    template = _coerce_enabled_flag(entry.get('template'))
 
-    return _AliasImport(name=name, definition=definition_value, enabled=enabled)
+    return _AliasImport(
+        name=name,
+        definition=definition_value,
+        enabled=enabled,
+        template=template,
+    )
 
 
 def _parse_source_entry(entry: Any, label_text: str, warnings: list[str]) -> _SourceEntry | None:
@@ -636,6 +643,7 @@ def _collect_alias_section(
                 'name': alias.name,
                 'definition_cid': definition_cid,
                 'enabled': bool(getattr(alias, 'enabled', True)),
+                'template': bool(getattr(alias, 'template', False)),
             }
         )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
@@ -663,6 +671,7 @@ def _collect_server_section(
                 'name': server.name,
                 'definition_cid': definition_cid,
                 'enabled': bool(getattr(server, 'enabled', True)),
+                'template': bool(getattr(server, 'template', False)),
             }
         )
         _store_cid_entry(definition_cid, definition_bytes, cid_map_entries, include_optional_cids)
@@ -678,6 +687,7 @@ def _collect_variables_section(user_id: str) -> list[dict[str, str]]:
             'name': variable.name,
             'definition': variable.definition,
             'enabled': bool(getattr(variable, 'enabled', True)),
+            'template': bool(getattr(variable, 'template', False)),
         }
         for variable in get_user_variables(user_id)
     ]
@@ -693,6 +703,7 @@ def _collect_secrets_section(user_id: str, key: str) -> dict[str, Any]:
                 'name': secret.name,
                 'ciphertext': encrypt_secret_value(secret.definition, key),
                 'enabled': bool(getattr(secret, 'enabled', True)),
+                'template': bool(getattr(secret, 'template', False)),
             }
             for secret in get_user_secrets(user_id)
         ],
@@ -1250,6 +1261,7 @@ def _import_aliases(
             existing.definition = prepared.definition
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = prepared.enabled
+            existing.template = prepared.template
             save_entity(existing)
         else:
             alias = Alias(
@@ -1257,6 +1269,7 @@ def _import_aliases(
                 user_id=user_id,
                 definition=prepared.definition,
                 enabled=prepared.enabled,
+                template=prepared.template,
             )
             save_entity(alias)
         imported += 1
@@ -1269,6 +1282,7 @@ class _ServerImport:
     name: str
     definition: str
     enabled: bool
+    template: bool
 
 
 def _load_server_definition_from_cid(
@@ -1326,8 +1340,14 @@ def _prepare_server_import(
         return None
 
     enabled = _coerce_enabled_flag(entry.get('enabled'))
+    template = _coerce_enabled_flag(entry.get('template'))
 
-    return _ServerImport(name=name, definition=definition_text, enabled=enabled)
+    return _ServerImport(
+        name=name,
+        definition=definition_text,
+        enabled=enabled,
+        template=template,
+    )
 
 
 def _import_servers(
@@ -1357,6 +1377,7 @@ def _import_servers(
             existing.definition_cid = definition_cid
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = prepared.enabled
+            existing.template = prepared.template
             save_entity(existing)
         else:
             server = Server(
@@ -1365,6 +1386,7 @@ def _import_servers(
                 user_id=user_id,
                 definition_cid=definition_cid,
                 enabled=prepared.enabled,
+                template=prepared.template,
             )
             save_entity(server)
         imported += 1
@@ -1397,15 +1419,23 @@ def _import_variables(user_id: str, raw_variables: Any) -> Tuple[int, list[str]]
             continue
 
         enabled = _coerce_enabled_flag(entry.get('enabled'))
+        template = _coerce_enabled_flag(entry.get('template'))
 
         existing = get_variable_by_name(user_id, name)
         if existing:
             existing.definition = definition
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = enabled
+            existing.template = template
             save_entity(existing)
         else:
-            variable = Variable(name=name, definition=definition, user_id=user_id, enabled=enabled)
+            variable = Variable(
+                name=name,
+                definition=definition,
+                user_id=user_id,
+                enabled=enabled,
+                template=template,
+            )
             save_entity(variable)
         imported += 1
 
@@ -1450,14 +1480,22 @@ def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> Tuple[int, list
 
             plaintext = decrypt_secret_value(ciphertext, key)
             enabled = _coerce_enabled_flag(entry.get('enabled'))
+            template = _coerce_enabled_flag(entry.get('template'))
             existing = get_secret_by_name(user_id, name)
             if existing:
                 existing.definition = plaintext
                 existing.updated_at = datetime.now(timezone.utc)
                 existing.enabled = enabled
+                existing.template = template
                 save_entity(existing)
             else:
-                secret = Secret(name=name, definition=plaintext, user_id=user_id, enabled=enabled)
+                secret = Secret(
+                    name=name,
+                    definition=plaintext,
+                    user_id=user_id,
+                    enabled=enabled,
+                    template=template,
+                )
                 save_entity(secret)
             imported += 1
     except ValueError:
