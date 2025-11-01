@@ -35,6 +35,9 @@ wheels/
 *.egg
 MANIFEST
 
+# Node.js
+node_modules/
+
 # PyInstaller
 *.manifest
 *.spec

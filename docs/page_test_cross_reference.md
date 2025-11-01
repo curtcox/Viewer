@@ -22,6 +22,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
 **Integration tests:**
+- `tests/integration/test_alias_pages.py::test_new_alias_form_includes_template_options`
 - `tests/integration/test_alias_pages.py::test_new_alias_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -40,6 +41,9 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_alias_pages.py::test_alias_detail_page_displays_alias_information`
+- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_returns_record`
+- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_supports_xml_extension`
 
 **Specs:**
 - _None_
@@ -57,9 +61,14 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_alias_pages.py::test_aliases_page_lists_user_aliases`
+- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_honors_plain_text_accept_header`
+- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_json_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_xml_extension`
 
 **Specs:**
 - alias_management.spec — Aliases list shows available shortcuts
+- content_negotiation.spec — Accept headers request alternate representations
 
 ## templates/edit_cid.html
 
@@ -126,9 +135,12 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
 **Integration tests:**
@@ -148,9 +160,12 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
 **Integration tests:**
@@ -208,6 +223,8 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_app_startup.py::test_create_app_serves_homepage`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_alias_target_displays_cid_link_for_cid_path`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_authenticated_shows_cross_reference_dashboard`
+- `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_alias_and_server_highlight_metadata`
+- `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_alias_to_alias_highlight_metadata`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_cids_include_incoming_highlight_metadata`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_lists_entities_and_relationships`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_shortcuts_link_to_entity_lists`
@@ -217,6 +234,8 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_index_page.py::test_index_page_displays_cross_reference_dashboard`
+- `tests/integration/test_index_page.py::test_viewer_menu_lists_user_entities`
+- `tests/integration/test_route_details_page.py::test_route_details_for_builtin_index`
 
 **Specs:**
 - meta_navigation.spec — Info icon links to metadata
@@ -236,6 +255,25 @@ This document maps site pages to the automated checks that exercise them.
 
 **Specs:**
 - profile.spec — Default workspace profile is accessible
+
+## templates/route_details.html
+
+**Routes:**
+- `routes/route_details.py::route_details` (paths: `/routes/`, `/routes/<path:requested_path>`)
+
+**Unit tests:**
+- _None_
+
+**Integration tests:**
+- `tests/integration/test_route_details_page.py::test_route_details_follow_alias_chain_to_cid`
+- `tests/integration/test_route_details_page.py::test_route_details_follow_alias_chain_to_server`
+- `tests/integration/test_route_details_page.py::test_route_details_for_alias_redirect`
+- `tests/integration/test_route_details_page.py::test_route_details_for_builtin_index`
+- `tests/integration/test_route_details_page.py::test_route_details_for_direct_cid`
+- `tests/integration/test_route_details_page.py::test_route_details_for_server_execution`
+
+**Specs:**
+- _None_
 
 ## templates/routes_overview.html
 
@@ -280,6 +318,7 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_secret_pages.py::test_edit_secret_form_displays_existing_secret`
 - `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
+- `tests/integration/test_secret_pages.py::test_new_secret_form_includes_templates`
 - `tests/integration/test_secret_pages.py::test_new_secret_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -295,6 +334,9 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_returns_record`
+- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_supports_xml_extension`
 - `tests/integration/test_secret_pages.py::test_secret_detail_page_displays_secret_information`
 
 **Specs:**
@@ -310,11 +352,30 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_json_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_xml_extension`
 - `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
 - `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
 
 **Specs:**
 - secrets.spec — Secrets list is accessible
+
+## templates/secrets_bulk_edit.html
+
+**Routes:**
+- `routes/secrets.py::bulk_edit_secrets` (paths: `/secrets/_/edit`)
+
+**Unit tests:**
+- _None_
+
+**Integration tests:**
+- `tests/integration/test_secret_pages.py::test_bulk_secret_editor_invalid_json_displays_errors`
+- `tests/integration/test_secret_pages.py::test_bulk_secret_editor_prefills_existing_secrets`
+- `tests/integration/test_secret_pages.py::test_bulk_secret_editor_updates_and_deletes_secrets`
+
+**Specs:**
+- _None_
 
 ## templates/server_events.html
 
@@ -349,6 +410,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
+- `tests/integration/test_server_pages.py::test_new_server_form_includes_saved_templates`
 - `tests/integration/test_server_pages.py::test_new_server_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -368,6 +430,9 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_renders_referenced_entities_and_returns_ok`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_returns_record`
+- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_supports_xml_extension`
 - `tests/integration/test_server_pages.py::test_server_detail_page_displays_server_information`
 
 **Specs:**
@@ -383,6 +448,9 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_json_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_xml_extension`
 - `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
 - `tests/integration/test_server_pages.py::test_servers_page_links_auto_main_context_matches`
 - `tests/integration/test_server_pages.py::test_servers_page_lists_user_servers`
@@ -460,6 +528,20 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - _None_
 
+## templates/swagger.html
+
+**Routes:**
+- `routes/openapi.py::openapi_docs` (paths: `/openapi`)
+
+**Unit tests:**
+- `tests/test_openapi.py::TestOpenAPI::test_swagger_ui_page_includes_bundle`
+
+**Integration tests:**
+- _None_
+
+**Specs:**
+- _None_
+
 ## templates/upload.html
 
 **Routes:**
@@ -469,8 +551,11 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file_is_deduplicated`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_stores_file_and_returns_success_page`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_assign_cid_creates_new_variable`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_assign_cid_updates_existing_variable`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_success_includes_variable_assignment_form`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
@@ -484,6 +569,7 @@ This document maps site pages to the automated checks that exercise them.
 **Routes:**
 - `routes/uploads.py::upload` (paths: `/upload`)
 - `routes/uploads.py::edit_cid` (paths: `/edit/<cid_prefix>`)
+- `routes/uploads.py::assign_cid_variable` (paths: `/upload/assign-variable`)
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestCidEditingRoutes::test_edit_cid_alias_name_conflict_shows_error`
@@ -502,8 +588,11 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_duplicate_file_is_deduplicated`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_get_returns_200_with_text_ai_markup`
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_upload_post_stores_file_and_returns_success_page`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_assign_cid_creates_new_variable`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_assign_cid_updates_existing_variable`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_handles_no_extension`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_file_preserves_original_extension`
+- `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_success_includes_variable_assignment_form`
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
@@ -543,6 +632,7 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_variable_pages.py::test_edit_variable_form_displays_existing_variable_details`
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
+- `tests/integration/test_variable_pages.py::test_new_variable_form_includes_templates`
 - `tests/integration/test_variable_pages.py::test_new_variable_form_renders_for_authenticated_user`
 
 **Specs:**
@@ -557,6 +647,9 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variable_view_shows_matching_route_summary`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_returns_record`
+- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_supports_xml_extension`
 - `tests/integration/test_variable_pages.py::test_variable_detail_page_displays_variable_information`
 
 **Specs:**
@@ -572,8 +665,27 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list_shows_sorted_user_variables`
 
 **Integration tests:**
+- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_csv_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_json_extension`
+- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_xml_extension`
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
 - `tests/integration/test_variable_pages.py::test_variables_page_lists_user_variables`
+
+**Specs:**
+- _None_
+
+## templates/variables_bulk_edit.html
+
+**Routes:**
+- `routes/variables.py::bulk_edit_variables` (paths: `/variables/_/edit`)
+
+**Unit tests:**
+- _None_
+
+**Integration tests:**
+- `tests/integration/test_variable_pages.py::test_bulk_variable_editor_invalid_json_displays_errors`
+- `tests/integration/test_variable_pages.py::test_bulk_variable_editor_prefills_existing_variables`
+- `tests/integration/test_variable_pages.py::test_bulk_variable_editor_updates_and_deletes_variables`
 
 **Specs:**
 - _None_
