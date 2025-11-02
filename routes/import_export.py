@@ -685,6 +685,113 @@ def _should_export_entry(
     return True
 
 
+def _preview_item_entries(records: Iterable[Any]) -> list[dict[str, Any]]:
+    """Return serialisable preview entries for export-capable records."""
+
+    entries: list[dict[str, Any]] = []
+    for record in records:
+        name = getattr(record, 'name', '') or ''
+        enabled = bool(getattr(record, 'enabled', True))
+        template = bool(getattr(record, 'template', False))
+        entries.append({'name': name, 'enabled': enabled, 'template': template})
+
+    entries.sort(key=lambda entry: entry['name'].casefold())
+    return entries
+
+
+def _filter_preview_items(
+    items: Iterable[dict[str, Any]],
+    *,
+    include_disabled: bool,
+    include_templates: bool,
+) -> list[dict[str, Any]]:
+    """Return preview entries that satisfy the current export filters."""
+
+    filtered: list[dict[str, Any]] = []
+    for item in items:
+        enabled = bool(item.get('enabled', True))
+        template = bool(item.get('template', False))
+
+        if not _should_export_entry(
+            enabled,
+            template,
+            include_disabled=include_disabled,
+            include_templates=include_templates,
+        ):
+            continue
+
+        filtered.append(item)
+
+    return filtered
+
+
+def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str, Any]]:
+    """Return metadata describing which items are currently selected for export."""
+
+    def _build_section(
+        entries: list[dict[str, Any]],
+        include_collection: bool,
+        include_disabled: bool,
+        include_templates: bool,
+        label: str,
+    ) -> dict[str, Any]:
+        capitalised_label = label.title()
+        selected = (
+            _filter_preview_items(
+                entries,
+                include_disabled=include_disabled,
+                include_templates=include_templates,
+            )
+            if include_collection
+            else []
+        )
+
+        return {
+            'label': label,
+            'include': include_collection,
+            'available': entries,
+            'selected': selected,
+            'empty_message': f'No {label} available for export.',
+            'not_selected_message': f'{capitalised_label} are not selected for export.',
+        }
+
+    alias_entries = _preview_item_entries(get_user_aliases(user_id))
+    server_entries = _preview_item_entries(get_user_servers(user_id))
+    variable_entries = _preview_item_entries(get_user_variables(user_id))
+    secret_entries = _preview_item_entries(get_user_secrets(user_id))
+
+    return {
+        'aliases': _build_section(
+            alias_entries,
+            bool(form.include_aliases.data),
+            bool(form.include_disabled_aliases.data),
+            bool(form.include_template_aliases.data),
+            'aliases',
+        ),
+        'servers': _build_section(
+            server_entries,
+            bool(form.include_servers.data),
+            bool(form.include_disabled_servers.data),
+            bool(form.include_template_servers.data),
+            'servers',
+        ),
+        'variables': _build_section(
+            variable_entries,
+            bool(form.include_variables.data),
+            bool(form.include_disabled_variables.data),
+            bool(form.include_template_variables.data),
+            'variables',
+        ),
+        'secrets': _build_section(
+            secret_entries,
+            bool(form.include_secrets.data),
+            bool(form.include_disabled_secrets.data),
+            bool(form.include_template_secrets.data),
+            'secrets',
+        ),
+    }
+
+
 def _collect_alias_section(
     form: ExportForm,
     user_id: str,
@@ -1805,11 +1912,12 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
 def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
+    preview = _build_export_preview(form, current_user.id)
     if form.validate_on_submit():
         export_result = _build_export_payload(form, current_user.id)
         return render_template('export_result.html', **export_result)
 
-    return render_template('export.html', form=form)
+    return render_template('export.html', form=form, export_preview=preview)
 
 
 @main_bp.route('/export/size', methods=['POST'])
