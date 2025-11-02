@@ -51,6 +51,7 @@ def run_command(command: Sequence[str], env: dict[str, str]) -> int:
 def run_lint_checks(env: dict[str, str]) -> int:
     for command in (
         ["npm", "run", "lint"],
+        ["npm", "run", "uncss:check"],
         [sys.executable, "-m", "ruff", "check"],
         [sys.executable, "-m", "mypy"],
         [sys.executable, "-m", "pylint", "--errors-only", "--ignore-patterns=^$", "*.py"],
