@@ -1450,13 +1450,14 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.get('/servers')
         self.assertEqual(response.status_code, 200)
 
-    def test_new_server_get(self):
-        """Test new server page GET request."""
+    def test_new_server_get_renders_template_selection_ui(self):
+        """Ensure GET /servers/new renders template selection and AI definition controls."""
         self.login_user()
         response = self.client.get('/servers/new')
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
+        # The page should communicate how to start a server definition, including template selection and AI helpers.
         self.assertIn('Start from a Template', page)
         self.assertIn('server-template-select', page)
         self.assertIn('definition-ai-input', page)
