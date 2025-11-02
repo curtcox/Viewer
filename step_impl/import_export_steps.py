@@ -49,6 +49,8 @@ def _load_export_cid_content(cid_value: str) -> bytes:
                 ) from exc
         else:
             content_bytes = value.encode("utf-8")
+    elif isinstance(entry, str):
+        content_bytes = entry.encode("utf-8")
 
     if content_bytes is None:
         origin_app = _scenario_state.get("origin_app")
