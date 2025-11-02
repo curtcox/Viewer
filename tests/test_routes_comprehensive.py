@@ -763,8 +763,8 @@ def main(request):
         response = self.client.get('/terms')
         self.assertEqual(response.status_code, 404)
 
-    def test_privacy_page(self):
-        """Test privacy page."""
+    def test_privacy_page_returns_not_found(self):
+        """Privacy endpoint should stay disabled and answer with a 404."""
         response = self.client.get('/privacy')
         self.assertEqual(response.status_code, 404)
 
