@@ -1684,8 +1684,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('https://example.com/origin', page)
         self.assertIn('1 total', page)
 
-    def test_view_nonexistent_server(self):
-        """Test viewing nonexistent server."""
+    def test_view_nonexistent_server_returns_404(self):
+        """Viewing a missing server should respond with a 404 error."""
         self.login_user()
         response = self.client.get('/servers/nonexistent')
         self.assertEqual(response.status_code, 404)
