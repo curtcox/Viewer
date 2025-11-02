@@ -59,8 +59,8 @@ RUN set -eux; \
 
 # Install Python dependencies used in CI
 # Tooling dependencies intentionally track latest compatible releases.
-# hadolint ignore=DL3013
 COPY requirements.txt /tmp/requirements.txt
+# hadolint ignore=DL3013 -- CI tooling stays on the latest compatible releases
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt \
     && python -m pip install hypothesis pytest
