@@ -67,8 +67,8 @@ jobs:
       - name: Run mypy
         run: mypy
 
-  hadolint:
-    name: Hadolint
+  shellcheck:
+    name: ShellCheck
     runs-on: ubuntu-latest
 
     steps:
@@ -79,6 +79,21 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: docker/ci/Dockerfile
+          
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: |
+          set -euo pipefail
+          mapfile -t shell_scripts < <(git ls-files '*.sh')
+          if [[ "${#shell_scripts[@]}" -gt 0 ]]; then
+            shellcheck "${shell_scripts[@]}"
+          else
+            echo "No shell scripts to lint."
+          fi
 
   eslint:
     name: ESLint

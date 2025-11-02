@@ -4,6 +4,7 @@ from typing import Any, Type
 
 import logfire
 from flask import flash
+from markupsafe import Markup, escape
 
 from cid_utils import save_server_definition_as_cid
 from db_access import (
@@ -44,7 +45,13 @@ def create_entity(
 ) -> bool:
     """Generic function to create a new entity (server, variable, or secret)."""
     if check_name_exists(model_class, form.name.data, user_id):
-        flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+        flash(
+            Markup('A {entity} named "{name}" already exists').format(
+                entity=escape(entity_type),
+                name=escape(form.name.data),
+            ),
+            'danger',
+        )
         return False
 
     entity_data = {
@@ -99,7 +106,13 @@ def create_entity(
 
         update_secret_definitions_cid(user_id)
 
-    flash(f'{entity_type.title()} "{form.name.data}" created successfully!', 'success')
+    flash(
+        Markup('{entity} "{name}" created successfully!').format(
+            entity=escape(entity_type.title()),
+            name=escape(form.name.data),
+        ),
+        'success',
+    )
     return True
 
 
@@ -114,7 +127,13 @@ def update_entity(
     """Generic function to update an entity (server, variable, or secret)."""
     if form.name.data != entity.name:
         if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
-            flash(f'A {entity_type} named "{form.name.data}" already exists', 'danger')
+            flash(
+                Markup('A {entity} named "{name}" already exists').format(
+                    entity=escape(entity_type),
+                    name=escape(form.name.data),
+                ),
+                'danger',
+            )
             return False
 
     if type(entity).__name__ == 'Server':
@@ -167,7 +186,13 @@ def update_entity(
 
         update_secret_definitions_cid(entity.user_id)
 
-    flash(f'{entity_type.title()} "{entity.name}" updated successfully!', 'success')
+    flash(
+        Markup('{entity} "{name}" updated successfully!').format(
+            entity=escape(entity_type.title()),
+            name=escape(entity.name),
+        ),
+        'success',
+    )
     return True
 
 
