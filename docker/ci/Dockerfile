@@ -6,6 +6,7 @@ ENV PIP_NO_CACHE_DIR=1 \
     PATH="/root/.gauge/bin:${PATH}"
 
 # Install system dependencies, including Node.js for JavaScript-based GitHub Actions
+# hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
@@ -29,9 +30,14 @@ RUN apt-get update \
         libgtk-3-0 \
         libasound2 \
         fonts-liberation \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource-setup.sh \
+    && bash /tmp/nodesource-setup.sh \
+    && rm /tmp/nodesource-setup.sh \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
+
+# Use bash with pipefail so pipelines inside RUN directives fail early.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install Gauge CLI and required plugins
 ARG GAUGE_VERSION=1.5.6
@@ -54,6 +60,7 @@ RUN set -eux; \
 
 # Install Python dependencies used in CI
 COPY requirements.txt /tmp/requirements.txt
+# hadolint ignore=DL3013
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt \
     && python -m pip install hypothesis pytest
