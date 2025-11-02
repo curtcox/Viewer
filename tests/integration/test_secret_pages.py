@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+import re
+
 import pytest
 
 from cid_presenter import format_cid
@@ -152,6 +154,84 @@ def test_secrets_list_page_displays_user_secrets(
     assert "production-api-key" in page
     assert "staging-api-key" in page
     assert "Create New Secret" in page
+
+
+def test_secrets_page_includes_enabled_toggle(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Each secret card should display an enabled toggle."""
+
+    with integration_app.app_context():
+        secret = Secret(
+            name="production-api-key",
+            definition="super-secret-value",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/secrets")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert 'action="/secrets/production-api-key/enabled"' in page
+    toggle_match = re.search(r'id="secret-enabled-toggle-production-api-key"[^>]*>', page)
+    assert toggle_match is not None
+    assert 'checked' not in toggle_match.group(0)
+    assert 'secret-enabled-label' in page
+
+
+def test_secret_enable_toggle_updates_state(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Submitting the toggle form should persist the secret's enabled flag."""
+
+    with integration_app.app_context():
+        secret = Secret(
+            name="production-api-key",
+            definition="super-secret-value",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(secret)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.post(
+        "/secrets/production-api-key/enabled",
+        data={"enabled": ["0", "1"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        secret = Secret.query.filter_by(
+            user_id="default-user",
+            name="production-api-key",
+        ).one()
+        assert secret.enabled is True
+
+    response = client.post(
+        "/secrets/production-api-key/enabled",
+        data={"enabled": "0"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        secret = Secret.query.filter_by(
+            user_id="default-user",
+            name="production-api-key",
+        ).one()
+        assert secret.enabled is False
 
 
 def test_edit_secret_updates_definition_snapshot(

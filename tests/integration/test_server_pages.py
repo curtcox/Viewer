@@ -1,6 +1,8 @@
 """Integration coverage for server management pages."""
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from cid_presenter import format_cid
@@ -45,6 +47,78 @@ def test_servers_page_lists_user_servers(
     assert "My Servers" in page
     assert "weather" in page
     assert "View Full Definition" in page
+
+
+def test_servers_page_includes_enabled_toggle(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Each server row should display a toggle for its enabled state."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="weather",
+            definition="def main():\n    return 'ok'\n",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert 'action="/servers/weather/enabled"' in page
+    toggle_match = re.search(r'id="server-enabled-toggle-weather"[^>]*>', page)
+    assert toggle_match is not None
+    assert 'checked' not in toggle_match.group(0)
+    assert 'server-enabled-label' in page
+
+
+def test_server_enable_toggle_updates_state(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Submitting the toggle form should persist the server enabled flag."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="weather",
+            definition="def main():\n    return 'ok'\n",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.post(
+        "/servers/weather/enabled",
+        data={"enabled": ["0", "1"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        server = Server.query.filter_by(user_id="default-user", name="weather").one()
+        assert server.enabled is True
+
+    response = client.post(
+        "/servers/weather/enabled",
+        data={"enabled": "0"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        server = Server.query.filter_by(user_id="default-user", name="weather").one()
+        assert server.enabled is False
 
 
 def test_servers_page_shows_referenced_variables_and_secrets(

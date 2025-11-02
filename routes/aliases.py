@@ -38,6 +38,8 @@ from interaction_log import load_interaction_history
 from models import Alias
 from serialization import model_to_dict
 
+from .enabled import extract_enabled_value_from_request, request_prefers_json
+
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 
@@ -95,26 +97,6 @@ def _persist_alias(alias: Alias) -> Alias:
 
     save_entity(alias)
     return alias
-
-
-_TRUE_ENABLED_VALUES = {"1", "true", "t", "yes", "y", "on"}
-_FALSE_ENABLED_VALUES = {"0", "false", "f", "no", "n", "off", ""}
-
-
-def _coerce_enabled_value(raw_value: Any) -> bool:
-    """Interpret an enabled value from form or JSON submissions."""
-
-    if isinstance(raw_value, bool):
-        return raw_value
-    if raw_value is None:
-        raise ValueError("Missing enabled value")
-
-    text = str(raw_value).strip().lower()
-    if text in _TRUE_ENABLED_VALUES:
-        return True
-    if text in _FALSE_ENABLED_VALUES:
-        return False
-    raise ValueError(f"Unrecognized enabled value: {raw_value}")
 
 
 def _candidate_cid_from_target(path: str) -> Optional[str]:
@@ -243,39 +225,16 @@ def update_alias_enabled(alias_name: str):
     if not alias:
         abort(404)
 
-    if request.is_json:
-        payload = request.get_json(silent=True) or {}
-        if 'enabled' not in payload:
-            abort(400)
-        try:
-            enabled_value = _coerce_enabled_value(payload.get('enabled'))
-        except ValueError:
-            abort(400)
-    else:
-        values = request.form.getlist('enabled')
-        if not values:
-            abort(400)
-        try:
-            enabled_value = _coerce_enabled_value(values[-1])
-        except ValueError:
-            abort(400)
+    try:
+        enabled_value = extract_enabled_value_from_request()
+    except ValueError:
+        abort(400)
 
     alias.enabled = enabled_value
     alias.updated_at = datetime.now(timezone.utc)
     _persist_alias(alias)
 
-    prefers_json = False
-    if request.is_json:
-        prefers_json = True
-    else:
-        best = request.accept_mimetypes.best
-        if best == 'application/json' and (
-            request.accept_mimetypes['application/json']
-            > request.accept_mimetypes['text/html']
-        ):
-            prefers_json = True
-
-    if prefers_json:
+    if request_prefers_json():
         return jsonify({
             'alias': alias.name,
             'enabled': alias.enabled,

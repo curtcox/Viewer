@@ -25,6 +25,7 @@ from models import Variable
 from serialization import model_to_dict
 
 from . import main_bp
+from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 from .meta import inspect_path_metadata
 
@@ -321,6 +322,30 @@ def variables():
         variables=variables_list,
         variable_definitions_cid=variable_definitions_cid,
     )
+
+
+@main_bp.route('/variables/<variable_name>/enabled', methods=['POST'])
+def update_variable_enabled(variable_name: str):
+    """Update the enabled status for a specific variable."""
+
+    variable = get_variable_by_name(current_user.id, variable_name)
+    if not variable:
+        abort(404)
+
+    try:
+        enabled_value = extract_enabled_value_from_request()
+    except ValueError:
+        abort(400)
+
+    variable.enabled = enabled_value
+    variable.updated_at = datetime.now(timezone.utc)
+    save_entity(variable)
+    update_variable_definitions_cid(current_user.id)
+
+    if request_prefers_json():
+        return jsonify({'variable': variable.name, 'enabled': variable.enabled})
+
+    return redirect(url_for('main.variables'))
 
 
 @main_bp.route('/variables/_/edit', methods=['GET', 'POST'])

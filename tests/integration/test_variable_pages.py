@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -42,6 +43,78 @@ def test_variables_page_lists_user_variables(
     assert "My Variables" in page
     assert "API_URL" in page
     assert "https://example.com/api" in page
+
+
+def test_variables_page_includes_enabled_toggle(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Each variable card should surface an enabled/disabled toggle."""
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="API_URL",
+            definition="https://example.com/api",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/variables")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert 'action="/variables/API_URL/enabled"' in page
+    toggle_match = re.search(r'id="variable-enabled-toggle-API_URL"[^>]*>', page)
+    assert toggle_match is not None
+    assert 'checked' not in toggle_match.group(0)
+    assert 'variable-enabled-label' in page
+
+
+def test_variable_enable_toggle_updates_state(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Posting the toggle form should persist variable enablement."""
+
+    with integration_app.app_context():
+        variable = Variable(
+            name="API_URL",
+            definition="https://example.com/api",
+            user_id="default-user",
+            enabled=False,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.post(
+        "/variables/API_URL/enabled",
+        data={"enabled": ["0", "1"]},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        assert variable.enabled is True
+
+    response = client.post(
+        "/variables/API_URL/enabled",
+        data={"enabled": "0"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with integration_app.app_context():
+        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        assert variable.enabled is False
 
 
 def test_variable_detail_page_displays_variable_information(
