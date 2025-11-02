@@ -36,6 +36,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Use bash with pipefail so pipelines inside RUN directives fail early.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install Gauge CLI and required plugins
 ARG GAUGE_VERSION=1.5.6
 ARG GAUGE_DIST_URL="https://github.com/getgauge/gauge/releases/download/v${GAUGE_VERSION}/gauge-${GAUGE_VERSION}-linux.x86_64.zip"
