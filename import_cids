@@ -1,0 +1,6 @@
+echo "Import CIDs from a JSON input stream"
+echo "for example:"
+echo "cat exported.json | ./import_cids"
+echo "curl 'http://server/cid_url_export.json' | ./import_cids"
+
+jq -r '.cid_values | to_entries[] | "printf %s \(.value.value | @sh) > \"cids/\(.key)\""' | sh
