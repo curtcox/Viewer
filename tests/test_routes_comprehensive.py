@@ -1827,8 +1827,8 @@ class TestVariableRoutes(BaseTestCase):
         self.assertIn('beta', page)
         self.assertLess(page.index('alpha'), page.index('beta'))
 
-    def test_new_variable_post(self):
-        """Test creating new variable."""
+    def test_new_variable_post_creates_template_variable(self):
+        """Posting a new variable should persist its definition and template flag."""
         self.login_user()
         response = self.client.post('/variables/new', data={
             'name': 'test-variable',
@@ -1839,7 +1839,7 @@ class TestVariableRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check variable was created
+        # Confirm the variable was stored with the expected attributes
         variable = Variable.query.filter_by(user_id=self.test_user_id, name='test-variable').first()
         self.assertIsNotNone(variable)
         self.assertEqual(variable.definition, 'Test variable definition')
