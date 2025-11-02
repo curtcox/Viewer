@@ -23,6 +23,37 @@ dependencies = [
     "glom>=23.3.0",
     "hypothesis>=6.124.1",
     "ruff>=0.1.0",
+    "radon>=6.0.1",
     "mypy>=1.13.0",
     "pyppeteer>=1.0.2,<2.0.0",
 ]
+
+[tool.radon]
+# Analyse the repository root while skipping generated assets, front-end bundles,
+# and the various acceptance-test harnesses.
+paths = ["."]
+exclude = [
+    ".git",
+    ".github",
+    "docs",
+    "env",
+    "gauge",
+    "gauge_stub",
+    "node_modules",
+    "static",
+    "step_impl",
+    "templates",
+    "test",
+    "test-gauge",
+    "test-unit",
+    "tests",
+    "upload_templates",
+]
+ignore = ["**/__init__.py"]
+# The Radon job fails when any block is graded worse than this rank.  The
+# threshold keeps the check strict enough to catch problematic code while still
+# allowing legacy modules to pass after excluding the harness directories above.
+fail_rank = "E"
+# Limit the size of the HTML summary tables so the published report stays
+# readable without truncating important findings.
+report_top = 25
