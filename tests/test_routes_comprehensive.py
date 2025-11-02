@@ -1683,8 +1683,8 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.get('/servers/nonexistent')
         self.assertEqual(response.status_code, 404)
 
-    def test_edit_server_get(self):
-        """Test edit server page GET request."""
+    def test_edit_server_get_returns_populated_form(self):
+        """GETing the edit page for an existing server returns 200 and shows the saved values."""
         server = Server(
             name='edit-server',
             definition='Server to edit',
@@ -1696,6 +1696,11 @@ class TestServerRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/servers/edit-server/edit')
         self.assertEqual(response.status_code, 200)
+
+        # The response should render the edit form with the server's current data prefilled.
+        page = response.get_data(as_text=True)
+        self.assertIn('value="edit-server"', page)
+        self.assertIn('Server to edit', page)
 
     def test_edit_server_includes_test_form(self):
         """Edit page should expose the testing controls based on main() parameters."""
