@@ -1768,8 +1768,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIsNotNone(duplicate)
         self.assertEqual(duplicate.definition, 'Copy me')
 
-    def test_delete_server(self):
-        """Test deleting server."""
+    def test_delete_server_redirects_and_removes_database_record(self):
+        """Posting to the delete endpoint should redirect and remove the server from the database."""
         server = Server(
             name='delete-server',
             definition='Server to delete',
@@ -1782,7 +1782,7 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.post('/servers/delete-server/delete', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
-        # Check server was deleted
+        # Confirm the server is removed from the user's collection after the redirect response.
         deleted_server = Server.query.filter_by(user_id=self.test_user_id, name='delete-server').first()
         self.assertIsNone(deleted_server)
 
