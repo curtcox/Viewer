@@ -9,6 +9,8 @@ from logfire.exceptions import LogfireConfigError
 from sqlalchemy import inspect
 
 import app as app_module
+from cid_utils import generate_cid
+from db_access import get_cid_by_path
 from database import db
 
 
@@ -135,3 +137,48 @@ def test_create_app_creates_alias_definition_column(
         inspector = inspect(db.engine)
         column_names = {column["name"] for column in inspector.get_columns("alias")}
         assert "definition" in column_names
+
+
+def test_create_app_loads_cids_from_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, app_config_factory
+) -> None:
+    """CID fixtures on disk should be imported into the database."""
+
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+
+    content = b"example payload"
+    cid_value = generate_cid(content)
+
+    cid_dir = tmp_path / "cids"
+    cid_dir.mkdir()
+    (cid_dir / cid_value).write_bytes(content)
+
+    config = app_config_factory("cid-load")
+    config["CID_DIRECTORY"] = str(cid_dir)
+
+    app_instance = app_module.create_app(config)
+
+    with app_instance.app_context():
+        record = get_cid_by_path(f"/{cid_value}")
+        assert record is not None
+        assert record.file_data == content
+
+
+def test_create_app_exits_on_cid_mismatch(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, app_config_factory
+) -> None:
+    """Startup should abort if a CID filename does not match its contents."""
+
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+
+    cid_dir = tmp_path / "cids"
+    cid_dir.mkdir()
+    (cid_dir / "not-a-cid").write_bytes(b"data")
+
+    config = app_config_factory("cid-mismatch")
+    config["CID_DIRECTORY"] = str(cid_dir)
+
+    with pytest.raises(SystemExit) as excinfo:
+        app_module.create_app(config)
+
+    assert "not-a-cid" in str(excinfo.value)
