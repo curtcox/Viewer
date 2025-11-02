@@ -105,8 +105,8 @@ jobs:
       - name: Run Stylelint
         run: npm run lint:css
 
-  purgecss:
-    name: PurgeCSS
+  uncss:
+    name: UNCSS
     runs-on: ubuntu-latest
 
     steps:
@@ -121,8 +121,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run PurgeCSS check
-        run: npm run purgecss:check
+      - name: Run UNCSS check
+        run: npm run uncss:check
 
   test-index:
     name: Test Index Validation
