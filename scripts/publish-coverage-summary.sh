@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC2154
-# GITHUB_* environment variables are populated by GitHub Actions runners when available.
+# Ensure GitHub Actions summary/output variables exist even when running locally.
 : "${GITHUB_STEP_SUMMARY:=}"
 : "${GITHUB_OUTPUT:=}"
 
