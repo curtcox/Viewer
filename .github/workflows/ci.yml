@@ -105,6 +105,25 @@ jobs:
       - name: Run Stylelint
         run: npm run lint:css
 
+  purgecss:
+    name: PurgeCSS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run PurgeCSS check
+        run: npm run purgecss:check
+
   test-index:
     name: Test Index Validation
     runs-on: ubuntu-latest
