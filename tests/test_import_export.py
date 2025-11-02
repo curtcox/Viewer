@@ -182,9 +182,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn('<li>alias-one</li>', html)
-        self.assertIn('<li>server-one</li>', html)
-        self.assertIn('<li>var-one</li>', html)
+        self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-one"[^>]*checked')
+        self.assertRegex(html, r'name="selected_servers"[^>]*value="server-one"[^>]*checked')
+        self.assertRegex(html, r'name="selected_variables"[^>]*value="var-one"[^>]*checked')
         self.assertIn('<div class="text-muted small fst-italic">Secrets are not selected for export.</div>', html)
 
     def test_export_preview_respects_disabled_and_template_filters(self):
@@ -208,8 +208,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.logged_in():
             response = self.client.get('/export')
             html = response.get_data(as_text=True)
-            self.assertNotIn('<li>alias-disabled</li>', html)
-            self.assertNotIn('<li>alias-template</li>', html)
+            self.assertNotIn('data-export-item-name="alias-disabled"', html)
+            self.assertNotIn('data-export-item-name="alias-template"', html)
 
             response = self.client.post(
                 '/export',
@@ -224,10 +224,54 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        self.assertIn('<li>alias-disabled</li>', html)
-        self.assertIn('<li>alias-template</li>', html)
-        self.assertIn('<li>secret-two</li>', html)
+        self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-disabled"[^>]*checked')
+        self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-template"[^>]*checked')
+        self.assertRegex(html, r'name="selected_secrets"[^>]*value="secret-two"[^>]*checked')
         self.assertNotIn('<div class="text-muted small fst-italic">Secrets are not selected for export.</div>', html)
+
+    def test_export_includes_only_checked_aliases(self):
+        with self.app.app_context():
+            keep_alias = Alias(name='keep-alias', definition='echo keep', user_id=self.user_id)
+            drop_alias = Alias(name='drop-alias', definition='echo drop', user_id=self.user_id)
+            db.session.add_all([keep_alias, drop_alias])
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'selected_aliases': ['keep-alias'],
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        _record, payload = self._load_export_payload()
+        aliases_section = self._load_section(payload, 'aliases')
+        self.assertIsInstance(aliases_section, list)
+        names = sorted(entry['name'] for entry in aliases_section)
+        self.assertEqual(names, ['keep-alias'])
+
+    def test_export_allows_unselecting_all_aliases(self):
+        with self.app.app_context():
+            alias = Alias(name='only-alias', definition='echo 1', user_id=self.user_id)
+            db.session.add(alias)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'selected_aliases': [import_export._SELECTION_SENTINEL],
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        _record, payload = self._load_export_payload()
+        self.assertNotIn('aliases', payload)
 
     def test_export_includes_selected_collections(self):
         with self.app.app_context():

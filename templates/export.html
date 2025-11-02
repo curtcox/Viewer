@@ -6,16 +6,43 @@
 {% macro render_export_preview(preview) %}
     {% if preview is not defined or not preview %}
         <div class="text-muted small fst-italic">No items available for export.</div>
-    {% elif not preview.include %}
-        <div class="text-muted small fst-italic">{{ preview.not_selected_message }}</div>
-    {% elif preview.selected %}
-        <ul class="list-unstyled small mb-0">
-            {% for item in preview.selected %}
-                <li>{{ item.name }}</li>
-            {% endfor %}
-        </ul>
     {% else %}
-        <div class="text-muted small fst-italic">{{ preview.empty_message }}</div>
+        {% if preview.field_name %}
+            <input type="hidden" name="{{ preview.field_name }}" value="{{ preview.selection_sentinel }}">
+        {% endif %}
+        {% if not preview.include %}
+            <div class="text-muted small fst-italic">{{ preview.not_selected_message }}</div>
+        {% else %}
+            {% set items = preview.selected %}
+            {% if not items %}
+                <div class="text-muted small fst-italic">{{ preview.empty_message }}</div>
+            {% else %}
+                <div class="d-flex flex-column gap-2" data-export-selection="{{ preview.field_name }}">
+                    {% for item in items %}
+                        {% set input_id = preview.field_name ~ '-' ~ loop.index %}
+                        <div class="form-check small" data-export-item-name="{{ item.name }}">
+                            <input
+                                class="form-check-input export-item-checkbox"
+                                type="checkbox"
+                                id="{{ input_id }}"
+                                name="{{ preview.field_name }}"
+                                value="{{ item.name }}"
+                                {% if item.name in preview.selected_names %}checked{% endif %}
+                            >
+                            <label class="form-check-label" for="{{ input_id }}">
+                                {{ item.name }}
+                                {% if not item.enabled %}
+                                    <span class="badge text-bg-light border ms-2">Disabled</span>
+                                {% endif %}
+                                {% if item.template %}
+                                    <span class="badge text-bg-light border ms-1">Template</span>
+                                {% endif %}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endif %}
     {% endif %}
 {% endmacro %}
 <div class="container-fluid px-3 px-lg-5">
@@ -279,12 +306,42 @@
                 }
 
                 var sectionData = exportPreview && exportPreview[section] ? exportPreview[section] : {};
+                var fieldName = typeof sectionData.field_name === 'string' ? sectionData.field_name : '';
+                var sentinel = typeof sectionData.selection_sentinel === 'string' ? sectionData.selection_sentinel : '';
+                var selectedSet = new Set(Array.isArray(sectionData.selected_names) ? sectionData.selected_names : []);
+                var knownNamesSet = new Set(Array.isArray(sectionData.known_names) ? sectionData.known_names : []);
+
+                if (fieldName) {
+                    var existingInputs = container.querySelectorAll('input[type="checkbox"][name="' + fieldName + '"]');
+                    existingInputs.forEach(function (input) {
+                        var value = input.value;
+                        if (!value) {
+                            return;
+                        }
+                        knownNamesSet.add(value);
+                        if (input.checked) {
+                            selectedSet.add(value);
+                        } else {
+                            selectedSet.delete(value);
+                        }
+                    });
+                }
+
+                sectionData.selected_names = Array.from(selectedSet);
+                sectionData.known_names = Array.from(knownNamesSet);
+
+                var parts = [];
+                if (fieldName) {
+                    parts.push('<input type="hidden" name="' + escapeHtml(fieldName) + '" value="' + escapeHtml(sentinel) + '">');
+                }
+
                 var includeCheckbox = document.getElementById('include-' + section);
                 var includeCollection = includeCheckbox ? includeCheckbox.checked : false;
 
                 if (!includeCollection) {
                     var notSelectedMessage = sectionData.not_selected_message || 'Not selected for export.';
-                    container.innerHTML = renderMessage(notSelectedMessage);
+                    parts.push(renderMessage(notSelectedMessage));
+                    container.innerHTML = parts.join('');
                     return;
                 }
 
@@ -294,7 +351,7 @@
                 var includeDisabled = includeDisabledCheckbox ? includeDisabledCheckbox.checked : false;
                 var includeTemplates = includeTemplatesCheckbox ? includeTemplatesCheckbox.checked : false;
 
-                var selected = available.filter(function (item) {
+                var filtered = available.filter(function (item) {
                     if (!item) {
                         return false;
                     }
@@ -309,18 +366,54 @@
                     return true;
                 });
 
-                if (!selected.length) {
+                if (!filtered.length) {
                     var emptyMessage = sectionData.empty_message || 'No items available for export.';
-                    container.innerHTML = renderMessage(emptyMessage);
+                    parts.push(renderMessage(emptyMessage));
+                    container.innerHTML = parts.join('');
                     return;
                 }
 
-                var listItems = selected
-                    .map(function (item) {
-                        return '<li>' + escapeHtml(item.name || '') + '</li>';
-                    })
-                    .join('');
-                container.innerHTML = '<ul class="list-unstyled small mb-0">' + listItems + '</ul>';
+                var listParts = ['<div class="d-flex flex-column gap-2" data-export-selection="' + escapeHtml(fieldName) + '">'];
+                filtered.forEach(function (item, index) {
+                    var rawName = item && item.name ? String(item.name) : '';
+                    var name = rawName.trim();
+                    if (!name) {
+                        return;
+                    }
+
+                    var isKnown = knownNamesSet.has(name);
+                    if (!isKnown) {
+                        knownNamesSet.add(name);
+                    }
+
+                    var isSelected = selectedSet.has(name);
+                    if (!isKnown && !isSelected) {
+                        isSelected = true;
+                        selectedSet.add(name);
+                    }
+
+                    var inputId = fieldName + '-' + (index + 1);
+                    var labelHtml = escapeHtml(rawName);
+                    if (!item.enabled) {
+                        labelHtml += '<span class="badge text-bg-light border ms-2">Disabled</span>';
+                    }
+                    if (item.template) {
+                        labelHtml += '<span class="badge text-bg-light border ms-1">Template</span>';
+                    }
+
+                    listParts.push(
+                        '<div class="form-check small" data-export-item-name="' + escapeHtml(name) + '">' +
+                            '<input class="form-check-input export-item-checkbox" type="checkbox" id="' + escapeHtml(inputId) + '" name="' + escapeHtml(fieldName) + '" value="' + escapeHtml(name) + '"' + (isSelected ? ' checked' : '') + '>' +
+                            '<label class="form-check-label" for="' + escapeHtml(inputId) + '">' + labelHtml + '</label>' +
+                        '</div>'
+                    );
+                });
+                listParts.push('</div>');
+
+                sectionData.selected_names = Array.from(selectedSet);
+                sectionData.known_names = Array.from(knownNamesSet);
+                parts.push(listParts.join(''));
+                container.innerHTML = parts.join('');
             }
 
             function updateAllPreviews() {
@@ -444,9 +537,6 @@
                     container.classList.toggle('d-none', !enabled);
                     inputs.forEach(function (input) {
                         input.disabled = !enabled;
-                        if (!enabled) {
-                            input.checked = false;
-                        }
                     });
                     scheduleExportSizeUpdate();
                     schedulePreviewUpdate();
@@ -502,14 +592,22 @@
                     }
                 });
 
-                var watchedInputs = exportForm.querySelectorAll('input, select, textarea');
-                watchedInputs.forEach(function (input) {
-                    input.addEventListener('change', scheduleExportSizeUpdate);
-                    input.addEventListener('change', schedulePreviewUpdate);
-                    if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password') {
-                        input.addEventListener('input', scheduleExportSizeUpdate);
-                        input.addEventListener('input', schedulePreviewUpdate);
+                exportForm.addEventListener('change', function () {
+                    scheduleExportSizeUpdate();
+                    schedulePreviewUpdate();
+                });
+
+                exportForm.addEventListener('input', function (event) {
+                    var target = event.target;
+                    if (!target) {
+                        return;
                     }
+                    var isTextual = target.tagName === 'TEXTAREA' || target.type === 'text' || target.type === 'password';
+                    if (!isTextual) {
+                        return;
+                    }
+                    scheduleExportSizeUpdate();
+                    schedulePreviewUpdate();
                 });
 
                 scheduleExportSizeUpdate();
