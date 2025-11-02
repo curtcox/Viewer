@@ -67,6 +67,19 @@ jobs:
       - name: Run mypy
         run: mypy
 
+  bandit:
+    name: Bandit
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Bandit
+        run: bandit -r . --configfile bandit.yaml
+
   eslint:
     name: ESLint
     runs-on: ubuntu-latest

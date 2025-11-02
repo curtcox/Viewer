@@ -82,7 +82,7 @@ def _make_dom_id(prefix: str, value: Optional[str]) -> str:
     text = (value or '').strip()
     slug = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
     digest_source = text or prefix
-    digest = hashlib.sha1(digest_source.encode('utf-8')).hexdigest()[:8]
+    digest = hashlib.sha256(digest_source.encode('utf-8')).hexdigest()[:8]
     if slug:
         return f"{prefix}-{slug}-{digest}"
     return f"{prefix}-{digest}"

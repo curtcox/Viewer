@@ -1,0 +1,19 @@
+# Configuration for Bandit static analysis.
+#
+# The exclusions below limit scanning to application code.  Directories such as
+# tests/ and gauge step implementations exercise the app via asserts and
+# intentionally include patterns (e.g., shell commands) that Bandit would flag
+# but which are safe in a test context.
+exclude_dirs:
+  - docs
+  - env
+  - gauge
+  - node_modules
+  - run
+  - static
+  - step_impl
+  - templates
+  - test
+  - test-gauge
+  - test-unit
+  - tests

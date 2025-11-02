@@ -40,7 +40,7 @@ def main(
     command_result = None
     if command_text:
         executed = command_text
-        completed = subprocess.run(  # noqa: S602
+        completed = subprocess.run(  # nosec B602 - shell access is the feature of this template
             command_text,
             shell=True,
             capture_output=True,
