@@ -6,7 +6,8 @@ ENV PIP_NO_CACHE_DIR=1 \
     PATH="/root/.gauge/bin:${PATH}"
 
 # Install system dependencies, including Node.js for JavaScript-based GitHub Actions
-# hadolint ignore=DL3008 -- Use distribution-managed versions to receive security updates.
+# hadolint ignore=DL3008
+# Use distribution-managed versions to receive security updates.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
@@ -30,7 +31,9 @@ RUN apt-get update \
         libgtk-3-0 \
         libasound2 \
         fonts-liberation \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh \
+    && bash /tmp/nodesource_setup.sh \
+    && rm /tmp/nodesource_setup.sh \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
@@ -40,7 +43,8 @@ ARG GAUGE_DIST_URL="https://github.com/getgauge/gauge/releases/download/v${GAUGE
 RUN set -eux; \
     curl -fsSL "${GAUGE_DIST_URL}" -o /tmp/gauge.zip; \
     unzip /tmp/gauge.zip -d /tmp/gauge-dist; \
-    if GAUGE_DIR="$(find /tmp/gauge-dist -maxdepth 1 -mindepth 1 -type d -name 'gauge-*' | head -n 1)" && [ -n "${GAUGE_DIR}" ]; then \
+    GAUGE_DIR="$(find /tmp/gauge-dist -maxdepth 1 -mindepth 1 -type d -name 'gauge-*' -print -quit)"; \
+    if [ -n "${GAUGE_DIR}" ]; then \
         mv "${GAUGE_DIR}" /opt/gauge; \
     elif [ -f /tmp/gauge-dist/gauge ]; then \
         install -Dm755 /tmp/gauge-dist/gauge /opt/gauge/bin/gauge; \
@@ -54,7 +58,8 @@ RUN set -eux; \
     gauge install html-report
 
 # Install Python dependencies used in CI
-# hadolint ignore=DL3013 -- Tooling dependencies intentionally track latest compatible releases.
+# hadolint ignore=DL3013
+# Tooling dependencies intentionally track latest compatible releases.
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt \
