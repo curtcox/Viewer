@@ -2128,10 +2128,10 @@ class TestAliasRoutes(BaseTestCase):
 
 
 class TestSettingsRoutes(BaseTestCase):
-    """Test settings routes."""
+    """Settings-related request handlers."""
 
-    def test_settings_page(self):
-        """Test settings page."""
+    def test_settings_page_loads_for_authenticated_user(self):
+        """Settings page returns HTTP 200 for a signed-in visitor."""
         self.login_user()
         response = self.client.get('/settings')
         self.assertEqual(response.status_code, 200)
