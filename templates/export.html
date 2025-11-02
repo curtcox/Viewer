@@ -183,21 +183,23 @@
                     </label>
                 </div>
 
-                <div class="form-check mb-4">
-                    {{ form.include_cid_map(class="form-check-input", id="include-cid-map") }}
-                    <label class="form-check-label" for="include-cid-map">
-                        <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
-                        <span class="d-block text-muted small">Include the CID to content map so other environments can load referenced definitions.</span>
-                    </label>
-                    <div class="ms-4 mt-3{{ '' if form.include_cid_map.data else ' d-none' }}" id="include-unreferenced-cid-container">
-                        <div class="form-check">
+                <div class="mb-4">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check m-0">
+                            {{ form.include_cid_map(class="form-check-input", id="include-cid-map") }}
+                            <label class="form-check-label" for="include-cid-map">
+                                <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
+                            </label>
+                        </div>
+                        <div class="form-check m-0{{ '' if form.include_cid_map.data else ' d-none' }}" id="include-unreferenced-cid-container">
                             {{ form.include_unreferenced_cid_data(class="form-check-input", id="include-unreferenced-cid-data", disabled=(not form.include_cid_map.data)) }}
                             <label class="form-check-label" for="include-unreferenced-cid-data">
                                 {{ form.include_unreferenced_cid_data.label.text }}
-                                <span class="d-block text-muted small">Add CID content that is not referenced by other exported items.</span>
                             </label>
                         </div>
                     </div>
+                    <div class="text-muted small ms-4 mt-2">Include the CID to content map so other environments can load referenced definitions.</div>
+                    <div class="text-muted small ms-4 mt-2{{ '' if form.include_cid_map.data else ' d-none' }}" id="include-unreferenced-cid-help">Add CID content that is not referenced by other exported items.</div>
                 </div>
 
                 <div class="mb-4">
@@ -474,11 +476,15 @@
             var cidMapCheckbox = document.getElementById('include-cid-map');
             var unreferencedContainer = document.getElementById('include-unreferenced-cid-container');
             var unreferencedInput = document.getElementById('include-unreferenced-cid-data');
+            var unreferencedHelp = document.getElementById('include-unreferenced-cid-help');
 
             if (cidMapCheckbox && unreferencedContainer && unreferencedInput) {
                 function syncUnreferencedVisibility() {
                     var enabled = cidMapCheckbox.checked;
                     unreferencedContainer.classList.toggle('d-none', !enabled);
+                    if (unreferencedHelp) {
+                        unreferencedHelp.classList.toggle('d-none', !enabled);
+                    }
                     unreferencedInput.disabled = !enabled;
                     if (!enabled) {
                         unreferencedInput.checked = false;
