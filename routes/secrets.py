@@ -24,6 +24,7 @@ from models import Secret
 from serialization import model_to_dict
 
 from . import main_bp
+from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 
 
@@ -120,6 +121,30 @@ def secrets():
         secrets=secrets_list,
         secret_definitions_cid=secret_definitions_cid,
     )
+
+
+@main_bp.route('/secrets/<secret_name>/enabled', methods=['POST'])
+def update_secret_enabled(secret_name: str):
+    """Update the enabled status for a specific secret."""
+
+    secret = get_secret_by_name(current_user.id, secret_name)
+    if not secret:
+        abort(404)
+
+    try:
+        enabled_value = extract_enabled_value_from_request()
+    except ValueError:
+        abort(400)
+
+    secret.enabled = enabled_value
+    secret.updated_at = datetime.now(timezone.utc)
+    save_entity(secret)
+    update_secret_definitions_cid(current_user.id)
+
+    if request_prefers_json():
+        return jsonify({'secret': secret.name, 'enabled': secret.enabled})
+
+    return redirect(url_for('main.secrets'))
 
 
 @main_bp.route('/secrets/_/edit', methods=['GET', 'POST'])

@@ -1,5 +1,6 @@
 """Server management routes and helpers."""
 
+from datetime import datetime, timezone
 import re
 from typing import Dict, Iterable, List, Optional
 
@@ -22,6 +23,7 @@ from db_access import (
     get_user_template_servers,
     get_user_uploads,
     get_user_variables,
+    save_entity,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
@@ -36,6 +38,7 @@ from syntax_highlighting import highlight_source
 from . import main_bp
 from .core import derive_name_from_path
 from .entities import create_entity, update_entity
+from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .history import _load_request_referers
 
 _INDEX_ACCESS_PATTERN = re.compile(
@@ -512,6 +515,30 @@ def servers():
         server_definitions_cid=server_definitions_cid,
         server_rows=server_rows,
     )
+
+
+@main_bp.route('/servers/<server_name>/enabled', methods=['POST'])
+def update_server_enabled(server_name: str):
+    """Update the enabled status for a specific server."""
+
+    server = get_server_by_name(current_user.id, server_name)
+    if not server:
+        abort(404)
+
+    try:
+        enabled_value = extract_enabled_value_from_request()
+    except ValueError:
+        abort(400)
+
+    server.enabled = enabled_value
+    server.updated_at = datetime.now(timezone.utc)
+    save_entity(server)
+    update_server_definitions_cid(current_user.id)
+
+    if request_prefers_json():
+        return jsonify({'server': server.name, 'enabled': server.enabled})
+
+    return redirect(url_for('main.servers'))
 
 
 @main_bp.route('/servers/new', methods=['GET', 'POST'])
