@@ -67,6 +67,19 @@ jobs:
       - name: Run mypy
         run: mypy
 
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: docker/ci/Dockerfile
+
   eslint:
     name: ESLint
     runs-on: ubuntu-latest
