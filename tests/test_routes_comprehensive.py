@@ -1477,8 +1477,8 @@ class TestServerRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('value="docs"', page)
 
-    def test_new_server_post(self):
-        """Test creating new server."""
+    def test_new_server_post_creates_template_backed_server(self):
+        """Submitting valid form data should persist a new template-backed server for the user."""
         self.login_user()
         response = self.client.post('/servers/new', data={
             'name': 'test-server',
@@ -1489,7 +1489,7 @@ class TestServerRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check server was created
+        # Verify the server record now exists with the submitted template-backed definition
         server = Server.query.filter_by(user_id=self.test_user_id, name='test-server').first()
         self.assertIsNotNone(server)
         self.assertEqual(server.definition, 'Test server definition')
