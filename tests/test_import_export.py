@@ -1351,6 +1351,11 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(result['cid_value'], f'cid-{len(store_bytes_stub.calls)}')
         self.assertEqual(result['download_path'], '/downloads/export.json')
         self.assertGreaterEqual(len(store_bytes_stub.calls), 1)
+        ordered_pairs = json.loads(result['json_payload'], object_pairs_hook=list)
+        top_level_keys = [key for key, _ in ordered_pairs]
+        self.assertIn('cid_values', top_level_keys)
+        self.assertEqual(top_level_keys[:-1], sorted(top_level_keys[:-1]))
+        self.assertEqual(top_level_keys[-1], 'cid_values')
         payload = json.loads(store_bytes_stub.calls[-1].decode('utf-8'))
         self.assertIn('aliases', payload)
         self.assertIn('cid_values', payload)
