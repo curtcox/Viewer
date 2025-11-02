@@ -388,15 +388,15 @@ def _format_html_report(
   <meta charset=\"utf-8\" />
   <title>Radon complexity report</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
-    h1 { font-size: 2rem; margin-bottom: 1rem; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-    th, td { border: 1px solid #d0d7de; padding: 0.5rem; text-align: left; }
-    th { background: #f6f8fa; }
-    td.numeric { text-align: right; }
-    section { margin-top: 2rem; }
-    ul { list-style: disc; padding-left: 1.5rem; }
-    .summary { background: #f1f8ff; border-left: 4px solid #0969da; padding: 1rem; }
+    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
+    h1 {{ font-size: 2rem; margin-bottom: 1rem; }}
+    table {{ border-collapse: collapse; width: 100%; margin-top: 1rem; }}
+    th, td {{ border: 1px solid #d0d7de; padding: 0.5rem; text-align: left; }}
+    th {{ background: #f6f8fa; }}
+    td.numeric {{ text-align: right; }}
+    section {{ margin-top: 2rem; }}
+    ul {{ list-style: disc; padding-left: 1.5rem; }}
+    .summary {{ background: #f1f8ff; border-left: 4px solid #0969da; padding: 1rem; }}
   </style>
 </head>
 <body>
