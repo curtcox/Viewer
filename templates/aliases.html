@@ -21,6 +21,7 @@
                             <th scope="col">Name</th>
                             <th scope="col">Match</th>
                             <th scope="col">Target</th>
+                            <th scope="col" class="text-center">Status</th>
                             <th scope="col" class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -56,6 +57,32 @@
                                         <code>{{ alias.target_path }}</code>
                                     {% endif %}
                                 {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% set toggle_id = 'alias-enabled-toggle-' ~ alias.name %}
+                                <form
+                                    method="post"
+                                    action="{{ url_for('main.update_alias_enabled', alias_name=alias.name) }}"
+                                    class="d-inline-block"
+                                >
+                                    <input type="hidden" name="enabled" value="0">
+                                    <div class="form-check form-switch d-inline-flex align-items-center gap-2 mb-0 justify-content-center">
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+                                            role="switch"
+                                            id="{{ toggle_id }}"
+                                            name="enabled"
+                                            value="1"
+                                            {% if alias.enabled %}checked{% endif %}
+                                            aria-label="Toggle {{ alias.name }} alias"
+                                            onchange="this.form.submit()"
+                                        >
+                                        <label class="form-check-label small text-muted fw-semibold alias-enabled-label" for="{{ toggle_id }}">
+                                            {% if alias.enabled %}Enabled{% else %}Disabled{% endif %}
+                                        </label>
+                                    </div>
+                                </form>
                             </td>
                             <td class="text-end">
                                 <a href="{{ url_for('main.view_alias', alias_name=alias.name) }}" class="btn btn-outline-primary btn-sm">

@@ -517,6 +517,22 @@ def _alias_form_schema() -> Dict[str, Any]:
     }
 
 
+def _alias_enabled_update_schema() -> Dict[str, Any]:
+    """Schema describing alias enabled state updates."""
+
+    return {
+        "type": "object",
+        "required": ["enabled"],
+        "properties": {
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the alias should be active after the update.",
+            }
+        },
+        "additionalProperties": False,
+    }
+
+
 def _server_form_schema() -> Dict[str, Any]:
     """Schema for server create/edit submissions."""
 
@@ -979,6 +995,57 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 },
             },
         },
+        "/aliases/{alias_name}/enabled": {
+            "parameters": [_path_parameter("alias_name", "Alias name to toggle.")],
+            "post": {
+                "tags": ["Aliases"],
+                "summary": "Update alias enabled state",
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {"$ref": "#/components/schemas/AliasEnabledUpdate"}
+                        },
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/AliasEnabledUpdate"}
+                        },
+                    },
+                },
+                "responses": {
+                    "302": _redirect_response("Alias enabled state updated and browser redirected."),
+                    "200": {
+                        "description": "Alias enabled state updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["alias", "enabled"],
+                                    "properties": {
+                                        "alias": {
+                                            "type": "string",
+                                            "description": "Alias name.",
+                                        },
+                                        "enabled": {
+                                            "type": "boolean",
+                                            "description": "Whether the alias is enabled after the update.",
+                                        },
+                                    },
+                                },
+                            }
+                        },
+                    },
+                    "400": {
+                        "description": "Invalid enabled value supplied.",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/Error"}
+                            }
+                        },
+                    },
+                    "404": _html_response("Alias not found."),
+                },
+            },
+        },
         "/aliases/{alias_name}/delete": {
             "parameters": [_path_parameter("alias_name", "Alias name to delete.")],
             "post": {
@@ -1414,6 +1481,7 @@ def _build_openapi_spec() -> Dict[str, Any]:
                 "VariableRecord": _variable_record_schema(),
                 "SecretRecord": _secret_record_schema(),
                 "AliasFormSubmission": _alias_form_schema(),
+                "AliasEnabledUpdate": _alias_enabled_update_schema(),
                 "ServerFormSubmission": _server_form_schema(),
                 "VariableFormSubmission": _variable_form_schema(),
                 "VariablesBulkEditFormSubmission": _variables_bulk_edit_form_schema(),

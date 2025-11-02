@@ -66,6 +66,7 @@ class TestOpenAPI(unittest.TestCase):
             '/aliases/new': ['get', 'post'],
             '/aliases/{alias_name}': ['get'],
             '/aliases/{alias_name}/edit': ['get', 'post'],
+            '/aliases/{alias_name}/enabled': ['post'],
             '/aliases/{alias_name}/delete': ['post'],
             '/aliases/match-preview': ['post'],
             '/servers': ['get'],

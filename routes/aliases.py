@@ -97,6 +97,26 @@ def _persist_alias(alias: Alias) -> Alias:
     return alias
 
 
+_TRUE_ENABLED_VALUES = {"1", "true", "t", "yes", "y", "on"}
+_FALSE_ENABLED_VALUES = {"0", "false", "f", "no", "n", "off", ""}
+
+
+def _coerce_enabled_value(raw_value: Any) -> bool:
+    """Interpret an enabled value from form or JSON submissions."""
+
+    if isinstance(raw_value, bool):
+        return raw_value
+    if raw_value is None:
+        raise ValueError("Missing enabled value")
+
+    text = str(raw_value).strip().lower()
+    if text in _TRUE_ENABLED_VALUES:
+        return True
+    if text in _FALSE_ENABLED_VALUES:
+        return False
+    raise ValueError(f"Unrecognized enabled value: {raw_value}")
+
+
 def _candidate_cid_from_target(path: str) -> Optional[str]:
     """Return the CID portion from a potential CID target path."""
 
@@ -213,6 +233,55 @@ def aliases():
     if _wants_structured_response():
         return jsonify([_alias_to_json(alias) for alias in alias_list])
     return render_template('aliases.html', aliases=alias_list)
+
+
+@main_bp.route('/aliases/<alias_name>/enabled', methods=['POST'])
+def update_alias_enabled(alias_name: str):
+    """Update the enabled status for a specific alias."""
+
+    alias = get_alias_by_name(current_user.id, alias_name)
+    if not alias:
+        abort(404)
+
+    if request.is_json:
+        payload = request.get_json(silent=True) or {}
+        if 'enabled' not in payload:
+            abort(400)
+        try:
+            enabled_value = _coerce_enabled_value(payload.get('enabled'))
+        except ValueError:
+            abort(400)
+    else:
+        values = request.form.getlist('enabled')
+        if not values:
+            abort(400)
+        try:
+            enabled_value = _coerce_enabled_value(values[-1])
+        except ValueError:
+            abort(400)
+
+    alias.enabled = enabled_value
+    alias.updated_at = datetime.now(timezone.utc)
+    _persist_alias(alias)
+
+    prefers_json = False
+    if request.is_json:
+        prefers_json = True
+    else:
+        best = request.accept_mimetypes.best
+        if best == 'application/json' and (
+            request.accept_mimetypes['application/json']
+            > request.accept_mimetypes['text/html']
+        ):
+            prefers_json = True
+
+    if prefers_json:
+        return jsonify({
+            'alias': alias.name,
+            'enabled': alias.enabled,
+        })
+
+    return redirect(url_for('main.aliases'))
 
 
 @main_bp.route('/aliases/new', methods=['GET', 'POST'])
