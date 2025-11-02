@@ -3,194 +3,202 @@
 {% block title %}Export Data{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-download me-2"></i>Export Data</h2>
-                <a href="{{ url_for('main.settings') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Settings
-                </a>
-            </div>
+<div class="container-fluid px-3 px-lg-5">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+        <h2 class="mb-0"><i class="fas fa-download me-2"></i>Export Data</h2>
+        <a href="{{ url_for('main.settings') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Settings
+        </a>
+    </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Select Data to Export</h5>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Select Data to Export</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <p class="text-muted">Choose the collections you want to include in the exported JSON file.</p>
+
+                <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" id="export-size-indicator">
+                    <div>
+                        <strong>Estimated export size:</strong>
+                        <span id="export-size-value">—</span>
+                    </div>
+                    <div class="text-muted small" id="export-size-status"></div>
                 </div>
-                <div class="card-body">
-                    <form method="POST">
-                        {{ form.hidden_tag() }}
 
-                        <p class="text-muted">Choose the collections you want to include in the exported JSON file.</p>
+                {% if form.include_aliases.errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.include_aliases.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
-                        <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" id="export-size-indicator">
-                            <div>
-                                <strong>Estimated export size:</strong>
-                                <span id="export-size-value">—</span>
-                            </div>
-                            <div class="text-muted small" id="export-size-status"></div>
-                        </div>
-
-                        {% if form.include_aliases.errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.include_aliases.errors %}
-                                <div>{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <div class="form-check mb-2">
+                <div class="export-option mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check m-0 flex-grow-1">
                             {{ form.include_aliases(class="form-check-input", id="include-aliases") }}
                             <label class="form-check-label" for="include-aliases">
                                 <i class="fas fa-link me-1 text-info"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.aliases') }}">{{ form.include_aliases.label.text }}</a>
                             </label>
                         </div>
-
-                        <div class="ms-4 mt-2{{ '' if form.include_aliases.data else ' d-none' }}" id="alias-options">
-                            <div class="form-check mb-1">
+                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto{{ '' if form.include_aliases.data else ' d-none' }}" id="alias-options">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_disabled_aliases(class="form-check-input", id="include-disabled-aliases", disabled=(not form.include_aliases.data)) }}
                                 <label class="form-check-label" for="include-disabled-aliases">
                                     <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_aliases.label.text }}
                                 </label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_template_aliases(class="form-check-input", id="include-template-aliases", disabled=(not form.include_aliases.data)) }}
                                 <label class="form-check-label" for="include-template-aliases">
                                     <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_aliases.label.text }}
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="form-check mb-2">
+                <div class="export-option mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check m-0 flex-grow-1">
                             {{ form.include_servers(class="form-check-input", id="include-servers") }}
                             <label class="form-check-label" for="include-servers">
                                 <i class="fas fa-server me-1 text-primary"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.servers') }}">{{ form.include_servers.label.text }}</a>
                             </label>
                         </div>
-
-                        <div class="ms-4 mt-2{{ '' if form.include_servers.data else ' d-none' }}" id="server-options">
-                            <div class="form-check mb-1">
+                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto{{ '' if form.include_servers.data else ' d-none' }}" id="server-options">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_disabled_servers(class="form-check-input", id="include-disabled-servers", disabled=(not form.include_servers.data)) }}
                                 <label class="form-check-label" for="include-disabled-servers">
                                     <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_servers.label.text }}
                                 </label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_template_servers(class="form-check-input", id="include-template-servers", disabled=(not form.include_servers.data)) }}
                                 <label class="form-check-label" for="include-template-servers">
                                     <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_servers.label.text }}
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="form-check mb-2">
+                <div class="export-option mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check m-0 flex-grow-1">
                             {{ form.include_variables(class="form-check-input", id="include-variables") }}
                             <label class="form-check-label" for="include-variables">
                                 <i class="fas fa-code me-1 text-success"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.variables') }}">{{ form.include_variables.label.text }}</a>
                             </label>
                         </div>
-
-                        <div class="ms-4 mt-2{{ '' if form.include_variables.data else ' d-none' }}" id="variable-options">
-                            <div class="form-check mb-1">
+                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto{{ '' if form.include_variables.data else ' d-none' }}" id="variable-options">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_disabled_variables(class="form-check-input", id="include-disabled-variables", disabled=(not form.include_variables.data)) }}
                                 <label class="form-check-label" for="include-disabled-variables">
                                     <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_variables.label.text }}
                                 </label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_template_variables(class="form-check-input", id="include-template-variables", disabled=(not form.include_variables.data)) }}
                                 <label class="form-check-label" for="include-template-variables">
                                     <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_variables.label.text }}
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="form-check mb-2">
+                <div class="export-option mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div class="form-check m-0 flex-grow-1">
                             {{ form.include_secrets(class="form-check-input", id="include-secrets") }}
                             <label class="form-check-label" for="include-secrets">
                                 <i class="fas fa-key me-1 text-warning"></i>
                                 <a class="text-reset text-decoration-none" href="{{ url_for('main.secrets') }}">{{ form.include_secrets.label.text }}</a>
                             </label>
                         </div>
-
-                        <div class="ms-4 mt-2{{ '' if form.include_secrets.data else ' d-none' }}" id="secret-options">
-                            <div class="form-check mb-1">
+                        <div class="d-flex flex-wrap align-items-center gap-3 ms-auto{{ '' if form.include_secrets.data else ' d-none' }}" id="secret-options">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_disabled_secrets(class="form-check-input", id="include-disabled-secrets", disabled=(not form.include_secrets.data)) }}
                                 <label class="form-check-label" for="include-disabled-secrets">
                                     <i class="fas fa-ban me-1 text-danger"></i>{{ form.include_disabled_secrets.label.text }}
                                 </label>
                             </div>
-                            <div class="form-check">
+                            <div class="form-check form-check-inline m-0">
                                 {{ form.include_template_secrets(class="form-check-input", id="include-template-secrets", disabled=(not form.include_secrets.data)) }}
                                 <label class="form-check-label" for="include-template-secrets">
                                     <i class="fas fa-copy me-1 text-secondary"></i>{{ form.include_template_secrets.label.text }}
                                 </label>
                             </div>
                         </div>
-
-                        <div class="form-check mb-3">
-                            {{ form.include_history(class="form-check-input", id="include-history") }}
-                            <label class="form-check-label" for="include-history">
-                                <i class="fas fa-clock me-1 text-secondary"></i>{{ form.include_history.label.text }}
-                            </label>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            {{ form.include_source(class="form-check-input", id="include-source") }}
-                            <label class="form-check-label" for="include-source">
-                                <i class="fas fa-code me-1 text-success"></i>{{ form.include_source.label.text }}
-                                <span class="d-block text-muted small">Includes Python, templates, static assets, and other files needed to run the app.</span>
-                            </label>
-                        </div>
-
-                        <div class="form-check mb-4">
-                            {{ form.include_cid_map(class="form-check-input", id="include-cid-map") }}
-                            <label class="form-check-label" for="include-cid-map">
-                                <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
-                                <span class="d-block text-muted small">Include the CID to content map so other environments can load referenced definitions.</span>
-                            </label>
-                            <div class="ms-4 mt-3{{ '' if form.include_cid_map.data else ' d-none' }}" id="include-unreferenced-cid-container">
-                                <div class="form-check">
-                                    {{ form.include_unreferenced_cid_data(class="form-check-input", id="include-unreferenced-cid-data", disabled=(not form.include_cid_map.data)) }}
-                                    <label class="form-check-label" for="include-unreferenced-cid-data">
-                                        {{ form.include_unreferenced_cid_data.label.text }}
-                                        <span class="d-block text-muted small">Add CID content that is not referenced by other exported items.</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            {{ form.secret_key.label(class="form-label") }}
-                            {{ form.secret_key(class="form-control" + (" is-invalid" if form.secret_key.errors else "")) }}
-                            {% if form.secret_key.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.secret_key.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">Secrets will be encrypted using this key. Keep it safe to decrypt them later.</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </a>
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
 
-            <div class="alert alert-info mt-4" role="alert">
-                <i class="fas fa-info-circle me-2"></i>Exports are saved as a CID-backed JSON file. Secrets are encrypted with the key you provide—share it securely with anyone importing this export.
-            </div>
+                <div class="form-check mb-3">
+                    {{ form.include_history(class="form-check-input", id="include-history") }}
+                    <label class="form-check-label" for="include-history">
+                        <i class="fas fa-clock me-1 text-secondary"></i>{{ form.include_history.label.text }}
+                    </label>
+                </div>
+
+                <div class="form-check mb-3">
+                    {{ form.include_source(class="form-check-input", id="include-source") }}
+                    <label class="form-check-label" for="include-source">
+                        <i class="fas fa-code me-1 text-success"></i>{{ form.include_source.label.text }}
+                        <span class="d-block text-muted small">Includes Python, templates, static assets, and other files needed to run the app.</span>
+                    </label>
+                </div>
+
+                <div class="form-check mb-4">
+                    {{ form.include_cid_map(class="form-check-input", id="include-cid-map") }}
+                    <label class="form-check-label" for="include-cid-map">
+                        <i class="fas fa-database me-1 text-primary"></i>{{ form.include_cid_map.label.text }}
+                        <span class="d-block text-muted small">Include the CID to content map so other environments can load referenced definitions.</span>
+                    </label>
+                    <div class="ms-4 mt-3{{ '' if form.include_cid_map.data else ' d-none' }}" id="include-unreferenced-cid-container">
+                        <div class="form-check">
+                            {{ form.include_unreferenced_cid_data(class="form-check-input", id="include-unreferenced-cid-data", disabled=(not form.include_cid_map.data)) }}
+                            <label class="form-check-label" for="include-unreferenced-cid-data">
+                                {{ form.include_unreferenced_cid_data.label.text }}
+                                <span class="d-block text-muted small">Add CID content that is not referenced by other exported items.</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    {{ form.secret_key.label(class="form-label") }}
+                    {{ form.secret_key(class="form-control" + (" is-invalid" if form.secret_key.errors else "")) }}
+                    {% if form.secret_key.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.secret_key.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="form-text">Secrets will be encrypted using this key. Keep it safe to decrypt them later.</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
         </div>
+    </div>
+
+    <div class="alert alert-info mt-4" role="alert">
+        <i class="fas fa-info-circle me-2"></i>Exports are saved as a CID-backed JSON file. Secrets are encrypted with the key you provide—share it securely with anyone importing this export.
     </div>
 </div>
 {% endblock %}
