@@ -1497,8 +1497,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(server.definition, 'Test server definition')
         self.assertTrue(server.template)
 
-    def test_new_server_duplicate_name(self):
-        """Test creating server with duplicate name."""
+    def test_new_server_duplicate_name_shows_error_and_preserves_original(self):
+        """Submitting a duplicate server name re-renders the form with an error and keeps only the original record."""
         # Create existing server
         existing_server = Server(
             name='duplicate-server',
@@ -1517,7 +1517,10 @@ class TestServerRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Should not create duplicate
+        page = response.get_data(as_text=True)
+        self.assertIn('A server named "duplicate-server" already exists', page)
+
+        # The duplicate submission should leave the original server as the lone record.
         count = Server.query.filter_by(user_id=self.test_user_id, name='duplicate-server').count()
         self.assertEqual(count, 1)
 
