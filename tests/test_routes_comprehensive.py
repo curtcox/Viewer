@@ -758,9 +758,10 @@ def main(request):
         response = self.client.get('/plans')
         self.assertEqual(response.status_code, 404)
 
-    def test_terms_page(self):
-        """Test terms page."""
+    def test_terms_page_remains_disabled_and_returns_404(self):
+        """/terms should behave like a missing page while the legacy route stays disabled."""
         response = self.client.get('/terms')
+        # The terms route is intentionally disabled, so the app should treat it as not found.
         self.assertEqual(response.status_code, 404)
 
     def test_privacy_page_returns_not_found(self):
