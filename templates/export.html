@@ -3,6 +3,21 @@
 {% block title %}Export Data{% endblock %}
 
 {% block content %}
+{% macro render_export_preview(preview) %}
+    {% if preview is not defined or not preview %}
+        <div class="text-muted small fst-italic">No items available for export.</div>
+    {% elif not preview.include %}
+        <div class="text-muted small fst-italic">{{ preview.not_selected_message }}</div>
+    {% elif preview.selected %}
+        <ul class="list-unstyled small mb-0">
+            {% for item in preview.selected %}
+                <li>{{ item.name }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="text-muted small fst-italic">{{ preview.empty_message }}</div>
+    {% endif %}
+{% endmacro %}
 <div class="container-fluid px-3 px-lg-5">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
         <h2 class="mb-0"><i class="fas fa-download me-2"></i>Export Data</h2>
@@ -61,6 +76,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="w-100 mt-2" data-export-preview="aliases">
+                        {{ render_export_preview(export_preview.aliases) }}
+                    </div>
                 </div>
 
                 <div class="export-option mb-3 pb-3 border-bottom">
@@ -86,6 +104,9 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
+                    <div class="w-100 mt-2" data-export-preview="servers">
+                        {{ render_export_preview(export_preview.servers) }}
                     </div>
                 </div>
 
@@ -113,6 +134,9 @@
                             </div>
                         </div>
                     </div>
+                    <div class="w-100 mt-2" data-export-preview="variables">
+                        {{ render_export_preview(export_preview.variables) }}
+                    </div>
                 </div>
 
                 <div class="export-option mb-3 pb-3 border-bottom">
@@ -138,6 +162,9 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
+                    <div class="w-100 mt-2" data-export-preview="secrets">
+                        {{ render_export_preview(export_preview.secrets) }}
                     </div>
                 </div>
 
@@ -197,6 +224,8 @@
         </div>
     </div>
 
+    <script id="export-preview-data" type="application/json">{{ export_preview | tojson }}</script>
+
     <div class="alert alert-info mt-4" role="alert">
         <i class="fas fa-info-circle me-2"></i>Exports are saved as a CID-backed JSON file. Secrets are encrypted with the key you provide—share it securely with anyone importing this export.
     </div>
@@ -212,6 +241,100 @@
             var sizeStatus = document.getElementById('export-size-status');
             var updateTimeoutId = null;
             var activeController = null;
+            var previewDataElement = document.getElementById('export-preview-data');
+            var exportPreview = {};
+            var previewSections = ['aliases', 'servers', 'variables', 'secrets'];
+            var previewUpdateTimeoutId = null;
+
+            if (previewDataElement) {
+                try {
+                    exportPreview = JSON.parse(previewDataElement.textContent || '{}');
+                } catch (error) {
+                    exportPreview = {};
+                }
+            }
+
+            function escapeHtml(value) {
+                if (typeof value !== 'string') {
+                    value = value === undefined || value === null ? '' : String(value);
+                }
+                return value
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function renderMessage(message) {
+                return '<div class="text-muted small fst-italic">' + escapeHtml(message || '') + '</div>';
+            }
+
+            function updatePreview(section) {
+                var container = document.querySelector('[data-export-preview="' + section + '"]');
+                if (!container) {
+                    return;
+                }
+
+                var sectionData = exportPreview && exportPreview[section] ? exportPreview[section] : {};
+                var includeCheckbox = document.getElementById('include-' + section);
+                var includeCollection = includeCheckbox ? includeCheckbox.checked : false;
+
+                if (!includeCollection) {
+                    var notSelectedMessage = sectionData.not_selected_message || 'Not selected for export.';
+                    container.innerHTML = renderMessage(notSelectedMessage);
+                    return;
+                }
+
+                var available = Array.isArray(sectionData.available) ? sectionData.available : [];
+                var includeDisabledCheckbox = document.getElementById('include-disabled-' + section);
+                var includeTemplatesCheckbox = document.getElementById('include-template-' + section);
+                var includeDisabled = includeDisabledCheckbox ? includeDisabledCheckbox.checked : false;
+                var includeTemplates = includeTemplatesCheckbox ? includeTemplatesCheckbox.checked : false;
+
+                var selected = available.filter(function (item) {
+                    if (!item) {
+                        return false;
+                    }
+                    var isTemplate = Boolean(item.template);
+                    var isEnabled = Boolean(item.enabled);
+                    if (isTemplate && !includeTemplates) {
+                        return false;
+                    }
+                    if (!isEnabled && !includeDisabled) {
+                        return false;
+                    }
+                    return true;
+                });
+
+                if (!selected.length) {
+                    var emptyMessage = sectionData.empty_message || 'No items available for export.';
+                    container.innerHTML = renderMessage(emptyMessage);
+                    return;
+                }
+
+                var listItems = selected
+                    .map(function (item) {
+                        return '<li>' + escapeHtml(item.name || '') + '</li>';
+                    })
+                    .join('');
+                container.innerHTML = '<ul class="list-unstyled small mb-0">' + listItems + '</ul>';
+            }
+
+            function updateAllPreviews() {
+                previewSections.forEach(updatePreview);
+            }
+
+            function schedulePreviewUpdate() {
+                if (previewUpdateTimeoutId) {
+                    clearTimeout(previewUpdateTimeoutId);
+                }
+
+                previewUpdateTimeoutId = window.setTimeout(function () {
+                    previewUpdateTimeoutId = null;
+                    updateAllPreviews();
+                }, 0);
+            }
 
             function updateSizeStatus(message, isError) {
                 if (!sizeStatus) {
@@ -324,6 +447,7 @@
                         }
                     });
                     scheduleExportSizeUpdate();
+                    schedulePreviewUpdate();
                 }
 
                 trigger.addEventListener('change', sync);
@@ -375,12 +499,15 @@
                 var watchedInputs = exportForm.querySelectorAll('input, select, textarea');
                 watchedInputs.forEach(function (input) {
                     input.addEventListener('change', scheduleExportSizeUpdate);
+                    input.addEventListener('change', schedulePreviewUpdate);
                     if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password') {
                         input.addEventListener('input', scheduleExportSizeUpdate);
+                        input.addEventListener('input', schedulePreviewUpdate);
                     }
                 });
 
                 scheduleExportSizeUpdate();
+                schedulePreviewUpdate();
             }
         });
     </script>

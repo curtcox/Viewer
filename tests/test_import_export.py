@@ -168,6 +168,67 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertFalse(payload['ok'])
         self.assertIn('secret_key', payload['errors'])
 
+    def test_export_preview_lists_selected_items(self):
+        with self.app.app_context():
+            alias = Alias(name='alias-one', definition='echo alias', user_id=self.user_id)
+            server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
+            variable = Variable(name='var-one', definition='value', user_id=self.user_id)
+            secret = Secret(name='secret-one', definition='secret', user_id=self.user_id)
+            db.session.add_all([alias, server, variable, secret])
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<li>alias-one</li>', html)
+        self.assertIn('<li>server-one</li>', html)
+        self.assertIn('<li>var-one</li>', html)
+        self.assertIn('<div class="text-muted small fst-italic">Secrets are not selected for export.</div>', html)
+
+    def test_export_preview_respects_disabled_and_template_filters(self):
+        with self.app.app_context():
+            alias_disabled = Alias(
+                name='alias-disabled',
+                definition='disabled',
+                user_id=self.user_id,
+                enabled=False,
+            )
+            alias_template = Alias(
+                name='alias-template',
+                definition='template',
+                user_id=self.user_id,
+                template=True,
+            )
+            secret = Secret(name='secret-two', definition='top-secret', user_id=self.user_id)
+            db.session.add_all([alias_disabled, alias_template, secret])
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.get('/export')
+            html = response.get_data(as_text=True)
+            self.assertNotIn('<li>alias-disabled</li>', html)
+            self.assertNotIn('<li>alias-template</li>', html)
+
+            response = self.client.post(
+                '/export',
+                data={
+                    'include_aliases': 'y',
+                    'include_disabled_aliases': 'y',
+                    'include_template_aliases': 'y',
+                    'include_secrets': 'y',
+                    'submit': True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('<li>alias-disabled</li>', html)
+        self.assertIn('<li>alias-template</li>', html)
+        self.assertIn('<li>secret-two</li>', html)
+        self.assertNotIn('<div class="text-muted small fst-italic">Secrets are not selected for export.</div>', html)
+
     def test_export_includes_selected_collections(self):
         with self.app.app_context():
             definition_text = format_primary_alias_line(
