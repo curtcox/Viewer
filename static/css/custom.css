@@ -56,7 +56,7 @@ body {
     padding-left: 0.35rem;
     padding-right: 0.35rem;
     border: none;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgb(255 255 255 / 55%);
 }
 
 .viewer-menu .viewer-menu-toggle:focus {
@@ -91,7 +91,7 @@ body {
     margin-top: -0.25rem;
 }
 
-@media (max-width: 991.98px) {
+@media (width <= 991.98px) {
     .dropdown-submenu > .dropdown-menu {
         left: 0;
         top: 100%;
@@ -102,17 +102,17 @@ body {
 /* Card styles */
 .card {
     border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 7.5%);
     transition: box-shadow 0.15s ease-in-out;
 }
 
 .card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 15%);
 }
 
 .card-header {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-    background-color: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px solid rgb(0 0 0 / 12.5%);
+    background-color: rgb(0 0 0 / 3%);
 }
 
 /* Button styles */
@@ -136,7 +136,7 @@ body {
 
 .form-control:focus {
     border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
 }
 
 .form-control-lg {
@@ -184,6 +184,19 @@ code {
     border-radius: 0.25rem;
     font-size: 0.875em;
     color: #e83e8c;
+}
+
+/* Footer styles */
+footer {
+    background-color: #343a40 !important;
+}
+
+footer a {
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #007bff !important;
 }
 
 /* CID link presentation */
@@ -253,7 +266,7 @@ code {
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 0.125rem solid rgba(0, 0, 0, 0.1);
+    border: 0.125rem solid rgb(0 0 0 / 10%);
     border-radius: 50%;
     border-top-color: #007bff;
     animation: spin 1s ease-in-out infinite;
@@ -273,7 +286,9 @@ code {
     border: 1px solid #ced4da;
 }
 
+/* stylelint-disable-next-line selector-class-pattern */
 .code-editor .ace_content,
+/* stylelint-disable-next-line selector-class-pattern */
 .server-definition-editor .ace_content {
     font-family: inherit;
 }
@@ -281,7 +296,7 @@ code {
 .code-editor.is-invalid,
 .server-definition-editor.is-invalid {
     border-color: #dc3545;
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    box-shadow: 0 0 0 0.2rem rgb(220 53 69 / 25%);
 }
 
 /* Hero section */
@@ -301,21 +316,8 @@ code {
     transform: translateY(-0.25rem);
 }
 
-/* Footer styles */
-footer {
-    background-color: #343a40 !important;
-}
-
-footer a {
-    transition: color 0.3s ease;
-}
-
-footer a:hover {
-    color: #007bff !important;
-}
-
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (width <= 768px) {
     .display-4 {
         font-size: 2rem;
     }
@@ -367,7 +369,7 @@ footer a:hover {
 }
 
 .request-header {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: Monaco, Menlo, "Ubuntu Mono", monospace;
     font-size: 0.875rem;
 }
 
@@ -390,7 +392,7 @@ footer a:hover {
 .btn:focus,
 .form-control:focus {
     outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgb(0 123 255 / 25%);
 }
 
 /* Print styles */
@@ -410,7 +412,7 @@ footer a:hover {
 /* Cross reference dashboard */
 .crossref-board .list-group-item {
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-    border-color: rgba(0, 0, 0, 0.08);
+    border-color: rgb(0 0 0 / 8%);
 }
 
 .crossref-board .crossref-entity,
@@ -421,7 +423,7 @@ footer a:hover {
 .crossref-board .crossref-entity:focus,
 .crossref-board .crossref-reference:focus {
     outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    box-shadow: 0 0 0 0.2rem rgb(13 110 253 / 25%);
 }
 
 .crossref-board.is-hovering .crossref-entity,
@@ -432,8 +434,8 @@ footer a:hover {
 .crossref-board .is-highlighted {
     opacity: 1 !important;
     transform: translateY(-2px);
-    box-shadow: 0 0.75rem 1.5rem rgba(13, 110, 253, 0.2);
-    border-color: rgba(13, 110, 253, 0.35);
+    box-shadow: 0 0.75rem 1.5rem rgb(13 110 253 / 20%);
+    border-color: rgb(13 110 253 / 35%);
 }
 
 .crossref-board .is-related,
@@ -442,7 +444,7 @@ footer a:hover {
 }
 
 .crossref-board .is-reference {
-    border-color: rgba(108, 117, 125, 0.35);
+    border-color: rgb(108 117 125 / 35%);
 }
 
 .crossref-board .is-dimmed {
