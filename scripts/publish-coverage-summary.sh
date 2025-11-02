@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure GitHub Actions summary/output variables exist even when running locally.
+: "${GITHUB_STEP_SUMMARY:=}"
+: "${GITHUB_OUTPUT:=}"
+
 if [[ $# -lt 1 || $# -gt 3 ]]; then
   echo "Usage: $0 <report-path> [summary-path] [outputs-path]" >&2
   exit 1
