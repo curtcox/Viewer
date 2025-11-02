@@ -929,6 +929,18 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn(cid_value, cid_map)
         self.assertEqual(cid_map[cid_value], cid_text.encode('utf-8'))
 
+    def test_parse_cid_values_accepts_explicit_utf8_metadata(self):
+        cid_text = 'explicit encoding content'
+        cid_value = format_cid(generate_cid(cid_text.encode('utf-8')))
+
+        cid_map, errors = import_export._parse_cid_values_section(
+            {cid_value: {'encoding': 'utf-8', 'value': cid_text}}
+        )
+
+        self.assertEqual(errors, [])
+        self.assertIn(cid_value, cid_map)
+        self.assertEqual(cid_map[cid_value], cid_text.encode('utf-8'))
+
     def test_import_reports_missing_selected_content(self):
         definition_text = format_primary_alias_line(
             'literal',
@@ -1170,8 +1182,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 ],
             },
             'cid_values': {
-                server_cid: {'encoding': 'utf-8', 'value': server_definition},
-                alias_cid: {'encoding': 'utf-8', 'value': alias_definition},
+                server_cid: server_definition,
+                alias_cid: alias_definition,
             },
         })
 
