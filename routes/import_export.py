@@ -2033,7 +2033,7 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
 @main_bp.route('/export', methods=['GET', 'POST'])
 def export_data():
     """Allow users to export selected data collections as JSON."""
-    form = ExportForm()
+    form = ExportForm(request.form if request.method == 'POST' else None)
     preview = _build_export_preview(form, current_user.id)
     if form.validate_on_submit():
         export_result = _build_export_payload(form, current_user.id)
@@ -2046,7 +2046,7 @@ def export_data():
 def export_size():
     """Return the size of the export JSON for the current selections."""
 
-    form = ExportForm()
+    form = ExportForm(request.form if request.method == 'POST' else None)
     _build_export_preview(form, current_user.id)
     if form.validate():
         export_result = _build_export_payload(
@@ -2068,7 +2068,7 @@ def export_size():
 @main_bp.route('/import', methods=['GET', 'POST'])
 def import_data():
     """Allow users to import data collections from JSON content."""
-    form = ImportForm()
+    form = ImportForm(request.form if request.method == 'POST' else None)
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_import_form():
