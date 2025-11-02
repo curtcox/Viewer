@@ -49,6 +49,7 @@ from db_access import (
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
+from wtforms import SelectMultipleField
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias, Secret, Server, Variable
@@ -58,6 +59,9 @@ from .core import get_existing_routes
 from .secrets import update_secret_definitions_cid
 from .servers import update_server_definitions_cid
 from .variables import update_variable_definitions_cid
+
+
+_SELECTION_SENTINEL = '__none__'
 
 
 def _normalise_cid(value: Any) -> str:
@@ -699,6 +703,21 @@ def _preview_item_entries(records: Iterable[Any]) -> list[dict[str, Any]]:
     return entries
 
 
+def _selected_name_set(raw_values: Iterable[Any]) -> set[str]:
+    """Return a cleaned set of user-selected entry names."""
+
+    selected: set[str] = set()
+    for value in raw_values or []:
+        if not isinstance(value, str):
+            continue
+        cleaned = value.strip()
+        if not cleaned or cleaned == _SELECTION_SENTINEL:
+            continue
+        selected.add(cleaned)
+
+    return selected
+
+
 def _filter_preview_items(
     items: Iterable[dict[str, Any]],
     *,
@@ -728,15 +747,50 @@ def _filter_preview_items(
 def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str, Any]]:
     """Return metadata describing which items are currently selected for export."""
 
+    def _initialise_selection(
+        field: SelectMultipleField,
+        entries: list[dict[str, Any]],
+    ) -> set[str]:
+        available_names: list[str] = []
+        for entry in entries:
+            name = entry.get('name')
+            if not isinstance(name, str):
+                continue
+            cleaned = name.strip()
+            if not cleaned:
+                continue
+            available_names.append(cleaned)
+
+        field.choices = [(name, name) for name in available_names]
+
+        raw_data = list(field.raw_data or [])
+        submitted = bool(raw_data)
+        cleaned_values: list[str] = []
+        for value in field.data or []:
+            if not isinstance(value, str):
+                continue
+            cleaned = value.strip()
+            if not cleaned or cleaned == _SELECTION_SENTINEL:
+                continue
+            cleaned_values.append(cleaned)
+
+        if not submitted:
+            cleaned_values = list(available_names)
+
+        field.data = cleaned_values
+        return set(cleaned_values)
+
     def _build_section(
         entries: list[dict[str, Any]],
         include_collection: bool,
         include_disabled: bool,
         include_templates: bool,
         label: str,
+        field: SelectMultipleField,
     ) -> dict[str, Any]:
         capitalised_label = label.title()
-        selected = (
+        selected_names = _initialise_selection(field, entries)
+        filtered_items = (
             _filter_preview_items(
                 entries,
                 include_disabled=include_disabled,
@@ -745,12 +799,21 @@ def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str,
             if include_collection
             else []
         )
+        filtered_names = {
+            item.get('name')
+            for item in filtered_items
+            if isinstance(item.get('name'), str) and item.get('name')
+        }
 
         return {
             'label': label,
             'include': include_collection,
             'available': entries,
-            'selected': selected,
+            'selected': filtered_items,
+            'selected_names': sorted(selected_names & filtered_names, key=str.casefold),
+            'known_names': sorted(filtered_names, key=str.casefold),
+            'field_name': field.name,
+            'selection_sentinel': _SELECTION_SENTINEL,
             'empty_message': f'No {label} available for export.',
             'not_selected_message': f'{capitalised_label} are not selected for export.',
         }
@@ -767,6 +830,7 @@ def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str,
             bool(form.include_disabled_aliases.data),
             bool(form.include_template_aliases.data),
             'aliases',
+            form.selected_aliases,
         ),
         'servers': _build_section(
             server_entries,
@@ -774,6 +838,7 @@ def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str,
             bool(form.include_disabled_servers.data),
             bool(form.include_template_servers.data),
             'servers',
+            form.selected_servers,
         ),
         'variables': _build_section(
             variable_entries,
@@ -781,6 +846,7 @@ def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str,
             bool(form.include_disabled_variables.data),
             bool(form.include_template_variables.data),
             'variables',
+            form.selected_variables,
         ),
         'secrets': _build_section(
             secret_entries,
@@ -788,6 +854,7 @@ def _build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str,
             bool(form.include_disabled_secrets.data),
             bool(form.include_template_secrets.data),
             'secrets',
+            form.selected_secrets,
         ),
     }
 
@@ -799,8 +866,20 @@ def _collect_alias_section(
 ) -> list[dict[str, Any]]:
     """Return alias export entries including CID references."""
 
+    aliases = list(get_user_aliases(user_id))
+    selected_names = _selected_name_set(form.selected_aliases.data)
+    if not selected_names and not getattr(form.selected_aliases, 'raw_data', None):
+        selected_names = {
+            alias.name
+            for alias in aliases
+            if isinstance(getattr(alias, 'name', None), str) and alias.name
+        }
     alias_payload: list[dict[str, Any]] = []
-    for alias in get_user_aliases(user_id):
+    for alias in aliases:
+        name = getattr(alias, 'name', '')
+        if not isinstance(name, str) or not name or name not in selected_names:
+            continue
+
         definition_text = alias.definition or ''
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = cid_writer.cid_for_content(definition_bytes)
@@ -817,7 +896,7 @@ def _collect_alias_section(
 
         alias_payload.append(
             {
-                'name': alias.name,
+                'name': name,
                 'definition_cid': definition_cid,
                 'enabled': enabled,
                 'template': template,
@@ -834,8 +913,20 @@ def _collect_server_section(
 ) -> list[dict[str, str]]:
     """Return server export entries including CID references."""
 
+    servers = list(get_user_servers(user_id))
+    selected_names = _selected_name_set(form.selected_servers.data)
+    if not selected_names and not getattr(form.selected_servers, 'raw_data', None):
+        selected_names = {
+            server.name
+            for server in servers
+            if isinstance(getattr(server, 'name', None), str) and server.name
+        }
     servers_payload: list[dict[str, str]] = []
-    for server in get_user_servers(user_id):
+    for server in servers:
+        name = getattr(server, 'name', '')
+        if not isinstance(name, str) or not name or name not in selected_names:
+            continue
+
         definition_text = server.definition or ''
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = cid_writer.cid_for_content(definition_bytes)
@@ -852,7 +943,7 @@ def _collect_server_section(
 
         servers_payload.append(
             {
-                'name': server.name,
+                'name': name,
                 'definition_cid': definition_cid,
                 'enabled': enabled,
                 'template': template,
@@ -865,8 +956,20 @@ def _collect_server_section(
 def _collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, str]]:
     """Return variable export entries for the user."""
 
+    variables = list(get_user_variables(user_id))
+    selected_names = _selected_name_set(form.selected_variables.data)
+    if not selected_names and not getattr(form.selected_variables, 'raw_data', None):
+        selected_names = {
+            variable.name
+            for variable in variables
+            if isinstance(getattr(variable, 'name', None), str) and variable.name
+        }
     variable_payload: list[dict[str, str]] = []
-    for variable in get_user_variables(user_id):
+    for variable in variables:
+        name = getattr(variable, 'name', '')
+        if not isinstance(name, str) or not name or name not in selected_names:
+            continue
+
         enabled = bool(getattr(variable, 'enabled', True))
         template = bool(getattr(variable, 'template', False))
 
@@ -880,7 +983,7 @@ def _collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str,
 
         variable_payload.append(
             {
-                'name': variable.name,
+                'name': name,
                 'definition': variable.definition,
                 'enabled': enabled,
                 'template': template,
@@ -891,6 +994,7 @@ def _collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str,
 
 
 def _collect_secrets_section(
+    form: ExportForm,
     user_id: str,
     key: str,
     include_disabled: bool,
@@ -898,8 +1002,20 @@ def _collect_secrets_section(
 ) -> dict[str, Any]:
     """Return encrypted secret entries using the provided key."""
 
+    secrets = list(get_user_secrets(user_id))
+    selected_names = _selected_name_set(form.selected_secrets.data)
+    if not selected_names and not getattr(form.selected_secrets, 'raw_data', None):
+        selected_names = {
+            secret.name
+            for secret in secrets
+            if isinstance(getattr(secret, 'name', None), str) and secret.name
+        }
     items: list[dict[str, Any]] = []
-    for secret in get_user_secrets(user_id):
+    for secret in secrets:
+        name = getattr(secret, 'name', '')
+        if not isinstance(name, str) or not name or name not in selected_names:
+            continue
+
         enabled = bool(getattr(secret, 'enabled', True))
         template = bool(getattr(secret, 'template', False))
 
@@ -913,7 +1029,7 @@ def _collect_secrets_section(
 
         items.append(
             {
-                'name': secret.name,
+                'name': name,
                 'ciphertext': encrypt_secret_value(secret.definition, key),
                 'enabled': enabled,
                 'template': template,
@@ -1055,6 +1171,7 @@ def _build_export_payload(
         form.include_secrets.data,
         'secrets',
         lambda: _collect_secrets_section(
+            form,
             user_id,
             form.secret_key.data.strip(),
             form.include_disabled_secrets.data,
@@ -1930,6 +2047,7 @@ def export_size():
     """Return the size of the export JSON for the current selections."""
 
     form = ExportForm()
+    _build_export_preview(form, current_user.id)
     if form.validate():
         export_result = _build_export_payload(
             form,

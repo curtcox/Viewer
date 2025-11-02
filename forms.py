@@ -3,7 +3,14 @@ from typing import Any, Optional as OptionalType
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import BooleanField, RadioField, StringField, SubmitField, TextAreaField
+from wtforms import (
+    BooleanField,
+    RadioField,
+    SelectMultipleField,
+    StringField,
+    SubmitField,
+    TextAreaField,
+)
 from wtforms.fields.core import Field
 from wtforms.validators import DataRequired, Optional, Regexp, ValidationError
 
@@ -185,15 +192,19 @@ class ExportForm(FlaskForm):
     include_aliases = BooleanField('Aliases', default=True)
     include_disabled_aliases = BooleanField('Disabled aliases')
     include_template_aliases = BooleanField('Template aliases')
+    selected_aliases = SelectMultipleField(coerce=str, validate_choice=False)
     include_servers = BooleanField('Servers', default=True)
     include_disabled_servers = BooleanField('Disabled servers')
     include_template_servers = BooleanField('Template servers')
+    selected_servers = SelectMultipleField(coerce=str, validate_choice=False)
     include_variables = BooleanField('Variables', default=True)
     include_disabled_variables = BooleanField('Disabled variables')
     include_template_variables = BooleanField('Template variables')
+    selected_variables = SelectMultipleField(coerce=str, validate_choice=False)
     include_secrets = BooleanField('Secrets')
     include_disabled_secrets = BooleanField('Disabled secrets')
     include_template_secrets = BooleanField('Template secrets')
+    selected_secrets = SelectMultipleField(coerce=str, validate_choice=False)
     include_history = BooleanField('Change History')
     include_source = BooleanField('Application Source Files')
     include_cid_map = BooleanField('CID Content Map', default=True)
