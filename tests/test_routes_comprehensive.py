@@ -1920,9 +1920,10 @@ def main():
 class TestSecretRoutes(BaseTestCase):
     """Test secret management routes."""
 
-    def test_secrets_list(self):
-        """Test secrets list page."""
+    def test_secrets_list_returns_ok_for_authenticated_user(self):
+        """Secrets index returns HTTP 200 when accessed by a logged-in user."""
         self.login_user()
+        # After logging in, the list endpoint should be reachable without error.
         response = self.client.get('/secrets')
         self.assertEqual(response.status_code, 200)
 
