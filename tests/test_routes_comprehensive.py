@@ -6,6 +6,7 @@ import json
 import os
 import re
 import unittest
+from html import unescape
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -758,13 +759,14 @@ def main(request):
         response = self.client.get('/plans')
         self.assertEqual(response.status_code, 404)
 
-    def test_terms_page(self):
-        """Test terms page."""
+    def test_terms_page_remains_disabled_and_returns_404(self):
+        """/terms should behave like a missing page while the legacy route stays disabled."""
         response = self.client.get('/terms')
+        # The terms route is intentionally disabled, so the app should treat it as not found.
         self.assertEqual(response.status_code, 404)
 
-    def test_privacy_page(self):
-        """Test privacy page."""
+    def test_privacy_page_returns_not_found(self):
+        """Privacy endpoint should stay disabled and answer with a 404."""
         response = self.client.get('/privacy')
         self.assertEqual(response.status_code, 404)
 
@@ -1441,14 +1443,18 @@ class TestServerRoutes(BaseTestCase):
     """Test server management routes."""
 
     @patch('routes.servers.get_current_server_definitions_cid')
-    def test_servers_list(self, mock_cid):
-        """Test servers list page."""
-        # Mock the CID function to avoid potential issues
+    def test_servers_list_shows_overview_and_create_link(self, mock_cid):
+        """The servers index should load and display the overview header plus a create button."""
+        # Mock the CID function to avoid network lookups during the list fetch
         mock_cid.return_value = 'test_cid_123'
 
         self.login_user()
         response = self.client.get('/servers')
         self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('My Servers', page)
+        self.assertIn('Create New Server', page)
 
     def test_new_server_get(self):
         """Test new server page GET request."""
@@ -1495,8 +1501,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(server.definition, 'Test server definition')
         self.assertTrue(server.template)
 
-    def test_new_server_duplicate_name(self):
-        """Test creating server with duplicate name."""
+    def test_new_server_duplicate_name_shows_error_and_preserves_original(self):
+        """Submitting a duplicate server name re-renders the form with an error and keeps only the original record."""
         # Create existing server
         existing_server = Server(
             name='duplicate-server',
@@ -1515,7 +1521,10 @@ class TestServerRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Should not create duplicate
+        page = response.get_data(as_text=True)
+        self.assertIn('A server named "duplicate-server" already exists', page)
+
+        # The duplicate submission should leave the original server as the lone record.
         count = Server.query.filter_by(user_id=self.test_user_id, name='duplicate-server').count()
         self.assertEqual(count, 1)
 
@@ -1681,8 +1690,8 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.get('/servers/nonexistent')
         self.assertEqual(response.status_code, 404)
 
-    def test_edit_server_get(self):
-        """Test edit server page GET request."""
+    def test_edit_server_get_returns_populated_form(self):
+        """GETing the edit page for an existing server returns 200 and shows the saved values."""
         server = Server(
             name='edit-server',
             definition='Server to edit',
@@ -1694,6 +1703,11 @@ class TestServerRoutes(BaseTestCase):
         self.login_user()
         response = self.client.get('/servers/edit-server/edit')
         self.assertEqual(response.status_code, 200)
+
+        # The response should render the edit form with the server's current data prefilled.
+        page = response.get_data(as_text=True)
+        self.assertIn('value="edit-server"', page)
+        self.assertIn('Server to edit', page)
 
     def test_edit_server_includes_test_form(self):
         """Edit page should expose the testing controls based on main() parameters."""
@@ -1714,8 +1728,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('name="token"', page)
         self.assertIn('/edit-test', page)
 
-    def test_edit_server_post(self):
-        """Test editing server."""
+    def test_edit_server_post_updates_name_and_definition(self):
+        """Submitting the edit form updates the server's name and definition."""
         server = Server(
             name='edit-server',
             definition='Original definition',
@@ -1733,7 +1747,7 @@ class TestServerRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        # Check server was updated
+        # After submitting the edit, the persisted server should reflect the requested changes.
         db.session.refresh(server)
         self.assertEqual(server.name, 'edited-server')
         self.assertEqual(server.definition, 'Updated definition')
@@ -1766,8 +1780,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIsNotNone(duplicate)
         self.assertEqual(duplicate.definition, 'Copy me')
 
-    def test_delete_server(self):
-        """Test deleting server."""
+    def test_delete_server_redirects_and_removes_database_record(self):
+        """Posting to the delete endpoint should redirect and remove the server from the database."""
         server = Server(
             name='delete-server',
             definition='Server to delete',
@@ -1780,7 +1794,7 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.post('/servers/delete-server/delete', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
-        # Check server was deleted
+        # Confirm the server is removed from the user's collection after the redirect response.
         deleted_server = Server.query.filter_by(user_id=self.test_user_id, name='delete-server').first()
         self.assertIsNone(deleted_server)
 
@@ -1918,14 +1932,15 @@ def main():
 class TestSecretRoutes(BaseTestCase):
     """Test secret management routes."""
 
-    def test_secrets_list(self):
-        """Test secrets list page."""
+    def test_secrets_list_returns_ok_for_authenticated_user(self):
+        """Secrets index returns HTTP 200 when accessed by a logged-in user."""
         self.login_user()
+        # After logging in, the list endpoint should be reachable without error.
         response = self.client.get('/secrets')
         self.assertEqual(response.status_code, 200)
 
-    def test_new_secret_post(self):
-        """Test creating new secret."""
+    def test_new_secret_post_persists_secret_and_flashes_success(self):
+        """Submitting the new-secret form should persist the record and flash confirmation."""
         self.login_user()
         response = self.client.post('/secrets/new', data={
             'name': 'test-secret',
@@ -1936,11 +1951,15 @@ class TestSecretRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check secret was created
+        # Verify the secret was stored with the expected template flag and content
         secret = Secret.query.filter_by(user_id=self.test_user_id, name='test-secret').first()
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
         self.assertTrue(secret.template)
+
+        # Confirm the user receives feedback about the successful creation
+        page = unescape(response.get_data(as_text=True))
+        self.assertIn('Secret "test-secret" created successfully!', page)
 
     def test_new_secret_form_includes_ai_controls(self):
         """Secret form should expose AI helper controls."""
