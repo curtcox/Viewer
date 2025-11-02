@@ -1441,14 +1441,18 @@ class TestServerRoutes(BaseTestCase):
     """Test server management routes."""
 
     @patch('routes.servers.get_current_server_definitions_cid')
-    def test_servers_list(self, mock_cid):
-        """Test servers list page."""
-        # Mock the CID function to avoid potential issues
+    def test_servers_list_shows_overview_and_create_link(self, mock_cid):
+        """The servers index should load and display the overview header plus a create button."""
+        # Mock the CID function to avoid network lookups during the list fetch
         mock_cid.return_value = 'test_cid_123'
 
         self.login_user()
         response = self.client.get('/servers')
         self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('My Servers', page)
+        self.assertIn('Create New Server', page)
 
     def test_new_server_get(self):
         """Test new server page GET request."""
