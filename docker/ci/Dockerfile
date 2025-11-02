@@ -6,6 +6,7 @@ ENV PIP_NO_CACHE_DIR=1 \
     PATH="/root/.gauge/bin:${PATH}"
 
 # Install system dependencies, including Node.js for JavaScript-based GitHub Actions
+# hadolint ignore=DL3008 -- Use distribution-managed versions to receive security updates.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
@@ -53,6 +54,7 @@ RUN set -eux; \
     gauge install html-report
 
 # Install Python dependencies used in CI
+# hadolint ignore=DL3013 -- Tooling dependencies intentionally track latest compatible releases.
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt \
