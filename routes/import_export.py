@@ -93,9 +93,9 @@ def _coerce_enabled_flag(value: Any) -> bool:
     return True if value is None else bool(value)
 
 
-def _serialise_cid_value(content: bytes) -> dict[str, str]:
+def _serialise_cid_value(content: bytes) -> str | dict[str, str]:
     try:
-        return {'encoding': 'utf-8', 'value': content.decode('utf-8')}
+        return content.decode('utf-8')
     except UnicodeDecodeError:
         return {'encoding': 'base64', 'value': base64.b64encode(content).decode('ascii')}
 
@@ -117,7 +117,7 @@ class _CidWriter:
     user_id: str
     include_optional: bool
     store_content: bool
-    cid_map_entries: dict[str, dict[str, str]] = field(default_factory=dict)
+    cid_map_entries: dict[str, str | dict[str, str]] = field(default_factory=dict)
 
     def cid_for_content(
         self,
@@ -632,7 +632,7 @@ def _source_entry_matches_export(entry: _SourceEntry, local_bytes: bytes, warnin
 def _store_cid_entry(
     cid_value: str,
     content: bytes,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_map_entries: dict[str, str | dict[str, str]],
     include_optional: bool,
     *,
     optional: bool = True,
@@ -1082,7 +1082,7 @@ def _collect_app_source_section(
 def _include_unreferenced_cids(
     form: ExportForm,
     user_id: str,
-    cid_map_entries: dict[str, dict[str, str]],
+    cid_map_entries: dict[str, str | dict[str, str]],
 ) -> None:
     """Record uploaded CID content when the user requests unreferenced data."""
 

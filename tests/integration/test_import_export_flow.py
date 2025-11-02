@@ -72,8 +72,14 @@ def _load_section(payload: dict[str, Any], key: str):
     cid_values = payload.get("cid_values", {})
     entry = cid_values.get(section_cid)
     assert entry is not None, f"Expected CID {section_cid} for section {key}"
-    encoding = (entry.get("encoding") or "utf-8").lower()
-    value = entry.get("value")
+
+    if isinstance(entry, dict):
+        encoding = (entry.get("encoding") or "utf-8").lower()
+        value = entry.get("value")
+    else:
+        encoding = "utf-8"
+        value = entry
+
     assert isinstance(value, str), f"CID {section_cid} for {key} must include string content"
     if encoding == "base64":
         content_bytes = base64.b64decode(value.encode("ascii"))

@@ -74,9 +74,15 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         content_bytes: bytes | None = None
 
         if entry is not None:
-            encoding = (entry.get('encoding') or 'utf-8').lower()
-            value = entry.get('value')
-            self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+            if isinstance(entry, dict):
+                encoding = (entry.get('encoding') or 'utf-8').lower()
+                value = entry.get('value')
+                self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+            else:
+                encoding = 'utf-8'
+                value = entry
+                self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+
             if encoding == 'base64':
                 content_bytes = base64.b64decode(value.encode('ascii'))
             else:
@@ -346,15 +352,11 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(alias_definition_cid, cid_values)
-        self.assertEqual(
-            cid_values[alias_definition_cid],
-            {'encoding': 'utf-8', 'value': definition_text},
-        )
+        self.assertIsInstance(cid_values[alias_definition_cid], str)
+        self.assertEqual(cid_values[alias_definition_cid], definition_text)
         self.assertIn(servers[0]['definition_cid'], cid_values)
-        self.assertEqual(
-            cid_values[servers[0]['definition_cid']],
-            {'encoding': 'utf-8', 'value': 'print("hi")'},
-        )
+        self.assertIsInstance(cid_values[servers[0]['definition_cid']], str)
+        self.assertEqual(cid_values[servers[0]['definition_cid']], 'print("hi")')
         for entry in project_files.values():
             self.assertIn(entry['cid'], cid_values)
 
@@ -911,10 +913,21 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(unreferenced_cid, cid_values)
+        self.assertIsInstance(cid_values[unreferenced_cid], str)
         self.assertEqual(
             cid_values[unreferenced_cid],
-            {'encoding': 'utf-8', 'value': unreferenced_content.decode('utf-8')},
+            unreferenced_content.decode('utf-8'),
         )
+
+    def test_parse_cid_values_allows_plain_strings(self):
+        cid_text = 'plain cid content'
+        cid_value = format_cid(generate_cid(cid_text.encode('utf-8')))
+
+        cid_map, errors = import_export._parse_cid_values_section({cid_value: cid_text})
+
+        self.assertEqual(errors, [])
+        self.assertIn(cid_value, cid_map)
+        self.assertEqual(cid_map[cid_value], cid_text.encode('utf-8'))
 
     def test_import_reports_missing_selected_content(self):
         definition_text = format_primary_alias_line(
@@ -1081,7 +1094,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         payload = json.dumps({
             'servers': [{'name': 'server-c', 'definition_cid': mismatched_cid}],
             'cid_values': {
-                mismatched_cid: {'encoding': 'utf-8', 'value': server_definition}
+                mismatched_cid: server_definition
             },
         })
 
@@ -1405,7 +1418,10 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn('cid_values', payload)
         cid_values = payload['cid_values']
         self.assertTrue(
-            any('export' in entry.get('value', '') for entry in cid_values.values())
+            any(
+                'export' in (entry if isinstance(entry, str) else entry.get('value', ''))
+                for entry in cid_values.values()
+            )
         )
 
     def test_process_import_submission_returns_form_on_empty_payload(self):
