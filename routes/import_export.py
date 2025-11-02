@@ -1089,7 +1089,12 @@ def _build_export_payload(
             cid: cid_writer.cid_map_entries[cid] for cid in sorted(cid_writer.cid_map_entries)
         }
 
-    json_payload = json.dumps(payload, indent=2, sort_keys=True)
+    ordered_keys = sorted(key for key in payload if key != 'cid_values')
+    if 'cid_values' in payload:
+        ordered_keys.append('cid_values')
+
+    ordered_payload = {key: payload[key] for key in ordered_keys}
+    json_payload = json.dumps(ordered_payload, indent=2)
     json_bytes = json_payload.encode('utf-8')
 
     if store_content:
