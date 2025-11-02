@@ -6,6 +6,7 @@ import json
 import os
 import re
 import unittest
+from html import unescape
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -1924,8 +1925,8 @@ class TestSecretRoutes(BaseTestCase):
         response = self.client.get('/secrets')
         self.assertEqual(response.status_code, 200)
 
-    def test_new_secret_post(self):
-        """Test creating new secret."""
+    def test_new_secret_post_persists_secret_and_flashes_success(self):
+        """Submitting the new-secret form should persist the record and flash confirmation."""
         self.login_user()
         response = self.client.post('/secrets/new', data={
             'name': 'test-secret',
@@ -1936,11 +1937,15 @@ class TestSecretRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check secret was created
+        # Verify the secret was stored with the expected template flag and content
         secret = Secret.query.filter_by(user_id=self.test_user_id, name='test-secret').first()
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
         self.assertTrue(secret.template)
+
+        # Confirm the user receives feedback about the successful creation
+        page = unescape(response.get_data(as_text=True))
+        self.assertIn('Secret "test-secret" created successfully!', page)
 
     def test_new_secret_form_includes_ai_controls(self):
         """Secret form should expose AI helper controls."""
