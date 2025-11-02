@@ -67,6 +67,29 @@ jobs:
       - name: Run mypy
         run: mypy
 
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck
+        run: |
+          set -euo pipefail
+          mapfile -t shell_scripts < <(git ls-files '*.sh')
+          if [[ "${#shell_scripts[@]}" -gt 0 ]]; then
+            shellcheck "${shell_scripts[@]}"
+          else
+            echo "No shell scripts to lint."
+          fi
+
   eslint:
     name: ESLint
     runs-on: ubuntu-latest
