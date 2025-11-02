@@ -6,6 +6,7 @@ import json
 import os
 import re
 import unittest
+from html import unescape
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
@@ -758,13 +759,14 @@ def main(request):
         response = self.client.get('/plans')
         self.assertEqual(response.status_code, 404)
 
-    def test_terms_page(self):
-        """Test terms page."""
+    def test_terms_page_remains_disabled_and_returns_404(self):
+        """/terms should behave like a missing page while the legacy route stays disabled."""
         response = self.client.get('/terms')
+        # The terms route is intentionally disabled, so the app should treat it as not found.
         self.assertEqual(response.status_code, 404)
 
-    def test_privacy_page(self):
-        """Test privacy page."""
+    def test_privacy_page_returns_not_found(self):
+        """Privacy endpoint should stay disabled and answer with a 404."""
         response = self.client.get('/privacy')
         self.assertEqual(response.status_code, 404)
 
@@ -1771,8 +1773,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIsNotNone(duplicate)
         self.assertEqual(duplicate.definition, 'Copy me')
 
-    def test_delete_server(self):
-        """Test deleting server."""
+    def test_delete_server_redirects_and_removes_database_record(self):
+        """Posting to the delete endpoint should redirect and remove the server from the database."""
         server = Server(
             name='delete-server',
             definition='Server to delete',
@@ -1785,7 +1787,7 @@ class TestServerRoutes(BaseTestCase):
         response = self.client.post('/servers/delete-server/delete', follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
-        # Check server was deleted
+        # Confirm the server is removed from the user's collection after the redirect response.
         deleted_server = Server.query.filter_by(user_id=self.test_user_id, name='delete-server').first()
         self.assertIsNone(deleted_server)
 
@@ -1923,14 +1925,15 @@ def main():
 class TestSecretRoutes(BaseTestCase):
     """Test secret management routes."""
 
-    def test_secrets_list(self):
-        """Test secrets list page."""
+    def test_secrets_list_returns_ok_for_authenticated_user(self):
+        """Secrets index returns HTTP 200 when accessed by a logged-in user."""
         self.login_user()
+        # After logging in, the list endpoint should be reachable without error.
         response = self.client.get('/secrets')
         self.assertEqual(response.status_code, 200)
 
-    def test_new_secret_post(self):
-        """Test creating new secret."""
+    def test_new_secret_post_persists_secret_and_flashes_success(self):
+        """Submitting the new-secret form should persist the record and flash confirmation."""
         self.login_user()
         response = self.client.post('/secrets/new', data={
             'name': 'test-secret',
@@ -1941,11 +1944,15 @@ class TestSecretRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # Check secret was created
+        # Verify the secret was stored with the expected template flag and content
         secret = Secret.query.filter_by(user_id=self.test_user_id, name='test-secret').first()
         self.assertIsNotNone(secret)
         self.assertEqual(secret.definition, 'Test secret definition')
         self.assertTrue(secret.template)
+
+        # Confirm the user receives feedback about the successful creation
+        page = unescape(response.get_data(as_text=True))
+        self.assertIn('Secret "test-secret" created successfully!', page)
 
     def test_new_secret_form_includes_ai_controls(self):
         """Secret form should expose AI helper controls."""
