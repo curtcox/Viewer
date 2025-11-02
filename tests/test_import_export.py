@@ -5,6 +5,7 @@ import shutil
 import sys
 import unittest
 from contextlib import ExitStack, contextmanager
+from io import BytesIO
 from datetime import datetime, timezone
 from html import escape
 from importlib import metadata
@@ -982,6 +983,29 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             f'Server "server-c" definition with CID "{server_cid}" was not included in the import.'
         )
         self.assert_flash_present(expected_error, response.data)
+
+    def test_import_accepts_file_upload_source(self):
+        payload = json.dumps({
+            'version': 6,
+            'aliases': [],
+        })
+
+        with self.logged_in():
+            response = self.client.post(
+                '/import',
+                data={
+                    'import_source': 'file',
+                    'import_file': (BytesIO(payload.encode('utf-8')), 'export.json'),
+                    'include_aliases': 'y',
+                    'submit': True,
+                },
+                content_type='multipart/form-data',
+                follow_redirects=True,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        page = response.get_data(as_text=True)
+        self.assertNotIn('Choose a JSON file to upload.', page)
 
     def test_export_includes_app_source_cids(self):
         with self.logged_in():
