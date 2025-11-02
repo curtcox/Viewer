@@ -1,6 +1,7 @@
 import logging
 import os
 from os import getenv
+from pathlib import Path
 from typing import Any, Optional
 
 import logfire
@@ -11,6 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from ai_defaults import ensure_ai_stub_for_all_users
 from css_defaults import ensure_css_alias_for_all_users
+from cid_directory_loader import load_cids_from_directory
 from cid_presenter import (
     cid_full_url,
     cid_path,
@@ -117,6 +119,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         "GITHUB_REPOSITORY_URL",
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
+    app.config.setdefault("CID_DIRECTORY", str(Path(app.root_path) / "cids"))
 
     if config_override:
         app.config.update(config_override)
@@ -190,7 +193,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        ensure_default_user()
+        default_user = ensure_default_user()
+        load_cids_from_directory(app, default_user.id)
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
