@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck disable=SC2154
+# GITHUB_* environment variables are populated by GitHub Actions runners when available.
+: "${GITHUB_STEP_SUMMARY:=}"
+: "${GITHUB_OUTPUT:=}"
+# shellcheck enable=SC2154
+
 if [[ $# -lt 1 || $# -gt 3 ]]; then
   echo "Usage: $0 <report-path> [summary-path] [outputs-path]" >&2
   exit 1

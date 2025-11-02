@@ -313,7 +313,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_form_includes_ai_controls`
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post`
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post_persists_secret_and_flashes_success`
 
 **Integration tests:**
 - `tests/integration/test_secret_pages.py::test_edit_secret_form_displays_existing_secret`
@@ -348,8 +348,8 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/secrets.py::secrets` (paths: `/secrets`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post`
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list`
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post_persists_secret_and_flashes_success`
+- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list_returns_ok_for_authenticated_user`
 
 **Integration tests:**
 - `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_csv_extension`
@@ -399,13 +399,13 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/integration/test_identity_responses.py::test_server_creation_redirects_consistently`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_get`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_get_returns_populated_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_includes_test_form`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_post`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_post_updates_name_and_definition`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_edit_server_save_as_creates_new_server`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_duplicate_name`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_duplicate_name_shows_error_and_preserves_original`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_get`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post_creates_template_backed_server`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_prefills_name_from_path_query`
 
 **Integration tests:**
@@ -423,7 +423,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/servers.py::view_server` (paths: `/servers/<server_name>`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_nonexistent_server`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_nonexistent_server_returns_404`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_falls_back_to_query_test_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_includes_main_test_form`
 - `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_invocation_history_table`
@@ -444,8 +444,8 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/servers.py::servers` (paths: `/servers`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post_creates_template_backed_server`
+- `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list_shows_overview_and_create_link`
 
 **Integration tests:**
 - `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_csv_extension`
@@ -465,7 +465,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/core.py::settings` (paths: `/settings`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestSettingsRoutes::test_settings_page`
+- `tests/test_routes_comprehensive.py::TestSettingsRoutes::test_settings_page_loads_for_authenticated_user`
 - `tests/test_routes_comprehensive.py::TestSettingsRoutes::test_settings_page_shows_direct_access_links`
 
 **Integration tests:**
@@ -626,7 +626,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_form_includes_ai_controls`
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post`
+- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post_creates_template_variable`
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variable_edit_shows_404_matching_route`
 
 **Integration tests:**
@@ -661,7 +661,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/variables.py::variables` (paths: `/variables`)
 
 **Unit tests:**
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post`
+- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post_creates_template_variable`
 - `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list_shows_sorted_user_variables`
 
 **Integration tests:**
