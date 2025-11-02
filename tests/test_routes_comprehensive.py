@@ -94,26 +94,26 @@ class BaseTestCase(unittest.TestCase):
 class TestUtilityFunctions(BaseTestCase):
     """Test utility functions."""
 
-    def test_generate_cid(self):
-        """Test CID generation function."""
+    def test_generate_cid_canonical_and_deterministic(self):
+        """CID generation should yield the canonical encoding, be deterministic, and respect length limits."""
         test_data = b"Hello, World!"
         cid = generate_cid(test_data)
 
-        # Should be canonical for direct encoding and deterministic
+        # The generated CID should match the canonical direct encoding of the payload
         expected = encode_cid_length(len(test_data)) + _base64url_encode(test_data)
         self.assertEqual(cid, expected)
         self.assertGreaterEqual(len(cid), CID_MIN_LENGTH)
         self.assertLessEqual(len(cid), CID_LENGTH)
 
-        # Should be deterministic
+        # Regenerating with identical data should produce the same CID
         cid2 = generate_cid(test_data)
         self.assertEqual(cid, cid2)
 
-        # Different data should produce different CID
+        # Different payloads must produce different CIDs
         different_cid = generate_cid(b"Different data")
         self.assertNotEqual(cid, different_cid)
 
-        # Should use canonical direct encoding length
+        # The canonical encoding check above also implicitly confirms the encoded length prefix
         self.assertEqual(cid, expected)
 
 
