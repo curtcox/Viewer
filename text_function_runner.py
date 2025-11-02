@@ -132,7 +132,7 @@ def run_text_function(
     # This is core functionality - dynamically executing user-defined server code.
     # Security: Only authenticated users can define servers, and code runs in app context
     # with proper authentication/authorization checks. All builtins are available by design.
-    exec(src, ns, ns)  # defines ns[fn_name]
+    exec(src, ns, ns)  # nosec B102 - executing authenticated user-provided server code is an intentional feature
     fn = ns[fn_name]
     kwargs = {p: arg_map[p] for p in param_names}
     return fn(**kwargs)

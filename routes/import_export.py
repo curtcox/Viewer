@@ -1223,7 +1223,8 @@ def _process_import_submission(
         flash(error_message, 'danger')
         return render_form()
 
-    assert parsed_payload is not None  # For type checkers.
+    if parsed_payload is None:  # Defensive safeguard for type checkers and runtime.
+        raise RuntimeError("Import payload parsing returned no result without an error.")
     context = _create_import_context(form, change_message, parsed_payload)
     _ingest_import_cid_map(context)
     _import_selected_sections(context)
