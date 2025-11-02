@@ -1721,8 +1721,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('name="token"', page)
         self.assertIn('/edit-test', page)
 
-    def test_edit_server_post(self):
-        """Test editing server."""
+    def test_edit_server_post_updates_name_and_definition(self):
+        """Submitting the edit form updates the server's name and definition."""
         server = Server(
             name='edit-server',
             definition='Original definition',
@@ -1740,7 +1740,7 @@ class TestServerRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 302)
 
-        # Check server was updated
+        # After submitting the edit, the persisted server should reflect the requested changes.
         db.session.refresh(server)
         self.assertEqual(server.name, 'edited-server')
         self.assertEqual(server.definition, 'Updated definition')
