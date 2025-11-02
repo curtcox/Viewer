@@ -67,6 +67,19 @@ jobs:
       - name: Run mypy
         run: mypy
 
+  djlint:
+    name: Djlint
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Djlint
+        run: djlint templates --check
+
   eslint:
     name: ESLint
     runs-on: ubuntu-latest

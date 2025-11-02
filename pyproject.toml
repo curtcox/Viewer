@@ -22,7 +22,19 @@ dependencies = [
     "qrcode[pil]>=7.4.2",
     "glom>=23.3.0",
     "hypothesis>=6.124.1",
+    "djlint>=1.35.2",
     "ruff>=0.1.0",
     "mypy>=1.13.0",
     "pyppeteer>=1.0.2,<2.0.0",
 ]
+
+[tool.djlint]
+profile = "jinja"
+indent = 4
+# Many templates intentionally keep long attribute lists on a single line for readability.
+# Expand the maximum length to avoid unnecessary wrapping during lint checks.
+line_length = 220
+format_css = false
+format_js = false
+preserve_blank_lines = true
+use_gitignore = true

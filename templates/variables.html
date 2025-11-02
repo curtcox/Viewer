@@ -70,7 +70,7 @@
                                 <a href="{{ url_for('main.view_variable', variable_name=variable.name) }}" class="btn btn-primary btn-sm">
                                     <i class="fas fa-arrow-right me-1"></i>View Full Definition
                                 </a>
-                                <form method="POST" action="{{ url_for('main.delete_variable', variable_name=variable.name) }}" 
+                                <form method="POST" action="{{ url_for('main.delete_variable', variable_name=variable.name) }}"
                                       onsubmit="return confirm('Are you sure you want to delete variable {{ variable.name }}?')" class="d-inline">
                                     <button type="submit" class="btn btn-outline-danger btn-sm">
                                         <i class="fas fa-trash me-1"></i>Delete
