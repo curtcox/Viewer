@@ -23,6 +23,10 @@ python run_coverage.py --xml --html  # run tests with coverage reports (optional
 > **Note:** The automated tests require the [Markdown](https://python-markdown.github.io/) package. Run `./install` (or
 > `pip install -r requirements.txt`) before invoking the test suite so the dependency is available.
 
+### Unit test instructions
+
+For a step-by-step walkthrough of the unit-test workflow—including the helper scripts to invoke and the known Gauge limitation—see [docs/unit_test_instructions.md](docs/unit_test_instructions.md).
+
 ## Environment
 
 * Running `./install` copies `.env.sample` to `.env` the first time so you have a starting point for local configuration.
