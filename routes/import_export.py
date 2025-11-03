@@ -17,6 +17,7 @@ from typing import Any, Callable, Iterable, Iterator, Optional, Tuple
 import requests
 from flask import current_app, flash, redirect, render_template, request, url_for
 from werkzeug.datastructures import CombinedMultiDict
+from werkzeug.datastructures import ImmutableMultiDict
 
 from alias_definition import (
     AliasDefinitionError,
@@ -2031,17 +2032,17 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
     return imported, errors
 
 
-def _combined_form_data() -> CombinedMultiDict | None:
+def _combined_form_data() -> CombinedMultiDict | ImmutableMultiDict | None:
     """Return submitted form data including uploaded files when available."""
 
     if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
         return None
 
     if request.files:
-        return CombinedMultiDict([request.files, request.form])
+        return CombinedMultiDict([request.form, request.files])
 
     if request.form:
-        return CombinedMultiDict([request.form])
+        return request.form
 
     return None
 
