@@ -1588,7 +1588,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         # Test with non-ASCII UTF-8 content
         content_with_unicode = 'Hello 世界 🌍'
-        alias_definition = format_primary_alias_line('test', content_with_unicode)
+        alias_definition = format_primary_alias_line('literal', 'test', content_with_unicode)
         alias_cid = format_cid(generate_cid(alias_definition.encode('utf-8')))
 
         # Import with plain string (should default to UTF-8)
