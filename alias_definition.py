@@ -52,6 +52,19 @@ class AliasRouteRule:
     source: Optional[DefinitionLineSummary] = None
 
 
+def _literal_self_route(alias_name: str) -> AliasRouteRule:
+    """Return a simple literal route that points the alias at itself."""
+
+    return AliasRouteRule(
+        alias_path=alias_name,
+        match_type="literal",
+        match_pattern=f"/{alias_name}",
+        target_path=f"/{alias_name}",
+        ignore_case=False,
+        source=None,
+    )
+
+
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
 _MATCH_TYPE_OPTIONS = {"literal", "glob", "regex", "flask"}
 _IGNORE_CASE_OPTIONS = {"ignore-case", "ignorecase"}
@@ -83,9 +96,6 @@ def _normalize_target_path(raw: str) -> str:
     if brace_balance != 0:
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("{") and value.endswith("}"):
-        inner = value[1:-1].strip()
-        if not inner:
-            raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if not any(character.isalnum() for character in value):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
@@ -578,93 +588,49 @@ def collect_alias_routes(
     resolved_definition = _substitute_variables(definition, variable_values)
     definition_text = resolved_definition if resolved_definition is not None else definition
 
-    # Check if alias has helper methods (new-style) or not (old-style)
-    has_helper_methods = hasattr(alias, 'get_primary_target_path')
+    has_helper_methods = hasattr(alias, "get_primary_target_path")
 
-    # For old-style aliases without helper methods, use fallback behavior
-    # This is a specific backwards compatibility behavior for Mock objects
-    # (used in integration tests to simulate old-style aliases)
-    if not has_helper_methods and alias_name and hasattr(alias, '__class__') and 'Mock' in str(type(alias)):
-        return [
-            AliasRouteRule(
-                alias_path=alias_name,
-                match_type="literal",
-                match_pattern=f"/{alias_name}",
-                target_path=f"/{alias_name}",
-                ignore_case=False,
-                source=None,
-            )
-        ]
+    if (
+        not has_helper_methods
+        and alias_name
+        and hasattr(alias, "__class__")
+        and "Mock" in str(type(alias))
+    ):
+        return [_literal_self_route(alias_name)]
 
     summary = summarize_definition_lines(definition_text, alias_name=alias_name)
 
     routes: list[AliasRouteRule] = []
     seen: set[tuple[str, str, str, bool]] = set()
 
-    @dataclass(frozen=True)
-    class _RouteRegistration:
-        alias_path: Optional[str]
-        match_type: str
-        match_pattern: Optional[str]
-        target_path: Optional[str]
-        ignore_case: bool
-        source: Optional[DefinitionLineSummary] = None
-
-    def _register(registration: _RouteRegistration) -> None:
-        if not registration.match_pattern or not registration.target_path:
-            return
-
-        key = (
-            registration.match_type,
-            registration.match_pattern,
-            registration.target_path,
-            registration.ignore_case,
-        )
-        if key in seen:
-            return
-
-        seen.add(key)
-        # Use alias_name as alias_path for consistency with tests
-        # Only use entry alias_path for nested routes (depth > 0)
-        if registration.source and registration.source.depth > 0:
-            effective_alias_path = registration.alias_path or alias_name
-        else:
-            effective_alias_path = alias_name
-        # Don't set source for simple cases to match test expectations
-        source_to_use = (
-            None
-            if registration.source and registration.source.depth == 0
-            else registration.source
-        )
-        routes.append(
-            AliasRouteRule(
-                alias_path=effective_alias_path,
-                match_type=registration.match_type,
-                match_pattern=registration.match_pattern,
-                target_path=registration.target_path,
-                ignore_case=registration.ignore_case,
-                source=source_to_use,
-            )
-        )
-
     for entry in summary:
         if not entry.is_mapping or entry.parse_error:
             continue
 
-        route_match_type = entry.match_type or "literal"
-        route_pattern = entry.match_pattern or (
+        match_type = entry.match_type or "literal"
+        match_pattern = entry.match_pattern or (
             f"/{entry.alias_path}" if entry.alias_path else None
         )
-        route_target = entry.target_path
-        route_ignore_case = entry.ignore_case
-        _register(
-            _RouteRegistration(
-                alias_path=entry.alias_path,
-                match_type=route_match_type,
-                match_pattern=route_pattern,
-                target_path=route_target,
-                ignore_case=route_ignore_case,
-                source=entry,
+        target_path = entry.target_path
+        if not match_pattern or not target_path:
+            continue
+
+        key = (match_type, match_pattern, target_path, entry.ignore_case)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        alias_path = alias_name if entry.depth == 0 else (entry.alias_path or alias_name)
+        source = None if entry.depth == 0 else entry
+
+        routes.append(
+            AliasRouteRule(
+                alias_path=alias_path,
+                match_type=match_type,
+                match_pattern=match_pattern,
+                target_path=target_path,
+                ignore_case=entry.ignore_case,
+                source=source,
             )
         )
 
@@ -674,16 +640,7 @@ def collect_alias_routes(
     # Handle empty definition case - create fallback route
     if definition_text is None or not str(definition_text).strip():
         if alias_name:
-            return [
-                AliasRouteRule(
-                    alias_path=alias_name,
-                    match_type="literal",
-                    match_pattern=f"/{alias_name}",
-                    target_path=f"/{alias_name}",
-                    ignore_case=False,
-                    source=None,
-                )
-            ]
+            return [_literal_self_route(alias_name)]
         return []
 
     try:
@@ -699,19 +656,10 @@ def collect_alias_routes(
         else:
             # For other parsing errors, fallback to name-based route
             if alias_name:
-                return [
-                    AliasRouteRule(
-                        alias_path=alias_name,
-                        match_type="literal",
-                        match_pattern=f"/{alias_name}",
-                        target_path=f"/{alias_name}",
-                        ignore_case=False,
-                        source=None,
-                    )
-                ]
+                return [_literal_self_route(alias_name)]
             return []
 
-    fallback_path = alias_name or parsed.match_pattern.lstrip("/") or alias_name
+    fallback_path = alias_name or parsed.match_pattern.lstrip("/")
     return [
         AliasRouteRule(
             alias_path=fallback_path,

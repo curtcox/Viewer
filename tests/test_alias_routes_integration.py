@@ -229,6 +229,18 @@ class AliasRoutesIntegrationTests(unittest.TestCase):
         self.assertEqual(route.target_path, "/test")
         self.assertFalse(route.ignore_case)
 
+    def test_collect_routes_rejects_external_target_fallback(self):
+        """Routes are not generated when the definition targets an external URL."""
+        alias = Alias(
+            name="docs",
+            definition="docs -> //external",
+            user_id="user1",
+        )
+
+        routes = collect_alias_routes(alias)
+
+        self.assertEqual(routes, [])
+
 
 if __name__ == '__main__':
     unittest.main()
