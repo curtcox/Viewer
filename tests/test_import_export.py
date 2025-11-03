@@ -1237,7 +1237,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 base_path.resolve(),
                 warnings,
             )
-            self.assertEqual(resolved, local_file)
+            self.assertEqual(resolved, local_file.resolve())
 
             content = import_export._load_source_entry_bytes(resolved, parsed, warnings)
             self.assertEqual(content, file_bytes)
