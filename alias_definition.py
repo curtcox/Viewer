@@ -79,12 +79,8 @@ def _strip_inline_comment(line: str) -> str:
     return _COMMENT_PATTERN.sub("", line).rstrip()
 
 
-def _normalize_target_path(raw: str) -> str:
-    """Ensure the alias target path stays within the application."""
-
-    value = (raw or "").strip()
-    if not value:
-        raise AliasDefinitionError('Alias definition must include a target path after "->".')
+def _validate_brace_balance(value: str) -> None:
+    """Validate that braces are balanced and not wrapping the entire value."""
     brace_balance = 0
     for character in value:
         if character == "{":
@@ -97,6 +93,17 @@ def _normalize_target_path(raw: str) -> str:
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("{") and value.endswith("}"):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+
+
+def _normalize_target_path(raw: str) -> str:
+    """Ensure the alias target path stays within the application."""
+
+    value = (raw or "").strip()
+    if not value:
+        raise AliasDefinitionError('Alias definition must include a target path after "->".')
+    
+    _validate_brace_balance(value)
+    
     if not any(character.isalnum() for character in value):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("//"):
@@ -237,39 +244,10 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
 
     target_part = remainder.strip()
-    options: Iterable[str]
-    option_start = target_part.find("[")
-    option_end = target_part.find("]") if option_start != -1 else -1
-
-    if option_start != -1:
-        if option_end == -1 or option_end < option_start:
-            raise AliasDefinitionError('Alias definition options must be closed with "]".')
-        option_segment = target_part[option_start + 1 : option_end]
-        target_text = target_part[:option_start].strip()
-        trailing = target_part[option_end + 1 :].strip()
-        if trailing:
-            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
-        options = (opt.strip().lower() for opt in option_segment.split(",") if opt.strip())
-    else:
-        target_text = target_part
-        options = ()
-
-    match_type = "literal"
-    ignore_case = False
-    specified_match_type: Optional[str] = None
-
-    for option in options:
-        if option in _MATCH_TYPE_OPTIONS:
-            if specified_match_type and option != specified_match_type:
-                raise AliasDefinitionError('Alias definition may specify only one match type.')
-            specified_match_type = option
-        elif option in _IGNORE_CASE_OPTIONS:
-            ignore_case = True
-        else:
-            raise AliasDefinitionError(f'Unknown alias option "{option}".')
-
-    if specified_match_type:
-        match_type = specified_match_type
+    target_text, option_segment = _parse_option_brackets(target_part)
+    
+    specified_match_type, ignore_case = _interpret_option_segment(option_segment)
+    match_type = specified_match_type or "literal"
 
     try:
         normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
@@ -376,6 +354,28 @@ def replace_primary_definition_line(
     return ensure_primary_line(definition, primary_line)
 
 
+def _parse_option_brackets(target_part: str) -> tuple[str, str]:
+    """Extract target text and option segment from target part.
+    
+    Returns tuple of (target_text, option_segment).
+    """
+    option_start = target_part.find("[")
+    if option_start == -1:
+        return target_part, ""
+    
+    option_end = target_part.find("]")
+    if option_end == -1 or option_end < option_start:
+        raise AliasDefinitionError('Alias definition options must be closed with "]".')
+    
+    trailing = target_part[option_end + 1 :].strip()
+    if trailing:
+        raise AliasDefinitionError('Unexpected text after the closing options bracket.')
+    
+    target_text = target_part[:option_start].strip()
+    option_segment = target_part[option_start + 1 : option_end]
+    return target_text, option_segment
+
+
 def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
     """Return the selected match type and ignore-case flag for a line."""
 
@@ -419,22 +419,9 @@ def _parse_line_metadata(
     if not target_part:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
 
-    option_segment = ""
-    target_text = target_part
-    option_start = target_part.find("[")
-    option_end = target_part.find("]") if option_start != -1 else -1
-
-    if option_start != -1:
-        if option_end == -1 or option_end < option_start:
-            raise AliasDefinitionError('Alias definition options must be closed with "]".')
-        option_segment = target_part[option_start + 1 : option_end]
-        trailing = target_part[option_end + 1 :].strip()
-        if trailing:
-            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
-        target_text = target_part[:option_start].rstrip()
-
+    target_text, option_segment = _parse_option_brackets(target_part)
     target_path = _normalize_target_path(target_text)
-
+    
     specified_match_type, ignore_case = _interpret_option_segment(option_segment)
     match_type = specified_match_type or "literal"
 
