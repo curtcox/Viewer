@@ -804,10 +804,10 @@ def _handle_missing_parameters_for_main(
     resolved: Dict[str, Any],
     missing: List[str],
     available: Dict[str, List[str]],
-) -> Tuple[Dict[str, Any], List[str], Dict[str, List[str]], Optional[Response]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], List[str], Dict[str, List[str]], Optional[Response]]:
     """Try to resolve missing main() parameters via nested path evaluation.
 
-    Returns (resolved, missing, available, early_response) tuple.
+    Returns (updated_args, resolved, missing, available, early_response) tuple.
     """
     injected = _inject_nested_parameter_value(
         server_name,
@@ -818,10 +818,10 @@ def _handle_missing_parameters_for_main(
     )
 
     if isinstance(injected, Response):
-        return resolved, missing, available, injected
+        return base_args, resolved, missing, available, injected
 
     if not injected:
-        return resolved, missing, available, None
+        return base_args, resolved, missing, available, None
 
     # Re-resolve with the injected parameters
     working_args = dict(base_args)
@@ -832,7 +832,7 @@ def _handle_missing_parameters_for_main(
         allow_partial=True,
     )
 
-    return new_resolved, new_missing, new_available, None
+    return working_args, new_resolved, new_missing, new_available, None
 
 
 def _prepare_invocation(
@@ -859,6 +859,10 @@ def _prepare_invocation(
         details, base_args, allow_partial=True
     )
 
+    # Track working args (may be updated with injected parameters)
+    working_args = dict(base_args)
+    working_resolved = dict(resolved)
+
     # Handle missing parameters
     if missing:
         if function_name != "main":
@@ -867,7 +871,7 @@ def _prepare_invocation(
             )
 
         # For main(), try nested path injection
-        resolved, missing, available, early_response = _handle_missing_parameters_for_main(
+        working_args, working_resolved, missing, available, early_response = _handle_missing_parameters_for_main(
             function_name, server_name, base_args, details, resolved, missing, available
         )
 
@@ -880,8 +884,8 @@ def _prepare_invocation(
             )
 
     # Build final code with function invocation
-    new_args = dict(base_args)
-    new_args[AUTO_MAIN_PARAMS_NAME] = resolved
+    new_args = dict(working_args)
+    new_args[AUTO_MAIN_PARAMS_NAME] = working_resolved
     combined_code = _build_function_invocation_snippet(function_name, code)
 
     return combined_code, new_args
