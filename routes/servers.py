@@ -69,54 +69,50 @@ def _extract_context_references(
     if not definition:
         return {'variables': [], 'secrets': []}
 
-    matches = set()
-    aliases: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+    aliases: Dict[str, set[str]] = {source: set() for source in matches}
+
+    def _record(source: str, name: Optional[str]) -> None:
+        if source in matches and name:
+            matches[source].add(name)
 
     for pattern in _ALIAS_ASSIGNMENT_PATTERNS:
-        for match in pattern.finditer(definition):
-            alias, source = match.groups()
-            if not alias or not source:
-                continue
-            aliases.setdefault(source, set()).add(alias)
+        for alias, source in pattern.findall(definition):
+            if alias and source:
+                aliases.setdefault(source, set()).add(alias)
 
     for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
-        for match in pattern.finditer(definition):
-            source, name = match.groups()
-            if not name:
-                continue
-            matches.add((source, name))
+        for source, name in pattern.findall(definition):
+            _record(source, name)
 
     for source, alias_names in aliases.items():
         for alias in alias_names:
             if not alias:
                 continue
 
-            index_pattern = re.compile(
-                rf"(?<!\w){re.escape(alias)}\[['\"]([^'\"]+)['\"]\]"
-            )
-            get_pattern = re.compile(
-                rf"(?<!\w){re.escape(alias)}\.get\(\s*['\"]([^'\"]+)['\"](?:\s*,[^)]*)?\)"
+            alias_pattern = re.compile(
+                rf"(?<!\w){re.escape(alias)}"
+                r"(?:\[['\"]([^'\"]+)['\"]\]"
+                r"|\.get\(\s*['\"]([^'\"]+)['\"](?:\s*,[^)]*)?\))"
             )
 
-            for pattern in (index_pattern, get_pattern):
-                for match in pattern.finditer(definition):
-                    name = match.group(1)
-                    if not name:
-                        continue
-                    matches.add((source, name))
+            for match in alias_pattern.finditer(definition):
+                _record(source, match.group(1) or match.group(2))
 
-    normalized_variables = {
-        str(name)
-        for name in (known_variables or [])
-        if isinstance(name, str) and name
-    }
-    normalized_secrets = {
-        str(name)
-        for name in (known_secrets or [])
-        if isinstance(name, str) and name
+    normalized = {
+        'variables': {
+            str(name)
+            for name in (known_variables or [])
+            if isinstance(name, str) and name
+        },
+        'secrets': {
+            str(name)
+            for name in (known_secrets or [])
+            if isinstance(name, str) and name
+        },
     }
 
-    if normalized_variables or normalized_secrets:
+    if normalized['variables'] or normalized['secrets']:
         description = describe_main_function_parameters(definition or '')
         if description:
             parameter_names = {
@@ -125,19 +121,13 @@ def _extract_context_references(
                 if isinstance(parameter, dict) and parameter.get('name')
             }
 
-            for name in parameter_names & normalized_variables:
-                matches.add(('variables', name))
-
-            for name in parameter_names & normalized_secrets:
-                matches.add(('secrets', name))
-
-    grouped: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    for source, name in matches:
-        grouped.setdefault(source, set()).add(name)
+            for source in ('variables', 'secrets'):
+                for name in parameter_names & normalized[source]:
+                    _record(source, name)
 
     return {
-        'variables': sorted(grouped.get('variables', set())),
-        'secrets': sorted(grouped.get('secrets', set())),
+        source: sorted(values)
+        for source, values in matches.items()
     }
 
 
