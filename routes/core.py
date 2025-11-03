@@ -5,6 +5,7 @@ import hashlib
 import re
 import traceback
 from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
@@ -133,18 +134,20 @@ def _entity_url(entity_type: str, identifier: str) -> Optional[str]:
     return None
 
 
-def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
-    """Assemble alias, server, CID, and relationship data for the homepage."""
+@dataclass
+class _CrossReferenceState:
+    """Track entities, relationships, and references while building the dashboard."""
 
-    aliases = get_user_aliases(user_id)
-    servers = get_user_servers(user_id)
+    entity_implied: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
+    entity_outgoing_refs: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
+    entity_incoming_refs: Dict[str, Set[str]] = field(default_factory=lambda: defaultdict(set))
+    referenced_cids: Set[str] = field(default_factory=set)
+    references: List[Dict[str, Any]] = field(default_factory=list)
+    reference_seen: Set[Tuple[str, str, str, str]] = field(default_factory=set)
 
-    entity_implied: Dict[str, Set[str]] = defaultdict(set)
-    entity_outgoing_refs: Dict[str, Set[str]] = defaultdict(set)
-    entity_incoming_refs: Dict[str, Set[str]] = defaultdict(set)
-    referenced_cids: Set[str] = set()
+    def record_cid(self, entry: Optional[Dict[str, Any]]) -> Optional[str]:
+        """Normalize a CID reference and add it to the known set."""
 
-    def _record_cid_metadata(entry: Optional[Dict[str, Any]]) -> Optional[str]:
         if not entry:
             return None
 
@@ -152,31 +155,31 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
         if not cid_value:
             return None
 
-        referenced_cids.add(cid_value)
+        self.referenced_cids.add(cid_value)
         return cid_value
 
-    references: List[Dict[str, Any]] = []
-    reference_seen: Set[Tuple[str, str, str, str]] = set()
-
-    def _register_reference(
+    def register_reference(
+        self,
         source_type: str,
         source_identifier: str,
         target_type: str,
         target_identifier: str,
     ) -> None:
+        """Record a relationship between two entities, enforcing uniqueness."""
+
         if not source_identifier or not target_identifier:
             return
 
         source_key = _entity_key(source_type, source_identifier)
         target_key = _entity_key(target_type, target_identifier)
         dedupe_key = (source_type, source_identifier, target_type, target_identifier)
-        if dedupe_key in reference_seen:
+        if dedupe_key in self.reference_seen:
             return
-        reference_seen.add(dedupe_key)
+        self.reference_seen.add(dedupe_key)
 
         ref_key = _reference_key(source_key, target_key)
 
-        references.append(
+        self.references.append(
             {
                 'key': ref_key,
                 'source_key': source_key,
@@ -198,100 +201,130 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
             }
         )
 
-        entity_implied[source_key].add(target_key)
+        self.entity_implied[source_key].add(target_key)
         if source_key != target_key:
-            entity_implied[target_key].add(source_key)
-        entity_outgoing_refs[source_key].add(ref_key)
-        entity_incoming_refs[target_key].add(ref_key)
+            self.entity_implied[target_key].add(source_key)
+        self.entity_outgoing_refs[source_key].add(ref_key)
+        self.entity_incoming_refs[target_key].add(ref_key)
 
-    def _handle_alias_references(alias_obj) -> None:
-        primary_route = get_primary_alias_route(alias_obj)
-        refs = extract_references_from_target(
-            primary_route.target_path if primary_route else None,
-            user_id,
-        )
-        for ref in refs.get('aliases', []):
-            target_name = ref.get('name')
-            if target_name:
-                _register_reference('alias', alias_obj.name, 'alias', target_name)
 
-        for ref in refs.get('servers', []):
-            target_name = ref.get('name')
-            if target_name:
-                _register_reference('alias', alias_obj.name, 'server', target_name)
+def _register_alias_or_server_refs(
+    state: _CrossReferenceState,
+    source_type: str,
+    source_name: str,
+    refs: Optional[Dict[str, Any]],
+) -> None:
+    """Register references found in alias or server definitions."""
 
-        for ref in refs.get('cids', []):
-            cid_value = _record_cid_metadata(ref)
-            if cid_value:
-                _register_reference('alias', alias_obj.name, 'cid', cid_value)
+    refs = refs or {}
 
-    def _handle_server_references(server_obj) -> None:
-        refs = extract_references_from_text(getattr(server_obj, 'definition', ''), user_id)
-        for ref in refs.get('aliases', []):
-            target_name = ref.get('name')
-            if target_name:
-                _register_reference('server', server_obj.name, 'alias', target_name)
+    for ref in refs.get('aliases', []):
+        target_name = ref.get('name')
+        if target_name:
+            state.register_reference(source_type, source_name, 'alias', target_name)
 
-        for ref in refs.get('servers', []):
-            target_name = ref.get('name')
-            if target_name:
-                _register_reference('server', server_obj.name, 'server', target_name)
+    for ref in refs.get('servers', []):
+        target_name = ref.get('name')
+        if target_name:
+            state.register_reference(source_type, source_name, 'server', target_name)
 
-        for ref in refs.get('cids', []):
-            cid_value = _record_cid_metadata(ref)
-            if cid_value:
-                _register_reference('server', server_obj.name, 'cid', cid_value)
+    for ref in refs.get('cids', []):
+        cid_value = state.record_cid(ref)
+        if cid_value:
+            state.register_reference(source_type, source_name, 'cid', cid_value)
 
-        if getattr(server_obj, 'definition_cid', None):
-            cid_value = format_cid(server_obj.definition_cid)
-            if cid_value:
-                referenced_cids.add(cid_value)
-                _register_reference('server', server_obj.name, 'cid', cid_value)
+
+def _register_cid_refs(
+    state: _CrossReferenceState,
+    cid_value: str,
+    refs: Optional[Dict[str, Any]],
+) -> None:
+    """Register references extracted from CID file content."""
+
+    refs = refs or {}
+
+    for ref in refs.get('aliases', []):
+        target_name = ref.get('name')
+        if target_name:
+            state.register_reference('cid', cid_value, 'alias', target_name)
+
+    for ref in refs.get('servers', []):
+        target_name = ref.get('name')
+        if target_name:
+            state.register_reference('cid', cid_value, 'server', target_name)
+
+    for ref in refs.get('cids', []):
+        target_cid = format_cid(ref.get('cid'))
+        if target_cid and target_cid in state.referenced_cids:
+            state.register_reference('cid', cid_value, 'cid', target_cid)
+
+
+def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
+    """Assemble alias, server, CID, and relationship data for the homepage."""
+
+    aliases = get_user_aliases(user_id)
+    servers = get_user_servers(user_id)
+
+    state = _CrossReferenceState()
 
     alias_entries: List[Dict[str, Any]] = []
     for alias in aliases:
         primary_route = get_primary_alias_route(alias)
+        target_path = primary_route.target_path if primary_route else None
         alias_entries.append(
             {
                 'type': 'alias',
                 'name': alias.name,
                 'url': url_for('main.view_alias', alias_name=alias.name),
                 'entity_key': _entity_key('alias', alias.name),
-                'target_path': primary_route.target_path if primary_route else '',
+                'target_path': target_path or '',
             }
         )
-        _handle_alias_references(alias)
+
+        refs = extract_references_from_target(target_path, user_id)
+        _register_alias_or_server_refs(state, 'alias', alias.name, refs)
 
     alias_keys = {entry['entity_key'] for entry in alias_entries}
 
     server_entries: List[Dict[str, Any]] = []
     for server in servers:
+        definition_cid = format_cid(getattr(server, 'definition_cid', ''))
         server_entries.append(
             {
                 'type': 'server',
                 'name': server.name,
                 'url': url_for('main.view_server', server_name=server.name),
                 'entity_key': _entity_key('server', server.name),
-                'definition_cid': format_cid(getattr(server, 'definition_cid', '')),
+                'definition_cid': definition_cid,
             }
         )
-        _handle_server_references(server)
+
+        refs = extract_references_from_text(getattr(server, 'definition', ''), user_id)
+        _register_alias_or_server_refs(state, 'server', server.name, refs)
+
+        if definition_cid:
+            state.referenced_cids.add(definition_cid)
+            state.register_reference('server', server.name, 'cid', definition_cid)
 
     server_keys = {entry['entity_key'] for entry in server_entries}
 
-    cid_paths = [cid_path(value) for value in referenced_cids if cid_path(value)]
-    cid_records: Sequence[CID] = []
+    cid_paths: List[str] = []
+    for value in state.referenced_cids:
+        path_value = cid_path(value)
+        if path_value:
+            cid_paths.append(path_value)
+
+    records_by_cid: Dict[str, CID] = {}
     if cid_paths:
         cid_records = get_cids_by_paths(cid_paths)
-
-    records_by_cid = {
-        format_cid(getattr(record, 'path', '')): record
-        for record in cid_records
-        if getattr(record, 'path', None)
-    }
+        records_by_cid = {
+            format_cid(getattr(record, 'path', '')): record
+            for record in cid_records
+            if getattr(record, 'path', None)
+        }
 
     cid_candidates: List[Dict[str, Any]] = []
-    for cid_value in sorted(referenced_cids):
+    for cid_value in sorted(state.referenced_cids):
         record = records_by_cid.get(cid_value)
         file_data = getattr(record, 'file_data', None) if record else None
         preview, truncated = _preview_text_from_bytes(file_data)
@@ -308,20 +341,7 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
 
         if file_data:
             refs = extract_references_from_bytes(file_data, user_id)
-            for ref in refs.get('aliases', []):
-                target_name = ref.get('name')
-                if target_name:
-                    _register_reference('cid', cid_value, 'alias', target_name)
-
-            for ref in refs.get('servers', []):
-                target_name = ref.get('name')
-                if target_name:
-                    _register_reference('cid', cid_value, 'server', target_name)
-
-            for ref in refs.get('cids', []):
-                target_cid = format_cid(ref.get('cid'))
-                if target_cid and target_cid in referenced_cids:
-                    _register_reference('cid', cid_value, 'cid', target_cid)
+            _register_cid_refs(state, cid_value, refs)
 
         cid_candidates.append(cid_entry)
 
@@ -330,9 +350,12 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
 
     for cid_entry in cid_candidates:
         cid_key = cid_entry['entity_key']
-        related_keys = entity_implied.get(cid_key, set())
+        related_keys = state.entity_implied.get(cid_key, set())
         has_named_relation = any(key in named_entity_keys for key in related_keys)
-        related_reference_keys = entity_outgoing_refs.get(cid_key, set()) | entity_incoming_refs.get(cid_key, set())
+        related_reference_keys = (
+            state.entity_outgoing_refs.get(cid_key, set())
+            | state.entity_incoming_refs.get(cid_key, set())
+        )
 
         if not has_named_relation or not related_reference_keys:
             continue
@@ -344,33 +367,35 @@ def _build_cross_reference_data(user_id: str) -> Dict[str, Any]:
     filtered_references: List[Dict[str, Any]] = []
     reference_keys_by_source: Dict[str, Set[str]] = defaultdict(set)
     reference_keys_by_target: Dict[str, Set[str]] = defaultdict(set)
-    for ref in references:
+    for ref in state.references:
         if ref['source_key'] not in all_entity_keys or ref['target_key'] not in all_entity_keys:
             continue
         filtered_references.append(ref)
         reference_keys_by_source[ref['source_key']].add(ref['key'])
         reference_keys_by_target[ref['target_key']].add(ref['key'])
 
-    references = filtered_references
-
     for entry in alias_entries + server_entries + cid_entries:
         key = entry['entity_key']
-        entry['implied_keys'] = sorted(key_value for key_value in entity_implied.get(key, []) if key_value in all_entity_keys)
+        entry['implied_keys'] = sorted(
+            key_value for key_value in state.entity_implied.get(key, []) if key_value in all_entity_keys
+        )
         entry['outgoing_refs'] = sorted(reference_keys_by_source.get(key, []))
         entry['incoming_refs'] = sorted(reference_keys_by_target.get(key, []))
 
-    references.sort(key=lambda item: (
-        item['source_label'],
-        item['source_name'],
-        item['target_label'],
-        item['target_name'],
-    ))
+    filtered_references.sort(
+        key=lambda item: (
+            item['source_label'],
+            item['source_name'],
+            item['target_label'],
+            item['target_name'],
+        )
+    )
 
     return {
         'aliases': alias_entries,
         'servers': server_entries,
         'cids': cid_entries,
-        'references': references,
+        'references': filtered_references,
     }
 
 
