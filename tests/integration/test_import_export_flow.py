@@ -72,13 +72,21 @@ def _load_section(payload: dict[str, Any], key: str):
     cid_values = payload.get("cid_values", {})
     entry = cid_values.get(section_cid)
     assert entry is not None, f"Expected CID {section_cid} for section {key}"
-    encoding = (entry.get("encoding") or "utf-8").lower()
-    value = entry.get("value")
-    assert isinstance(value, str), f"CID {section_cid} for {key} must include string content"
-    if encoding == "base64":
-        content_bytes = base64.b64decode(value.encode("ascii"))
+
+    # Handle both old format (dict with encoding/value) and new format (string)
+    if isinstance(entry, dict):
+        encoding = (entry.get("encoding") or "utf-8").lower()
+        value = entry.get("value")
+        assert isinstance(value, str), f"CID {section_cid} for {key} must include string content"
+        if encoding == "base64":
+            content_bytes = base64.b64decode(value.encode("ascii"))
+        else:
+            content_bytes = value.encode("utf-8")
     else:
-        content_bytes = value.encode("utf-8")
+        # New format: entry is directly a UTF-8 string
+        assert isinstance(entry, str), f"CID {section_cid} for {key} must be a string"
+        content_bytes = entry.encode("utf-8")
+
     return json.loads(content_bytes.decode("utf-8"))
 
 
