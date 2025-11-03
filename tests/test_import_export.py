@@ -1277,7 +1277,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_store_cid_entry_optional_behaviour(self):
-        cid_entries: dict[str, dict[str, str]] = {}
+        cid_entries: dict[str, str] = {}
         import_export._store_cid_entry('test-cid', b'data', cid_entries, include_optional=False)
         self.assertEqual(cid_entries, {})
 
@@ -1410,8 +1410,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn('aliases', payload)
         self.assertIn('cid_values', payload)
         cid_values = payload['cid_values']
+        # CID values are now plain strings, not dicts
         self.assertTrue(
-            any('export' in entry.get('value', '') for entry in cid_values.values())
+            any('export' in entry for entry in cid_values.values() if isinstance(entry, str))
         )
 
     def test_process_import_submission_returns_form_on_empty_payload(self):
