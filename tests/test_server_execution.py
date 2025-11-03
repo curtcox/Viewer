@@ -3,11 +3,10 @@
 import json
 import types
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 from flask import Flask
 
-import server_execution
 from server_execution import (
     FunctionDetails,
     MissingParameterError,
