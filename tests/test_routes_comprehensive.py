@@ -647,7 +647,6 @@ def main(request):
         cid_target_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value_target)
 
         alpha_key = alias_entry['entity_key']
-        beta_key = beta_entry['entity_key']
         server_key = server_entry['entity_key']
         cid_main_key = cid_main_entry['entity_key']
         cid_target_key = cid_target_entry['entity_key']
