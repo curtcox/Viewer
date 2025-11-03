@@ -10,6 +10,7 @@ from html import unescape
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from flask import current_app
@@ -566,6 +567,121 @@ def main(request):
             ),
             'References column should not include entries for the filtered CID',
         )
+
+    def test_index_cross_reference_includes_cid_file_relationships(self):
+        """CID file data references should produce unique relationships for known entities."""
+
+        self.login_user()
+
+        cid_value_main = generate_cid(b'main cid payload')
+        cid_value_target = generate_cid(b'target cid payload')
+
+        cid_record = CID(
+            path=f'/{cid_value_main}',
+            file_data=b'main references payload',
+            uploaded_by_user_id=self.test_user_id,
+        )
+
+        alias_alpha = Alias(
+            name='alpha',
+            user_id=self.test_user_id,
+            definition=_alias_definition('alpha', '/servers/bravo'),
+        )
+
+        alias_beta = Alias(
+            name='beta',
+            user_id=self.test_user_id,
+            definition=_alias_definition('beta', '/servers/bravo'),
+        )
+
+        server_bravo = Server(
+            name='bravo',
+            definition="""
+def main(request):
+    return "alpha"
+""".strip(),
+            user_id=self.test_user_id,
+        )
+
+        db.session.add_all([cid_record, alias_alpha, alias_beta, server_bravo])
+        db.session.commit()
+
+        alias_target_map = {
+            'alpha': f'/{cid_value_main}',
+            'beta': f'/{cid_value_target}',
+        }
+
+        def fake_primary_route(alias_obj):
+            target = alias_target_map.get(alias_obj.name)
+            if not target:
+                return None
+            return SimpleNamespace(target_path=target)
+
+        def fake_target_refs(path, _user_id):
+            if path == f'/{cid_value_main}':
+                return {'aliases': [], 'servers': [], 'cids': [{'cid': cid_value_main}]}
+            if path == f'/{cid_value_target}':
+                return {'aliases': [], 'servers': [], 'cids': [{'cid': cid_value_target}]}
+            return {'aliases': [], 'servers': [], 'cids': []}
+
+        fake_server_refs = {'aliases': [{'name': 'alpha'}], 'servers': [], 'cids': []}
+
+        fake_cid_refs = {
+            'aliases': [{'name': 'alpha'}, {'name': 'alpha'}],
+            'servers': [{'name': 'bravo'}],
+            'cids': [{'cid': cid_value_target}, {'cid': cid_value_target}],
+        }
+
+        with patch('routes.core.get_primary_alias_route', side_effect=fake_primary_route), \
+            patch('routes.core.extract_references_from_target', side_effect=fake_target_refs), \
+            patch('routes.core.extract_references_from_text', return_value=fake_server_refs), \
+            patch('routes.core.extract_references_from_bytes', return_value=fake_cid_refs), \
+            self.app.test_request_context('/'):
+
+            cross_reference = _build_cross_reference_data(self.test_user_id)
+
+        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alpha')
+        beta_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'beta')
+        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'bravo')
+        cid_main_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value_main)
+        cid_target_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value_target)
+
+        alpha_key = alias_entry['entity_key']
+        server_key = server_entry['entity_key']
+        cid_main_key = cid_main_entry['entity_key']
+        cid_target_key = cid_target_entry['entity_key']
+
+        self.assertIn(alpha_key, cid_main_entry['implied_keys'])
+        self.assertIn(server_key, cid_main_entry['implied_keys'])
+        self.assertIn(cid_target_key, cid_main_entry['implied_keys'])
+
+        self.assertEqual(cid_main_entry['preview'], 'main references payl')
+        self.assertTrue(cid_main_entry['preview_truncated'])
+        self.assertEqual(cid_target_entry['preview'], '')
+        self.assertFalse(cid_target_entry['preview_truncated'])
+
+        cid_to_alias_refs = [
+            ref
+            for ref in cross_reference['references']
+            if ref['source_key'] == cid_main_key and ref['target_key'] == alpha_key
+        ]
+        cid_to_server_refs = [
+            ref
+            for ref in cross_reference['references']
+            if ref['source_key'] == cid_main_key and ref['target_key'] == server_key
+        ]
+        cid_to_cid_refs = [
+            ref
+            for ref in cross_reference['references']
+            if ref['source_key'] == cid_main_key and ref['target_key'] == cid_target_key
+        ]
+
+        self.assertEqual(len(cid_to_alias_refs), 1)
+        self.assertEqual(len(cid_to_server_refs), 1)
+        self.assertEqual(len(cid_to_cid_refs), 1)
+
+        self.assertEqual(len(set(beta_entry['outgoing_refs'])), 1)
+        self.assertEqual(len(set(cid_target_entry['incoming_refs'])), 2)
 
 
 class TestSearchApi(BaseTestCase):
