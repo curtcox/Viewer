@@ -58,3 +58,77 @@ token = secret_alias.get('token')
 
     assert references["variables"] == ["city"]
     assert references["secrets"] == ["token"]
+
+
+def test_ignores_other_context_keys() -> None:
+    """Access to context keys other than 'variables' or 'secrets' should be ignored."""
+
+    definition = """
+other = context['other']
+value = other['value']
+
+settings = context.get('settings')
+name = settings.get('name')
+"""
+    references = _extract_context_references(definition)
+
+    assert references["variables"] == []
+    assert references["secrets"] == []
+
+
+def test_handles_complex_aliasing_scenarios() -> None:
+    """References should be detected even with multiple levels of aliasing."""
+
+    definition = """
+v = context['variables']
+s = context.get('secrets')
+
+vars_alias = v
+secrets_alias = s
+
+first_name = vars_alias['first_name']
+api_key = secrets_alias.get('api_key')
+"""
+    references = _extract_context_references(definition)
+
+    assert references["variables"] == ["first_name"]
+    assert references["secrets"] == ["api_key"]
+
+
+def test_ignores_unused_aliases() -> None:
+    """Aliases that are defined but not used to access context values should be ignored."""
+
+    definition = """
+variables_alias = context['variables']
+secrets_alias = context.get('secrets', {})
+
+# These aliases are not used, so they should not result in any references
+unused_variables = context.get('variables')
+unused_secrets = context['secrets']
+
+city = variables_alias['city']
+token = secrets_alias.get('token')
+"""
+    references = _extract_context_references(definition)
+
+    assert references["variables"] == ["city"]
+    assert references["secrets"] == ["token"]
+
+
+def test_includes_known_variables_and_secrets_from_parameters() -> None:
+    """Names from known_variables and known_secrets appearing as parameter names
+    in the server's main function should be reported as references.
+    """
+
+    definition = """
+def main(name: str, email: str, api_key: str, Auth: str):
+    return f"Hello {name} <{email}> using {api_key} with {Auth}"
+"""
+    references = _extract_context_references(
+        definition,
+        known_variables=["name", "email", "unused_variable"],
+        known_secrets=["api_key", "Auth", "unused_secret"],
+    )
+
+    assert references["variables"] == ["email", "name"]
+    assert references["secrets"] == ["Auth", "api_key"]

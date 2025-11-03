@@ -56,35 +56,42 @@ _ALIAS_ASSIGNMENT_PATTERNS = (
     ),
 )
 
+_ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN = re.compile(r"(\w+)\s*=\s*(\w+)")
+
 _ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
 
 
-def _extract_context_references(
-    definition: Optional[str],
-    known_variables: Optional[Iterable[str]] = None,
-    known_secrets: Optional[Iterable[str]] = None,
-) -> Dict[str, List[str]]:
-    """Return referenced variable and secret names from a server definition."""
-
-    if not definition:
-        return {'variables': [], 'secrets': []}
-
-    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    aliases: Dict[str, set[str]] = {source: set() for source in matches}
-
-    def _record(source: str, name: Optional[str]) -> None:
-        if source in matches and name:
-            matches[source].add(name)
+def _find_aliases(definition: str) -> Dict[str, set[str]]:
+    """Return a mapping of context sources to their aliases."""
+    aliases: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
 
     for pattern in _ALIAS_ASSIGNMENT_PATTERNS:
         for alias, source in pattern.findall(definition):
             if alias and source:
                 aliases.setdefault(source, set()).add(alias)
 
+    for new_alias, existing_alias in _ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN.findall(definition):
+        if not new_alias or not existing_alias:
+            continue
+        for source, source_aliases in aliases.items():
+            if existing_alias in source_aliases:
+                source_aliases.add(new_alias)
+    return aliases
+
+
+def _find_direct_references(definition: str) -> Dict[str, set[str]]:
+    """Find direct references to variables and secrets."""
+    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
     for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
         for source, name in pattern.findall(definition):
-            _record(source, name)
+            if source in matches and name:
+                matches[source].add(name)
+    return matches
 
+
+def _find_alias_references(definition: str, aliases: Dict[str, set[str]]) -> Dict[str, set[str]]:
+    """Find alias-based references to variables and secrets."""
+    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
     for source, alias_names in aliases.items():
         for alias in alias_names:
             if not alias:
@@ -97,38 +104,64 @@ def _extract_context_references(
             )
 
             for match in alias_pattern.finditer(definition):
-                _record(source, match.group(1) or match.group(2))
+                name = match.group(1) or match.group(2)
+                if source in matches and name:
+                    matches[source].add(name)
+    return matches
 
+
+def _find_parameter_references(
+    definition: str,
+    known_variables: Optional[Iterable[str]] = None,
+    known_secrets: Optional[Iterable[str]] = None,
+) -> Dict[str, set[str]]:
+    """Find references from function parameter names."""
+    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
     normalized = {
-        'variables': {
-            str(name)
-            for name in (known_variables or [])
-            if isinstance(name, str) and name
-        },
-        'secrets': {
-            str(name)
-            for name in (known_secrets or [])
-            if isinstance(name, str) and name
-        },
+        'variables': {str(name) for name in (known_variables or []) if isinstance(name, str) and name},
+        'secrets': {str(name) for name in (known_secrets or []) if isinstance(name, str) and name},
     }
 
-    if normalized['variables'] or normalized['secrets']:
-        description = describe_main_function_parameters(definition or '')
-        if description:
-            parameter_names = {
-                str(parameter.get('name'))
-                for parameter in description.get('parameters', [])
-                if isinstance(parameter, dict) and parameter.get('name')
-            }
+    if not normalized['variables'] and not normalized['secrets']:
+        return matches
 
-            for source in ('variables', 'secrets'):
-                for name in parameter_names & normalized[source]:
-                    _record(source, name)
+    description = describe_main_function_parameters(definition)
+    if not description:
+        return matches
 
-    return {
-        source: sorted(values)
-        for source, values in matches.items()
+    parameter_names = {
+        str(parameter.get('name'))
+        for parameter in description.get('parameters', [])
+        if isinstance(parameter, dict) and parameter.get('name')
     }
+
+    for source in ('variables', 'secrets'):
+        for name in parameter_names & normalized[source]:
+            matches[source].add(name)
+    return matches
+
+
+def _extract_context_references(
+    definition: Optional[str],
+    known_variables: Optional[Iterable[str]] = None,
+    known_secrets: Optional[Iterable[str]] = None,
+) -> Dict[str, List[str]]:
+    """Return referenced variable and secret names from a server definition."""
+    if not definition:
+        return {'variables': [], 'secrets': []}
+
+    aliases = _find_aliases(definition)
+    direct_refs = _find_direct_references(definition)
+    alias_refs = _find_alias_references(definition, aliases)
+    param_refs = _find_parameter_references(definition, known_variables, known_secrets)
+
+    combined: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
+    for source in combined:
+        combined[source].update(direct_refs.get(source, set()))
+        combined[source].update(alias_refs.get(source, set()))
+        combined[source].update(param_refs.get(source, set()))
+
+    return {source: sorted(values) for source, values in combined.items()}
 
 
 def _extract_route_references(definition: Optional[str]) -> List[str]:
