@@ -1,15 +1,22 @@
 import textwrap
 import unittest
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from alias_definition import (
     AliasDefinitionError,
     collect_alias_routes,
     definition_contains_mapping,
     ensure_primary_line,
+    format_primary_alias_line,
+    get_primary_alias_route,
     parse_alias_definition,
     replace_primary_definition_line,
     summarize_definition_lines,
+    _extract_primary_line,
+    _normalize_variable_map,
+    _strip_inline_comment,
+    _substitute_variables,
 )
 
 
@@ -331,6 +338,372 @@ class DefinitionUtilityTests(unittest.TestCase):
         updated = replace_primary_definition_line(definition, "docs -> /documentation")
 
         self.assertEqual(updated, "docs -> /documentation\n\nNotes about the alias")
+
+
+class StripInlineCommentTests(unittest.TestCase):
+    def test_strips_inline_comment(self):
+        self.assertEqual(_strip_inline_comment("docs -> /docs # comment"), "docs -> /docs")
+        self.assertEqual(_strip_inline_comment("docs -> /docs  # comment"), "docs -> /docs")
+        self.assertEqual(_strip_inline_comment("docs -> /docs\t# comment"), "docs -> /docs")
+
+    def test_preserves_line_without_comment(self):
+        self.assertEqual(_strip_inline_comment("docs -> /docs"), "docs -> /docs")
+        self.assertEqual(_strip_inline_comment("docs"), "docs")
+
+    def test_handles_empty_string(self):
+        self.assertEqual(_strip_inline_comment(""), "")
+
+    def test_preserves_comment_only_line_without_leading_space(self):
+        # The function only strips comments with preceding whitespace (inline comments)
+        self.assertEqual(_strip_inline_comment("# comment"), "# comment")
+
+    def test_strips_comment_with_leading_space(self):
+        self.assertEqual(_strip_inline_comment("  # comment"), "")
+
+
+class ExtractPrimaryLineTests(unittest.TestCase):
+    def test_extracts_first_mapping_line(self):
+        definition = "# comment\ndocs -> /documentation\nother -> /other"
+        self.assertEqual(_extract_primary_line(definition), "docs -> /documentation")
+
+    def test_skips_blank_lines(self):
+        definition = "\n\n  \ndocs -> /documentation"
+        self.assertEqual(_extract_primary_line(definition), "docs -> /documentation")
+
+    def test_skips_comment_lines(self):
+        definition = "# comment 1\n# comment 2\ndocs -> /documentation"
+        self.assertEqual(_extract_primary_line(definition), "docs -> /documentation")
+
+    def test_returns_none_for_no_mapping(self):
+        self.assertIsNone(_extract_primary_line("# comment only"))
+        self.assertIsNone(_extract_primary_line("no mapping here"))
+        self.assertIsNone(_extract_primary_line(""))
+
+    def test_preserves_inline_comment(self):
+        definition = "docs -> /documentation # inline comment"
+        self.assertEqual(_extract_primary_line(definition), "docs -> /documentation # inline comment")
+
+
+class NormalizeVariableMapTests(unittest.TestCase):
+    def test_handles_none_and_empty(self):
+        self.assertEqual(_normalize_variable_map(None), {})
+        self.assertEqual(_normalize_variable_map({}), {})
+        self.assertEqual(_normalize_variable_map([]), {})
+
+    def test_handles_dictionary_input(self):
+        variables = {"var1": "value1", "var2": "value2"}
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1", "var2": "value2"})
+
+    def test_handles_object_list_with_name_and_definition(self):
+        variables = [
+            SimpleNamespace(name="var1", definition="value1"),
+            SimpleNamespace(name="var2", definition="value2"),
+        ]
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1", "var2": "value2"})
+
+    def test_skips_disabled_variables(self):
+        variables = [
+            SimpleNamespace(name="var1", definition="value1", enabled=True),
+            SimpleNamespace(name="var2", definition="value2", enabled=False),
+            SimpleNamespace(name="var3", definition="value3", enabled=True),
+        ]
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1", "var3": "value3"})
+
+    def test_skips_none_entries(self):
+        variables = [
+            SimpleNamespace(name="var1", definition="value1"),
+            None,
+            SimpleNamespace(name="var2", definition="value2"),
+        ]
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1", "var2": "value2"})
+
+    def test_skips_entries_without_name(self):
+        variables = [
+            SimpleNamespace(name="var1", definition="value1"),
+            SimpleNamespace(definition="value2"),
+            SimpleNamespace(name="", definition="value3"),
+        ]
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1"})
+
+    def test_skips_entries_without_definition(self):
+        variables = [
+            SimpleNamespace(name="var1", definition="value1"),
+            SimpleNamespace(name="var2"),
+        ]
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"var1": "value1"})
+
+    def test_converts_values_to_strings(self):
+        variables = {"num": 123, "bool": True, "none": None}
+        result = _normalize_variable_map(variables)
+        self.assertEqual(result, {"num": "123", "bool": "True", "none": ""})
+
+    def test_handles_non_iterable_input(self):
+        result = _normalize_variable_map(123)
+        self.assertEqual(result, {})
+
+
+class SubstituteVariablesTests(unittest.TestCase):
+    def test_substitutes_single_variable(self):
+        text = "Path: {var1}"
+        variables = {"var1": "value1"}
+        self.assertEqual(_substitute_variables(text, variables), "Path: value1")
+
+    def test_substitutes_multiple_variables(self):
+        text = "{var1}/{var2}/{var3}"
+        variables = {"var1": "a", "var2": "b", "var3": "c"}
+        self.assertEqual(_substitute_variables(text, variables), "a/b/c")
+
+    def test_preserves_unknown_variables(self):
+        text = "{var1}/{unknown}/{var2}"
+        variables = {"var1": "a", "var2": "b"}
+        self.assertEqual(_substitute_variables(text, variables), "a/{unknown}/b")
+
+    def test_handles_empty_variable_name(self):
+        text = "{}/{var1}"
+        variables = {"var1": "value"}
+        self.assertEqual(_substitute_variables(text, variables), "{}/value")
+
+    def test_handles_none_text(self):
+        self.assertIsNone(_substitute_variables(None, {"var": "value"}))
+
+    def test_handles_empty_text(self):
+        self.assertEqual(_substitute_variables("", {"var": "value"}), "")
+
+    def test_handles_empty_variables(self):
+        self.assertEqual(_substitute_variables("{var}", {}), "{var}")
+
+    def test_handles_variables_with_special_chars_in_name(self):
+        text = "{var-1}/{var.2}/{var_3}"
+        variables = {"var-1": "a", "var.2": "b", "var_3": "c"}
+        self.assertEqual(_substitute_variables(text, variables), "a/b/c")
+
+
+class FormatPrimaryAliasLineTests(unittest.TestCase):
+    def test_formats_literal_match_without_options(self):
+        result = format_primary_alias_line("literal", "/docs", "/documentation", alias_name="docs")
+        self.assertEqual(result, "docs -> /documentation")
+
+    def test_formats_literal_match_with_pattern(self):
+        result = format_primary_alias_line("literal", "/docs", "/documentation")
+        self.assertEqual(result, "docs -> /documentation")
+
+    def test_formats_glob_match(self):
+        result = format_primary_alias_line("glob", "/docs/*", "/documentation")
+        self.assertEqual(result, "/docs/* -> /documentation [glob]")
+
+    def test_formats_regex_match(self):
+        result = format_primary_alias_line("regex", r"/docs/\d+", "/documentation")
+        self.assertEqual(result, r"/docs/\d+ -> /documentation [regex]")
+
+    def test_formats_flask_match(self):
+        result = format_primary_alias_line("flask", "/docs/<id>", "/documentation/<id>")
+        self.assertEqual(result, "/docs/<id> -> /documentation/<id> [flask]")
+
+    def test_includes_ignore_case_option(self):
+        result = format_primary_alias_line("literal", "/docs", "/documentation", ignore_case=True, alias_name="docs")
+        self.assertEqual(result, "docs -> /documentation [ignore-case]")
+
+    def test_includes_both_match_type_and_ignore_case(self):
+        result = format_primary_alias_line("glob", "/docs/*", "/documentation", ignore_case=True)
+        self.assertEqual(result, "/docs/* -> /documentation [glob, ignore-case]")
+
+    def test_handles_empty_pattern_with_alias_name(self):
+        result = format_primary_alias_line("literal", None, "/documentation", alias_name="docs")
+        self.assertEqual(result, "docs -> /documentation")
+
+    def test_handles_empty_pattern_without_alias_name(self):
+        result = format_primary_alias_line("literal", None, "/documentation")
+        self.assertEqual(result, "/ -> /documentation")
+
+    def test_normalizes_match_type(self):
+        result = format_primary_alias_line("GLOB", "/docs/*", "/documentation")
+        self.assertEqual(result, "/docs/* -> /documentation [glob]")
+
+
+class GetPrimaryAliasRouteTests(unittest.TestCase):
+    def test_returns_first_route(self):
+        definition = "docs -> /documentation\napi -> /api"
+        alias = SimpleNamespace(name="docs", definition=definition)
+        route = get_primary_alias_route(alias)
+        self.assertIsNotNone(route)
+        self.assertEqual(route.alias_path, "docs")
+        self.assertEqual(route.target_path, "/documentation")
+
+    def test_returns_none_for_no_routes(self):
+        alias = SimpleNamespace(name="", definition="")
+        route = get_primary_alias_route(alias)
+        self.assertIsNone(route)
+
+
+class CollectAliasRoutesEdgeCasesTests(unittest.TestCase):
+    def test_handles_empty_definition(self):
+        alias = SimpleNamespace(name="docs", definition="")
+        routes = collect_alias_routes(alias)
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].alias_path, "docs")
+        self.assertEqual(routes[0].match_pattern, "/docs")
+        self.assertEqual(routes[0].target_path, "/docs")
+
+    def test_handles_none_definition(self):
+        alias = SimpleNamespace(name="docs", definition=None)
+        routes = collect_alias_routes(alias)
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].alias_path, "docs")
+
+    def test_handles_mock_object(self):
+        alias = Mock()
+        alias.name = "docs"
+        alias.definition = None
+        routes = collect_alias_routes(alias)
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].alias_path, "docs")
+        self.assertEqual(routes[0].match_pattern, "/docs")
+
+    def test_substitutes_variables_in_definition(self):
+        definition = "docs/{var1} -> /documentation/{var2}"
+        variables = {"var1": "api", "var2": "reference"}
+        alias = SimpleNamespace(name="docs", definition=definition)
+        routes = collect_alias_routes(alias, variables=variables)
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].match_pattern, "/docs/api")
+        self.assertEqual(routes[0].target_path, "/documentation/reference")
+
+    def test_deduplicates_routes(self):
+        definition = textwrap.dedent(
+            """
+            docs -> /documentation
+            docs -> /documentation
+            api -> /api
+            """
+        ).strip()
+        alias = SimpleNamespace(name="docs", definition=definition)
+        routes = collect_alias_routes(alias)
+        # Should only have 2 unique routes, not 3
+        self.assertEqual(len(routes), 2)
+
+    def test_handles_external_target_error(self):
+        definition = "docs -> https://example.com"
+        alias = SimpleNamespace(name="docs", definition=definition)
+        routes = collect_alias_routes(alias)
+        # Should return empty list for external targets
+        self.assertEqual(len(routes), 0)
+
+    def test_handles_parse_error_fallback(self):
+        definition = "docs -> /docs [invalid-option]"
+        alias = SimpleNamespace(name="docs", definition=definition)
+        routes = collect_alias_routes(alias)
+        # Should fall back to name-based route
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].alias_path, "docs")
+
+    def test_resolves_variables_from_alias_attributes(self):
+        definition = "docs -> /documentation/{var1}"
+        alias = SimpleNamespace(
+            name="docs",
+            definition=definition,
+            resolved_variables={"var1": "value1"}
+        )
+        routes = collect_alias_routes(alias)
+        self.assertEqual(len(routes), 1)
+        self.assertEqual(routes[0].target_path, "/documentation/value1")
+
+
+class ParseAliasDefinitionEdgeCasesTests(unittest.TestCase):
+    def test_handles_none_definition(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition(None)
+        self.assertIn("pattern -> target", str(exc_info.exception).lower())
+
+    def test_handles_empty_definition(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("")
+        self.assertIn("pattern -> target", str(exc_info.exception).lower())
+
+    def test_rejects_missing_target_after_arrow(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs ->")
+        self.assertIn('target path after "->"', str(exc_info.exception).lower())
+
+    def test_rejects_arrow_in_comment_only(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs # -> /docs")
+        self.assertIn("pattern -> target", str(exc_info.exception).lower())
+
+    def test_rejects_unclosed_options_bracket(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> /documentation [glob")
+        self.assertIn('closed with "]"', str(exc_info.exception).lower())
+
+    def test_rejects_mismatched_options_brackets(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> /documentation ]glob[")
+        self.assertIn('closed with "]"', str(exc_info.exception).lower())
+
+    def test_rejects_text_after_options_bracket(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> /documentation [glob] extra")
+        self.assertIn("unexpected text after", str(exc_info.exception).lower())
+
+    def test_accepts_empty_options(self):
+        parsed = parse_alias_definition("docs -> /documentation []")
+        self.assertEqual(parsed.match_type, "literal")
+        self.assertEqual(parsed.target_path, "/documentation")
+
+    def test_accepts_whitespace_in_options(self):
+        parsed = parse_alias_definition("docs -> /documentation [ glob , ignore-case ]")
+        self.assertEqual(parsed.match_type, "glob")
+        self.assertTrue(parsed.ignore_case)
+
+    def test_handles_multiple_arrows(self):
+        # Only the first -> should be used for splitting
+        parsed = parse_alias_definition("docs -> /path->with->arrows")
+        self.assertEqual(parsed.target_path, "/path->with->arrows")
+
+    def test_preserves_pattern_text(self):
+        parsed = parse_alias_definition("custom-pattern -> /documentation", alias_name="docs")
+        self.assertEqual(parsed.pattern_text, "custom-pattern")
+
+    def test_uses_alias_name_for_empty_pattern(self):
+        parsed = parse_alias_definition(" -> /documentation", alias_name="docs")
+        self.assertEqual(parsed.pattern_text, "docs")
+
+    def test_rejects_target_with_only_special_chars(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> ///")
+        self.assertIn("valid alias or url", str(exc_info.exception).lower())
+
+    def test_accepts_target_with_query_params(self):
+        parsed = parse_alias_definition("docs -> /documentation?q=test")
+        self.assertEqual(parsed.target_path, "/documentation?q=test")
+
+    def test_accepts_target_with_fragment(self):
+        parsed = parse_alias_definition("docs -> /documentation#section")
+        self.assertEqual(parsed.target_path, "/documentation#section")
+
+    def test_rejects_duplicate_match_types(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> /documentation [glob, regex]")
+        self.assertIn("only one match type", str(exc_info.exception).lower())
+
+    def test_rejects_unknown_option(self):
+        with self.assertRaises(AliasDefinitionError) as exc_info:
+            parse_alias_definition("docs -> /documentation [unknown-option]")
+        self.assertIn("unknown alias option", str(exc_info.exception).lower())
+
+    def test_accepts_ignore_case_variations(self):
+        # Test "ignore-case"
+        parsed1 = parse_alias_definition("docs -> /documentation [ignore-case]")
+        self.assertTrue(parsed1.ignore_case)
+
+        # Test "ignorecase"
+        parsed2 = parse_alias_definition("docs -> /documentation [ignorecase]")
+        self.assertTrue(parsed2.ignore_case)
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution
