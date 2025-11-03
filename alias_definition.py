@@ -101,9 +101,9 @@ def _normalize_target_path(raw: str) -> str:
     value = (raw or "").strip()
     if not value:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
-    
+
     _validate_brace_balance(value)
-    
+
     if not any(character.isalnum() for character in value):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
     if value.startswith("//"):
@@ -245,7 +245,7 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
 
     target_part = remainder.strip()
     target_text, option_segment = _parse_option_brackets(target_part)
-    
+
     specified_match_type, ignore_case = _interpret_option_segment(option_segment)
     match_type = specified_match_type or "literal"
 
@@ -421,7 +421,7 @@ def _parse_line_metadata(
 
     target_text, option_segment = _parse_option_brackets(target_part)
     target_path = _normalize_target_path(target_text)
-    
+
     specified_match_type, ignore_case = _interpret_option_segment(option_segment)
     match_type = specified_match_type or "literal"
 
