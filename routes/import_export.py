@@ -16,8 +16,6 @@ from typing import Any, Callable, Iterable, Iterator, Optional, Tuple
 
 import requests
 from flask import current_app, flash, redirect, render_template, request, url_for
-from werkzeug.datastructures import CombinedMultiDict
-from werkzeug.datastructures import ImmutableMultiDict
 
 from alias_definition import (
     AliasDefinitionError,
@@ -2032,25 +2030,10 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
     return imported, errors
 
 
-def _combined_form_data() -> CombinedMultiDict | ImmutableMultiDict | None:
-    """Return submitted form data including uploaded files when available."""
-
-    if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
-        return None
-
-    if request.files:
-        return CombinedMultiDict([request.form, request.files])
-
-    if request.form:
-        return request.form
-
-    return None
-
-
 @main_bp.route('/export', methods=['GET', 'POST'])
 def export_data():
     """Allow users to export selected data collections as JSON."""
-    form = ExportForm(_combined_form_data())
+    form = ExportForm()
     preview = _build_export_preview(form, current_user.id)
     if form.validate_on_submit():
         export_result = _build_export_payload(form, current_user.id)
@@ -2063,7 +2046,7 @@ def export_data():
 def export_size():
     """Return the size of the export JSON for the current selections."""
 
-    form = ExportForm(_combined_form_data())
+    form = ExportForm()
     _build_export_preview(form, current_user.id)
     if form.validate():
         export_result = _build_export_payload(
@@ -2085,7 +2068,7 @@ def export_size():
 @main_bp.route('/import', methods=['GET', 'POST'])
 def import_data():
     """Allow users to import data collections from JSON content."""
-    form = ImportForm(_combined_form_data())
+    form = ImportForm()
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_import_form():
