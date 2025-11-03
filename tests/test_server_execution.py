@@ -387,14 +387,16 @@ class TestBuildMissingParameterResponse(unittest.TestCase):
     """Test _build_missing_parameter_response function."""
 
     def test_builds_json_response(self):
-        error = MissingParameterError(["param1", "param2"], {"query_string": []})
-        response = _build_missing_parameter_response("main", error)
+        app = Flask(__name__)
+        with app.app_context():
+            error = MissingParameterError(["param1", "param2"], {"query_string": []})
+            response = _build_missing_parameter_response("main", error)
 
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert "error" in data
-        assert "missing_parameters" in data
-        assert len(data["missing_parameters"]) == 2
+            assert response.status_code == 400
+            data = json.loads(response.data)
+            assert "error" in data
+            assert "missing_parameters" in data
+            assert len(data["missing_parameters"]) == 2
 
 
 class TestBuildMultiParameterErrorPage(unittest.TestCase):
@@ -423,18 +425,20 @@ class TestBuildUnsupportedSignatureResponse(unittest.TestCase):
     """Test _build_unsupported_signature_response function."""
 
     def test_builds_json_error_response(self):
-        details = FunctionDetails(
-            parameter_order=[],
-            required_parameters=[],
-            optional_parameters=[],
-            unsupported_reasons=["*args not supported"],
-        )
-        response = _build_unsupported_signature_response("main", details)
+        app = Flask(__name__)
+        with app.app_context():
+            details = FunctionDetails(
+                parameter_order=[],
+                required_parameters=[],
+                optional_parameters=[],
+                unsupported_reasons=["*args not supported"],
+            )
+            response = _build_unsupported_signature_response("main", details)
 
-        assert response.status_code == 400
-        data = json.loads(response.data)
-        assert "error" in data
-        assert "reasons" in data
+            assert response.status_code == 400
+            data = json.loads(response.data)
+            assert "error" in data
+            assert "reasons" in data
 
 
 class TestModelAsDict(unittest.TestCase):
