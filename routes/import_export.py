@@ -2032,9 +2032,18 @@ def _import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[st
 
 
 def _combined_form_data() -> CombinedMultiDict | None:
-    if request.method != 'POST':
+    """Return submitted form data including uploaded files when available."""
+
+    if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
         return None
-    return CombinedMultiDict([request.files, request.form])
+
+    if request.files:
+        return CombinedMultiDict([request.files, request.form])
+
+    if request.form:
+        return CombinedMultiDict([request.form])
+
+    return None
 
 
 @main_bp.route('/export', methods=['GET', 'POST'])
