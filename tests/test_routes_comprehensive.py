@@ -1192,7 +1192,8 @@ class TestCidEditingRoutes(BaseTestCase):
     def test_edit_cid_get_unique_prefix(self):
         cid_value = self._create_cid_record(b'unique prefix content')
         self.login_user()
-        prefix = cid_value[:6]
+        # Use 8 characters to ensure uniqueness with pre-loaded CIDs
+        prefix = cid_value[:8]
 
         response = self.client.get(f'/edit/{prefix}')
         self.assertEqual(response.status_code, 200)
