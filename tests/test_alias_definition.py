@@ -5,7 +5,10 @@ from types import SimpleNamespace
 from alias_definition import (
     AliasDefinitionError,
     collect_alias_routes,
+    definition_contains_mapping,
+    ensure_primary_line,
     parse_alias_definition,
+    replace_primary_definition_line,
     summarize_definition_lines,
 )
 
@@ -260,6 +263,74 @@ class ParseAliasDefinitionValidationTests(unittest.TestCase):
                 message = str(exc_info.exception).lower()
                 self.assertIn("line 2", message)
                 self.assertIn("valid alias or url", message)
+
+    def test_rejects_targets_outside_application(self):
+        definitions = [
+            "docs -> //external",
+            "docs -> https://example.com",
+        ]
+
+        for definition in definitions:
+            with self.subTest(definition=definition):
+                with self.assertRaises(AliasDefinitionError) as exc_info:
+                    parse_alias_definition(definition)
+
+                message = str(exc_info.exception)
+                self.assertIn("stay within this application", message)
+
+    def test_accepts_ignore_case_and_match_type_options(self):
+        parsed = parse_alias_definition("docs/* -> /documentation [glob, ignorecase]")
+
+        self.assertEqual(parsed.match_type, "glob")
+        self.assertTrue(parsed.ignore_case)
+        self.assertEqual(parsed.target_path, "/documentation")
+
+
+class DefinitionUtilityTests(unittest.TestCase):
+    def test_definition_contains_mapping_detects_primary_line(self):
+        self.assertFalse(definition_contains_mapping(None))
+        self.assertFalse(definition_contains_mapping("  # comment"))
+        self.assertTrue(definition_contains_mapping("docs -> /documentation"))
+
+    def test_ensure_primary_line_inserts_when_missing(self):
+        updated = ensure_primary_line("  notes", "docs -> /documentation")
+
+        self.assertEqual(updated, "docs -> /documentation\n\nnotes")
+
+    def test_ensure_primary_line_preserves_existing_mapping(self):
+        definition = "docs -> /documentation\nnotes"
+
+        self.assertEqual(
+            ensure_primary_line(definition, "docs -> /other"),
+            definition,
+        )
+
+    def test_replace_primary_definition_line_preserves_indentation(self):
+        definition = textwrap.dedent(
+            """
+                docs -> /old
+                  nested -> /nested
+            """
+        ).strip("\n")
+
+        updated = replace_primary_definition_line(definition, "docs -> /new")
+
+        self.assertEqual(
+            updated,
+            textwrap.dedent(
+                """
+                    docs -> /new
+                      nested -> /nested
+                """
+            ).strip("\n"),
+        )
+
+    def test_replace_primary_definition_line_appends_when_missing(self):
+        definition = "Notes about the alias"
+
+        updated = replace_primary_definition_line(definition, "docs -> /documentation")
+
+        self.assertEqual(updated, "docs -> /documentation\n\nNotes about the alias")
 
 
 if __name__ == "__main__":  # pragma: no cover - convenience for direct execution
