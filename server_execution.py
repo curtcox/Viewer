@@ -57,17 +57,16 @@ _REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 
 def _normalize_variable_path(value: Any) -> Optional[str]:
+    """Normalize a variable value to an absolute path, or return None if invalid."""
     if not isinstance(value, str):
         return None
 
     trimmed = value.strip()
-    if not trimmed.startswith("/"):
-        return None
-
-    return trimmed
+    return trimmed if trimmed.startswith("/") else None
 
 
 def _should_skip_variable_prefetch() -> bool:
+    """Check if we should skip variable prefetching (to prevent recursive fetching)."""
     if not has_request_context():
         return False
 
@@ -78,10 +77,12 @@ def _should_skip_variable_prefetch() -> bool:
 
 
 def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
+    """Resolve a redirect Location header to an absolute path, or None if external."""
     if not location:
         return None
 
     parsed = urlsplit(location)
+    # Reject external redirects
     if parsed.scheme or parsed.netloc:
         return None
 
@@ -89,9 +90,11 @@ def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
     if not candidate:
         return None
 
+    # Make relative paths absolute
     if not candidate.startswith("/"):
         candidate = urljoin(current_path, candidate)
 
+    # Preserve query string
     if parsed.query:
         candidate = f"{candidate}?{parsed.query}"
 
@@ -99,6 +102,7 @@ def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
 
 
 def _current_user_id() -> Optional[Any]:
+    """Extract the current user ID, handling callable and non-callable forms."""
     user_id = getattr(current_user, "id", None)
     if callable(user_id):
         try:
@@ -109,20 +113,19 @@ def _current_user_id() -> Optional[Any]:
     if user_id:
         return user_id
 
+    # Fallback to get_id() method
     getter = getattr(current_user, "get_id", None)
-    if callable(getter):
-        return getter()
-
-    return None
+    return getter() if callable(getter) else None
 
 
 def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
+    """Fetch content from a path via test client, following redirects up to a limit."""
     visited: set[str] = set()
     target = start_path
 
     for _ in range(_MAX_VARIABLE_REDIRECTS):
         if target in visited:
-            break
+            break  # Prevent redirect loops
         visited.add(target)
 
         response = client.get(target, follow_redirects=False)
@@ -149,10 +152,12 @@ def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
 
 
 def _fetch_variable_content(path: str) -> Optional[str]:
+    """Fetch the content at a path by executing it as the current user."""
     normalized = _normalize_variable_path(path)
     if not normalized or not has_app_context():
         return None
 
+    # Avoid infinite recursion by not fetching the current request path
     if has_request_context() and normalized == request.path:
         return None
 
@@ -181,6 +186,7 @@ def _fetch_variable_content(path: str) -> Optional[str]:
 
 
 def _resolve_variable_values(variable_map: Dict[str, Any]) -> Dict[str, Any]:
+    """Resolve variable values, prefetching paths that look like server references."""
     if not variable_map:
         return {}
 
@@ -394,31 +400,98 @@ def _extract_request_body_values() -> Dict[str, Any]:
     return body
 
 
+def _extract_context_dicts(base_args: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Extract variables and secrets dictionaries from base_args context."""
+    context = base_args.get("context") if isinstance(base_args, dict) else None
+    if not isinstance(context, dict):
+        return {}, {}
+
+    context_variables = context.get("variables")
+    if not isinstance(context_variables, dict):
+        context_variables = {}
+
+    context_secrets = context.get("secrets")
+    if not isinstance(context_secrets, dict):
+        context_secrets = {}
+
+    return context_variables, context_secrets
+
+
+def _collect_parameter_sources(
+    base_args: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """Collect all possible parameter sources from the request context."""
+    query_values = request.args.to_dict(flat=True) if request.args else {}
+    body_values = _extract_request_body_values()
+    header_values = {k.lower(): v for k, v in request.headers.items()}
+    context_variables, context_secrets = _extract_context_dicts(base_args)
+
+    return query_values, body_values, header_values, context_variables, context_secrets
+
+
+def _lookup_header_value(header_values: Dict[str, Any], param_name: str) -> Optional[Any]:
+    """Look up a header value, trying both underscores and dashes."""
+    lowered = param_name.lower()
+    if lowered in header_values:
+        return header_values[lowered]
+
+    dashed = param_name.replace("_", "-").lower()
+    if dashed in header_values:
+        return header_values[dashed]
+
+    return None
+
+
+def _resolve_single_parameter(
+    param_name: str,
+    query_values: Dict[str, Any],
+    body_values: Dict[str, Any],
+    header_values: Dict[str, Any],
+    base_args: Dict[str, Any],
+    context_variables: Dict[str, Any],
+    context_secrets: Dict[str, Any],
+) -> Tuple[bool, Optional[Any]]:
+    """Attempt to resolve a single parameter from available sources.
+
+    Returns (found, value) tuple.
+    """
+    if param_name in query_values:
+        return True, query_values[param_name]
+
+    if param_name in body_values:
+        return True, body_values[param_name]
+
+    header_value = _lookup_header_value(header_values, param_name)
+    if header_value is not None:
+        return True, header_value
+
+    if param_name in base_args:
+        return True, base_args[param_name]
+
+    if param_name in context_variables:
+        return True, context_variables[param_name]
+
+    if param_name in context_secrets:
+        return True, context_secrets[param_name]
+
+    return False, None
+
+
 def _resolve_function_parameters(
     details: FunctionDetails,
     base_args: Dict[str, Any],
     *,
     allow_partial: bool = False,
 ) -> Any:
+    """Resolve function parameters from request context and user data."""
     required = set(details.required_parameters)
     resolved: Dict[str, Any] = {}
     missing: List[str] = []
 
-    query_values = request.args.to_dict(flat=True) if request.args else {}
-    body_values = _extract_request_body_values()
-    header_values = {k.lower(): v for k, v in request.headers.items()}
-
-    context = base_args.get("context") if isinstance(base_args, dict) else None
-    if isinstance(context, dict):
-        context_variables = context.get("variables")
-        if not isinstance(context_variables, dict):
-            context_variables = {}
-        context_secrets = context.get("secrets")
-        if not isinstance(context_secrets, dict):
-            context_secrets = {}
-    else:
-        context_variables = {}
-        context_secrets = {}
+    # Collect all parameter sources
+    query_values, body_values, header_values, context_variables, context_secrets = (
+        _collect_parameter_sources(base_args)
+    )
 
     available = {
         "query_string": sorted(query_values.keys()),
@@ -428,53 +501,30 @@ def _resolve_function_parameters(
         "context_secrets": sorted(context_secrets.keys()),
     }
 
-    def _lookup_header(name: str) -> Optional[Any]:
-        lowered = name.lower()
-        if lowered in header_values:
-            return header_values[lowered]
-        dashed = name.replace("_", "-").lower()
-        if dashed in header_values:
-            return header_values[dashed]
-        return None
-
+    # Resolve each parameter
     for name in details.parameter_order:
-        if name in query_values:
-            resolved[name] = query_values[name]
-            continue
+        found, value = _resolve_single_parameter(
+            name,
+            query_values,
+            body_values,
+            header_values,
+            base_args,
+            context_variables,
+            context_secrets,
+        )
 
-        if name in body_values:
-            resolved[name] = body_values[name]
-            continue
-
-        header_value = _lookup_header(name)
-        if header_value is not None:
-            resolved[name] = header_value
-            continue
-
-        if name in base_args:
-            resolved[name] = base_args[name]
-            continue
-
-        if name in context_variables:
-            resolved[name] = context_variables[name]
-            continue
-
-        if name in context_secrets:
-            resolved[name] = context_secrets[name]
-            continue
-
-        if name in required:
+        if found:
+            resolved[name] = value
+        elif name in required:
             missing.append(name)
 
+    # Handle results based on allow_partial flag
     if missing:
         if allow_partial:
             return resolved, missing, available
         raise MissingParameterError(missing, available)
 
-    if allow_partial:
-        return resolved, [], available
-
-    return resolved
+    return (resolved, [], available) if allow_partial else resolved
 
 
 def _build_missing_parameter_response(
@@ -626,6 +676,7 @@ def _execute_nested_server_to_value(
 
 
 def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None) -> Any:
+    """Recursively evaluate a path to produce a value, following servers/aliases/CIDs."""
     normalized = (path or "").strip()
     if not normalized:
         return None
@@ -637,7 +688,7 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
         visited = set()
 
     if normalized in visited:
-        return None
+        return None  # Prevent infinite recursion
 
     visited.add(normalized)
 
@@ -646,18 +697,7 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
         return None
 
     server_name = segments[0]
-
-    user_id = getattr(current_user, "id", None)
-    if callable(user_id):
-        try:
-            user_id = user_id()
-        except TypeError:
-            user_id = None
-    if not user_id:
-        getter = getattr(current_user, "get_id", None)
-        if callable(getter):
-            user_id = getter()
-
+    user_id = _current_user_id()
     server = get_server_by_name(user_id, server_name) if user_id else None
     if server and not getattr(server, "enabled", True):
         server = None
@@ -729,70 +769,8 @@ def _build_unsupported_signature_response(
     return response
 
 
-def _prepare_invocation(
-    code: str,
-    base_args: Dict[str, Any],
-    *,
-    function_name: Optional[str],
-    allow_fallback: bool,
-    server_name: Optional[str] = None,
-) -> Any:
-    if not function_name:
-        return code, base_args
-
-    details = _analyze_server_definition_for_function(code, function_name)
-    if not details:
-        return (code, base_args) if allow_fallback else None
-
-    if details.unsupported_reasons:
-        return _build_unsupported_signature_response(function_name, details)
-
-    resolved, missing, available = _resolve_function_parameters(
-        details, base_args, allow_partial=True
-    )
-
-    working_args = dict(base_args)
-    working_resolved = dict(resolved)
-    remaining_missing = list(missing)
-    available_sources = available
-
-    if remaining_missing:
-        if function_name != "main":
-            return _build_missing_parameter_response(
-                function_name, MissingParameterError(remaining_missing, available_sources)
-            )
-
-        injected = _inject_nested_parameter_value(
-            server_name,
-            function_name,
-            working_resolved,
-            remaining_missing,
-            available_sources,
-        )
-
-        if isinstance(injected, Response):
-            return injected
-
-        if not injected:
-            return _build_missing_parameter_response(
-                function_name, MissingParameterError(remaining_missing, available_sources)
-            )
-
-        working_args.update(injected)
-        working_resolved, remaining_missing, available_sources = _resolve_function_parameters(
-            details,
-            working_args,
-            allow_partial=True,
-        )
-
-        if remaining_missing:
-            return _build_missing_parameter_response(
-                function_name, MissingParameterError(remaining_missing, available_sources)
-            )
-
-    new_args = dict(working_args)
-    new_args[AUTO_MAIN_PARAMS_NAME] = working_resolved
-
+def _build_function_invocation_snippet(function_name: str, code: str) -> str:
+    """Generate the code snippet that invokes a function with resolved parameters."""
     snippet = textwrap.dedent(
         f"""
         {AUTO_MAIN_RESULT_NAME} = {function_name}(**{AUTO_MAIN_PARAMS_NAME})
@@ -800,6 +778,7 @@ def _prepare_invocation(
         """
     ).strip()
 
+    # Match the indentation of the original code
     base_indent = ""
     for line in code.splitlines():
         stripped = line.lstrip()
@@ -810,13 +789,102 @@ def _prepare_invocation(
     if base_indent:
         snippet = textwrap.indent(snippet, base_indent)
 
+    # Combine with original code
     combined = code.rstrip()
     if combined:
-        combined = f"{combined}\n\n{snippet}\n"
-    else:
-        combined = f"{snippet}\n"
+        return f"{combined}\n\n{snippet}\n"
+    return f"{snippet}\n"
 
-    return combined, new_args
+
+def _handle_missing_parameters_for_main(
+    function_name: str,
+    server_name: Optional[str],
+    base_args: Dict[str, Any],
+    details: FunctionDetails,
+    resolved: Dict[str, Any],
+    missing: List[str],
+    available: Dict[str, List[str]],
+) -> Tuple[Dict[str, Any], List[str], Dict[str, List[str]], Optional[Response]]:
+    """Try to resolve missing main() parameters via nested path evaluation.
+
+    Returns (resolved, missing, available, early_response) tuple.
+    """
+    injected = _inject_nested_parameter_value(
+        server_name,
+        function_name,
+        resolved,
+        missing,
+        available,
+    )
+
+    if isinstance(injected, Response):
+        return resolved, missing, available, injected
+
+    if not injected:
+        return resolved, missing, available, None
+
+    # Re-resolve with the injected parameters
+    working_args = dict(base_args)
+    working_args.update(injected)
+    new_resolved, new_missing, new_available = _resolve_function_parameters(
+        details,
+        working_args,
+        allow_partial=True,
+    )
+
+    return new_resolved, new_missing, new_available, None
+
+
+def _prepare_invocation(
+    code: str,
+    base_args: Dict[str, Any],
+    *,
+    function_name: Optional[str],
+    allow_fallback: bool,
+    server_name: Optional[str] = None,
+) -> Any:
+    """Prepare code and arguments for function invocation with parameter resolution."""
+    if not function_name:
+        return code, base_args
+
+    details = _analyze_server_definition_for_function(code, function_name)
+    if not details:
+        return (code, base_args) if allow_fallback else None
+
+    if details.unsupported_reasons:
+        return _build_unsupported_signature_response(function_name, details)
+
+    # Initial parameter resolution
+    resolved, missing, available = _resolve_function_parameters(
+        details, base_args, allow_partial=True
+    )
+
+    # Handle missing parameters
+    if missing:
+        if function_name != "main":
+            return _build_missing_parameter_response(
+                function_name, MissingParameterError(missing, available)
+            )
+
+        # For main(), try nested path injection
+        resolved, missing, available, early_response = _handle_missing_parameters_for_main(
+            function_name, server_name, base_args, details, resolved, missing, available
+        )
+
+        if early_response:
+            return early_response
+
+        if missing:
+            return _build_missing_parameter_response(
+                function_name, MissingParameterError(missing, available)
+            )
+
+    # Build final code with function invocation
+    new_args = dict(base_args)
+    new_args[AUTO_MAIN_PARAMS_NAME] = resolved
+    combined_code = _build_function_invocation_snippet(function_name, code)
+
+    return combined_code, new_args
 
 
 def model_as_dict(model_objects: Optional[Iterable[Any]]) -> Dict[str, Any]:
