@@ -33,6 +33,7 @@ def _load_export_cid_content(cid_value: str) -> bytes:
     entry = cid_map.get(cid_value)
     content_bytes: bytes | None = None
 
+    # Handle both old format (dict with encoding/value) and new format (string)
     if isinstance(entry, dict):
         encoding = (entry.get("encoding") or "utf-8").strip().lower()
         value = entry.get("value")
@@ -49,6 +50,9 @@ def _load_export_cid_content(cid_value: str) -> bytes:
                 ) from exc
         else:
             content_bytes = value.encode("utf-8")
+    elif isinstance(entry, str):
+        # New format: entry is directly a UTF-8 string
+        content_bytes = entry.encode("utf-8")
 
     if content_bytes is None:
         origin_app = _scenario_state.get("origin_app")

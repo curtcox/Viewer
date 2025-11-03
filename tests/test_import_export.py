@@ -74,13 +74,19 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         content_bytes: bytes | None = None
 
         if entry is not None:
-            encoding = (entry.get('encoding') or 'utf-8').lower()
-            value = entry.get('value')
-            self.assertIsInstance(value, str, f'{key} CID entry must include string content')
-            if encoding == 'base64':
-                content_bytes = base64.b64decode(value.encode('ascii'))
+            # Handle both old format (dict with encoding/value) and new format (string)
+            if isinstance(entry, dict):
+                encoding = (entry.get('encoding') or 'utf-8').lower()
+                value = entry.get('value')
+                self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+                if encoding == 'base64':
+                    content_bytes = base64.b64decode(value.encode('ascii'))
+                else:
+                    content_bytes = value.encode('utf-8')
             else:
-                content_bytes = value.encode('utf-8')
+                # New format: entry is directly a UTF-8 string
+                self.assertIsInstance(entry, str, f'{key} CID entry must be a string')
+                content_bytes = entry.encode('utf-8')
         else:
             with self.app.app_context():
                 record = CID.query.filter_by(path=f'/{section_cid}').first()
@@ -105,7 +111,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             export_record: CID | None = None
             export_payload: dict[str, Any] | None = None
 
-            for record in CID.query.all():
+            # Order by ID descending to get the most recent export first
+            for record in CID.query.order_by(CID.id.desc()).all():
                 file_data = record.file_data
                 if file_data is None:
                     continue
@@ -348,12 +355,12 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn(alias_definition_cid, cid_values)
         self.assertEqual(
             cid_values[alias_definition_cid],
-            {'encoding': 'utf-8', 'value': definition_text},
+            definition_text,
         )
         self.assertIn(servers[0]['definition_cid'], cid_values)
         self.assertEqual(
             cid_values[servers[0]['definition_cid']],
-            {'encoding': 'utf-8', 'value': 'print("hi")'},
+            'print("hi")',
         )
         for entry in project_files.values():
             self.assertIn(entry['cid'], cid_values)
@@ -913,7 +920,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn(unreferenced_cid, cid_values)
         self.assertEqual(
             cid_values[unreferenced_cid],
-            {'encoding': 'utf-8', 'value': unreferenced_content.decode('utf-8')},
+            unreferenced_content.decode('utf-8'),
         )
 
     def test_import_reports_missing_selected_content(self):
@@ -1271,7 +1278,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_store_cid_entry_optional_behaviour(self):
-        cid_entries: dict[str, dict[str, str]] = {}
+        cid_entries: dict[str, str] = {}
         import_export._store_cid_entry('test-cid', b'data', cid_entries, include_optional=False)
         self.assertEqual(cid_entries, {})
 
@@ -1404,8 +1411,9 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         self.assertIn('aliases', payload)
         self.assertIn('cid_values', payload)
         cid_values = payload['cid_values']
+        # CID values are now plain strings, not dicts
         self.assertTrue(
-            any('export' in entry.get('value', '') for entry in cid_values.values())
+            any('export' in entry for entry in cid_values.values() if isinstance(entry, str))
         )
 
     def test_process_import_submission_returns_form_on_empty_payload(self):
@@ -1479,6 +1487,138 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             else:
                 created_at = created_at.astimezone(timezone.utc)
             self.assertEqual(created_at, timestamp)
+
+    def test_export_cid_values_as_utf8_strings(self):
+        """Test that exported CID values are UTF-8 strings without encoding field."""
+
+        definition_text = 'print("Hello, 世界")'  # UTF-8 content with non-ASCII chars
+
+        # Create a server with UTF-8 content
+        with self.app.app_context():
+            server = Server(name='test-server', definition=definition_text, user_id=self.user_id)
+            db.session.add(server)
+            db.session.commit()
+
+        # Export the server
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_servers': 'y',
+                'include_cid_map': 'y',
+                'submit': True,
+            })
+            self.assertEqual(response.status_code, 200)
+
+        _, payload = self._load_export_payload()
+        cid_values = payload.get('cid_values', {})
+
+        # Verify CID values are stored as plain strings, not dicts
+        for cid, value in cid_values.items():
+            self.assertIsInstance(value, str, f'CID value for {cid} should be a string')
+            self.assertNotIsInstance(value, dict, f'CID value for {cid} should not be a dict')
+
+        # Verify the specific server definition is present as a string
+        servers = self._load_section(payload, 'servers')
+        self.assertIsNotNone(servers)
+        self.assertEqual(len(servers), 1)
+        definition_cid = servers[0]['definition_cid']
+        self.assertIn(definition_cid, cid_values)
+        self.assertEqual(cid_values[definition_cid], definition_text)
+
+    def test_import_cid_values_from_utf8_strings(self):
+        """Test that import can handle CID values as plain UTF-8 strings."""
+
+        server_definition = 'print("Hello from new format")'
+        server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
+
+        # Create import payload with new format (string values, no encoding field)
+        payload = json.dumps({
+            'servers': [{'name': 'imported-server', 'definition_cid': server_cid}],
+            'cid_values': {
+                server_cid: server_definition,  # Plain string, no encoding dict
+            },
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_servers': 'y',
+                'process_cid_map': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Imported 1 server', response.data)
+
+            # Verify the server was imported correctly
+            with self.app.app_context():
+                server = Server.query.filter_by(user_id=self.user_id, name='imported-server').first()
+                self.assertIsNotNone(server)
+                self.assertEqual(server.definition, server_definition)
+
+    def test_import_cid_values_backward_compatibility(self):
+        """Test that import still handles old format with encoding field."""
+
+        server_definition = 'print("Hello from old format")'
+        server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
+
+        # Create import payload with old format (dict with encoding and value fields)
+        payload = json.dumps({
+            'servers': [{'name': 'old-format-server', 'definition_cid': server_cid}],
+            'cid_values': {
+                server_cid: {'encoding': 'utf-8', 'value': server_definition},
+            },
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_servers': 'y',
+                'process_cid_map': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Imported 1 server', response.data)
+
+            # Verify the server was imported correctly
+            with self.app.app_context():
+                server = Server.query.filter_by(user_id=self.user_id, name='old-format-server').first()
+                self.assertIsNotNone(server)
+                self.assertEqual(server.definition, server_definition)
+
+    def test_import_defaults_to_utf8_without_encoding(self):
+        """Test that import defaults to UTF-8 when no encoding is specified."""
+
+        # Test with non-ASCII UTF-8 content
+        content_with_unicode = 'Hello 世界 🌍'
+        alias_definition = format_primary_alias_line('literal', 'test', content_with_unicode)
+        alias_cid = format_cid(generate_cid(alias_definition.encode('utf-8')))
+
+        # Import with plain string (should default to UTF-8)
+        payload = json.dumps({
+            'aliases': [{'name': 'test-alias', 'definition_cid': alias_cid}],
+            'cid_values': {
+                alias_cid: alias_definition,
+            },
+        })
+
+        with self.logged_in():
+            response = self.client.post('/import', data={
+                'import_source': 'text',
+                'import_text': payload,
+                'include_aliases': 'y',
+                'process_cid_map': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(b'Imported 1 alias', response.data)
+
+            # Verify the alias was imported with correct UTF-8 content
+            with self.app.app_context():
+                alias = Alias.query.filter_by(user_id=self.user_id, name='test-alias').first()
+                self.assertIsNotNone(alias)
+                # The alias name gets updated during import, so just check the target content is present
+                self.assertIn(content_with_unicode, alias.definition)
 
 
 if __name__ == '__main__':
