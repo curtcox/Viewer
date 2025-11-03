@@ -53,6 +53,7 @@ AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 
 VARIABLE_PREFETCH_SESSION_KEY = "__viewer_variable_prefetch__"
 _MAX_VARIABLE_REDIRECTS = 5
+_REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 
 def _normalize_variable_path(value: Any) -> Optional[str]:
@@ -97,28 +98,65 @@ def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
     return candidate
 
 
-def _fetch_variable_content(path: str) -> Optional[str]:
-    normalized = _normalize_variable_path(path)
-    if not normalized:
-        return None
-
-    if not has_app_context():
-        return None
-
-    if has_request_context() and normalized == request.path:
-        return None
-
+def _current_user_id() -> Optional[Any]:
     user_id = getattr(current_user, "id", None)
     if callable(user_id):
         try:
             user_id = user_id()
         except TypeError:
             user_id = None
-    if not user_id:
-        getter = getattr(current_user, "get_id", None)
-        if callable(getter):
-            user_id = getter()
 
+    if user_id:
+        return user_id
+
+    getter = getattr(current_user, "get_id", None)
+    if callable(getter):
+        return getter()
+
+    return None
+
+
+def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
+    visited: set[str] = set()
+    target = start_path
+
+    for _ in range(_MAX_VARIABLE_REDIRECTS):
+        if target in visited:
+            break
+        visited.add(target)
+
+        response = client.get(target, follow_redirects=False)
+        status = getattr(response, "status_code", None) or 0
+
+        if status in _REDIRECT_STATUSES:
+            next_target = _resolve_redirect_target(
+                response.headers.get("Location", ""), target
+            )
+            if not next_target:
+                break
+            target = next_target
+            continue
+
+        if status != 200:
+            break
+
+        try:
+            return response.get_data(as_text=True)
+        except Exception:
+            return None
+
+    return None
+
+
+def _fetch_variable_content(path: str) -> Optional[str]:
+    normalized = _normalize_variable_path(path)
+    if not normalized or not has_app_context():
+        return None
+
+    if has_request_context() and normalized == request.path:
+        return None
+
+    user_id = _current_user_id()
     if not user_id:
         return None
 
@@ -129,32 +167,7 @@ def _fetch_variable_content(path: str) -> Optional[str]:
             sess["_fresh"] = True
             sess[VARIABLE_PREFETCH_SESSION_KEY] = True
 
-        visited: set[str] = set()
-        target = normalized
-        for _ in range(_MAX_VARIABLE_REDIRECTS):
-            if target in visited:
-                break
-            visited.add(target)
-
-            response = client.get(target, follow_redirects=False)
-            status = getattr(response, "status_code", None) or 0
-
-            if status in {301, 302, 303, 307, 308}:
-                next_target = _resolve_redirect_target(
-                    response.headers.get("Location", ""), target
-                )
-                if not next_target:
-                    break
-                target = next_target
-                continue
-
-            if status != 200:
-                break
-
-            try:
-                return response.get_data(as_text=True)
-            except Exception:
-                return None
+        return _fetch_variable_via_client(client, normalized)
     except Exception:
         return None
     finally:
@@ -171,16 +184,19 @@ def _resolve_variable_values(variable_map: Dict[str, Any]) -> Dict[str, Any]:
     if not variable_map:
         return {}
 
+    if _should_skip_variable_prefetch():
+        return dict(variable_map)
+
     resolved: Dict[str, Any] = {}
     for name, value in variable_map.items():
-        resolved_value = value
         candidate = _normalize_variable_path(value)
-        if candidate and not _should_skip_variable_prefetch():
+        if candidate:
             fetched = _fetch_variable_content(candidate)
             if fetched is not None:
-                resolved_value = fetched
+                resolved[name] = fetched
+                continue
 
-        resolved[name] = resolved_value
+        resolved[name] = value
 
     return resolved
 
