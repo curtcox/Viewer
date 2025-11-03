@@ -60,6 +60,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_list_displays_cid_link_for_cid_target`
 
 **Integration tests:**
+- `tests/integration/test_alias_pages.py::test_aliases_page_includes_enabled_toggle`
 - `tests/integration/test_alias_pages.py::test_aliases_page_lists_user_aliases`
 - `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_honors_plain_text_accept_header`
 - `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_csv_extension`
@@ -131,15 +132,20 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_unselecting_all_aliases`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_cid_values_as_utf8_strings`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_only_checked_aliases`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_lists_selected_items`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
@@ -156,15 +162,20 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_unselecting_all_aliases`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_cid_values_as_utf8_strings`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_only_checked_aliases`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_lists_selected_items`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
 
@@ -196,6 +207,9 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_change_history_creates_events`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_cid_values_backward_compatibility`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_cid_values_from_utf8_strings`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_defaults_to_utf8_without_encoding`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_rejects_invalid_secret_key`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_rejects_mismatched_cid_map_entry`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_reports_mismatched_app_source`
@@ -357,6 +371,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_xml_extension`
 - `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
 - `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
+- `tests/integration/test_secret_pages.py::test_secrets_page_includes_enabled_toggle`
 
 **Specs:**
 - secrets.spec — Secrets list is accessible
@@ -452,6 +467,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_json_extension`
 - `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_xml_extension`
 - `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
+- `tests/integration/test_server_pages.py::test_servers_page_includes_enabled_toggle`
 - `tests/integration/test_server_pages.py::test_servers_page_links_auto_main_context_matches`
 - `tests/integration/test_server_pages.py::test_servers_page_lists_user_servers`
 - `tests/integration/test_server_pages.py::test_servers_page_shows_referenced_variables_and_secrets`
@@ -669,6 +685,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_json_extension`
 - `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_xml_extension`
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
+- `tests/integration/test_variable_pages.py::test_variables_page_includes_enabled_toggle`
 - `tests/integration/test_variable_pages.py::test_variables_page_lists_user_variables`
 
 **Specs:**
