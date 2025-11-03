@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1371
-- Unit Tests: 1237
+**Total Tests:** 1375
+- Unit Tests: 1241
 - Integration Tests: 101
 - Property Tests: 12
 - Gauge Tests: 21
 
 ## Unit Tests
 
-Total: 1237 tests
+Total: 1241 tests
 
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_aliases](tests/test_alias_view_definition_targets.py:40)
 - [AliasDefinitionTargetRenderingTests.test_describe_target_path_handles_cids](tests/test_alias_view_definition_targets.py:19)
@@ -906,6 +906,7 @@ Total: 1237 tests
 - [test_get_user_history_statistics](tests/test_analytics.py:132)
 - [test_get_user_profile_data](tests/test_db_access.py:85)
 - [test_get_user_uploads_returns_latest_first](tests/test_db_access.py:136)
+- [References should be detected even with multiple levels of aliasing.](tests/test_extract_context_references.py:79)
 - [Paths without a usable filename should return None; minimal filename fragments are preserved.](tests/test_serve_cid_integration.py:80)
 - [Test that hash_len affects the generated function name length.](tests/test_text_function_runner.py:74)
 - [Verify hashed CIDs behave like the legacy format.](tests/test_cid_generation.py:59)
@@ -917,6 +918,8 @@ Total: 1237 tests
 - [Ensure history page renders invocation links, server events, and referer metadata for page views.](tests/test_routes_comprehensive.py:1485)
 - [Requesting page 2 returns 200 even when pagination yields no results.](tests/test_routes_comprehensive.py:1544)
 - [test_horizontal_rule_renders_between_sections](tests/test_markdown_rendering.py:189)
+- [Access to context keys other than 'variables' or 'secrets' should be ignored.](tests/test_extract_context_references.py:63)
+- [Aliases that are defined but not used to access context values should be ignored.](tests/test_extract_context_references.py:98)
 - [test_images_render_with_alt_and_title_attributes](tests/test_markdown_rendering.py:122)
 - [test_import_change_history_creates_events](tests/test_import_export.py:1438)
 - [Test that import still handles old format with encoding field.](tests/test_import_export.py:1558)
@@ -931,6 +934,7 @@ Total: 1237 tests
 - [test_import_section_records_summary](tests/test_import_export.py:1292)
 - [test_import_section_rejects_invalid_plan_shape](tests/test_import_export.py:1329)
 - [test_import_verifies_app_source_matches](tests/test_import_export.py:1035)
+- [Names from known_variables and known_secrets appearing as parameter names in the server's main function should be reported as references.](tests/test_extract_context_references.py:118)
 - [Alias entries on the dashboard should use the CID link component when targeting CIDs.](tests/test_routes_comprehensive.py:251)
 - [Authenticated users should see the workspace cross reference overview.](tests/test_routes_comprehensive.py:169)
 - [Alias and server entries should expose highlight metadata for related entities.](tests/test_routes_comprehensive.py:340)
