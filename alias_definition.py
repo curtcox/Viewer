@@ -79,12 +79,8 @@ def _strip_inline_comment(line: str) -> str:
     return _COMMENT_PATTERN.sub("", line).rstrip()
 
 
-def _normalize_target_path(raw: str) -> str:
-    """Ensure the alias target path stays within the application."""
-
-    value = (raw or "").strip()
-    if not value:
-        raise AliasDefinitionError('Alias definition must include a target path after "->".')
+def _validate_braces(value: str) -> None:
+    """Validate that braces in the target path are balanced and properly used."""
     brace_balance = 0
     for character in value:
         if character == "{":
@@ -93,18 +89,33 @@ def _normalize_target_path(raw: str) -> str:
             if brace_balance == 0:
                 raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
             brace_balance -= 1
+
     if brace_balance != 0:
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+
     if value.startswith("{") and value.endswith("}"):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+
+
+def _normalize_target_path(raw: str) -> str:
+    """Ensure the alias target path stays within the application."""
+    value = (raw or "").strip()
+
+    if not value:
+        raise AliasDefinitionError('Alias definition must include a target path after "->".')
+
+    _validate_braces(value)
+
     if not any(character.isalnum() for character in value):
         raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
+
     if value.startswith("//"):
         raise AliasDefinitionError('Alias target path must stay within this application.')
 
     parsed = urlsplit(value)
     if parsed.scheme or parsed.netloc:
         raise AliasDefinitionError('Alias target path must stay within this application.')
+
     return value
 
 
@@ -121,35 +132,44 @@ def _extract_primary_line(definition: str) -> Optional[str]:
     return None
 
 
+def _extract_variable_items(variable_source: Any) -> Iterable[tuple[Any, Any]]:
+    """Extract (name, value) pairs from an iterable of variable objects."""
+    collected: list[tuple[Any, Any]] = []
+
+    try:
+        iterator = iter(variable_source)
+    except TypeError:
+        return []
+
+    for entry in iterator:
+        if entry is None:
+            continue
+
+        name = getattr(entry, "name", None)
+        if not name:
+            continue
+
+        if hasattr(entry, "enabled") and not getattr(entry, "enabled", True):
+            continue
+
+        value = getattr(entry, "definition", None)
+        if value is None:
+            continue
+
+        collected.append((name, value))
+
+    return collected
+
+
 def _normalize_variable_map(variable_source: Any) -> dict[str, str]:
     """Return a mapping of variable names to their string values."""
-
     if not variable_source:
         return {}
-
-    items: Iterable[tuple[Any, Any]]
 
     if isinstance(variable_source, Mapping):
         items = variable_source.items()
     else:
-        collected: list[tuple[Any, Any]] = []
-        try:
-            iterator = iter(variable_source)
-        except TypeError:
-            iterator = iter(())
-        for entry in iterator:
-            if entry is None:
-                continue
-            name = getattr(entry, "name", None)
-            if not name:
-                continue
-            if hasattr(entry, "enabled") and not getattr(entry, "enabled", True):
-                continue
-            value = getattr(entry, "definition", None)
-            if value is None:
-                continue
-            collected.append((name, value))
-        items = collected
+        items = _extract_variable_items(variable_source)
 
     normalized: dict[str, str] = {}
     for raw_name, raw_value in items:
@@ -160,22 +180,23 @@ def _normalize_variable_map(variable_source: Any) -> dict[str, str]:
             continue
         value_text = "" if raw_value is None else str(raw_value)
         normalized[name_text] = value_text
+
     return normalized
 
 
-def _resolve_alias_variables(alias: Any, provided: Optional[Mapping[str, Any]]) -> dict[str, str]:
-    """Return resolved variable values for ``alias``."""
-
-    if provided:
-        return _normalize_variable_map(provided)
-
+def _get_variables_from_alias_attributes(alias: Any) -> dict[str, str]:
+    """Try to get variable values from common alias attributes."""
     for attribute in ("_resolved_variables", "resolved_variables", "variable_values"):
         candidate = getattr(alias, attribute, None)
         if candidate:
             resolved = _normalize_variable_map(candidate)
             if resolved:
                 return resolved
+    return {}
 
+
+def _get_variables_from_database(alias: Any) -> dict[str, str]:
+    """Fetch user variables from database if possible."""
     user_id = getattr(alias, "user_id", None)
     if not user_id:
         return {}
@@ -188,14 +209,29 @@ def _resolve_alias_variables(alias: Any, provided: Optional[Mapping[str, Any]]) 
     try:
         variables = get_user_variables(user_id)
     except Exception:  # pragma: no cover - defensive guard when database access fails
-        variables = []
+        return {}
 
     resolved = _normalize_variable_map(variables)
+
+    # Cache the resolved variables on the alias object
     try:
         setattr(alias, "_resolved_variables", resolved)
     except Exception:
         pass
+
     return resolved
+
+
+def _resolve_alias_variables(alias: Any, provided: Optional[Mapping[str, Any]]) -> dict[str, str]:
+    """Return resolved variable values for ``alias``."""
+    if provided:
+        return _normalize_variable_map(provided)
+
+    resolved = _get_variables_from_alias_attributes(alias)
+    if resolved:
+        return resolved
+
+    return _get_variables_from_database(alias)
 
 
 def _substitute_variables(text: Optional[str], variables: Mapping[str, str]) -> Optional[str]:
@@ -233,43 +269,12 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
 
     pattern_part, _, remainder = without_comment.partition("->")
     pattern_text = (pattern_part or "").strip()
+
     if not remainder:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
 
     target_part = remainder.strip()
-    options: Iterable[str]
-    option_start = target_part.find("[")
-    option_end = target_part.find("]") if option_start != -1 else -1
-
-    if option_start != -1:
-        if option_end == -1 or option_end < option_start:
-            raise AliasDefinitionError('Alias definition options must be closed with "]".')
-        option_segment = target_part[option_start + 1 : option_end]
-        target_text = target_part[:option_start].strip()
-        trailing = target_part[option_end + 1 :].strip()
-        if trailing:
-            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
-        options = (opt.strip().lower() for opt in option_segment.split(",") if opt.strip())
-    else:
-        target_text = target_part
-        options = ()
-
-    match_type = "literal"
-    ignore_case = False
-    specified_match_type: Optional[str] = None
-
-    for option in options:
-        if option in _MATCH_TYPE_OPTIONS:
-            if specified_match_type and option != specified_match_type:
-                raise AliasDefinitionError('Alias definition may specify only one match type.')
-            specified_match_type = option
-        elif option in _IGNORE_CASE_OPTIONS:
-            ignore_case = True
-        else:
-            raise AliasDefinitionError(f'Unknown alias option "{option}".')
-
-    if specified_match_type:
-        match_type = specified_match_type
+    target_text, match_type, ignore_case = _parse_target_and_options(target_part)
 
     try:
         normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
@@ -376,9 +381,38 @@ def replace_primary_definition_line(
     return ensure_primary_line(definition, primary_line)
 
 
+def _parse_target_and_options(target_part: str) -> tuple[str, str, bool]:
+    """Parse the target path, match type, and ignore-case flag from the target segment.
+
+    Returns:
+        (target_path, match_type, ignore_case)
+    """
+    option_start = target_part.find("[")
+    option_end = target_part.find("]") if option_start != -1 else -1
+
+    if option_start != -1:
+        if option_end == -1 or option_end < option_start:
+            raise AliasDefinitionError('Alias definition options must be closed with "]".')
+
+        option_segment = target_part[option_start + 1 : option_end]
+        target_text = target_part[:option_start].strip()
+        trailing = target_part[option_end + 1 :].strip()
+
+        if trailing:
+            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
+
+        specified_match_type, ignore_case = _interpret_option_segment(option_segment)
+    else:
+        target_text = target_part
+        specified_match_type = None
+        ignore_case = False
+
+    match_type = specified_match_type or "literal"
+    return target_text, match_type, ignore_case
+
+
 def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
     """Return the selected match type and ignore-case flag for a line."""
-
     specified_match_type: Optional[str] = None
     ignore_case = False
 
@@ -416,27 +450,12 @@ def _parse_line_metadata(
     pattern_part, _, remainder = without_comment.partition("->")
     pattern_text = (pattern_part or "").strip()
     target_part = remainder.strip()
+
     if not target_part:
         raise AliasDefinitionError('Alias definition must include a target path after "->".')
 
-    option_segment = ""
-    target_text = target_part
-    option_start = target_part.find("[")
-    option_end = target_part.find("]") if option_start != -1 else -1
-
-    if option_start != -1:
-        if option_end == -1 or option_end < option_start:
-            raise AliasDefinitionError('Alias definition options must be closed with "]".')
-        option_segment = target_part[option_start + 1 : option_end]
-        trailing = target_part[option_end + 1 :].strip()
-        if trailing:
-            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
-        target_text = target_part[:option_start].rstrip()
-
+    target_text, match_type, ignore_case = _parse_target_and_options(target_part)
     target_path = _normalize_target_path(target_text)
-
-    specified_match_type, ignore_case = _interpret_option_segment(option_segment)
-    match_type = specified_match_type or "literal"
 
     try:
         normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
@@ -573,31 +592,41 @@ def summarize_definition_lines(
     return summaries
 
 
-def collect_alias_routes(
-    alias: Any, *, variables: Optional[Mapping[str, Any]] = None
-) -> Sequence[AliasRouteRule]:
-    """Return all routing rules defined for the supplied alias."""
-
-    alias_name = getattr(alias, "name", None) or ""
+def _get_alias_definition_text(alias: Any, variables: Optional[Mapping[str, Any]]) -> str:
+    """Extract and resolve the definition text from an alias object."""
     raw_definition = getattr(alias, "definition", None)
+
     if raw_definition is not None and not isinstance(raw_definition, str):
         definition = str(raw_definition)
     else:
         definition = raw_definition
+
     variable_values = _resolve_alias_variables(alias, variables)
     resolved_definition = _substitute_variables(definition, variable_values)
-    definition_text = resolved_definition if resolved_definition is not None else definition
 
+    return resolved_definition if resolved_definition is not None else definition
+
+
+def _is_mock_alias(alias: Any) -> bool:
+    """Check if the alias appears to be a Mock object."""
     has_helper_methods = hasattr(alias, "get_primary_target_path")
-
-    if (
+    return (
         not has_helper_methods
-        and alias_name
         and hasattr(alias, "__class__")
         and "Mock" in str(type(alias))
-    ):
+    )
+
+
+def collect_alias_routes(
+    alias: Any, *, variables: Optional[Mapping[str, Any]] = None
+) -> Sequence[AliasRouteRule]:
+    """Return all routing rules defined for the supplied alias."""
+    alias_name = getattr(alias, "name", None) or ""
+
+    if _is_mock_alias(alias) and alias_name:
         return [_literal_self_route(alias_name)]
 
+    definition_text = _get_alias_definition_text(alias, variables)
     summary = summarize_definition_lines(definition_text, alias_name=alias_name)
 
     routes: list[AliasRouteRule] = []
@@ -637,27 +666,30 @@ def collect_alias_routes(
     if routes:
         return routes
 
-    # Handle empty definition case - create fallback route
+    return _create_fallback_routes(definition_text, alias_name)
+
+
+def _create_fallback_routes(
+    definition_text: Optional[str], alias_name: str
+) -> Sequence[AliasRouteRule]:
+    """Create fallback routes when no routes could be extracted from the definition."""
+    # Handle empty definition case
     if definition_text is None or not str(definition_text).strip():
         if alias_name:
             return [_literal_self_route(alias_name)]
         return []
 
     try:
-        parsed = parse_alias_definition(
-            definition_text, alias_name=alias_name or None
-        )
+        parsed = parse_alias_definition(definition_text, alias_name=alias_name or None)
     except AliasDefinitionError as e:
-        # Check if the error is due to external target
+        # Don't create fallback routes for external targets
         if "must stay within this application" in str(e):
-            # Don't create fallback routes for external targets
-            # This allows the redirect function to properly reject external targets
             return []
-        else:
-            # For other parsing errors, fallback to name-based route
-            if alias_name:
-                return [_literal_self_route(alias_name)]
-            return []
+
+        # For other parsing errors, fallback to name-based route
+        if alias_name:
+            return [_literal_self_route(alias_name)]
+        return []
 
     fallback_path = alias_name or parsed.match_pattern.lstrip("/")
     return [
