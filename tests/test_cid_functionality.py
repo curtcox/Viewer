@@ -8,7 +8,6 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import cid_utils
 from app import app, db
 from cid_utils import (
     CID_NORMALIZED_PATTERN,
