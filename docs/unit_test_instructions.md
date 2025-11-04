@@ -31,5 +31,50 @@ For finer-grained control, call the dedicated helper and pass pytest arguments a
 
 Add `--coverage` before the separator to generate coverage data via pytest-cov.
 
-## 4. Gauge specs (known limitation)
+## 4. Testmon: Selective test execution for faster feedback
+
+The project uses [pytest-testmon](https://testmon.org/) to run only tests affected by recent code changes. This dramatically speeds up the feedback loop during development.
+
+### Using testmon locally
+
+Run tests with testmon enabled:
+
+```bash
+./test-unit --testmon
+```
+
+This will:
+- On the first run: execute all tests and build a dependency database
+- On subsequent runs: only execute tests affected by your code changes
+
+### Testmon with coverage
+
+You can combine testmon with coverage reporting:
+
+```bash
+./test-unit --coverage --testmon
+```
+
+### Managing the testmon database
+
+Clear the testmon cache to force all tests to run:
+
+```bash
+pytest --testmon-nocache
+```
+
+The testmon database is stored in `.testmondata` in the project root. This file should be excluded from version control (it's already in `.gitignore`).
+
+### How testmon works
+
+Testmon tracks which source files each test depends on. When you change a file, testmon knows which tests need to be re-run. This is particularly useful for:
+- Quick feedback during TDD (Test-Driven Development)
+- Running tests frequently without waiting for the full suite
+- CI/CD pipelines where only changed code needs testing
+
+### Testmon in CI
+
+The CI workflow automatically uses testmon for unit tests, property tests, and integration tests. The testmon database is cached between CI runs to maximize the benefit of selective testing.
+
+## 5. Gauge specs (known limitation)
 The full `./test` wrapper also triggers Gauge browser specs that attempt to download a Chromium build. In offline or sandboxed environments the download fails, leading to a non-zero exit even though the unit tests pass. Run `./test` only when the environment allows outbound downloads.

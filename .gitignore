@@ -60,6 +60,7 @@ coverage.xml
 .pytest_cache/
 .gauge/
 reports/
+.testmondata
 
 # Translations
 *.mo

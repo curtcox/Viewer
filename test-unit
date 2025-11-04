@@ -27,6 +27,11 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
         help="Write the textual coverage summary to the specified file (only with --coverage).",
     )
     parser.add_argument(
+        "--testmon",
+        action="store_true",
+        help="Run only tests affected by recent code changes (uses pytest-testmon).",
+    )
+    parser.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
         help="Additional arguments forwarded to pytest (prefix with --).",
@@ -52,7 +57,10 @@ def run_with_coverage(env: dict[str, str], args: argparse.Namespace) -> int:
 
 
 def run_pytest(env: dict[str, str], args: argparse.Namespace) -> int:
-    command = [sys.executable, "-m", "pytest", *args.pytest_args]
+    command = [sys.executable, "-m", "pytest"]
+    if args.testmon:
+        command.append("--testmon")
+    command.extend(args.pytest_args)
     return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
 
 

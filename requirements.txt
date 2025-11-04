@@ -23,6 +23,7 @@ qrcode[pil]>=7.4.2
 glom>=23.3.0
 hypothesis>=6.124.1
 pytest>=8.2.0
+pytest-testmon>=2.1.0
 ruff>=0.1.0
 pyppeteer>=1.0.2,<2.0.0
 logfire[all]
