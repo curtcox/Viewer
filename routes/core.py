@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -26,6 +27,14 @@ from routes.context_processors import (
 from routes.error_handlers import get_existing_routes, internal_error, not_found_error
 from utils.cross_reference import build_cross_reference_data
 from utils.stack_trace import build_stack_trace
+
+# Import these for backward compatibility with tests that mock them at routes.core
+from alias_definition import get_primary_alias_route
+from entity_references import (
+    extract_references_from_bytes,
+    extract_references_from_target,
+    extract_references_from_text,
+)
 
 from . import main_bp
 

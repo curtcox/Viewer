@@ -8,17 +8,23 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from flask import url_for
 
-from alias_definition import get_primary_alias_route
 from cid_presenter import cid_path, format_cid, format_cid_short
 from constants import TYPE_LABELS
 from db_access import get_cids_by_paths, get_user_aliases, get_user_servers
-from entity_references import (
-    extract_references_from_bytes,
-    extract_references_from_target,
-    extract_references_from_text,
-)
 from models import CID
 from utils.dom_keys import _entity_key, _reference_key
+
+# Import these functions via a late import to avoid circular dependency
+# and to allow tests to mock them at routes.core level
+def _get_ref_dependencies():
+    """Late import to avoid circular dependency with routes.core."""
+    import routes.core as core
+    return (
+        core.get_primary_alias_route,
+        core.extract_references_from_target,
+        core.extract_references_from_text,
+        core.extract_references_from_bytes,
+    )
 
 
 @dataclass
@@ -240,6 +246,8 @@ def _collect_alias_entries(user_id: str, state: CrossReferenceState) -> List[Dic
     Returns:
         List of alias entry dictionaries
     """
+    get_primary_alias_route, extract_references_from_target, _, _ = _get_ref_dependencies()
+
     aliases = get_user_aliases(user_id)
     alias_entries: List[Dict[str, Any]] = []
 
@@ -273,6 +281,8 @@ def _collect_server_entries(user_id: str, state: CrossReferenceState) -> List[Di
     Returns:
         List of server entry dictionaries
     """
+    _, _, extract_references_from_text, _ = _get_ref_dependencies()
+
     servers = get_user_servers(user_id)
     server_entries: List[Dict[str, Any]] = []
 
@@ -316,6 +326,8 @@ def _collect_cid_entries(
     Returns:
         List of CID entry dictionaries (filtered to those with named entity relationships)
     """
+    _, _, _, extract_references_from_bytes = _get_ref_dependencies()
+
     cid_paths_list: List[str] = []
     for value in state.referenced_cids:
         path_value = cid_path(value)
