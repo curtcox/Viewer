@@ -9,6 +9,7 @@
     "uncss:check": "node scripts/purgecss-check.mjs"
   },
   "devDependencies": {
+    "@fullhuman/postcss-purgecss": "^7.0.2",
     "eslint": "^8.56.0",
     "purgecss": "^6.0.0",
     "stylelint": "^16.8.0",
