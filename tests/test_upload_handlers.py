@@ -1,7 +1,6 @@
 """Unit tests for upload_handlers module."""
 
 import unittest
-from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
