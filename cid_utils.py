@@ -12,6 +12,7 @@ DEPRECATED: This module is deprecated. Import from the specific modules instead:
 - content_serving: HTTP response generation
 """
 
+# ruff: noqa: F401, F811
 # Re-export everything from the new modules for backward compatibility
 
 # pylint: disable=unused-import,wildcard-import
@@ -108,16 +109,13 @@ from upload_handlers import (
 # Content serving
 from content_serving import generate_qr_data_url as _generate_qr_data_url, serve_cid_content
 
-# Special compatibility aliases for legacy code
-save_server_definition_as_cid = store_server_definitions_cid
-
 # Create a singleton Mermaid renderer for backward compatibility
 _mermaid_renderer = MermaidRenderer()
 
 # Also import things that might be needed
 try:
     import markdown  # type: ignore
-except ModuleNotFoundError as exc:  # pragma: no cover
+except ModuleNotFoundError:  # pragma: no cover
     markdown = None  # type: ignore[assignment]
 
 try:
