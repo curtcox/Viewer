@@ -212,6 +212,8 @@ __all__ = [
     'get_user_settings_counts',
     'index',
     'inject_observability_info',
+    'inject_meta_inspector_link',
+    'inject_viewer_navigation',
     'not_found_error',
     'internal_error',
     'profile',
