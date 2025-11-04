@@ -62,7 +62,7 @@ class TestInternalServerErrorPage(unittest.TestCase):
                     line='code line',
                 )
                 with patch('routes.source._get_tracked_paths', return_value=frozenset({'server_execution.py'})):
-                    with patch('routes.core.traceback.extract_tb', return_value=[mock_frame]):
+                    with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
                         frames = _build_stack_trace(exc)
 
         self.assertEqual(len(frames), 1)
@@ -161,7 +161,7 @@ class TestInternalServerErrorPage(unittest.TestCase):
             try:
                 raise RuntimeError('Test error')
             except RuntimeError as exc:
-                with patch('routes.core.traceback.extract_tb', return_value=[mock_frame]):
+                with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
                     frames = _build_stack_trace(exc)
 
         self.assertEqual(len(frames), 1)
@@ -332,7 +332,7 @@ class TestStackTraceEnhancements(unittest.TestCase):
             try:
                 raise RuntimeError('Test error')
             except RuntimeError as exc:
-                with patch('routes.core.traceback.extract_tb', return_value=frames):
+                with patch('utils.stack_trace.traceback.extract_tb', return_value=frames):
                     stack_frames = _build_stack_trace(exc)
 
         self.assertEqual(len(stack_frames), 2)
@@ -366,7 +366,7 @@ class TestStackTraceEnhancements(unittest.TestCase):
                 try:
                     raise RuntimeError('Test')
                 except RuntimeError as exc:
-                    with patch('routes.core.traceback.extract_tb', return_value=[mock_frame]):
+                    with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
                         frames = _build_stack_trace(exc)
 
                 # Clean up
