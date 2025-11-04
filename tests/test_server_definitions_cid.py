@@ -13,6 +13,14 @@ from routes.servers import update_server_definitions_cid
 class TestServerDefinitionsCID(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
+        # Reset cid_storage module-level variables BEFORE test to ensure clean state
+        import cid_storage
+        cid_storage._get_user_servers = None
+        cid_storage._get_user_variables = None
+        cid_storage._get_user_secrets = None
+        cid_storage._create_cid_record = None
+        cid_storage._get_cid_by_path = None
+
         # Mock database and models
         self.mock_db = Mock()
         self.mock_user = Mock()
