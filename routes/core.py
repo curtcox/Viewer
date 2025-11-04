@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -29,8 +28,9 @@ from utils.cross_reference import build_cross_reference_data
 from utils.stack_trace import build_stack_trace
 
 # Import these for backward compatibility with tests that mock them at routes.core
-from alias_definition import get_primary_alias_route
-from entity_references import (
+# These are re-exported so utils/cross_reference.py and tests can access them via routes.core
+from alias_definition import get_primary_alias_route  # noqa: F401
+from entity_references import (  # noqa: F401
     extract_references_from_bytes,
     extract_references_from_target,
     extract_references_from_text,
@@ -73,7 +73,7 @@ def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
     try:
         from .source import _get_tracked_paths
         tracked_paths = _get_tracked_paths(current_app.root_path)
-    except Exception:  # pragma: no cover - defensive fallback when git unavailable
+    except Exception:  # pragma: no cover - defensive fallback when git unavailable  # pylint: disable=broad-except
         tracked_paths = frozenset()
 
     return build_stack_trace(error, root_path, tracked_paths)
@@ -177,7 +177,8 @@ def require_invitation():
 
 
 @main_bp.route('/invite/<invitation_code>')
-def accept_invitation(invitation_code):
+def accept_invitation(invitation_code):  # pylint: disable=unused-argument
+    """Accept invitation route (placeholder - returns 404)."""
     abort(404)
 
 
@@ -231,4 +232,9 @@ __all__ = [
     '_build_stack_trace',
     '_build_cross_reference_data',
     '_extract_exception',
+    # Re-exported functions for backward compatibility
+    'get_primary_alias_route',
+    'extract_references_from_bytes',
+    'extract_references_from_target',
+    'extract_references_from_text',
 ]
