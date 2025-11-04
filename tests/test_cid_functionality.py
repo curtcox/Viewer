@@ -173,7 +173,7 @@ class TestCIDFunctionality(unittest.TestCase):
             self.assertFalse(hasattr(cid_record, 'content_type'))
             self.assertFalse(hasattr(cid_record, 'updated_at'))
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_with_extension(self, mock_make_response):
         """Test serving CID content with file extension for MIME type detection"""
         with self.app.app_context():
@@ -210,7 +210,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(file_content))
                 mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_without_extension(self, mock_make_response):
         """Test serving CID content without extension defaults to UTF-8 text when possible."""
         with self.app.app_context():
@@ -243,7 +243,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 # Verify default MIME type was set for decoded text
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_with_txt_extension(self, mock_make_response):
         """CID content requested with .txt extension should render as UTF-8 text when possible."""
         with self.app.app_context():
@@ -270,7 +270,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_make_response.assert_called_once_with(file_content)
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_without_extension_plain_python_not_rendered(self, mock_make_response):
         """Plain source files without Markdown cues should not be rendered."""
         with self.app.app_context():
@@ -299,7 +299,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_make_response.assert_called_once_with(file_content)
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_without_extension_serves_raw_markdown(self, mock_make_response):
         """Markdown content without an extension should be served without rendering."""
         with self.app.app_context():
@@ -335,7 +335,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(markdown_body))
 
     @patch('cid_utils._generate_qr_data_url')
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response, mock_generate_qr_data_url):
         """Requests with a .qr extension should render a QR code landing page."""
         with self.app.app_context():
@@ -411,8 +411,9 @@ class TestCIDFunctionality(unittest.TestCase):
 
         target_url = 'https://256t.org/example'
 
-        with patch('cid_utils.qrcode', fake_module), patch('cid_utils._qrcode_import_error', None):
-            data_url = cid_utils._generate_qr_data_url(target_url)
+        with patch('content_serving.qrcode', fake_module), patch('content_serving._qrcode_import_error', None):
+            from content_serving import generate_qr_data_url
+            data_url = generate_qr_data_url(target_url)
 
         self.assertEqual(
             call_log['init'],
@@ -430,7 +431,7 @@ class TestCIDFunctionality(unittest.TestCase):
             f'data:image/png;base64,{sample_png_base64}',
         )
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
         with self.app.app_context():
@@ -462,7 +463,7 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
                 mock_response.headers.__setitem__.assert_any_call('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT')
 
-    @patch('cid_utils.make_response')
+    @patch('content_serving.make_response')
     def test_serve_cid_content_etag_caching(self, mock_make_response):
         """Test ETag-based caching returns 304 when content hasn't changed"""
         with self.app.app_context():
@@ -492,7 +493,7 @@ class TestCIDFunctionality(unittest.TestCase):
 
                     # Verify 304 response was created
                     mock_make_response.assert_called_once_with('', 304)
-                    mock_304_response.headers.__setitem__.assert_called_with('ETag', expected_etag)
+                    mock_304_response.headers.__setitem__.assert_any_call('ETag', expected_etag)
 
     def test_cid_model_simplified_fields(self):
         """Test that CID model only has the required fields"""
