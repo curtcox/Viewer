@@ -19,36 +19,36 @@ class AliasDefinitionTargetRenderingTests(unittest.TestCase):
     def test_describe_target_path_handles_cids(self):
         result = _describe_target_path('/ABC12345')
         self.assertIsNotNone(result)
-        self.assertEqual(result.get('kind'), 'cid')
-        self.assertEqual(result.get('cid'), 'ABC12345')
-        self.assertFalse(result.get('suffix'))
+        self.assertEqual(result.kind, 'cid')
+        self.assertEqual(result.cid, 'ABC12345')
+        self.assertFalse(result.suffix)
 
     def test_describe_target_path_handles_cids_with_prefix(self):
         result = _describe_target_path('/CID/ABC12345.txt?download=1')
         self.assertIsNotNone(result)
-        self.assertEqual(result.get('kind'), 'cid')
-        self.assertEqual(result.get('cid'), 'ABC12345')
-        self.assertEqual(result.get('suffix'), '?download=1')
+        self.assertEqual(result.kind, 'cid')
+        self.assertEqual(result.cid, 'ABC12345')
+        self.assertEqual(result.suffix, '?download=1')
 
     def test_describe_target_path_handles_servers(self):
         result = _describe_target_path('/servers/example')
         self.assertIsNotNone(result)
-        self.assertEqual(result.get('kind'), 'server')
-        self.assertEqual(result.get('name'), 'example')
-        self.assertEqual(result.get('url'), '/servers/example')
+        self.assertEqual(result.kind, 'server')
+        self.assertEqual(result.name, 'example')
+        self.assertEqual(result.url, '/servers/example')
 
     def test_describe_target_path_handles_aliases(self):
         result = _describe_target_path('/aliases/docs')
         self.assertIsNotNone(result)
-        self.assertEqual(result.get('kind'), 'alias')
-        self.assertEqual(result.get('name'), 'docs')
-        self.assertEqual(result.get('url'), '/aliases/docs')
+        self.assertEqual(result.kind, 'alias')
+        self.assertEqual(result.name, 'docs')
+        self.assertEqual(result.url, '/aliases/docs')
 
     def test_describe_target_path_handles_generic_paths(self):
         result = _describe_target_path('/docs/latest')
         self.assertIsNotNone(result)
-        self.assertEqual(result.get('kind'), 'path')
-        self.assertEqual(result.get('display'), '/docs/latest')
+        self.assertEqual(result.kind, 'path')
+        self.assertEqual(result.display, '/docs/latest')
 
 
 if __name__ == '__main__':  # pragma: no cover - convenience for direct execution

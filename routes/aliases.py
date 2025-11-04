@@ -1,9 +1,10 @@
 """Routes for managing user-defined aliases."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeAlias
 from urllib.parse import urlsplit
 
 import logfire
@@ -44,13 +45,56 @@ from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
 
 
+# Constants
+SUBMIT_ACTION_SAVE_AS = 'save-as'
+
+# Type aliases
+ValidationResult: TypeAlias = tuple[bool, Optional[str]]
+DefinitionMetadata: TypeAlias = Dict[str, Any]
+
+
+# Dataclasses for structured metadata
+@dataclass
+class TargetPathMetadata:
+    """Metadata for rendering a target path in alias definitions."""
+    kind: str  # 'cid', 'server', 'alias', 'path'
+    display: str
+    url: Optional[str] = None
+    name: Optional[str] = None
+    cid: Optional[str] = None
+    suffix: str = ""
+
+
+class AliasValidator:
+    """Validates alias names against routes and existing aliases."""
+
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+
+    def validate_name(
+        self, name: str, exclude_id: Optional[int] = None
+    ) -> ValidationResult:
+        """Validate an alias name.
+
+        Returns:
+            (is_valid, error_message): Tuple with validation and optional error.
+        """
+        if _alias_name_conflicts_with_routes(name):
+            return False, f'Alias name "{name}" conflicts with an existing route.'
+        if _alias_with_name_exists(self.user_id, name, exclude_id):
+            return False, f'An alias named "{name}" already exists.'
+        return True, None
+
+
 def _alias_name_conflicts_with_routes(name: str) -> bool:
     if not name:
         return False
     return f"/{name}" in get_existing_routes()
 
 
-def _alias_with_name_exists(user_id: str, name: str, exclude_id: Optional[int] = None) -> bool:
+def _alias_with_name_exists(
+    user_id: str, name: str, exclude_id: Optional[int] = None
+) -> bool:
     existing = get_alias_by_name(user_id, name)
     if not existing:
         return False
@@ -91,7 +135,38 @@ def _prefill_definition_from_hints(
             alias_name=candidate_name,
         )
 
-@logfire.instrument("aliases._persist_alias({alias=})", extract_args=True, record_return=True)
+
+def _build_definition_value(
+    definition_text: str, parsed, new_name: str
+) -> Optional[str]:
+    """Build final definition value from parsed data.
+
+    Consolidates the pattern of building a definition value that appears
+    multiple times in new_alias() and edit_alias().
+
+    Args:
+        definition_text: The raw definition text from the form
+        parsed: Parsed alias definition (or None if parsing failed)
+        new_name: The alias name to use in the primary line
+
+    Returns:
+        The final definition value with updated primary line, or None if empty
+    """
+    if parsed:
+        primary_line = format_primary_alias_line(
+            parsed.match_type,
+            parsed.match_pattern,
+            parsed.target_path,
+            ignore_case=parsed.ignore_case,
+            alias_name=new_name,
+        )
+        return replace_primary_definition_line(definition_text, primary_line)
+    return definition_text or None
+
+
+@logfire.instrument(
+    "aliases._persist_alias({alias=})", extract_args=True, record_return=True
+)
 def _persist_alias(alias: Alias) -> Alias:
     """Persist alias changes while capturing observability metadata."""
 
@@ -100,7 +175,18 @@ def _persist_alias(alias: Alias) -> Alias:
 
 
 def _candidate_cid_from_target(path: str) -> Optional[str]:
-    """Return the CID portion from a potential CID target path."""
+    """Return the CID portion from a potential CID target path.
+
+    Examples:
+        >>> _candidate_cid_from_target('/QmABC123...')
+        'QmABC123...'
+
+        >>> _candidate_cid_from_target('/cid/QmXYZ456...')
+        'QmXYZ456...'
+
+        >>> _candidate_cid_from_target('/servers/api')
+        None
+    """
 
     candidate = extract_cid_from_path(path)
     if candidate:
@@ -113,8 +199,17 @@ def _candidate_cid_from_target(path: str) -> Optional[str]:
     return None
 
 
-def _describe_target_path(target_path: Optional[str]) -> Optional[Dict[str, Any]]:
-    """Return metadata for rendering a target path within a definition."""
+def _describe_target_path(target_path: Optional[str]) -> Optional[TargetPathMetadata]:
+    """Return metadata for rendering a target path within a definition.
+
+    Examples:
+        >>> _describe_target_path('/servers/api')
+        TargetPathMetadata(kind='server', display='/servers/api',
+                           name='api', url='/servers/api')
+
+        >>> _describe_target_path('/ABC123...')
+        TargetPathMetadata(kind='cid', display='...', cid='ABC123...', suffix='')
+    """
 
     if not target_path:
         return None
@@ -140,11 +235,12 @@ def _describe_target_path(target_path: Optional[str]) -> Optional[Dict[str, Any]
 
     candidate_cid = _candidate_cid_from_target(canonical_path or normalized)
     if candidate_cid:
-        return {
-            "kind": "cid",
-            "cid": candidate_cid,
-            "suffix": suffix,
-        }
+        return TargetPathMetadata(
+            kind="cid",
+            display=f"{candidate_cid}{suffix}",
+            cid=candidate_cid,
+            suffix=suffix,
+        )
 
     segments = [segment for segment in canonical_path.split("/") if segment]
     if len(segments) >= 2:
@@ -153,25 +249,25 @@ def _describe_target_path(target_path: Optional[str]) -> Optional[Dict[str, Any]
         display_path = f"{canonical_path}{suffix}" if canonical_path else normalized
 
         if head == "servers":
-            return {
-                "kind": "server",
-                "name": name,
-                "url": url_for("main.view_server", server_name=name),
-                "display": display_path,
-            }
+            return TargetPathMetadata(
+                kind="server",
+                display=display_path,
+                name=name,
+                url=url_for("main.view_server", server_name=name),
+            )
 
         if head == "aliases":
-            return {
-                "kind": "alias",
-                "name": name,
-                "url": url_for("main.view_alias", alias_name=name),
-                "display": display_path,
-            }
+            return TargetPathMetadata(
+                kind="alias",
+                display=display_path,
+                name=name,
+                url=url_for("main.view_alias", alias_name=name),
+            )
 
-    return {
-        "kind": "path",
-        "display": f"{canonical_path}{suffix}" if canonical_path else normalized,
-    }
+    return TargetPathMetadata(
+        kind="path",
+        display=f"{canonical_path}{suffix}" if canonical_path else normalized,
+    )
 
 
 def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
@@ -189,7 +285,17 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
 
     target_details = None
     if entry.is_mapping and not entry.parse_error:
-        target_details = _describe_target_path(entry.target_path)
+        metadata = _describe_target_path(entry.target_path)
+        if metadata:
+            # Convert dataclass to dict for template compatibility
+            target_details = {
+                "kind": metadata.kind,
+                "display": metadata.display,
+                "url": metadata.url,
+                "name": metadata.name,
+                "cid": metadata.cid,
+                "suffix": metadata.suffix,
+            }
 
     return {
         "number": entry.number,
@@ -276,27 +382,14 @@ def new_alias():
     if form.validate_on_submit():
         parsed = form.parsed_definition
         name = form.name.data
+        validator = AliasValidator(current_user.id)
 
-        if _alias_name_conflicts_with_routes(name):
-            flash(f'Alias name "{name}" conflicts with an existing route.', 'danger')
-        elif _alias_with_name_exists(current_user.id, name):
-            flash(f'An alias named "{name}" already exists.', 'danger')
+        is_valid, error_message = validator.validate_name(name)
+        if not is_valid:
+            flash(error_message, 'danger')
         else:
             definition_text = form.definition.data or ""
-            if parsed:
-                primary_line = format_primary_alias_line(
-                    parsed.match_type,
-                    parsed.match_pattern,
-                    parsed.target_path,
-                    ignore_case=parsed.ignore_case,
-                    alias_name=name,
-                )
-                definition_value = replace_primary_definition_line(
-                    definition_text,
-                    primary_line,
-                )
-            else:
-                definition_value = definition_text or None
+            definition_value = _build_definition_value(definition_text, parsed, name)
 
             alias = Alias(
                 name=name,
@@ -320,7 +413,9 @@ def new_alias():
             return redirect(url_for('main.aliases'))
 
     entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(current_user.id, 'alias', entity_name_hint)
+    interaction_history = load_interaction_history(
+        current_user.id, 'alias', entity_name_hint
+    )
 
     return render_template(
         'alias_form.html',
@@ -348,9 +443,12 @@ def view_alias(alias_name: str):
     )
 
     definition_summary = summarize_definition_lines(
-        getattr(alias, "definition", None), alias_name=getattr(alias, "name", None)
+        getattr(alias, "definition", None),
+        alias_name=getattr(alias, "name", None),
     )
-    definition_lines = [_serialize_definition_line(entry) for entry in definition_summary]
+    definition_lines = [
+        _serialize_definition_line(entry) for entry in definition_summary
+    ]
 
     if _wants_structured_response():
         return jsonify(_alias_to_json(alias))
@@ -361,6 +459,89 @@ def view_alias(alias_name: str):
         target_references=target_references,
         alias_definition_lines=definition_lines,
     )
+
+
+def _handle_save_as(
+    form: AliasForm,
+    alias: Alias,
+    new_name: str,
+    definition_value: Optional[str],
+    change_message: str,
+    validator: AliasValidator,
+) -> Optional[str]:
+    """Handle 'save-as' submission logic.
+
+    Returns:
+        Redirect URL if successful, None if validation failed
+    """
+    if not new_name or new_name == alias.name:
+        flash('Choose a new name to save this alias as a copy.', 'danger')
+        return None
+
+    is_valid, error_message = validator.validate_name(new_name)
+    if not is_valid:
+        flash(error_message, 'danger')
+        return None
+
+    new_alias = Alias(
+        name=new_name,
+        user_id=alias.user_id,
+        definition=definition_value or None,
+        enabled=bool(form.enabled.data),
+        template=bool(form.template.data),
+    )
+    _persist_alias(new_alias)
+    record_entity_interaction(
+        EntityInteractionRequest(
+            user_id=alias.user_id,
+            entity_type='alias',
+            entity_name=new_alias.name,
+            action='save',
+            message=change_message,
+            content=form.definition.data or '',
+        )
+    )
+    flash(f'Alias "{new_alias.name}" created successfully!', 'success')
+    return url_for('main.view_alias', alias_name=new_alias.name)
+
+
+def _handle_rename(
+    form: AliasForm,
+    alias: Alias,
+    new_name: str,
+    definition_value: Optional[str],
+    change_message: str,
+    validator: AliasValidator,
+) -> Optional[str]:
+    """Handle standard save with potential rename.
+
+    Returns:
+        Redirect URL if successful, None if validation failed
+    """
+    if new_name != alias.name:
+        is_valid, error_message = validator.validate_name(new_name, exclude_id=alias.id)
+        if not is_valid:
+            flash(error_message, 'danger')
+            return None
+
+    alias.name = new_name
+    alias.definition = definition_value or None
+    alias.updated_at = datetime.now(timezone.utc)
+    alias.enabled = bool(form.enabled.data)
+    alias.template = bool(form.template.data)
+    _persist_alias(alias)
+    record_entity_interaction(
+        EntityInteractionRequest(
+            user_id=alias.user_id,
+            entity_type='alias',
+            entity_name=alias.name,
+            action='save',
+            message=change_message,
+            content=form.definition.data or '',
+        )
+    )
+    flash(f'Alias "{alias.name}" updated successfully!', 'success')
+    return url_for('main.view_alias', alias_name=alias.name)
 
 
 @main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
@@ -396,83 +577,23 @@ def edit_alias(alias_name: str):
         save_action = (request.form.get('submit_action') or '').strip().lower()
         definition_text = form.definition.data or ""
 
-        if parsed:
-            primary_line = format_primary_alias_line(
-                parsed.match_type,
-                parsed.match_pattern,
-                parsed.target_path,
-                ignore_case=parsed.ignore_case,
-                alias_name=new_name,
+        definition_value = _build_definition_value(definition_text, parsed, new_name)
+        validator = AliasValidator(current_user.id)
+
+        if save_action == SUBMIT_ACTION_SAVE_AS:
+            redirect_url = _handle_save_as(
+                form, alias, new_name, definition_value, change_message, validator
             )
-            definition_value = replace_primary_definition_line(
-                definition_text,
-                primary_line,
-            )
-        else:
-            definition_value = definition_text
+            if redirect_url:
+                return redirect(redirect_url)
+            return render_edit_form()
 
-        if save_action == 'save-as':
-            if not new_name or new_name == alias.name:
-                flash('Choose a new name to save this alias as a copy.', 'danger')
-                return render_edit_form()
-
-            if _alias_name_conflicts_with_routes(new_name):
-                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
-                return render_edit_form()
-
-            if _alias_with_name_exists(current_user.id, new_name):
-                flash(f'An alias named "{new_name}" already exists.', 'danger')
-                return render_edit_form()
-
-            new_alias = Alias(
-                name=new_name,
-                user_id=current_user.id,
-                definition=definition_value or None,
-                enabled=bool(form.enabled.data),
-                template=bool(form.template.data),
-            )
-            _persist_alias(new_alias)
-            record_entity_interaction(
-                EntityInteractionRequest(
-                    user_id=current_user.id,
-                    entity_type='alias',
-                    entity_name=new_alias.name,
-                    action='save',
-                    message=change_message,
-                    content=form.definition.data or '',
-                )
-            )
-            flash(f'Alias "{new_alias.name}" created successfully!', 'success')
-            return redirect(url_for('main.view_alias', alias_name=new_alias.name))
-
-        if new_name != alias.name:
-            if _alias_name_conflicts_with_routes(new_name):
-                flash(f'Alias name "{new_name}" conflicts with an existing route.', 'danger')
-                return render_edit_form()
-
-            if _alias_with_name_exists(current_user.id, new_name, exclude_id=alias.id):
-                flash(f'An alias named "{new_name}" already exists.', 'danger')
-                return render_edit_form()
-
-        alias.name = new_name
-        alias.definition = definition_value or None
-        alias.updated_at = datetime.now(timezone.utc)
-        alias.enabled = bool(form.enabled.data)
-        alias.template = bool(form.template.data)
-        _persist_alias(alias)
-        record_entity_interaction(
-            EntityInteractionRequest(
-                user_id=current_user.id,
-                entity_type='alias',
-                entity_name=alias.name,
-                action='save',
-                message=change_message,
-                content=form.definition.data or '',
-            )
+        redirect_url = _handle_rename(
+            form, alias, new_name, definition_value, change_message, validator
         )
-
-        flash(f'Alias "{alias.name}" updated successfully!', 'success')
-        return redirect(url_for('main.view_alias', alias_name=alias.name))
+        if redirect_url:
+            return redirect(redirect_url)
+        return render_edit_form()
 
     return render_edit_form()
 
@@ -505,10 +626,16 @@ def alias_match_preview():
     if isinstance(raw_paths, str):
         raw_paths = [raw_paths]
     if not isinstance(raw_paths, list):
-        return jsonify({'ok': False, 'error': 'Provide a list of paths to evaluate.'}), 400
+        return (
+            jsonify({'ok': False, 'error': 'Provide a list of paths.'}),
+            400,
+        )
 
     if definition_text is None:
-        return jsonify({'ok': False, 'error': 'Provide an alias definition to evaluate.'}), 400
+        return (
+            jsonify({'ok': False, 'error': 'Provide an alias definition.'}),
+            400,
+        )
 
     candidate_paths: list[str] = []
     for raw_value in raw_paths:
@@ -524,7 +651,9 @@ def alias_match_preview():
     except AliasDefinitionError as exc:
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
-    definition_summary = summarize_definition_lines(definition_text, alias_name=alias_name)
+    definition_summary = summarize_definition_lines(
+        definition_text, alias_name=alias_name
+    )
     has_active_paths = bool(candidate_paths)
 
     line_status = []
@@ -538,7 +667,9 @@ def alias_match_preview():
             and has_active_paths
         ):
             matches_any = any(
-                matches_path(entry.match_type, entry.match_pattern, path, entry.ignore_case)
+                matches_path(
+                    entry.match_type, entry.match_pattern, path, entry.ignore_case
+                )
                 for path in candidate_paths
             )
 
