@@ -1,6 +1,7 @@
 """Helpers for parsing and formatting alias definitions."""
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Optional, Sequence
@@ -8,9 +9,24 @@ from urllib.parse import urlsplit
 
 from alias_matching import PatternError, normalise_pattern
 
+# ===== Constants =====
+
+INDENT_SPACES_PER_LEVEL = 2
+TAB_WIDTH = 2
+
+# ===== Logging =====
+
+logger = logging.getLogger(__name__)
+
+
+# ===== Exceptions =====
+
 
 class AliasDefinitionError(ValueError):
     """Raised when an alias definition cannot be interpreted."""
+
+
+# ===== Data Classes =====
 
 
 @dataclass(frozen=True)
@@ -52,18 +68,7 @@ class AliasRouteRule:
     source: Optional[DefinitionLineSummary] = None
 
 
-def _literal_self_route(alias_name: str) -> AliasRouteRule:
-    """Return a simple literal route that points the alias at itself."""
-
-    return AliasRouteRule(
-        alias_path=alias_name,
-        match_type="literal",
-        match_pattern=f"/{alias_name}",
-        target_path=f"/{alias_name}",
-        ignore_case=False,
-        source=None,
-    )
-
+# ===== Patterns =====
 
 _COMMENT_PATTERN = re.compile(r"\s+#.*$")
 _MATCH_TYPE_OPTIONS = {"literal", "glob", "regex", "flask"}
@@ -71,57 +76,298 @@ _IGNORE_CASE_OPTIONS = {"ignore-case", "ignorecase"}
 _VARIABLE_PATTERN = re.compile(r"\{([A-Za-z0-9._-]+)\}")
 
 
+# ===== Target Path Validation =====
+
+
+class TargetPathValidator:
+    """Validates alias target paths."""
+
+    @staticmethod
+    def validate_braces(value: str) -> None:
+        """Validate that braces in the target path are balanced and properly used."""
+        brace_balance = 0
+        for character in value:
+            if character == "{":
+                brace_balance += 1
+            elif character == "}":
+                if brace_balance == 0:
+                    raise AliasDefinitionError(
+                        "Alias target path must reference a valid alias or URL."
+                    )
+                brace_balance -= 1
+
+        if brace_balance != 0:
+            raise AliasDefinitionError(
+                "Alias target path must reference a valid alias or URL."
+            )
+
+        if value.startswith("{") and value.endswith("}"):
+            raise AliasDefinitionError(
+                "Alias target path must reference a valid alias or URL."
+            )
+
+    @staticmethod
+    def normalize(raw: str) -> str:
+        """Ensure the alias target path stays within the application."""
+        value = (raw or "").strip()
+
+        if not value:
+            raise AliasDefinitionError(
+                'Alias definition must include a target path after "->".'
+            )
+
+        TargetPathValidator.validate_braces(value)
+
+        if not any(character.isalnum() for character in value):
+            raise AliasDefinitionError(
+                "Alias target path must reference a valid alias or URL."
+            )
+
+        if value.startswith("//"):
+            raise AliasDefinitionError(
+                "Alias target path must stay within this application."
+            )
+
+        parsed = urlsplit(value)
+        if parsed.scheme or parsed.netloc:
+            raise AliasDefinitionError(
+                "Alias target path must stay within this application."
+            )
+
+        return value
+
+
+# ===== Variable Resolution Strategy Pattern =====
+
+
+class VariableResolutionStrategy:
+    """Base class for variable resolution strategies."""
+
+    def try_resolve(
+        self, alias: Any, provided: Optional[Mapping[str, Any]]
+    ) -> Optional[dict[str, str]]:
+        """Try to resolve variables. Returns None if this strategy cannot help."""
+        raise NotImplementedError
+
+
+class ProvidedVariablesStrategy(VariableResolutionStrategy):
+    """Resolve variables from explicitly provided mapping."""
+
+    def try_resolve(
+        self, alias: Any, provided: Optional[Mapping[str, Any]]
+    ) -> Optional[dict[str, str]]:
+        if provided:
+            return _normalize_variable_map(provided)
+        return None
+
+
+class AliasAttributeStrategy(VariableResolutionStrategy):
+    """Resolve variables from common alias attributes."""
+
+    def try_resolve(
+        self, alias: Any, provided: Optional[Mapping[str, Any]]
+    ) -> Optional[dict[str, str]]:
+        for attribute in (
+            "_resolved_variables",
+            "resolved_variables",
+            "variable_values",
+        ):
+            candidate = getattr(alias, attribute, None)
+            if candidate:
+                resolved = _normalize_variable_map(candidate)
+                if resolved:
+                    return resolved
+        return None
+
+
+class DatabaseStrategy(VariableResolutionStrategy):
+    """Resolve variables from database."""
+
+    def try_resolve(
+        self, alias: Any, provided: Optional[Mapping[str, Any]]
+    ) -> Optional[dict[str, str]]:
+        user_id = getattr(alias, "user_id", None)
+        if not user_id:
+            return None
+
+        try:
+            # Local import avoids circular dependency
+            from db_access import get_user_variables
+        except (ImportError, ModuleNotFoundError) as e:
+            logger.debug(f"Could not import get_user_variables: {e}")
+            return None
+
+        try:
+            variables = get_user_variables(user_id)
+        except Exception as e:
+            logger.warning(f"Failed to fetch user variables from database: {e}")
+            return None
+
+        resolved = _normalize_variable_map(variables)
+
+        # Cache the resolved variables on the alias object
+        try:
+            setattr(alias, "_resolved_variables", resolved)
+        except (AttributeError, TypeError):
+            pass
+
+        return resolved
+
+
+class VariableResolver:
+    """Resolves variables using a chain of strategies."""
+
+    def __init__(self):
+        self.strategies = [
+            ProvidedVariablesStrategy(),
+            AliasAttributeStrategy(),
+            DatabaseStrategy(),
+        ]
+
+    def resolve(
+        self, alias: Any, provided: Optional[Mapping[str, Any]]
+    ) -> dict[str, str]:
+        """Resolve variables for the given alias."""
+        for strategy in self.strategies:
+            result = strategy.try_resolve(alias, provided)
+            if result is not None:
+                return result
+        return {}
+
+
+# ===== Definition Line Parser =====
+
+
+class DefinitionLineParser:
+    """Parses alias definition lines and tracks hierarchical state."""
+
+    def __init__(self, alias_name: Optional[str]):
+        self.alias_name = alias_name
+        self.base_segments = [s for s in (alias_name or "").split("/") if s]
+        self.segment_stack: list[list[str]] = []
+
+    def parse_line(self, index: int, raw_line: str) -> DefinitionLineSummary:
+        """Parse a single line and return its summary."""
+        text = raw_line.rstrip("\r")
+        expanded = text.expandtabs(TAB_WIDTH)
+        indent_length = len(expanded) - len(expanded.lstrip(" "))
+        depth = indent_length // INDENT_SPACES_PER_LEVEL if indent_length > 0 else 0
+        stripped = text.strip()
+
+        # Handle blank lines
+        if not stripped:
+            return DefinitionLineSummary(
+                number=index, text=text, is_mapping=False, depth=depth
+            )
+
+        # Handle comments
+        if stripped.startswith("#"):
+            return DefinitionLineSummary(
+                number=index, text=text, is_mapping=False, depth=depth
+            )
+
+        # Handle non-mapping lines
+        if "->" not in stripped:
+            return DefinitionLineSummary(
+                number=index,
+                text=text,
+                is_mapping=True,
+                parse_error="Line does not contain an alias mapping.",
+                depth=depth,
+            )
+
+        # Try to parse the mapping
+        try:
+            match_type, match_pattern, ignore_case, target_path = (
+                _parse_line_metadata(text, self.alias_name)
+            )
+        except AliasDefinitionError as exc:
+            return DefinitionLineSummary(
+                number=index,
+                text=text,
+                is_mapping=True,
+                parse_error=str(exc),
+                depth=depth,
+            )
+
+        # Resolve the alias path based on depth and match type
+        alias_path, resolved_pattern = self._resolve_alias_path(
+            match_type, match_pattern, depth
+        )
+
+        return DefinitionLineSummary(
+            number=index,
+            text=text,
+            is_mapping=True,
+            match_type=match_type,
+            match_pattern=resolved_pattern,
+            ignore_case=ignore_case,
+            target_path=target_path,
+            alias_path=alias_path,
+            depth=depth,
+        )
+
+    def _resolve_alias_path(
+        self, match_type: str, match_pattern: str, depth: int
+    ) -> tuple[Optional[str], str]:
+        """Resolve the alias path and pattern based on hierarchy."""
+        parent_segments: list[str] = []
+        if depth > 0:
+            parent_index = min(depth - 1, len(self.segment_stack) - 1)
+            if parent_index >= 0:
+                parent_segments = self.segment_stack[parent_index]
+            if not parent_segments and self.base_segments:
+                parent_segments = self.base_segments
+
+        if match_type == "literal":
+            line_segments = [
+                segment for segment in match_pattern.lstrip("/").split("/") if segment
+            ]
+            if not line_segments and self.alias_name:
+                line_segments = [self.alias_name]
+
+            alias_segments = [*parent_segments, *line_segments]
+            alias_segments = [segment for segment in alias_segments if segment]
+
+            if alias_segments:
+                alias_path = "/".join(alias_segments)
+                resolved_pattern = f"/{alias_path}"
+            else:
+                alias_path = None
+                resolved_pattern = match_pattern or "/"
+
+            # Update segment stack
+            if len(self.segment_stack) <= depth:
+                self.segment_stack.extend([[]] * (depth + 1 - len(self.segment_stack)))
+            self.segment_stack[depth] = alias_segments
+            if len(self.segment_stack) > depth + 1:
+                self.segment_stack[depth + 1 :] = []
+
+            return alias_path, resolved_pattern
+        else:
+            alias_path = match_pattern.lstrip("/") if match_pattern else None
+
+            # Update segment stack
+            if len(self.segment_stack) > depth:
+                self.segment_stack[depth] = parent_segments
+            if len(self.segment_stack) > depth + 1:
+                self.segment_stack[depth + 1 :] = []
+
+            return alias_path, match_pattern
+
+
+# ===== Text Utilities =====
+
+
 def _strip_inline_comment(line: str) -> str:
     """Remove trailing inline comments introduced with #."""
-
     if not line:
         return ""
     return _COMMENT_PATTERN.sub("", line).rstrip()
 
 
-def _validate_braces(value: str) -> None:
-    """Validate that braces in the target path are balanced and properly used."""
-    brace_balance = 0
-    for character in value:
-        if character == "{":
-            brace_balance += 1
-        elif character == "}":
-            if brace_balance == 0:
-                raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
-            brace_balance -= 1
-
-    if brace_balance != 0:
-        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
-
-    if value.startswith("{") and value.endswith("}"):
-        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
-
-
-def _normalize_target_path(raw: str) -> str:
-    """Ensure the alias target path stays within the application."""
-    value = (raw or "").strip()
-
-    if not value:
-        raise AliasDefinitionError('Alias definition must include a target path after "->".')
-
-    _validate_braces(value)
-
-    if not any(character.isalnum() for character in value):
-        raise AliasDefinitionError("Alias target path must reference a valid alias or URL.")
-
-    if value.startswith("//"):
-        raise AliasDefinitionError('Alias target path must stay within this application.')
-
-    parsed = urlsplit(value)
-    if parsed.scheme or parsed.netloc:
-        raise AliasDefinitionError('Alias target path must stay within this application.')
-
-    return value
-
-
 def _extract_primary_line(definition: str) -> Optional[str]:
     """Return the first mapping line from the definition, if any."""
-
     for raw_line in definition.splitlines():
         stripped = raw_line.strip()
         if not stripped or stripped.startswith("#"):
@@ -130,6 +376,19 @@ def _extract_primary_line(definition: str) -> Optional[str]:
             continue
         return stripped
     return None
+
+
+def _display_pattern(
+    match_type: str, match_pattern: Optional[str], alias_name: Optional[str]
+) -> str:
+    """Get the display pattern for an alias."""
+    if match_type == "literal":
+        candidate = (alias_name or "").strip() or (match_pattern or "").lstrip("/")
+        return candidate or "/"
+    return (match_pattern or "").strip()
+
+
+# ===== Variable Utilities =====
 
 
 def _extract_variable_items(variable_source: Any) -> Iterable[tuple[Any, Any]]:
@@ -184,59 +443,10 @@ def _normalize_variable_map(variable_source: Any) -> dict[str, str]:
     return normalized
 
 
-def _get_variables_from_alias_attributes(alias: Any) -> dict[str, str]:
-    """Try to get variable values from common alias attributes."""
-    for attribute in ("_resolved_variables", "resolved_variables", "variable_values"):
-        candidate = getattr(alias, attribute, None)
-        if candidate:
-            resolved = _normalize_variable_map(candidate)
-            if resolved:
-                return resolved
-    return {}
-
-
-def _get_variables_from_database(alias: Any) -> dict[str, str]:
-    """Fetch user variables from database if possible."""
-    user_id = getattr(alias, "user_id", None)
-    if not user_id:
-        return {}
-
-    try:
-        from db_access import get_user_variables  # Local import avoids circular dependency.
-    except Exception:  # pragma: no cover - defensive fallback when import fails
-        return {}
-
-    try:
-        variables = get_user_variables(user_id)
-    except Exception:  # pragma: no cover - defensive guard when database access fails
-        return {}
-
-    resolved = _normalize_variable_map(variables)
-
-    # Cache the resolved variables on the alias object
-    try:
-        setattr(alias, "_resolved_variables", resolved)
-    except Exception:
-        pass
-
-    return resolved
-
-
-def _resolve_alias_variables(alias: Any, provided: Optional[Mapping[str, Any]]) -> dict[str, str]:
-    """Return resolved variable values for ``alias``."""
-    if provided:
-        return _normalize_variable_map(provided)
-
-    resolved = _get_variables_from_alias_attributes(alias)
-    if resolved:
-        return resolved
-
-    return _get_variables_from_database(alias)
-
-
-def _substitute_variables(text: Optional[str], variables: Mapping[str, str]) -> Optional[str]:
+def _substitute_variables(
+    text: Optional[str], variables: Mapping[str, str]
+) -> Optional[str]:
     """Replace ``{variable}`` placeholders in ``text`` with their values."""
-
     if text is None:
         return None
     if not text or not variables:
@@ -253,25 +463,129 @@ def _substitute_variables(text: Optional[str], variables: Mapping[str, str]) -> 
     return _VARIABLE_PATTERN.sub(_replace, text)
 
 
-def parse_alias_definition(definition: str, alias_name: Optional[str] = None) -> ParsedAliasDefinition:
-    """Parse the definition text and return the primary alias configuration."""
+# ===== Option Parsing =====
 
+
+def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
+    """Return the selected match type and ignore-case flag for a line."""
+    specified_match_type: Optional[str] = None
+    ignore_case = False
+
+    for raw_option in option_segment.split(","):
+        option = raw_option.strip().lower()
+        if not option:
+            continue
+        if option in _MATCH_TYPE_OPTIONS:
+            if specified_match_type and option != specified_match_type:
+                raise AliasDefinitionError(
+                    "Alias definition may specify only one match type."
+                )
+            specified_match_type = option
+        elif option in _IGNORE_CASE_OPTIONS:
+            ignore_case = True
+        else:
+            raise AliasDefinitionError(f'Unknown alias option "{option}".')
+
+    return specified_match_type, ignore_case
+
+
+def _parse_target_and_options(target_part: str) -> tuple[str, str, bool]:
+    """Parse the target path, match type, and ignore-case flag from the target segment.
+
+    Returns:
+        (target_path, match_type, ignore_case)
+    """
+    option_start = target_part.find("[")
+    option_end = target_part.find("]") if option_start != -1 else -1
+
+    if option_start != -1:
+        if option_end == -1 or option_end < option_start:
+            raise AliasDefinitionError(
+                'Alias definition options must be closed with "]".'
+            )
+
+        option_segment = target_part[option_start + 1 : option_end]
+        target_text = target_part[:option_start].strip()
+        trailing = target_part[option_end + 1 :].strip()
+
+        if trailing:
+            raise AliasDefinitionError(
+                "Unexpected text after the closing options bracket."
+            )
+
+        specified_match_type, ignore_case = _interpret_option_segment(option_segment)
+    else:
+        target_text = target_part
+        specified_match_type = None
+        ignore_case = False
+
+    match_type = specified_match_type or "literal"
+    return target_text, match_type, ignore_case
+
+
+def _parse_line_metadata(
+    line: str, alias_name: Optional[str]
+) -> tuple[str, str, bool, str]:
+    """Return the match configuration for a potential mapping line."""
+    stripped = (line or "").strip()
+    if not stripped or stripped.startswith("#"):
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+    if "->" not in stripped:
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+
+    without_comment = _strip_inline_comment(stripped)
+    if "->" not in without_comment:
+        raise AliasDefinitionError("Line does not contain an alias mapping.")
+
+    pattern_part, _, remainder = without_comment.partition("->")
+    pattern_text = (pattern_part or "").strip()
+    target_part = remainder.strip()
+
+    if not target_part:
+        raise AliasDefinitionError(
+            'Alias definition must include a target path after "->".'
+        )
+
+    target_text, match_type, ignore_case = _parse_target_and_options(target_part)
+    target_path = TargetPathValidator.normalize(target_text)
+
+    try:
+        normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
+    except PatternError as exc:
+        raise AliasDefinitionError(str(exc)) from exc
+
+    return match_type, normalised_pattern, ignore_case, target_path
+
+
+# ===== Core Parsing Functions =====
+
+
+def parse_alias_definition(
+    definition: str, alias_name: Optional[str] = None
+) -> ParsedAliasDefinition:
+    """Parse the definition text and return the primary alias configuration."""
     if definition is None:
         definition = ""
 
     primary_line = _extract_primary_line(definition)
     if not primary_line:
-        raise AliasDefinitionError('Alias definition must include a "pattern -> target" line.')
+        raise AliasDefinitionError(
+            'Alias definition must include a "pattern -> target" line.'
+        )
 
     without_comment = _strip_inline_comment(primary_line)
     if "->" not in without_comment:
-        raise AliasDefinitionError('Alias definition must include a "pattern -> target" line.')
+        raise AliasDefinitionError(
+            'Alias definition must include a "pattern -> target" line.'
+        )
 
     pattern_part, _, remainder = without_comment.partition("->")
     pattern_text = (pattern_part or "").strip()
 
     if not remainder:
-        raise AliasDefinitionError('Alias definition must include a target path after "->".')
+        raise AliasDefinitionError(
+            'Alias definition must include a target path after "->".'
+        )
 
     target_part = remainder.strip()
     target_text, match_type, ignore_case = _parse_target_and_options(target_part)
@@ -281,7 +595,7 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
     except PatternError as exc:
         raise AliasDefinitionError(str(exc)) from exc
 
-    target_path = _normalize_target_path(target_text)
+    target_path = TargetPathValidator.normalize(target_text)
 
     # Ensure that every mapping line in the definition is valid.  The alias
     # editing UI should surface problems anywhere in the definition, not only
@@ -304,10 +618,33 @@ def parse_alias_definition(definition: str, alias_name: Optional[str] = None) ->
 
 def definition_contains_mapping(definition: Optional[str]) -> bool:
     """Return True when the definition already includes a mapping line."""
-
     if not definition:
         return False
     return _extract_primary_line(definition) is not None
+
+
+def summarize_definition_lines(
+    definition: Optional[str], alias_name: Optional[str] = None
+) -> Sequence[DefinitionLineSummary]:
+    """Return a summary of each line in the alias definition."""
+    if definition is None:
+        definition = ""
+
+    lines = definition.splitlines()
+    if not lines:
+        return []
+
+    parser = DefinitionLineParser(alias_name)
+    summaries: list[DefinitionLineSummary] = []
+
+    for index, raw_line in enumerate(lines, start=1):
+        summary = parser.parse_line(index, raw_line)
+        summaries.append(summary)
+
+    return summaries
+
+
+# ===== Formatting Functions =====
 
 
 def format_primary_alias_line(
@@ -318,7 +655,6 @@ def format_primary_alias_line(
     alias_name: Optional[str] = None,
 ) -> str:
     """Render a canonical primary definition line for the alias."""
-
     match_type = (match_type or "literal").lower()
     display_pattern = _display_pattern(match_type, match_pattern, alias_name)
 
@@ -332,16 +668,8 @@ def format_primary_alias_line(
     return f"{display_pattern} -> {target_path}{option_text}"
 
 
-def _display_pattern(match_type: str, match_pattern: Optional[str], alias_name: Optional[str]) -> str:
-    if match_type == "literal":
-        candidate = (alias_name or "").strip() or (match_pattern or "").lstrip("/")
-        return candidate or "/"
-    return (match_pattern or "").strip()
-
-
 def ensure_primary_line(definition: Optional[str], primary_line: str) -> str:
     """Ensure the definition text includes the provided primary line."""
-
     if not definition or not definition.strip():
         return primary_line
 
@@ -359,7 +687,6 @@ def replace_primary_definition_line(
     definition: Optional[str], primary_line: str
 ) -> str:
     """Replace the first mapping line in the definition with ``primary_line``."""
-
     if not primary_line:
         return definition or ""
 
@@ -381,218 +708,24 @@ def replace_primary_definition_line(
     return ensure_primary_line(definition, primary_line)
 
 
-def _parse_target_and_options(target_part: str) -> tuple[str, str, bool]:
-    """Parse the target path, match type, and ignore-case flag from the target segment.
-
-    Returns:
-        (target_path, match_type, ignore_case)
-    """
-    option_start = target_part.find("[")
-    option_end = target_part.find("]") if option_start != -1 else -1
-
-    if option_start != -1:
-        if option_end == -1 or option_end < option_start:
-            raise AliasDefinitionError('Alias definition options must be closed with "]".')
-
-        option_segment = target_part[option_start + 1 : option_end]
-        target_text = target_part[:option_start].strip()
-        trailing = target_part[option_end + 1 :].strip()
-
-        if trailing:
-            raise AliasDefinitionError('Unexpected text after the closing options bracket.')
-
-        specified_match_type, ignore_case = _interpret_option_segment(option_segment)
-    else:
-        target_text = target_part
-        specified_match_type = None
-        ignore_case = False
-
-    match_type = specified_match_type or "literal"
-    return target_text, match_type, ignore_case
+# ===== Alias Route Collection =====
 
 
-def _interpret_option_segment(option_segment: str) -> tuple[Optional[str], bool]:
-    """Return the selected match type and ignore-case flag for a line."""
-    specified_match_type: Optional[str] = None
-    ignore_case = False
-
-    for raw_option in option_segment.split(","):
-        option = raw_option.strip().lower()
-        if not option:
-            continue
-        if option in _MATCH_TYPE_OPTIONS:
-            if specified_match_type and option != specified_match_type:
-                raise AliasDefinitionError('Alias definition may specify only one match type.')
-            specified_match_type = option
-        elif option in _IGNORE_CASE_OPTIONS:
-            ignore_case = True
-        else:
-            raise AliasDefinitionError(f'Unknown alias option "{option}".')
-
-    return specified_match_type, ignore_case
+def _literal_self_route(alias_name: str) -> AliasRouteRule:
+    """Return a simple literal route that points the alias at itself."""
+    return AliasRouteRule(
+        alias_path=alias_name,
+        match_type="literal",
+        match_pattern=f"/{alias_name}",
+        target_path=f"/{alias_name}",
+        ignore_case=False,
+        source=None,
+    )
 
 
-def _parse_line_metadata(
-    line: str, alias_name: Optional[str]
-) -> tuple[str, str, bool, str]:
-    """Return the match configuration for a potential mapping line."""
-
-    stripped = (line or "").strip()
-    if not stripped or stripped.startswith("#"):
-        raise AliasDefinitionError("Line does not contain an alias mapping.")
-    if "->" not in stripped:
-        raise AliasDefinitionError("Line does not contain an alias mapping.")
-
-    without_comment = _strip_inline_comment(stripped)
-    if "->" not in without_comment:
-        raise AliasDefinitionError("Line does not contain an alias mapping.")
-
-    pattern_part, _, remainder = without_comment.partition("->")
-    pattern_text = (pattern_part or "").strip()
-    target_part = remainder.strip()
-
-    if not target_part:
-        raise AliasDefinitionError('Alias definition must include a target path after "->".')
-
-    target_text, match_type, ignore_case = _parse_target_and_options(target_part)
-    target_path = _normalize_target_path(target_text)
-
-    try:
-        normalised_pattern = normalise_pattern(match_type, pattern_text, alias_name)
-    except PatternError as exc:
-        raise AliasDefinitionError(str(exc)) from exc
-
-    return match_type, normalised_pattern, ignore_case, target_path
-
-
-def summarize_definition_lines(
-    definition: Optional[str], alias_name: Optional[str] = None
-) -> Sequence[DefinitionLineSummary]:
-    """Return a summary of each line in the alias definition."""
-
-    if definition is None:
-        definition = ""
-
-    lines = definition.splitlines()
-    if not lines:
-        return []
-
-    summaries: list[DefinitionLineSummary] = []
-    base_segments = [segment for segment in (alias_name or "").split("/") if segment]
-    segment_stack: list[list[str]] = []
-
-    for index, raw_line in enumerate(lines, start=1):
-        text = raw_line.rstrip("\r")
-        expanded = text.expandtabs(2)
-        indent_length = len(expanded) - len(expanded.lstrip(" "))
-        depth = indent_length // 2 if indent_length > 0 else 0
-        stripped = text.strip()
-
-        if not stripped:
-            summaries.append(
-                DefinitionLineSummary(
-                    number=index,
-                    text=text,
-                    is_mapping=False,
-                    depth=depth,
-                )
-            )
-            continue
-
-        if stripped.startswith("#"):
-            summaries.append(
-                DefinitionLineSummary(
-                    number=index,
-                    text=text,
-                    is_mapping=False,
-                    depth=depth,
-                )
-            )
-            continue
-
-        if "->" not in stripped:
-            summaries.append(
-                DefinitionLineSummary(
-                    number=index,
-                    text=text,
-                    is_mapping=True,
-                    parse_error="Line does not contain an alias mapping.",
-                    depth=depth,
-                )
-            )
-            continue
-
-        try:
-            match_type, match_pattern, ignore_case, target_path = _parse_line_metadata(
-                text, alias_name
-            )
-        except AliasDefinitionError as exc:
-            summaries.append(
-                DefinitionLineSummary(
-                    number=index,
-                    text=text,
-                    is_mapping=True,
-                    parse_error=str(exc),
-                    depth=depth,
-                )
-            )
-            continue
-
-        alias_path = None
-        resolved_pattern = match_pattern
-
-        parent_segments: list[str] = []
-        if depth > 0:
-            parent_index = min(depth - 1, len(segment_stack) - 1)
-            if parent_index >= 0:
-                parent_segments = segment_stack[parent_index]
-            if not parent_segments and base_segments:
-                parent_segments = base_segments
-
-        if match_type == "literal":
-            line_segments = [segment for segment in match_pattern.lstrip("/").split("/") if segment]
-            if not line_segments and alias_name:
-                line_segments = [alias_name]
-
-            alias_segments = [*parent_segments, *line_segments]
-            alias_segments = [segment for segment in alias_segments if segment]
-            if alias_segments:
-                alias_path = "/".join(alias_segments)
-                resolved_pattern = f"/{alias_path}"
-            else:
-                alias_path = None
-                resolved_pattern = match_pattern or "/"
-
-            if len(segment_stack) <= depth:
-                segment_stack.extend([[]] * (depth + 1 - len(segment_stack)))
-            segment_stack[depth] = alias_segments
-            if len(segment_stack) > depth + 1:
-                segment_stack[depth + 1 :] = []
-        else:
-            alias_path = match_pattern.lstrip("/") if match_pattern else None
-            if len(segment_stack) > depth:
-                segment_stack[depth] = parent_segments
-            if len(segment_stack) > depth + 1:
-                segment_stack[depth + 1 :] = []
-
-        summaries.append(
-            DefinitionLineSummary(
-                number=index,
-                text=text,
-                is_mapping=True,
-                match_type=match_type,
-                match_pattern=resolved_pattern,
-                ignore_case=ignore_case,
-                target_path=target_path,
-                alias_path=alias_path,
-                depth=depth,
-            )
-        )
-
-    return summaries
-
-
-def _get_alias_definition_text(alias: Any, variables: Optional[Mapping[str, Any]]) -> str:
+def _get_alias_definition_text(
+    alias: Any, variables: Optional[Mapping[str, Any]]
+) -> str:
     """Extract and resolve the definition text from an alias object."""
     raw_definition = getattr(alias, "definition", None)
 
@@ -601,7 +734,8 @@ def _get_alias_definition_text(alias: Any, variables: Optional[Mapping[str, Any]
     else:
         definition = raw_definition
 
-    variable_values = _resolve_alias_variables(alias, variables)
+    resolver = VariableResolver()
+    variable_values = resolver.resolve(alias, variables)
     resolved_definition = _substitute_variables(definition, variable_values)
 
     return resolved_definition if resolved_definition is not None else definition
@@ -615,58 +749,6 @@ def _is_mock_alias(alias: Any) -> bool:
         and hasattr(alias, "__class__")
         and "Mock" in str(type(alias))
     )
-
-
-def collect_alias_routes(
-    alias: Any, *, variables: Optional[Mapping[str, Any]] = None
-) -> Sequence[AliasRouteRule]:
-    """Return all routing rules defined for the supplied alias."""
-    alias_name = getattr(alias, "name", None) or ""
-
-    if _is_mock_alias(alias) and alias_name:
-        return [_literal_self_route(alias_name)]
-
-    definition_text = _get_alias_definition_text(alias, variables)
-    summary = summarize_definition_lines(definition_text, alias_name=alias_name)
-
-    routes: list[AliasRouteRule] = []
-    seen: set[tuple[str, str, str, bool]] = set()
-
-    for entry in summary:
-        if not entry.is_mapping or entry.parse_error:
-            continue
-
-        match_type = entry.match_type or "literal"
-        match_pattern = entry.match_pattern or (
-            f"/{entry.alias_path}" if entry.alias_path else None
-        )
-        target_path = entry.target_path
-        if not match_pattern or not target_path:
-            continue
-
-        key = (match_type, match_pattern, target_path, entry.ignore_case)
-        if key in seen:
-            continue
-        seen.add(key)
-
-        alias_path = alias_name if entry.depth == 0 else (entry.alias_path or alias_name)
-        source = None if entry.depth == 0 else entry
-
-        routes.append(
-            AliasRouteRule(
-                alias_path=alias_path,
-                match_type=match_type,
-                match_pattern=match_pattern,
-                target_path=target_path,
-                ignore_case=entry.ignore_case,
-                source=source,
-            )
-        )
-
-    if routes:
-        return routes
-
-    return _create_fallback_routes(definition_text, alias_name)
 
 
 def _create_fallback_routes(
@@ -704,12 +786,67 @@ def _create_fallback_routes(
     ]
 
 
+def collect_alias_routes(
+    alias: Any, *, variables: Optional[Mapping[str, Any]] = None
+) -> Sequence[AliasRouteRule]:
+    """Return all routing rules defined for the supplied alias."""
+    alias_name = getattr(alias, "name", None) or ""
+
+    if _is_mock_alias(alias) and alias_name:
+        return [_literal_self_route(alias_name)]
+
+    definition_text = _get_alias_definition_text(alias, variables)
+    summary = summarize_definition_lines(definition_text, alias_name=alias_name)
+
+    routes: list[AliasRouteRule] = []
+    seen: set[tuple[str, str, str, bool]] = set()
+
+    for entry in summary:
+        if not entry.is_mapping or entry.parse_error:
+            continue
+
+        match_type = entry.match_type or "literal"
+        match_pattern = entry.match_pattern or (
+            f"/{entry.alias_path}" if entry.alias_path else None
+        )
+        target_path = entry.target_path
+        if not match_pattern or not target_path:
+            continue
+
+        key = (match_type, match_pattern, target_path, entry.ignore_case)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        alias_path = (
+            alias_name if entry.depth == 0 else (entry.alias_path or alias_name)
+        )
+        source = None if entry.depth == 0 else entry
+
+        routes.append(
+            AliasRouteRule(
+                alias_path=alias_path,
+                match_type=match_type,
+                match_pattern=match_pattern,
+                target_path=target_path,
+                ignore_case=entry.ignore_case,
+                source=source,
+            )
+        )
+
+    if routes:
+        return routes
+
+    return _create_fallback_routes(definition_text, alias_name)
+
+
 def get_primary_alias_route(alias: Any) -> Optional[AliasRouteRule]:
     """Return the primary alias routing rule for the provided alias."""
-
     routes = collect_alias_routes(alias)
     return routes[0] if routes else None
 
+
+# ===== Exports =====
 
 __all__ = [
     "AliasDefinitionError",
