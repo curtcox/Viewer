@@ -1,0 +1,256 @@
+"""Alias CRUD operations and CID reference management."""
+
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+
+from models import Alias
+from database import db
+from alias_definition import (
+    AliasDefinitionError,
+    collect_alias_routes,
+    format_primary_alias_line,
+    parse_alias_definition,
+    replace_primary_definition_line,
+)
+from db_access._common import (
+    DEFAULT_AI_ALIAS_NAME,
+    DEFAULT_CSS_ALIAS_NAME,
+    normalize_cid_value,
+    save_entity,
+)
+
+
+def get_user_aliases(user_id: str) -> List[Alias]:
+    """Return all aliases for a user ordered by name."""
+    return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
+
+
+def get_user_template_aliases(user_id: str) -> List[Alias]:
+    """Return template aliases for a user ordered by name."""
+    return (
+        Alias.query.filter_by(user_id=user_id, template=True)
+        .order_by(Alias.name)
+        .all()
+    )
+
+
+def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:
+    """Return an alias by name for a user."""
+    return Alias.query.filter_by(user_id=user_id, name=name).first()
+
+
+def get_first_alias_name(user_id: str) -> Optional[str]:
+    """Return the first alias name for a user ordered alphabetically."""
+    # Prefer user-created aliases over the default AI helper when available.
+    preferred = (
+        Alias.query.filter_by(user_id=user_id)
+        .filter(Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME]))
+        .order_by(Alias.name.asc())
+        .first()
+    )
+    if preferred is not None:
+        return preferred.name
+
+    fallback = (
+        Alias.query.filter_by(user_id=user_id)
+        .order_by(Alias.name.asc())
+        .first()
+    )
+    return fallback.name if fallback else None
+
+
+def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
+    """Return an alias that matches the target path."""
+    normalized = (target_path or "").strip()
+    if not normalized:
+        return None
+
+    candidates = {normalized}
+    alternate = f"/{normalized.lstrip('/')}"
+    candidates.add(alternate)
+
+    aliases = (
+        Alias.query.filter_by(user_id=user_id)
+        .order_by(Alias.id.asc())
+        .all()
+    )
+
+    try:
+        from db_access.variables import get_user_variables
+        user_variables = get_user_variables(user_id)
+    except Exception:  # pragma: no cover - defensive guard for unexpected database issues
+        user_variables = []
+
+    variable_map = {
+        variable.name: variable.definition
+        for variable in user_variables
+        if variable.enabled
+        and variable.name
+        and variable.definition is not None
+    }
+
+    for alias in aliases:
+        for route in collect_alias_routes(alias, variables=variable_map):
+            if route.match_type != "literal":
+                continue
+            route_target = (route.target_path or "").strip()
+            if not route_target:
+                continue
+            if route_target in candidates:
+                return alias
+
+    return None
+
+
+def count_user_aliases(user_id: str) -> int:
+    """Return the count of aliases for a user."""
+    return Alias.query.filter_by(user_id=user_id).count()
+
+
+def update_alias_cid_reference(
+    old_cid: str,
+    new_cid: str,
+    alias_name: str,
+) -> Dict[str, int]:
+    """Ensure an alias points to the supplied CID and update its definition.
+
+    Parameters
+    ----------
+    old_cid:
+        The previous CID value associated with the alias. Leading slashes are
+        ignored. When empty no text replacement is attempted.
+    new_cid:
+        The CID that should replace the previous value. Leading slashes are
+        ignored.
+    alias_name:
+        The alias to update. When no alias exists a new record is created for
+        the default user.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A mapping describing whether an alias was created and how many existing
+        aliases were updated.
+    """
+    normalized_alias = (alias_name or "").strip()
+    normalized_new = normalize_cid_value(new_cid)
+    if not normalized_alias or not normalized_new:
+        return {"created": False, "updated": 0}
+
+    normalized_old = normalize_cid_value(old_cid)
+    aliases: List[Alias] = Alias.query.filter_by(name=normalized_alias).all()
+
+    if not aliases:
+        from identity import ensure_default_user
+
+        owner = ensure_default_user()
+        primary_line = format_primary_alias_line(
+            "literal",
+            None,
+            f"/{normalized_new}",
+            alias_name=normalized_alias,
+        )
+        alias = Alias(
+            name=normalized_alias,
+            user_id=owner.id,
+            definition=primary_line,
+        )
+
+        save_entity(alias)
+        return {"created": True, "updated": 1}
+
+    if normalized_old and normalized_old == normalized_new:
+        return {"created": False, "updated": 0}
+
+    new_path = f"/{normalized_new}"
+    old_path = f"/{normalized_old}" if normalized_old else None
+    now = datetime.now(timezone.utc)
+    updated_count = 0
+
+    for alias in aliases:
+        alias_changed = False
+
+        original_definition = alias.definition
+        updated_definition = original_definition
+        definition_changed = False
+
+        existing_ignore_case = False
+        try:
+            parsed_existing = parse_alias_definition(
+                original_definition or "",
+                alias_name=alias.name,
+            )
+        except AliasDefinitionError:
+            parsed_existing = None
+
+        if parsed_existing:
+            existing_ignore_case = parsed_existing.ignore_case
+
+        if normalized_old:
+            updated_definition, definition_changed = _replace_cid_text(
+                original_definition,
+                old_path,
+                new_path,
+                normalized_old,
+                normalized_new,
+            )
+
+        desired_target_path = new_path
+        try:
+            parsed_current = parse_alias_definition(
+                (updated_definition or ""),
+                alias_name=alias.name,
+            )
+        except AliasDefinitionError:
+            parsed_current = None
+        if parsed_current:
+            existing_ignore_case = parsed_current.ignore_case
+            if parsed_current.target_path:
+                desired_target_path = parsed_current.target_path
+
+        if new_path:
+            primary_line = format_primary_alias_line(
+                "literal",
+                None,
+                desired_target_path,
+                ignore_case=existing_ignore_case,
+                alias_name=alias.name,
+            )
+            current_definition = updated_definition or ""
+            updated_definition = replace_primary_definition_line(
+                updated_definition,
+                primary_line,
+            )
+            if updated_definition != current_definition:
+                definition_changed = True
+
+        if definition_changed:
+            alias.definition = updated_definition
+            alias_changed = True
+
+        if alias_changed:
+            alias.updated_at = now
+            updated_count += 1
+
+    if updated_count:
+        db.session.commit()
+
+    return {"created": False, "updated": updated_count}
+
+
+def _replace_cid_text(
+    text: Optional[str],
+    old_path: str,
+    new_path: str,
+    old_value: str,
+    new_value: str,
+) -> tuple[Optional[str], bool]:
+    """Return text with CID references replaced and whether a change occurred."""
+    if text is None:
+        return None, False
+
+    updated = text.replace(old_path, new_path).replace(old_value, new_value)
+    if updated == text:
+        return text, False
+    return updated, True
+
