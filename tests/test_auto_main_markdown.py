@@ -44,9 +44,9 @@ def test_auto_main_markdown_supports_mermaid_and_formdown():
     """.strip()
 
     with (
-        patch("cid_utils._mermaid_renderer._fetch_svg", return_value=svg_bytes),
+        patch("content_rendering._mermaid_renderer._fetch_svg", return_value=svg_bytes),
         patch(
-            "cid_utils._mermaid_renderer._store_svg",
+            "content_rendering._mermaid_renderer._store_svg",
             return_value=MermaidRenderLocation(is_cid=True, value="diagramcid123"),
         ),
     ):

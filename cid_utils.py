@@ -1,59 +1,132 @@
-import base64
-import binascii
-import hashlib
-import html
-import io
-import json
-import re
-from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
-from urllib.parse import urlparse
+"""Compatibility shim for cid_utils module.
 
-import requests
-from flask import make_response, render_template, request
+This module maintains backward compatibility by re-exporting all functions
+from the newly refactored modules.
+
+DEPRECATED: This module is deprecated. Import from the specific modules instead:
+- cid_core: CID generation, parsing, validation
+- cid_storage: Database operations and storage helpers
+- content_rendering: Markdown, Mermaid, Formdown rendering
+- mime_utils: MIME type detection and extension mapping
+- upload_handlers: File/text/URL upload processing
+- content_serving: HTTP response generation
+"""
+
+# ruff: noqa: F401, F811
+# Re-export everything from the new modules for backward compatibility
+
+# pylint: disable=unused-import,wildcard-import
+
+# Core CID functionality
+from cid_core import (
+    CID_CHARACTER_CLASS,
+    CID_LENGTH,
+    CID_LENGTH_PREFIX_BYTES,
+    CID_LENGTH_PREFIX_CHARS,
+    CID_MIN_LENGTH,
+    CID_MIN_REFERENCE_LENGTH,
+    CID_NORMALIZED_PATTERN,
+    CID_PATH_CAPTURE_PATTERN,
+    CID_REFERENCE_PATTERN,
+    CID_SHA512_CHARS,
+    CID_STRICT_MIN_LENGTH,
+    CID_STRICT_PATTERN,
+    DIRECT_CONTENT_EMBED_LIMIT,
+    MAX_CONTENT_LENGTH,
+    SHA512_DIGEST_SIZE,
+    base64url_decode as _base64url_decode,
+    base64url_encode as _base64url_encode,
+    encode_cid_length,
+    generate_cid,
+    is_normalized_cid,
+    is_probable_cid_component,
+    is_strict_cid_candidate,
+    normalize_component as _normalize_component,
+    parse_cid_components,
+    split_cid_path,
+)
+
+# MIME utilities
+from mime_utils import (
+    EXTENSION_TO_MIME,
+    MIME_TO_EXTENSION,
+    extract_filename_from_cid_path,
+    get_extension_from_mime_type,
+    get_mime_type_from_extension,
+)
+
+# Content rendering
+from content_rendering import (
+    GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER as _GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER,
+    GITHUB_RELATIVE_LINK_PATTERN as _GITHUB_RELATIVE_LINK_PATTERN,
+    GITHUB_RELATIVE_LINK_PATH_SANITIZER as _GITHUB_RELATIVE_LINK_PATH_SANITIZER,
+    INLINE_BOLD_PATTERN as _INLINE_BOLD_PATTERN,
+    INLINE_CODE_PATTERN as _INLINE_CODE_PATTERN,
+    INLINE_ITALIC_PATTERN as _INLINE_ITALIC_PATTERN,
+    MARKDOWN_EXTENSIONS as _MARKDOWN_EXTENSIONS,
+    MARKDOWN_INDICATOR_PATTERNS as _MARKDOWN_INDICATOR_PATTERNS,
+    MermaidRenderLocation,
+    MermaidRenderer,
+    MermaidRenderingError,
+    convert_github_relative_links as _convert_github_relative_links,
+    count_bullet_lines as _count_bullet_lines,
+    decode_text_safely as _decode_text_safely,
+    extract_markdown_title as _extract_markdown_title,
+    looks_like_markdown as _looks_like_markdown,
+    normalize_github_relative_link_target as _normalize_github_relative_link_target_v2,
+    render_markdown_document as _render_markdown_document,
+    replace_formdown_fences as _replace_formdown_fences,
+    replace_mermaid_fences as _replace_mermaid_fences,
+)
+
+# Storage operations
+from cid_storage import (
+    ensure_cid_exists,
+    generate_all_secret_definitions_json,
+    generate_all_server_definitions_json,
+    generate_all_variable_definitions_json,
+    get_cid_content,
+    get_current_secret_definitions_cid,
+    get_current_server_definitions_cid,
+    get_current_variable_definitions_cid,
+    store_cid_from_bytes,
+    store_cid_from_json,
+    store_secret_definitions_cid,
+    store_server_definitions_cid,
+    store_variable_definitions_cid,
+)
+
+# Upload handlers
+from upload_handlers import (
+    DOWNLOAD_CHUNK_SIZE_BYTES,
+    MAX_UPLOAD_SIZE_BYTES,
+    URL_DOWNLOAD_TIMEOUT_SECONDS,
+    process_file_upload,
+    process_text_upload,
+    process_url_upload,
+)
+
+# Content serving
+from content_serving import generate_qr_data_url as _generate_qr_data_url, serve_cid_content
+
+# Create a singleton Mermaid renderer for backward compatibility
+_mermaid_renderer = MermaidRenderer()
+
+# Also import things that might be needed
+try:
+    import markdown  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    markdown = None  # type: ignore[assignment]
 
 try:
     import qrcode  # type: ignore[import-not-found]
-except ModuleNotFoundError as exc:  # pragma: no cover - exercised when dependency missing
+except ModuleNotFoundError as exc:  # pragma: no cover
     qrcode = None  # type: ignore[assignment]
     _qrcode_import_error = exc
 else:
     _qrcode_import_error = None
 
-from cid_presenter import cid_path, format_cid
-from formdown_renderer import render_formdown_html
-
-CID_CHARACTER_CLASS = "A-Za-z0-9_-"
-CID_LENGTH_PREFIX_BYTES = 6
-CID_LENGTH_PREFIX_CHARS = 8
-SHA512_DIGEST_SIZE = hashlib.sha512().digest_size
-CID_SHA512_CHARS = 86
-CID_LENGTH = CID_LENGTH_PREFIX_CHARS + CID_SHA512_CHARS
-CID_MIN_LENGTH = CID_LENGTH_PREFIX_CHARS
-CID_MIN_REFERENCE_LENGTH = 6
-CID_STRICT_MIN_LENGTH = CID_MIN_LENGTH
-
-MAX_CONTENT_LENGTH = (1 << (CID_LENGTH_PREFIX_BYTES * 8)) - 1
-
-CID_NORMALIZED_PATTERN = re.compile(
-    rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_LENGTH},{CID_LENGTH}}}$"
-)
-CID_REFERENCE_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}}$")
-CID_STRICT_PATTERN = re.compile(rf"^[{CID_CHARACTER_CLASS}]{{{CID_STRICT_MIN_LENGTH},}}$")
-
-DIRECT_CONTENT_EMBED_LIMIT = 64
-CID_PATH_CAPTURE_PATTERN = re.compile(
-    rf"/([{CID_CHARACTER_CLASS}]{{{CID_MIN_REFERENCE_LENGTH},}})(?:\\.[A-Za-z0-9]+)?"
-)
-
-try:
-    import markdown  # type: ignore
-except ModuleNotFoundError as exc:  # pragma: no cover - exercised when dependency missing
-    raise RuntimeError(
-        "Missing optional dependency 'Markdown'. Run './install' or "
-        "'pip install -r requirements.txt' before running the application or tests."
-    ) from exc
-
+# Import for compatibility with db_access lazy loading pattern
 try:
     from db_access import (
         create_cid_record,
@@ -71,8 +144,12 @@ except (RuntimeError, ImportError):
 
 
 def _ensure_db_access():
+    """Legacy function for lazy database access initialization.
+
+    This function is kept for backward compatibility but is no longer needed
+    as the new cid_storage module handles database access internally.
+    """
     # pylint: disable=global-statement
-    # Lazy import pattern to avoid circular dependencies between cid_utils and db_access
     global create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets
     if None in (create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets):
         from db_access import create_cid_record as _create_cid_record
@@ -93,1091 +170,17 @@ def _ensure_db_access():
             get_user_secrets = _get_user_secrets
 
 
-def _normalize_component(value: Optional[str]) -> str:
-    """Return a normalized CID component without leading slashes or whitespace."""
-    if value is None:
-        return ""
-    normalized = value.strip()
-    if not normalized:
-        return ""
-    normalized = normalized.lstrip("/")
-    if "/" in normalized:
-        return ""
-    return normalized
+# Legacy pattern support for save_server_definition_as_cid
+def save_server_definition_as_cid(definition: str, user_id: int) -> str:
+    """Save server definition as CID and return the CID string.
 
+    DEPRECATED: Use store_cid_from_bytes or store_cid_from_json instead.
 
-def is_probable_cid_component(value: Optional[str]) -> bool:
-    """Return True if the value could be a CID or CID prefix."""
-    normalized = _normalize_component(value)
-    if not normalized or "." in normalized:
-        return False
-    return bool(CID_REFERENCE_PATTERN.fullmatch(normalized))
+    Args:
+        definition: Server definition string
+        user_id: User ID
 
-
-def is_strict_cid_candidate(value: Optional[str]) -> bool:
-    """Return True if the value is a strong candidate for a generated CID."""
-    normalized = _normalize_component(value)
-    if not normalized or "." in normalized:
-        return False
-    return bool(CID_STRICT_PATTERN.fullmatch(normalized))
-
-
-def is_normalized_cid(value: Optional[str]) -> bool:
-    """Return True if the value is exactly formatted like a generated CID."""
-    normalized = _normalize_component(value)
-    if not normalized or "." in normalized:
-        return False
-    if not CID_NORMALIZED_PATTERN.fullmatch(normalized):
-        return False
-    try:
-        parse_cid_components(normalized)
-    except ValueError:
-        return False
-    return True
-
-
-def split_cid_path(value: Optional[str]) -> Optional[Tuple[str, Optional[str]]]:
-    """Return the CID value and optional extension extracted from a path."""
-    if value is None:
-        return None
-
-    slug = value.strip()
-    if not slug:
-        return None
-
-    slug = slug.split("?", 1)[0]
-    slug = slug.split("#", 1)[0]
-    if not slug:
-        return None
-
-    if slug.startswith("/"):
-        slug = slug[1:]
-
-    if not slug or "/" in slug:
-        return None
-
-    cid_part = slug
-    extension: Optional[str] = None
-    if "." in slug:
-        cid_part, extension = slug.split(".", 1)
-        extension = extension or None
-
-    if not is_probable_cid_component(cid_part):
-        return None
-
-    return cid_part, extension
-
-# ============================================================================
-# CID GENERATION AND STORAGE HELPERS
-# ============================================================================
-
-def _base64url_encode(data: bytes) -> str:
-    """Return URL-safe base64 representation without padding."""
-
-    return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
-
-
-def _base64url_decode(data: str) -> bytes:
-    """Decode URL-safe base64 data that may omit padding."""
-
-    padding = "=" * (-len(data) % 4)
-    return base64.urlsafe_b64decode(data + padding)
-
-
-def encode_cid_length(length: int) -> str:
-    """Encode the content length into the CID prefix."""
-
-    if length < 0 or length > MAX_CONTENT_LENGTH:
-        raise ValueError(
-            f"CID content length must be between 0 and {MAX_CONTENT_LENGTH} bytes"
-        )
-
-    encoded = _base64url_encode(length.to_bytes(CID_LENGTH_PREFIX_BYTES, "big"))
-    if len(encoded) != CID_LENGTH_PREFIX_CHARS:
-        raise ValueError("Encoded length prefix must be 8 characters long")
-    return encoded
-
-
-def parse_cid_components(cid: str) -> Tuple[int, bytes]:
-    """Return the encoded content length and payload for a CID.
-
-    For CIDs embedding their content directly (lengths up to
-    ``DIRECT_CONTENT_EMBED_LIMIT``) the payload is the original content.
-    Otherwise, the payload is the SHA-512 digest.
-
-    Raises ValueError if the CID is malformed or not in the normalized format.
+    Returns:
+        CID string
     """
-
-    normalized = _normalize_component(cid)
-    if len(normalized) < CID_MIN_LENGTH:
-        raise ValueError("CID is missing the length prefix")
-    if not CID_NORMALIZED_PATTERN.fullmatch(normalized):
-        raise ValueError("CID contains invalid characters")
-
-    length_part = normalized[:CID_LENGTH_PREFIX_CHARS]
-    payload_part = normalized[CID_LENGTH_PREFIX_CHARS:]
-
-    try:
-        length_bytes = _base64url_decode(length_part)
-    except (binascii.Error, ValueError) as exc:
-        raise ValueError("CID contains invalid base64 encoding") from exc
-
-    if len(length_bytes) != CID_LENGTH_PREFIX_BYTES:
-        raise ValueError("CID length prefix has an unexpected size")
-
-    content_length = int.from_bytes(length_bytes, "big")
-
-    if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
-        try:
-            payload_bytes = _base64url_decode(payload_part)
-        except (binascii.Error, ValueError) as exc:
-            raise ValueError("CID content payload is not valid base64") from exc
-
-        if len(payload_bytes) != content_length:
-            raise ValueError("CID embedded content length mismatch")
-        if _base64url_encode(payload_bytes) != payload_part:
-            raise ValueError("CID embedded content is not in canonical form")
-        return content_length, payload_bytes
-
-    if len(payload_part) != CID_SHA512_CHARS:
-        raise ValueError("CID digest must be 86 characters long")
-
-    try:
-        digest_bytes = _base64url_decode(payload_part)
-    except (binascii.Error, ValueError) as exc:
-        raise ValueError("CID digest payload is not valid base64") from exc
-
-    if len(digest_bytes) != SHA512_DIGEST_SIZE:
-        raise ValueError("CID digest has an unexpected size")
-    if _base64url_encode(digest_bytes) != payload_part:
-        raise ValueError("CID digest is not in canonical form")
-
-    return content_length, digest_bytes
-
-
-def generate_cid(file_data):
-    """Generate a CID consisting of a length prefix and content payload."""
-
-    content_length = len(file_data)
-    length_part = encode_cid_length(content_length)
-
-    if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
-        content_part = _base64url_encode(file_data)
-        return f"{length_part}{content_part}"
-
-    digest = hashlib.sha512(file_data).digest()
-    digest_part = _base64url_encode(digest)
-
-    if len(digest_part) != CID_SHA512_CHARS:
-        raise ValueError("SHA-512 digest must encode to 86 characters")
-
-    return f"{length_part}{digest_part}"
-
-
-def process_file_upload(form):
-    """Process file upload from form and return file content and filename"""
-    uploaded_file = form.file.data
-    file_content = uploaded_file.read()
-    filename = uploaded_file.filename or 'upload'
-    return file_content, filename
-
-
-def process_text_upload(form):
-    """Process text upload from form and return file content"""
-    text_content = form.text_content.data
-    file_content = text_content.encode('utf-8')
-    return file_content
-
-
-def process_url_upload(form):
-    """Process URL upload from form by downloading content and return file content and MIME type"""
-    url = form.url.data.strip()
-
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                          '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        response = requests.get(url, timeout=30, headers=headers, stream=True)
-        response.raise_for_status()
-
-        content_type = response.headers.get('content-type', 'application/octet-stream')
-        mime_type = content_type.split(';')[0].strip().lower()
-
-        content_length = response.headers.get('content-length')
-        if content_length and int(content_length) > 100 * 1024 * 1024:
-            raise ValueError("File too large (>100MB)")
-
-        file_content = b''
-        downloaded_size = 0
-        max_size = 100 * 1024 * 1024
-
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                downloaded_size += len(chunk)
-                if downloaded_size > max_size:
-                    raise ValueError("File too large (>100MB)")
-                file_content += chunk
-
-        parsed_url = urlparse(url)
-        filename = parsed_url.path.split('/')[-1]
-
-        if not filename or '.' not in filename:
-            extension = get_extension_from_mime_type(mime_type)
-            if extension:
-                filename = f"download{extension}"
-            else:
-                filename = "download"
-
-        return file_content, mime_type
-
-    except requests.exceptions.RequestException as e:
-        raise ValueError(f"Failed to download from URL: {str(e)}") from e
-    except Exception as e:
-        raise ValueError(f"Error processing URL: {str(e)}") from e
-
-
-def save_server_definition_as_cid(definition, user_id):
-    """Save server definition as CID and return the CID string"""
-    _ensure_db_access()
-    definition_bytes = definition.encode('utf-8')
-    cid_value = format_cid(generate_cid(definition_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not content:
-        create_cid_record(cid_value, definition_bytes, user_id)
-
-    return cid_value
-
-
-def store_cid_from_json(json_content, user_id):
-    """Store JSON content in a CID record and return the CID"""
-    json_bytes = json_content.encode('utf-8')
-    return store_cid_from_bytes(json_bytes, user_id)
-
-def store_cid_from_bytes(content_bytes, user_id):
-    """Store content in a CID record and return the CID"""
-    _ensure_db_access()
-    cid_value = format_cid(generate_cid(content_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not content:
-        create_cid_record(cid_value, content_bytes, user_id)
-
-    return cid_value
-
-# ============================================================================
-# DEFINITIONS CID HELPERS
-# ============================================================================
-
-def generate_all_server_definitions_json(user_id):
-    """Generate JSON containing all server definitions for a user"""
-    _ensure_db_access()
-    servers = get_user_servers(user_id)
-
-    server_definitions = {}
-    for server in servers:
-        if not getattr(server, "enabled", True):
-            continue
-        server_definitions[server.name] = server.definition
-
-    return json.dumps(server_definitions, indent=2, sort_keys=True)
-
-
-def store_server_definitions_cid(user_id):
-    """Store all server definitions as JSON in a CID and return the CID path"""
-    _ensure_db_access()
-    json_content = generate_all_server_definitions_json(user_id)
-    return store_cid_from_json(json_content, user_id)
-
-
-def get_current_server_definitions_cid(user_id):
-    """Get the CID path for the current server definitions JSON"""
-    _ensure_db_access()
-    json_content = generate_all_server_definitions_json(user_id)
-    json_bytes = json_content.encode('utf-8')
-    cid_value = format_cid(generate_cid(json_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if content:
-        return cid_value
-    return store_server_definitions_cid(user_id)
-
-
-def generate_all_variable_definitions_json(user_id):
-    """Generate JSON containing all variable definitions for a user"""
-    _ensure_db_access()
-    variables = get_user_variables(user_id)
-
-    variable_definitions = {}
-    for variable in variables:
-        if not getattr(variable, "enabled", True):
-            continue
-        variable_definitions[variable.name] = variable.definition
-
-    return json.dumps(variable_definitions, indent=2, sort_keys=True)
-
-
-def store_variable_definitions_cid(user_id):
-    """Store all variable definitions as JSON in a CID and return the CID path"""
-    _ensure_db_access()
-    json_content = generate_all_variable_definitions_json(user_id)
-    return store_cid_from_json(json_content, user_id)
-
-
-def get_current_variable_definitions_cid(user_id):
-    """Get the CID path for the current variable definitions JSON"""
-    _ensure_db_access()
-    json_content = generate_all_variable_definitions_json(user_id)
-    json_bytes = json_content.encode('utf-8')
-    cid_value = format_cid(generate_cid(json_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if content:
-        return cid_value
-    return store_variable_definitions_cid(user_id)
-
-
-def generate_all_secret_definitions_json(user_id):
-    """Generate JSON containing all secret definitions for a user"""
-    _ensure_db_access()
-    secrets = get_user_secrets(user_id)
-
-    secret_definitions = {}
-    for secret in secrets:
-        if not getattr(secret, "enabled", True):
-            continue
-        secret_definitions[secret.name] = secret.definition
-
-    return json.dumps(secret_definitions, indent=2, sort_keys=True)
-
-
-def store_secret_definitions_cid(user_id):
-    """Store all secret definitions as JSON in a CID and return the CID path"""
-    _ensure_db_access()
-    json_content = generate_all_secret_definitions_json(user_id)
-    json_bytes = json_content.encode('utf-8')
-    cid_value = format_cid(generate_cid(json_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not content:
-        create_cid_record(cid_value, json_bytes, user_id)
-
-    return cid_value
-
-
-def get_current_secret_definitions_cid(user_id):
-    """Get the CID path for the current secret definitions JSON"""
-    _ensure_db_access()
-    json_content = generate_all_secret_definitions_json(user_id)
-    json_bytes = json_content.encode('utf-8')
-    cid_value = format_cid(generate_cid(json_bytes))
-
-    cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if content:
-        return cid_value
-
-    return store_secret_definitions_cid(user_id)
-
-
-# ============================================================================
-# MIME TYPE AND CID SERVING HELPERS
-# ============================================================================
-
-EXTENSION_TO_MIME = {
-    'html': 'text/html',
-    'htm': 'text/html',
-    'txt': 'text/plain',
-    'css': 'text/css',
-    'js': 'application/javascript',
-    'json': 'application/json',
-    'xml': 'application/xml',
-    'pdf': 'application/pdf',
-    'zip': 'application/zip',
-    'tar': 'application/x-tar',
-    'gz': 'application/gzip',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'svg': 'image/svg+xml',
-    'webp': 'image/webp',
-    'ico': 'image/x-icon',
-    'mp3': 'audio/mpeg',
-    'wav': 'audio/wav',
-    'ogg': 'audio/ogg',
-    'mp4': 'video/mp4',
-    'webm': 'video/webm',
-    'avi': 'video/x-msvideo',
-    'mov': 'video/quicktime',
-    'md': 'text/markdown',
-    'csv': 'text/csv',
-    'py': 'text/x-python',
-    'java': 'text/x-java-source',
-    'c': 'text/x-c',
-    'cpp': 'text/x-c++',
-    'h': 'text/x-c',
-    'hpp': 'text/x-c++',
-    'sh': 'application/x-sh',
-    'bat': 'application/x-msdos-program',
-    'exe': 'application/x-msdownload',
-    'dmg': 'application/x-apple-diskimage',
-    'deb': 'application/vnd.debian.binary-package',
-    'rpm': 'application/x-rpm'
-}
-
-MIME_TO_EXTENSION = {}
-for ext, mime in EXTENSION_TO_MIME.items():
-    if mime not in MIME_TO_EXTENSION:
-        MIME_TO_EXTENSION[mime] = ext
-
-
-_MARKDOWN_EXTENSIONS = [
-    'extra',
-    'admonition',
-    'sane_lists',
-]
-
-_MARKDOWN_INDICATOR_PATTERNS = [
-    re.compile(r'(^|\n)#{1,6}\s+\S'),
-    re.compile(r'(^|\n)(?:\*|-|\+)\s+\S'),
-    re.compile(r'(^|\n)\d+\.\s+\S'),
-    re.compile(r'(^|\n)>\s+\S'),
-    re.compile(r'```'),
-    re.compile(r'\[[^\]]+\]\([^\)]+\)'),
-    re.compile(r'!\[[^\]]*\]\([^\)]+\)'),
-    re.compile(r'(^|\n)[^\n]+\n[=-]{3,}\s*(\n|$)'),
-]
-
-_INLINE_BOLD_PATTERN = re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')
-_INLINE_ITALIC_PATTERN = re.compile(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)')
-_INLINE_CODE_PATTERN = re.compile(r'`[^`\n]+`')
-
-
-def _decode_text_safely(data):
-    """Decode bytes as UTF-8 if possible, returning None on failure."""
-    try:
-        return data.decode('utf-8')
-    except UnicodeDecodeError:
-        return None
-
-
-def _count_bullet_lines(lines):
-    return sum(1 for line in lines if line.lstrip().startswith(('- ', '* ', '+ ')))
-
-
-def _looks_like_markdown(text):
-    """Heuristically determine whether text is likely Markdown content."""
-    if not text or not text.strip():
-        return False
-
-    if '\x00' in text:
-        return False
-
-    indicator_hits = sum(1 for pattern in _MARKDOWN_INDICATOR_PATTERNS if pattern.search(text))
-
-    inline_format_score = sum(
-        1
-        for pattern in (_INLINE_BOLD_PATTERN, _INLINE_ITALIC_PATTERN, _INLINE_CODE_PATTERN)
-        if pattern.search(text)
-    )
-
-    if indicator_hits + inline_format_score >= 2:
-        return True
-
-    lines = text.strip().splitlines()
-    if not lines:
-        return False
-
-    if lines[0].startswith('# '):
-        return True
-
-    if len(lines) > 1 and set(lines[1].strip()) in ({'='}, {'-'}):
-        return True
-
-    if _count_bullet_lines(lines) >= 2:
-        return True
-
-    return False
-
-
-def _extract_markdown_title(text):
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith('#'):
-            return stripped.lstrip('#').strip() or 'Document'
-    return 'Document'
-
-
-_GITHUB_RELATIVE_LINK_PATTERN = re.compile(r"\[\[([^\[\]]+)\]\]")
-
-_GITHUB_RELATIVE_LINK_PATH_SANITIZER = re.compile(r"[^A-Za-z0-9._/\-]+")
-_GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER = re.compile(r"[^a-z0-9\-]+")
-
-
-def _normalize_github_relative_link_target_v2(raw_target: str) -> str | None:
-    """Normalize GitHub-style relative link targets (version 2 semantics)."""
-
-    if not raw_target:
-        return None
-
-    target = raw_target.strip()
-    if not target:
-        return None
-
-    # Allow optional pipe syntax ``[[target|label]]`` and pick the first segment
-    primary = target.split('|', 1)[0].strip()
-    if not primary:
-        return None
-
-    page_part, _, anchor_part = primary.partition('#')
-
-    normalized_path = ""
-    if page_part:
-        preserve_trailing_slash = page_part.rstrip().endswith('/')
-        prepared = re.sub(r"\s+", "-", page_part.strip())
-        cleaned = _GITHUB_RELATIVE_LINK_PATH_SANITIZER.sub('', prepared)
-        segments = [segment for segment in cleaned.split('/') if segment]
-        if not segments:
-            normalized_path = ""
-        else:
-            normalized_segments = [segment.lower() for segment in segments]
-            normalized_path = '/' + '/'.join(normalized_segments)
-            if preserve_trailing_slash:
-                normalized_path += '/'
-
-    anchor_fragment = ""
-    if anchor_part:
-        anchor_slug = anchor_part.strip().lower()
-        anchor_slug = re.sub(r"\s+", '-', anchor_slug)
-        anchor_slug = _GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER.sub('', anchor_slug)
-        anchor_slug = anchor_slug.strip('-')
-        if anchor_slug:
-            anchor_fragment = f'#{anchor_slug}'
-
-    if normalized_path and anchor_fragment:
-        return f'{normalized_path}{anchor_fragment}'
-    if normalized_path:
-        return normalized_path
-    if anchor_fragment:
-        return anchor_fragment
-    return None
-
-
-def _convert_github_relative_links(text: str) -> str:
-    """Rewrite GitHub-style ``[[link]]`` syntax to standard Markdown links."""
-
-    def replacement(match: re.Match[str]) -> str:
-        inner = match.group(1)
-        if not inner:
-            return match.group(0)
-
-        label, target = inner, inner
-        if '|' in inner:
-            target, label = (part.strip() for part in inner.split('|', 1))
-        else:
-            label = inner.strip()
-            target = label
-
-        normalized_target = _normalize_github_relative_link_target_v2(target)
-        display_text = label.strip() or target.strip()
-        if not normalized_target or not display_text:
-            return match.group(0)
-
-        return f"[{display_text}]({normalized_target})"
-
-    return _GITHUB_RELATIVE_LINK_PATTERN.sub(replacement, text)
-
-
-_FORMDOWN_FENCE_RE = re.compile(r"(^|\n)[ \t]*```formdown\s*\n(.*?)```", re.DOTALL)
-_MERMAID_FENCE_RE = re.compile(r"(^|\n)([ \t]*)```mermaid\s*\n(.*?)```", re.DOTALL)
-
-
-class MermaidRenderingError(RuntimeError):
-    """Raised when a Mermaid diagram cannot be rendered."""
-
-
-@dataclass
-class MermaidRenderLocation:
-    """Represents where a rendered Mermaid diagram is stored."""
-
-    is_cid: bool
-    value: str
-
-    def img_src(self) -> str:
-        if self.is_cid:
-            path = cid_path(self.value, "svg") or f"/{self.value}.svg"
-            return path
-        return self.value
-
-
-class _MermaidRenderer:
-    """Render Mermaid diagrams through mermaid.ink and store them as CIDs."""
-
-    _API_ENDPOINT = "https://mermaid.ink/svg"
-    _REMOTE_SVG_BASE = "https://mermaid.ink/svg/"
-
-    def __init__(self) -> None:
-        self._session = requests.Session()
-        self._cache: Dict[str, MermaidRenderLocation] = {}
-
-    def render_html(self, source: str) -> str:
-        normalized = (source or "").strip()
-        if not normalized:
-            raise MermaidRenderingError("Mermaid diagram was empty")
-
-        cached = self._cache.get(normalized)
-        if cached is not None:
-            return self._build_html(cached, normalized)
-
-        location: Optional[MermaidRenderLocation]
-        try:
-            svg_bytes = self._fetch_svg(normalized)
-        except Exception:
-            location = self._remote_location(normalized)
-        else:
-            if not svg_bytes:
-                raise MermaidRenderingError("Mermaid renderer returned no data")
-
-            location = self._store_svg(svg_bytes)
-            if location is None:
-                data_url = self._build_data_url(svg_bytes)
-                location = MermaidRenderLocation(is_cid=False, value=data_url)
-
-        if location is None:
-            raise MermaidRenderingError("Mermaid renderer failed to produce an image")
-
-        self._cache[normalized] = location
-        return self._build_html(location, normalized)
-
-    def _fetch_svg(self, source: str) -> bytes:
-        response = self._session.post(
-            self._API_ENDPOINT,
-            data=source.encode("utf-8"),
-            timeout=20,
-            headers={"Content-Type": "text/plain"},
-        )
-        response.raise_for_status()
-        return response.content
-
-    def _store_svg(self, svg_bytes: bytes) -> Optional[MermaidRenderLocation]:
-        try:
-            _ensure_db_access()
-            cid_value = format_cid(generate_cid(svg_bytes))
-            path = cid_path(cid_value)
-            if path and get_cid_by_path and get_cid_by_path(path):
-                return MermaidRenderLocation(is_cid=True, value=cid_value)
-
-            if create_cid_record is not None:
-                create_cid_record(cid_value, svg_bytes, None)
-
-            return MermaidRenderLocation(is_cid=True, value=cid_value)
-        except Exception:
-            return None
-
-    @staticmethod
-    def _build_data_url(svg_bytes: bytes) -> str:
-        encoded = base64.b64encode(svg_bytes).decode("ascii")
-        return f"data:image/svg+xml;base64,{encoded}"
-
-    @staticmethod
-    def _encode_source(source: str) -> str:
-        return base64.urlsafe_b64encode(source.encode("utf-8")).decode("ascii")
-
-    @classmethod
-    def _remote_location(cls, source: str) -> Optional[MermaidRenderLocation]:
-        encoded = cls._encode_source(source)
-        remote_url = f"{cls._REMOTE_SVG_BASE}{encoded}"
-        return MermaidRenderLocation(is_cid=False, value=remote_url)
-
-    @classmethod
-    def _build_html(cls, location: MermaidRenderLocation, source: str) -> str:
-        escaped_src = html.escape(location.img_src(), quote=True)
-        encoded_diagram = cls._encode_source(source)
-        return (
-            f'<figure class="mermaid-diagram" data-mermaid-source="{encoded_diagram}">\n'
-            f'  <img src="{escaped_src}" alt="Mermaid diagram" loading="lazy" decoding="async">\n'
-            f"</figure>\n"
-        )
-
-
-_mermaid_renderer = _MermaidRenderer()
-
-
-def _replace_formdown_fences(text):
-    """Replace ```formdown fences with rendered HTML forms."""
-
-    found = False
-
-    def _replacement(match):
-        nonlocal found
-        found = True
-        prefix = match.group(1)
-        inner = match.group(2).rstrip("\n")
-        html = render_formdown_html(inner)
-        if prefix:
-            return f"{prefix}{html}"
-        return html
-
-    converted = _FORMDOWN_FENCE_RE.sub(_replacement, text)
-    return converted, found
-
-
-def _replace_mermaid_fences(text: str) -> Tuple[str, bool]:
-    """Replace ```mermaid fences with rendered diagram figures."""
-
-    found = False
-
-    def _replacement(match: re.Match[str]) -> str:
-        nonlocal found
-        prefix = match.group(1)
-        indent = match.group(2)
-        diagram_source = (match.group(3) or "").rstrip("\n")
-        try:
-            figure_html = _mermaid_renderer.render_html(diagram_source)
-        except MermaidRenderingError:
-            return match.group(0)
-        except Exception:
-            return match.group(0)
-        found = True
-        return f"{prefix}{indent}{figure_html}"
-
-    replaced = _MERMAID_FENCE_RE.sub(_replacement, text)
-    return replaced, found
-
-
-def _render_markdown_document(text):
-    """Render Markdown text to a standalone HTML document."""
-    converted = _convert_github_relative_links(text)
-    converted, _ = _replace_mermaid_fences(converted)
-    converted, _ = _replace_formdown_fences(converted)
-    body = markdown.markdown(converted, extensions=_MARKDOWN_EXTENSIONS, output_format='html5')
-    title = _extract_markdown_title(text)
-    formdown_script = ""
-    return (
-        "<!DOCTYPE html>\n"
-        "<html lang=\"en\">\n"
-        "<head>\n"
-        "  <meta charset=\"utf-8\">\n"
-        f"  <title>{title}</title>\n"
-        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-        f"{formdown_script}"
-        "  <style>\n"
-        "    body {\n"
-        "      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n"
-        "      margin: 0;\n"
-        "      padding: 2rem;\n"
-        "      background: #f7f7f8;\n"
-        "      color: #111827;\n"
-        "    }\n"
-        "    .markdown-body {\n"
-        "      max-width: none;\n"
-        "      width: 100%;\n"
-        "      margin: 0;\n"
-        "      background: #fff;\n"
-        "      padding: 2rem 3rem;\n"
-        "      border-radius: 12px;\n"
-        "      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);\n"
-        "    }\n"
-        "    pre {\n"
-        "      background: #0f172a;\n"
-        "      color: #f8fafc;\n"
-        "      padding: 1rem;\n"
-        "      border-radius: 8px;\n"
-        "      overflow-x: auto;\n"
-        "    }\n"
-        "    code {\n"
-        "      background: rgba(15, 23, 42, 0.08);\n"
-        "      padding: 0.15rem 0.35rem;\n"
-        "      border-radius: 4px;\n"
-        "      font-size: 0.95em;\n"
-        "    }\n"
-        "    table {\n"
-        "      border-collapse: collapse;\n"
-        "      width: 100%;\n"
-        "      margin: 1.5rem 0;\n"
-        "    }\n"
-        "    th, td {\n"
-        "      border: 1px solid #e2e8f0;\n"
-        "      padding: 0.6rem 0.75rem;\n"
-        "      text-align: left;\n"
-        "    }\n"
-        "    blockquote {\n"
-        "      border-left: 4px solid #3b82f6;\n"
-        "      padding-left: 1rem;\n"
-        "      color: #1f2937;\n"
-        "      background: rgba(59, 130, 246, 0.08);\n"
-        "    }\n"
-        "    .admonition {\n"
-        "      border-left: 4px solid #7c3aed;\n"
-        "      background: rgba(124, 58, 237, 0.08);\n"
-        "      padding: 1rem 1.25rem;\n"
-        "      border-radius: 8px;\n"
-        "      margin: 1.5rem 0;\n"
-        "    }\n"
-        "    .admonition-title {\n"
-        "      font-weight: 600;\n"
-        "      margin-bottom: 0.5rem;\n"
-        "    }\n"
-        "    img, iframe {\n"
-        "      max-width: 100%;\n"
-        "      border-radius: 8px;\n"
-        "      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);\n"
-        "    }\n"
-        "    .mermaid-diagram {\n"
-        "      margin: 2rem 0;\n"
-        "      text-align: center;\n"
-        "    }\n"
-        "    .mermaid-diagram img {\n"
-        "      display: inline-block;\n"
-        "    }\n"
-        "    .formdown-document {\n"
-        "      margin: 2rem 0;\n"
-        "      display: flex;\n"
-        "      flex-direction: column;\n"
-        "      gap: 1.5rem;\n"
-        "    }\n"
-        "    .formdown-form {\n"
-        "      display: flex;\n"
-        "      flex-direction: column;\n"
-        "      gap: 1.5rem;\n"
-        "      padding: 1.5rem;\n"
-        "      border: 1px solid rgba(148, 163, 184, 0.35);\n"
-        "      border-radius: 12px;\n"
-        "      background: #f8fafc;\n"
-        "    }\n"
-        "    .formdown-field {\n"
-        "      display: flex;\n"
-        "      flex-direction: column;\n"
-        "      gap: 0.5rem;\n"
-        "    }\n"
-        "    .formdown-field--choices {\n"
-        "      gap: 0.75rem;\n"
-        "    }\n"
-        "    .formdown-heading {\n"
-        "      font-weight: 600;\n"
-        "      color: #0f172a;\n"
-        "    }\n"
-        "    .formdown-heading--form {\n"
-        "      margin-bottom: 0;\n"
-        "    }\n"
-        "    .formdown-paragraph {\n"
-        "      color: #475569;\n"
-        "    }\n"
-        "    .formdown-paragraph--form {\n"
-        "      margin: 0;\n"
-        "    }\n"
-        "    .formdown-label {\n"
-        "      font-weight: 600;\n"
-        "      color: #0f172a;\n"
-        "    }\n"
-        "    .formdown-input {\n"
-        "      display: block;\n"
-        "      width: 100%;\n"
-        "      padding: 0.5rem 0.75rem;\n"
-        "      border-radius: 8px;\n"
-        "      border: 1px solid rgba(148, 163, 184, 0.5);\n"
-        "      font-size: 1rem;\n"
-        "      color: #0f172a;\n"
-        "      background: #fff;\n"
-        "    }\n"
-        "    .formdown-input:focus {\n"
-        "      outline: 2px solid #3b82f6;\n"
-        "      outline-offset: 1px;\n"
-        "    }\n"
-        "    .formdown-options {\n"
-        "      display: flex;\n"
-        "      flex-wrap: wrap;\n"
-        "      gap: 0.75rem;\n"
-        "    }\n"
-        "    .formdown-options--vertical {\n"
-        "      flex-direction: column;\n"
-        "    }\n"
-        "    .formdown-option {\n"
-        "      display: inline-flex;\n"
-        "      align-items: center;\n"
-        "      gap: 0.5rem;\n"
-        "      font-weight: 500;\n"
-        "      color: #0f172a;\n"
-        "    }\n"
-        "    .formdown-option-label {\n"
-        "      display: inline-block;\n"
-        "    }\n"
-        "    .formdown-help {\n"
-        "      font-size: 0.875rem;\n"
-        "      color: #64748b;\n"
-        "    }\n"
-        "    .formdown-separator {\n"
-        "      border: none;\n"
-        "      border-top: 1px solid rgba(148, 163, 184, 0.35);\n"
-        "      margin: 0;\n"
-        "    }\n"
-        "    .formdown-button {\n"
-        "      display: inline-flex;\n"
-        "      align-items: center;\n"
-        "      justify-content: center;\n"
-        "      gap: 0.5rem;\n"
-        "      border-radius: 8px;\n"
-        "      padding: 0.5rem 1.25rem;\n"
-        "      font-weight: 600;\n"
-        "      cursor: pointer;\n"
-        "      border: none;\n"
-        "    }\n"
-        "    .formdown-button--submit {\n"
-        "      background: #2563eb;\n"
-        "      color: #f8fafc;\n"
-        "    }\n"
-        "    .formdown-button--reset {\n"
-        "      background: #e2e8f0;\n"
-        "      color: #0f172a;\n"
-        "    }\n"
-        "  </style>\n"
-        "</head>\n"
-        "<body>\n"
-        "  <main class=\"markdown-body\">\n"
-        f"  {body}\n"
-        "  </main>\n"
-        "</body>\n"
-        "</html>\n"
-    )
-
-def get_mime_type_from_extension(path):
-    """Determine MIME type from file extension in URL path"""
-    if '.' in path:
-        extension = path.split('.')[-1].lower()
-        return EXTENSION_TO_MIME.get(extension, 'application/octet-stream')
-    return 'application/octet-stream'
-
-
-def get_extension_from_mime_type(content_type):
-    """Get file extension from MIME type"""
-    base_mime = content_type.split(';')[0].strip().lower()
-    return MIME_TO_EXTENSION.get(base_mime, '')
-
-
-def extract_filename_from_cid_path(path):
-    """Extract filename from CID path for content disposition header."""
-    if path.startswith('/'):
-        path = path[1:]
-
-    if not path or path in ['.', '..']:
-        return None
-
-    parts = path.split('.')
-
-    if len(parts) < 3:
-        return None
-
-    filename_parts = parts[1:]
-    filename = '.'.join(filename_parts)
-
-    return filename
-
-
-def _generate_qr_data_url(target_url: str) -> str:
-    """Return a data URL representing a QR code that encodes ``target_url``."""
-
-    if qrcode is None:
-        raise RuntimeError(
-            "Missing optional dependency 'qrcode'. Run './install' or "
-            "'pip install qrcode[pil]' before generating QR codes."
-        ) from _qrcode_import_error
-
-    qr_code = qrcode.QRCode(box_size=12, border=4)
-    qr_code.add_data(target_url)
-    qr_code.make(fit=True)
-    qr_image = qr_code.make_image(fill_color="black", back_color="white")
-    buffer = io.BytesIO()
-    qr_image.save(buffer, format="PNG")
-    qr_png_bytes = buffer.getvalue()
-    return "data:image/png;base64," + base64.b64encode(qr_png_bytes).decode("ascii")
-
-
-def serve_cid_content(cid_content, path):
-    """Serve CID content with appropriate headers and caching"""
-    if cid_content is None or cid_content.file_data is None:
-        return None
-
-    cid = path[1:] if path.startswith('/') else path
-
-    content_type = get_mime_type_from_extension(path)
-    filename_part = path.rsplit('/', 1)[-1]
-    has_extension = '.' in filename_part
-    explicit_markdown_request = filename_part.lower().endswith('.md.html')
-    is_text_extension_request = filename_part.lower().endswith('.txt')
-    is_qr_request = filename_part.lower().endswith('.qr')
-
-    cid_path_attr = getattr(cid_content, 'path', None)
-    normalized_cid = (cid_path_attr or '').lstrip('/')
-    qr_cid = normalized_cid or (cid.rsplit('.qr', 1)[0] if is_qr_request else '')
-    etag_source = normalized_cid or cid.split('.')[0]
-
-    response_body = cid_content.file_data
-    if is_qr_request and qr_cid:
-        qr_target_url = f"https://256t.org/{qr_cid}"
-        qr_image_url = _generate_qr_data_url(qr_target_url)
-        html = render_template(
-            'cid_qr.html',
-            title='CID QR Code',
-            cid=qr_cid,
-            qr_value=qr_target_url,
-            qr_image_url=qr_image_url,
-            cid_href=cid_path(qr_cid),
-        )
-        response_body = html.encode('utf-8')
-        content_type = 'text/html; charset=utf-8'
-    elif explicit_markdown_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = _render_markdown_document(text).encode('utf-8')
-            content_type = 'text/html'
-    elif content_type == 'application/octet-stream':
-        if not has_extension:
-            text = _decode_text_safely(response_body)
-            if text is not None:
-                response_body = text.encode('utf-8')
-                content_type = 'text/plain; charset=utf-8'
-    elif is_text_extension_request:
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
-        content_type = 'text/plain; charset=utf-8'
-    elif content_type == 'text/plain':
-        text = _decode_text_safely(response_body)
-        if text is not None:
-            response_body = text.encode('utf-8')
-            content_type = 'text/plain; charset=utf-8'
-
-    etag = f'"{etag_source}"'
-    if request.headers.get('If-None-Match') == etag:
-        response = make_response('', 304)
-        response.headers['ETag'] = etag
-        return response
-
-    if request.headers.get('If-Modified-Since'):
-        response = make_response('', 304)
-        response.headers['ETag'] = etag
-        response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-        return response
-
-    response = make_response(response_body)
-    response.headers['Content-Type'] = content_type
-    response.headers['Content-Length'] = len(response_body)
-
-    filename = extract_filename_from_cid_path(path)
-    if filename and not explicit_markdown_request:
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-
-    response.headers['ETag'] = etag
-    response.headers['Last-Modified'] = cid_content.created_at.strftime('%a, %d %b %Y %H:%M:%S GMT')
-    response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
-    response.headers['Expires'] = 'Thu, 31 Dec 2037 23:55:55 GMT'
-
-    return response
+    return store_cid_from_bytes(definition.encode('utf-8'), user_id)

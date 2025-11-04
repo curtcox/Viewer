@@ -13,6 +13,14 @@ from routes.servers import update_server_definitions_cid
 class TestServerDefinitionsCID(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
+        # Reset cid_storage module-level variables BEFORE test to ensure clean state
+        import cid_storage
+        cid_storage._get_user_servers = None
+        cid_storage._get_user_variables = None
+        cid_storage._get_user_secrets = None
+        cid_storage._create_cid_record = None
+        cid_storage._get_cid_by_path = None
+
         # Mock database and models
         self.mock_db = Mock()
         self.mock_user = Mock()
@@ -30,9 +38,15 @@ class TestServerDefinitionsCID(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests"""
-        pass
+        # Reset cid_storage module-level variables to force fresh imports in next test
+        import cid_storage
+        cid_storage._get_user_servers = None
+        cid_storage._get_user_variables = None
+        cid_storage._get_user_secrets = None
+        cid_storage._create_cid_record = None
+        cid_storage._get_cid_by_path = None
 
-    @patch('cid_utils.get_user_servers')
+    @patch('db_access.get_user_servers')
     def test_generate_all_server_definitions_json(self, mock_get_servers):
         """Test generating JSON of all server definitions for a user"""
         mock_get_servers.return_value = [self.mock_server1, self.mock_server2]
@@ -53,7 +67,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be valid JSON
         self.assertIsInstance(data, dict)
 
-    @patch('cid_utils.get_user_servers')
+    @patch('db_access.get_user_servers')
     def test_generate_all_server_definitions_json_empty(self, mock_get_servers):
         """Test generating JSON when user has no servers"""
         mock_get_servers.return_value = []
@@ -64,10 +78,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be empty dict
         self.assertEqual(data, {})
 
-    @patch('cid_utils.create_cid_record')
-    @patch('cid_utils.get_cid_by_path')
-    @patch('cid_utils.generate_cid')
-    @patch('cid_utils.generate_all_server_definitions_json')
+    @patch('db_access.create_cid_record')
+    @patch('db_access.get_cid_by_path')
+    @patch('cid_core.generate_cid')
+    @patch('cid_storage.generate_all_server_definitions_json')
     def test_store_server_definitions_cid(self, mock_json_gen, mock_generate_cid, mock_get_cid, mock_create_cid):
         """Test storing server definitions JSON as CID"""
         # Mock the JSON generation
@@ -85,10 +99,10 @@ class TestServerDefinitionsCID(unittest.TestCase):
         self.assertIsInstance(cid_path, str)
         self.assertTrue(len(cid_path) > 0)
 
-    @patch('cid_utils.generate_all_server_definitions_json')
-    @patch('cid_utils.store_server_definitions_cid')
-    @patch('cid_utils.get_cid_by_path')
-    @patch('cid_utils.generate_cid')
+    @patch('cid_storage.generate_all_server_definitions_json')
+    @patch('cid_storage.store_server_definitions_cid')
+    @patch('db_access.get_cid_by_path')
+    @patch('cid_core.generate_cid')
     def test_get_current_server_definitions_cid(self, mock_generate_cid, mock_get_cid, mock_store_cid, mock_generate_json):
         """Test retrieving current server definitions CID"""
         # Mock the JSON generation

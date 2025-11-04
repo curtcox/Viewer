@@ -133,9 +133,9 @@ class TestImagesAndEmbeds:
     def test_mermaid_fenced_block_renders_to_svg_image(self):
         svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
         with (
-            patch('cid_utils._mermaid_renderer._fetch_svg', return_value=svg_bytes),
+            patch('content_rendering._mermaid_renderer._fetch_svg', return_value=svg_bytes),
             patch(
-                'cid_utils._mermaid_renderer._store_svg',
+                'content_rendering._mermaid_renderer._store_svg',
                 return_value=MermaidRenderLocation(is_cid=True, value='diagramcid123'),
             ),
         ):
@@ -153,8 +153,8 @@ class TestImagesAndEmbeds:
 
     def test_mermaid_renderer_falls_back_to_remote_svg_on_error(self):
         with (
-            patch('cid_utils._mermaid_renderer._fetch_svg', side_effect=RuntimeError('network down')),
-            patch('cid_utils._mermaid_renderer._store_svg') as store_svg,
+            patch('content_rendering._mermaid_renderer._fetch_svg', side_effect=RuntimeError('network down')),
+            patch('content_rendering._mermaid_renderer._store_svg') as store_svg,
         ):
             fragment = _render_fragment(
                 """

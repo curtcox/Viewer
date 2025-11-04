@@ -15,7 +15,7 @@ class TestProcessUrlUpload(TestCase):
     def _make_form(self, url: str):
         return SimpleNamespace(url=SimpleNamespace(data=url))
 
-    @patch('cid_utils.requests.get')
+    @patch('upload_handlers.requests.get')
     def test_process_url_upload_streams_chunks_and_detects_mime(self, mock_get):
         form = self._make_form(' https://example.com/download ')
 
@@ -39,7 +39,7 @@ class TestProcessUrlUpload(TestCase):
         )
         self.assertIn('Mozilla/5.0', mock_get.call_args.kwargs['headers']['User-Agent'])
 
-    @patch('cid_utils.requests.get')
+    @patch('upload_handlers.requests.get')
     def test_process_url_upload_rejects_files_over_100_mb(self, mock_get):
         form = self._make_form('https://example.com/too-big.bin')
 
@@ -54,7 +54,7 @@ class TestProcessUrlUpload(TestCase):
         with self.assertRaisesRegex(ValueError, 'File too large'):
             process_url_upload(form)
 
-    @patch('cid_utils.requests.get')
+    @patch('upload_handlers.requests.get')
     def test_process_url_upload_wraps_request_exceptions(self, mock_get):
         form = self._make_form('https://example.com/fail')
         mock_get.side_effect = requests.exceptions.RequestException('boom')
@@ -62,7 +62,7 @@ class TestProcessUrlUpload(TestCase):
         with self.assertRaisesRegex(ValueError, 'Failed to download from URL: boom'):
             process_url_upload(form)
 
-    @patch('cid_utils.requests.get')
+    @patch('upload_handlers.requests.get')
     def test_process_url_upload_wraps_generic_errors(self, mock_get):
         form = self._make_form('https://example.com/error')
 
