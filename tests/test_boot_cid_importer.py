@@ -14,7 +14,7 @@ from boot_cid_importer import (
 )
 from cid_utils import generate_cid
 from db_access import create_cid_record
-from models import Alias, Server
+from models import Alias, Export, Server
 
 
 class BootCidImporterTestCase(unittest.TestCase):
@@ -302,6 +302,10 @@ class BootCidImporterTestCase(unittest.TestCase):
             # Verify the server was imported
             server = Server.query.filter_by(name='test-server', user_id=self.user_id).first()
             self.assertIsNotNone(server)
+
+            # Verify snapshot export was generated
+            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            self.assertIsNotNone(snapshot_export, 'Snapshot export should be created after boot CID import')
 
     def test_import_boot_cid_missing_dependency(self):
         """Test importing boot CID with missing dependency fails with helpful message."""

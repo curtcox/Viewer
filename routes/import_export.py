@@ -1275,6 +1275,7 @@ class _ImportContext:
     info_messages: list[str] = field(default_factory=list)
     summaries: list[str] = field(default_factory=list)
     secret_key: str = ''
+    snapshot_export: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -1410,7 +1411,41 @@ def _handle_import_source_files(context: _ImportContext) -> None:
     )
 
 
+def _generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
+    """Generate a snapshot export equivalent to the default export.
+
+    Returns:
+        Export result dict with 'cid_value', 'download_path', 'json_payload', and 'generated_at',
+        or None if generation fails.
+    """
+    try:
+        form = ExportForm()
+        # Set snapshot defaults: aliases, servers, variables enabled; secrets, history, source disabled
+        form.snapshot.data = True
+        form.include_aliases.data = True
+        form.include_servers.data = True
+        form.include_variables.data = True
+        form.include_secrets.data = False
+        form.include_history.data = False
+        form.include_source.data = False
+        form.include_cid_map.data = True
+        form.include_unreferenced_cid_data.data = False
+
+        export_result = _build_export_payload(form, user_id, store_content=True)
+        # Record the export
+        record_export(user_id, export_result['cid_value'])
+
+        # Add generated_at timestamp
+        export_result['generated_at'] = datetime.now(timezone.utc).isoformat()
+        return export_result
+    except Exception:
+        # If snapshot generation fails, return None (don't fail the import)
+        return None
+
+
 def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) -> Any:
+    from flask import session
+
     for message in context.errors:
         flash(message, 'danger')
 
@@ -1424,6 +1459,17 @@ def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) ->
     for message in context.info_messages:
         flash(message, 'success')
 
+    # Generate and store snapshot export after import completes
+    snapshot_export = _generate_snapshot_export(context.user_id)
+    context.snapshot_export = snapshot_export
+
+    # Store snapshot info in session for display on redirected page
+    if snapshot_export:
+        session['import_snapshot_export'] = {
+            'cid': snapshot_export['cid_value'],
+            'generated_at': snapshot_export['generated_at'],
+        }
+
     if context.errors or context.warnings or context.summaries:
         record_entity_interaction(
             EntityInteractionRequest(
@@ -1435,9 +1481,10 @@ def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) ->
                 content=context.raw_payload,
             )
         )
+
         return redirect(url_for('main.import_data'))
 
-    return render_form()
+    return render_form(snapshot_export)
 
 
 def _process_import_submission(
@@ -2075,12 +2122,72 @@ def export_size():
 @main_bp.route('/import', methods=['GET', 'POST'])
 def import_data():
     """Allow users to import data collections from JSON content."""
+    from flask import jsonify, session
+
+    # Check if this is a JSON request (REST API)
+    is_json_request = request.is_json or (request.method == 'POST' and request.content_type and 'application/json' in request.content_type)
+
+    if is_json_request and request.method == 'POST':
+        # Handle JSON API request
+        try:
+            json_data = request.get_json() or {}
+            # Create a mock form-like structure for JSON requests
+            # For now, we'll use the existing import mechanism
+            # Convert JSON payload to raw text
+            raw_payload = json.dumps(json_data) if isinstance(json_data, dict) else json_data
+
+            # Parse the payload
+            parsed_payload, error_message = _parse_import_payload(raw_payload)
+            if error_message:
+                return jsonify({'ok': False, 'error': error_message}), 400
+
+            assert parsed_payload is not None  # For type checkers
+
+            # Create import context with default form settings
+            form = ImportForm()
+            form.include_aliases.data = 'aliases' in parsed_payload.data
+            form.include_servers.data = 'servers' in parsed_payload.data
+            form.include_variables.data = 'variables' in parsed_payload.data
+            form.include_secrets.data = 'secrets' in parsed_payload.data
+            form.include_history.data = 'change_history' in parsed_payload.data
+            form.process_cid_map.data = 'cid_values' in parsed_payload.data
+            form.include_source.data = False
+
+            context = _create_import_context(form, 'REST API import', parsed_payload)
+            _ingest_import_cid_map(context)
+            _import_selected_sections(context)
+            _handle_import_source_files(context)
+
+            # Generate snapshot export
+            snapshot_export = _generate_snapshot_export(context.user_id)
+
+            # Return JSON response
+            response_data = {'ok': True}
+            if context.errors:
+                response_data['errors'] = context.errors
+            if context.warnings:
+                response_data['warnings'] = context.warnings
+            if context.summaries:
+                response_data['summaries'] = context.summaries
+            if snapshot_export:
+                response_data['snapshot'] = {
+                    'cid': snapshot_export['cid_value'],
+                    'generated_at': snapshot_export['generated_at'],
+                }
+
+            return jsonify(response_data), 200
+        except Exception as e:
+            return jsonify({'ok': False, 'error': str(e)}), 400
+
+    # Handle HTML form request
     form = ImportForm()
     change_message = (request.form.get('change_message') or '').strip()
 
-    def _render_import_form():
+    def _render_import_form(snapshot_export: dict[str, Any] | None = None):
         interactions = load_interaction_history(current_user.id, 'import', 'json')
-        return render_template('import.html', form=form, import_interactions=interactions)
+        # Get snapshot info from session if available
+        snapshot_info = session.pop('import_snapshot_export', None) or snapshot_export
+        return render_template('import.html', form=form, import_interactions=interactions, snapshot_export=snapshot_info)
 
     if form.validate_on_submit():
         return _process_import_submission(form, change_message, _render_import_form)
