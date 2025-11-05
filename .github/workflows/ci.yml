@@ -490,8 +490,7 @@ jobs:
           GAUGE_PYTHON_COMMAND: python3
           STEP_IMPL_DIR: "${{ github.workspace }}/step_impl"
           PYTHONPATH: "${{ github.workspace }}:${{ github.workspace }}/step_impl:${{ github.workspace }}/tests"
-          PYPPETEER_DEBUG: "1"
-          DEBUG: "pyppeteer:*"
+          GAUGE_LOG_FILE: "${{ github.workspace }}/reports/html-report/gauge-execution.log"
         continue-on-error: true
 
       - name: Upload Gauge HTML report
