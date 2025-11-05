@@ -73,6 +73,13 @@ def enhance_gauge_report(
     index_html = _strip_marked_block(index_html, _STYLE_START, _STYLE_END)
     index_html = _strip_marked_block(index_html, _GALLERY_START, _GALLERY_END)
 
+    # Check if execution log exists
+    log_file = gauge_base / "gauge-execution.log"
+    log_link = ""
+    if log_file.exists():
+        log_href = _public_or_local_href("gauge-execution.log", public_base_url)
+        log_link = f'<p style="margin-top: 0.5rem;"><a href="{log_href}" target="_blank" rel="noopener">View detailed execution log</a></p>'
+
     style_block = dedent(
         """
         {start}
@@ -95,6 +102,7 @@ def enhance_gauge_report(
         {start}
         <section class="gauge-screenshot-gallery">
           <h2>Captured page screenshots</h2>
+          {log_link}
           <div class="gallery-grid">
         {items}
           </div>
@@ -104,6 +112,7 @@ def enhance_gauge_report(
     ).format(
         start=_GALLERY_START,
         end=_GALLERY_END,
+        log_link=log_link,
         items="\n".join(f"            {item}" for item in gallery_items),
     )
 

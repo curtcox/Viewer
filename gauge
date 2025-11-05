@@ -107,6 +107,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     suite = SuiteResult()
 
+    # Initialize log file if configured
+    log_file = os.environ.get("GAUGE_LOG_FILE")
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("w", encoding="utf-8") as f:
+            from datetime import datetime
+            timestamp = datetime.utcnow().isoformat() + "Z"
+            f.write(f"Gauge Specification Execution Log\n")
+            f.write(f"Started: {timestamp}\n")
+            f.write(f"Spec directory: {spec_root}\n")
+            f.write(f"{'=' * 80}\n")
+
     try:
         for hook in registry.before_suite_hooks:
             hook()
@@ -118,6 +131,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         for scenario in run_spec(spec_path, registry):
             suite.add_scenario(scenario)
             report_scenario(spec_path, scenario)
+
+    # Write summary to log file
+    if log_file:
+        with Path(log_file).open("a", encoding="utf-8") as f:
+            from datetime import datetime
+            timestamp = datetime.utcnow().isoformat() + "Z"
+            f.write(f"\n{'=' * 80}\n")
+            f.write(f"Completed: {timestamp}\n")
+            total_scenarios = len(suite.scenarios)
+            failed_scenarios = sum(1 for s in suite.scenarios if s.failed)
+            passed_scenarios = total_scenarios - failed_scenarios
+            f.write(f"Total scenarios: {total_scenarios}\n")
+            f.write(f"Passed: {passed_scenarios}\n")
+            f.write(f"Failed: {failed_scenarios}\n")
 
     return 1 if suite.failed else 0
 
@@ -255,13 +282,24 @@ def register_module_alias(name: str, module: ModuleType) -> None:
 def report_scenario(spec_path: Path, scenario: ScenarioResult) -> None:
     rel = spec_path.relative_to(Path.cwd())
     status = "FAILED" if scenario.failed else "PASSED"
-    print(f"{rel} :: {scenario.name} -> {status}")
-    for text, success, error in scenario.steps:
-        prefix = "  ✔" if success else "  ✖"
-        line = f"{prefix} {text}"
-        if error and not success:
-            line += f"\n      {error}"
-        print(line)
+
+    # Write detailed output to log file if configured
+    log_file = os.environ.get("GAUGE_LOG_FILE")
+    if log_file:
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(f"\n{rel} :: {scenario.name} -> {status}\n")
+            for text, success, error in scenario.steps:
+                prefix = "  ✔" if success else "  ✖"
+                line = f"{prefix} {text}"
+                if error and not success:
+                    line += f"\n      {error}"
+                f.write(line + "\n")
+
+    # Write summary to stdout (only scenario status, not individual steps)
+    status_symbol = "✖" if scenario.failed else "✔"
+    print(f"{status_symbol} {rel} :: {scenario.name}")
 
 
 if __name__ == "__main__":
