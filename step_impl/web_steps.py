@@ -102,6 +102,30 @@ def the_response_content_type_should_be(content_type: str) -> None:
     )
 
 
+@step("The response content type should be application/json")
+def the_response_content_type_should_be_application_json() -> None:
+    """Validate that the response content type is application/json."""
+    the_response_content_type_should_be("application/json")
+
+
+@step("The response content type should be text/csv")
+def the_response_content_type_should_be_text_csv() -> None:
+    """Validate that the response content type is text/csv."""
+    the_response_content_type_should_be("text/csv")
+
+
+@step("The response content type should be application/xml")
+def the_response_content_type_should_be_application_xml() -> None:
+    """Validate that the response content type is application/xml."""
+    the_response_content_type_should_be("application/xml")
+
+
+@step("The response content type should be text/plain")
+def the_response_content_type_should_be_text_plain() -> None:
+    """Validate that the response content type is text/plain."""
+    the_response_content_type_should_be("text/plain")
+
+
 # Page request steps
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
@@ -206,6 +230,42 @@ def when_i_request_resource(path: str) -> None:
     _perform_get_request(normalized_path)
 
 
+@step("When I request the resource /aliases.json")
+def when_i_request_aliases_json() -> None:
+    """Request aliases as JSON."""
+    _perform_get_request("/aliases.json")
+
+
+@step("When I request the resource /aliases.csv")
+def when_i_request_aliases_csv() -> None:
+    """Request aliases as CSV."""
+    _perform_get_request("/aliases.csv")
+
+
+@step("When I request the resource /aliases.xml")
+def when_i_request_aliases_xml() -> None:
+    """Request aliases as XML."""
+    _perform_get_request("/aliases.xml")
+
+
+@step("When I request the resource /servers/ai_stub.json")
+def when_i_request_servers_ai_stub_json() -> None:
+    """Request ai_stub server as JSON."""
+    _perform_get_request("/servers/ai_stub.json")
+
+
+@step("When I request the resource /servers/ai_stub.csv")
+def when_i_request_servers_ai_stub_csv() -> None:
+    """Request ai_stub server as CSV."""
+    _perform_get_request("/servers/ai_stub.csv")
+
+
+@step("When I request the resource /servers/ai_stub.xml")
+def when_i_request_servers_ai_stub_xml() -> None:
+    """Request ai_stub server as XML."""
+    _perform_get_request("/servers/ai_stub.xml")
+
+
 @step("When I request the resource <path> with accept header <accept_header>")
 def when_i_request_resource_with_accept_header(path: str, accept_header: str) -> None:
     """Request a resource while specifying an Accept header."""
@@ -216,6 +276,16 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
     client = _require_client()
     _login_default_user()
     response = client.get(normalized_path, headers={"Accept": normalized_accept})
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+@step("When I request the resource /aliases with accept header text/plain")
+def when_i_request_aliases_with_accept_text_plain() -> None:
+    """Request aliases with Accept header text/plain."""
+    client = _require_client()
+    _login_default_user()
+    response = client.get("/aliases", headers={"Accept": "text/plain"})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
 
@@ -607,6 +677,12 @@ def the_response_json_should_describe_server(server_name: str) -> None:
     assert "definition" in payload, "Server records should include the definition"
 
 
+@step("The response JSON should describe a server named ai_stub")
+def the_response_json_should_describe_server_ai_stub() -> None:
+    """Validate that the response JSON describes a server named ai_stub."""
+    the_response_json_should_describe_server("ai_stub")
+
+
 @step("The response XML should include alias records")
 def the_response_xml_should_include_alias_records() -> None:
     response = get_scenario_state().get("response")
@@ -633,6 +709,12 @@ def the_response_xml_should_describe_server(server_name: str) -> None:
         f"Expected server name {expected_name!r} but received {document.findtext('name')!r}."
     )
     assert document.find("definition") is not None, "Server XML payload should include definition"
+
+
+@step("The response XML should describe a server named ai_stub")
+def the_response_xml_should_describe_server_ai_stub() -> None:
+    """Validate that the response XML describes a server named ai_stub."""
+    the_response_xml_should_describe_server("ai_stub")
 
 
 @step("The response CSV should include alias records")
@@ -662,6 +744,12 @@ def the_response_csv_should_describe_server(server_name: str) -> None:
         f"Expected server name {expected_name!r} but received {record.get('name')!r}."
     )
     assert "definition" in record, "Server CSV payload should include the definition column"
+
+
+@step("The response CSV should describe a server named ai_stub")
+def the_response_csv_should_describe_server_ai_stub() -> None:
+    """Validate that the response CSV describes a server named ai_stub."""
+    the_response_csv_should_describe_server("ai_stub")
 
 
 # Import/Export steps
