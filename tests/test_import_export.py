@@ -139,6 +139,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.app.test_request_context():
             form = ExportForm()
 
+        self.assertTrue(form.snapshot.data)
         self.assertTrue(form.include_aliases.data)
         self.assertTrue(form.include_servers.data)
         self.assertTrue(form.include_variables.data)
@@ -1523,6 +1524,137 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         definition_cid = servers[0]['definition_cid']
         self.assertIn(definition_cid, cid_values)
         self.assertEqual(cid_values[definition_cid], definition_text)
+
+    def test_snapshot_toggle_checked_hides_options_in_ui(self):
+        """Test that when snapshot is checked, the UI hides export options."""
+        with self.logged_in():
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        # Snapshot toggle should be present
+        self.assertIn('id="snapshot-toggle"', html)
+        # The snapshot checkbox should be checked (look for checked attribute near the snapshot toggle)
+        snapshot_section_start = html.find('id="snapshot-toggle"') - 200
+        snapshot_section = html[max(0, snapshot_section_start):snapshot_section_start + 300]
+        self.assertIn('checked', snapshot_section)
+        # Export options container should have d-none class initially
+        self.assertIn('id="export-options-container"', html)
+        # Look for the export options container with d-none class
+        container_idx = html.find('id="export-options-container"')
+        container_section = html[max(0, container_idx-100):container_idx+100]
+        self.assertIn('d-none', container_section)
+
+    def test_snapshot_toggle_unchecked_shows_options_in_ui(self):
+        """Test that snapshot toggle exists and can be unchecked."""
+        with self.logged_in():
+            # GET the export page (snapshot checked by default)
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        # Snapshot toggle should be present
+        self.assertIn('id="snapshot-toggle"', html)
+        # Export options container should exist
+        self.assertIn('id="export-options-container"', html)
+        # JavaScript will handle showing/hiding based on snapshot state
+        # The form should allow unchecking snapshot
+        self.assertIn('name="snapshot"', html)
+
+    def test_snapshot_unchecked_applies_default_settings(self):
+        """Test that when snapshot is unchecked, the correct defaults are applied."""
+        with self.app.app_context():
+            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=False, template=True)
+            server = Server(name='test-server', definition='print("test")', user_id=self.user_id, enabled=False, template=True)
+            variable = Variable(name='test-var', definition='value', user_id=self.user_id, enabled=False, template=True)
+            db.session.add_all([alias, server, variable])
+            db.session.commit()
+
+        with self.logged_in():
+            # POST without snapshot field (unchecked) - with non-snapshot defaults
+            response = self.client.post('/export', data={
+                'include_aliases': 'y',
+                'include_disabled_aliases': 'y',
+                'include_template_aliases': 'y',
+                'include_servers': 'y',
+                'include_disabled_servers': 'y',
+                'include_template_servers': 'y',
+                'include_variables': 'y',
+                'include_disabled_variables': 'y',
+                'include_template_variables': 'y',
+                'submit': True
+            })
+
+        self.assertEqual(response.status_code, 200)
+        _record, payload = self._load_export_payload()
+
+        # Aliases: all including disabled and templates
+        aliases = self._load_section(payload, 'aliases')
+        self.assertIsNotNone(aliases)
+        self.assertEqual(len(aliases), 1)
+        self.assertEqual(aliases[0]['name'], 'test-alias')
+        self.assertFalse(aliases[0]['enabled'])
+        self.assertTrue(aliases[0]['template'])
+
+        # Servers: all including disabled and templates
+        servers = self._load_section(payload, 'servers')
+        self.assertIsNotNone(servers)
+        self.assertEqual(len(servers), 1)
+        self.assertEqual(servers[0]['name'], 'test-server')
+        self.assertFalse(servers[0]['enabled'])
+        self.assertTrue(servers[0]['template'])
+
+        # Variables: all including disabled and templates
+        variables = self._load_section(payload, 'variables')
+        self.assertIsNotNone(variables)
+        self.assertEqual(len(variables), 1)
+        self.assertEqual(variables[0]['name'], 'test-var')
+        self.assertFalse(variables[0]['enabled'])
+        self.assertTrue(variables[0]['template'])
+
+        # Secrets: none
+        self.assertNotIn('secrets', payload)
+
+        # Change history: none
+        self.assertNotIn('change_history', payload)
+
+        # Application source files: none
+        self.assertNotIn('app_source', payload)
+
+        # CID content map: none (cid_values should not be present)
+        self.assertNotIn('cid_values', payload)
+
+    def test_snapshot_checked_uses_form_defaults(self):
+        """Test that when snapshot is checked, it uses the default form settings."""
+        with self.app.app_context():
+            alias = Alias(name='enabled-alias', definition='echo test', user_id=self.user_id, enabled=True)
+            disabled_alias = Alias(name='disabled-alias', definition='echo test', user_id=self.user_id, enabled=False)
+            db.session.add_all([alias, disabled_alias])
+            db.session.commit()
+
+        with self.logged_in():
+            # POST with snapshot checked and default form fields
+            response = self.client.post('/export', data={
+                'snapshot': 'y',
+                'include_aliases': 'y',
+                'include_servers': 'y',
+                'include_variables': 'y',
+                'include_cid_map': 'y',
+                'submit': True
+            })
+
+        self.assertEqual(response.status_code, 200)
+        _record, payload = self._load_export_payload()
+
+        # Aliases: only enabled ones by default (disabled and templates not included)
+        aliases = self._load_section(payload, 'aliases')
+        self.assertIsNotNone(aliases)
+        self.assertEqual(len(aliases), 1)
+        self.assertEqual(aliases[0]['name'], 'enabled-alias')
+        self.assertTrue(aliases[0]['enabled'])
+
+        # CID map should be included by default
+        self.assertIn('cid_values', payload)
 
     def test_import_cid_values_from_utf8_strings(self):
         """Test that import can handle CID values as plain UTF-8 strings."""

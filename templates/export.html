@@ -63,6 +63,16 @@
 
                 <p class="text-muted">Choose the collections you want to include in the exported JSON file.</p>
 
+                <div class="mb-4 pb-3 border-bottom">
+                    <div class="form-check form-switch">
+                        {{ form.snapshot(class="form-check-input", id="snapshot-toggle", role="switch") }}
+                        <label class="form-check-label" for="snapshot-toggle">
+                            <strong>{{ form.snapshot.label.text }}</strong>
+                            <span class="d-block text-muted small">Quick export with default settings. Uncheck to customize export options.</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2" id="export-size-indicator">
                     <div>
                         <strong>Estimated export size:</strong>
@@ -70,6 +80,8 @@
                     </div>
                     <div class="text-muted small" id="export-size-status"></div>
                 </div>
+
+                <div id="export-options-container"{{ ' class="d-none"' if form.snapshot.data else '' }}>
 
                 {% if form.include_aliases.errors %}
                 <div class="alert alert-danger">
@@ -243,6 +255,8 @@
                     {% endif %}
                 </div>
 
+                </div>
+
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                     <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-times me-1"></i>Cancel
@@ -274,6 +288,8 @@
             var exportPreview = {};
             var previewSections = ['aliases', 'servers', 'variables', 'secrets'];
             var previewUpdateTimeoutId = null;
+            var snapshotToggle = document.getElementById('snapshot-toggle');
+            var exportOptionsContainer = document.getElementById('export-options-container');
 
             if (previewDataElement) {
                 try {
@@ -562,6 +578,63 @@
                 'include-disabled-secrets',
                 'include-template-secrets',
             ]);
+
+            // Handle snapshot toggle
+            if (snapshotToggle && exportOptionsContainer) {
+                function handleSnapshotToggle() {
+                    var isSnapshot = snapshotToggle.checked;
+                    exportOptionsContainer.classList.toggle('d-none', isSnapshot);
+
+                    // When switching to non-snapshot mode, set the specified defaults
+                    if (!isSnapshot) {
+                        // Aliases: all including disabled and templates
+                        document.getElementById('include-aliases').checked = true;
+                        document.getElementById('include-disabled-aliases').checked = true;
+                        document.getElementById('include-template-aliases').checked = true;
+
+                        // Servers: all including disabled and templates
+                        document.getElementById('include-servers').checked = true;
+                        document.getElementById('include-disabled-servers').checked = true;
+                        document.getElementById('include-template-servers').checked = true;
+
+                        // Variables: all including disabled and templates
+                        document.getElementById('include-variables').checked = true;
+                        document.getElementById('include-disabled-variables').checked = true;
+                        document.getElementById('include-template-variables').checked = true;
+
+                        // Secrets: none
+                        document.getElementById('include-secrets').checked = false;
+                        document.getElementById('include-disabled-secrets').checked = false;
+                        document.getElementById('include-template-secrets').checked = false;
+
+                        // Change history: none
+                        document.getElementById('include-history').checked = false;
+
+                        // Application source files: none
+                        document.getElementById('include-source').checked = false;
+
+                        // CID content map: none
+                        document.getElementById('include-cid-map').checked = false;
+                        document.getElementById('include-unreferenced-cid-data').checked = false;
+
+                        // Trigger dependent options sync
+                        ['include-aliases', 'include-servers', 'include-variables', 'include-secrets'].forEach(function(id) {
+                            var checkbox = document.getElementById(id);
+                            if (checkbox) {
+                                var event = new Event('change', { bubbles: true });
+                                checkbox.dispatchEvent(event);
+                            }
+                        });
+
+                        // Trigger form change for size update
+                        scheduleExportSizeUpdate();
+                        schedulePreviewUpdate();
+                    }
+                }
+
+                snapshotToggle.addEventListener('change', handleSnapshotToggle);
+                handleSnapshotToggle();
+            }
 
             var cidMapCheckbox = document.getElementById('include-cid-map');
             var unreferencedContainer = document.getElementById('include-unreferenced-cid-container');
