@@ -106,6 +106,11 @@ from db_access.variables import (
     get_user_variables,
 )
 
+from db_access.exports import (
+    get_user_exports,
+    record_export,
+)
+
 # Re-export constants that were previously module-level
 _DEFAULT_AI_SERVER_NAME = DEFAULT_AI_SERVER_NAME
 _DEFAULT_AI_ALIAS_NAME = DEFAULT_AI_ALIAS_NAME
@@ -183,6 +188,9 @@ __all__ = [
     "get_user_server_invocations_by_server",
     "get_user_server_invocations_by_result_cids",
     "find_server_invocations_by_cid",
+    # Exports
+    "record_export",
+    "get_user_exports",
     # Profile
     "get_user_profile_data",
 ]
