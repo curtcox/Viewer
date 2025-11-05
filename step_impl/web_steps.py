@@ -198,6 +198,13 @@ def when_i_request_new_server_page() -> None:
     _perform_get_request("/servers/new")
 
 
+@step("When I request the page /servers/new as user <alternate-user>")
+def blvplz(arg1: str) -> None:
+    """Request the new server page as alternate-user."""
+    normalized_user = _normalize_path(arg1)
+    _perform_get_request_for_user("/servers/new", normalized_user)
+
+
 @step("When I request the page /servers/new as user \"alternate-user\"")
 def when_i_request_servers_new_as_alternate_user() -> None:
     """Request the new server page as alternate-user."""
@@ -220,6 +227,13 @@ def when_i_request_aliases_ai_page() -> None:
 def when_i_request_aliases_index_page() -> None:
     """Request the aliases index page."""
     _perform_get_request("/aliases")
+
+
+@step("When I request the page /aliases/new as user <alternate-user>")
+def lzzcif(arg1: str) -> None:
+    """Request the new alias page as alternate-user."""
+    normalized_user = _normalize_path(arg1)
+    _perform_get_request_for_user("/aliases/new", normalized_user)
 
 
 @step("When I request the page /aliases/new as user \"alternate-user\"")
