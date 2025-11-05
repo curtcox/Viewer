@@ -215,7 +215,6 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     # Create import context
     raw_payload = json.dumps(payload, indent=2)
     parsed_payload = _ParsedImportPayload(raw_text=raw_payload, data=payload)
-    print(f"parsed_payload: {parsed_payload}")
 
     context = _ImportContext(
         form=form,
