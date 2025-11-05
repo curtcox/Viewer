@@ -256,7 +256,7 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
 
     # Display snapshot info on stdout
     if snapshot_export:
-        print(f"\nSnapshot export generated:")
+        print("\nSnapshot export generated:")
         print(f"  CID: {snapshot_export['cid_value']}")
         print(f"  Timestamp: {snapshot_export['generated_at']}")
     else:

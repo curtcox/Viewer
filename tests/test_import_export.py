@@ -1918,7 +1918,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             }, follow_redirects=True)
 
         self.assertEqual(response.status_code, 200)
-        html = response.get_data(as_text=True)
+        response.get_data(as_text=True)
 
         # Check that snapshot info is displayed
         # The snapshot info should be in the page (either from session or flash)
