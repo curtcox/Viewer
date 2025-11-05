@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -200,6 +201,168 @@ def _build_property_summary(xml_path: Path) -> str:
     ]
 
     return "<h2>Summary</h2><ul>\n" + "\n".join(summary) + "\n</ul>"
+
+
+def _build_gauge_summary(log_path: Path) -> str:
+    """Return an HTML summary snippet for Gauge execution results."""
+    if not log_path.exists():
+        return "<p>No Gauge execution log was found.</p>"
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return "<p>Unable to read the Gauge execution log.</p>"
+
+    lines = content.splitlines()
+
+    # Extract summary statistics
+    specs_run: list[str] = []
+    specs_failed: list[str] = []
+    missing_steps: list[str] = []
+    failed_scenarios: list[str] = []
+    total_scenarios = 0
+    passed_scenarios = 0
+    failed_scenarios_count = 0
+
+    current_spec: str | None = None
+
+    for line in lines:
+        line = line.strip()
+
+        # Extract spec file path
+        spec_match = re.match(r"^([a-zA-Z0-9_/.-]+\.spec)\s*::", line)
+        if spec_match:
+            current_spec = spec_match.group(1)
+            if current_spec not in specs_run:
+                specs_run.append(current_spec)
+
+            # Check if scenario failed
+            if "-> FAILED" in line or "✖" in line or "FAILED" in line:
+                scenario_match = re.search(r"::\s*(.+?)(?:\s*->|\s*✖|$)", line)
+                if scenario_match:
+                    scenario_name = scenario_match.group(1).strip()
+                    failed_scenarios.append(f"{current_spec} :: {scenario_name}")
+                    if current_spec and current_spec not in specs_failed:
+                        specs_failed.append(current_spec)
+
+        # Detect missing steps
+        if re.search(r"no step implementation matches|No step implementation matches", line, re.IGNORECASE):
+            step_match = re.search(r"matches:\s*(.+)$", line, re.IGNORECASE)
+            if step_match:
+                missing_step = step_match.group(1).strip()
+                if missing_step not in missing_steps:
+                    missing_steps.append(missing_step)
+
+        # Extract summary statistics
+        if "Total scenarios:" in line:
+            match = re.search(r"Total scenarios:\s*(\d+)", line)
+            if match:
+                total_scenarios = int(match.group(1))
+        elif "Passed:" in line:
+            match = re.search(r"Passed:\s*(\d+)", line)
+            if match:
+                passed_scenarios = int(match.group(1))
+        elif "Failed:" in line:
+            match = re.search(r"Failed:\s*(\d+)", line)
+            if match:
+                failed_scenarios_count = int(match.group(1))
+
+    # Build summary HTML
+    summary_items: list[str] = []
+
+    if specs_run:
+        summary_items.append(f"<li>Total specifications: {len(specs_run)}</li>")
+    if total_scenarios > 0:
+        summary_items.append(f"<li>Total scenarios: {total_scenarios}</li>")
+        summary_items.append(f"<li>Passed scenarios: {passed_scenarios}</li>")
+        summary_items.append(f"<li>Failed scenarios: {failed_scenarios_count}</li>")
+
+    summary_html = "<h2>Summary</h2><ul>\n" + "\n".join(summary_items) + "\n</ul>" if summary_items else ""
+
+    # Add details sections
+    details: list[str] = []
+
+    if specs_run:
+        spec_list = "".join(f"<li>{escape(spec)}</li>" for spec in sorted(specs_run))
+        details.append(f"<h3>Specifications executed ({len(specs_run)})</h3><ul>{spec_list}</ul>")
+
+    if specs_failed:
+        failed_list = "".join(f"<li>{escape(spec)}</li>" for spec in sorted(set(specs_failed)))
+        details.append(f"<h3>Failed specifications ({len(specs_failed)})</h3><ul>{failed_list}</ul>")
+
+    if failed_scenarios:
+        scenario_list = "".join(
+            f"<li>{escape(scenario)}</li>" for scenario in failed_scenarios[:20]
+        )
+        if len(failed_scenarios) > 20:
+            scenario_list += f"<li>... and {len(failed_scenarios) - 20} more</li>"
+        details.append(f"<h3>Failed scenarios ({len(failed_scenarios)})</h3><ul>{scenario_list}</ul>")
+
+    if missing_steps:
+        step_list = "".join(f"<li><code>{escape(step)}</code></li>" for step in missing_steps[:20])
+        if len(missing_steps) > 20:
+            step_list += f"<li>... and {len(missing_steps) - 20} more</li>"
+        details.append(f"<h3>Missing step implementations ({len(missing_steps)})</h3><ul>{step_list}</ul>")
+
+    if not specs_run:
+        return "<p>No specifications were executed.</p>"
+
+    return summary_html + "\n" + "\n".join(details)
+
+
+def _build_gauge_index(gauge_dir: Path) -> None:
+    """Build an index page for Gauge reports with summary."""
+    gauge_dir.mkdir(parents=True, exist_ok=True)
+
+    log_path = gauge_dir / "gauge-execution.log"
+    index_path = gauge_dir / "index.html"
+    original_index = gauge_dir / "index_original.html"
+
+    # Preserve the original Gauge HTML report index if it exists
+    # (it may have been moved here by _flatten_gauge_reports)
+    if index_path.exists() and not original_index.exists():
+        # Check if it's actually a Gauge HTML report (contains gauge-specific content)
+        try:
+            content = index_path.read_text(encoding="utf-8", errors="replace")
+            if "gauge" in content.lower() and ("executionResult" in content or "specs" in content.lower()):
+                shutil.move(index_path, original_index)
+        except OSError:
+            pass
+
+    summary_html = _build_gauge_summary(log_path)
+
+    # Add link to original Gauge report if it exists
+    original_link = ""
+    if original_index.exists():
+        original_link = '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
+
+    index_path.write_text(
+        """<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <title>Gauge specification results</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
+    h1 {{ font-size: 2rem; margin-bottom: 1rem; }}
+    h2 {{ font-size: 1.5rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }}
+    h3 {{ font-size: 1.2rem; margin-top: 1rem; margin-bottom: 0.5rem; }}
+    ul {{ list-style: disc; padding-left: 1.5rem; }}
+    li {{ margin: 0.25rem 0; }}
+    code {{ background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }}
+    a {{ color: #0366d6; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <h1>Gauge specification results</h1>
+  {original_link}
+  {summary_html}
+</body>
+</html>
+""".format(original_link=original_link, summary_html=summary_html),
+        encoding="utf-8",
+    )
 
 
 def _build_property_index(property_dir: Path) -> None:
@@ -412,6 +575,7 @@ def build_site(
     enhance_gauge_report(gauge_dir, public_base_url=gauge_public_base)
     placeholder_count, screenshot_reasons = _collect_screenshot_issues(gauge_dir)
     screenshot_notice = _format_screenshot_notice(placeholder_count, screenshot_reasons)
+    _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
     _write_landing_page(output_dir, screenshot_notice=screenshot_notice)
