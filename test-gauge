@@ -68,7 +68,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             log_file.write(f"{'=' * 80}\n\n")
             log_file.flush()
 
-            # Run gauge with output going to both console and log file
+            # Run gauge with output going to log file only (suppress verbose console output)
             process = subprocess.Popen(
                 command,
                 cwd=str(ROOT_DIR),
@@ -79,12 +79,39 @@ def main(argv: Sequence[str] | None = None) -> int:
                 universal_newlines=True,
             )
 
-            # Stream output to both console and log file
+            # Capture all output to log file, but only show high-level info to console
+            # This reduces noise while keeping essential info visible (spec status, summary)
             for line in process.stdout:
                 log_file.write(line)
                 log_file.flush()
-                # Print to console (gauge.properties controls verbosity)
-                print(line, end="")
+                # Only print high-level summary lines to console:
+                # - Spec/scenario status lines (✓, ✗, ✔, ✖)
+                # - Summary statistics (Total, Passed, Failed)
+                # - Error messages (for missing steps, failures)
+                line_stripped = line.strip()
+                should_print = (
+                    # Status indicators
+                    line_stripped.startswith("✓") or
+                    line_stripped.startswith("✗") or
+                    line_stripped.startswith("✔") or
+                    line_stripped.startswith("✖") or
+                    # Summary statistics
+                    "Total scenarios:" in line_stripped or
+                    "Passed:" in line_stripped or
+                    "Failed:" in line_stripped or
+                    "Summary:" in line_stripped or
+                    "Specifications executed:" in line_stripped or
+                    # Error/warning messages (missing steps, failures)
+                    "No step implementation matches" in line_stripped or
+                    "Step failed:" in line_stripped or
+                    "FAILED" in line_stripped or
+                    # Spec file references (but not detailed step output)
+                    (line_stripped.endswith(".spec") and "::" not in line_stripped) or
+                    # Scenario-level status lines (spec :: scenario -> status)
+                    (line_stripped and "::" in line_stripped and ("->" in line_stripped or "FAILED" in line_stripped or "PASSED" in line_stripped))
+                )
+                if should_print:
+                    print(line, end="")
 
             return_code = process.wait()
 
