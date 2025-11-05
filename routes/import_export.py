@@ -1431,6 +1431,9 @@ def _generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
         form.include_cid_map.data = True
         form.include_unreferenced_cid_data.data = False
 
+        # Initialize form selections by building preview (this populates selected_* fields)
+        _build_export_preview(form, user_id)
+
         export_result = _build_export_payload(form, user_id, store_content=True)
         # Record the export
         record_export(user_id, export_result['cid_value'])
@@ -1438,8 +1441,11 @@ def _generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
         # Add generated_at timestamp
         export_result['generated_at'] = datetime.now(timezone.utc).isoformat()
         return export_result
-    except Exception:
-        # If snapshot generation fails, return None (don't fail the import)
+    except Exception as e:
+        # If snapshot generation fails, log the error but don't fail the import
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to generate snapshot export after import: {e}", exc_info=True)
         return None
 
 
