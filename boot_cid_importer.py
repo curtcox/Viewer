@@ -25,16 +25,16 @@ def get_all_cid_paths_from_db() -> set[str]:
 def extract_cid_references_from_payload(payload: dict[str, Any]) -> set[str]:
     """Extract all CID references from an import payload.
 
-    This includes:
-    - CID values in the cid_values section
-    - CID references in section keys (aliases, servers, variables, secrets, etc.)
+    This includes CID references in section keys (aliases, servers, variables, secrets, etc.)
+    that are NOT already provided in the cid_values section.
 
     Returns:
-        A set of normalized CID paths (with leading slash)
+        A set of normalized CID paths (with leading slash) that must exist in the database
     """
     cid_refs = set()
 
-    # Extract CIDs from cid_values section
+    # Get CIDs that are already provided in cid_values
+    provided_cids = set()
     cid_values = payload.get('cid_values', {})
     if isinstance(cid_values, dict):
         for cid_key in cid_values.keys():
@@ -42,7 +42,7 @@ def extract_cid_references_from_payload(payload: dict[str, Any]) -> set[str]:
             if normalized:
                 path = cid_path(normalized)
                 if path:
-                    cid_refs.add(path)
+                    provided_cids.add(path)
 
     # Extract CID references from section keys
     section_keys = [
@@ -57,7 +57,8 @@ def extract_cid_references_from_payload(payload: dict[str, Any]) -> set[str]:
             normalized = format_cid(section_value)
             if normalized:
                 path = cid_path(normalized)
-                if path:
+                if path and path not in provided_cids:
+                    # Only add to required set if not already provided
                     cid_refs.add(path)
 
     return cid_refs
@@ -90,11 +91,8 @@ def load_and_validate_boot_cid(boot_cid: str) -> tuple[Optional[dict[str, Any]],
     """
     # Normalize the CID
     normalized = format_cid(boot_cid)
-    if not normalized:
+    if not normalized or not is_normalized_cid(normalized):
         return None, f"Invalid CID format: {boot_cid}"
-
-    if not is_normalized_cid(normalized):
-        return None, f"CID is not in normalized form: {boot_cid}"
 
     # Get CID path
     path = cid_path(normalized)
@@ -204,14 +202,14 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     )
     from forms import ImportForm
 
-    # Create a form with all options enabled
+    # Create a form with only the sections that exist in the payload enabled
     form = ImportForm()
-    form.include_aliases.data = True
-    form.include_servers.data = True
-    form.include_variables.data = True
-    form.include_secrets.data = True
-    form.include_history.data = True
-    form.process_cid_map.data = True
+    form.include_aliases.data = 'aliases' in payload
+    form.include_servers.data = 'servers' in payload
+    form.include_variables.data = 'variables' in payload
+    form.include_secrets.data = 'secrets' in payload
+    form.include_history.data = 'change_history' in payload
+    form.process_cid_map.data = 'cid_values' in payload
     form.include_source.data = False  # Don't verify source files on boot
 
     # Create import context
