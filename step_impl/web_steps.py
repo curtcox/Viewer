@@ -186,6 +186,18 @@ def when_i_request_aliases_index_page() -> None:
     _perform_get_request("/aliases")
 
 
+@step("When I request the page /aliases/new as user \"alternate-user\"")
+def when_i_request_aliases_new_as_alternate_user() -> None:
+    """Request the new alias page as alternate-user."""
+    _perform_get_request_for_user("/aliases/new", "alternate-user")
+
+
+@step("When I request the page /aliases/new without a user session")
+def when_i_request_aliases_new_without_user() -> None:
+    """Request the new alias page without a user session."""
+    _perform_get_request_for_user("/aliases/new", None)
+
+
 @step("When I request the resource <path>")
 def when_i_request_resource(path: str) -> None:
     """Request an arbitrary resource path."""
@@ -424,6 +436,15 @@ def then_page_should_contain_new_alias() -> None:
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
     assert "New Alias" in body, "Expected to find New Alias in the response body."
+
+
+@step("The page should contain Create New Alias")
+def then_page_should_contain_create_new_alias() -> None:
+    """Verify the page contains Create New Alias text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded. Call `When I request ...` first."
+    body = response.get_data(as_text=True)
+    assert "Create New Alias" in body, "Expected to find Create New Alias in the response body."
 
 
 @step("The page should contain Create New Server")
