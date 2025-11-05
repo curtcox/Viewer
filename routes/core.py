@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
-from flask import abort, current_app, redirect, render_template, url_for
+from flask import abort, redirect, render_template, url_for
 
 from db_access import (
     count_user_aliases,
@@ -25,7 +24,6 @@ from routes.context_processors import (
 )
 from routes.error_handlers import get_existing_routes, internal_error, not_found_error
 from utils.cross_reference import build_cross_reference_data
-from utils.stack_trace import build_stack_trace
 
 # Import these for backward compatibility with tests that mock them at routes.core
 # These are re-exported so utils/cross_reference.py and tests can access them via routes.core
@@ -40,43 +38,6 @@ from . import main_bp
 
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
-
-
-# Backward compatibility wrappers for functions that were moved to other modules
-
-
-def _extract_exception(error: Exception) -> Exception:
-    """Return the underlying exception for Flask HTTP errors."""
-    original = getattr(error, "original_exception", None)
-    if isinstance(original, Exception):
-        return original
-    return error
-
-
-def _build_stack_trace(error: Exception) -> List[Dict[str, Any]]:
-    """
-    Build comprehensive stack trace metadata with /source links for all project files.
-
-    This is a backward compatibility wrapper that calls the new implementation
-    in utils.stack_trace with the required context from the current app.
-
-    Args:
-        error: The exception to build a stack trace for
-
-    Returns:
-        List of frame dictionaries containing file paths, line numbers,
-        function names, code context, and source links
-    """
-    root_path = Path(current_app.root_path).resolve()
-
-    # Get tracked paths for source linking
-    try:
-        from .source import _get_tracked_paths
-        tracked_paths = _get_tracked_paths(current_app.root_path)
-    except Exception:  # pragma: no cover - defensive fallback when git unavailable  # pylint: disable=broad-except
-        tracked_paths = frozenset()
-
-    return build_stack_trace(error, root_path, tracked_paths)
 
 
 # Alias for backward compatibility
@@ -229,9 +190,7 @@ __all__ = [
     'profile',
     'settings',
     # Backward compatibility exports
-    '_build_stack_trace',
     '_build_cross_reference_data',
-    '_extract_exception',
     # Re-exported functions for backward compatibility
     'get_primary_alias_route',
     'extract_references_from_bytes',
