@@ -8,9 +8,12 @@ from unittest.mock import MagicMock, patch
 
 from app import create_app
 from database import db
-from routes.core import _build_stack_trace, internal_error
-from routes.source import _get_all_project_files, _get_comprehensive_paths
+from flask import current_app
+from pathlib import Path
+from routes.core import internal_error
+from routes.source import _get_all_project_files, _get_comprehensive_paths, _get_tracked_paths
 from text_function_runner import run_text_function
+from utils.stack_trace import build_stack_trace
 
 
 class TestInternalServerErrorPage(unittest.TestCase):
@@ -61,9 +64,11 @@ class TestInternalServerErrorPage(unittest.TestCase):
                     'run_text_function',
                     line='code line',
                 )
+                root_path = Path(current_app.root_path).resolve()
                 with patch('routes.source._get_tracked_paths', return_value=frozenset({'server_execution.py'})):
                     with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
-                        frames = _build_stack_trace(exc)
+                        tracked_paths = _get_tracked_paths(current_app.root_path)
+                        frames = build_stack_trace(exc, root_path, tracked_paths)
 
         self.assertEqual(len(frames), 1)
         frame = frames[0]
@@ -79,7 +84,12 @@ class TestInternalServerErrorPage(unittest.TestCase):
                 run_text_function('what?', {})
             except Exception as exc:
                 captured = exc
-                frames = _build_stack_trace(exc)
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
+                frames = build_stack_trace(exc, root_path, tracked_paths)
 
         self.assertIsInstance(captured, SyntaxError)
         self.assertEqual(captured.filename, '<string>')  # pylint: disable=no-member  # SyntaxError has filename
@@ -135,7 +145,12 @@ class TestInternalServerErrorPage(unittest.TestCase):
                 except ValueError as e:
                     raise RuntimeError('Chained error') from e
             except RuntimeError as exc:
-                frames = _build_stack_trace(exc)
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
+                frames = build_stack_trace(exc, root_path, tracked_paths)
 
         # Should have frames for both exceptions with separator
         separator_frames = [f for f in frames if f.get('is_separator', False)]
@@ -161,8 +176,13 @@ class TestInternalServerErrorPage(unittest.TestCase):
             try:
                 raise RuntimeError('Test error')
             except RuntimeError as exc:
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
                 with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
-                    frames = _build_stack_trace(exc)
+                    frames = build_stack_trace(exc, root_path, tracked_paths)
 
         self.assertEqual(len(frames), 1)
         frame = frames[0]
@@ -174,8 +194,8 @@ class TestInternalServerErrorPage(unittest.TestCase):
         response = None
         status = None
         with self.app.test_request_context('/test'):
-            # Mock _build_stack_trace to raise an exception
-            with patch('routes.core._build_stack_trace', side_effect=Exception('Stack trace failed')):
+            # Mock build_stack_trace to raise an exception
+            with patch('utils.stack_trace.build_stack_trace', side_effect=Exception('Stack trace failed')):
                 try:
                     raise ValueError('Original error')
                 except ValueError as exc:
@@ -332,8 +352,13 @@ class TestStackTraceEnhancements(unittest.TestCase):
             try:
                 raise RuntimeError('Test error')
             except RuntimeError as exc:
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
                 with patch('utils.stack_trace.traceback.extract_tb', return_value=frames):
-                    stack_frames = _build_stack_trace(exc)
+                    stack_frames = build_stack_trace(exc, root_path, tracked_paths)
 
         self.assertEqual(len(stack_frames), 2)
 
@@ -366,8 +391,13 @@ class TestStackTraceEnhancements(unittest.TestCase):
                 try:
                     raise RuntimeError('Test')
                 except RuntimeError as exc:
+                    root_path = Path(current_app.root_path).resolve()
+                    try:
+                        tracked_paths = _get_tracked_paths(current_app.root_path)
+                    except Exception:
+                        tracked_paths = frozenset()
                     with patch('utils.stack_trace.traceback.extract_tb', return_value=[mock_frame]):
-                        frames = _build_stack_trace(exc)
+                        frames = build_stack_trace(exc, root_path, tracked_paths)
 
                 # Clean up
                 os.unlink(temp_file.name)

@@ -6,8 +6,11 @@ from unittest.mock import patch
 
 from app import create_app
 from database import db
-from routes.core import _build_stack_trace, internal_error
-from routes.source import _get_comprehensive_paths
+from flask import current_app
+from pathlib import Path
+from routes.core import internal_error
+from routes.source import _get_comprehensive_paths, _get_tracked_paths
+from utils.stack_trace import build_stack_trace
 
 
 class TestEnhancedErrorPageIntegration(unittest.TestCase):
@@ -105,7 +108,12 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
                 except ValueError as e:
                     raise RuntimeError('Chained error') from e
             except RuntimeError as exc:
-                frames = _build_stack_trace(exc)
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
+                frames = build_stack_trace(exc, root_path, tracked_paths)
 
         # Should have separator frames for exception chain
         separator_frames = [f for f in frames if f.get('is_separator', False)]
@@ -133,8 +141,8 @@ class TestEnhancedErrorPageIntegration(unittest.TestCase):
         response = None
         status = None
         with self.app.test_request_context('/test'):
-            # Mock _build_stack_trace to fail
-            with patch('routes.core._build_stack_trace', side_effect=Exception('Stack trace building failed')):
+            # Mock build_stack_trace to fail
+            with patch('utils.stack_trace.build_stack_trace', side_effect=Exception('Stack trace building failed')):
                 try:
                     raise ValueError('Original error')
                 except ValueError as exc:

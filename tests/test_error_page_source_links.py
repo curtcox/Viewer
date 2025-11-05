@@ -334,7 +334,10 @@ class TestErrorPageSourceLinks(unittest.TestCase):
         """Test that stack trace building discovers all project files, not just git-tracked ones."""
         with self.app.test_request_context('/test'):
             # Test the _get_all_project_files function directly
-            from routes.core import _build_stack_trace
+            from flask import current_app
+            from pathlib import Path
+            from routes.source import _get_tracked_paths
+            from utils.stack_trace import build_stack_trace
 
             try:
                 # Create an error to build stack trace for
@@ -342,7 +345,12 @@ class TestErrorPageSourceLinks(unittest.TestCase):
 
             except Exception as exc:
                 # Build stack trace and check file discovery
-                stack_trace = _build_stack_trace(exc)
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
+                stack_trace = build_stack_trace(exc, root_path, tracked_paths)
 
                 # Should have at least one frame
                 self.assertGreater(len(stack_trace), 0, "Should have stack trace frames")
@@ -410,16 +418,24 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                     self.assertIn('target="_blank"', html_content)
 
     def test_stack_trace_building_with_project_files(self):
-        """Test that _build_stack_trace function creates proper source links."""
+        """Test that build_stack_trace function creates proper source links."""
         with self.app.app_context():
-            from routes.core import _build_stack_trace
+            from flask import current_app
+            from pathlib import Path
+            from routes.source import _get_tracked_paths
+            from utils.stack_trace import build_stack_trace
 
             # Create an error with a traceback that includes project files
             try:
                 # This should create a traceback that includes this test file
                 raise RuntimeError("Test error for stack trace building")
             except Exception as e:
-                stack_trace = _build_stack_trace(e)
+                root_path = Path(current_app.root_path).resolve()
+                try:
+                    tracked_paths = _get_tracked_paths(current_app.root_path)
+                except Exception:
+                    tracked_paths = frozenset()
+                stack_trace = build_stack_trace(e, root_path, tracked_paths)
 
                 # Should have at least one frame
                 self.assertGreater(len(stack_trace), 0, "Should have stack trace frames")

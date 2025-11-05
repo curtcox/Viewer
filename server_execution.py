@@ -1093,13 +1093,23 @@ def _render_execution_error_html(
 ) -> str:
     """Render an HTML error page for exceptions raised during server execution."""
 
-    from routes.core import _build_stack_trace, _extract_exception
+    from pathlib import Path
+    from routes.source import _get_tracked_paths
+    from utils.stack_trace import build_stack_trace, extract_exception
 
-    exception = _extract_exception(exc)
+    root_path = Path(current_app.root_path).resolve()
+
+    # Get tracked paths for source linking
+    try:
+        tracked_paths = _get_tracked_paths(current_app.root_path)
+    except Exception:  # pragma: no cover - defensive fallback when git unavailable  # pylint: disable=broad-except
+        tracked_paths = frozenset()
+
+    exception = extract_exception(exc)
     exception_type = type(exception).__name__
     raw_message = str(exception)
     message = raw_message if raw_message else "No error message available"
-    stack_trace = _build_stack_trace(exc)
+    stack_trace = build_stack_trace(exc, root_path, tracked_paths)
 
     code_text = code if isinstance(code, str) else ""
     highlighted_code = None
