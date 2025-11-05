@@ -7,7 +7,6 @@ import argparse
 import json
 import os
 import re
-from html import escape
 from pathlib import Path
 from typing import Any
 
@@ -69,8 +68,6 @@ def parse_gauge_log(log_path: Path) -> dict[str, Any]:
 
     # Track current spec
     current_spec: str | None = None
-    current_scenario: str | None = None
-    in_failed_scenario = False
 
     for line in lines:
         line = line.strip()
@@ -91,12 +88,15 @@ def parse_gauge_log(log_path: Path) -> dict[str, Any]:
                         f"{current_spec} :: {scenario_name}"
                     )
                     result["specs_failed"].append(current_spec)
-                    in_failed_scenario = True
             elif "-> PASSED" in line or "✔" in line:
-                in_failed_scenario = False
+                pass
 
         # Detect missing steps (No step implementation matches)
-        if re.search(r"no step implementation matches|No step implementation matches", line, re.IGNORECASE):
+        if re.search(
+            r"no step implementation matches|No step implementation matches",
+            line,
+            re.IGNORECASE,
+        ):
             step_match = re.search(r"matches:\s*(.+)$", line, re.IGNORECASE)
             if step_match:
                 missing_step = step_match.group(1).strip()
@@ -187,7 +187,7 @@ def build_summary(log_path: Path | None, html_report_path: Path | None) -> str:
         return "\n".join(lines)
 
     # Summary statistics
-    lines.append(f"**Summary:**")
+    lines.append("**Summary:**")
     lines.append(f"- Total specifications: {len(specs_run)}")
     if total_scenarios > 0:
         lines.append(f"- Total scenarios: {total_scenarios}")
@@ -203,13 +203,18 @@ def build_summary(log_path: Path | None, html_report_path: Path | None) -> str:
 
     # Were there failures?
     if specs_failed or failed_scenarios:
-        lines.append(f"❌ **Failures detected ({len(specs_failed)} specification(s), {len(failed_scenarios)} scenario(s)):**")
+        failure_header = (
+            f"❌ **Failures detected ({len(specs_failed)} specification(s), "
+            f"{len(failed_scenarios)} scenario(s)):**"
+        )
+        lines.append(failure_header)
         for spec in sorted(set(specs_failed)):
             lines.append(f"  - {spec}")
         if failed_scenarios:
             lines.append("")
             lines.append("  Failed scenarios:")
-            for scenario in failed_scenarios[:10]:  # Limit to first 10
+            # Limit to first 10
+            for scenario in failed_scenarios[:10]:
                 lines.append(f"    - {scenario}")
             if len(failed_scenarios) > 10:
                 lines.append(f"    ... and {len(failed_scenarios) - 10} more")
@@ -221,7 +226,8 @@ def build_summary(log_path: Path | None, html_report_path: Path | None) -> str:
     # Were there missing steps?
     if missing_steps:
         lines.append(f"⚠️ **Missing step implementations ({len(missing_steps)}):**")
-        for step in missing_steps[:10]:  # Limit to first 10
+        # Limit to first 10
+        for step in missing_steps[:10]:
             lines.append(f"  - `{step}`")
         if len(missing_steps) > 10:
             lines.append(f"  ... and {len(missing_steps) - 10} more")
@@ -265,7 +271,10 @@ def parse_args() -> argparse.Namespace:
         "--summary",
         type=Path,
         default=os.environ.get("GITHUB_STEP_SUMMARY"),
-        help="File to append the summary to. Defaults to the GITHUB_STEP_SUMMARY output in CI.",
+        help=(
+            "File to append the summary to. Defaults to the "
+            "GITHUB_STEP_SUMMARY output in CI."
+        ),
     )
     return parser.parse_args()
 
