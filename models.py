@@ -201,3 +201,13 @@ class ServerInvocation(db.Model):
 
     def __repr__(self) -> str:
         return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
+
+
+class Export(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False, index=True)
+    cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the export
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    def __repr__(self) -> str:
+        return f'<Export {self.cid} by {self.user_id} at {self.created_at}>'

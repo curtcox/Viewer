@@ -39,12 +39,14 @@ from db_access import (
     get_secret_by_name,
     get_server_by_name,
     get_user_aliases,
+    get_user_exports,
     get_user_secrets,
     get_user_servers,
     get_user_uploads,
     get_user_variables,
     get_variable_by_name,
     record_entity_interaction,
+    record_export,
     save_entity,
 )
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
@@ -52,7 +54,7 @@ from forms import ExportForm, ImportForm
 from wtforms import SelectMultipleField
 from identity import current_user
 from interaction_log import load_interaction_history
-from models import Alias, Secret, Server, Variable
+from models import Alias, Export, Secret, Server, Variable
 
 from . import main_bp
 from .core import get_existing_routes
@@ -2037,11 +2039,14 @@ def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     preview = _build_export_preview(form, current_user.id)
+    recent_exports = get_user_exports(current_user.id, limit=100)
     if form.validate_on_submit():
         export_result = _build_export_payload(form, current_user.id)
+        # Record the export
+        record_export(current_user.id, export_result['cid_value'])
         return render_template('export_result.html', **export_result)
 
-    return render_template('export.html', form=form, export_preview=preview)
+    return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
 
 
 @main_bp.route('/export/size', methods=['POST'])

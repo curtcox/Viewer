@@ -22,7 +22,7 @@ from cid_presenter import format_cid
 from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
-from models import CID, Alias, EntityInteraction, Secret, Server, Variable
+from models import CID, Alias, EntityInteraction, Export, Secret, Server, Variable
 
 
 class ImportExportRoutesTestCase(unittest.TestCase):
@@ -1751,6 +1751,110 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 self.assertIsNotNone(alias)
                 # The alias name gets updated during import, so just check the target content is present
                 self.assertIn(content_with_unicode, alias.definition)
+
+    def test_export_records_export_in_database(self):
+        """Test that exporting records an Export entry in the database."""
+        with self.app.app_context():
+            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id)
+            db.session.add(alias)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.post('/export', data={
+                'include_aliases': 'y',
+                'submit': True,
+            }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Your export is ready', response.data)
+
+        # Verify export was recorded
+        with self.app.app_context():
+            exports = Export.query.filter_by(user_id=self.user_id).all()
+            self.assertEqual(len(exports), 1)
+            export = exports[0]
+            self.assertIsNotNone(export.cid)
+            self.assertIsNotNone(export.created_at)
+
+    def test_export_displays_recent_exports(self):
+        """Test that the export page displays recent exports."""
+        with self.app.app_context():
+            # Create some test exports
+            for i in range(3):
+                export = Export(
+                    user_id=self.user_id,
+                    cid=f'bafybeicid{i:03d}',
+                    created_at=datetime.now(timezone.utc),
+                )
+                db.session.add(export)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('Recent Exports', html)
+        # Check that all export CIDs are displayed
+        for i in range(3):
+            self.assertIn(f'bafybeicid{i:03d}', html)
+
+    def test_export_shows_only_user_exports(self):
+        """Test that exports are filtered by user."""
+        other_user_id = 'other-user-456'
+
+        with self.app.app_context():
+            # Create exports for current user
+            export1 = Export(
+                user_id=self.user_id,
+                cid='bafybeiuser1',
+                created_at=datetime.now(timezone.utc),
+            )
+            # Create exports for other user
+            export2 = Export(
+                user_id=other_user_id,
+                cid='bafybeiuser2',
+                created_at=datetime.now(timezone.utc),
+            )
+            db.session.add_all([export1, export2])
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        self.assertIn('bafybeiuser1', html)
+        self.assertNotIn('bafybeiuser2', html)
+
+    def test_export_shows_only_100_most_recent(self):
+        """Test that only the 100 most recent exports are shown."""
+        with self.app.app_context():
+            # Create 105 exports with slightly different timestamps
+            base_time = datetime.now(timezone.utc)
+            for i in range(105):
+                export = Export(
+                    user_id=self.user_id,
+                    cid=f'bafybeiexport{i:03d}',
+                    created_at=base_time.replace(microsecond=i),
+                )
+                db.session.add(export)
+            db.session.commit()
+
+        with self.logged_in():
+            response = self.client.get('/export')
+
+        self.assertEqual(response.status_code, 200)
+        html = response.get_data(as_text=True)
+        # Count how many exports are displayed
+        export_count = html.count('bafybeiexport')
+        self.assertEqual(export_count, 100, f'Expected 100 exports, found {export_count}')
+        # Should show the most recent ones (higher indices)
+        self.assertIn('bafybeiexport104', html)
+        self.assertIn('bafybeiexport005', html)
+        # Should not show the oldest ones (lower indices)
+        self.assertNotIn('bafybeiexport004', html)
+        self.assertNotIn('bafybeiexport000', html)
 
 
 if __name__ == '__main__':
