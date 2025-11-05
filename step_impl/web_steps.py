@@ -198,6 +198,18 @@ def when_i_request_new_server_page() -> None:
     _perform_get_request("/servers/new")
 
 
+@step("When I request the page /servers/new as user \"alternate-user\"")
+def when_i_request_servers_new_as_alternate_user() -> None:
+    """Request the new server page as alternate-user."""
+    _perform_get_request_for_user("/servers/new", "alternate-user")
+
+
+@step("When I request the page /servers/new without a user session")
+def when_i_request_servers_new_without_user() -> None:
+    """Request the new server page without a user session."""
+    _perform_get_request_for_user("/servers/new", None)
+
+
 @step("When I request the page /aliases/ai")
 def when_i_request_aliases_ai_page() -> None:
     """Request the aliases AI page."""
