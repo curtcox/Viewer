@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 from app import create_app
 from database import db
 from flask import current_app
-from pathlib import Path
 from routes.core import internal_error
 from routes.source import _get_all_project_files, _get_comprehensive_paths, _get_tracked_paths
 from text_function_runner import run_text_function
