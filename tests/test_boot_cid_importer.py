@@ -12,7 +12,6 @@ from boot_cid_importer import (
     load_and_validate_boot_cid,
     verify_boot_cid_dependencies,
 )
-from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid
 from db_access import create_cid_record
 from models import Alias, Server

@@ -10,7 +10,6 @@ import sys
 from app import create_app, db
 from boot_cid_importer import (
     extract_cid_references_from_payload,
-    find_missing_cids,
     import_boot_cid,
     verify_boot_cid_dependencies,
 )
