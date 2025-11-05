@@ -332,7 +332,7 @@ class MermaidRenderer:
         self._session = requests.Session()
         self._cache: Dict[str, MermaidRenderLocation] = {}
 
-    def render_html(self, source: str, user_id: Optional[int] = None) -> str:
+    def render_html(self, source: str, user_id: Optional[str] = None) -> str:
         """Render Mermaid diagram source to HTML figure element.
 
         Args:
@@ -396,7 +396,7 @@ class MermaidRenderer:
         response.raise_for_status()
         return response.content
 
-    def _store_svg(self, svg_bytes: bytes, user_id: Optional[int]) -> Optional[MermaidRenderLocation]:
+    def _store_svg(self, svg_bytes: bytes, user_id: Optional[str]) -> Optional[MermaidRenderLocation]:
         """Store SVG as a CID.
 
         Args:

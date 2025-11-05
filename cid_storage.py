@@ -54,7 +54,7 @@ def _ensure_db_access() -> None:
 # CID STORAGE HELPERS
 # ============================================================================
 
-def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[int]) -> None:
+def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[str]) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
     Args:
