@@ -189,6 +189,7 @@ class SecretForm(FlaskForm):
 
 
 class ExportForm(FlaskForm):
+    snapshot = BooleanField('Snapshot', default=True)
     include_aliases = BooleanField('Aliases', default=True)
     include_disabled_aliases = BooleanField('Disabled aliases')
     include_template_aliases = BooleanField('Template aliases')
