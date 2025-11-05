@@ -48,6 +48,54 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     command = [gauge_cmd, "run", args.specs_dir, *args.gauge_args]
+
+    # If GAUGE_LOG_FILE is set, capture verbose output to log file
+    log_file_path = env.get("GAUGE_LOG_FILE")
+    if log_file_path:
+        from pathlib import Path
+        from datetime import datetime
+        import io
+
+        log_path = Path(log_file_path)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write log header
+        with log_path.open("w", encoding="utf-8") as log_file:
+            timestamp = datetime.utcnow().isoformat() + "Z"
+            log_file.write(f"Gauge Specification Execution Log\n")
+            log_file.write(f"Started: {timestamp}\n")
+            log_file.write(f"Command: {' '.join(command)}\n")
+            log_file.write(f"{'=' * 80}\n\n")
+            log_file.flush()
+
+            # Run gauge with output going to both console and log file
+            process = subprocess.Popen(
+                command,
+                cwd=str(ROOT_DIR),
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                bufsize=1,
+                universal_newlines=True,
+            )
+
+            # Stream output to both console and log file
+            for line in process.stdout:
+                log_file.write(line)
+                log_file.flush()
+                # Print to console (gauge.properties controls verbosity)
+                print(line, end="")
+
+            return_code = process.wait()
+
+            # Write log footer
+            timestamp = datetime.utcnow().isoformat() + "Z"
+            log_file.write(f"\n{'=' * 80}\n")
+            log_file.write(f"Completed: {timestamp}\n")
+            log_file.write(f"Exit code: {return_code}\n")
+
+        return return_code
+
     return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
 
 
