@@ -239,6 +239,10 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         error_msg = '\n'.join(context.errors)
         return False, f"Boot CID import failed:\n{error_msg}"
 
+    # Generate snapshot export after import completes
+    from routes.import_export import _generate_snapshot_export
+    snapshot_export = _generate_snapshot_export(user_id)
+
     # Log success
     if context.summaries:
         summary_text = ', '.join(context.summaries)
@@ -249,6 +253,14 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     if context.warnings:
         for warning in context.warnings:
             LOGGER.warning("Boot CID import warning: %s", warning)
+
+    # Display snapshot info on stdout
+    if snapshot_export:
+        print("\nSnapshot export generated:")
+        print(f"  CID: {snapshot_export['cid_value']}")
+        print(f"  Timestamp: {snapshot_export['generated_at']}")
+    else:
+        print("\nWarning: Failed to generate snapshot export after import")
 
     return True, None
 

@@ -185,6 +185,16 @@
             <div class="alert alert-warning mt-4" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>Existing items with the same name will be updated during import.
             </div>
+
+            {% if snapshot_export %}
+            <div class="alert alert-success mt-4" role="alert">
+                <h5 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Snapshot Export Generated</h5>
+                <p class="mb-2">A snapshot export equivalent to the default export has been generated and stored.</p>
+                <hr>
+                <p class="mb-1"><strong>CID:</strong> <code>{{ snapshot_export.cid }}</code></p>
+                <p class="mb-0"><strong>Generated At:</strong> {{ snapshot_export.generated_at }}</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
