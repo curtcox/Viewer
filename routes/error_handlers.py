@@ -1,6 +1,7 @@
 """Error handler functions for HTTP errors."""
 
-from flask import render_template, request
+from pathlib import Path
+from flask import current_app, render_template, request
 
 from alias_routing import is_potential_alias_path, try_alias_redirect
 from cid_utils import serve_cid_content
@@ -93,15 +94,23 @@ def internal_error(error):
 
     try:
         # Import here to avoid circular import and to allow for proper mocking in tests
-        from routes.core import _build_stack_trace
+        from routes.source import _get_tracked_paths
+        from utils.stack_trace import build_stack_trace, extract_exception
+
+        root_path = Path(current_app.root_path).resolve()
+
+        # Get tracked paths for source linking
+        try:
+            tracked_paths = _get_tracked_paths(current_app.root_path)
+        except Exception:  # pragma: no cover - defensive fallback when git unavailable  # pylint: disable=broad-except
+            tracked_paths = frozenset()
 
         # Extract the exception and build stack trace
-        original = getattr(error, "original_exception", None)
-        exception = original if isinstance(original, Exception) else error
+        exception = extract_exception(error)
         exception_type = type(exception).__name__
         exception_message = str(exception) if str(exception) else "No error message available"
 
-        stack_trace = _build_stack_trace(error)
+        stack_trace = build_stack_trace(error, root_path, tracked_paths)
 
     except Exception as trace_error:
         # If stack trace building fails, create a minimal fallback

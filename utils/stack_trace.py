@@ -285,6 +285,22 @@ class StackTraceBuilder:
         return frames
 
 
+def extract_exception(error: Exception) -> Exception:
+    """
+    Return the underlying exception for Flask HTTP errors.
+
+    Args:
+        error: The exception to extract the underlying exception from
+
+    Returns:
+        The underlying exception if it exists, otherwise the original error
+    """
+    original = getattr(error, "original_exception", None)
+    if isinstance(original, Exception):
+        return original
+    return error
+
+
 def build_stack_trace(error: Exception, root_path: Path, tracked_paths: frozenset[str]) -> List[Dict[str, Any]]:
     """
     Build comprehensive stack trace metadata with source links.

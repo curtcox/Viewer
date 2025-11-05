@@ -184,7 +184,14 @@ def find_matching_alias(path: str) -> Optional[AliasMatch]:
 
 @lru_cache(maxsize=128)
 def _cached_glob_pattern(pattern: str, ignore_case: bool) -> tuple[re.Pattern[str], tuple[str, ...]]:
-    """Return a compiled regex and token order for the provided glob pattern."""
+    """Return a compiled regex and token order for the provided glob pattern.
+
+    This custom implementation is used instead of fnmatch.translate (as used in
+    alias_matching.py) because it must track which capture groups correspond to '*'
+    wildcards for later substitution in target paths. The standard library's
+    fnmatch.translate only returns a regex string without metadata about token
+    positions.
+    """
 
     regex_parts: list[str] = []
     tokens: list[str] = []
