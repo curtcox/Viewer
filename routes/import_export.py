@@ -2131,7 +2131,8 @@ def import_data():
     from flask import jsonify, session
 
     # Check if this is a JSON request (REST API)
-    is_json_request = request.is_json or (request.method == 'POST' and request.content_type and 'application/json' in request.content_type)
+    # Flask's test client sets request.is_json when using json= parameter
+    is_json_request = request.is_json or (request.method == 'POST' and request.content_type and 'application/json' in request.content_type.lower())
 
     if is_json_request and request.method == 'POST':
         # Handle JSON API request

@@ -244,10 +244,16 @@ jobs:
             testmon-${{ github.ref }}-
             testmon-
 
-      - name: Run tests with coverage
-        id: run_tests
+      - name: Run impacted tests first (testmon)
+        id: run_impacted_tests
         run: |
-          ./test-unit --coverage --testmon --summary-file coverage-report.txt
+          ./test-unit --testmon -- --maxfail=1 -q
+
+      - name: Run full unit tests with coverage
+        id: run_tests
+        if: success()
+        run: |
+          ./test-unit --coverage --summary-file coverage-report.txt
         continue-on-error: true
 
       - name: Publish coverage summary
@@ -274,7 +280,7 @@ jobs:
           path: htmlcov
 
       - name: Fail if tests failed
-        if: steps.run_tests.outcome == 'failure'
+        if: steps.run_impacted_tests.outcome == 'failure' || steps.run_tests.outcome == 'failure'
         run: exit 1
 
   property-tests:

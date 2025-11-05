@@ -79,6 +79,8 @@ class ImportExportRoutesTestCase(unittest.TestCase):
                 encoding = (entry.get('encoding') or 'utf-8').lower()
                 value = entry.get('value')
                 self.assertIsInstance(value, str, f'{key} CID entry must include string content')
+                if not isinstance(value, str):
+                    raise AssertionError(f'{key} CID entry must include string content')
                 if encoding == 'base64':
                     content_bytes = base64.b64decode(value.encode('ascii'))
                 else:
@@ -86,6 +88,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             else:
                 # New format: entry is directly a UTF-8 string
                 self.assertIsInstance(entry, str, f'{key} CID entry must be a string')
+                assert isinstance(entry, str)  # For type checker
                 content_bytes = entry.encode('utf-8')
         else:
             with self.app.app_context():
@@ -1846,8 +1849,10 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
-        # Count how many exports are displayed
-        export_count = html.count('bafybeiexport')
+        # Count unique export CIDs in the HTML
+        # render_cid_link includes the CID multiple times (in hrefs, titles, data attributes, etc.),
+        # so we count how many of the 105 possible exports are actually present
+        export_count = len([c for c in range(105) if f'bafybeiexport{c:03d}' in html])
         self.assertEqual(export_count, 100, f'Expected 100 exports, found {export_count}')
         # Should show the most recent ones (higher indices)
         self.assertIn('bafybeiexport104', html)
@@ -1867,9 +1872,10 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         with self.app.app_context():
             initial_exports = Export.query.filter_by(user_id=self.user_id).count()
 
-        # Create import payload
+        # Create import payload with a valid alias definition (pattern -> target format)
+        alias_definition = format_primary_alias_line('literal', None, '/servers/echo', alias_name='imported-alias')
         payload = json.dumps({
-            'aliases': [{'name': 'imported-alias', 'definition': 'echo imported', 'enabled': True}],
+            'aliases': [{'name': 'imported-alias', 'definition': alias_definition, 'enabled': True}],
         })
 
         with self.logged_in():
@@ -1987,9 +1993,13 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             snapshot_payload = json.loads(bytes(cid_record.file_data).decode('utf-8'))
 
             # Verify snapshot contains default sections (aliases, servers, variables)
+            # These are stored as CID strings in the payload
             self.assertIn('aliases', snapshot_payload)
+            self.assertIsInstance(snapshot_payload['aliases'], str, 'aliases section should be a CID string')
             self.assertIn('servers', snapshot_payload)
+            self.assertIsInstance(snapshot_payload['servers'], str, 'servers section should be a CID string')
             self.assertIn('variables', snapshot_payload)
+            self.assertIsInstance(snapshot_payload['variables'], str, 'variables section should be a CID string')
             # Should not contain secrets, history, or source by default
             self.assertNotIn('secrets', snapshot_payload)
             self.assertNotIn('change_history', snapshot_payload)
