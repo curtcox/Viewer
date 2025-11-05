@@ -148,6 +148,10 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_checked_uses_form_defaults`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_checked_hides_options_in_ui`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_unchecked_shows_options_in_ui`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_unchecked_applies_default_settings`
 
 **Integration tests:**
 - `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
@@ -178,6 +182,10 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
 - `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_checked_uses_form_defaults`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_checked_hides_options_in_ui`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_unchecked_shows_options_in_ui`
+- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_unchecked_applies_default_settings`
 
 **Integration tests:**
 - `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
