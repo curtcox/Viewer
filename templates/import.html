@@ -224,15 +224,15 @@
 
             <script>
             (function() {
-                const sourceField = document.getElementById('{{ form.import_source.id }}');
+                const sourceInputs = document.querySelectorAll('input[name="{{ form.import_source.name }}"]');
                 function setSource(value) {
-                    // WTForms renders radio group; we have hidden it here. Set selected via inputs if present
-                    const radios = document.querySelectorAll('input[name="' + sourceField.name + '"]');
-                    radios.forEach(r => { if (r.value === value) { r.checked = true; } });
-                    // Also set hidden field if present
-                    if (sourceField && sourceField.tagName === 'INPUT' && sourceField.type === 'hidden') {
-                        sourceField.value = value;
-                    }
+                    sourceInputs.forEach((input) => {
+                        if (input.type === 'radio') {
+                            input.checked = input.value === value;
+                        } else {
+                            input.value = value;
+                        }
+                    });
                 }
                 document.getElementById('tab-file').addEventListener('shown.bs.tab', function() { setSource('file'); });
                 document.getElementById('tab-text').addEventListener('shown.bs.tab', function() { setSource('text'); });
