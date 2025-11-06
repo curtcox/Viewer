@@ -24,75 +24,79 @@
 
                         <p class="text-muted">Upload a previously exported JSON file, paste JSON directly, or fetch the data from a URL.</p>
 
-                        <div class="mb-3">
-                            <label class="form-label">{{ form.import_source.label.text }}</label>
-                            {% for option in form.import_source %}
-                                <div class="form-check">
-                                    {{ option(class="form-check-input", id=option.id) }}
-                                    <label class="form-check-label" for="{{ option.id }}">{{ option.label.text }}</label>
-                                </div>
-                            {% endfor %}
-                            {% if form.import_source.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.import_source.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="tab-file" data-bs-toggle="tab" data-bs-target="#pane-file" type="button" role="tab" aria-controls="pane-file" aria-selected="true">Upload JSON File</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-text" data-bs-toggle="tab" data-bs-target="#pane-text" type="button" role="tab" aria-controls="pane-text" aria-selected="false">Paste JSON Text</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-url" data-bs-toggle="tab" data-bs-target="#pane-url" type="button" role="tab" aria-controls="pane-url" aria-selected="false">Load JSON from URL</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content border border-top-0 p-3 mb-3">
+                            <div class="tab-pane fade show active" id="pane-file" role="tabpanel" aria-labelledby="tab-file">
+                                {{ form.import_file.label(class="form-label") }}
+                                {{ form.import_file(class="form-control" + (" is-invalid" if form.import_file.errors else "")) }}
+                                {% if form.import_file.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.import_file.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="form-text">Upload a JSON export file from Viewer.</div>
+                                {% endif %}
+                            </div>
+                            <div class="tab-pane fade" id="pane-text" role="tabpanel" aria-labelledby="tab-text">
+                                {{ form.import_text.label(class="form-label") }}
+                                {{ form.import_text(class="form-control" + (" is-invalid" if form.import_text.errors else ""), style="font-family: monospace;") }}
+                                {% if form.import_text.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.import_text.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="form-text">Paste JSON content directly if you do not have a file.</div>
+                                {% endif %}
+                                {{ ai_text_controls(
+                                    form.import_text.id,
+                                    'import JSON',
+                                    request_label='Ask AI to prepare the import JSON',
+                                    helper_text='Describe how the AI should adjust the JSON content before importing.',
+                                    context={'form': 'import_form'},
+                                    entity_type='import',
+                                    entity_name='json',
+                                    interactions=import_interactions|default([]),
+                                    history_label='Recent imports and requests'
+                                ) }}
+                            </div>
+                            <div class="tab-pane fade" id="pane-url" role="tabpanel" aria-labelledby="tab-url">
+                                {{ form.import_url.label(class="form-label") }}
+                                {{ form.import_url(class="form-control" + (" is-invalid" if form.import_url.errors else "")) }}
+                                {% if form.import_url.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.import_url.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="form-text">Provide a URL that returns a Viewer JSON export.</div>
+                                {% endif %}
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            {{ form.import_file.label(class="form-label") }}
-                            {{ form.import_file(class="form-control" + (" is-invalid" if form.import_file.errors else "")) }}
-                            {% if form.import_file.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.import_file.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">Upload a JSON export file from Viewer.</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.import_text.label(class="form-label") }}
-                            {{ form.import_text(class="form-control" + (" is-invalid" if form.import_text.errors else ""), style="font-family: monospace;") }}
-                            {% if form.import_text.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.import_text.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">Paste JSON content directly if you do not have a file.</div>
-                            {% endif %}
-                        </div>
-                        {{ ai_text_controls(
-                            form.import_text.id,
-                            'import JSON',
-                            request_label='Ask AI to prepare the import JSON',
-                            helper_text='Describe how the AI should adjust the JSON content before importing.',
-                            context={'form': 'import_form'},
-                            entity_type='import',
-                            entity_name='json',
-                            interactions=import_interactions|default([]),
-                            history_label='Recent imports and requests'
-                        ) }}
-
-                        <div class="mb-4">
-                            {{ form.import_url.label(class="form-label") }}
-                            {{ form.import_url(class="form-control" + (" is-invalid" if form.import_url.errors else "")) }}
-                            {% if form.import_url.errors %}
-                                <div class="invalid-feedback">
-                                    {% for error in form.import_url.errors %}
-                                        {{ error }}
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-text">Provide a URL that returns a Viewer JSON export.</div>
-                            {% endif %}
-                        </div>
+                        {{ form.import_source(hidden=True) }}
+                        {% if form.import_source.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.import_source.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
 
                         {% if form.include_aliases.errors %}
                         <div class="alert alert-danger">
@@ -181,6 +185,62 @@
                     </form>
                 </div>
             </div>
+
+            {% if imported_names %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Imported Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% set sections = [('aliases','Aliases','fa-link text-info'), ('servers','Servers','fa-server text-primary'), ('variables','Variables','fa-code text-success'), ('secrets','Secrets','fa-key text-warning')] %}
+                        {% for key,label,icon in sections %}
+                            {% set names = imported_names.get(key, []) %}
+                            <div class="col-md-6 mb-3">
+                                <h6 class="mb-2"><i class="fas {{ icon }} me-1"></i>{{ label }}</h6>
+                                {% if names %}
+                                    <ul class="mb-0">
+                                        {% for name in names %}
+                                            <li><code>{{ name }}</code></li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <div class="text-muted small">No {{ label.lower() }} were imported.</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if snapshot_export %}
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="fas fa-info-circle me-2"></i>
+                Snapshot export created: <a href="/{{ snapshot_export['cid'] }}.json" class="alert-link" target="_blank">/{{ snapshot_export['cid'] }}.json</a>
+                <span class="ms-2 text-muted">at {{ snapshot_export['generated_at'] }}</span>
+            </div>
+            {% endif %}
+
+            <script>
+            (function() {
+                const sourceField = document.getElementById('{{ form.import_source.id }}');
+                function setSource(value) {
+                    // WTForms renders radio group; we have hidden it here. Set selected via inputs if present
+                    const radios = document.querySelectorAll('input[name="' + sourceField.name + '"]');
+                    radios.forEach(r => { if (r.value === value) { r.checked = true; } });
+                    // Also set hidden field if present
+                    if (sourceField && sourceField.tagName === 'INPUT' && sourceField.type === 'hidden') {
+                        sourceField.value = value;
+                    }
+                }
+                document.getElementById('tab-file').addEventListener('shown.bs.tab', function() { setSource('file'); });
+                document.getElementById('tab-text').addEventListener('shown.bs.tab', function() { setSource('text'); });
+                document.getElementById('tab-url').addEventListener('shown.bs.tab', function() { setSource('url'); });
+                // Initialize based on default
+                setSource('file');
+            })();
+            </script>
 
             <div class="alert alert-warning mt-4" role="alert">
                 <i class="fas fa-exclamation-triangle me-2"></i>Existing items with the same name will be updated during import.

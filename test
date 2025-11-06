@@ -48,13 +48,19 @@ def run_command(command: Sequence[str], env: dict[str, str]) -> int:
     return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
 
 
+def _venv_python() -> str:
+    venv_py = ROOT_DIR / "venv" / "bin" / "python"
+    return str(venv_py) if venv_py.exists() else sys.executable
+
+
 def run_lint_checks(env: dict[str, str]) -> int:
+    py = _venv_python()
     for command in (
         ["npm", "run", "lint"],
         ["npm", "run", "uncss:check"],
-        [sys.executable, "-m", "ruff", "check"],
-        [sys.executable, "-m", "mypy"],
-        [sys.executable, "-m", "pylint", "--errors-only", "--ignore-patterns=^$", "*.py"],
+        [py, "-m", "ruff", "check"],
+        [py, "-m", "mypy"],
+        [py, "-m", "pylint", "--errors-only", "--ignore-patterns=^$", "*.py"],
     ):
         result = run_command(command, env)
         if result != 0:
@@ -63,7 +69,8 @@ def run_lint_checks(env: dict[str, str]) -> int:
 
 
 def run_unit_tests(env: dict[str, str], extra_args: Sequence[str]) -> int:
-    command = [str(ROOT_DIR / "test-unit")]
+    py = _venv_python()
+    command = [py, str(ROOT_DIR / "test-unit")]
     if extra_args:
         command.append("--")
         command.extend(extra_args)
@@ -71,7 +78,8 @@ def run_unit_tests(env: dict[str, str], extra_args: Sequence[str]) -> int:
 
 
 def run_integration_tests(env: dict[str, str]) -> int:
-    command = [str(ROOT_DIR / "run_integration_tests.py")]
+    py = _venv_python()
+    command = [py, str(ROOT_DIR / "run_integration_tests.py")]
     return run_command(command, env)
 
 
