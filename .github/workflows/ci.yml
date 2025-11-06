@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Pylint
-        run: pylint --errors-only .
+        run: pylint --disable=C0114,C0115,C0116 .
 
   mypy:
     name: Mypy

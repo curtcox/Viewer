@@ -9,10 +9,73 @@ import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass, field
 from html import escape
 from importlib import import_module
 from pathlib import Path
 from typing import Protocol, Sequence, cast
+
+
+# Constants
+MAX_DISPLAYED_ITEMS = 20
+
+# Regex patterns for Gauge log parsing
+REGEX_SPEC_FILE = re.compile(r"^([a-zA-Z0-9_/.-]+\.spec)\s*::")
+REGEX_SCENARIO_NAME = re.compile(r"::\s*(.+?)(?:\s*->|\s*✖|$)")
+REGEX_MISSING_STEP = re.compile(r"no step implementation matches|No step implementation matches", re.IGNORECASE)
+REGEX_STEP_MATCH = re.compile(r"matches:\s*(.+)$", re.IGNORECASE)
+REGEX_TOTAL_SCENARIOS = re.compile(r"Total scenarios:\s*(\d+)")
+REGEX_PASSED_SCENARIOS = re.compile(r"Passed:\s*(\d+)")
+REGEX_FAILED_SCENARIOS = re.compile(r"Failed:\s*(\d+)")
+
+# HTML/CSS templates
+BASE_CSS = """    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+    a { color: #0366d6; text-decoration: none; }
+    a:hover { text-decoration: underline; }"""
+
+COMMON_CSS = BASE_CSS + """
+    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }"""
+
+GAUGE_CSS = BASE_CSS + """
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.5rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.2rem; margin-top: 1rem; margin-bottom: 0.5rem; }
+    ul { list-style: disc; padding-left: 1.5rem; }
+    li { margin: 0.25rem 0; }
+    code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }"""
+
+LANDING_CSS = BASE_CSS + """
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    ul { list-style: disc; padding-left: 1.5rem; }
+    .screenshot-status { margin-top: 2rem; padding: 1rem; background: #fff8c5; border-left: 4px solid #9a6700; }
+    .screenshot-status h2 { margin-top: 0; }
+    .screenshot-status ul { margin-top: 0.5rem; }"""
+
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <style>
+{style}
+  </style>
+</head>
+<body>
+{body}
+</body>
+</html>"""
+
+
+@dataclass
+class GaugeSummary:
+    """Structured data extracted from Gauge execution logs."""
+    specs_run: list[str] = field(default_factory=list)
+    specs_failed: list[str] = field(default_factory=list)
+    missing_steps: list[str] = field(default_factory=list)
+    failed_scenarios: list[str] = field(default_factory=list)
+    total_scenarios: int = 0
+    passed_scenarios: int = 0
+    failed_scenarios_count: int = 0
 
 
 class EnhanceGaugeReport(Protocol):
@@ -37,6 +100,42 @@ def _load_enhance_gauge_report() -> EnhanceGaugeReport:
 
 
 enhance_gauge_report = _load_enhance_gauge_report()
+
+
+def _html_list(items: list[str], limit: int = MAX_DISPLAYED_ITEMS, escape_items: bool = True) -> str:
+    """Generate an HTML list from items, optionally limiting the display count."""
+    if not items:
+        return ""
+
+    display_items = items[:limit]
+    item_html = "".join(
+        f"<li>{escape(item) if escape_items else item}</li>"
+        for item in display_items
+    )
+
+    if len(items) > limit:
+        item_html += f"<li>... and {len(items) - limit} more</li>"
+
+    return item_html
+
+
+def _html_list_code(items: list[str], limit: int = MAX_DISPLAYED_ITEMS) -> str:
+    """Generate an HTML list with code-formatted items."""
+    if not items:
+        return ""
+
+    display_items = items[:limit]
+    item_html = "".join(f"<li><code>{escape(item)}</code></li>" for item in display_items)
+
+    if len(items) > limit:
+        item_html += f"<li>... and {len(items) - limit} more</li>"
+
+    return item_html
+
+
+def _render_html_page(title: str, body: str, css: str) -> str:
+    """Render a complete HTML page using the template."""
+    return HTML_TEMPLATE.format(title=title, style=css, body=body)
 
 
 def _compose_public_url(base: str | None, segment: str) -> str | None:
@@ -129,27 +228,13 @@ def _build_integration_index(integration_dir: Path) -> None:
     if xml_path.exists():
         xml_link = '<p><a href="integration-tests-report.xml">Download the JUnit XML report</a></p>'
 
-    index_path.write_text(
-        """<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <title>Integration test results</title>
-  <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
-    pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
-    a {{ color: #0366d6; text-decoration: none; }}
-    a:hover {{ text-decoration: underline; }}
-  </style>
-</head>
-<body>
-  <h1>Integration test results</h1>
+    body = f"""  <h1>Integration test results</h1>
   {xml_link}
   <h2>Latest log excerpt</h2>
-  <pre>{log_content}</pre>
-</body>
-</html>
-""".format(xml_link=xml_link, log_content=log_content),
+  <pre>{log_content}</pre>"""
+
+    index_path.write_text(
+        _render_html_page("Integration test results", body, COMMON_CSS),
         encoding="utf-8",
     )
 
@@ -203,111 +288,122 @@ def _build_property_summary(xml_path: Path) -> str:
     return "<h2>Summary</h2><ul>\n" + "\n".join(summary) + "\n</ul>"
 
 
+def _parse_gauge_log(log_path: Path) -> GaugeSummary:
+    """Parse Gauge execution log and extract summary data."""
+    summary = GaugeSummary()
+
+    if not log_path.exists():
+        return summary
+
+    try:
+        content = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return summary
+
+    lines = content.splitlines()
+    current_spec: str | None = None
+
+    for line in lines:
+        line = line.strip()
+        current_spec = _extract_spec_from_line(line, summary, current_spec)
+        _detect_failed_scenario(line, summary, current_spec)
+        _detect_missing_step(line, summary)
+        _extract_scenario_statistics(line, summary)
+
+    return summary
+
+
+def _extract_spec_from_line(line: str, summary: GaugeSummary, current_spec: str | None) -> str | None:
+    """Extract spec file path from a log line and update summary."""
+    spec_match = REGEX_SPEC_FILE.match(line)
+    if spec_match:
+        spec_name = spec_match.group(1)
+        if spec_name not in summary.specs_run:
+            summary.specs_run.append(spec_name)
+        return spec_name
+    return current_spec
+
+
+def _detect_failed_scenario(line: str, summary: GaugeSummary, current_spec: str | None) -> None:
+    """Detect failed scenarios from a log line and update summary."""
+    if current_spec and ("-> FAILED" in line or "✖" in line or "FAILED" in line):
+        scenario_match = REGEX_SCENARIO_NAME.search(line)
+        if scenario_match:
+            scenario_name = scenario_match.group(1).strip()
+            summary.failed_scenarios.append(f"{current_spec} :: {scenario_name}")
+            if current_spec not in summary.specs_failed:
+                summary.specs_failed.append(current_spec)
+
+
+def _detect_missing_step(line: str, summary: GaugeSummary) -> None:
+    """Detect missing step implementations from a log line and update summary."""
+    if REGEX_MISSING_STEP.search(line):
+        step_match = REGEX_STEP_MATCH.search(line)
+        if step_match:
+            missing_step = step_match.group(1).strip()
+            if missing_step not in summary.missing_steps:
+                summary.missing_steps.append(missing_step)
+
+
+def _extract_scenario_statistics(line: str, summary: GaugeSummary) -> None:
+    """Extract scenario statistics from a log line and update summary."""
+    match = REGEX_TOTAL_SCENARIOS.search(line)
+    if match:
+        summary.total_scenarios = int(match.group(1))
+        return
+
+    match = REGEX_PASSED_SCENARIOS.search(line)
+    if match:
+        summary.passed_scenarios = int(match.group(1))
+        return
+
+    match = REGEX_FAILED_SCENARIOS.search(line)
+    if match:
+        summary.failed_scenarios_count = int(match.group(1))
+
+
+def _format_gauge_summary_html(summary: GaugeSummary) -> str:
+    """Format Gauge summary data as HTML."""
+    summary_items = []
+    if summary.specs_run:
+        summary_items.append(f"  <li>Total specifications: {len(summary.specs_run)}</li>")
+    if summary.total_scenarios > 0:
+        summary_items.append(f"  <li>Total scenarios: {summary.total_scenarios}</li>")
+        summary_items.append(f"  <li>Passed scenarios: {summary.passed_scenarios}</li>")
+        summary_items.append(f"  <li>Failed scenarios: {summary.failed_scenarios_count}</li>")
+
+    summary_html = "<h2>Summary</h2><ul>\n" + "\n".join(summary_items) + "\n</ul>" if summary_items else ""
+
+    details = []
+    if summary.specs_run:
+        spec_list = _html_list(sorted(summary.specs_run))
+        details.append(f"<h3>Specifications executed ({len(summary.specs_run)})</h3><ul>{spec_list}</ul>")
+
+    if summary.specs_failed:
+        failed_list = _html_list(sorted(set(summary.specs_failed)))
+        details.append(f"<h3>Failed specifications ({len(summary.specs_failed)})</h3><ul>{failed_list}</ul>")
+
+    if summary.failed_scenarios:
+        scenario_list = _html_list(summary.failed_scenarios)
+        details.append(f"<h3>Failed scenarios ({len(summary.failed_scenarios)})</h3><ul>{scenario_list}</ul>")
+
+    if summary.missing_steps:
+        step_list = _html_list_code(summary.missing_steps)
+        details.append(f"<h3>Missing step implementations ({len(summary.missing_steps)})</h3><ul>{step_list}</ul>")
+
+    return summary_html + "\n" + "\n".join(details)
+
+
 def _build_gauge_summary(log_path: Path) -> str:
     """Return an HTML summary snippet for Gauge execution results."""
     if not log_path.exists():
         return "<p>No Gauge execution log was found.</p>"
 
-    try:
-        content = log_path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return "<p>Unable to read the Gauge execution log.</p>"
-
-    lines = content.splitlines()
-
-    # Extract summary statistics
-    specs_run: list[str] = []
-    specs_failed: list[str] = []
-    missing_steps: list[str] = []
-    failed_scenarios: list[str] = []
-    total_scenarios = 0
-    passed_scenarios = 0
-    failed_scenarios_count = 0
-
-    current_spec: str | None = None
-
-    for line in lines:
-        line = line.strip()
-
-        # Extract spec file path
-        spec_match = re.match(r"^([a-zA-Z0-9_/.-]+\.spec)\s*::", line)
-        if spec_match:
-            current_spec = spec_match.group(1)
-            if current_spec not in specs_run:
-                specs_run.append(current_spec)
-
-            # Check if scenario failed
-            if "-> FAILED" in line or "✖" in line or "FAILED" in line:
-                scenario_match = re.search(r"::\s*(.+?)(?:\s*->|\s*✖|$)", line)
-                if scenario_match:
-                    scenario_name = scenario_match.group(1).strip()
-                    failed_scenarios.append(f"{current_spec} :: {scenario_name}")
-                    if current_spec and current_spec not in specs_failed:
-                        specs_failed.append(current_spec)
-
-        # Detect missing steps
-        if re.search(r"no step implementation matches|No step implementation matches", line, re.IGNORECASE):
-            step_match = re.search(r"matches:\s*(.+)$", line, re.IGNORECASE)
-            if step_match:
-                missing_step = step_match.group(1).strip()
-                if missing_step not in missing_steps:
-                    missing_steps.append(missing_step)
-
-        # Extract summary statistics
-        if "Total scenarios:" in line:
-            match = re.search(r"Total scenarios:\s*(\d+)", line)
-            if match:
-                total_scenarios = int(match.group(1))
-        elif "Passed:" in line:
-            match = re.search(r"Passed:\s*(\d+)", line)
-            if match:
-                passed_scenarios = int(match.group(1))
-        elif "Failed:" in line:
-            match = re.search(r"Failed:\s*(\d+)", line)
-            if match:
-                failed_scenarios_count = int(match.group(1))
-
-    # Build summary HTML
-    summary_items: list[str] = []
-
-    if specs_run:
-        summary_items.append(f"<li>Total specifications: {len(specs_run)}</li>")
-    if total_scenarios > 0:
-        summary_items.append(f"<li>Total scenarios: {total_scenarios}</li>")
-        summary_items.append(f"<li>Passed scenarios: {passed_scenarios}</li>")
-        summary_items.append(f"<li>Failed scenarios: {failed_scenarios_count}</li>")
-
-    summary_html = "<h2>Summary</h2><ul>\n" + "\n".join(summary_items) + "\n</ul>" if summary_items else ""
-
-    # Add details sections
-    details: list[str] = []
-
-    if specs_run:
-        spec_list = "".join(f"<li>{escape(spec)}</li>" for spec in sorted(specs_run))
-        details.append(f"<h3>Specifications executed ({len(specs_run)})</h3><ul>{spec_list}</ul>")
-
-    if specs_failed:
-        failed_list = "".join(f"<li>{escape(spec)}</li>" for spec in sorted(set(specs_failed)))
-        details.append(f"<h3>Failed specifications ({len(specs_failed)})</h3><ul>{failed_list}</ul>")
-
-    if failed_scenarios:
-        scenario_list = "".join(
-            f"<li>{escape(scenario)}</li>" for scenario in failed_scenarios[:20]
-        )
-        if len(failed_scenarios) > 20:
-            scenario_list += f"<li>... and {len(failed_scenarios) - 20} more</li>"
-        details.append(f"<h3>Failed scenarios ({len(failed_scenarios)})</h3><ul>{scenario_list}</ul>")
-
-    if missing_steps:
-        step_list = "".join(f"<li><code>{escape(step)}</code></li>" for step in missing_steps[:20])
-        if len(missing_steps) > 20:
-            step_list += f"<li>... and {len(missing_steps) - 20} more</li>"
-        details.append(f"<h3>Missing step implementations ({len(missing_steps)})</h3><ul>{step_list}</ul>")
-
-    if not specs_run:
+    summary = _parse_gauge_log(log_path)
+    if not summary.specs_run:
         return "<p>No specifications were executed.</p>"
 
-    return summary_html + "\n" + "\n".join(details)
+    return _format_gauge_summary_html(summary)
 
 
 def _build_gauge_index(gauge_dir: Path) -> None:
@@ -336,31 +432,12 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     if original_index.exists():
         original_link = '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
 
-    index_path.write_text(
-        """<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <title>Gauge specification results</title>
-  <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
-    h1 {{ font-size: 2rem; margin-bottom: 1rem; }}
-    h2 {{ font-size: 1.5rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }}
-    h3 {{ font-size: 1.2rem; margin-top: 1rem; margin-bottom: 0.5rem; }}
-    ul {{ list-style: disc; padding-left: 1.5rem; }}
-    li {{ margin: 0.25rem 0; }}
-    code {{ background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }}
-    a {{ color: #0366d6; text-decoration: none; }}
-    a:hover {{ text-decoration: underline; }}
-  </style>
-</head>
-<body>
-  <h1>Gauge specification results</h1>
+    body = f"""  <h1>Gauge specification results</h1>
   {original_link}
-  {summary_html}
-</body>
-</html>
-""".format(original_link=original_link, summary_html=summary_html),
+  {summary_html}"""
+
+    index_path.write_text(
+        _render_html_page("Gauge specification results", body, GAUGE_CSS),
         encoding="utf-8",
     )
 
@@ -382,28 +459,14 @@ def _build_property_index(property_dir: Path) -> None:
         summary_html = _build_property_summary(xml_path)
         xml_link = '<p><a href="property-tests-report.xml">Download the JUnit XML report</a></p>'
 
-    index_path.write_text(
-        """<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <title>Property test results</title>
-  <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
-    pre {{ background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }}
-    a {{ color: #0366d6; text-decoration: none; }}
-    a:hover {{ text-decoration: underline; }}
-  </style>
-</head>
-<body>
-  <h1>Property test results</h1>
+    body = f"""  <h1>Property test results</h1>
   {xml_link}
   {summary_html}
   <h2>Latest log output</h2>
-  <pre>{log_content}</pre>
-</body>
-</html>
-""".format(xml_link=xml_link, summary_html=summary_html, log_content=log_content),
+  <pre>{log_content}</pre>"""
+
+    index_path.write_text(
+        _render_html_page("Property test results", body, COMMON_CSS),
         encoding="utf-8",
     )
 
@@ -509,36 +572,19 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
 def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None) -> None:
     index_path = site_dir / "index.html"
     notice_html = (screenshot_notice + "\n") if screenshot_notice else ""
-    index_path.write_text(
-        """<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <title>SecureApp Test Reports</title>
-  <style>
-    body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
-    h1 {{ font-size: 2rem; margin-bottom: 1rem; }}
-    ul {{ list-style: disc; padding-left: 1.5rem; }}
-    a {{ color: #0366d6; text-decoration: none; }}
-    a:hover {{ text-decoration: underline; }}
-    .screenshot-status {{ margin-top: 2rem; padding: 1rem; background: #fff8c5; border-left: 4px solid #9a6700; }}
-    .screenshot-status h2 {{ margin-top: 0; }}
-    .screenshot-status ul {{ margin-top: 0.5rem; }}
-  </style>
-</head>
-<body>
-  <h1>SecureApp Test Reports</h1>
+
+    body = f"""  <h1>SecureApp Test Reports</h1>
   <ul>
-    <li><a href=\"unit-tests/index.html\">Unit test coverage report</a></li>
-    <li><a href=\"integration-tests/index.html\">Integration test results</a></li>
-    <li><a href=\"gauge-specs/index.html\">Gauge HTML report</a></li>
-    <li><a href=\"property-tests/index.html\">Property test results</a></li>
-    <li><a href=\"radon/index.html\">Radon complexity report</a></li>
+    <li><a href="unit-tests/index.html">Unit test coverage report</a></li>
+    <li><a href="integration-tests/index.html">Integration test results</a></li>
+    <li><a href="gauge-specs/index.html">Gauge HTML report</a></li>
+    <li><a href="property-tests/index.html">Property test results</a></li>
+    <li><a href="radon/index.html">Radon complexity report</a></li>
   </ul>
-{notice_html}
-</body>
-</html>
-""".format(notice_html=notice_html),
+{notice_html}"""
+
+    index_path.write_text(
+        _render_html_page("SecureApp Test Reports", body, LANDING_CSS),
         encoding="utf-8",
     )
 

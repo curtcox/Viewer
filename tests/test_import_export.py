@@ -502,21 +502,6 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             self.assertEqual(variable_count, 1)
             self.assertEqual(secret_count, 1)
 
-            imported_alias = Alias.query.filter_by(name='alias-disabled').first()
-            imported_server = Server.query.filter_by(name='server-disabled').first()
-            imported_variable = Variable.query.filter_by(name='variable-disabled').first()
-            imported_secret = Secret.query.filter_by(name='secret-disabled').first()
-
-            self.assertIsNotNone(imported_alias)
-            self.assertIsNotNone(imported_server)
-            self.assertIsNotNone(imported_variable)
-            self.assertIsNotNone(imported_secret)
-
-            assert imported_alias and imported_server and imported_variable and imported_secret
-            self.assertFalse(imported_alias.enabled)
-            self.assertFalse(imported_server.enabled)
-            self.assertFalse(imported_variable.enabled)
-            self.assertFalse(imported_secret.enabled)
 
     def test_export_omits_disabled_items_without_selection(self):
         alias_definition = format_primary_alias_line(

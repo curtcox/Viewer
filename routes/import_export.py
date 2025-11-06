@@ -1247,11 +1247,19 @@ def _import_section(context: _ImportContext, plan: _SectionImportPlan) -> int:
     if fatal:
         return 0
 
-    imported_count, import_errors = plan.importer(section)
+    result = plan.importer(section)
+    if isinstance(result, tuple) and len(result) == 3:
+        imported_count, import_errors, imported_names = result
+    else:
+        imported_count, import_errors = result  # type: ignore[misc]
+        imported_names = []
     context.errors.extend(import_errors)
     if imported_count:
         label = plan.plural_label if imported_count != 1 else plan.singular_label
         context.summaries.append(f'{imported_count} {label}')
+        context.imported_names.get(plan.section_key, [])
+        if plan.section_key in context.imported_names:
+            context.imported_names[plan.section_key].extend(imported_names)
 
     return imported_count
 
@@ -1276,13 +1284,19 @@ class _ImportContext:
     summaries: list[str] = field(default_factory=list)
     secret_key: str = ''
     snapshot_export: dict[str, Any] | None = None
+    imported_names: dict[str, list[str]] = field(default_factory=lambda: {
+        'aliases': [],
+        'servers': [],
+        'variables': [],
+        'secrets': [],
+    })
 
 
 @dataclass(frozen=True)
 class _SectionImportPlan:
     include: bool
     section_key: str
-    importer: Callable[[Any], Tuple[int, list[str]]]
+    importer: Callable[[Any], tuple[int, list[str], list[str]]]
     singular_label: str
     plural_label: str
 
@@ -1342,7 +1356,7 @@ def _import_selected_sections(context: _ImportContext) -> None:
         _SectionImportPlan(
             include=context.form.include_aliases.data,
             section_key='aliases',
-            importer=lambda section: _import_aliases(
+            importer=lambda section: _import_aliases_with_names(
                 context.user_id, section, context.cid_lookup
             ),
             singular_label='alias',
@@ -1351,7 +1365,7 @@ def _import_selected_sections(context: _ImportContext) -> None:
         _SectionImportPlan(
             include=context.form.include_servers.data,
             section_key='servers',
-            importer=lambda section: _import_servers(
+            importer=lambda section: _import_servers_with_names(
                 context.user_id, section, context.cid_lookup
             ),
             singular_label='server',
@@ -1360,14 +1374,14 @@ def _import_selected_sections(context: _ImportContext) -> None:
         _SectionImportPlan(
             include=context.form.include_variables.data,
             section_key='variables',
-            importer=lambda section: _import_variables(context.user_id, section),
+            importer=lambda section: _import_variables_with_names(context.user_id, section),
             singular_label='variable',
             plural_label='variables',
         ),
         _SectionImportPlan(
             include=context.form.include_secrets.data,
             section_key='secrets',
-            importer=lambda section: _import_secrets(
+            importer=lambda section: _import_secrets_with_names(
                 context.user_id, section, context.secret_key
             ),
             singular_label='secret',
@@ -1475,6 +1489,9 @@ def _finalise_import(context: _ImportContext, render_form: Callable[[], Any]) ->
             'cid': snapshot_export['cid_value'],
             'generated_at': snapshot_export['generated_at'],
         }
+    # Store imported names for summary display
+    if any(context.imported_names.values()):
+        session['import_summary_names'] = context.imported_names
 
     if context.errors or context.warnings or context.summaries:
         record_entity_interaction(
@@ -1630,27 +1647,26 @@ def _load_import_payload(form: ImportForm) -> str | None:
     return None
 
 
-def _import_aliases(
+# Legacy-compatible import function wrappers and implementations
+
+def _impl_import_aliases(
     user_id: str,
     raw_aliases: Any,
     cid_map: dict[str, bytes] | None = None,
-) -> Tuple[int, list[str]]:
-    """Import alias definitions from JSON data."""
-    if raw_aliases is None:
-        return 0, ['No alias data found in import file.']
-    if not isinstance(raw_aliases, list):
-        return 0, ['Aliases in import file must be a list.']
-
+) -> tuple[int, list[str], list[str]]:
     errors: list[str] = []
     imported = 0
+    names: list[str] = []
+    if raw_aliases is None:
+        return 0, ['No alias data found in import file.'], []
+    if not isinstance(raw_aliases, list):
+        return 0, ['Aliases in import file must be a list.'], []
     reserved_routes = get_existing_routes()
     cid_map = cid_map or {}
-
     for entry in raw_aliases:
         prepared = _prepare_alias_import(entry, reserved_routes, cid_map, errors)
         if prepared is None:
             continue
-
         existing = get_alias_by_name(user_id, prepared.name)
         if existing:
             existing.definition = prepared.definition
@@ -1668,8 +1684,202 @@ def _import_aliases(
             )
             save_entity(alias)
         imported += 1
+        names.append(prepared.name)
+    return imported, errors, names
 
-    return imported, errors
+
+def _import_aliases_with_names(
+    user_id: str,
+    raw_aliases: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str], list[str]]:
+    return _impl_import_aliases(user_id, raw_aliases, cid_map)
+
+
+def _import_aliases(
+    user_id: str,
+    raw_aliases: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str]]:
+    count, errors, _names = _impl_import_aliases(user_id, raw_aliases, cid_map)
+    return count, errors
+
+
+def _impl_import_servers(
+    user_id: str,
+    raw_servers: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str], list[str]]:
+    errors: list[str] = []
+    imported = 0
+    names: list[str] = []
+    if raw_servers is None:
+        return 0, ['No server data found in import file.'], []
+    if not isinstance(raw_servers, list):
+        return 0, ['Servers in import file must be a list.'], []
+    cid_map = cid_map or {}
+    for entry in raw_servers:
+        prepared = _prepare_server_import(entry, cid_map, errors)
+        if prepared is None:
+            continue
+        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)
+        existing = get_server_by_name(user_id, prepared.name)
+        if existing:
+            existing.definition = prepared.definition
+            existing.definition_cid = definition_cid
+            existing.updated_at = datetime.now(timezone.utc)
+            existing.enabled = prepared.enabled
+            existing.template = prepared.template
+            save_entity(existing)
+        else:
+            server = Server(
+                name=prepared.name,
+                definition=prepared.definition,
+                user_id=user_id,
+                definition_cid=definition_cid,
+                enabled=prepared.enabled,
+                template=prepared.template,
+            )
+            save_entity(server)
+        imported += 1
+        names.append(prepared.name)
+    if imported:
+        update_server_definitions_cid(user_id)
+    return imported, errors, names
+
+
+def _import_servers_with_names(
+    user_id: str,
+    raw_servers: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str], list[str]]:
+    return _impl_import_servers(user_id, raw_servers, cid_map)
+
+
+def _import_servers(
+    user_id: str,
+    raw_servers: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str]]:
+    count, errors, _names = _impl_import_servers(user_id, raw_servers, cid_map)
+    return count, errors
+
+
+def _impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[str], list[str]]:
+    errors: list[str] = []
+    imported = 0
+    names: list[str] = []
+    if raw_variables is None:
+        return 0, ['No variable data found in import file.'], []
+    if not isinstance(raw_variables, list):
+        return 0, ['Variables in import file must be a list.'], []
+    for entry in raw_variables:
+        if not isinstance(entry, dict):
+            errors.append('Variable entries must be objects with name and definition.')
+            continue
+        name = entry.get('name')
+        definition = entry.get('definition')
+        if not name or definition is None:
+            errors.append('Variable entry must include both name and definition.')
+            continue
+        enabled = _coerce_enabled_flag(entry.get('enabled'))
+        template = _coerce_enabled_flag(entry.get('template'))
+        existing = get_variable_by_name(user_id, name)
+        if existing:
+            existing.definition = definition
+            existing.updated_at = datetime.now(timezone.utc)
+            existing.enabled = enabled
+            existing.template = template
+            save_entity(existing)
+        else:
+            variable = Variable(
+                name=name,
+                definition=definition,
+                user_id=user_id,
+                enabled=enabled,
+                template=template,
+            )
+            save_entity(variable)
+        imported += 1
+        names.append(name)
+    if imported:
+        update_variable_definitions_cid(user_id)
+    return imported, errors, names
+
+
+def _import_variables_with_names(user_id: str, raw_variables: Any) -> tuple[int, list[str], list[str]]:
+    return _impl_import_variables(user_id, raw_variables)
+
+
+def _import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[str]]:
+    count, errors, _names = _impl_import_variables(user_id, raw_variables)
+    return count, errors
+
+
+def _impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
+
+    def _normalise_secret_items(value: Any) -> list[dict[str, Any]] | None:
+        """Return a list of secret item dicts from either a list or an object with items."""
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            items = value.get('items')
+            return items if isinstance(items, list) else None
+        if isinstance(value, list):
+            return value
+        return None
+
+    items = _normalise_secret_items(raw_secrets)
+    if items is None:
+        return 0, ['No secret data found in import file.'], []
+    errors: list[str] = []
+    imported = 0
+    names: list[str] = []
+    try:
+        for entry in items:
+            if not isinstance(entry, dict):
+                errors.append('Secret entries must be objects with name and encrypted value.')
+                continue
+            name = entry.get('name')
+            ciphertext = entry.get('ciphertext') or entry.get('definition')
+            if not name or not ciphertext:
+                errors.append('Secret entries must include name and encrypted value.')
+                continue
+            plaintext = decrypt_secret_value(ciphertext, key)
+            enabled = _coerce_enabled_flag(entry.get('enabled'))
+            template = _coerce_enabled_flag(entry.get('template'))
+            existing = get_secret_by_name(user_id, name)
+            if existing:
+                existing.definition = plaintext
+                existing.updated_at = datetime.now(timezone.utc)
+                existing.enabled = enabled
+                existing.template = template
+                save_entity(existing)
+            else:
+                secret = Secret(
+                    name=name,
+                    definition=plaintext,
+                    user_id=user_id,
+                    enabled=enabled,
+                    template=template,
+                )
+                save_entity(secret)
+            imported += 1
+            names.append(name)
+    except ValueError:
+        return 0, ['Invalid decryption key for secrets.'], []
+    if imported:
+        update_secret_definitions_cid(user_id)
+    return imported, errors, names
+
+
+def _import_secrets_with_names(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
+    return _impl_import_secrets(user_id, raw_secrets, key)
+
+
+def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str]]:
+    count, errors, _names = _impl_import_secrets(user_id, raw_secrets, key)
+    return count, errors
 
 
 @dataclass
@@ -1743,163 +1953,6 @@ def _prepare_server_import(
         enabled=enabled,
         template=template,
     )
-
-
-def _import_servers(
-    user_id: str,
-    raw_servers: Any,
-    cid_map: dict[str, bytes] | None = None,
-) -> Tuple[int, list[str]]:
-    """Import server definitions from JSON data."""
-    if raw_servers is None:
-        return 0, ['No server data found in import file.']
-    if not isinstance(raw_servers, list):
-        return 0, ['Servers in import file must be a list.']
-
-    errors: list[str] = []
-    imported = 0
-    cid_map = cid_map or {}
-
-    for entry in raw_servers:
-        prepared = _prepare_server_import(entry, cid_map, errors)
-        if prepared is None:
-            continue
-
-        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)
-        existing = get_server_by_name(user_id, prepared.name)
-        if existing:
-            existing.definition = prepared.definition
-            existing.definition_cid = definition_cid
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.enabled = prepared.enabled
-            existing.template = prepared.template
-            save_entity(existing)
-        else:
-            server = Server(
-                name=prepared.name,
-                definition=prepared.definition,
-                user_id=user_id,
-                definition_cid=definition_cid,
-                enabled=prepared.enabled,
-                template=prepared.template,
-            )
-            save_entity(server)
-        imported += 1
-
-    if imported:
-        update_server_definitions_cid(user_id)
-
-    return imported, errors
-
-
-def _import_variables(user_id: str, raw_variables: Any) -> Tuple[int, list[str]]:
-    """Import variable definitions from JSON data."""
-    if raw_variables is None:
-        return 0, ['No variable data found in import file.']
-    if not isinstance(raw_variables, list):
-        return 0, ['Variables in import file must be a list.']
-
-    errors: list[str] = []
-    imported = 0
-
-    for entry in raw_variables:
-        if not isinstance(entry, dict):
-            errors.append('Variable entries must be objects with name and definition.')
-            continue
-
-        name = entry.get('name')
-        definition = entry.get('definition')
-        if not name or definition is None:
-            errors.append('Variable entry must include both name and definition.')
-            continue
-
-        enabled = _coerce_enabled_flag(entry.get('enabled'))
-        template = _coerce_enabled_flag(entry.get('template'))
-
-        existing = get_variable_by_name(user_id, name)
-        if existing:
-            existing.definition = definition
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.enabled = enabled
-            existing.template = template
-            save_entity(existing)
-        else:
-            variable = Variable(
-                name=name,
-                definition=definition,
-                user_id=user_id,
-                enabled=enabled,
-                template=template,
-            )
-            save_entity(variable)
-        imported += 1
-
-    if imported:
-        update_variable_definitions_cid(user_id)
-
-    return imported, errors
-
-
-def _normalise_secret_items(raw_secrets: Any) -> Iterable[dict[str, Any]] | None:
-    if raw_secrets is None:
-        return None
-    if isinstance(raw_secrets, dict):
-        items = raw_secrets.get('items')
-    else:
-        items = raw_secrets
-    if not isinstance(items, list):
-        return None
-    return items
-
-
-def _import_secrets(user_id: str, raw_secrets: Any, key: str) -> Tuple[int, list[str]]:
-    """Import secret definitions from JSON data."""
-    items = _normalise_secret_items(raw_secrets)
-    if items is None:
-        return 0, ['No secret data found in import file.']
-
-    errors: list[str] = []
-    imported = 0
-
-    try:
-        for entry in items:
-            if not isinstance(entry, dict):
-                errors.append('Secret entries must be objects with name and encrypted value.')
-                continue
-
-            name = entry.get('name')
-            ciphertext = entry.get('ciphertext') or entry.get('definition')
-            if not name or not ciphertext:
-                errors.append('Secret entries must include name and encrypted value.')
-                continue
-
-            plaintext = decrypt_secret_value(ciphertext, key)
-            enabled = _coerce_enabled_flag(entry.get('enabled'))
-            template = _coerce_enabled_flag(entry.get('template'))
-            existing = get_secret_by_name(user_id, name)
-            if existing:
-                existing.definition = plaintext
-                existing.updated_at = datetime.now(timezone.utc)
-                existing.enabled = enabled
-                existing.template = template
-                save_entity(existing)
-            else:
-                secret = Secret(
-                    name=name,
-                    definition=plaintext,
-                    user_id=user_id,
-                    enabled=enabled,
-                    template=template,
-                )
-                save_entity(secret)
-            imported += 1
-    except ValueError:
-        return 0, ['Invalid decryption key for secrets.']
-
-    if imported:
-        update_secret_definitions_cid(user_id)
-
-    return imported, errors
 
 
 def _serialise_interaction_history(user_id: str, entity_type: str, entity_name: str) -> list[dict[str, str]]:
@@ -2176,6 +2229,8 @@ def import_data():
                 response_data['warnings'] = context.warnings
             if context.summaries:
                 response_data['summaries'] = context.summaries
+            if any(context.imported_names.values()):
+                response_data['imported_names'] = context.imported_names
             if snapshot_export:
                 response_data['snapshot'] = {
                     'cid': snapshot_export['cid_value'],
@@ -2194,7 +2249,8 @@ def import_data():
         interactions = load_interaction_history(current_user.id, 'import', 'json')
         # Get snapshot info from session if available
         snapshot_info = session.pop('import_snapshot_export', None) or snapshot_export
-        return render_template('import.html', form=form, import_interactions=interactions, snapshot_export=snapshot_info)
+        imported_names = session.pop('import_summary_names', None)
+        return render_template('import.html', form=form, import_interactions=interactions, snapshot_export=snapshot_info, imported_names=imported_names)
 
     if form.validate_on_submit():
         return _process_import_submission(form, change_message, _render_import_form)

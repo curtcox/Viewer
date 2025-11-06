@@ -36,6 +36,12 @@ def build_test_environment() -> dict[str, str]:
         str(ROOT_DIR / "reports" / "html-report" / "secureapp-artifacts"),
     )
 
+    # Ensure repository venv Python and tools are preferred for child processes
+    venv_bin = ROOT_DIR / "venv" / "bin"
+    if venv_bin.exists():
+        current_path = env.get("PATH", "")
+        env["PATH"] = str(venv_bin) + os.pathsep + current_path
+
     return env
 
 
