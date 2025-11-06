@@ -1,21 +1,31 @@
-# Remaining pylint issues
+# Plan to eliminate remaining pylint issues
 
-The project still has a large number of pylint violations reported in the most recent full run (`pylint *.py */*.py`). The items below highlight the issues that remain in the files touched by this iteration, along with context for future follow-up. Broader clean-up work (for example, cyclic-import warnings and the many trailing-newline notices across other modules) will require coordinated refactors and is not attempted here.
+1. Stabilize the `db_access` package interface.
+   - Replace the self-referential wildcard import in `db_access.py` with explicit re-exports or helper modules so callers can keep importing from `db_access` without triggering `import-self`, `wildcard-import`, or `unused-wildcard-import` warnings.
+   - As part of the same sweep, normalise the `db_access` package layout (including `db_access/__init__.py` if needed) so that each public function is defined in exactly one place, documented, and imported explicitly by users.
+   - Remove the trailing newline warnings reported in `db_access` submodules while touching the files, and run the full pylint command to confirm the `db_access` warnings are cleared without introducing regressions.
 
-## app.py
-- The previous `C0415` warning for lazy imports has been resolved by promoting the analytics and route imports to module scope and verifying the application still initialises correctly.
-- The broad Logfire exception guards are now explicitly documented in code to clarify why the defensive catch-all behaviour is preserved.
+2. Refactor CID- and identity-related modules to support top-level imports.
+   - Investigate the runtime dependencies that forced lazy imports in `ai_defaults.py`, `css_defaults.py`, `cid_storage.py`, `cid_utils.py`, `content_rendering.py`, `models.py`, and `app.py`.
+   - Break dependency cycles (for example, by extracting shared helpers into new modules) so these modules can import their collaborators at module scope, then move the imports accordingly and rerun pylint to ensure all related `C0415` warnings disappear.
 
-## alias_definition.py
-- No outstanding pylint issues in this module; the previous `C0415` warning was resolved by importing `get_user_variables` directly from `db_access.variables`, which avoids the circular dependency exposed by the package-level re-export.
+3. Normalise import order and positioning in operational scripts and entry points.
+   - Update modules such as `inspect_db.py`, `migrate_add_server_cid.py`, `tests/test_ai_stub_server.py`, and `routes/__init__.py` to follow standard import grouping so the `C0411`/`C0413` warnings go away without reintroducing cyclic dependencies.
+   - Document any necessary lazy imports with targeted `# pylint: disable` comments and justification when restructuring is impossible, and verify with pylint afterwards.
 
-## formdown_renderer.py
-- No outstanding pylint issues in this module; aliasing `dataclasses.field` resolved the previous `W0621` warnings about redefining the imported name.
+4. Replace broad `except Exception` handlers with precise error management.
+   - Catalogue each `W0718` site across core logic (`alias_matching.py`, `alias_routing.py`, `analytics.py`, `content_rendering.py`, `server_execution.py`, etc.), route handlers, scripts, and tests.
+   - For each block, determine the specific exceptions that should be caught or restructure the code to avoid blanket suppression; only retain broad handlers with explicit justification comments and `# pylint: disable=broad-exception-caught` markers.
+   - Add regression tests where behaviour changes so the narrower exception handling is covered.
 
-## response_formats.py
-- The previous `C0415` warning has been resolved by importing `openapi_route_rules` at module scope after confirming the OpenAPI module no longer depends on `response_formats`.
-- Converting `_RuleDetails` to a dataclass eliminated the earlier `R0917` warning about too many positional arguments in its constructor.
-- Renaming the unused formatter parameters to `_original` resolved the earlier `W0613` notices without changing the call signature.
+5. Decompose oversized and high-complexity route and execution modules.
+   - Split `server_execution.py`, `routes/import_export.py`, `routes/meta.py`, and `routes/openapi.py` into cohesive submodules to drop below the `C0302` module-length threshold and expose clearer public APIs.
+   - While extracting code, address the nested block (`R1702`), redefined name (`W0621`), and too-many-positional-arguments (`R0917`) warnings in the affected functions, and expand or add tests to cover the new module boundaries.
 
-## Repository-wide backlog
-- The full pylint report still contains numerous structural warnings (for example, large modules, cyclic imports, and widespread trailing-newline notices). Tackling these will need incremental refactors across the codebase and possibly build-system updates to accommodate new module boundaries.
+6. Resolve remaining function-level style warnings.
+   - Tackle outstanding `unused-argument`, `redefined-outer-name`, `attribute-defined-outside-init`, logging format (`W1203`), and dictionary/iteration style warnings across modules like `routes.aliases`, `routes.search`, `generate_page_test_cross_reference.py`, `routes.context_processors.py`, `routes.uploads.py`, `scripts/run_radon.py`, and `step_impl/web_steps.py`.
+   - Adjust function signatures or usage patterns (for example, by renaming unused parameters to `_` or extracting helpers) and confirm pylint accepts the updated code.
+
+7. Fix repository-wide formatting nits.
+   - Remove trailing newline violations from all flagged modules (including `db_access` subpackages, route modules, scripts, and tests) and ensure editors or formatting hooks prevent reintroduction.
+   - Standardise string formatting (switch to f-strings where recommended) and iterate over dictionaries/sequences idiomatically to silence the remaining stylistic warnings, validating with pylint at the end.
