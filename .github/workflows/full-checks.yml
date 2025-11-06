@@ -16,15 +16,12 @@ defaults:
   run:
     shell: bash
 
-env:
-  CI_IMAGE: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
-
 jobs:
   ruff:
     name: Ruff
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,7 +32,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,7 +43,7 @@ jobs:
     name: Mypy
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,7 +54,7 @@ jobs:
     name: Radon
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -159,7 +156,7 @@ jobs:
     name: Test Index Validation
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -170,7 +167,7 @@ jobs:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -230,7 +227,7 @@ jobs:
     name: Property Tests
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       HYPOTHESIS_PROFILE: ci
     steps:
@@ -273,7 +270,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
@@ -325,7 +322,7 @@ jobs:
     name: Gauge Specs
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     env:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
