@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def create_app(config_override: Optional[dict] = None) -> Flask:
-
+    """Application factory for creating configured Flask instances."""
     logger = logging.getLogger(__name__)
 
     logfire_available = False
@@ -100,12 +100,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         logger.warning("Logfire is not enabled, skipping logfire instrumentation")
         logfire_reason = "LOGFIRE_SEND_TO_LOGFIRE not set"
 
-    """Application factory for creating configured Flask instances."""
-    app = Flask(__name__)
+    flask_app = Flask(__name__)
 
     default_database_uri = os.environ.get("DATABASE_URL") or "sqlite:///secureapp.db"
 
-    app.config.update(
+    flask_app.config.update(
         SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
         SQLALCHEMY_DATABASE_URI=default_database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -115,18 +114,18 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         },
     )
 
-    app.config.setdefault(
+    flask_app.config.setdefault(
         "GITHUB_REPOSITORY_URL",
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
-    app.config.setdefault("CID_DIRECTORY", str(Path(app.root_path) / "cids"))
+    flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
 
     if config_override:
-        app.config.update(config_override)
+        flask_app.config.update(config_override)
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
+    flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
 
-    app.jinja_env.globals.update(
+    flask_app.jinja_env.globals.update(
         alias_full_url=alias_full_url,
         alias_path=alias_path,
         cid_full_url=cid_full_url,
@@ -144,19 +143,19 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     )
 
     # Initialize database
-    init_db(app)
+    init_db(flask_app)
 
     # Register application components
     from analytics import make_session_permanent, track_page_view
     from routes import main_bp
 
-    app.before_request(make_session_permanent)
-    app.after_request(track_page_view)
+    flask_app.before_request(make_session_permanent)
+    flask_app.after_request(track_page_view)
 
-    app.register_blueprint(main_bp)
-    register_response_format_handlers(app)
+    flask_app.register_blueprint(main_bp)
+    register_response_format_handlers(flask_app)
 
-    @app.context_processor
+    @flask_app.context_processor
     def inject_identity() -> dict[str, Any]:
         """Expose the always-on user to templates."""
 
@@ -167,8 +166,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     # Force registration of custom error handlers even in debug mode
     # This ensures our enhanced error pages with source links always work
-    app.register_error_handler(500, internal_error)
-    app.register_error_handler(404, not_found_error)
+    flask_app.register_error_handler(500, internal_error)
+    flask_app.register_error_handler(404, not_found_error)
 
     # Override Flask's debug mode error handling to use our custom handlers
     # This is necessary because Flask's debug mode bypasses custom error handlers
@@ -178,29 +177,28 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             # Always use our custom error handlers, even in debug mode
             if hasattr(e, 'code') and e.code == 404:
                 return not_found_error(e)
-            else:
-                return internal_error(e)
+            return internal_error(e)
 
         # Only override in debug mode to preserve normal behavior in production
-        if app.debug:
-            app.handle_exception = enhanced_handle_exception
+        if flask_app.debug:
+            flask_app.handle_exception = enhanced_handle_exception
 
     force_custom_error_handling()
 
-    with app.app_context():
+    with flask_app.app_context():
         import models  # noqa: F401  # pylint: disable=unused-import  # ensure models are registered
 
         db.create_all()
         logging.info("Database tables created")
 
         default_user = ensure_default_user()
-        load_cids_from_directory(app, default_user.id)
+        load_cids_from_directory(flask_app, default_user.id)
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
         langsmith_enabled = bool(getenv("LANGSMITH_API_KEY"))
 
-        app.config["OBSERVABILITY_STATUS"] = {
+        flask_app.config["OBSERVABILITY_STATUS"] = {
             "logfire_available": logfire_enabled,
             "logfire_project_url": logfire_project_url if logfire_enabled else None,
             "logfire_reason": logfire_reason,
@@ -212,7 +210,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         ensure_ai_stub_for_all_users()
         ensure_css_alias_for_all_users()
 
-    return app
+    return flask_app
 
 
 # Maintain module-level application for backwards compatibility

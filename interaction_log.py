@@ -73,4 +73,3 @@ def load_interaction_history(
 
 
 __all__ = ['summarise_interaction', 'summarise_interactions', 'load_interaction_history']
-

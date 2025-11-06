@@ -509,4 +509,3 @@ def render_formdown_html(source: str) -> str:
             parts.append(_render_horizontal_rule(node))
     parts.append("</div>")
     return "\n".join(parts)
-

@@ -194,13 +194,13 @@ class DatabaseStrategy(VariableResolutionStrategy):
             # Local import avoids circular dependency
             from db_access import get_user_variables
         except (ImportError, ModuleNotFoundError) as e:
-            logger.debug(f"Could not import get_user_variables: {e}")
+            logger.debug("Could not import get_user_variables: %s", e)
             return None
 
         try:
             variables = get_user_variables(user_id)
-        except Exception as e:
-            logger.warning(f"Failed to fetch user variables from database: {e}")
+        except Exception as e:  # noqa: BLE001 - broad catch preserves existing behavior
+            logger.warning("Failed to fetch user variables from database: %s", e)
             return None
 
         resolved = _normalize_variable_map(variables)
@@ -344,16 +344,16 @@ class DefinitionLineParser:
                 self.segment_stack[depth + 1 :] = []
 
             return alias_path, resolved_pattern
-        else:
-            alias_path = match_pattern.lstrip("/") if match_pattern else None
 
-            # Update segment stack
-            if len(self.segment_stack) > depth:
-                self.segment_stack[depth] = parent_segments
-            if len(self.segment_stack) > depth + 1:
-                self.segment_stack[depth + 1 :] = []
+        alias_path = match_pattern.lstrip("/") if match_pattern else None
 
-            return alias_path, match_pattern
+        # Update segment stack
+        if len(self.segment_stack) > depth:
+            self.segment_stack[depth] = parent_segments
+        if len(self.segment_stack) > depth + 1:
+            self.segment_stack[depth + 1 :] = []
+
+        return alias_path, match_pattern
 
 
 # ===== Text Utilities =====
