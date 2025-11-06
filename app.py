@@ -11,6 +11,7 @@ from logfire.exceptions import LogfireConfigError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from ai_defaults import ensure_ai_stub_for_all_users
+from analytics import make_session_permanent, track_page_view
 from css_defaults import ensure_css_alias_for_all_users
 from cid_directory_loader import load_cids_from_directory
 from cid_presenter import (
@@ -34,6 +35,8 @@ from link_presenter import (
     server_path,
 )
 from response_formats import register_response_format_handlers
+from routes import main_bp
+from routes.core import internal_error, not_found_error
 
 # Load environment variables from .env file
 load_dotenv()
@@ -153,9 +156,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     init_db(flask_app)
 
     # Register application components
-    from analytics import make_session_permanent, track_page_view
-    from routes import main_bp
-
     flask_app.before_request(make_session_permanent)
     flask_app.after_request(track_page_view)
 
@@ -167,9 +167,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         """Expose the always-on user to templates."""
 
         return {"current_user": current_user}
-
-    # Register error handlers that work even in debug mode
-    from routes.core import internal_error, not_found_error
 
     # Force registration of custom error handlers even in debug mode
     # This ensures our enhanced error pages with source links always work
