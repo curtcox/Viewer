@@ -56,4 +56,3 @@ def paginate_user_page_views(user_id: str, page: int, per_page: int = 50) -> Pag
 def count_page_views() -> int:
     """Return the total number of page view records."""
     return PageView.query.count()
-

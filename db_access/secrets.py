@@ -42,4 +42,3 @@ def count_user_secrets(user_id: str) -> int:
 def count_secrets() -> int:
     """Return the total count of secrets."""
     return Secret.query.count()
-

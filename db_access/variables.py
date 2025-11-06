@@ -42,4 +42,3 @@ def count_user_variables(user_id: str) -> int:
 def count_variables() -> int:
     """Return the total count of variables."""
     return Variable.query.count()
-

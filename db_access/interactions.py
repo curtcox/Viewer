@@ -131,4 +131,3 @@ def get_entity_interactions(
         .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())
         .all()
     )
-
