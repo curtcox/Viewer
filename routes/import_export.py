@@ -1647,50 +1647,6 @@ def _load_import_payload(form: ImportForm) -> str | None:
     return None
 
 
-def _import_aliases(
-    user_id: str,
-    raw_aliases: Any,
-    cid_map: dict[str, bytes] | None = None,
-) -> tuple[int, list[str], list[str]]:
-    """Import alias definitions from JSON data."""
-    if raw_aliases is None:
-        return 0, ['No alias data found in import file.'], []
-    if not isinstance(raw_aliases, list):
-        return 0, ['Aliases in import file must be a list.'], []
-
-    errors: list[str] = []
-    imported = 0
-    names: list[str] = []
-    reserved_routes = get_existing_routes()
-    cid_map = cid_map or {}
-
-    for entry in raw_aliases:
-        prepared = _prepare_alias_import(entry, reserved_routes, cid_map, errors)
-        if prepared is None:
-            continue
-
-        existing = get_alias_by_name(user_id, prepared.name)
-        if existing:
-            existing.definition = prepared.definition
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.enabled = prepared.enabled
-            existing.template = prepared.template
-            save_entity(existing)
-        else:
-            alias = Alias(
-                name=prepared.name,
-                user_id=user_id,
-                definition=prepared.definition,
-                enabled=prepared.enabled,
-                template=prepared.template,
-            )
-            save_entity(alias)
-        imported += 1
-        names.append(prepared.name)
-
-    return imported, errors, names
-
-
 # Legacy-compatible import function wrappers and implementations
 
 def _impl_import_aliases(
@@ -1738,15 +1694,6 @@ def _import_aliases_with_names(
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str], list[str]]:
     return _impl_import_aliases(user_id, raw_aliases, cid_map)
-
-
-def _import_aliases(
-    user_id: str,
-    raw_aliases: Any,
-    cid_map: dict[str, bytes] | None = None,
-) -> tuple[int, list[str]]:
-    count, errors, _names = _impl_import_aliases(user_id, raw_aliases, cid_map)
-    return count, errors
 
 
 def _impl_import_servers(
@@ -1861,7 +1808,7 @@ def _import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[str]]
 
 
 def _impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
-    
+
     def _normalise_secret_items(value: Any) -> list[dict[str, Any]] | None:
         """Return a list of secret item dicts from either a list or an object with items."""
         if value is None:

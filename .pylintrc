@@ -17,7 +17,6 @@ disable=
     too-many-statements,          # R0915 - Long functions exist for good reasons
     too-many-return-statements,   # R0911 - Guard clauses with early returns are clear
     too-many-public-methods,      # R0904 - Test classes often have many methods
-    too-many-positional-arguments, # R0917 - Sometimes necessary
     
     # Documentation - optional for internal code
     missing-module-docstring,     # C0114 - Not all modules need docstrings
