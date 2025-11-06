@@ -3,7 +3,7 @@
 The project still has a large number of pylint violations reported in the most recent full run (`pylint *.py */*.py`). The items below highlight the issues that remain in the files touched by this iteration, along with context for future follow-up. Broader clean-up work (for example, cyclic-import warnings and the many trailing-newline notices across other modules) will require coordinated refactors and is not attempted here.
 
 ## app.py
-- `C0415` at lines 156-196: Several imports stay inside `create_app` to avoid circular dependencies during application factory setup. Pulling these to module scope will need a broader dependency untangling across analytics and route modules.
+- The previous `C0415` warning for lazy imports has been resolved by promoting the analytics and route imports to module scope and verifying the application still initialises correctly.
 - The broad Logfire exception guards are now explicitly documented in code to clarify why the defensive catch-all behaviour is preserved.
 
 ## alias_definition.py
