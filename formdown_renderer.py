@@ -5,7 +5,7 @@ from __future__ import annotations
 import html
 import re
 import shlex
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field as dataclass_field
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 _FIELD_PATTERN = re.compile(
@@ -35,7 +35,7 @@ class FormField:
     name: str
     label: Optional[str]
     control_type: str
-    attributes: Dict[str, str] = field(default_factory=dict)
+    attributes: Dict[str, str] = dataclass_field(default_factory=dict)
 
 
 TextNode = Union[Heading, Paragraph, HorizontalRule]
@@ -45,7 +45,7 @@ FormElement = Union[TextNode, FormField]
 @dataclass
 class FormBlock:
     attributes: Dict[str, str]
-    elements: List[FormElement] = field(default_factory=list)
+    elements: List[FormElement] = dataclass_field(default_factory=list)
 
 
 DocumentNode = Union[TextNode, FormBlock]
