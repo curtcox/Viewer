@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
+from flask import has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 from alias_matching import PatternError, normalise_pattern
 
@@ -196,6 +197,13 @@ class DatabaseStrategy(VariableResolutionStrategy):
             from db_access import get_user_variables
         except (ImportError, ModuleNotFoundError) as e:
             logger.debug("Could not import get_user_variables: %s", e)
+            return None
+
+        if not has_app_context():
+            logger.debug(
+                "Skipping database variable resolution for user %s: no app context",
+                user_id,
+            )
             return None
 
         try:
