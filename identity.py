@@ -55,6 +55,13 @@ _default_user: Optional[ExternalUser] = None
 _cached_default_user: Optional[ExternalUser] = None
 
 
+def _provision_user_resources(user: ExternalUser) -> None:
+    """Ensure the AI stub server and CSS alias exist for ``user``."""
+
+    ensure_ai_stub_for_user(user.id)
+    ensure_css_alias_for_user(user.id)
+
+
 def _create_default_user() -> ExternalUser:
     """Initialise the singleton default user."""
 
@@ -66,8 +73,7 @@ def _create_default_user() -> ExternalUser:
         is_paid=True,
         current_terms_accepted=True,
     )
-    ensure_ai_stub_for_user(user.id)
-    ensure_css_alias_for_user(user.id)
+    _provision_user_resources(user)
     return user
 
 
@@ -84,10 +90,15 @@ def ensure_default_user() -> ExternalUser:
         # in-process default user instance remains cached. Make sure the default
         # AI stub resources are present for the active database on every
         # invocation.
-        ensure_ai_stub_for_user(_default_user.id)
-        ensure_css_alias_for_user(_default_user.id)
+        _provision_user_resources(_default_user)
     _cached_default_user = _default_user
     return _default_user
+
+
+def ensure_default_user_resources() -> ExternalUser:
+    """Ensure the default user and its supporting resources exist."""
+
+    return ensure_default_user()
 
 
 def _load_current_user() -> ExternalUser:
@@ -108,8 +119,7 @@ def _load_current_user() -> ExternalUser:
                     is_paid=True,
                     current_terms_accepted=True,
                 )
-                ensure_ai_stub_for_user(user.id)
-                ensure_css_alias_for_user(user.id)
+                _provision_user_resources(user)
                 g._default_user = user
             return user
 
@@ -129,4 +139,9 @@ def _load_current_user() -> ExternalUser:
 
 current_user: ExternalUser = LocalProxy(_load_current_user)
 
-__all__ = ["ExternalUser", "current_user", "ensure_default_user"]
+__all__ = [
+    "ExternalUser",
+    "current_user",
+    "ensure_default_user",
+    "ensure_default_user_resources",
+]

@@ -59,17 +59,7 @@ def ensure_css_alias_for_user(user_id: str) -> bool:
     return True
 
 
-def ensure_css_alias_for_all_users() -> None:
-    """Ensure the default user can access the CSS alias."""
-
-    from identity import ensure_default_user
-
-    user = ensure_default_user()
-    ensure_css_alias_for_user(user.id)
-
-
 __all__ = [
     "CSS_ALIAS_NAME",
-    "ensure_css_alias_for_all_users",
     "ensure_css_alias_for_user",
 ]
