@@ -1,6 +1,6 @@
 # Viewer
 
-[![CI](https://github.com/curtcox/Viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/curtcox/Viewer/actions/workflows/ci.yml)
+[![Full Checks](https://github.com/curtcox/Viewer/actions/workflows/full-checks.yml/badge.svg)](https://github.com/curtcox/Viewer/actions/workflows/full-checks.yml)
 
 Viewer is a Flask based web application that focuses on analysing HTTP requests and presenting diagnostics.
 Authentication, subscriptions, and OAuth flows are now handled externally so this project concentrates on content tooling.
