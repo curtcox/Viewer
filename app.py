@@ -64,7 +64,10 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         except LogfireConfigError as exc:
             logfire_reason = str(exc)
             logger.warning("Logfire configuration failed: %s", logfire_reason)
-        except Exception as exc:  # pragma: no cover - defensive guard
+        except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+            # Logfire loads optional integrations dynamically; keep a broad guard so
+            # unexpected configuration/import failures do not crash application
+            # startup in environments where those dependencies are absent.
             logfire_reason = f"Unexpected Logfire error: {exc}"
             logger.exception("Unexpected Logfire configuration failure")
         else:
@@ -79,7 +82,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             for name, instrument in instrumentation_steps:
                 try:
                     instrument()
-                except Exception as exc:  # pragma: no cover - defensive guard
+                except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+                    # Each instrumentation hook may import optional packages or
+                    # inspect environment state; we tolerate any failure here to
+                    # keep the application usable even when observability setup is
+                    # partially misconfigured.
                     logger.warning(
                         "Logfire %s instrumentation failed: %s", name, exc
                     )

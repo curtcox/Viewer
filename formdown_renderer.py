@@ -211,7 +211,7 @@ def _render_heading(node: Heading, *, inside_form: bool = False) -> str:
     classes = ["formdown-heading"]
     if inside_form:
         classes.append("formdown-heading--form")
-    class_attr = " class=\"{}\"".format(" ".join(classes)) if classes else ""
+    class_attr = f' class="{" ".join(classes)}"' if classes else ""
     return f"<h{level}{class_attr}>{html.escape(node.text)}</h{level}>"
 
 
@@ -219,11 +219,11 @@ def _render_paragraph(node: Paragraph, *, inside_form: bool = False) -> str:
     classes = ["formdown-paragraph"]
     if inside_form:
         classes.append("formdown-paragraph--form")
-    class_attr = " class=\"{}\"".format(" ".join(classes)) if classes else ""
+    class_attr = f' class="{" ".join(classes)}"' if classes else ""
     return f"<p{class_attr}>{html.escape(node.text)}</p>"
 
 
-def _render_horizontal_rule(node: HorizontalRule) -> str:
+def _render_horizontal_rule(_node: HorizontalRule) -> str:
     return '<hr class="formdown-separator">'
 
 

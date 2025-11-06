@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
+from sqlalchemy.exc import SQLAlchemyError
 from alias_matching import PatternError, normalise_pattern
 
 # ===== Constants =====
@@ -199,7 +200,7 @@ class DatabaseStrategy(VariableResolutionStrategy):
 
         try:
             variables = get_user_variables(user_id)
-        except Exception as e:  # noqa: BLE001 - broad catch preserves existing behavior
+        except SQLAlchemyError as e:
             logger.warning("Failed to fetch user variables from database: %s", e)
             return None
 
