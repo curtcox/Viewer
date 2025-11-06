@@ -580,6 +580,7 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None)
     <li><a href="gauge-specs/index.html">Gauge HTML report</a></li>
     <li><a href="property-tests/index.html">Property test results</a></li>
     <li><a href="radon/index.html">Radon complexity report</a></li>
+    <li><a href="vulture/index.html">Vulture dead code report</a></li>
   </ul>
 {notice_html}"""
 
@@ -597,6 +598,7 @@ def build_site(
     integration_artifacts: Path | None,
     property_artifacts: Path | None,
     radon_artifacts: Path | None,
+    vulture_artifacts: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
 ) -> None:
@@ -607,12 +609,14 @@ def build_site(
     integration_dir = output_dir / "integration-tests"
     property_dir = output_dir / "property-tests"
     radon_dir = output_dir / "radon"
+    vulture_dir = output_dir / "vulture"
 
     _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
     _copy_artifacts(integration_artifacts, integration_dir)
     _copy_artifacts(property_artifacts, property_dir)
     _copy_artifacts(radon_artifacts, radon_dir)
+    _copy_artifacts(vulture_artifacts, vulture_dir)
 
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
@@ -661,6 +665,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the Radon complexity report artifacts.",
     )
     parser.add_argument(
+        "--vulture-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Vulture dead code report artifacts.",
+    )
+    parser.add_argument(
         "--public-base-url",
         default="https://curtcox.github.io/Viewer",
         help="Base URL where the report site is published.",
@@ -684,6 +694,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         integration_artifacts=parsed.integration_artifacts,
         property_artifacts=parsed.property_artifacts,
         radon_artifacts=parsed.radon_artifacts,
+        vulture_artifacts=parsed.vulture_artifacts,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
     )

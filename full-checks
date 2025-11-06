@@ -6,6 +6,7 @@ export SKIP_QUICK_UNIT=1
 "${REPO_ROOT}/quick-checks"
 "${REPO_ROOT}/scripts/checks/run_uncss_check.sh"
 "${REPO_ROOT}/scripts/checks/run_radon.sh"
+"${REPO_ROOT}/scripts/checks/run_vulture.sh"
 "${REPO_ROOT}/scripts/checks/run_shellcheck.sh"
 "${REPO_ROOT}/scripts/checks/run_hadolint.sh"
 "${REPO_ROOT}/scripts/checks/run_unit_tests_impacted.sh"
