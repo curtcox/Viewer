@@ -1696,6 +1696,15 @@ def _import_aliases_with_names(
     return _impl_import_aliases(user_id, raw_aliases, cid_map)
 
 
+def _import_aliases(
+    user_id: str,
+    raw_aliases: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str]]:
+    count, errors, _names = _impl_import_aliases(user_id, raw_aliases, cid_map)
+    return count, errors
+
+
 def _impl_import_servers(
     user_id: str,
     raw_servers: Any,
