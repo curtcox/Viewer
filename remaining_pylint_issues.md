@@ -7,7 +7,7 @@ The project still has a large number of pylint violations reported in the most r
 - The broad Logfire exception guards are now explicitly documented in code to clarify why the defensive catch-all behaviour is preserved.
 
 ## alias_definition.py
-- `C0415` at line 196: The lazy import of `get_user_variables` prevents a circular dependency on `db_access`. Resolving it likely means restructuring how variable resolution interacts with persistence helpers.
+- No outstanding pylint issues in this module; the previous `C0415` warning was resolved by importing `get_user_variables` directly from `db_access.variables`, which avoids the circular dependency exposed by the package-level re-export.
 
 ## formdown_renderer.py
 - Multiple `W0621` warnings (lines 159-427): Several helper closures reuse the name `field` while shadowing the outer scope. Addressing this would involve refactoring the rendering helpers to pass explicit argument names or extracting the repeated logic into standalone functions.

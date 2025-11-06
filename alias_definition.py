@@ -11,6 +11,13 @@ from flask import has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 from alias_matching import PatternError, normalise_pattern
 
+try:
+    # Import directly from the submodule to avoid circular imports through the
+    # db_access package-level re-exports.
+    from db_access.variables import get_user_variables
+except ImportError:  # pragma: no cover - optional dependency in some tests
+    get_user_variables = None  # type: ignore[assignment]
+
 # ===== Constants =====
 
 INDENT_SPACES_PER_LEVEL = 2
@@ -192,11 +199,11 @@ class DatabaseStrategy(VariableResolutionStrategy):
         if not user_id:
             return None
 
-        try:
-            # Local import avoids circular dependency
-            from db_access import get_user_variables
-        except (ImportError, ModuleNotFoundError) as e:
-            logger.debug("Could not import get_user_variables: %s", e)
+        if get_user_variables is None:
+            logger.debug(
+                "Skipping database variable resolution for user %s: variable helper unavailable",
+                user_id,
+            )
             return None
 
         if not has_app_context():
