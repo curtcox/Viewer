@@ -10,7 +10,7 @@ The project still has a large number of pylint violations reported in the most r
 - No outstanding pylint issues in this module; the previous `C0415` warning was resolved by importing `get_user_variables` directly from `db_access.variables`, which avoids the circular dependency exposed by the package-level re-export.
 
 ## formdown_renderer.py
-- Multiple `W0621` warnings (lines 159-427): Several helper closures reuse the name `field` while shadowing the outer scope. Addressing this would involve refactoring the rendering helpers to pass explicit argument names or extracting the repeated logic into standalone functions.
+- No outstanding pylint issues in this module; aliasing `dataclasses.field` resolved the previous `W0621` warnings about redefining the imported name.
 
 ## response_formats.py
 - `C0415` at line 47: Importing `routes.openapi` within the module avoids import cycles while registering format handlers. Breaking the cycle will likely entail reorganising the OpenAPI helpers.
