@@ -58,4 +58,3 @@ def get_all_servers() -> List[Server]:
 def count_servers() -> int:
     """Return the total count of servers."""
     return Server.query.count()
-

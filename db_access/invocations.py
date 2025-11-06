@@ -138,4 +138,3 @@ def find_server_invocations_by_cid(cid_value: str) -> List[ServerInvocation]:
     ]
 
     return ServerInvocation.query.filter(or_(*filters)).all()
-

@@ -18,4 +18,3 @@ def get_user_profile_data(user_id: str) -> Dict[str, Any]:
         "needs_terms_acceptance": False,
         "current_terms_version": None,
     }
-

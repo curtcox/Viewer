@@ -49,4 +49,3 @@ def normalize_cid_value(value: str | None) -> str:
         return ""
     normalized = value.strip().lstrip("/")
     return normalized
-

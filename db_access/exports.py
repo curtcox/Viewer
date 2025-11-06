@@ -21,4 +21,3 @@ def get_user_exports(user_id: str, limit: int = 100) -> List[Export]:
         .limit(limit)
         .all()
     )
-

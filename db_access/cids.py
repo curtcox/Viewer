@@ -197,4 +197,3 @@ def _replace_cid_text(
     if updated == text:
         return text, False
     return updated, True
-
