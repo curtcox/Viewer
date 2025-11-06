@@ -5,11 +5,14 @@ import csv
 import io
 import json
 import re
+from dataclasses import dataclass
 from html import escape as html_escape, unescape as html_unescape
 from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
 
 from flask import Flask, Response, current_app, g, request
 from werkzeug.datastructures import MIMEAccept
+
+from routes.openapi import openapi_route_rules
 
 SUPPORTED_FORMATS: Mapping[str, str] = {
     "html": "text/html",
@@ -43,8 +46,6 @@ def register_response_format_handlers(app: Flask) -> None:
 
     if app.config.get("RESPONSE_FORMAT_HANDLERS_REGISTERED"):
         return
-
-    from routes.openapi import openapi_route_rules  # Imported lazily to avoid cycles
 
     documented_rules = openapi_route_rules(app)
     base_rules: MutableMapping[str, _RuleDetails] = {}
@@ -134,26 +135,16 @@ def register_response_format_handlers(app: Flask) -> None:
     app.config["RESPONSE_FORMAT_HANDLERS_REGISTERED"] = True
 
 
+@dataclass(slots=True)
 class _RuleDetails:
     """Capture the relevant attributes from a Werkzeug routing rule."""
 
-    __slots__ = ("rule", "methods", "defaults", "subdomain", "strict_slashes", "provide_automatic_options")
-
-    def __init__(
-        self,
-        rule: str,
-        methods: Optional[Sequence[str]],
-        defaults: Optional[Dict[str, Any]],
-        subdomain: Optional[str],
-        strict_slashes: Optional[bool],
-        provide_automatic_options: Optional[bool],
-    ) -> None:
-        self.rule = rule
-        self.methods = list(methods) if methods else None
-        self.defaults = defaults
-        self.subdomain = subdomain
-        self.strict_slashes = strict_slashes
-        self.provide_automatic_options = provide_automatic_options
+    rule: str
+    methods: Optional[list[str]] = None
+    defaults: Optional[Dict[str, Any]] = None
+    subdomain: Optional[str] = None
+    strict_slashes: Optional[bool] = None
+    provide_automatic_options: Optional[bool] = None
 
     @classmethod
     def from_rule(cls, rule: Any) -> "_RuleDetails":  # pragma: no cover - exercised indirectly
@@ -257,7 +248,7 @@ def _convert_response(response: Response, target_format: str) -> Response:
     return response
 
 
-def _convert_to_html(payload: Any, source_format: str, original: str) -> str:
+def _convert_to_html(payload: Any, source_format: str, _original: str) -> str:
     if source_format == "json":
         formatted = json.dumps(payload, indent=2, sort_keys=True)
         return f"<pre>{html_escape(formatted)}</pre>"
@@ -272,13 +263,13 @@ def _convert_to_json(payload: Any, source_format: str, original: str) -> str:
     return json.dumps(envelope)
 
 
-def _convert_to_text(payload: Any, source_format: str, original: str) -> str:
+def _convert_to_text(payload: Any, source_format: str, _original: str) -> str:
     if source_format == "json":
         return json.dumps(payload, indent=2, sort_keys=True)
     return _strip_html(str(payload))
 
 
-def _convert_to_markdown(payload: Any, source_format: str, original: str) -> str:
+def _convert_to_markdown(payload: Any, source_format: str, _original: str) -> str:
     if source_format == "json":
         formatted = json.dumps(payload, indent=2, sort_keys=True)
         return f"```json\n{formatted}\n```"
