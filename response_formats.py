@@ -396,4 +396,3 @@ __all__ = [
     "register_response_format_handlers",
     "resolve_format_from_accept",
 ]
-
