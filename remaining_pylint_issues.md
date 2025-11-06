@@ -13,9 +13,9 @@ The project still has a large number of pylint violations reported in the most r
 - No outstanding pylint issues in this module; aliasing `dataclasses.field` resolved the previous `W0621` warnings about redefining the imported name.
 
 ## response_formats.py
-- `C0415` at line 47: Importing `routes.openapi` within the module avoids import cycles while registering format handlers. Breaking the cycle will likely entail reorganising the OpenAPI helpers.
-- `R0917` at line 142: `render_response` currently accepts seven positional parameters to preserve compatibility with existing callers; reducing the arity would require API adjustments across multiple routes.
-- `W0613` at lines 260, 275, and 281: The unused `original` argument is part of the formatter signature used by calling code. Removing it would necessitate changes to the formatter registry and its consumers.
+- The previous `C0415` warning has been resolved by importing `openapi_route_rules` at module scope after confirming the OpenAPI module no longer depends on `response_formats`.
+- Converting `_RuleDetails` to a dataclass eliminated the earlier `R0917` warning about too many positional arguments in its constructor.
+- Renaming the unused formatter parameters to `_original` resolved the earlier `W0613` notices without changing the call signature.
 
 ## Repository-wide backlog
 - The full pylint report still contains numerous structural warnings (for example, large modules, cyclic imports, and widespread trailing-newline notices). Tackling these will need incremental refactors across the codebase and possibly build-system updates to accommodate new module boundaries.
