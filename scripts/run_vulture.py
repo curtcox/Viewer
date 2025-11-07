@@ -134,8 +134,8 @@ def _build_vulture_command(
     return command
 
 
-def _run_command(command: Sequence[str]) -> tuple[str, int]:
-    """Run a command and return stdout and exit code."""
+def _run_command(command: Sequence[str]) -> tuple[str, str, int]:
+    """Run a command and return stdout, stderr, and exit code."""
     try:
         result = subprocess.run(
             command,
@@ -148,7 +148,7 @@ def _run_command(command: Sequence[str]) -> tuple[str, int]:
             "Vulture is not installed. Run 'pip install vulture' to install it."
         ) from exc
 
-    return result.stdout, result.returncode
+    return result.stdout, result.stderr, result.returncode
 
 
 def _parse_vulture_output(output: str) -> list[DeadCodeEntry]:
@@ -414,7 +414,39 @@ def run(argv: Sequence[str] | None = None) -> int:
     csv_command.append("--sort-by-size")
 
     # Vulture doesn't have a built-in CSV format, so we'll parse the regular output
-    output, exit_code = _run_command(csv_command)
+    output, stderr, exit_code = _run_command(csv_command)
+
+    # Vulture exit codes:
+    # 0 = no dead code found (success)
+    # 1 = file/path errors (e.g., file not found, parse errors)
+    # 2 = invalid arguments/options
+    # 3+ = dead code found (varies based on findings)
+    #
+    # We need to distinguish between "dead code found" (legitimate, don't fail)
+    # and "vulture invocation error" (illegitimate, should fail).
+
+    # Exit code 2 is always invalid arguments
+    if exit_code == 2:
+        error_msg = f"Vulture command failed with invalid arguments (exit code {exit_code})."
+        if stderr.strip():
+            error_msg = f"{error_msg}\nStderr: {stderr.strip()}"
+        if output.strip():
+            error_msg = f"{error_msg}\nStdout: {output.strip()}"
+        raise VultureError(error_msg)
+
+    # For other non-zero exit codes, check if the output looks like an error
+    if exit_code != 0:
+        combined_output = f"{output}\n{stderr}".lower()
+        error_indicators = ["error:", "could not be found", "no such file",
+                           "permission denied", "failed to", "unexpected character"]
+
+        if any(indicator in combined_output for indicator in error_indicators):
+            error_msg = f"Vulture command failed with exit code {exit_code}."
+            if stderr.strip():
+                error_msg = f"{error_msg}\nStderr: {stderr.strip()}"
+            if output.strip():
+                error_msg = f"{error_msg}\nStdout: {output.strip()}"
+            raise VultureError(error_msg)
 
     # Parse the vulture output (format: path:line: message (confidence%))
     entries = _parse_vulture_text_output(output)
