@@ -3,6 +3,8 @@ from flask import Blueprint
 
 main_bp = Blueprint('main', __name__)
 
+# pylint: disable=wrong-import-position
+# Rationale: Blueprint must be created before importing route modules that register with it
 # Import submodules to register routes with the blueprint.
 from . import aliases  # noqa: F401,E402
 from . import core  # noqa: F401,E402

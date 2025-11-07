@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+import sqlite3
 import sys
 
+# Add script directory to path to enable imports from the application
+# This must happen before importing app modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import sqlite3
-
+# pylint: disable=wrong-import-position
+# Rationale: sys.path manipulation required before app imports for standalone migration script
 from app import create_app
 from cid_utils import save_server_definition_as_cid
 from db_access import get_all_servers, save_entity

@@ -1,9 +1,13 @@
 import os
 import unittest
 
+# Set required environment variables before importing app
+# These defaults must be configured before the app is created
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
+# pylint: disable=wrong-import-position
+# Rationale: Environment variables must be set before app initialization
 from app import app, db
 from ai_defaults import ensure_ai_stub_for_user
 from db_access import get_alias_by_name, get_server_by_name
