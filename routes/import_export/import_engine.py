@@ -23,7 +23,8 @@ from .import_entities import (
     import_variables_with_names,
 )
 from .import_sources import ParsedImportPayload, verify_import_source_files
-from cid_utils import format_cid, generate_cid
+from cid_presenter import format_cid
+from cid_utils import generate_cid
 
 
 @dataclass

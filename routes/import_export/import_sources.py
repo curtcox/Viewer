@@ -11,7 +11,8 @@ from forms import ImportForm
 
 from .cid_utils import load_cid_bytes, normalise_cid
 from .filesystem_collection import app_root_path, APP_SOURCE_CATEGORIES
-from cid_utils import format_cid, generate_cid
+from cid_presenter import format_cid
+from cid_utils import generate_cid
 
 
 @dataclass
