@@ -21,7 +21,8 @@ def _coerce_to_bytes(value) -> bytes:
 def _get_current_user_id():
     try:
         user = current_user
-    except Exception:
+    except (RuntimeError, AttributeError):
+        # Handle missing request context or uninitialized user
         return None
 
     user_id = getattr(user, "id", None)

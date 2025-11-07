@@ -22,6 +22,7 @@ from flask import (
     session,
     url_for,
 )
+from sqlalchemy.exc import SQLAlchemyError
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
@@ -72,7 +73,8 @@ def _should_skip_variable_prefetch() -> bool:
 
     try:
         return bool(session.get(VARIABLE_PREFETCH_SESSION_KEY))
-    except Exception:
+    except (RuntimeError, KeyError, AttributeError):
+        # Session access may fail outside request context or with session errors
         return False
 
 
@@ -145,7 +147,8 @@ def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
 
         try:
             return response.get_data(as_text=True)
-        except Exception:
+        except (UnicodeDecodeError, AttributeError, ValueError):
+            # Handle decoding or response access errors
             return None
 
     return None
@@ -173,13 +176,15 @@ def _fetch_variable_content(path: str) -> Optional[str]:
             sess[VARIABLE_PREFETCH_SESSION_KEY] = True
 
         return _fetch_variable_via_client(client, normalized)
-    except Exception:
+    except (RuntimeError, KeyError, AttributeError, ValueError):
+        # Handle session, routing, or attribute access errors
         return None
     finally:
         try:
             with client.session_transaction() as sess:
                 sess.pop(VARIABLE_PREFETCH_SESSION_KEY, None)
-        except Exception:
+        except (RuntimeError, KeyError):
+            # Ignore cleanup failures
             pass
 
     return None
@@ -388,7 +393,7 @@ def _extract_request_body_values() -> Dict[str, Any]:
 
     try:
         json_payload = request.get_json(silent=True)
-    except Exception:  # pragma: no cover - defensive
+    except (UnicodeDecodeError, ValueError):  # pragma: no cover - defensive guard for malformed requests
         json_payload = None
 
     if isinstance(json_payload, dict):
@@ -664,14 +669,16 @@ def _execute_nested_server_to_value(
 
         try:
             result = run_text_function(code_to_run, args_to_use)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            # Catch all exceptions from user code execution
             return _handle_execution_exception(exc, code_to_run, args_to_use, server_name)
 
         output, _ = _normalize_execution_result(result)
         output_bytes = _encode_output(output)
         try:
             return output_bytes.decode("utf-8")
-        except Exception:
+        except (UnicodeDecodeError, AttributeError):
+            # Handle decoding errors by using replacement characters
             return output_bytes.decode("utf-8", errors="replace")
 
 
@@ -718,7 +725,8 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             if cid_record and getattr(cid_record, "file_data", None) is not None:
                 try:
                     return cid_record.file_data.decode("utf-8")
-                except Exception:
+                except (UnicodeDecodeError, AttributeError):
+                    # Handle decoding errors by using replacement characters
                     return cid_record.file_data.decode("utf-8", errors="replace")
 
     return None
@@ -961,7 +969,8 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
         if req_cid_path and not get_cid_by_path(req_cid_path):
             create_cid_record(req_cid_value, req_bytes, user_id)
         req_cid = req_cid_value if req_cid_path else None
-    except Exception:
+    except (TypeError, ValueError, SQLAlchemyError, OSError):
+        # Handle JSON serialization, CID generation, or database errors
         req_cid = None
 
     invocation = create_server_invocation(
@@ -996,7 +1005,8 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
 
         invocation.invocation_cid = inv_cid_value if inv_cid_path else None
         save_entity(invocation)
-    except Exception:
+    except (TypeError, ValueError, AttributeError, SQLAlchemyError, OSError):
+        # Ignore errors when storing invocation metadata
         pass
 
     return invocation
@@ -1011,7 +1021,8 @@ def _encode_output(output: Any) -> bytes:
     if isinstance(output, dict):
         try:
             return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
-        except Exception:
+        except (TypeError, ValueError):
+            # Fall back to string representation for non-JSON-serializable dicts
             return str(output).encode("utf-8")
     # If it's an iterable, try to handle common patterns gracefully
     try:
@@ -1022,7 +1033,8 @@ def _encode_output(output: Any) -> bytes:
             try:
                 if items and any(isinstance(x, (dict, list, tuple)) for x in items):
                     return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
-            except Exception as json_err:
+            except Exception as json_err:  # pylint: disable=broad-exception-caught
+                # Log all JSON encoding failures for debugging user code output
                 print(f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}")
                 print(f"[server_execution] Output type: {type(output).__name__}")
                 print(f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}...")
@@ -1037,8 +1049,8 @@ def _encode_output(output: Any) -> bytes:
             # List of strings -> join then encode
             if all(isinstance(x, str) for x in items):
                 return "".join(items).encode("utf-8")
-    except Exception:
-        # fall back below
+    except (TypeError, ValueError, AttributeError):
+        # Fall back to string representation for non-standard iterables
         pass
 
     # Fallback: encode the string representation
@@ -1055,7 +1067,8 @@ def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, conten
             f"[server_execution] {debug_prefix}: output_type={type(output).__name__}, "
             f"content_type={content_type}, sample={sample}"
         )
-    except Exception as debug_err:
+    except (ValueError, TypeError, AttributeError) as debug_err:
+        # Handle repr() failures or other logging errors gracefully
         suffix = f" {error_suffix}" if error_suffix else ""
         print(
             f"[server_execution] Debug output failed{suffix}: "
@@ -1125,7 +1138,8 @@ def _render_execution_error_html(
     if server_name:
         try:
             server_definition_url = url_for("main.view_server", server_name=server_name)
-        except Exception:
+        except (RuntimeError, ValueError):
+            # Handle routing errors when outside request context
             server_definition_url = None
     else:
         server_definition_url = None
@@ -1133,7 +1147,8 @@ def _render_execution_error_html(
     def _stringify(value: Any) -> str:
         try:
             return str(value)
-        except Exception:
+        except (ValueError, TypeError):
+            # Fall back to repr for non-stringifiable values
             return repr(value)
 
     try:
@@ -1144,7 +1159,8 @@ def _render_execution_error_html(
             sort_keys=True,
             default=_stringify,
         )
-    except Exception:
+    except (TypeError, ValueError):
+        # Handle JSON serialization errors
         args_json = _stringify(args)
 
     return render_template(
@@ -1168,7 +1184,8 @@ def _handle_execution_exception(
         html_content = _render_execution_error_html(exc, code, args, server_name)
         response = make_response(html_content)
         response.headers["Content-Type"] = "text/html; charset=utf-8"
-    except Exception:
+    except (RuntimeError, ValueError, TypeError, AttributeError, OSError):  # pylint: disable=broad-exception-caught
+        # Fall back to plain text if HTML error rendering fails (defensive fallback for error handling)
         text = (
             str(exc)
             + "\n\n"
@@ -1223,7 +1240,8 @@ def _execute_server_code_common(
             content_type = "text/html"
         _log_server_output(debug_prefix, error_suffix, output, content_type)
         return _handle_successful_execution(output, content_type, server_name)
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        # Top-level exception handler for all user code execution errors
         return _handle_execution_exception(exc, code, args, server_name)
 
 

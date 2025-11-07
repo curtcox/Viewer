@@ -76,7 +76,7 @@ def decrypt_secret_value(ciphertext_token: str, key: str) -> str:
 
     try:
         raw = base64.urlsafe_b64decode(ciphertext_token.encode("utf-8"))
-    except Exception as exc:  # pragma: no cover - base64 handles specifics
+    except (ValueError, TypeError) as exc:  # pragma: no cover - base64 decoding errors
         raise ValueError("Invalid encrypted secret payload") from exc
 
     if len(raw) < _SECRET_IV_SIZE + _SECRET_MAC_SIZE:

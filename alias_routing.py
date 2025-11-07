@@ -8,6 +8,7 @@ from typing import Any, Generator, Iterable, Optional
 from urllib.parse import urlsplit
 
 from flask import Response, redirect, request
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import Map, Rule
 
@@ -89,7 +90,7 @@ def _user_variable_map(user_id: str | None) -> dict[str, str]:
 
     try:
         variables = get_user_variables(user_id)
-    except Exception:  # pragma: no cover - defensive guard for unexpected database errors
+    except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive guard for database errors
         return {}
 
     result: dict[str, str] = {}
@@ -312,7 +313,7 @@ def _resolve_flask_target(route: AliasRouteRule, path: str) -> str:
         _, values = adapter.match(path, method="GET")
     except (NotFound, MethodNotAllowed):
         return target
-    except Exception:  # pragma: no cover - defensive guard mirroring normal matching
+    except (ValueError, RuntimeError, AttributeError):  # pragma: no cover - defensive guard for malformed patterns
         return target
 
     def _replace(match: re.Match[str]) -> str:

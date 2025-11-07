@@ -55,5 +55,6 @@ def highlight_source(
         highlighted = highlight(content, lexer, formatter)
         css = formatter.get_style_defs(".codehilite")
         return highlighted, css
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
+        # Handle pygments errors gracefully
         return None, None

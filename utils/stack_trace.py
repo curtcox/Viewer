@@ -89,7 +89,8 @@ class StackTraceBuilder:
                         project_files.add(relative)
                     except ValueError:
                         continue
-        except Exception:
+        except (OSError, ValueError, AttributeError):
+            # Handle filesystem errors gracefully
             pass
 
         return frozenset(project_files)

@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 import logfire
 from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
+from sqlalchemy.exc import SQLAlchemyError
 
 from alias_definition import (
     AliasDefinitionError,
@@ -733,7 +734,7 @@ def alias_definition_status():
 
     try:
         variables = get_user_variables(current_user.id)
-    except Exception:  # pragma: no cover - defensive fallback when database fails
+    except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive fallback when database fails
         variables = []
 
     variable_map: dict[str, str] = {}
