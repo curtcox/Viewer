@@ -23,6 +23,7 @@ from flask import (
     url_for,
 )
 from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.routing import BuildError
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
@@ -1138,8 +1139,8 @@ def _render_execution_error_html(
     if server_name:
         try:
             server_definition_url = url_for("main.view_server", server_name=server_name)
-        except (RuntimeError, ValueError):
-            # Handle routing errors when outside request context
+        except (RuntimeError, ValueError, BuildError):
+            # Handle routing errors when outside request context or in test environments
             server_definition_url = None
     else:
         server_definition_url = None
@@ -1184,8 +1185,9 @@ def _handle_execution_exception(
         html_content = _render_execution_error_html(exc, code, args, server_name)
         response = make_response(html_content)
         response.headers["Content-Type"] = "text/html; charset=utf-8"
-    except (RuntimeError, ValueError, TypeError, AttributeError, OSError):  # pylint: disable=broad-exception-caught
-        # Fall back to plain text if HTML error rendering fails (defensive fallback for error handling)
+    except Exception:  # pylint: disable=broad-exception-caught
+        # Last-resort fallback: catch all exceptions including Jinja TemplateError, BuildError, etc.
+        # This is essential to prevent unhandled exceptions when the error page itself fails to render.
         text = (
             str(exc)
             + "\n\n"

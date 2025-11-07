@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from flask import Response, redirect, request
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import MethodNotAllowed, NotFound
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, RequestRedirect, Rule
 
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
@@ -313,7 +313,7 @@ def _resolve_flask_target(route: AliasRouteRule, path: str) -> str:
         _, values = adapter.match(path, method="GET")
     except (NotFound, MethodNotAllowed):
         return target
-    except (ValueError, RuntimeError, AttributeError):  # pragma: no cover - defensive guard for malformed patterns
+    except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
         return target
 
     def _replace(match: re.Match[str]) -> str:

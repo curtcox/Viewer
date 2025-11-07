@@ -6,7 +6,7 @@ import re
 from typing import Iterable
 
 from werkzeug.exceptions import MethodNotAllowed, NotFound
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, RequestRedirect, Rule
 
 
 class PatternError(ValueError):
@@ -129,7 +129,7 @@ def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = F
             adapter.match(candidate, method="GET")
         except (NotFound, MethodNotAllowed):
             return False
-        except (ValueError, RuntimeError, AttributeError):  # pragma: no cover - defensive guard for malformed patterns
+        except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
             return False
         return True
 

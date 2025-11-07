@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
 import requests
+from sqlalchemy.exc import SQLAlchemyError
 
 try:
     import markdown  # type: ignore
@@ -418,8 +419,8 @@ class MermaidRenderer:
             # Create new CID record
             ensure_cid_exists(cid_value, svg_bytes, user_id)
             return MermaidRenderLocation(is_cid=True, value=cid_value)
-        except (ValueError, OSError, AttributeError):
-            # Fall back gracefully if CID storage fails
+        except (ValueError, OSError, AttributeError, SQLAlchemyError):
+            # Fall back gracefully if CID storage fails (database or filesystem errors)
             return None
 
     @staticmethod
