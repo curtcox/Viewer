@@ -5,10 +5,12 @@ Database inspection script for the Viewer application
 import sys
 from datetime import datetime
 
-# Add current directory to path
+# Add current directory to path to enable imports from the application
+# This must happen before importing app modules
 sys.path.insert(0, '.')
 
-# Import Flask app and models
+# pylint: disable=wrong-import-position
+# Rationale: sys.path manipulation required before app imports for standalone script
 from app import create_app
 from db_access import (
     count_cids,
