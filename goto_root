@@ -7,10 +7,10 @@ MAX_ITERATIONS=5
 
 for i in $(seq 1 $MAX_ITERATIONS); do
     if [ -f "requirements.txt" ]; then
-        exit 0
+        return 0
     fi
     cd ..
 done
 
 echo "Error: requirements.txt not found after checking $MAX_ITERATIONS parent directories" >&2
-exit 1
+return 1
