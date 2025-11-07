@@ -7,15 +7,10 @@ the database, including support for server, variable, and secret definitions.
 import json
 from typing import Any, Optional
 
+import db_access
+
 from cid_core import generate_cid
 from cid_presenter import cid_path, format_cid
-from db_access import (
-    create_cid_record,
-    get_cid_by_path,
-    get_user_secrets,
-    get_user_servers,
-    get_user_variables,
-)
 
 
 # ============================================================================
@@ -31,9 +26,18 @@ def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[st
         user_id: User ID for ownership (optional)
     """
     cid_record_path = cid_path(cid_value)
-    content = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not content:
-        create_cid_record(cid_value, content_bytes, user_id)
+    try:
+        content = db_access.get_cid_by_path(cid_record_path) if cid_record_path else None
+    except RuntimeError:
+        return
+
+    if content:
+        return
+
+    try:
+        db_access.create_cid_record(cid_value, content_bytes, user_id)
+    except RuntimeError:
+        return
 
 
 def get_cid_content(path: str) -> Any:
@@ -45,7 +49,10 @@ def get_cid_content(path: str) -> Any:
     Returns:
         CID content record or None if not found
     """
-    return get_cid_by_path(path)
+    try:
+        return db_access.get_cid_by_path(path)
+    except RuntimeError:
+        return None
 
 
 def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int]) -> str:
@@ -105,7 +112,10 @@ def generate_all_server_definitions_json(user_id: int) -> str:
         >>> isinstance(json_str, str)
         True
     """
-    servers = get_user_servers(user_id)
+    try:
+        servers = db_access.get_user_servers(user_id)
+    except RuntimeError:
+        return json.dumps({}, indent=2, sort_keys=True)
 
     server_definitions = {}
     for server in servers:
@@ -164,7 +174,10 @@ def generate_all_variable_definitions_json(user_id: int) -> str:
     Returns:
         JSON string with variable definitions
     """
-    variables = get_user_variables(user_id)
+    try:
+        variables = db_access.get_user_variables(user_id)
+    except RuntimeError:
+        return json.dumps({}, indent=2, sort_keys=True)
 
     variable_definitions = {}
     for variable in variables:
@@ -223,7 +236,10 @@ def generate_all_secret_definitions_json(user_id: int) -> str:
     Returns:
         JSON string with secret definitions
     """
-    secrets = get_user_secrets(user_id)
+    try:
+        secrets = db_access.get_user_secrets(user_id)
+    except RuntimeError:
+        return json.dumps({}, indent=2, sort_keys=True)
 
     secret_definitions = {}
     for secret in secrets:
