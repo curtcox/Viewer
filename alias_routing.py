@@ -90,7 +90,7 @@ def _user_variable_map(user_id: str | None) -> dict[str, str]:
 
     try:
         variables = get_user_variables(user_id)
-    except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive guard for database errors
+    except (SQLAlchemyError, AttributeError, RuntimeError):  # pragma: no cover - defensive guard for database errors and missing app context
         return {}
 
     result: dict[str, str] = {}
