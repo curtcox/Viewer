@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Script to navigate to the repository root by finding requirements.txt
+# Searches up to 5 parent directories
+
+MAX_ITERATIONS=5
+
+for i in $(seq 1 $MAX_ITERATIONS); do
+    if [ -f "requirements.txt" ]; then
+        return 0
+    fi
+    cd ..
+done
+
+echo "Error: requirements.txt not found after checking $MAX_ITERATIONS parent directories" >&2
+return 1
