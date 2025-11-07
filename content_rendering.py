@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
 import requests
+from sqlalchemy.exc import SQLAlchemyError
 
 try:
     import markdown  # type: ignore
@@ -357,8 +358,8 @@ class MermaidRenderer:
         location: Optional[MermaidRenderLocation]
         try:
             svg_bytes = self._fetch_svg(normalized)
-        except Exception:
-            # Fall back to remote rendering
+        except (requests.RequestException, ValueError, OSError, RuntimeError):
+            # Fall back to remote rendering on network, processing, or runtime errors
             location = self._remote_location(normalized)
         else:
             if not svg_bytes:
@@ -418,7 +419,8 @@ class MermaidRenderer:
             # Create new CID record
             ensure_cid_exists(cid_value, svg_bytes, user_id)
             return MermaidRenderLocation(is_cid=True, value=cid_value)
-        except Exception:
+        except (ValueError, OSError, AttributeError, SQLAlchemyError):
+            # Fall back gracefully if CID storage fails (database or filesystem errors)
             return None
 
     @staticmethod
@@ -502,8 +504,8 @@ def replace_mermaid_fences(text: str) -> Tuple[str, bool]:
         diagram_source = (match.group(3) or "").rstrip("\n")
         try:
             figure_html = _mermaid_renderer.render_html(diagram_source)
-        except (MermaidRenderingError, Exception):
-            # Keep original fence if rendering fails
+        except (MermaidRenderingError, Exception):  # pylint: disable=broad-exception-caught
+            # Keep original fence if any rendering error occurs (defensive fallback)
             return match.group(0)
         found = True
         return f"{prefix}{indent}{figure_html}"

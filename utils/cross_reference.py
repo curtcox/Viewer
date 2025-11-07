@@ -52,7 +52,8 @@ def _preview_text_from_bytes(data: Optional[bytes]) -> PreviewResult:
         snippet = data.decode('utf-8', errors='replace')
         preview = snippet[:20].replace('\n', ' ').replace('\r', ' ')
         return PreviewResult(preview, len(snippet) > 20)
-    except Exception:
+    except (UnicodeDecodeError, AttributeError):
+        # Fall back to hex preview for non-text data
         hex_preview = data[:10].hex()
         return PreviewResult(hex_preview, len(data or b'') > 10)
 

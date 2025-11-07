@@ -8,10 +8,20 @@
      - `tests/test_ai_stub_server.py`: Environment variables must be set before app initialization
      - `routes/__init__.py`: Blueprint must be created before importing route modules
 
-2. Replace broad `except Exception` handlers with precise error management.
-   - Catalogue each `W0718` site across core logic (`alias_matching.py`, `alias_routing.py`, `analytics.py`, `content_rendering.py`, `server_execution.py`, etc.), route handlers, scripts, and tests.
-   - For each block, determine the specific exceptions that should be caught or restructure the code to avoid blanket suppression; only retain broad handlers with explicit justification comments and `# pylint: disable=broad-exception-caught` markers.
-   - Add regression tests where behaviour changes so the narrower exception handling is covered.
+2. ~~Replace broad `except Exception` handlers with precise error management.~~ **MAJOR PROGRESS**
+   - ✅ **Core modules completed**: `alias_matching.py`, `alias_routing.py`, `analytics.py`, `content_rendering.py`, `encryption.py`
+     - Replaced broad exceptions with specific types: `ValueError`, `TypeError`, `RuntimeError`, `AttributeError`
+   - ✅ **Server execution completed**: `server_execution.py`
+     - Added specific exceptions where appropriate: `UnicodeDecodeError`, `ValueError`, `TypeError`, `SQLAlchemyError`, `OSError`
+     - Added `# pylint: disable=broad-exception-caught` with justifications for legitimate cases (user code execution, error handling fallbacks)
+   - ✅ **Utility modules completed**: `utils/cross_reference.py`, `utils/stack_trace.py`, `syntax_highlighting.py`, `text_function_runner.py`
+   - ✅ **Database access**: `routes/aliases.py` - Added SQLAlchemyError handling
+   - **Remaining work** (lower priority):
+     - Route handlers: ~13 instances in `routes/error_handlers.py`, `routes/history.py`, `routes/import_export.py`, `routes/route_details.py`, `routes/search.py`, `routes/source.py`, `routes/uploads.py`
+     - Scripts: ~4 instances in `migrate_add_server_cid.py`, `scripts/verify-chromium.py`, `scripts/test-browser-launch.py`
+     - Test support: ~6 instances in `step_impl/artifacts.py`, `db_access/aliases.py`
+     - Test files: ~25 instances in various test files (lowest priority)
+   - **Impact**: Most core business logic now uses specific exceptions, significantly improving error clarity and reducing false-positive error catching
 
 3. Decompose oversized and high-complexity route and execution modules.
    - Split `server_execution.py`, `routes/import_export.py`, `routes/meta.py`, and `routes/openapi.py` into cohesive submodules to drop below the `C0302` module-length threshold and expose clearer public APIs.

@@ -6,7 +6,7 @@ import re
 from typing import Iterable
 
 from werkzeug.exceptions import MethodNotAllowed, NotFound
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, RequestRedirect, Rule
 
 
 class PatternError(ValueError):
@@ -75,7 +75,7 @@ def normalise_pattern(match_type: str, pattern: str | None, fallback_name: str |
         cleaned = _ensure_leading_slash(raw_pattern)
         try:
             Rule(cleaned)
-        except Exception as exc:  # pragma: no cover - werkzeug provides descriptive errors
+        except (ValueError, TypeError) as exc:  # pragma: no cover - werkzeug provides descriptive errors
             raise PatternError(f"Invalid Flask pattern: {exc}") from exc
         return cleaned
 
@@ -129,7 +129,7 @@ def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = F
             adapter.match(candidate, method="GET")
         except (NotFound, MethodNotAllowed):
             return False
-        except Exception:  # pragma: no cover - defensive guard
+        except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
             return False
         return True
 

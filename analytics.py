@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from flask import Response, request, session
 from flask_sqlalchemy.pagination import Pagination
+from sqlalchemy.exc import SQLAlchemyError
 
 from db_access import (
     count_unique_page_view_paths,
@@ -56,8 +57,8 @@ def track_page_view(response: Response) -> Response:
         if should_track_page_view(response):
             page_view = create_page_view_record()
             save_page_view(page_view)
-    except Exception:
-        # Don't let tracking errors break the request
+    except (SQLAlchemyError, AttributeError, RuntimeError):
+        # Don't let tracking errors break the request (database, attribute, or runtime errors)
         rollback_session()
 
     return response
