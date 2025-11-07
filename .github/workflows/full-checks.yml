@@ -474,7 +474,7 @@ jobs:
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.CI_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
