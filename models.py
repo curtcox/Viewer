@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from alias_definition import get_primary_alias_route
 from database import db
 
 
@@ -58,8 +59,6 @@ class Alias(db.Model):
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
 
     def get_effective_pattern(self) -> str:
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         if route and route.match_pattern:
             return route.match_pattern
@@ -68,8 +67,6 @@ class Alias(db.Model):
 
     @property
     def match_type(self) -> str:
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         return route.match_type if route else 'literal'
 
@@ -79,22 +76,16 @@ class Alias(db.Model):
 
     @property
     def target_path(self) -> Optional[str]:
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         return route.target_path if route else None
 
     @property
     def ignore_case(self) -> bool:
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         return bool(route.ignore_case) if route else False
 
     def get_primary_target_path(self) -> str:
         """Get the target path from the primary alias rule."""
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         if route and route.target_path:
             return route.target_path
@@ -105,15 +96,11 @@ class Alias(db.Model):
 
     def get_primary_match_type(self) -> str:
         """Get the match type from the primary alias rule."""
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         return route.match_type if route else 'literal'
 
     def get_primary_match_pattern(self) -> str:
         """Get the match pattern from the primary alias rule."""
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         if route and route.match_pattern:
             return route.match_pattern
@@ -124,8 +111,6 @@ class Alias(db.Model):
 
     def get_primary_ignore_case(self) -> bool:
         """Get the ignore_case flag from the primary alias rule."""
-        from alias_definition import get_primary_alias_route
-
         route = get_primary_alias_route(self)
         return bool(route.ignore_case) if route else False
 

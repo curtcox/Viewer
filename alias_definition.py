@@ -4,19 +4,47 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
 from urllib.parse import urlsplit
 
 from flask import has_app_context
 from sqlalchemy.exc import SQLAlchemyError
 from alias_matching import PatternError, normalise_pattern
 
-try:
-    # Import directly from the submodule to avoid circular imports through the
-    # db_access package-level re-exports.
-    from db_access.variables import get_user_variables
-except ImportError:  # pragma: no cover - optional dependency in some tests
-    get_user_variables = None  # type: ignore[assignment]
+# ===== Deferred imports =====
+
+_GetUserVariables = Callable[[str], Iterable[Any]]
+_get_user_variables: Optional[_GetUserVariables] = None
+_variables_unavailable: bool = False
+
+
+def _resolve_get_user_variables() -> Optional[_GetUserVariables]:
+    """Return the database helper, retrying if dependencies were mid-import."""
+
+    global _get_user_variables, _variables_unavailable
+
+    if _get_user_variables is not None:
+        return _get_user_variables
+
+    if _variables_unavailable:
+        return None
+
+    try:
+        # Import directly from the submodule to avoid circular imports through the
+        # db_access package-level re-exports.
+        from db_access.variables import get_user_variables as resolved
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency in some tests
+        _variables_unavailable = True
+        return None
+    except ImportError as error:  # pragma: no cover - circular import window
+        logger.debug(
+            "Delaying get_user_variables import until dependencies are ready: %s",
+            error,
+        )
+        return None
+
+    _get_user_variables = resolved
+    return resolved
 
 # ===== Constants =====
 
@@ -199,7 +227,9 @@ class DatabaseStrategy(VariableResolutionStrategy):
         if not user_id:
             return None
 
-        if get_user_variables is None:
+        resolver = _resolve_get_user_variables()
+
+        if resolver is None:
             logger.debug(
                 "Skipping database variable resolution for user %s: variable helper unavailable",
                 user_id,
@@ -214,7 +244,7 @@ class DatabaseStrategy(VariableResolutionStrategy):
             return None
 
         try:
-            variables = get_user_variables(user_id)
+            variables = resolver(user_id)
         except SQLAlchemyError as e:
             logger.warning("Failed to fetch user variables from database: %s", e)
             return None

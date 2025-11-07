@@ -126,7 +126,9 @@ except ModuleNotFoundError as exc:  # pragma: no cover
 else:
     _qrcode_import_error = None
 
-# Import for compatibility with db_access lazy loading pattern
+# Import for compatibility with historical APIs. These symbols are no longer
+# required by :mod:`cid_storage`, but they remain available so imports from
+# legacy extensions continue to resolve without raising ImportError.
 try:
     from db_access import (
         create_cid_record,
@@ -141,33 +143,6 @@ except (RuntimeError, ImportError):
     get_user_servers = None
     get_user_variables = None
     get_user_secrets = None
-
-
-def _ensure_db_access():
-    """Legacy function for lazy database access initialization.
-
-    This function is kept for backward compatibility but is no longer needed
-    as the new cid_storage module handles database access internally.
-    """
-    # pylint: disable=global-statement
-    global create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets
-    if None in (create_cid_record, get_cid_by_path, get_user_servers, get_user_variables, get_user_secrets):
-        from db_access import create_cid_record as _create_cid_record
-        from db_access import get_cid_by_path as _get_cid_by_path
-        from db_access import get_user_secrets as _get_user_secrets
-        from db_access import get_user_servers as _get_user_servers
-        from db_access import get_user_variables as _get_user_variables
-
-        if create_cid_record is None:
-            create_cid_record = _create_cid_record
-        if get_cid_by_path is None:
-            get_cid_by_path = _get_cid_by_path
-        if get_user_servers is None:
-            get_user_servers = _get_user_servers
-        if get_user_variables is None:
-            get_user_variables = _get_user_variables
-        if get_user_secrets is None:
-            get_user_secrets = _get_user_secrets
 
 
 # Legacy pattern support for save_server_definition_as_cid

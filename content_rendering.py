@@ -23,6 +23,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover
 
 from cid_core import generate_cid, base64url_encode
 from cid_presenter import cid_path, format_cid
+from cid_storage import ensure_cid_exists, get_cid_content
 from formdown_renderer import render_formdown_html
 
 
@@ -407,9 +408,6 @@ class MermaidRenderer:
             Location object or None if storage fails
         """
         try:
-            # Import here to avoid circular dependency
-            from cid_storage import ensure_cid_exists, get_cid_content
-
             cid_value = format_cid(generate_cid(svg_bytes))
             path = cid_path(cid_value)
 

@@ -90,16 +90,6 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
     return True
 
 
-def ensure_ai_stub_for_all_users() -> None:
-    """Ensure the default user can use the AI stub without additional setup."""
-
-    from identity import ensure_default_user
-
-    user = ensure_default_user()
-    ensure_ai_stub_for_user(user.id)
-
-
 __all__ = [
-    "ensure_ai_stub_for_all_users",
     "ensure_ai_stub_for_user",
 ]

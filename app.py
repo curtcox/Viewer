@@ -10,9 +10,9 @@ from flask import Flask
 from logfire.exceptions import LogfireConfigError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from ai_defaults import ensure_ai_stub_for_all_users
+import models  # noqa: F401  # pylint: disable=unused-import
+
 from analytics import make_session_permanent, track_page_view
-from css_defaults import ensure_css_alias_for_all_users
 from cid_directory_loader import load_cids_from_directory
 from cid_presenter import (
     cid_full_url,
@@ -24,7 +24,7 @@ from cid_presenter import (
     render_cid_link,
 )
 from database import db, init_db
-from identity import current_user, ensure_default_user
+from identity import current_user, ensure_default_user, ensure_default_user_resources
 from link_presenter import (
     alias_full_url,
     alias_path,
@@ -190,8 +190,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     force_custom_error_handling()
 
     with flask_app.app_context():
-        import models  # noqa: F401  # pylint: disable=unused-import  # ensure models are registered
-
         db.create_all()
         logging.info("Database tables created")
 
@@ -211,8 +209,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
         }
 
-        ensure_ai_stub_for_all_users()
-        ensure_css_alias_for_all_users()
+        ensure_default_user_resources()
 
     return flask_app
 

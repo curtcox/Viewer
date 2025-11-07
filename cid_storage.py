@@ -7,47 +7,10 @@ the database, including support for server, variable, and secret definitions.
 import json
 from typing import Any, Optional
 
+import db_access
+
 from cid_core import generate_cid
 from cid_presenter import cid_path, format_cid
-
-
-# ============================================================================
-# DATABASE ACCESS SETUP
-# ============================================================================
-
-# Database access functions (lazy-loaded to avoid circular dependencies)
-_create_cid_record = None
-_get_cid_by_path = None
-_get_user_servers = None
-_get_user_variables = None
-_get_user_secrets = None
-
-
-def _ensure_db_access() -> None:
-    """Lazily import database access functions to avoid circular dependencies."""
-    # pylint: disable=global-statement
-    global _create_cid_record, _get_cid_by_path, _get_user_servers
-    global _get_user_variables, _get_user_secrets
-
-    if None in (_create_cid_record, _get_cid_by_path, _get_user_servers,
-                _get_user_variables, _get_user_secrets):
-        try:
-            from db_access import (
-                create_cid_record,
-                get_cid_by_path,
-                get_user_secrets,
-                get_user_servers,
-                get_user_variables,
-            )
-
-            _create_cid_record = create_cid_record
-            _get_cid_by_path = get_cid_by_path
-            _get_user_servers = get_user_servers
-            _get_user_variables = get_user_variables
-            _get_user_secrets = get_user_secrets
-        except (RuntimeError, ImportError):
-            # Database not available
-            pass
 
 
 # ============================================================================
@@ -62,14 +25,19 @@ def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[st
         content_bytes: Content to store
         user_id: User ID for ownership (optional)
     """
-    _ensure_db_access()
-    if _create_cid_record is None or _get_cid_by_path is None:
+    cid_record_path = cid_path(cid_value)
+    try:
+        content = db_access.get_cid_by_path(cid_record_path) if cid_record_path else None
+    except RuntimeError:
         return
 
-    cid_record_path = cid_path(cid_value)
-    content = _get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not content:
-        _create_cid_record(cid_value, content_bytes, user_id)
+    if content:
+        return
+
+    try:
+        db_access.create_cid_record(cid_value, content_bytes, user_id)
+    except RuntimeError:
+        return
 
 
 def get_cid_content(path: str) -> Any:
@@ -81,10 +49,10 @@ def get_cid_content(path: str) -> Any:
     Returns:
         CID content record or None if not found
     """
-    _ensure_db_access()
-    if _get_cid_by_path is None:
+    try:
+        return db_access.get_cid_by_path(path)
+    except RuntimeError:
         return None
-    return _get_cid_by_path(path)
 
 
 def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int]) -> str:
@@ -144,11 +112,10 @@ def generate_all_server_definitions_json(user_id: int) -> str:
         >>> isinstance(json_str, str)
         True
     """
-    _ensure_db_access()
-    if _get_user_servers is None:
+    try:
+        servers = db_access.get_user_servers(user_id)
+    except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
-
-    servers = _get_user_servers(user_id)
 
     server_definitions = {}
     for server in servers:
@@ -207,11 +174,10 @@ def generate_all_variable_definitions_json(user_id: int) -> str:
     Returns:
         JSON string with variable definitions
     """
-    _ensure_db_access()
-    if _get_user_variables is None:
+    try:
+        variables = db_access.get_user_variables(user_id)
+    except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
-
-    variables = _get_user_variables(user_id)
 
     variable_definitions = {}
     for variable in variables:
@@ -270,11 +236,10 @@ def generate_all_secret_definitions_json(user_id: int) -> str:
     Returns:
         JSON string with secret definitions
     """
-    _ensure_db_access()
-    if _get_user_secrets is None:
+    try:
+        secrets = db_access.get_user_secrets(user_id)
+    except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
-
-    secrets = _get_user_secrets(user_id)
 
     secret_definitions = {}
     for secret in secrets:
