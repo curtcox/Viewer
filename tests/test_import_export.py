@@ -1357,19 +1357,20 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
             with self.app.app_context():
                 with ExitStack() as stack:
-                    stack.enter_context(patch('routes.import_export._app_root_path', return_value=base_path))
-                    stack.enter_context(patch('routes.import_export.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
-                    stack.enter_context(patch('routes.import_export.get_user_servers', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_variables', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_secrets', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_uploads', return_value=[]))
-                    stack.enter_context(patch('routes.import_export._gather_change_history', return_value={}))
-                    stack.enter_context(patch('routes.import_export.store_cid_from_bytes', side_effect=store_bytes_stub))
-                    stack.enter_context(patch('routes.import_export.cid_path', return_value='/downloads/export.json'))
+                    stack.enter_context(patch('routes.import_export.filesystem_collection.app_root_path', return_value=base_path))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_servers', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_variables', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_secrets', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_engine.get_user_uploads', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.change_history.gather_change_history', return_value={}))
+                    stack.enter_context(patch('routes.import_export.cid_utils.store_cid_from_bytes', side_effect=store_bytes_stub))
+                    stack.enter_context(patch('routes.import_export.export_engine.cid_path', return_value='/downloads/export.json'))
 
                     with self.app.test_request_context():
                         form = ExportForm()
                         form.include_aliases.data = True
+                        form.selected_aliases.data = ['example']
                         form.include_disabled_aliases.data = False
                         form.include_template_aliases.data = False
                         form.include_cid_map.data = True
