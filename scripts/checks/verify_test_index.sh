@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-REPO_ROOT=$(cd "${SCRIPT_DIR}/../.." && pwd)
-cd "${REPO_ROOT}"
+cd "${SCRIPT_DIR}"
+source ../../goto_root
 python generate_test_index.py
 bash scripts/check-test-index.sh
