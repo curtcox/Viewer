@@ -358,8 +358,8 @@ class MermaidRenderer:
         location: Optional[MermaidRenderLocation]
         try:
             svg_bytes = self._fetch_svg(normalized)
-        except (requests.RequestException, ValueError, OSError):
-            # Fall back to remote rendering on network or processing errors
+        except (requests.RequestException, ValueError, OSError, RuntimeError):
+            # Fall back to remote rendering on network, processing, or runtime errors
             location = self._remote_location(normalized)
         else:
             if not svg_bytes:
