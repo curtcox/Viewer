@@ -50,8 +50,11 @@ class ImportExportRoutesTestCase(unittest.TestCase):
     @contextmanager
     def logged_in(self):
         with ExitStack() as stack:
-            route_user = stack.enter_context(patch('routes.import_export.current_user'))
+            # Patch current_user where it's actually used in the route handlers and import engine
+            route_user = stack.enter_context(patch('routes.import_export.routes.current_user'))
             self._login_patch(route_user)
+            import_user = stack.enter_context(patch('routes.import_export.import_engine.current_user'))
+            self._login_patch(import_user)
             yield
 
     def assert_flash_present(self, message: str, response_data: bytes):
@@ -152,7 +155,7 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             with ExitStack() as stack:
                 mock_builder = stack.enter_context(
                     patch(
-                        'routes.import_export._build_export_payload',
+                        'routes.import_export.routes.build_export_payload',
                         return_value={'json_payload': '{"size": 1}'},
                     )
                 )
@@ -457,18 +460,31 @@ class ImportExportRoutesTestCase(unittest.TestCase):
         variable_entries = self._load_section(payload, 'variables')
         secrets_section = self._load_section(payload, 'secrets')
 
-        self.assertFalse(alias_entries[0]['enabled'])
-        self.assertIn('template', alias_entries[0])
-        self.assertFalse(alias_entries[0]['template'])
-        self.assertFalse(server_entries[0]['enabled'])
-        self.assertIn('template', server_entries[0])
-        self.assertFalse(server_entries[0]['template'])
-        self.assertFalse(variable_entries[0]['enabled'])
-        self.assertIn('template', variable_entries[0])
-        self.assertFalse(variable_entries[0]['template'])
-        self.assertFalse(secrets_section['items'][0]['enabled'])
-        self.assertIn('template', secrets_section['items'][0])
-        self.assertFalse(secrets_section['items'][0]['template'])
+        # Find the specific disabled items by name (not just [0] which might be default items)
+        disabled_alias = next((a for a in alias_entries if a['name'] == 'alias-disabled'), None)
+        disabled_server = next((s for s in server_entries if s['name'] == 'server-disabled'), None)
+        disabled_variable = next((v for v in variable_entries if v['name'] == 'variable-disabled'), None)
+        disabled_secret = next((s for s in secrets_section['items'] if s['name'] == 'secret-disabled'), None)
+
+        # Verify the disabled items were exported
+        self.assertIsNotNone(disabled_alias, "Disabled alias should be in export")
+        self.assertIsNotNone(disabled_server, "Disabled server should be in export")
+        self.assertIsNotNone(disabled_variable, "Disabled variable should be in export")
+        self.assertIsNotNone(disabled_secret, "Disabled secret should be in export")
+
+        # Verify the disabled flag is preserved
+        self.assertFalse(disabled_alias['enabled'])
+        self.assertIn('template', disabled_alias)
+        self.assertFalse(disabled_alias['template'])
+        self.assertFalse(disabled_server['enabled'])
+        self.assertIn('template', disabled_server)
+        self.assertFalse(disabled_server['template'])
+        self.assertFalse(disabled_variable['enabled'])
+        self.assertIn('template', disabled_variable)
+        self.assertFalse(disabled_variable['template'])
+        self.assertFalse(disabled_secret['enabled'])
+        self.assertIn('template', disabled_secret)
+        self.assertFalse(disabled_secret['template'])
 
         with self.app.app_context():
             Alias.query.delete()
@@ -1357,19 +1373,20 @@ class ImportExportRoutesTestCase(unittest.TestCase):
 
             with self.app.app_context():
                 with ExitStack() as stack:
-                    stack.enter_context(patch('routes.import_export._app_root_path', return_value=base_path))
-                    stack.enter_context(patch('routes.import_export.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
-                    stack.enter_context(patch('routes.import_export.get_user_servers', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_variables', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_secrets', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.get_user_uploads', return_value=[]))
-                    stack.enter_context(patch('routes.import_export._gather_change_history', return_value={}))
-                    stack.enter_context(patch('routes.import_export.store_cid_from_bytes', side_effect=store_bytes_stub))
-                    stack.enter_context(patch('routes.import_export.cid_path', return_value='/downloads/export.json'))
+                    stack.enter_context(patch('routes.import_export.filesystem_collection.app_root_path', return_value=base_path))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_servers', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_variables', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_user_secrets', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_engine.get_user_uploads', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.change_history.gather_change_history', return_value={}))
+                    stack.enter_context(patch('routes.import_export.cid_utils.store_cid_from_bytes', side_effect=store_bytes_stub))
+                    stack.enter_context(patch('routes.import_export.export_engine.cid_path', return_value='/downloads/export.json'))
 
                     with self.app.test_request_context():
                         form = ExportForm()
                         form.include_aliases.data = True
+                        form.selected_aliases.data = ['example']
                         form.include_disabled_aliases.data = False
                         form.include_template_aliases.data = False
                         form.include_cid_map.data = True
@@ -1410,19 +1427,22 @@ class ImportExportRoutesTestCase(unittest.TestCase):
             form = ImportForm()
 
             with ExitStack() as stack:
-                stack.enter_context(patch('routes.import_export._load_import_payload', return_value=' '))
-                stack.enter_context(patch('routes.import_export.flash'))
+                stack.enter_context(patch('routes.import_export.import_engine.flash'))
 
-                render_calls: list[str] = []
+                render_calls: list[Any] = []
 
-                def render_form() -> str:
-                    render_calls.append('called')
+                def render_form(snapshot_export: Any) -> str:
+                    render_calls.append(snapshot_export)
                     return 'rendered-form'
 
-                response = import_export._process_import_submission(form, 'note', render_form)
+                # Create a parsed payload with empty data
+                from routes.import_export.import_sources import ParsedImportPayload
+                parsed = ParsedImportPayload(raw_text=' ', data={})
+
+                response = import_export._process_import_submission(form, 'note', render_form, parsed)
 
         self.assertEqual(response, 'rendered-form')
-        self.assertEqual(render_calls, ['called'])
+        self.assertEqual(len(render_calls), 1)  # Should have been called once
 
     def test_import_change_history_creates_events(self):
         timestamp = datetime(2024, 1, 2, 12, 0, 0, tzinfo=timezone.utc)

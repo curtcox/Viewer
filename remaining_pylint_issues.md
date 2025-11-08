@@ -23,9 +23,17 @@
      - Test files: ~25 instances in various test files (lowest priority)
    - **Impact**: Most core business logic now uses specific exceptions, significantly improving error clarity and reducing false-positive error catching
 
-3. Decompose oversized and high-complexity route and execution modules.
-   - Split `server_execution.py`, `routes/import_export.py`, `routes/meta.py`, and `routes/openapi.py` into cohesive submodules to drop below the `C0302` module-length threshold and expose clearer public APIs.
-   - While extracting code, address the nested block (`R1702`), redefined name (`W0621`), and too-many-positional-arguments (`R0917`) warnings in the affected functions, and expand or add tests to cover the new module boundaries.
+3. Decompose oversized and high-complexity route and execution modules. **IN PROGRESS**
+   - ✅ **COMPLETED**: `routes/import_export.py` (2,261 lines) → 14 focused modules (17-443 lines each)
+     - Created `routes/import_export/` package with clear separation of concerns
+     - Modules: cid_utils, filesystem_collection, dependency_analyzer, export_engine, export_sections, export_preview, export_helpers, import_engine, import_sources, import_entities, change_history, routes_integration, routes, __init__
+     - All modules well under C0302 threshold (largest: 443 lines)
+     - Backward compatibility maintained via shim at `routes/import_export.py`
+     - Addressed complexity in `_build_export_preview` (150 lines), `_impl_import_secrets` (54 lines), etc.
+   - ⏳ **REMAINING**: `server_execution.py` (1,413 lines) - needs 7 modules (variable_resolution, definition_analyzer, parameter_resolution, invocation_builder, execution_engine, response_handling, routing)
+   - ⏳ **REMAINING**: `routes/meta.py` (1,004 lines) - needs 8 modules
+   - ⏳ **REMAINING**: `routes/openapi.py` (1,526 lines) - needs 5 modules
+   - See `DECOMPOSITION_SUMMARY.md` for detailed breakdown and implementation plan
 
 4. Resolve remaining function-level style warnings.
    - Tackle outstanding `unused-argument`, `redefined-outer-name`, `attribute-defined-outside-init`, logging format (`W1203`), and dictionary/iteration style warnings across modules like `routes.aliases`, `routes.search`, `generate_page_test_cross_reference.py`, `routes.context_processors.py`, `routes.uploads.py`, `scripts/run_radon.py`, and `step_impl/web_steps.py`.

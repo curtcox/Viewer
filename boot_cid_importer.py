@@ -194,10 +194,10 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     assert payload is not None  # For type checker
 
     # Perform the import using the existing import mechanism
-    from routes.import_export import (
-        _ImportContext,
-        _ingest_import_cid_map,
-        _import_selected_sections,
+    from routes.import_export.import_engine import (
+        ImportContext,
+        ingest_import_cid_map,
+        import_selected_sections,
     )
     from forms import ImportForm
 
@@ -214,7 +214,7 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     # Create import context
     raw_payload = json.dumps(payload, indent=2)
 
-    context = _ImportContext(
+    context = ImportContext(
         form=form,
         user_id=user_id,
         change_message=f"Boot import from CID {boot_cid}",
@@ -224,7 +224,7 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     )
 
     # Ingest CID map
-    _ingest_import_cid_map(context)
+    ingest_import_cid_map(context)
 
     # Check for CID map errors
     if context.errors:
@@ -232,7 +232,7 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         return False, f"Boot CID import failed during CID map ingestion:\n{error_msg}"
 
     # Import selected sections
-    _import_selected_sections(context)
+    import_selected_sections(context)
 
     # Check for import errors
     if context.errors:
@@ -240,8 +240,8 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         return False, f"Boot CID import failed:\n{error_msg}"
 
     # Generate snapshot export after import completes
-    from routes.import_export import _generate_snapshot_export
-    snapshot_export = _generate_snapshot_export(user_id)
+    from routes.import_export.import_engine import generate_snapshot_export
+    snapshot_export = generate_snapshot_export(user_id)
 
     # Log success
     if context.summaries:
