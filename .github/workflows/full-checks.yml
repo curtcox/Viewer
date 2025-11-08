@@ -187,9 +187,8 @@ jobs:
           ./scripts/checks/run_hadolint.sh > hadolint-report/output.txt 2>&1 || STATUS=$?
           echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
 
-          # Count files examined
-          FILE_COUNT=$(find . -name 'Dockerfile*' -o -name '*.dockerfile' | wc -l)
-          echo "Files examined: $FILE_COUNT" > hadolint-report/summary.txt
+          # Report the specific file examined
+          echo "File examined: docker/ci/Dockerfile" > hadolint-report/summary.txt
           echo "Exit code: $STATUS" >> hadolint-report/summary.txt
 
           if [ $STATUS -eq 0 ]; then
