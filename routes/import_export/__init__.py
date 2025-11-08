@@ -92,6 +92,6 @@ def __getattr__(name: str):
 
 
 # Re-export the route functions
-from .routes import export_data, export_size, import_data
+from .routes import export_data, export_size, import_data  # noqa: E402
 
 __all__ = ['export_data', 'export_size', 'import_data']

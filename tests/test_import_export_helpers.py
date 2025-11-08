@@ -49,7 +49,7 @@ def test_prepare_server_import_falls_back_to_cid():
     entry = {"name": "demo", "definition_cid": "abc"}
     errors: list[str] = []
 
-    result = _prepare_server_import(entry, {"abc": b"content"}, errors)
+    result = prepare_server_import(entry, {"abc": b"content"}, errors)
 
     assert errors == []
     assert result is not None
