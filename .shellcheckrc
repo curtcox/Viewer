@@ -1,0 +1,7 @@
+# ShellCheck configuration file
+# See: https://github.com/koalaman/shellcheck/wiki/Ignore
+
+# SC1091: Not following sourced files
+# Disabled because our scripts source goto_root using relative paths that work
+# at runtime but ShellCheck can't follow during static analysis
+disable=SC1091
