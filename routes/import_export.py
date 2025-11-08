@@ -30,11 +30,13 @@ from .import_export.import_sources import (
     resolve_source_entry as _resolve_source_entry,
     load_source_entry_bytes as _load_source_entry_bytes,
     source_entry_matches_export as _source_entry_matches_export,
+    load_import_payload as _load_import_payload,
 )
 from .import_export.import_engine import (
     ImportContext as _ImportContext,
     SectionImportPlan as _SectionImportPlan,
     import_section as _import_section,
+    process_import_submission as _process_import_submission,
 )
 from .import_export.change_history import gather_change_history as _gather_change_history
 
@@ -66,10 +68,12 @@ __all__ = [
     '_resolve_source_entry',
     '_load_source_entry_bytes',
     '_source_entry_matches_export',
+    '_load_import_payload',
     '_prepare_alias_import',
     '_ImportContext',
     '_SectionImportPlan',
     '_import_section',
+    '_process_import_submission',
     '_gather_change_history',
     'get_user_aliases',
     'get_user_servers',

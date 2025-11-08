@@ -58,9 +58,15 @@ def __getattr__(name: str):
     if name == '_import_section':
         from .import_engine import import_section
         return import_section
+    if name == '_process_import_submission':
+        from .import_engine import process_import_submission
+        return process_import_submission
     if name == '_gather_change_history':
         from .change_history import gather_change_history
         return gather_change_history
+    if name == '_load_import_payload':
+        from .import_sources import load_import_payload
+        return load_import_payload
 
     # Database access functions for test mocking
     if name == 'get_user_aliases':
