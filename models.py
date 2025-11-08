@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import Boolean
+
 from alias_definition import get_primary_alias_route
 from database import db
 
@@ -36,7 +38,7 @@ class Server(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
     template = db.Column(db.Boolean, nullable=False, default=False)
 
     # Unique constraint: each user can only have one server with a given name
@@ -53,7 +55,7 @@ class Alias(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
     template = db.Column(db.Boolean, nullable=False, default=False)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
@@ -147,7 +149,7 @@ class Variable(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
     template = db.Column(db.Boolean, nullable=False, default=False)
 
     # Unique constraint: each user can only have one variable with a given name
@@ -163,7 +165,7 @@ class Secret(db.Model):
     user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
     template = db.Column(db.Boolean, nullable=False, default=False)
 
     # Unique constraint: each user can only have one secret with a given name
