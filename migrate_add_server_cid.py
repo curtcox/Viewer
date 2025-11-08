@@ -4,6 +4,8 @@ import os
 import sqlite3
 import sys
 
+from sqlalchemy.exc import SQLAlchemyError
+
 # Add script directory to path to enable imports from the application
 # This must happen before importing app modules
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -73,8 +75,8 @@ def migrate_add_server_cid():
 
             return True
 
-        except Exception as e:
-            print(f"❌ Migration failed: {e}")
+        except (sqlite3.Error, SQLAlchemyError) as error:
+            print(f"❌ Migration failed: {error}")
             conn.rollback()
             conn.close()
             return False
@@ -87,8 +89,8 @@ if __name__ == '__main__':
         else:
             print("❌ Migration failed!")
             sys.exit(1)
-    except Exception as e:
-        print(f"❌ Migration error: {e}")
+    except (sqlite3.Error, SQLAlchemyError, OSError) as error:
+        print(f"❌ Migration error: {error}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

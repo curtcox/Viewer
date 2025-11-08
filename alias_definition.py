@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, cast
 from urllib.parse import urlsplit
 
 from flask import has_app_context
@@ -14,27 +14,27 @@ from alias_matching import PatternError, normalise_pattern
 # ===== Deferred imports =====
 
 _GetUserVariables = Callable[[str], Iterable[Any]]
-_get_user_variables: Optional[_GetUserVariables] = None
-_variables_unavailable: bool = False
+_import_state: dict[str, Any] = {"resolver": None, "unavailable": False}
 
 
 def _resolve_get_user_variables() -> Optional[_GetUserVariables]:
     """Return the database helper, retrying if dependencies were mid-import."""
 
-    global _get_user_variables, _variables_unavailable
+    cached = cast(Optional[_GetUserVariables], _import_state["resolver"])
+    if cached is not None:
+        return cached
 
-    if _get_user_variables is not None:
-        return _get_user_variables
-
-    if _variables_unavailable:
+    if _import_state["unavailable"]:
         return None
 
     try:
         # Import directly from the submodule to avoid circular imports through the
         # db_access package-level re-exports.
-        from db_access.variables import get_user_variables as resolved
+        from db_access.variables import (  # pylint: disable=import-outside-toplevel
+            get_user_variables as resolved,
+        )
     except ModuleNotFoundError:  # pragma: no cover - optional dependency in some tests
-        _variables_unavailable = True
+        _import_state["unavailable"] = True
         return None
     except ImportError as error:  # pragma: no cover - circular import window
         logger.debug(
@@ -43,7 +43,7 @@ def _resolve_get_user_variables() -> Optional[_GetUserVariables]:
         )
         return None
 
-    _get_user_variables = resolved
+    _import_state["resolver"] = resolved
     return resolved
 
 # ===== Constants =====

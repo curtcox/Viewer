@@ -5,7 +5,7 @@ import sys
 from app import app
 
 
-def signal_handler(sig, frame):
+def signal_handler(_sig, _frame):
     print('\nShutting down gracefully...')
     sys.exit(0)
 
@@ -19,8 +19,8 @@ def handle_boot_cid_import(boot_cid: str) -> None:
     Raises:
         SystemExit: If the import fails
     """
-    from boot_cid_importer import import_boot_cid
-    from user_management import ensure_default_user
+    from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
+    from user_management import ensure_default_user  # pylint: disable=import-outside-toplevel
 
     with app.app_context():
         # Get the default user

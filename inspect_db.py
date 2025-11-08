@@ -2,6 +2,8 @@
 """
 Database inspection script for the Viewer application
 """
+from __future__ import annotations
+
 import sys
 from datetime import datetime
 
@@ -74,13 +76,12 @@ def inspect_database():
         print("Viewer expects authentication and subscription details to be handled externally.")
         print()
 
-def show_cid_details(cid_path=None):
+def show_cid_details(cid_path: str | None = None):
     """Show detailed information about a specific CID"""
     with app.app_context():
         if cid_path:
-            if not cid_path.startswith('/'):
-                cid_path = f'/{cid_path}'
-            cid = get_cid_by_path(cid_path)
+            normalized_path = cid_path if cid_path.startswith('/') else f'/{cid_path}'
+            cid = get_cid_by_path(normalized_path)
         else:
             cid = get_first_cid()
 
@@ -106,8 +107,8 @@ def show_cid_details(cid_path=None):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "cid":
-            cid_path = sys.argv[2] if len(sys.argv) > 2 else None
-            show_cid_details(cid_path)
+            cid_argument = sys.argv[2] if len(sys.argv) > 2 else None
+            show_cid_details(cid_argument)
         else:
             print("Usage: python3 inspect_db.py [cid [cid_path]]")
     else:

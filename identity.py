@@ -120,13 +120,13 @@ def _load_current_user() -> ExternalUser:
                     current_terms_accepted=True,
                 )
                 _provision_user_resources(user)
-                g._default_user = user
+                setattr(g, "_default_user", user)
             return user
 
         default_user = ensure_default_user()
 
         if user is not default_user:
-            g._default_user = default_user
+            setattr(g, "_default_user", default_user)
             user = default_user
 
         _cached_default_user = default_user
