@@ -483,6 +483,80 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
+def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
+    """Build an index page for linter reports (Pylint, ShellCheck, Hadolint)."""
+    linter_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_path = linter_dir / "summary.txt"
+    output_path = linter_dir / "output.txt"
+    index_path = linter_dir / "index.html"
+
+    summary_html = "<p>No summary available.</p>"
+    if summary_path.exists():
+        summary_content = summary_path.read_text(encoding="utf-8")
+        summary_lines = summary_content.strip().split("\n")
+        summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
+        summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
+
+    output_content = "No output was captured."
+    if output_path.exists():
+        output_text = output_path.read_text(encoding="utf-8")
+        if output_text.strip():
+            output_content = escape(output_text)
+        else:
+            output_content = "All checks passed - no issues found."
+
+    body = f"""  <h1>{escape(title)}</h1>
+  {summary_html}
+  <h2>{escape(linter_name)} output</h2>
+  <pre>{output_content}</pre>"""
+
+    index_path.write_text(
+        _render_html_page(title, body, COMMON_CSS),
+        encoding="utf-8",
+    )
+
+
+def _build_test_index_page(test_index_dir: Path) -> None:
+    """Build an index page for Test Index with link to TEST_INDEX.md."""
+    test_index_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_path = test_index_dir / "summary.txt"
+    output_path = test_index_dir / "output.txt"
+    test_index_md = test_index_dir / "TEST_INDEX.md"
+    index_path = test_index_dir / "index.html"
+
+    summary_html = "<p>No summary available.</p>"
+    if summary_path.exists():
+        summary_content = summary_path.read_text(encoding="utf-8")
+        summary_lines = summary_content.strip().split("\n")
+        summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
+        summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
+
+    test_index_link = ""
+    if test_index_md.exists():
+        test_index_link = '<p><a href="TEST_INDEX.md">View TEST_INDEX.md</a></p>'
+
+    output_content = "No output was captured."
+    if output_path.exists():
+        output_text = output_path.read_text(encoding="utf-8")
+        if output_text.strip():
+            output_content = escape(output_text)
+        else:
+            output_content = "Test index validation passed."
+
+    body = f"""  <h1>Test Index Validation</h1>
+  {test_index_link}
+  {summary_html}
+  <h2>Validation output</h2>
+  <pre>{output_content}</pre>"""
+
+    index_path.write_text(
+        _render_html_page("Test Index Validation", body, COMMON_CSS),
+        encoding="utf-8",
+    )
+
+
 def _collect_screenshot_issues(
     gauge_dir: Path, *, artifacts_subdir: str = "secureapp-artifacts"
 ) -> tuple[int, list[str]]:
@@ -614,7 +688,7 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             name="Pylint",
             icon="🔍",
             check_type="Python Code Quality",
-            report_link=None
+            report_link="pylint/index.html"
         ),
         "mypy": JobMetadata(
             name="Mypy",
@@ -638,13 +712,13 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             name="ShellCheck",
             icon="🐚",
             check_type="Shell Script Linter",
-            report_link=None
+            report_link="shellcheck/index.html"
         ),
         "hadolint": JobMetadata(
             name="Hadolint",
             icon="🐳",
             check_type="Dockerfile Linter",
-            report_link=None
+            report_link="hadolint/index.html"
         ),
         "eslint": JobMetadata(
             name="ESLint",
@@ -668,7 +742,7 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             name="Test Index",
             icon="📑",
             check_type="Test Index Validation",
-            report_link=None
+            report_link="test-index/index.html"
         ),
         "unit-tests": JobMetadata(
             name="Unit Tests",
@@ -772,6 +846,10 @@ def build_site(
     property_artifacts: Path | None,
     radon_artifacts: Path | None,
     vulture_artifacts: Path | None,
+    pylint_artifacts: Path | None,
+    shellcheck_artifacts: Path | None,
+    hadolint_artifacts: Path | None,
+    test_index_artifacts: Path | None,
     job_statuses_path: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
@@ -784,6 +862,10 @@ def build_site(
     property_dir = output_dir / "property-tests"
     radon_dir = output_dir / "radon"
     vulture_dir = output_dir / "vulture"
+    pylint_dir = output_dir / "pylint"
+    shellcheck_dir = output_dir / "shellcheck"
+    hadolint_dir = output_dir / "hadolint"
+    test_index_dir = output_dir / "test-index"
 
     _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
@@ -791,6 +873,10 @@ def build_site(
     _copy_artifacts(property_artifacts, property_dir)
     _copy_artifacts(radon_artifacts, radon_dir)
     _copy_artifacts(vulture_artifacts, vulture_dir)
+    _copy_artifacts(pylint_artifacts, pylint_dir)
+    _copy_artifacts(shellcheck_artifacts, shellcheck_dir)
+    _copy_artifacts(hadolint_artifacts, hadolint_dir)
+    _copy_artifacts(test_index_artifacts, test_index_dir)
 
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
@@ -802,6 +888,10 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
+    _build_linter_index(pylint_dir, "Pylint Report", "Pylint")
+    _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck")
+    _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint")
+    _build_test_index_page(test_index_dir)
     job_statuses = _load_job_statuses(job_statuses_path)
     _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
 
@@ -846,6 +936,30 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the Vulture dead code report artifacts.",
     )
     parser.add_argument(
+        "--pylint-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Pylint report artifacts.",
+    )
+    parser.add_argument(
+        "--shellcheck-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the ShellCheck report artifacts.",
+    )
+    parser.add_argument(
+        "--hadolint-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Hadolint report artifacts.",
+    )
+    parser.add_argument(
+        "--test-index-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Test Index artifacts.",
+    )
+    parser.add_argument(
         "--job-statuses",
         type=Path,
         default=None,
@@ -876,6 +990,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         property_artifacts=parsed.property_artifacts,
         radon_artifacts=parsed.radon_artifacts,
         vulture_artifacts=parsed.vulture_artifacts,
+        pylint_artifacts=parsed.pylint_artifacts,
+        shellcheck_artifacts=parsed.shellcheck_artifacts,
+        hadolint_artifacts=parsed.hadolint_artifacts,
+        test_index_artifacts=parsed.test_index_artifacts,
         job_statuses_path=parsed.job_statuses,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
