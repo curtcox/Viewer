@@ -789,4 +789,3 @@ def _alias_to_json(alias: Alias) -> Dict[str, Any]:
             "ignore_case": alias.get_primary_ignore_case(),
         },
     )
-

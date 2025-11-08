@@ -42,11 +42,11 @@ def user_variables():
     return get_user_variables(current_user.id)
 
 
-def _build_variables_editor_payload(variables: List[Variable]) -> str:
+def _build_variables_editor_payload(variables_list: List[Variable]) -> str:
     """Return a JSON string representing the user's variables for the editor."""
 
     return json.dumps(
-        {variable.name: variable.definition for variable in variables},
+        {variable.name: variable.definition for variable in variables_list},
         indent=4,
         sort_keys=True,
         ensure_ascii=False,
@@ -82,7 +82,9 @@ def _parse_variables_editor_payload(raw_payload: str) -> Tuple[Optional[Dict[str
     return normalized, None
 
 
-def _apply_variables_editor_changes(user_id: str, desired_values: Dict[str, str], existing: List[Variable]) -> None:
+def _apply_variables_editor_changes(
+    user_id: str, desired_values: Dict[str, str], existing: List[Variable]
+) -> None:
     """Persist the desired variables, replacing the user's current collection."""
 
     existing_by_name = {variable.name: variable for variable in existing}
@@ -527,4 +529,3 @@ def _wants_structured_response() -> bool:
 
 def _variable_to_json(variable: Variable) -> Dict[str, Any]:
     return model_to_dict(variable)
-

@@ -47,4 +47,3 @@ def create_interaction_entry():
 
 
 __all__ = ['create_interaction_entry']
-

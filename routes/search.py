@@ -257,7 +257,7 @@ def _server_results(
     user_id: str,
     query_lower: str,
     alias_lookup: Optional[AliasLookup] = None,
-    aliases: Optional[List[Any]] = None,
+    _unused_aliases: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for server in get_user_servers(user_id):
@@ -293,7 +293,7 @@ def _variable_results(
     user_id: str,
     query_lower: str,
     alias_lookup: Optional[AliasLookup] = None,
-    aliases: Optional[List[Any]] = None,
+    _unused_aliases: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for variable in get_user_variables(user_id):
@@ -329,7 +329,7 @@ def _secret_results(
     user_id: str,
     query_lower: str,
     alias_lookup: Optional[AliasLookup] = None,
-    aliases: Optional[List[Any]] = None,
+    _unused_aliases: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
     for secret in get_user_secrets(user_id):
@@ -365,7 +365,7 @@ def _cid_results(
     user_id: str,
     query_lower: str,
     alias_lookup: Optional[AliasLookup] = None,
-    aliases: Optional[List[Any]] = None,
+    _unused_aliases: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     results: List[Dict[str, Any]] = []
 
@@ -391,7 +391,7 @@ def _cid_results(
         file_data = getattr(cid_record, "file_data", b"") or b""
         try:
             content_text = file_data.decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover - extremely unlikely due to errors="replace"
+        except UnicodeDecodeError:  # pragma: no cover - errors="replace" prevents this
             content_text = ""
 
         if not (

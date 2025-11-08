@@ -21,14 +21,14 @@ def inject_observability_info():
         Dictionary containing observability status information
     """
     status = current_app.config.get("OBSERVABILITY_STATUS") or {}
-    return dict(
-        LOGFIRE_AVAILABLE=bool(status.get("logfire_available")),
-        LOGFIRE_PROJECT_URL=status.get("logfire_project_url"),
-        LOGFIRE_UNAVAILABLE_REASON=status.get("logfire_reason"),
-        LANGSMITH_AVAILABLE=bool(status.get("langsmith_available")),
-        LANGSMITH_PROJECT_URL=status.get("langsmith_project_url"),
-        LANGSMITH_UNAVAILABLE_REASON=status.get("langsmith_reason"),
-    )
+    return {
+        "LOGFIRE_AVAILABLE": bool(status.get("logfire_available")),
+        "LOGFIRE_PROJECT_URL": status.get("logfire_project_url"),
+        "LOGFIRE_UNAVAILABLE_REASON": status.get("logfire_reason"),
+        "LANGSMITH_AVAILABLE": bool(status.get("langsmith_available")),
+        "LANGSMITH_PROJECT_URL": status.get("langsmith_project_url"),
+        "LANGSMITH_UNAVAILABLE_REASON": status.get("langsmith_reason"),
+    }
 
 
 def inject_meta_inspector_link():
