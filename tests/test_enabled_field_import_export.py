@@ -17,7 +17,6 @@ from app import create_app
 from database import db
 from models import Alias, Server, Variable, Secret
 from alias_definition import format_primary_alias_line
-import routes.import_export as import_export
 
 
 class EnabledFieldImportExportTestCase(unittest.TestCase):
@@ -233,8 +232,6 @@ class EnabledFieldImportExportTestCase(unittest.TestCase):
         # Load sections
         alias_entries = self._load_section_from_payload(payload, 'aliases')
         server_entries = self._load_section_from_payload(payload, 'servers')
-        variable_entries = self._load_section_from_payload(payload, 'variables')
-        secrets_section = self._load_section_from_payload(payload, 'secrets')
 
         # Find both enabled and disabled entities
         enabled_alias = next((a for a in alias_entries if a['name'] == 'alias-True'), None)

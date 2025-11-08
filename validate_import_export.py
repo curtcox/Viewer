@@ -2,7 +2,6 @@
 """Comprehensive import validation for routes/import_export decomposition."""
 
 import sys
-import os
 import ast
 import importlib.util
 
@@ -16,7 +15,7 @@ def check_module_imports(module_path):
         return False, "Could not create module spec"
 
     try:
-        module = importlib.util.module_from_spec(spec)
+        _module = importlib.util.module_from_spec(spec)
         # Don't execute the module, just check if it can be loaded
         return True, "OK"
     except Exception as e:

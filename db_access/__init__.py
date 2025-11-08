@@ -12,7 +12,7 @@ globals().update(_exports.EXPORTS)
 globals().update(LEGACY_DEFAULTS)
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ._exports import (  # pylint: disable=unused-import
+    from ._exports import (  # pylint: disable=unused-import  # noqa: F401
         DEFAULT_ACTION,
         DEFAULT_AI_ALIAS_NAME,
         DEFAULT_AI_SERVER_NAME,
