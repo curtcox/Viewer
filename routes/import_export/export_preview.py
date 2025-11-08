@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from wtforms import SelectMultipleField
+
 from db_access import get_user_aliases, get_user_secrets, get_user_servers, get_user_variables
 from forms import ExportForm
-from wtforms import SelectMultipleField
 
 from .export_helpers import (
     SELECTION_SENTINEL,

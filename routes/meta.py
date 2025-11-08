@@ -71,7 +71,7 @@ def _collect_source_links(obj: Any) -> List[str]:
     candidates: List[str] = []
     repo_root = os.path.abspath(current_app.root_path)
 
-    for target in {obj, inspect.unwrap(obj)}:
+    for target in (obj, inspect.unwrap(obj)):
         try:
             source_path = inspect.getsourcefile(target) or inspect.getfile(target)  # type: ignore[arg-type]
         except (TypeError, OSError):
