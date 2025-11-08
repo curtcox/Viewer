@@ -1,30 +1,46 @@
 #!/usr/bin/env python3
 """Comprehensive import validation for routes/import_export decomposition."""
 
+import os
 import sys
 import ast
 import importlib.util
+from pathlib import Path
 
 # Add the repo root to sys.path
-sys.path.insert(0, '/home/user/Viewer')
 
-def check_module_imports(module_path):
+
+def _resolve_repo_root() -> Path:
+    """Return the repository root directory for import resolution."""
+
+    env_root = os.environ.get("VIEWER_PATH")
+    candidate = Path(env_root).expanduser().resolve() if env_root else Path(__file__).resolve().parent
+
+    if not candidate.exists():  # pragma: no cover - defensive guard for misconfiguration
+        raise FileNotFoundError(f"Repository root not found: {candidate}")
+
+    return candidate
+
+
+sys.path.insert(0, str(_resolve_repo_root()))
+
+def check_module_imports(module_path: str) -> tuple[bool, str]:
     """Check if a module can be imported successfully."""
     spec = importlib.util.spec_from_file_location("test_module", module_path)
     if spec is None:
         return False, "Could not create module spec"
 
     try:
-        _module = importlib.util.module_from_spec(spec)
+        importlib.util.module_from_spec(spec)
         # Don't execute the module, just check if it can be loaded
         return True, "OK"
-    except Exception as e:
-        return False, str(e)
+    except (ImportError, AttributeError, FileNotFoundError) as error:
+        return False, str(error)
 
-def analyze_imports(file_path):
+def analyze_imports(file_path: str) -> list[tuple[str, ...]]:
     """Extract and analyze all imports from a Python file."""
-    with open(file_path, 'r') as f:
-        tree = ast.parse(f.read(), filename=file_path)
+    with Path(file_path).open(encoding="utf-8") as file_handle:
+        tree = ast.parse(file_handle.read(), filename=file_path)
 
     imports = []
     for node in ast.walk(tree):
@@ -65,8 +81,9 @@ def main():
     syntax_ok = True
     for module in modules:
         try:
-            with open(module, 'r') as f:
-                compile(f.read(), module, 'exec')
+            module_path = Path(module)
+            with module_path.open(encoding="utf-8") as source:
+                compile(source.read(), module, 'exec')
             print(f"  ✓ {module}")
         except SyntaxError as e:
             print(f"  ✗ {module}: {e}")
@@ -157,17 +174,17 @@ def main():
     # Check that the compatibility shim exists and has correct exports
     shim_path = 'routes/import_export.py'
     try:
-        with open(shim_path, 'r') as f:
-            shim_content = f.read()
+        with Path(shim_path).open(encoding="utf-8") as shim_file:
+            shim_content = shim_file.read()
 
         required_exports = ['export_data', 'import_data', 'export_size']
         all_present = all(export in shim_content for export in required_exports)
 
-        if all_present:
-            print(f"  ✓ {shim_path} exports: {', '.join(required_exports)}")
-        else:
+        if not all_present:
             print(f"  ✗ {shim_path} missing some exports")
             return 1
+
+        print(f"  ✓ {shim_path} exports: {', '.join(required_exports)}")
     except FileNotFoundError:
         print(f"  ✗ {shim_path} not found")
         return 1
@@ -180,8 +197,9 @@ def main():
     all_under_threshold = True
 
     for module in modules:
-        with open(module, 'r') as f:
-            lines = len(f.readlines())
+        module_path = Path(module)
+        with module_path.open(encoding="utf-8") as source:
+            lines = sum(1 for _ in source)
 
         status = "✓" if lines < 1000 else "✗"
         print(f"  {status} {module}: {lines} lines")
@@ -219,9 +237,9 @@ def main():
         print("\nThe import_export decomposition is correct and ready for unit tests.")
         print("Tests should pass when run in an environment with pytest installed.")
         return 0
-    else:
-        print("\n❌ SOME VALIDATIONS FAILED")
-        return 1
+
+    print("\n❌ SOME VALIDATIONS FAILED")
+    return 1
 
 if __name__ == '__main__':
     sys.exit(main())

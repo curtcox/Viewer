@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Debug script to examine actual error page HTML output."""
 
+import re
+
 from app import create_app
 from database import db
+from routes.core import internal_error
 
 
 def debug_error_page():
@@ -23,7 +26,6 @@ def debug_error_page():
                 # Create an error with a good traceback
                 raise RuntimeError('Debug error for examining HTML output')
             except RuntimeError as exc:
-                from routes.core import internal_error
                 html_content, status_code = internal_error(exc)
 
                 print(f"Status Code: {status_code}")
@@ -45,7 +47,6 @@ def debug_error_page():
                 print(f"Contains 'target=\"_blank\"': {target_blank in html_content}")
 
                 # Look for source links
-                import re
                 source_links = re.findall(r'href="/source/([^"]+)"', html_content)
                 print(f"\nFound {len(source_links)} source links:")
                 for link in source_links:

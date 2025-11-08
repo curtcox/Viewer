@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from textwrap import dedent
 
-from db_access import get_alias_by_name, save_entity
 from models import Alias
 
 CSS_ALIAS_NAME = "CSS"
@@ -44,6 +43,11 @@ def ensure_css_alias_for_user(user_id: str) -> bool:
 
     if not user_id:
         return False
+
+    from db_access import (  # pylint: disable=import-outside-toplevel
+        get_alias_by_name,
+        save_entity,
+    )
 
     alias = get_alias_by_name(user_id, CSS_ALIAS_NAME)
     if alias:

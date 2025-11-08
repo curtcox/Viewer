@@ -8,8 +8,6 @@ from typing import Optional
 from flask import g, has_request_context, session
 from werkzeug.local import LocalProxy
 
-from ai_defaults import ensure_ai_stub_for_user
-from css_defaults import ensure_css_alias_for_user
 
 _DEFAULT_USER_ID = "default-user"
 _DEFAULT_EMAIL = "default@example.com"
@@ -53,6 +51,26 @@ class ExternalUser:
 
 _default_user: Optional[ExternalUser] = None
 _cached_default_user: Optional[ExternalUser] = None
+
+
+def ensure_ai_stub_for_user(user_id: str) -> bool:
+    """Ensure the default AI stub resources exist for ``user_id``."""
+
+    from ai_defaults import (  # pylint: disable=import-outside-toplevel
+        ensure_ai_stub_for_user as _ensure_ai_stub_for_user,
+    )
+
+    return _ensure_ai_stub_for_user(user_id)
+
+
+def ensure_css_alias_for_user(user_id: str) -> bool:
+    """Ensure the CSS alias exists for ``user_id``."""
+
+    from css_defaults import (  # pylint: disable=import-outside-toplevel
+        ensure_css_alias_for_user as _ensure_css_alias_for_user,
+    )
+
+    return _ensure_css_alias_for_user(user_id)
 
 
 def _provision_user_resources(user: ExternalUser) -> None:
@@ -120,13 +138,13 @@ def _load_current_user() -> ExternalUser:
                     current_terms_accepted=True,
                 )
                 _provision_user_resources(user)
-                g._default_user = user
+                setattr(g, "_default_user", user)
             return user
 
         default_user = ensure_default_user()
 
         if user is not default_user:
-            g._default_user = default_user
+            setattr(g, "_default_user", default_user)
             user = default_user
 
         _cached_default_user = default_user
@@ -144,4 +162,6 @@ __all__ = [
     "current_user",
     "ensure_default_user",
     "ensure_default_user_resources",
+    "ensure_ai_stub_for_user",
+    "ensure_css_alias_for_user",
 ]

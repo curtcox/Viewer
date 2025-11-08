@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from models import Alias
 from database import db
 from alias_definition import (
@@ -21,6 +23,8 @@ from db_access._common import (
     normalize_cid_value,
     save_entity,
 )
+from db_access.variables import get_user_variables
+from identity import ensure_default_user
 
 logger = logging.getLogger(__name__)
 
@@ -71,21 +75,16 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
 def _get_variable_map(user_id: str) -> Dict[str, str]:
     """Get enabled variables as a name->definition map."""
     try:
-        from db_access.variables import get_user_variables
-
         variables = get_user_variables(user_id)
-        return {
-            v.name: v.definition
-            for v in variables
-            if v.enabled and v.name and v.definition is not None
-        }
-    except ImportError:
-        # Module not available
+    except SQLAlchemyError as exc:
+        logger.warning("Failed to load variables for user %s: %s", user_id, exc)
         return {}
-    except Exception as e:
-        # Log the error for debugging
-        logger.warning(f"Failed to load variables: {e}")
-        return {}
+
+    return {
+        variable.name: variable.definition
+        for variable in variables
+        if variable.enabled and variable.name and variable.definition is not None
+    }
 
 
 def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
@@ -150,8 +149,6 @@ def _safe_parse_definition(
 
 def _create_new_alias(alias_name: str, cid: str) -> AliasUpdateResult:
     """Create a new alias pointing to the given CID."""
-    from identity import ensure_default_user
-
     owner = ensure_default_user()
     primary_line = format_primary_alias_line(
         "literal",

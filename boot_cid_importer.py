@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Optional
 
-from flask import Flask
+from flask import Flask, has_app_context
 
 from cid_presenter import cid_path, format_cid
 from cid_utils import is_normalized_cid
@@ -181,6 +181,11 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         If successful, returns (True, None)
         If error, returns (False, error_message)
     """
+    if not has_app_context():
+        raise RuntimeError(
+            f"import_boot_cid must be called within an app context for {app.name!r}"
+        )
+
     # First verify dependencies
     success, error = verify_boot_cid_dependencies(boot_cid)
     if not success:
@@ -194,12 +199,12 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     assert payload is not None  # For type checker
 
     # Perform the import using the existing import mechanism
-    from routes.import_export.import_engine import (
+    from routes.import_export.import_engine import (  # pylint: disable=import-outside-toplevel
         ImportContext,
         ingest_import_cid_map,
         import_selected_sections,
     )
-    from forms import ImportForm
+    from forms import ImportForm  # pylint: disable=import-outside-toplevel
 
     # Create a form with only the sections that exist in the payload enabled
     form = ImportForm()
@@ -240,7 +245,9 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         return False, f"Boot CID import failed:\n{error_msg}"
 
     # Generate snapshot export after import completes
-    from routes.import_export.import_engine import generate_snapshot_export
+    from routes.import_export.import_engine import (  # pylint: disable=import-outside-toplevel
+        generate_snapshot_export,
+    )
     snapshot_export = generate_snapshot_export(user_id)
 
     # Log success

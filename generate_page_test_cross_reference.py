@@ -176,8 +176,11 @@ def _apply_test_environment() -> contextlib.AbstractContextManager[None]:
     relevant_keys = {"PYTHONPATH", "DATABASE_URL", "SESSION_SECRET", "TESTING"}
 
     class _EnvGuard(contextlib.AbstractContextManager[None]):
+        def __init__(self) -> None:
+            self._original: dict[str, str | None] = {}
+
         def __enter__(self) -> None:
-            self._original: dict[str, str | None] = {key: os.environ.get(key) for key in relevant_keys}
+            self._original = {key: os.environ.get(key) for key in relevant_keys}
             for key in relevant_keys:
                 if key in env:
                     os.environ[key] = env[key]
