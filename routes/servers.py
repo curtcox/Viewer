@@ -1,7 +1,8 @@
 """Server management routes and helpers."""
 
-from datetime import datetime, timezone
+import json
 import re
+from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Optional
 
 from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
@@ -156,10 +157,10 @@ def _extract_context_references(
     param_refs = _find_parameter_references(definition, known_variables, known_secrets)
 
     combined: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    for source in combined:
-        combined[source].update(direct_refs.get(source, set()))
-        combined[source].update(alias_refs.get(source, set()))
-        combined[source].update(param_refs.get(source, set()))
+    for source, values in combined.items():
+        values.update(direct_refs.get(source, set()))
+        values.update(alias_refs.get(source, set()))
+        values.update(param_refs.get(source, set()))
 
     return {source: sorted(values) for source, values in combined.items()}
 
@@ -425,8 +426,6 @@ def get_server_definition_history(user_id, server_name):
             content = cid.file_data.decode('utf-8')
 
             try:
-                import json
-
                 server_definitions = json.loads(content)
 
                 if isinstance(server_definitions, dict) and server_name in server_definitions:
@@ -839,4 +838,3 @@ def _wants_structured_response() -> bool:
 
 def _server_to_json(server: Server) -> Dict[str, object]:
     return model_to_dict(server)
-

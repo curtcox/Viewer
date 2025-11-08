@@ -1,6 +1,6 @@
 # Plan to eliminate remaining pylint issues
 
-- **Latest pylint snapshot (2025-11-08)**: `pylint routes scripts step_impl` now scores **9.77/10** after cleaning the `routes.source` helpers and tightening `routes.secrets`.
+- **Latest pylint snapshot (2025-11-08)**: `pylint routes scripts step_impl` now scores **9.79/10** after the viewer navigation cleanup, context processor tidy-ups, and search result fixes.
 
 1. ~~Normalise import order and positioning in operational scripts and entry points.~~ **COMPLETED**
    - ✅ Updated `inspect_db.py`, `migrate_add_server_cid.py`, `tests/test_ai_stub_server.py`, and `routes/__init__.py` with proper `# pylint: disable=wrong-import-position` comments
@@ -22,7 +22,7 @@
    - ✅ **Routes cleanup**: `routes/source.py`
      - Narrowed `_get_all_project_files` to catch `OSError`, switched breadcrumb building to `enumerate`, and used `Result.mappings()` to avoid protected member access
    - **Remaining work** (lower priority; confirmed by `pylint routes scripts step_impl` on 2025-11-08):
-     - Route handlers: `routes/route_details.py` (3x), `routes/history.py`, `routes/error_handlers.py` (2x), `routes/uploads.py`, `routes/search.py`, plus integration shims in `routes/import_export/routes.py`
+     - Route handlers: `routes/route_details.py` (3x), `routes/history.py`, `routes/error_handlers.py` (2x), `routes/uploads.py`, plus integration shims in `routes/import_export/routes.py`
      - Scripts: `scripts/verify-chromium.py` (1x) and `scripts/test-browser-launch.py` (3x)
      - Test support: `step_impl/web_steps.py` (behave steps) — acceptable to defer
      - Leave test modules for last unless they block enabling the pylint gate
@@ -43,16 +43,18 @@
 4. Resolve remaining function-level style warnings. **IN PROGRESS**
    - Confirmed by the 2025-11-08 pylint run:
      - `routes.aliases`: `redefined-outer-name` and `too-many-positional-arguments`
-     - `routes.context_processors`: `use-dict-literal`
-     - `routes.search`: four `unused-argument` hits and one `broad-exception-caught`
      - `routes.uploads`: iteration style issues and shadowed loop vars
-     - `routes.variables`, `routes.servers`, `routes.interactions`: stray trailing-newline cleanups
      - `routes.import_export.*`: order-of-import, logging, unused-argument, nested-block, and module import exposure nits
      - Scripts: `publish_gauge_summary.py` nested blocks, `run_radon.py` string formatting, Chromium helpers with lazy imports
      - Behave steps: `step_impl/web_steps.py` `unused-argument` and lazy imports
+   - ✅ Brought the shared helpers back in line:
+     - `routes.context_processors`: converted the observability payload builder to a dict literal.
+     - `routes.search`: removed redundant alias parameters and replaced the remaining broad exception.
+     - `routes.servers`: normalised import placement and iterated with `.items()` when collecting references.
+     - `routes.variables`, `routes.servers`, `routes.aliases`, and `routes.interactions`: trimmed the extra newlines flagged by C0305.
    - ✅ Cleared the focused warnings in `db_access.aliases`, `db_access.cids`, `db_access.profile`, `gauge_stub/python.py`, `generate_page_test_cross_reference.py`, and `generate_test_index.py`.
 
 5. Fix repository-wide formatting nits. **IN PROGRESS**
-   - Outstanding trailing-newline hits: `routes/variables.py`, `routes/servers.py`, `routes/aliases.py`, `routes/interactions.py`, `routes/import_export/__init__.py`, `scripts/publish_gauge_summary.py`, `step_impl/shared_app.py`.
-   - Address dictionary/iteration idioms flagged in `routes.context_processors.py`, `routes.uploads.py`, and `routes.servers.py`.
+   - Outstanding trailing-newline hits: `routes/import_export/__init__.py`, `scripts/publish_gauge_summary.py`, `step_impl/shared_app.py`.
+   - Address dictionary/iteration idioms flagged in `routes.uploads.py`.
    - Standardise string formatting (switch to f-strings where recommended) and iterate over dictionaries/sequences idiomatically to silence the remaining stylistic warnings, validating with pylint at the end.
