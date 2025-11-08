@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Callable, Dict, Iterable, List, Optional, Set
 
 from database import db
+import models
 from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
 
@@ -62,8 +63,15 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
 
 def get_user_uploads(user_id: str) -> List[CID]:
     """Return all CID uploads for a user ordered from newest to oldest."""
+    session_provider = getattr(models, "db", None)
+    if session_provider is not None and hasattr(session_provider, "session"):
+        query = session_provider.session.query
+    else:
+        query = db.session.query
+
     return (
-        CID.query.filter(CID.uploaded_by_user_id == user_id)
+        query(CID)
+        .filter(CID.uploaded_by_user_id == user_id)
         .order_by(CID.created_at.desc())
         .all()
     )
