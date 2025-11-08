@@ -1,10 +1,31 @@
 """CID management operations."""
 
 from datetime import datetime, timezone
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Callable, Dict, Iterable, List, Optional, Set
 
-from models import CID
+from database import db
+from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
+
+SaveServerDefinition = Callable[[str, int], str]
+StoreServerDefinitions = Callable[[int], str]
+
+try:
+    from cid_utils import (
+        save_server_definition_as_cid as _save_server_definition_as_cid,
+        store_server_definitions_cid as _store_server_definitions_cid,
+    )
+except (ImportError, ModuleNotFoundError, RuntimeError):
+    _save_server_definition_as_cid = None
+    _store_server_definitions_cid = None
+
+
+def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
+    """Return CID helper functions or raise if unavailable."""
+
+    if _save_server_definition_as_cid is None or _store_server_definitions_cid is None:
+        raise RuntimeError("CID utilities are unavailable")
+    return _save_server_definition_as_cid, _store_server_definitions_cid
 
 
 def get_cid_by_path(path: str) -> Optional[CID]:
@@ -44,15 +65,8 @@ def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
 
 def get_user_uploads(user_id: str) -> List[CID]:
     """Return all CID uploads for a user ordered from newest to oldest."""
-    from database import db
-    import models
-
-    session_owner = getattr(models, "db", db)
-    session = getattr(session_owner, "session", db.session)
-
     return (
-        session.query(CID)
-        .filter(CID.uploaded_by_user_id == user_id)
+        CID.query.filter(CID.uploaded_by_user_id == user_id)
         .order_by(CID.created_at.desc())
         .all()
     )
@@ -107,8 +121,8 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
         - Regenerates server definition CIDs
         - Calls store_server_definitions_cid() for affected users
     """
-    from models import Alias, Server
-    from database import db
+
+    save_definition, store_definitions = _require_cid_utilities()
 
     normalized_old = normalize_cid_value(old_cid)
     normalized_new = normalize_cid_value(new_cid)
@@ -146,8 +160,6 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
 
     servers: List[Server] = Server.query.all()
     if servers:
-        from cid_utils import save_server_definition_as_cid
-
         for server in servers:
             updated_definition, definition_changed = _replace_cid_text(
                 server.definition,
@@ -158,7 +170,7 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
             )
             if definition_changed:
                 server.definition = updated_definition
-                server.definition_cid = save_server_definition_as_cid(
+                server.definition_cid = save_definition(
                     updated_definition,
                     server.user_id,
                 )
@@ -174,10 +186,8 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
     db.session.commit()
 
     if server_updates and updated_server_users:
-        from cid_utils import store_server_definitions_cid
-
         for user_id in updated_server_users:
-            store_server_definitions_cid(user_id)
+            store_definitions(user_id)
 
     return {"aliases": alias_updates, "servers": server_updates}
 

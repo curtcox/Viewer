@@ -192,4 +192,3 @@ class Messages:
         path = directory / sanitized
         path.write_bytes(data)
         return path
-

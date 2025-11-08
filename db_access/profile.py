@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 
 
-def get_user_profile_data(user_id: str) -> Dict[str, Any]:
+def get_user_profile_data(_user_id: str) -> Dict[str, Any]:
     """Return placeholder profile metadata for externally managed accounts.
 
     Payment and terms of service tracking now live in an external system. The

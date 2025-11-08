@@ -156,7 +156,7 @@ class TestIndexer:
         """Extract the name from an AST node."""
         if isinstance(node, ast.Name):
             return node.id
-        elif isinstance(node, ast.Attribute):
+        if isinstance(node, ast.Attribute):
             return node.attr
         return ""
 
