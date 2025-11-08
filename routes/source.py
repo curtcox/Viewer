@@ -69,7 +69,7 @@ def _get_all_project_files(root_path: str) -> frozenset[str]:
                     project_files.add(relative)
                 except ValueError:
                     continue
-    except Exception:
+    except OSError:
         pass
 
     return frozenset(project_files)
@@ -130,9 +130,9 @@ def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
         return breadcrumbs
 
     parts = path.split("/")
-    for index in range(len(parts)):
-        crumb_path = "/".join(parts[: index + 1])
-        breadcrumbs.append((crumb_path, parts[index]))
+    for index, part in enumerate(parts, start=1):
+        crumb_path = "/".join(parts[:index])
+        breadcrumbs.append((crumb_path, part))
     return breadcrumbs
 
 
@@ -311,15 +311,11 @@ def source_instance_table(table_name: str):
     except SQLAlchemyError:
         abort(500)
 
-    result = None
     try:
-        result = db.session.execute(select(table))
-        rows = [dict(row._mapping) for row in result]
+        with db.session.execute(select(table)) as result:
+            rows = [dict(row) for row in result.mappings()]
     except SQLAlchemyError:
         abort(500)
-    finally:
-        if result is not None:
-            result.close()
 
     columns = [column.name for column in table.columns]
     row_count = len(rows)
