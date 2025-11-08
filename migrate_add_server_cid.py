@@ -75,9 +75,17 @@ def migrate_add_server_cid():
 
             return True
 
-        except (sqlite3.Error, SQLAlchemyError) as error:
+        except sqlite3.Error as error:
             print(f"❌ Migration failed: {error}")
-            conn.rollback()
+            try:
+                if conn.in_transaction:
+                    conn.rollback()
+            except sqlite3.ProgrammingError:
+                pass
+            conn.close()
+            return False
+        except SQLAlchemyError as error:
+            print(f"❌ Migration failed: {error}")
             conn.close()
             return False
 

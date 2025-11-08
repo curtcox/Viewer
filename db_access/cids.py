@@ -8,8 +8,8 @@ import models
 from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
 
-SaveServerDefinition = Callable[[str, str], str]
-StoreServerDefinitions = Callable[[str], str]
+SaveServerDefinition = Callable[[str, int], str]
+StoreServerDefinitions = Callable[[int], str]
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:

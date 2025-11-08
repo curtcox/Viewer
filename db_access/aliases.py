@@ -76,7 +76,7 @@ def _get_variable_map(user_id: str) -> Dict[str, str]:
     """Get enabled variables as a name->definition map."""
     try:
         variables = get_user_variables(user_id)
-    except (SQLAlchemyError, RuntimeError) as exc:
+    except SQLAlchemyError as exc:
         logger.warning("Failed to load variables for user %s: %s", user_id, exc)
         return {}
 

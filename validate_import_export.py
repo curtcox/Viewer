@@ -1,13 +1,28 @@
 #!/usr/bin/env python3
 """Comprehensive import validation for routes/import_export decomposition."""
 
+import os
 import sys
 import ast
 import importlib.util
 from pathlib import Path
 
 # Add the repo root to sys.path
-sys.path.insert(0, '/home/user/Viewer')
+
+
+def _resolve_repo_root() -> Path:
+    """Return the repository root directory for import resolution."""
+
+    env_root = os.environ.get("VIEWER_PATH")
+    candidate = Path(env_root).expanduser().resolve() if env_root else Path(__file__).resolve().parent
+
+    if not candidate.exists():  # pragma: no cover - defensive guard for misconfiguration
+        raise FileNotFoundError(f"Repository root not found: {candidate}")
+
+    return candidate
+
+
+sys.path.insert(0, str(_resolve_repo_root()))
 
 def check_module_imports(module_path: str) -> tuple[bool, str]:
     """Check if a module can be imported successfully."""
