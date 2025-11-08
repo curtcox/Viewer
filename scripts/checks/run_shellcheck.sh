@@ -2,6 +2,7 @@
 set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 cd "${SCRIPT_DIR}"
+# shellcheck source=../../goto_root
 source ../../goto_root
 mapfile -t shell_scripts < <(git ls-files '*.sh')
 if [[ "${#shell_scripts[@]}" -eq 0 ]]; then
