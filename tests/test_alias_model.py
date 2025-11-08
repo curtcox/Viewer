@@ -3,7 +3,7 @@ import unittest
 from models import Alias
 
 
-class AliasModelTests(unittest.TestCase):
+class TestAliasModel(unittest.TestCase):
     """Test the Alias model helper methods."""
 
     def test_get_primary_target_path_simple_definition(self):

@@ -17,7 +17,7 @@ from db_access import create_cid_record
 from models import Alias, Export, Server
 
 
-class BootCidImporterTestCase(unittest.TestCase):
+class TestBootCidImporter(unittest.TestCase):
     def setUp(self):
         self.app = create_app({
             'TESTING': True,

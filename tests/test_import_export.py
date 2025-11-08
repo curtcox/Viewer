@@ -25,7 +25,7 @@ from forms import ExportForm, ImportForm
 from models import CID, Alias, EntityInteraction, Export, Secret, Server, Variable
 
 
-class ImportExportRoutesTestCase(unittest.TestCase):
+class TestImportExportRoutes(unittest.TestCase):
     def setUp(self):
         self.app = create_app({
             'TESTING': True,

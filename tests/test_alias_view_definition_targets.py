@@ -4,7 +4,7 @@ from app import create_app
 from routes.aliases import _describe_target_path
 
 
-class AliasDefinitionTargetRenderingTests(unittest.TestCase):
+class TestAliasDefinitionTargetRendering(unittest.TestCase):
     def setUp(self) -> None:
         self.app = create_app({'TESTING': True})
         self.app_ctx = self.app.app_context()
