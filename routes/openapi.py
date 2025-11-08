@@ -1505,7 +1505,7 @@ def openapi_route_rules(app: Flask) -> Set[str]:
 
     with app.test_request_context("/"):
         spec = _build_openapi_spec()
-    return {_convert_path_to_rule(path) for path in spec["paths"].keys()}
+    return {_convert_path_to_rule(path) for path in spec["paths"]}
 
 
 @main_bp.route("/openapi.json")

@@ -4,8 +4,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from db_access import get_user_exports
 from flask import jsonify, render_template, request, session
+
+from db_access import get_user_exports
 from forms import ExportForm, ImportForm
 from identity import current_user
 from interaction_log import load_interaction_history

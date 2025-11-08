@@ -159,7 +159,7 @@ def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
         try:
             fallback_method = allowed_methods[0] if allowed_methods else "GET"
             endpoint, _ = binder.match(path, method=fallback_method)
-        except Exception:  # pragma: no cover - unexpected mapping issues
+        except Exception:  # pylint: disable=broad-exception-caught  # pragma: no cover - fallback for any routing issue
             endpoint = exc.description or "unknown"
         methods_text = ", ".join(allowed_methods) if allowed_methods else "(unknown)"
         warning = f"GET not allowed. Allowed methods: {methods_text}."
@@ -354,7 +354,7 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
 
     try:
         from .servers import get_server_definition_history  # lazy import to avoid cycles
-    except Exception:  # pragma: no cover - defensive guard
+    except ImportError:  # pragma: no cover - defensive guard
         get_server_definition_history = None  # type: ignore[assignment]
 
     matches = []
@@ -428,7 +428,7 @@ def _cid_step_for(path: str) -> Optional[RouteResolution]:
     file_data = getattr(cid_record, "file_data", b"") or b""
     try:
         rendered = file_data.decode("utf-8", errors="replace")
-    except Exception:  # pragma: no cover - defensive decoding guard
+    except (AttributeError, UnicodeDecodeError):  # pragma: no cover - defensive decoding guard
         rendered = ""
     first_line = rendered.splitlines()[0].strip() if rendered else ""
     definition_excerpt = _truncate_line(first_line) if first_line else None

@@ -462,6 +462,7 @@ def view_alias(alias_name: str):
     )
 
 
+# pylint: disable=too-many-positional-arguments  # Helper needs all params for alias handling
 def _handle_save_as(
     form: AliasForm,
     alias: Alias,
@@ -484,28 +485,29 @@ def _handle_save_as(
         flash(error_message, 'danger')
         return None
 
-    new_alias = Alias(
+    alias_copy = Alias(
         name=new_name,
         user_id=alias.user_id,
         definition=definition_value or None,
         enabled=bool(form.enabled.data),
         template=bool(form.template.data),
     )
-    _persist_alias(new_alias)
+    _persist_alias(alias_copy)
     record_entity_interaction(
         EntityInteractionRequest(
             user_id=alias.user_id,
             entity_type='alias',
-            entity_name=new_alias.name,
+            entity_name=alias_copy.name,
             action='save',
             message=change_message,
             content=form.definition.data or '',
         )
     )
-    flash(f'Alias "{new_alias.name}" created successfully!', 'success')
-    return url_for('main.view_alias', alias_name=new_alias.name)
+    flash(f'Alias "{alias_copy.name}" created successfully!', 'success')
+    return url_for('main.view_alias', alias_name=alias_copy.name)
 
 
+# pylint: disable=too-many-positional-arguments  # Helper needs all params for alias handling
 def _handle_rename(
     form: AliasForm,
     alias: Alias,

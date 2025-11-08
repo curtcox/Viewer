@@ -615,7 +615,7 @@ def given_server_exists(server_name: str, message: str) -> None:
 
     server_name = server_name.strip().strip('"')
     message = message.strip().strip('"')
-    definition = "def main(context):\n    return {message!r}\n".format(message=message)
+    definition = f"def main(context):\n    return {message!r}\n"
 
     with app.app_context():
         existing = Server.query.filter_by(user_id=user_id, name=server_name).first()
@@ -635,7 +635,7 @@ def record_secret_form_path_coverage() -> None:
 
 
 @step("Path coverage: /servers/<server_name>")
-def record_server_view_path_coverage(server_name: str) -> None:  # noqa: ARG001 - placeholder only
+def record_server_view_path_coverage(server_name: str) -> None:  # pylint: disable=unused-argument
     """Acknowledge the server detail route for documentation coverage."""
 
     return None

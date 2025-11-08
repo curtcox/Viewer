@@ -382,10 +382,15 @@ def _format_html_report(
     exclusions_section = _render_list("Excluded paths", config.exclude)
     ignore_section = _render_list("Ignored file patterns", config.ignore)
 
-    return """<!DOCTYPE html>
-<html lang=\"en\">
+    fail_rank = escape(config.fail_rank)
+    top = config.top_results
+    complexity_rows = _render_complexity_rows()
+    mi_rows = _render_mi_rows()
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\" />
+  <meta charset="utf-8" />
   <title>Radon complexity report</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }}
@@ -401,7 +406,7 @@ def _format_html_report(
 </head>
 <body>
   <h1>Radon complexity report</h1>
-  <div class=\"summary\">
+  <div class="summary">
     <p>This report summarises the cyclomatic complexity and maintainability index
     metrics gathered by <code>radon</code>. Blocks graded worse than
     <strong>{fail_rank}</strong> will fail the CI job. The tables below list the
@@ -435,15 +440,7 @@ def _format_html_report(
 {ignore_section}
 </body>
 </html>
-""".format(
-        fail_rank=escape(config.fail_rank),
-        top=config.top_results,
-        complexity_rows=_render_complexity_rows(),
-        mi_rows=_render_mi_rows(),
-        extras_section=extras_section,
-        exclusions_section=exclusions_section,
-        ignore_section=ignore_section,
-    )
+"""
 
 
 def _write_file(path: Path, content: str) -> None:

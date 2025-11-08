@@ -25,7 +25,7 @@ def get_existing_routes():
     return RESERVED_ROUTES
 
 
-def not_found_error(error):
+def not_found_error(error):  # pylint: disable=unused-argument  # Required by Flask error handler
     """
     Custom 404 handler that checks CID table and server names for content.
 
@@ -112,7 +112,7 @@ def internal_error(error):
 
         stack_trace = build_stack_trace(error, root_path, tracked_paths)
 
-    except Exception as trace_error:
+    except Exception as trace_error:  # pylint: disable=broad-exception-caught  # Fallback error handler
         # If stack trace building fails, create a minimal fallback
         try:
             import sys
@@ -136,7 +136,7 @@ def internal_error(error):
                 exception_type = type(error).__name__
                 exception_message = str(error) if str(error) else "Error occurred during error handling"
 
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught  # Ultimate fallback for error handling
             # Ultimate fallback - just show basic error info
             stack_trace = [{
                 "display_path": "Critical error handling failure",

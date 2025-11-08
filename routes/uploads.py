@@ -85,7 +85,7 @@ def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Var
     if not normalized:
         return variables, None
 
-    candidate_values = {value for value in {cid_path(normalized), normalized} if value}
+    candidate_values = {value for value in (cid_path(normalized), normalized) if value}
     assigned = None
 
     if candidate_values:
@@ -239,18 +239,18 @@ def uploads():
         if getattr(upload, 'creation_method', 'upload') != 'server_event'
     ]
 
-    for upload in user_uploads:
-        if upload.file_data:
+    for upload_record in user_uploads:
+        if upload_record.file_data:
             try:
-                content_text = upload.file_data.decode('utf-8', errors='replace')
-                upload.content_preview = content_text[:20].replace('\n', ' ').replace('\r', ' ')
-            except Exception:
-                upload.content_preview = upload.file_data[:10].hex()
+                content_text = upload_record.file_data.decode('utf-8', errors='replace')
+                upload_record.content_preview = content_text[:20].replace('\n', ' ').replace('\r', ' ')
+            except (AttributeError, UnicodeDecodeError):
+                upload_record.content_preview = upload_record.file_data[:10].hex()
         else:
-            upload.content_preview = ""
+            upload_record.content_preview = ""
 
-        upload.referenced_entities = extract_references_from_bytes(
-            getattr(upload, 'file_data', None),
+        upload_record.referenced_entities = extract_references_from_bytes(
+            getattr(upload_record, 'file_data', None),
             current_user.id,
         )
 
@@ -591,21 +591,21 @@ def _attach_creation_sources(user_uploads):
             if cid_key and cid_key not in invocation_by_cid:
                 invocation_by_cid[cid_key] = invocation
 
-    for upload in user_uploads:
-        upload.creation_method = 'upload'
-        upload.server_invocation_link = None
-        upload.server_invocation_server_name = None
+    for upload_record in user_uploads:
+        upload_record.creation_method = 'upload'
+        upload_record.server_invocation_link = None
+        upload_record.server_invocation_server_name = None
 
-        cid = format_cid(getattr(upload, 'path', None)) if getattr(upload, 'path', None) else None
+        cid = format_cid(getattr(upload_record, 'path', None)) if getattr(upload_record, 'path', None) else None
         if not cid:
             continue
 
         invocation = invocation_by_cid.get(cid)
         if invocation:
-            upload.creation_method = 'server_event'
-            upload.server_invocation_server_name = invocation.server_name
+            upload_record.creation_method = 'server_event'
+            upload_record.server_invocation_server_name = invocation.server_name
             if invocation.invocation_cid:
-                upload.server_invocation_link = cid_path(
+                upload_record.server_invocation_link = cid_path(
                     invocation.invocation_cid,
                     'json',
                 )
