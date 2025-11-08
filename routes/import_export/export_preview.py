@@ -93,6 +93,7 @@ def _initialise_selection(
     return set(cleaned_values)
 
 
+# pylint: disable=too-many-positional-arguments  # Helper needs all params for export preview
 def _build_section(
     entries: list[dict[str, Any]],
     include_collection: bool,
