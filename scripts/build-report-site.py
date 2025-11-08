@@ -46,7 +46,19 @@ GAUGE_CSS = BASE_CSS + """
 
 LANDING_CSS = BASE_CSS + """
     h1 { font-size: 2rem; margin-bottom: 1rem; }
+    h2 { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid #e1e4e8; padding-bottom: 0.5rem; }
     ul { list-style: disc; padding-left: 1.5rem; }
+    .job-list { list-style: none; padding: 0; margin: 1rem 0; }
+    .job-item { display: flex; align-items: center; padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #e1e4e8; border-radius: 6px; background: #f6f8fa; }
+    .job-status { flex-shrink: 0; margin-right: 1rem; font-size: 1.5rem; }
+    .job-status.success { color: #28a745; }
+    .job-status.failure { color: #d73a49; }
+    .job-status.skipped { color: #6a737d; }
+    .job-icon { flex-shrink: 0; margin-right: 0.75rem; font-size: 1.2rem; }
+    .job-info { flex-grow: 1; }
+    .job-name { font-weight: 600; margin: 0; }
+    .job-type { color: #586069; font-size: 0.9rem; margin: 0.25rem 0 0 0; }
+    .job-link { margin-left: auto; }
     .screenshot-status { margin-top: 2rem; padding: 1rem; background: #fff8c5; border-left: 4px solid #9a6700; }
     .screenshot-status h2 { margin-top: 0; }
     .screenshot-status ul { margin-top: 0.5rem; }"""
@@ -569,19 +581,180 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
     return intro + reason_block + guidance_block + closing
 
 
-def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None) -> None:
+@dataclass
+class JobMetadata:
+    """Metadata for a CI job."""
+    name: str
+    icon: str
+    check_type: str
+    report_link: str | None = None
+
+
+def _load_job_statuses(job_statuses_path: Path | None) -> dict[str, str]:
+    """Load job statuses from JSON file."""
+    if job_statuses_path is None or not job_statuses_path.exists():
+        return {}
+
+    try:
+        return json.loads(job_statuses_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _get_job_metadata() -> dict[str, JobMetadata]:
+    """Define metadata for all CI jobs."""
+    return {
+        "ruff": JobMetadata(
+            name="Ruff",
+            icon="⚡",
+            check_type="Python Linter & Formatter",
+            report_link=None
+        ),
+        "pylint": JobMetadata(
+            name="Pylint",
+            icon="🔍",
+            check_type="Python Code Quality",
+            report_link=None
+        ),
+        "mypy": JobMetadata(
+            name="Mypy",
+            icon="📝",
+            check_type="Python Type Checker",
+            report_link=None
+        ),
+        "radon": JobMetadata(
+            name="Radon",
+            icon="📊",
+            check_type="Code Complexity Analysis",
+            report_link="radon/index.html"
+        ),
+        "vulture": JobMetadata(
+            name="Vulture",
+            icon="🦅",
+            check_type="Dead Code Detection",
+            report_link="vulture/index.html"
+        ),
+        "shellcheck": JobMetadata(
+            name="ShellCheck",
+            icon="🐚",
+            check_type="Shell Script Linter",
+            report_link=None
+        ),
+        "hadolint": JobMetadata(
+            name="Hadolint",
+            icon="🐳",
+            check_type="Dockerfile Linter",
+            report_link=None
+        ),
+        "eslint": JobMetadata(
+            name="ESLint",
+            icon="📜",
+            check_type="JavaScript/TypeScript Linter",
+            report_link=None
+        ),
+        "stylelint": JobMetadata(
+            name="Stylelint",
+            icon="🎨",
+            check_type="CSS Linter",
+            report_link=None
+        ),
+        "uncss": JobMetadata(
+            name="UNCSS",
+            icon="✂️",
+            check_type="Unused CSS Checker",
+            report_link=None
+        ),
+        "test-index": JobMetadata(
+            name="Test Index",
+            icon="📑",
+            check_type="Test Index Validation",
+            report_link=None
+        ),
+        "unit-tests": JobMetadata(
+            name="Unit Tests",
+            icon="🧪",
+            check_type="Unit Tests & Coverage",
+            report_link="unit-tests/index.html"
+        ),
+        "property-tests": JobMetadata(
+            name="Property Tests",
+            icon="🔬",
+            check_type="Property-Based Testing",
+            report_link="property-tests/index.html"
+        ),
+        "integration-tests": JobMetadata(
+            name="Integration Tests",
+            icon="🔗",
+            check_type="Integration Testing",
+            report_link="integration-tests/index.html"
+        ),
+        "gauge-specs": JobMetadata(
+            name="Gauge",
+            icon="📏",
+            check_type="BDD Specifications",
+            report_link="gauge-specs/index.html"
+        ),
+    }
+
+
+def _format_job_list(job_statuses: dict[str, str]) -> str:
+    """Generate HTML for the job list with status indicators."""
+    if not job_statuses:
+        return "<p>No job status information available.</p>"
+
+    job_metadata = _get_job_metadata()
+    html_parts = ['<ul class="job-list">']
+
+    for job_id, status in job_statuses.items():
+        metadata = job_metadata.get(job_id)
+        if not metadata:
+            continue
+
+        # Determine status indicator and CSS class
+        if status == "success":
+            status_icon = "●"
+            status_class = "success"
+        elif status == "failure":
+            status_icon = "✖"
+            status_class = "failure"
+        elif status == "skipped":
+            status_icon = "○"
+            status_class = "skipped"
+        else:
+            status_icon = "?"
+            status_class = "skipped"
+
+        # Build the job item HTML
+        link_html = ""
+        if metadata.report_link:
+            link_html = f'<div class="job-link"><a href="{metadata.report_link}">View Report →</a></div>'
+
+        html_parts.append(f'''  <li class="job-item">
+    <span class="job-status {status_class}">{status_icon}</span>
+    <span class="job-icon">{metadata.icon}</span>
+    <div class="job-info">
+      <p class="job-name">{escape(metadata.name)}</p>
+      <p class="job-type">{escape(metadata.check_type)}</p>
+    </div>
+    {link_html}
+  </li>''')
+
+    html_parts.append('</ul>')
+    return '\n'.join(html_parts)
+
+
+def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None, job_statuses: dict[str, str] | None = None) -> None:
     index_path = site_dir / "index.html"
     notice_html = (screenshot_notice + "\n") if screenshot_notice else ""
 
+    if job_statuses is None:
+        job_statuses = {}
+
+    job_list_html = _format_job_list(job_statuses)
+
     body = f"""  <h1>SecureApp Test Reports</h1>
-  <ul>
-    <li><a href="unit-tests/index.html">Unit test coverage report</a></li>
-    <li><a href="integration-tests/index.html">Integration test results</a></li>
-    <li><a href="gauge-specs/index.html">Gauge HTML report</a></li>
-    <li><a href="property-tests/index.html">Property test results</a></li>
-    <li><a href="radon/index.html">Radon complexity report</a></li>
-    <li><a href="vulture/index.html">Vulture dead code report</a></li>
-  </ul>
+  <h2>CI Check Results</h2>
+{job_list_html}
 {notice_html}"""
 
     index_path.write_text(
@@ -599,6 +772,7 @@ def build_site(
     property_artifacts: Path | None,
     radon_artifacts: Path | None,
     vulture_artifacts: Path | None,
+    job_statuses_path: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
 ) -> None:
@@ -628,7 +802,8 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
-    _write_landing_page(output_dir, screenshot_notice=screenshot_notice)
+    job_statuses = _load_job_statuses(job_statuses_path)
+    _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
 
 
 
@@ -671,6 +846,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the Vulture dead code report artifacts.",
     )
     parser.add_argument(
+        "--job-statuses",
+        type=Path,
+        default=None,
+        help="JSON file containing the status of all CI jobs.",
+    )
+    parser.add_argument(
         "--public-base-url",
         default="https://curtcox.github.io/Viewer",
         help="Base URL where the report site is published.",
@@ -695,6 +876,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         property_artifacts=parsed.property_artifacts,
         radon_artifacts=parsed.radon_artifacts,
         vulture_artifacts=parsed.vulture_artifacts,
+        job_statuses_path=parsed.job_statuses,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
     )

@@ -465,12 +465,21 @@ jobs:
   deploy-reports:
     name: Publish Test Reports
     needs:
-      - unit-tests
-      - integration-tests
-      - gauge-specs
-      - property-tests
+      - ruff
+      - pylint
+      - mypy
       - radon
       - vulture
+      - shellcheck
+      - hadolint
+      - eslint
+      - stylelint
+      - uncss
+      - test-index
+      - unit-tests
+      - property-tests
+      - integration-tests
+      - gauge-specs
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
@@ -481,6 +490,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Capture job statuses
+        run: |
+          cat > job-statuses.json << 'EOF'
+          {
+            "ruff": "${{ needs.ruff.result }}",
+            "pylint": "${{ needs.pylint.result }}",
+            "mypy": "${{ needs.mypy.result }}",
+            "radon": "${{ needs.radon.result }}",
+            "vulture": "${{ needs.vulture.result }}",
+            "shellcheck": "${{ needs.shellcheck.result }}",
+            "hadolint": "${{ needs.hadolint.result }}",
+            "eslint": "${{ needs.eslint.result }}",
+            "stylelint": "${{ needs.stylelint.result }}",
+            "uncss": "${{ needs.uncss.result }}",
+            "test-index": "${{ needs.test-index.result }}",
+            "unit-tests": "${{ needs.unit-tests.result }}",
+            "property-tests": "${{ needs.property-tests.result }}",
+            "integration-tests": "${{ needs.integration-tests.result }}",
+            "gauge-specs": "${{ needs.gauge-specs.result }}"
+          }
+          EOF
+          cat job-statuses.json
       - name: Download unit test report
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -526,6 +557,7 @@ jobs:
             --property-artifacts site/property-tests \
             --radon-artifacts site/radon \
             --vulture-artifacts site/vulture \
+            --job-statuses job-statuses.json \
             --output site
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
