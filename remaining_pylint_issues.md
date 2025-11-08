@@ -74,23 +74,29 @@
 
 ### Score Progress
 - **Starting score**: 9.79/10
-- **Ending score**: 9.84/10
-- **Improvement**: +0.05 points
+- **Ending score**: 9.85/10
+- **Improvement**: +0.06 points
 
 ### Issues Fixed
 1. ✅ Fixed 5 trailing newline issues
-2. ✅ Fixed 3 import order issues (routes/import_export.py, routes/import_export/routes.py)
-3. ✅ Fixed 2 dictionary iteration style issues
+2. ✅ Fixed 6 import order issues:
+   - routes/import_export.py
+   - routes/import_export/routes.py
+   - routes/import_export/import_sources.py
+   - routes/import_export/import_engine.py
+   - routes/import_export/export_preview.py
+3. ✅ Fixed 3 dictionary/iteration style issues (removed redundant .keys(), changed sets to tuples)
 4. ✅ Fixed 3 redefined-outer-name issues (renamed shadowing variables)
 5. ✅ Fixed 1 inconsistent-return-statements issue
-6. ✅ Fixed 2 too-many-positional-arguments issues (added justified pylint disables)
-7. ✅ Fixed 2 unused-argument issues (added justified pylint disables)
-8. ✅ Fixed 2 string formatting issues (converted to f-strings)
+6. ✅ Fixed 3 too-many-positional-arguments issues (added justified pylint disables)
+7. ✅ Fixed 3 unused-argument issues (added justified pylint disables or renamed with underscore)
+8. ✅ Fixed 3 string formatting issues (converted to f-strings and lazy logging)
 9. ✅ Fixed 8 broad-exception-caught issues in route files:
    - 1 in routes/history.py (narrowed to specific exceptions)
    - 3 in routes/route_details.py (narrowed or justified)
    - 2 in routes/error_handlers.py (justified as error recovery)
    - 1 in routes/uploads.py (narrowed to specific exceptions)
+10. ✅ Fixed 1 no-else-return issue (removed unnecessary else)
 
 ### Remaining Low-Priority Issues
 - Import-outside-toplevel warnings (C0415): Intentional lazy imports to avoid circular dependencies
