@@ -5,7 +5,7 @@ from alias_definition import collect_alias_routes
 from models import Alias
 
 
-class AliasRoutesIntegrationTests(unittest.TestCase):
+class TestAliasRoutesIntegration(unittest.TestCase):
     """Test that collect_alias_routes works with the new Alias model structure."""
 
     def test_collect_routes_simple_alias(self):

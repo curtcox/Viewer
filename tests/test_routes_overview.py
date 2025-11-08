@@ -11,7 +11,7 @@ from database import db  # noqa: E402
 from models import Alias, Server  # noqa: E402
 
 
-class RoutesOverviewTestCase(unittest.TestCase):
+class TestRoutesOverview(unittest.TestCase):
     """Tests for the routes overview page."""
 
     def setUp(self):

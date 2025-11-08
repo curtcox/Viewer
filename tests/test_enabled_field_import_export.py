@@ -19,7 +19,7 @@ from models import Alias, Server, Variable, Secret
 from alias_definition import format_primary_alias_line
 
 
-class EnabledFieldImportExportTestCase(unittest.TestCase):
+class TestEnabledFieldImportExport(unittest.TestCase):
     """Integration tests for enabled field in import/export operations."""
 
     def setUp(self):

@@ -16,7 +16,7 @@ from database import db
 from models import Alias, Server, Variable, Secret
 
 
-class EnabledFieldPersistenceTestCase(unittest.TestCase):
+class TestEnabledFieldPersistence(unittest.TestCase):
     """Test suite for enabled field persistence across all models."""
 
     def setUp(self):

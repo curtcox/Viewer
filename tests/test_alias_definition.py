@@ -20,7 +20,7 @@ from alias_definition import (
 )
 
 
-class SummarizeDefinitionLinesTests(unittest.TestCase):
+class TestSummarizeDefinitionLines(unittest.TestCase):
     def test_summarize_definition_lines_extracts_metadata(self):
         definition = textwrap.dedent(
             """
@@ -153,7 +153,7 @@ class SummarizeDefinitionLinesTests(unittest.TestCase):
         self.assertIn("does not contain an alias mapping", summary[1].parse_error.lower())
 
 
-class ParseAliasDefinitionValidationTests(unittest.TestCase):
+class TestParseAliasDefinitionValidation(unittest.TestCase):
     def test_rejects_definitions_without_mapping_lines(self):
         invalid_definitions = [
             "stuff # invalid",
@@ -293,7 +293,7 @@ class ParseAliasDefinitionValidationTests(unittest.TestCase):
         self.assertEqual(parsed.target_path, "/documentation")
 
 
-class DefinitionUtilityTests(unittest.TestCase):
+class TestDefinitionUtility(unittest.TestCase):
     def test_definition_contains_mapping_detects_primary_line(self):
         self.assertFalse(definition_contains_mapping(None))
         self.assertFalse(definition_contains_mapping("  # comment"))
@@ -340,7 +340,7 @@ class DefinitionUtilityTests(unittest.TestCase):
         self.assertEqual(updated, "docs -> /documentation\n\nNotes about the alias")
 
 
-class StripInlineCommentTests(unittest.TestCase):
+class TestStripInlineComment(unittest.TestCase):
     def test_strips_inline_comment(self):
         self.assertEqual(_strip_inline_comment("docs -> /docs # comment"), "docs -> /docs")
         self.assertEqual(_strip_inline_comment("docs -> /docs  # comment"), "docs -> /docs")
@@ -361,7 +361,7 @@ class StripInlineCommentTests(unittest.TestCase):
         self.assertEqual(_strip_inline_comment("  # comment"), "")
 
 
-class ExtractPrimaryLineTests(unittest.TestCase):
+class TestExtractPrimaryLine(unittest.TestCase):
     def test_extracts_first_mapping_line(self):
         definition = "# comment\ndocs -> /documentation\nother -> /other"
         self.assertEqual(_extract_primary_line(definition), "docs -> /documentation")
@@ -384,7 +384,7 @@ class ExtractPrimaryLineTests(unittest.TestCase):
         self.assertEqual(_extract_primary_line(definition), "docs -> /documentation # inline comment")
 
 
-class NormalizeVariableMapTests(unittest.TestCase):
+class TestNormalizeVariableMap(unittest.TestCase):
     def test_handles_none_and_empty(self):
         self.assertEqual(_normalize_variable_map(None), {})
         self.assertEqual(_normalize_variable_map({}), {})
@@ -448,7 +448,7 @@ class NormalizeVariableMapTests(unittest.TestCase):
         self.assertEqual(result, {})
 
 
-class SubstituteVariablesTests(unittest.TestCase):
+class TestSubstituteVariables(unittest.TestCase):
     def test_substitutes_single_variable(self):
         text = "Path: {var1}"
         variables = {"var1": "value1"}
@@ -484,7 +484,7 @@ class SubstituteVariablesTests(unittest.TestCase):
         self.assertEqual(_substitute_variables(text, variables), "a/b/c")
 
 
-class FormatPrimaryAliasLineTests(unittest.TestCase):
+class TestFormatPrimaryAliasLine(unittest.TestCase):
     def test_formats_literal_match_without_options(self):
         result = format_primary_alias_line("literal", "/docs", "/documentation", alias_name="docs")
         self.assertEqual(result, "docs -> /documentation")
@@ -526,7 +526,7 @@ class FormatPrimaryAliasLineTests(unittest.TestCase):
         self.assertEqual(result, "/docs/* -> /documentation [glob]")
 
 
-class GetPrimaryAliasRouteTests(unittest.TestCase):
+class TestGetPrimaryAliasRoute(unittest.TestCase):
     def test_returns_first_route(self):
         definition = "docs -> /documentation\napi -> /api"
         alias = SimpleNamespace(name="docs", definition=definition)
@@ -541,7 +541,7 @@ class GetPrimaryAliasRouteTests(unittest.TestCase):
         self.assertIsNone(route)
 
 
-class CollectAliasRoutesEdgeCasesTests(unittest.TestCase):
+class TestCollectAliasRoutesEdgeCases(unittest.TestCase):
     def test_handles_empty_definition(self):
         alias = SimpleNamespace(name="docs", definition="")
         routes = collect_alias_routes(alias)
@@ -614,7 +614,7 @@ class CollectAliasRoutesEdgeCasesTests(unittest.TestCase):
         self.assertEqual(routes[0].target_path, "/documentation/value1")
 
 
-class ParseAliasDefinitionEdgeCasesTests(unittest.TestCase):
+class TestParseAliasDefinitionEdgeCases(unittest.TestCase):
     def test_handles_none_definition(self):
         with self.assertRaises(AliasDefinitionError) as exc_info:
             parse_alias_definition(None)

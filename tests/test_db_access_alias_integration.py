@@ -5,7 +5,7 @@ from models import Alias
 from db_access import get_alias_by_target_path
 
 
-class DbAccessAliasIntegrationTests(unittest.TestCase):
+class TestDbAccessAliasIntegration(unittest.TestCase):
     """Test that db_access functions work with the new Alias model structure."""
 
     def setUp(self):
