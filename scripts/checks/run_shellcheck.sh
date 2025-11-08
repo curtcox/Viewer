@@ -8,4 +8,4 @@ if [[ "${#shell_scripts[@]}" -eq 0 ]]; then
   echo "No shell scripts to lint."
   exit 0
 fi
-shellcheck "${shell_scripts[@]}"
+shellcheck --external-sources "${shell_scripts[@]}"
