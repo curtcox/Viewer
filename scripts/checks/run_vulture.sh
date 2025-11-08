@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-REPO_ROOT=$(cd "${SCRIPT_DIR}/../.." && pwd)
-cd "${REPO_ROOT}"
+cd "${SCRIPT_DIR}"
+source ../../goto_root
 OUTPUT_DIR="vulture-report"
 SUMMARY_FILE="${OUTPUT_DIR}/summary.md"
 while [[ $# -gt 0 ]]; do
