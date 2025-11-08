@@ -37,7 +37,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Run Pylint
-        run: ./scripts/checks/run_pylint.sh
+        id: run_pylint
+        run: |
+          mkdir -p pylint-report
+          STATUS=0
+          ./scripts/checks/run_pylint.sh > pylint-report/output.txt 2>&1 || STATUS=$?
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+
+          # Count files examined
+          FILE_COUNT=$(git ls-files '*.py' | wc -l)
+          echo "Files examined: $FILE_COUNT" > pylint-report/summary.txt
+          echo "Exit code: $STATUS" >> pylint-report/summary.txt
+
+          if [ $STATUS -eq 0 ]; then
+            echo "Status: ✓ All checks passed" >> pylint-report/summary.txt
+          else
+            echo "Status: ✗ Issues found" >> pylint-report/summary.txt
+          fi
+
+          exit $STATUS
+      - name: Upload Pylint artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylint-report
+          path: pylint-report
+          if-no-files-found: error
 
   mypy:
     name: Mypy
@@ -117,7 +142,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y shellcheck
       - name: Run ShellCheck
-        run: ./scripts/checks/run_shellcheck.sh
+        id: run_shellcheck
+        run: |
+          mkdir -p shellcheck-report
+          STATUS=0
+          ./scripts/checks/run_shellcheck.sh > shellcheck-report/output.txt 2>&1 || STATUS=$?
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+
+          # Count files examined
+          FILE_COUNT=$(git ls-files '*.sh' | wc -l)
+          echo "Files examined: $FILE_COUNT" > shellcheck-report/summary.txt
+          echo "Exit code: $STATUS" >> shellcheck-report/summary.txt
+
+          if [ $STATUS -eq 0 ]; then
+            echo "Status: ✓ All checks passed" >> shellcheck-report/summary.txt
+          else
+            echo "Status: ✗ Issues found" >> shellcheck-report/summary.txt
+          fi
+
+          exit $STATUS
+      - name: Upload ShellCheck artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shellcheck-report
+          path: shellcheck-report
+          if-no-files-found: error
 
   hadolint:
     name: Hadolint
@@ -130,7 +180,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y hadolint
       - name: Lint Dockerfile
-        run: ./scripts/checks/run_hadolint.sh
+        id: run_hadolint
+        run: |
+          mkdir -p hadolint-report
+          STATUS=0
+          ./scripts/checks/run_hadolint.sh > hadolint-report/output.txt 2>&1 || STATUS=$?
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+
+          # Report the specific file examined
+          echo "File examined: docker/ci/Dockerfile" > hadolint-report/summary.txt
+          echo "Exit code: $STATUS" >> hadolint-report/summary.txt
+
+          if [ $STATUS -eq 0 ]; then
+            echo "Status: ✓ All checks passed" >> hadolint-report/summary.txt
+          else
+            echo "Status: ✗ Issues found" >> hadolint-report/summary.txt
+          fi
+
+          exit $STATUS
+      - name: Upload Hadolint artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hadolint-report
+          path: hadolint-report
+          if-no-files-found: error
 
   eslint:
     name: ESLint
@@ -189,7 +263,41 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Verify test index
-        run: ./scripts/checks/verify_test_index.sh
+        id: verify_test_index
+        run: |
+          mkdir -p test-index-report
+          STATUS=0
+          ./scripts/checks/verify_test_index.sh > test-index-report/output.txt 2>&1 || STATUS=$?
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+
+          # Copy TEST_INDEX.md to the report
+          if [ -f TEST_INDEX.md ]; then
+            cp TEST_INDEX.md test-index-report/
+          fi
+
+          # Count tests in index
+          if [ -f TEST_INDEX.md ]; then
+            TEST_COUNT=$(grep -c "^\- \[" TEST_INDEX.md || echo "0")
+            echo "Tests indexed: $TEST_COUNT" > test-index-report/summary.txt
+          else
+            echo "Tests indexed: 0" > test-index-report/summary.txt
+          fi
+          echo "Exit code: $STATUS" >> test-index-report/summary.txt
+
+          if [ $STATUS -eq 0 ]; then
+            echo "Status: ✓ Index is valid" >> test-index-report/summary.txt
+          else
+            echo "Status: ✗ Index validation failed" >> test-index-report/summary.txt
+          fi
+
+          exit $STATUS
+      - name: Upload test index artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-index-report
+          path: test-index-report
+          if-no-files-found: error
 
   unit-tests:
     name: Unit Tests and Coverage
@@ -548,6 +656,30 @@ jobs:
         with:
           name: vulture-report
           path: site/vulture
+      - name: Download Pylint report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: pylint-report
+          path: site/pylint
+      - name: Download ShellCheck report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: shellcheck-report
+          path: site/shellcheck
+      - name: Download Hadolint report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: hadolint-report
+          path: site/hadolint
+      - name: Download Test Index report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: test-index-report
+          path: site/test-index
       - name: Prepare site content
         run: |
           python scripts/build-report-site.py \
@@ -557,6 +689,10 @@ jobs:
             --property-artifacts site/property-tests \
             --radon-artifacts site/radon \
             --vulture-artifacts site/vulture \
+            --pylint-artifacts site/pylint \
+            --shellcheck-artifacts site/shellcheck \
+            --hadolint-artifacts site/hadolint \
+            --test-index-artifacts site/test-index \
             --job-statuses job-statuses.json \
             --output site
       - name: Upload artifact for GitHub Pages
