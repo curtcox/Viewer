@@ -40,11 +40,11 @@ def user_secrets():
     return get_user_secrets(current_user.id)
 
 
-def _build_secrets_editor_payload(secrets: List[Secret]) -> str:
+def _build_secrets_editor_payload(secret_list: List[Secret]) -> str:
     """Return a JSON string representing the user's secrets for the editor."""
 
     return json.dumps(
-        {secret.name: secret.definition for secret in secrets},
+        {secret.name: secret.definition for secret in secret_list},
         indent=4,
         sort_keys=True,
         ensure_ascii=False,
@@ -312,4 +312,3 @@ def _wants_structured_response() -> bool:
 
 def _secret_to_json(secret: Secret) -> Dict[str, object]:
     return model_to_dict(secret)
-
