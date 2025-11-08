@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+from contextlib import closing
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, List, Tuple
@@ -312,7 +313,7 @@ def source_instance_table(table_name: str):
         abort(500)
 
     try:
-        with db.session.execute(select(table)) as result:
+        with closing(db.session.execute(select(table))) as result:
             rows = [dict(row) for row in result.mappings()]
     except SQLAlchemyError:
         abort(500)
