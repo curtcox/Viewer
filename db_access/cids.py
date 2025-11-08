@@ -7,25 +7,22 @@ from database import db
 from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
 
-SaveServerDefinition = Callable[[str, int], str]
-StoreServerDefinitions = Callable[[int], str]
-
-try:
-    from cid_utils import (
-        save_server_definition_as_cid as _save_server_definition_as_cid,
-        store_server_definitions_cid as _store_server_definitions_cid,
-    )
-except (ImportError, ModuleNotFoundError, RuntimeError):
-    _save_server_definition_as_cid = None
-    _store_server_definitions_cid = None
+SaveServerDefinition = Callable[[str, str], str]
+StoreServerDefinitions = Callable[[str], str]
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
     """Return CID helper functions or raise if unavailable."""
 
-    if _save_server_definition_as_cid is None or _store_server_definitions_cid is None:
-        raise RuntimeError("CID utilities are unavailable")
-    return _save_server_definition_as_cid, _store_server_definitions_cid
+    try:
+        from cid_utils import (  # pylint: disable=import-outside-toplevel
+            save_server_definition_as_cid,
+            store_server_definitions_cid,
+        )
+    except (ImportError, ModuleNotFoundError, RuntimeError) as exc:  # pragma: no cover - defensive
+        raise RuntimeError("CID utilities are unavailable") from exc
+
+    return save_server_definition_as_cid, store_server_definitions_cid
 
 
 def get_cid_by_path(path: str) -> Optional[CID]:

@@ -7,11 +7,6 @@ from typing import Optional
 from flask import current_app
 
 from alias_definition import format_primary_alias_line
-from db_access import (
-    get_alias_by_name,
-    get_server_by_name,
-    save_entity,
-)
 from models import Alias, Server
 from server_templates import iter_server_templates
 
@@ -40,6 +35,13 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
     if not user_id:
         return False
+
+    # Import lazily to avoid circular dependencies during module import.
+    from db_access import (  # pylint: disable=import-outside-toplevel
+        get_alias_by_name,
+        get_server_by_name,
+        save_entity,
+    )
 
     alias = get_alias_by_name(user_id, AI_ALIAS_NAME)
 
