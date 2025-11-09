@@ -23,7 +23,7 @@ No pylint warnings remain. All warnings are now properly documented and suppress
 2. **1 × W1510** (subprocess-run-check) - Fixed in `server_templates/definitions/auto_main_shell.py:43`
    - Added explicit `check=False` parameter to indicate intentional behavior
 
-### ✅ Inline Suppressions (37 issues)
+### ✅ Inline Suppressions (102 issues)
 
 3. **1 × W0622** (redefined-builtin) - Suppressed in `tests/test_cid_functionality.py:391`
    - Added pylint disable comment; parameter must be `format` to match PIL API
@@ -36,7 +36,11 @@ No pylint warnings remain. All warnings are now properly documented and suppress
    - 1 in `server_execution/request_parsing.py`
    - All false positives from lazy loading in `server_execution/__init__.py`
 
-6. **2 × C0302** (too-many-lines) - Suppressed in test files
+6. **64 × E0603** (undefined-all-variable) - Suppressed in `db_access.py`
+   - Module-level suppress for dynamic `__all__` construction from `_exports` module
+   - Names injected via `globals().update(_exports.EXPORTS)`
+
+7. **2 × C0302** (too-many-lines) - Suppressed in test files
    - `tests/test_import_export.py` (2,017 lines)
    - `tests/test_routes_comprehensive.py` (2,506 lines)
 
@@ -63,8 +67,7 @@ Added comprehensive global suppressions in `.pylintrc` for all intentional patte
 - R0401 (cyclic-import): 38 - Handled with lazy imports
 - R0917 (too-many-positional-arguments): 9 - Would require API changes
 
-**Dynamic Patterns** (97 occurrences):
-- E0603 (undefined-all-variable): 64 - False positives from dynamic `__all__` construction
+**Dynamic Patterns** (33 occurrences):
 - E0611 (no-name-in-module): 33 - False positives from lazy loading (also 34 inline suppressions)
 
 **Minor Issues** (13 occurrences):
@@ -72,7 +75,7 @@ Added comprehensive global suppressions in `.pylintrc` for all intentional patte
 - E5110 (bad-plugin-value): 5 - Plugin configuration issues
 - W0611 (unused-import): 1 - Rare false positive
 
-**Total Suppressed**: 632+ intentional patterns (599 global + 33 via E0611 global disable)
+**Total Suppressed**: 535 global patterns + 102 inline suppressions = 637 total
 
 ## Configuration
 
@@ -105,7 +108,6 @@ disable=
     too-many-positional-arguments,
 
     # Dynamic patterns and false positives
-    undefined-all-variable,
     no-name-in-module,  # Also 34 inline suppressions for specificity
     no-member,
     bad-plugin-value,
@@ -113,7 +115,9 @@ disable=
     # ... and more
 ```
 
-**Note**: Parallel processing (jobs=4) was disabled to prevent `RecursionError` in pylint_pytest plugin on Python 3.12 in CI.
+**Note**:
+- Parallel processing (jobs=4) was disabled to prevent `RecursionError` in pylint_pytest plugin on Python 3.12 in CI.
+- `undefined-all-variable` (E0603) is NOT globally disabled; instead, the 64 occurrences in `db_access.py` are suppressed with a targeted module-level comment.
 
 ## How to Run Pylint
 
@@ -163,11 +167,12 @@ New code should follow the same patterns documented in `.pylintrc`. If a new war
 The codebase has achieved a **perfect 10.00/10 pylint score**! 🎉
 
 ✅ Fixed 4 genuine code quality issues
-✅ Suppressed 37 false positives with inline comments and explanations
-✅ Globally suppressed 632+ intentional patterns in `.pylintrc`
+✅ Suppressed 102 false positives with inline comments and explanations
+✅ Globally suppressed 535 intentional patterns in `.pylintrc`
 ✅ Zero pylint warnings displayed (none remaining)
 ✅ All suppressions documented with clear rationale
 ✅ No C0302 violations in production code
 ✅ CI recursion error fixed (disabled parallel processing)
+✅ E0603 (undefined-all-variable) audited - used targeted suppression instead of global disable
 
 **All code quality issues have been addressed, and all intentional patterns are properly documented and suppressed.**

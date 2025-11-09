@@ -18,6 +18,7 @@ domain-specific modules:
 All imports from this module continue to work, but new code should
 import directly from db_access or the specific submodules.
 """
+# pylint: disable=undefined-all-variable  # __all__ dynamically constructed from _exports module
 
 from __future__ import annotations
 
@@ -26,7 +27,7 @@ from typing import TYPE_CHECKING
 from db_access import _exports
 from db_access._exports import LEGACY_DEFAULTS
 
-__all__ = list(_exports.__all__)
+__all__ = list(_exports.__all__)  # Names dynamically injected via globals().update()
 globals().update(_exports.EXPORTS)
 globals().update(LEGACY_DEFAULTS)
 

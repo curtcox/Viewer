@@ -32,7 +32,6 @@ disable=
 
     # Import issues - environment specific
     import-error,                 # E0401 - Dependencies exist but pylint can't find them
-    undefined-all-variable,       # E0603 - False positives from dynamic __all__ construction (64 occurrences)
     no-name-in-module,            # E0611 - False positives from lazy loading (33 occurrences)
 
     # Import patterns - intentional for avoiding circular dependencies
