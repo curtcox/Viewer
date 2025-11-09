@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 # Add current directory to path
 sys.path.insert(0, '.')
 
+from app import app
 from routes.secrets import user_secrets
 from routes.variables import user_variables
 from server_execution import build_request_args, model_as_dict
@@ -116,23 +117,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
 
         mock_current_user_id.return_value = 'test_user_123'
 
-        # Mock request context
-        mock_request = Mock()
-        mock_request.path = '/echo1'
-        mock_request.method = 'GET'
-        mock_request.headers = {}
-        mock_request.query_string = b''
-        mock_request.remote_addr = '127.0.0.1'
-        mock_request.user_agent = Mock()
-        mock_request.user_agent.string = 'test-agent'
-        mock_request.form = {}
-        mock_request.args = {}
-        mock_request.endpoint = None
-        mock_request.scheme = 'http'
-        mock_request.host = 'localhost'
-        mock_request.method = 'GET'
-
-        with patch.dict('server_execution.__dict__', {'request': mock_request}):
+        # Use Flask request context instead of patch.dict
+        with app.test_request_context('/echo1'):
             # Call build_request_args
             args = build_request_args()
 
@@ -169,27 +155,14 @@ class TestVariablesSecretsIssue(unittest.TestCase):
 
         mock_user_servers.return_value = []
 
-        mock_request = Mock()
-        mock_request.path = '/echo1'
-        mock_request.method = 'GET'
-        mock_request.headers = {}
-        mock_request.query_string = b''
-        mock_request.remote_addr = '127.0.0.1'
-        mock_request.user_agent = Mock()
-        mock_request.user_agent.string = 'test-agent'
-        mock_request.form = {}
-        mock_request.args = {}
-        mock_request.endpoint = None
-        mock_request.scheme = 'http'
-        mock_request.host = 'localhost'
-
-        with patch.dict('server_execution.__dict__', {'request': mock_request}):
+        # Use Flask request context instead of patch.dict
+        with app.test_request_context('/echo1'):
             args = build_request_args()
 
-        self.assertIn('active_var', args['context']['variables'])
-        self.assertNotIn('inactive_var', args['context']['variables'])
-        self.assertIn('active_secret', args['context']['secrets'])
-        self.assertNotIn('inactive_secret', args['context']['secrets'])
+            self.assertIn('active_var', args['context']['variables'])
+            self.assertNotIn('inactive_var', args['context']['variables'])
+            self.assertIn('active_secret', args['context']['secrets'])
+            self.assertNotIn('inactive_secret', args['context']['secrets'])
 
     def test_model_as_dict_ignores_disabled_entries(self):
         entries = [

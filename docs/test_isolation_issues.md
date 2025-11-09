@@ -6,15 +6,11 @@ This document describes test isolation problems discovered during module decompo
 
 **Test Results:**
 - **Before fixes**: 9 failed, 969 passed
-- **After fixes**: 3 failed, 975 passed
-- **Fixed**: 6 test failures related to module decomposition
+- **After initial fixes**: 3 failed, 975 passed
+- **After final fixes**: 0 failed, 978 passed ✅
+- **Fixed**: All 9 test failures (6 module decomposition + 3 Flask context issues)
 
-**Remaining Failures (3 tests):**
-1. `test_server_auto_main.py::test_auto_main_reads_cid_content_for_remaining_parameter`
-2. `test_variables_secrets_issue.py::TestVariablesSecretsIssue::test_build_request_args_skips_disabled_entries`
-3. `test_variables_secrets_issue.py::TestVariablesSecretsIssue::test_build_request_args_with_model_objects`
-
-These remaining failures are **not** related to the module decomposition but are pre-existing Flask/SQLAlchemy context issues.
+**All tests now pass!**
 
 ## What Was Fixed
 
@@ -75,92 +71,43 @@ def test_foo(self, mock_user_id, mock_get_server):
 @patch('server_execution.code_execution._current_user_id')
 ```
 
-## Remaining Issues
-
-### Flask/SQLAlchemy Context Problems
-
-The 3 remaining failures are caused by tests attempting to access Flask application or request context without proper setup:
-
-**Error 1: "Working outside of request context"**
-```
-RuntimeError: Working outside of request context.
-This typically means that you attempted to use functionality that needed
-an active HTTP request.
-```
-
-**Error 2: "Working outside of application context"**
-```
-RuntimeError: Working outside of application context.
-This typically means that you attempted to use functionality that needed
-the current application.
-```
-
-These tests need to be wrapped in Flask context managers:
-```python
-from app import app
-
-# For request context
-with app.test_request_context('/path'):
-    result = build_request_args()
-
-# For application context
-with app.app_context():
-    result = some_function()
-```
-
-## Steps to Fix Remaining Tests
+## Fixed Flask/SQLAlchemy Context Problems
 
 ### Fix 1: test_variables_secrets_issue.py (2 tests)
 
-Both `test_build_request_args_with_model_objects` and `test_build_request_args_skips_disabled_entries` need Flask request context:
+Both `test_build_request_args_with_model_objects` and `test_build_request_args_skips_disabled_entries` were failing with "Working outside of request context" errors.
+
+**Problem:** These tests call `build_request_args()` which internally accesses `flask.request`, but they were using `patch.dict('server_execution.__dict__', {'request': mock_request})` which doesn't work because Flask's `request` is a LocalProxy that requires an active request context.
+
+**Solution:** Replaced the `patch.dict` approach with `app.test_request_context()`:
 
 ```python
 from app import app
 
-@patch('server_execution.code_execution.get_user_variables')
-@patch('server_execution.code_execution.get_user_secrets')
-@patch('server_execution.code_execution.get_user_servers')
-@patch('server_execution.code_execution._current_user_id')
-def test_build_request_args_with_model_objects(
-    self, mock_current_user_id, mock_user_servers,
-    mock_user_secrets, mock_user_variables
-):
-    mock_current_user_id.return_value = 'test_user_123'
-    mock_user_variables.return_value = [...]
-    mock_user_secrets.return_value = [...]
-    mock_user_servers.return_value = []
+# ❌ OLD (doesn't work)
+with patch.dict('server_execution.__dict__', {'request': mock_request}):
+    args = build_request_args()
 
-    # ✅ ADD THIS: Wrap in Flask request context
-    with app.test_request_context('/echo1'):
-        args = build_request_args()
-
-        # Assertions
-        self.assertIsInstance(args['context']['variables'], dict)
-        self.assertEqual(args['context']['variables']['test_var'], 'test_value')
+# ✅ NEW (works correctly)
+with app.test_request_context('/echo1'):
+    args = build_request_args()
 ```
-
-The issue is that these tests call `build_request_args()` which internally accesses `flask.request`, but they're currently using `patch.dict('server_execution.__dict__', {'request': mock_request})` which doesn't work because Flask's `request` is a LocalProxy that requires an active request context.
-
-**Solution:** Remove the `patch.dict` approach and use `app.test_request_context()` instead.
 
 ### Fix 2: test_server_auto_main.py (1 test)
 
-The test `test_auto_main_reads_cid_content_for_remaining_parameter` fails with "no such table: alias", suggesting it needs application context for database access:
+The test `test_auto_main_reads_cid_content_for_remaining_parameter` was failing with "no such table: alias" error.
+
+**Problem:** The test was mocking `server_execution.find_matching_alias`, but `code_execution.py` imports it directly via `from alias_routing import find_matching_alias`. This meant the monkeypatch wasn't affecting the actual function call, causing a real database query.
+
+**Solution:** Patch `find_matching_alias` where it's used (in `code_execution` module):
 
 ```python
-from app import app
-from database import db
+# ❌ OLD (wrong patch location)
+monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
 
-def test_auto_main_reads_cid_content_for_remaining_parameter():
-    # ✅ ADD THIS: Wrap in Flask application + request context
-    with app.app_context():
-        db.create_all()  # Create tables if needed
-
-        with app.test_request_context('/server_name/remaining'):
-            # Test code here
-            result = server_execution.execute_server_code_from_definition(...)
-
-            # Assertions
+# ✅ NEW (correct patch location)
+from server_execution import code_execution
+monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
 ```
 
 ## Best Practices for Test Isolation
@@ -281,18 +228,20 @@ pytest tests/test_polluter.py tests/test_foo.py -v
 
 ## Summary
 
-**Current State:**
+**Final State:**
 - ✅ Fixed 6 test failures related to module decomposition patches
 - ✅ Fixed all flake8 E731 violations in test_server_execution_output_encoding.py
-- ⚠️ 3 remaining failures are pre-existing Flask context issues (not decomposition-related)
+- ✅ Fixed 2 Flask request context issues in test_variables_secrets_issue.py
+- ✅ Fixed 1 monkeypatch location issue in test_server_auto_main.py
+- ✅ **All 978 tests passing!**
 
 **Key Takeaways:**
 1. Always patch at the import/use site after module decomposition
 2. Use context managers for patches instead of setUp/tearDown
-3. Flask-dependent tests need `app.test_request_context()` or `app.app_context()`
-4. Test isolation failures ≠ code bugs (tests pass individually)
+3. Flask-dependent tests need `app.test_request_context()` for request-dependent code
+4. When patching imports, patch where the function is used, not where it's exposed
+5. Test isolation failures ≠ code bugs (tests pass individually)
 
-**Next Steps:**
-1. Fix test_variables_secrets_issue.py by replacing patch.dict with app.test_request_context()
-2. Fix test_server_auto_main.py by adding app.app_context() for database access
-3. All 978 tests should pass once Flask contexts are properly set up
+**Changes Made:**
+1. **test_variables_secrets_issue.py**: Replaced `patch.dict` with `app.test_request_context()` for proper Flask request context
+2. **test_server_auto_main.py**: Fixed monkeypatch location to patch `code_execution.find_matching_alias` instead of `server_execution.find_matching_alias`
