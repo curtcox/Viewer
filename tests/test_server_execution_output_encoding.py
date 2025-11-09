@@ -1,3 +1,6 @@
+"""Tests for server execution output encoding."""
+# pylint: disable=no-name-in-module  # False positive: server_execution submodules available via lazy loading
+
 import sys
 import types
 import unittest
