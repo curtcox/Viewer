@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import Response, has_request_context, jsonify, make_response, render_template, request
 
+# pylint: disable=no-name-in-module  # False positive: function_analysis exists via lazy loading
 from server_execution.function_analysis import FunctionDetails, MissingParameterError
 
 
