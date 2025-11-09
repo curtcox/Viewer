@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import db_access
 import server_execution
 import server_templates
 from app import app
@@ -146,7 +147,7 @@ def test_auto_main_falls_back_to_context_variables(monkeypatch):
  """
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "_load_user_context",
         lambda: {"variables": {"name": "Variable Name"}, "secrets": {}, "servers": {}},
     )
@@ -165,7 +166,7 @@ def test_auto_main_uses_secrets_when_variables_missing(monkeypatch):
  """
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "_load_user_context",
         lambda: {"variables": {}, "secrets": {"token": "secret-token"}, "servers": {}},
     )
@@ -218,7 +219,7 @@ def test_auto_main_uses_nested_server_response(monkeypatch):
     }
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -249,7 +250,7 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
     }
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -280,13 +281,13 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
     cid_bytes = b"payload-from-cid"
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: None,
     )
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_cid_by_path",
         lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
     )
@@ -318,7 +319,7 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
     }
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -338,7 +339,7 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
  """
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: None,
     )
@@ -346,7 +347,7 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
     monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "render_template",
         lambda template_name, **context: "\n".join(
             [
@@ -461,7 +462,7 @@ def test_try_server_execution_handles_helper_routes(monkeypatch):
     server = SimpleNamespace(definition=definition)
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: server if name == "widget" else None,
     )
@@ -482,7 +483,7 @@ def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
     server = SimpleNamespace(definition=definition)
 
     monkeypatch.setattr(
-        server_execution,
+        db_access,
         "get_server_by_name",
         lambda user_id, name: server if name == "widget" else None,
     )
