@@ -298,7 +298,8 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
         lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
     )
 
-    monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
+    # Patch find_matching_alias where it's used (in code_execution)
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
 
     with app.test_request_context(f"/outer/{cid_value}"):
         result = server_execution.execute_server_code_from_definition(
