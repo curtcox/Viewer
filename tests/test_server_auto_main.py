@@ -147,7 +147,7 @@ def test_auto_main_falls_back_to_context_variables(monkeypatch):
  """
 
     monkeypatch.setattr(
-        db_access,
+        server_execution.code_execution,
         "_load_user_context",
         lambda: {"variables": {"name": "Variable Name"}, "secrets": {}, "servers": {}},
     )
@@ -166,7 +166,7 @@ def test_auto_main_uses_secrets_when_variables_missing(monkeypatch):
  """
 
     monkeypatch.setattr(
-        db_access,
+        server_execution.code_execution,
         "_load_user_context",
         lambda: {"variables": {}, "secrets": {"token": "secret-token"}, "servers": {}},
     )
