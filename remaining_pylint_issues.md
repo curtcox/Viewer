@@ -4,12 +4,9 @@
 
 ## What Needs to Be Done
 
-Most remaining issues are architectural necessities or acceptable patterns. The remaining actionable items are:
+All module decompositions are complete! There are no remaining C0302 (too-many-lines) violations.
 
-### Module Decomposition (C0302)
-- **`routes/meta.py`** (1,005 lines) - MEDIUM priority
-- **`routes/openapi.py`** (1,527 lines) - MEDIUM priority
-- See `docs/module_decomposition.md` for detailed guidance based on successful decompositions
+Most remaining issues are architectural necessities or acceptable patterns.
 
 ## Issues That Are Acceptable As-Is
 
