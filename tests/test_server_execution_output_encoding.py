@@ -142,7 +142,7 @@ class TestServerExecutionOutputEncoding(unittest.TestCase):
 class TestExecuteServerCodeSharedFlow(unittest.TestCase):
     def setUp(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
 
         # Save originals
         self.original_run_text_function = code_execution.run_text_function
@@ -154,14 +154,13 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         self.original_get_cid_by_path = response_handling.get_cid_by_path
         self.original_generate_cid = response_handling.generate_cid
         self.original_get_extension = response_handling.get_extension_from_mime_type
-        self.original_current_user_code = code_execution.current_user
-        self.original_current_user_response = response_handling.current_user
+        # After decomposition, current_user is only in variable_resolution
+        self.original_current_user = variable_resolution.current_user
         self.original_render_error_html = error_handling._render_execution_error_html
 
         # Set mocks where they're used
         mock_user = types.SimpleNamespace(id="user-123")
-        code_execution.current_user = mock_user
-        response_handling.current_user = mock_user
+        variable_resolution.current_user = mock_user
         code_execution.build_request_args = lambda: {
             "request": {"path": "/mock"},
             "context": {"variables": {}, "secrets": {}, "servers": {}},
@@ -186,6 +185,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         self.response_handling = response_handling
         self.error_handling = error_handling
         self.invocation_tracking = invocation_tracking
+        self.variable_resolution = variable_resolution
 
     def tearDown(self):
         self.code_execution.run_text_function = self.original_run_text_function
@@ -197,8 +197,8 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         self.response_handling.get_cid_by_path = self.original_get_cid_by_path
         self.response_handling.generate_cid = self.original_generate_cid
         self.response_handling.get_extension_from_mime_type = self.original_get_extension
-        self.code_execution.current_user = self.original_current_user_code
-        self.response_handling.current_user = self.original_current_user_response
+        # After decomposition, current_user is only in variable_resolution
+        self.variable_resolution.current_user = self.original_current_user
         self.error_handling._render_execution_error_html = (
             self.original_render_error_html
         )
