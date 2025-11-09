@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "${SCRIPT_DIR}"
+# shellcheck source=../../goto_root
+source ../../goto_root
+# Override addopts to exclude timeout (dead-fixtures check doesn't need it)
+python -m pytest --override-ini='addopts=-m "not integration"' --dead-fixtures -q "$@"

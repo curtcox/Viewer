@@ -2,6 +2,9 @@
 # Use multiple processes to speed up Pylint
 jobs=4
 
+# Load pylint-pytest plugin to understand pytest features and reduce false positives
+load-plugins=pylint_pytest
+
 # Ignore server template files - they're executed with injected variables (request, context, load, etc.)
 ignore=server_templates/definitions
 
