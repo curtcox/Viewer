@@ -502,7 +502,7 @@ def _resolve_function_parameters(
     available = {
         "query_string": sorted(query_values.keys()),
         "request_body": sorted(body_values.keys()),
-        "headers": sorted({k for k in request.headers.keys()}),
+        "headers": sorted(set(request.headers.keys())),
         "context_variables": sorted(context_variables.keys()),
         "context_secrets": sorted(context_secrets.keys()),
     }

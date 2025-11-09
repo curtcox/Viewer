@@ -125,7 +125,7 @@ class TestServeCidContent(unittest.TestCase):
 
     def test_conditional_requests_with_filename(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.document.txt"
-        cid = path.lstrip("/").split(".")[0]
+        cid = path.lstrip("/").split(".", maxsplit=1)[0]
         etag_value = f'"{cid}"'
         response = self._serve(path, headers={'If-None-Match': etag_value})
         self.assertIsNotNone(response)

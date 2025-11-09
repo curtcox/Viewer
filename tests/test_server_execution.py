@@ -130,7 +130,7 @@ class TestParseFunctionDetails(unittest.TestCase):
         assert details.parameter_order == ["a", "b", "c"]
         assert details.required_parameters == ["a", "b"]
         assert details.optional_parameters == ["c"]
-        assert details.unsupported_reasons == []
+        assert not details.unsupported_reasons
 
     def test_parses_keyword_only_params(self):
         import ast
@@ -300,7 +300,7 @@ class TestExtractRequestBodyValues(unittest.TestCase):
         app = Flask(__name__)
         with app.test_request_context("/test"):
             result = _extract_request_body_values()
-        assert result == {}
+        assert not result
 
 
 class TestResolveRequestParameters(unittest.TestCase):
@@ -375,7 +375,7 @@ class TestResolveRequestParameters(unittest.TestCase):
 
         app = Flask(__name__)
         with app.test_request_context("/test?a=1"):
-            resolved, missing, available = _resolve_function_parameters(
+            resolved, missing, _ = _resolve_function_parameters(
                 details, {}, allow_partial=True
             )
 
@@ -460,11 +460,11 @@ class TestModelAsDict(unittest.TestCase):
 
     def test_handles_empty_list(self):
         result = model_as_dict([])
-        assert result == {}
+        assert not result
 
     def test_handles_none(self):
         result = model_as_dict(None)
-        assert result == {}
+        assert not result
 
 
 class TestRequestDetails(unittest.TestCase):

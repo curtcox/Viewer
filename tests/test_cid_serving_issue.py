@@ -17,11 +17,11 @@ def test_cid_url_analysis():
     print(f"Full CID URL: /{cid_url}")
 
     # Extract base CID (without extension)
-    base_cid = cid_url.split('.')[0]
+    base_cid = cid_url.split('.', maxsplit=1)[0]
     print(f"Base CID: {base_cid}")
 
     # Extract extension
-    extension = cid_url.split('.')[-1] if '.' in cid_url else None
+    extension = cid_url.rsplit('.', maxsplit=1)[-1] if '.' in cid_url else None
     print(f"Extension: {extension}")
 
     # Assertions and return

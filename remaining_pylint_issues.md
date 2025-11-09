@@ -1,40 +1,26 @@
 # Remaining Pylint Issues
 
-**Current Score**: 9.88/10 (as of 2025-11-09)
+**Current Score**: 9.72/10
 
-## Remaining Issues
+## What Needs to Be Done
 
-### 1. Module Size (C0302)
-- **`server_execution.py`** (1,413 lines) - Requires decomposition into 7 modules:
-  - variable_resolution
-  - definition_analyzer
-  - parameter_resolution
-  - invocation_builder
-  - execution_engine
-  - response_handling
-  - routing
-  - See `DECOMPOSITION_SUMMARY.md` for detailed plan
+Most remaining issues are architectural necessities or acceptable patterns. The only actionable item is:
 
-### 2. Lazy Imports (C0415: import-outside-toplevel)
-- **~60 instances** across routes and import_export modules
-- All are intentional lazy imports to avoid circular dependencies
-- No action needed - these are architectural necessities
+### Module Decomposition (C0302)
+- **`server_execution.py`** (1,413 lines) should be decomposed
+- See `DECOMPOSITION_SUMMARY.md` for detailed plan
+- This would improve the score and code maintainability
 
-### 3. Cyclic Imports (R0401)
-- **~25 instances** in `step_impl/shared_app.py`
-- Architectural issue requiring major refactoring
-- Low priority - does not affect functionality
+## Issues That Are Acceptable As-Is
 
-## Optional Improvements
+The following issues are intentional design decisions and do not need fixing:
 
-### Module Decomposition
-The following modules have justified `# pylint: disable=too-many-lines` suppressions but could optionally be decomposed:
-- `routes/meta.py` (1,004 lines) - 8 modules
-- `routes/openapi.py` (1,526 lines) - 5 modules
-- `scripts/build-report-site.py` (1,005 lines) - build script, low priority
-
-## Path to 9.90/10
-
-To reach 9.90/10 or higher, decompose `server_execution.py` into the modules outlined above.
-
-The remaining C0415 and R0401 warnings are architectural and not easily addressable without major refactoring.
+- **121 × C0415** (import-outside-toplevel): Intentional lazy imports to avoid circular dependencies
+- **64 × W0212** (protected-access): Tests accessing protected members for comprehensive testing
+- **60 × W0621** (redefined-outer-name): Standard pytest fixture pattern
+- **59 × C0413** (wrong-import-position): Test imports after setup for isolation
+- **36 × W0718** (broad-exception-caught): Intentional error handling for resilience
+- **23 × R0401** (cyclic-import): Architectural issue requiring major refactoring (low priority)
+- **23 × W0613** (unused-argument): Required by function signatures (fixtures, callbacks)
+- **9 × R0917** (too-many-positional-arguments): Would require API changes (low priority)
+- **Minor issues**: W0201, E0611, W0108, C0411, W0406, R0402, W1510, W0622 (various contexts)

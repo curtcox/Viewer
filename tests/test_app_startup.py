@@ -71,7 +71,7 @@ def test_create_app_handles_logfire_configuration_errors(
     response = client.get("/")
 
     assert response.status_code == 200
-    assert calls == []
+    assert not calls
 
     with app_instance.app_context():
         status = app_instance.config["OBSERVABILITY_STATUS"]
@@ -111,7 +111,7 @@ def test_create_app_handles_logfire_instrumentation_errors(
     response = client.get("/")
 
     assert response.status_code == 200
-    assert instrumentation_calls == []
+    assert not instrumentation_calls
 
     with app_instance.app_context():
         status = app_instance.config["OBSERVABILITY_STATUS"]

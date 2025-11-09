@@ -138,7 +138,7 @@ class TestProcessURLUpload(unittest.TestCase):
 
         mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/path/image.png"))
 
-        content, mime_type = process_url_upload(mock_form)
+        _, mime_type = process_url_upload(mock_form)
         self.assertEqual(mime_type, 'image/png')
 
     @patch('upload_handlers.requests.get')
@@ -152,7 +152,7 @@ class TestProcessURLUpload(unittest.TestCase):
 
         mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/api/"))
 
-        content, mime_type = process_url_upload(mock_form)
+        _, mime_type = process_url_upload(mock_form)
         self.assertEqual(mime_type, 'application/json')
 
     @patch('upload_handlers.requests.get')
@@ -178,7 +178,7 @@ class TestProcessURLUpload(unittest.TestCase):
 
         mock_form = SimpleNamespace(url=SimpleNamespace(data="  https://example.com/file.txt  "))
 
-        content, mime_type = process_url_upload(mock_form)
+        process_url_upload(mock_form)
         mock_get.assert_called_once()
         call_args = mock_get.call_args
         self.assertEqual(call_args[0][0], "https://example.com/file.txt")

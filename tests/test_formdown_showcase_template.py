@@ -218,4 +218,3 @@ def test_formdown_showcase_renders_text_and_textarea_inputs():
     assert '<textarea' in html
     assert 'name="bio"' in html
     assert 'enctype="multipart/form-data"' in html
-
