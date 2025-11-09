@@ -153,17 +153,27 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
         # Use context managers for automatic cleanup
         mock_user = types.SimpleNamespace(id="user-123")
-        mock_build_request_args = lambda: {
-            "request": {"path": "/mock"},
-            "context": {"variables": {}, "secrets": {}, "servers": {}},
-        }
-        mock_make_response = lambda text: types.SimpleNamespace(
-            headers={}, status_code=200, data=text
-        )
-        mock_redirect = lambda url: ("redirect", url)
-        mock_generate_cid = lambda b: "deadbeef"
-        mock_get_extension = lambda ct: "html" if ct == "text/html" else ""
-        mock_render_error_html = lambda exc, code, args, server_name: "<html>Error</html>"
+
+        def mock_build_request_args():
+            return {
+                "request": {"path": "/mock"},
+                "context": {"variables": {}, "secrets": {}, "servers": {}},
+            }
+
+        def mock_make_response(text):
+            return types.SimpleNamespace(headers={}, status_code=200, data=text)
+
+        def mock_redirect(url):
+            return ("redirect", url)
+
+        def mock_generate_cid(b):
+            return "deadbeef"
+
+        def mock_get_extension(ct):
+            return "html" if ct == "text/html" else ""
+
+        def mock_render_error_html(exc, code, args, server_name):
+            return "<html>Error</html>"
 
         with patch.object(variable_resolution, 'current_user', mock_user), \
              patch.object(code_execution, 'build_request_args', mock_build_request_args), \
@@ -198,17 +208,27 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
         # Use context managers for automatic cleanup
         mock_user = types.SimpleNamespace(id="user-123")
-        mock_build_request_args = lambda: {
-            "request": {"path": "/mock"},
-            "context": {"variables": {}, "secrets": {}, "servers": {}},
-        }
-        mock_make_response = lambda text: types.SimpleNamespace(
-            headers={}, status_code=500, data=text
-        )
-        mock_redirect = lambda url: ("redirect", url)
-        mock_generate_cid = lambda b: "deadbeef"
-        mock_get_extension = lambda ct: "html" if ct == "text/html" else ""
-        mock_render_error_html = lambda exc, code, args, server_name: "<html>Error</html>"
+
+        def mock_build_request_args():
+            return {
+                "request": {"path": "/mock"},
+                "context": {"variables": {}, "secrets": {}, "servers": {}},
+            }
+
+        def mock_make_response(text):
+            return types.SimpleNamespace(headers={}, status_code=500, data=text)
+
+        def mock_redirect(url):
+            return ("redirect", url)
+
+        def mock_generate_cid(b):
+            return "deadbeef"
+
+        def mock_get_extension(ct):
+            return "html" if ct == "text/html" else ""
+
+        def mock_render_error_html(exc, code, args, server_name):
+            return "<html>Error</html>"
 
         with patch.object(variable_resolution, 'current_user', mock_user), \
              patch.object(code_execution, 'build_request_args', mock_build_request_args), \

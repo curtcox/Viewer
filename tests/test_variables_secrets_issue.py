@@ -95,11 +95,11 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
 
-    @patch('server_execution.get_user_variables')
-    @patch('server_execution.get_user_secrets')
-    @patch('server_execution.get_user_servers')
-    @patch('server_execution.current_user')
-    def test_build_request_args_with_model_objects(self, mock_current_user, mock_user_servers, mock_user_secrets, mock_user_variables):
+    @patch('server_execution.code_execution.get_user_variables')
+    @patch('server_execution.code_execution.get_user_secrets')
+    @patch('server_execution.code_execution.get_user_servers')
+    @patch('server_execution.code_execution._current_user_id')
+    def test_build_request_args_with_model_objects(self, mock_current_user_id, mock_user_servers, mock_user_secrets, mock_user_variables):
         """Test that build_request_args includes model objects instead of serializable data"""
         # Mock variables and secrets to return model objects
         mock_var = Mock()
@@ -114,7 +114,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
 
         mock_user_servers.return_value = []
 
-        mock_current_user.id = 'test_user_123'
+        mock_current_user_id.return_value = 'test_user_123'
 
         # Mock request context
         mock_request = Mock()
@@ -144,18 +144,18 @@ class TestVariablesSecretsIssue(unittest.TestCase):
             self.assertEqual(args['context']['variables']['test_var'], 'test_value')
             self.assertEqual(args['context']['secrets']['test_secret'], 'secret_value')
 
-    @patch('server_execution.get_user_variables')
-    @patch('server_execution.get_user_secrets')
-    @patch('server_execution.get_user_servers')
-    @patch('server_execution.current_user')
+    @patch('server_execution.code_execution.get_user_variables')
+    @patch('server_execution.code_execution.get_user_secrets')
+    @patch('server_execution.code_execution.get_user_servers')
+    @patch('server_execution.code_execution._current_user_id')
     def test_build_request_args_skips_disabled_entries(
         self,
-        mock_current_user,
+        mock_current_user_id,
         mock_user_servers,
         mock_user_secrets,
         mock_user_variables,
     ):
-        mock_current_user.id = 'test_user_123'
+        mock_current_user_id.return_value = 'test_user_123'
 
         mock_user_variables.return_value = [
             SimpleNamespace(name='active_var', definition='value', enabled=True),

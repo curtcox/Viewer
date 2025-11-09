@@ -76,11 +76,11 @@ class TestEchoFunctionality(unittest.TestCase):
 
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
-            with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user_id
+            with patch('server_execution.server_lookup._current_user_id') as mock_user_id:
+                mock_user_id.return_value = self.test_user_id
 
                 # Mock the text function runner
-                with patch('server_execution.run_text_function') as mock_runner:
+                with patch('server_execution.code_execution.run_text_function') as mock_runner:
                     mock_runner.return_value = {
                         'output': 'Hello, World!',
                         'content_type': 'text/html'
@@ -93,8 +93,8 @@ class TestEchoFunctionality(unittest.TestCase):
         """Test the complete 404 error handler flow for /echo"""
         with app.test_request_context('/echo'):
             # Mock current_user as authenticated
-            with patch('server_execution.current_user') as mock_user:
-                mock_user.id = self.test_user_id
+            with patch('server_execution.server_lookup._current_user_id') as mock_user_id:
+                mock_user_id.return_value = self.test_user_id
 
                 # Create a mock 404 error
                 mock_error = MagicMock()
