@@ -11,13 +11,15 @@ from server_templates import get_server_templates
 
 @pytest.fixture(autouse=True)
 def patch_execution_environment(monkeypatch):
+    from server_execution import code_execution
+
     monkeypatch.setattr(
-        server_execution,
+        code_execution,
         "current_user",
         SimpleNamespace(id="user-123"),
     )
     monkeypatch.setattr(
-        server_execution,
+        code_execution,
         "_load_user_context",
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
@@ -29,7 +31,7 @@ def patch_execution_environment(monkeypatch):
             "server_name": server_name,
         }
 
-    monkeypatch.setattr(server_execution, "_handle_successful_execution", fake_success)
+    monkeypatch.setattr(code_execution, "_handle_successful_execution", fake_success)
 
 
 def test_auto_main_uses_query_parameters_over_other_sources():

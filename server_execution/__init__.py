@@ -57,6 +57,44 @@ __all__ = [
 # Lazy loading for internal/private functions (for testing and backward compatibility)
 def __getattr__(name: str):
     """Dynamically load internal functions when accessed."""
+    # External module re-exports for backward compatibility with tests
+    if name == "run_text_function":
+        from text_function_runner import run_text_function
+        return run_text_function
+    if name == "current_user":
+        from identity import current_user
+        return current_user
+    if name == "make_response":
+        from flask import make_response
+        return make_response
+    if name == "redirect":
+        from flask import redirect
+        return redirect
+    if name == "create_cid_record":
+        from db_access import create_cid_record
+        return create_cid_record
+    if name == "get_cid_by_path":
+        from db_access import get_cid_by_path
+        return get_cid_by_path
+    if name == "get_server_by_name":
+        from db_access import get_server_by_name
+        return get_server_by_name
+    if name == "generate_cid":
+        from cid_utils import generate_cid
+        return generate_cid
+    if name == "get_extension_from_mime_type":
+        from cid_utils import get_extension_from_mime_type
+        return get_extension_from_mime_type
+    if name == "cid_path":
+        from cid_presenter import cid_path
+        return cid_path
+    if name == "format_cid":
+        from cid_presenter import format_cid
+        return format_cid
+    if name == "find_matching_alias":
+        from alias_routing import find_matching_alias
+        return find_matching_alias
+
     # Variable resolution
     if name == "_normalize_variable_path":
         from server_execution.variable_resolution import _normalize_variable_path
