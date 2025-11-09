@@ -98,6 +98,7 @@ def __getattr__(name: str):
 
 
 # Re-export the route functions
+# pylint: disable=wrong-import-position  # Must come after __getattr__ definition for lazy imports
 from .routes import export_data, export_size, import_data  # noqa: E402
 
 __all__ = ['export_data', 'export_size', 'import_data']

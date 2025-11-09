@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build the static test report site from downloaded CI artifacts."""
+# pylint: disable=too-many-lines  # Build script with comprehensive artifact processing (1005 lines)
 
 from __future__ import annotations
 

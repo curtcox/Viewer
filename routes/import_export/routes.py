@@ -11,7 +11,7 @@ from forms import ExportForm, ImportForm
 from identity import current_user
 from interaction_log import load_interaction_history
 
-from . import main_bp
+from . import main_bp  # pylint: disable=no-name-in-module  # Lazy loaded via __getattr__
 from .cid_utils import format_size
 from .export_engine import build_export_payload
 from .export_preview import build_export_preview

@@ -224,7 +224,7 @@ def _build_metadata(
     if request is not None and hasattr(request, "get_data"):
         try:
             request_body = request.get_data()  # type: ignore[attr-defined]
-        except Exception:  # noqa: BLE001 - best effort capture
+        except Exception:  # noqa: BLE001 - best effort capture  # pylint: disable=broad-exception-caught
             request_body = None
 
     response_body = body_bytes
@@ -271,7 +271,7 @@ def _serialize_headers(headers: Any) -> list[dict[str, str]]:
     except TypeError:
         try:
             items = list(headers.items())  # type: ignore[attr-defined]
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             items = []
 
     result: list[dict[str, str]] = []
@@ -398,13 +398,13 @@ def _render_browser_screenshot(html_document: str) -> tuple[bytes | None, str | 
                     await wait_for_function("document.readyState === 'complete'")
             screenshot = await page.screenshot(fullPage=True)
             return screenshot, None
-        except Exception as exc:  # noqa: BLE001 - best effort fallback for CI environments
+        except Exception as exc:  # noqa: BLE001 - best effort fallback for CI  # pylint: disable=broad-exception-caught
             return None, _summarize_exception(exc)
         finally:
             if browser is not None:
                 try:
                     await browser.close()
-                except Exception:  # noqa: BLE001 - ignore cleanup failures
+                except Exception:  # noqa: BLE001 - ignore cleanup failures  # pylint: disable=broad-exception-caught
                     pass
 
     try:
@@ -414,13 +414,13 @@ def _render_browser_screenshot(html_document: str) -> tuple[bytes | None, str | 
         try:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(_capture())
-        except Exception as exc:  # noqa: BLE001 - ensure Gauge keeps running without screenshots
+        except Exception as exc:  # noqa: BLE001 - ensure Gauge keeps running  # pylint: disable=broad-exception-caught
             return None, _summarize_exception(exc)
         finally:
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
             asyncio.set_event_loop(None)
-    except Exception as exc:  # noqa: BLE001 - pyppeteer may fail when Chromium cannot be downloaded
+    except Exception as exc:  # noqa: BLE001 - pyppeteer may fail when Chromium cannot be downloaded  # pylint: disable=broad-exception-caught
         return None, _summarize_exception(exc)
 
 
