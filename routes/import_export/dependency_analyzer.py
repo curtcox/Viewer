@@ -44,27 +44,46 @@ def parse_dependency_name(raw_value: Any) -> str | None:
     return match.group(0).lower()
 
 
+def _parse_pyproject_dependencies(pyproject_path) -> set[str]:
+    """Extract dependency names from pyproject.toml file."""
+    dependency_names: set[str] = set()
+    if not pyproject_path.exists():
+        return dependency_names
+
+    try:
+        data = tomllib.loads(pyproject_path.read_text('utf-8'))
+    except (OSError, tomllib.TOMLDecodeError):
+        return dependency_names
+
+    if not isinstance(data, dict):
+        return dependency_names
+
+    project_section = data.get('project')
+    if not isinstance(project_section, dict):
+        return dependency_names
+
+    raw_dependencies = project_section.get('dependencies', [])
+    if not isinstance(raw_dependencies, list):
+        return dependency_names
+
+    for entry in raw_dependencies:
+        name = parse_dependency_name(entry)
+        if name:
+            dependency_names.add(name)
+
+    return dependency_names
+
+
 def collect_project_dependencies() -> set[str]:
     """Collect dependency names from pyproject.toml and requirements.txt."""
     base_path = app_root_path()
     dependency_names: set[str] = set()
 
+    # Collect from pyproject.toml
     pyproject_path = base_path / 'pyproject.toml'
-    if pyproject_path.exists():
-        try:
-            data = tomllib.loads(pyproject_path.read_text('utf-8'))
-        except (OSError, tomllib.TOMLDecodeError):
-            data = None
-        if isinstance(data, dict):
-            project_section = data.get('project')
-            if isinstance(project_section, dict):
-                raw_dependencies = project_section.get('dependencies', [])
-                if isinstance(raw_dependencies, list):
-                    for entry in raw_dependencies:
-                        name = parse_dependency_name(entry)
-                        if name:
-                            dependency_names.add(name)
+    dependency_names.update(_parse_pyproject_dependencies(pyproject_path))
 
+    # Collect from requirements.txt
     requirements_path = base_path / 'requirements.txt'
     if requirements_path.exists():
         try:

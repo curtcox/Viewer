@@ -1,4 +1,5 @@
 """Routes that expose the application's OpenAPI schema and Swagger UI."""
+# pylint: disable=too-many-lines  # Requires decomposition into modules (tracked in remaining_pylint_issues.md)
 from __future__ import annotations
 
 import re

@@ -46,7 +46,7 @@ async def test_browser_launch(output_path: Path) -> bool:
         print("✓ Browser closed cleanly")
         return True
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught  # Test script needs to catch all errors
         print(f"✗ Browser launch failed: {e}")
         import traceback
         traceback.print_exc()
@@ -56,7 +56,7 @@ async def test_browser_launch(output_path: Path) -> bool:
         if browser is not None:
             try:
                 await browser.close()
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught  # Cleanup code must not fail
                 pass
 
 
@@ -67,7 +67,7 @@ def main() -> int:
 
     try:
         success = asyncio.run(test_browser_launch(output_path))
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught  # Test script needs to catch all errors
         print(f"✗ Test failed with exception: {e}")
         import traceback
         traceback.print_exc()

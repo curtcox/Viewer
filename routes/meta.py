@@ -1,4 +1,5 @@
 """Routes for inspecting how application paths are served."""
+# pylint: disable=too-many-lines  # Requires decomposition into modules (tracked in remaining_pylint_issues.md)
 from __future__ import annotations
 
 import ast

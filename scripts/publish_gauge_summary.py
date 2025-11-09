@@ -124,6 +124,60 @@ def parse_gauge_log(log_path: Path) -> dict[str, Any]:
     return result
 
 
+def _process_spec_failures(spec: dict, specs_run: list, specs_failed: list,
+                          failed_scenarios: list) -> None:
+    """Process a spec to extract failure information."""
+    if not isinstance(spec, dict):
+        return
+
+    spec_name = spec.get("name", "")
+    if not spec_name:
+        return
+
+    if spec_name not in specs_run:
+        specs_run.append(spec_name)
+
+    scenarios = spec.get("scenarios", [])
+    for scenario in scenarios:
+        if not isinstance(scenario, dict):
+            continue
+        if scenario.get("executionStatus") != "FAILED":
+            continue
+        scenario_name = scenario.get("name", "")
+        if not scenario_name:
+            continue
+        failed_scenarios.append(f"{spec_name} :: {scenario_name}")
+        if spec_name not in specs_failed:
+            specs_failed.append(spec_name)
+
+
+def _extract_html_specs(html_data: dict, specs_run: list) -> None:
+    """Extract spec names from HTML data specs section."""
+    if "specs" not in html_data:
+        return
+
+    for spec in html_data["specs"]:
+        if not isinstance(spec, dict):
+            continue
+        spec_name = spec.get("name", "")
+        if spec_name and spec_name not in specs_run:
+            specs_run.append(spec_name)
+
+
+def _extract_execution_results(html_data: dict, specs_run: list, specs_failed: list,
+                               failed_scenarios: list) -> None:
+    """Extract execution results from HTML data."""
+    exec_result = html_data.get("executionResult", {})
+    if not isinstance(exec_result, dict):
+        return
+
+    if "specs" not in exec_result:
+        return
+
+    for spec in exec_result["specs"]:
+        _process_spec_failures(spec, specs_run, specs_failed, failed_scenarios)
+
+
 def build_summary(log_path: Path | None, html_report_path: Path | None) -> str:
     """Build markdown summary from Gauge execution results."""
     lines: list[str] = ["### Gauge specifications", ""]
@@ -146,39 +200,9 @@ def build_summary(log_path: Path | None, html_report_path: Path | None) -> str:
     failed_scenarios_count = log_data.get("failed_scenarios_count", 0)
 
     # If HTML report has data, use it to supplement
-    if html_data:
-        # Extract summary from HTML report JSON
-        if isinstance(html_data, dict):
-            # Try common Gauge report structures
-            if "specs" in html_data:
-                for spec in html_data["specs"]:
-                    if isinstance(spec, dict):
-                        spec_name = spec.get("name", "")
-                        if spec_name and spec_name not in specs_run:
-                            specs_run.append(spec_name)
-
-            # Extract execution results
-            exec_result = html_data.get("executionResult", {})
-            if isinstance(exec_result, dict):
-                if "specs" in exec_result:
-                    for spec in exec_result["specs"]:
-                        if isinstance(spec, dict):
-                            spec_name = spec.get("name", "")
-                            if spec_name:
-                                if spec_name not in specs_run:
-                                    specs_run.append(spec_name)
-                                # Check for failures
-                                scenarios = spec.get("scenarios", [])
-                                for scenario in scenarios:
-                                    if isinstance(scenario, dict):
-                                        if scenario.get("executionStatus") == "FAILED":
-                                            scenario_name = scenario.get("name", "")
-                                            if scenario_name:
-                                                failed_scenarios.append(
-                                                    f"{spec_name} :: {scenario_name}"
-                                                )
-                                                if spec_name not in specs_failed:
-                                                    specs_failed.append(spec_name)
+    if html_data and isinstance(html_data, dict):
+        _extract_html_specs(html_data, specs_run)
+        _extract_execution_results(html_data, specs_run, specs_failed, failed_scenarios)
 
     # Build summary
     if not specs_run:

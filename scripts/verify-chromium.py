@@ -37,7 +37,7 @@ def main() -> int:
             print("✗ Chromium binary NOT FOUND")
             return 1
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught  # Diagnostic script needs to catch all errors
         print(f"✗ Error checking Chromium: {e}")
         import traceback
         traceback.print_exc()
