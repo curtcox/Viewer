@@ -315,6 +315,47 @@ jobs:
           path: test-index-report
           if-no-files-found: error
 
+  dead-fixtures:
+    name: Dead Fixtures Check
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    env:
+      DATABASE_URL: sqlite:////tmp/secureapp-ci.db
+      SESSION_SECRET: test-secret-key
+      TESTING: "True"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Check for dead fixtures
+        id: run_dead_fixtures
+        run: |
+          mkdir -p dead-fixtures-report
+          STATUS=0
+          ./scripts/checks/run_dead_fixtures.sh > dead-fixtures-report/output.txt 2>&1 || STATUS=$?
+          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
+
+          # Create summary
+          echo "Dead Fixtures Check" > dead-fixtures-report/summary.txt
+          echo "Exit code: $STATUS" >> dead-fixtures-report/summary.txt
+
+          if [ $STATUS -eq 0 ]; then
+            echo "Status: ✓ No dead fixtures found" >> dead-fixtures-report/summary.txt
+          else
+            echo "Status: ✗ Dead fixtures detected" >> dead-fixtures-report/summary.txt
+          fi
+
+          exit $STATUS
+      - name: Upload dead fixtures artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dead-fixtures-report
+          path: dead-fixtures-report
+          if-no-files-found: error
+
   unit-tests:
     name: Unit Tests and Coverage
     runs-on: ubuntu-latest
@@ -600,6 +641,7 @@ jobs:
       - stylelint
       - uncss
       - test-index
+      - dead-fixtures
       - unit-tests
       - property-tests
       - integration-tests
@@ -629,6 +671,7 @@ jobs:
             "stylelint": "${{ needs.stylelint.result }}",
             "uncss": "${{ needs.uncss.result }}",
             "test-index": "${{ needs.test-index.result }}",
+            "dead-fixtures": "${{ needs.dead-fixtures.result }}",
             "unit-tests": "${{ needs.unit-tests.result }}",
             "property-tests": "${{ needs.property-tests.result }}",
             "integration-tests": "${{ needs.integration-tests.result }}",
@@ -696,6 +739,12 @@ jobs:
         with:
           name: test-index-report
           path: site/test-index
+      - name: Download Dead Fixtures report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: dead-fixtures-report
+          path: site/dead-fixtures
       - name: Prepare site content
         run: |
           python scripts/build-report-site.py \
