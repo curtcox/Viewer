@@ -45,7 +45,7 @@ def test_resolve_redirect_target(location, current_path, expected):
 
 def test_fetch_variable_content_returns_route_body(flask_app, monkeypatch):
     # After decomposition, current_user is in variable_resolution module
-    from server_execution import variable_resolution
+    from server_execution import variable_resolution  # pylint: disable=no-name-in-module
     monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
 
     with flask_app.test_request_context("/other"):
@@ -56,7 +56,7 @@ def test_fetch_variable_content_returns_route_body(flask_app, monkeypatch):
 
 def test_fetch_variable_content_follows_relative_redirect(flask_app, monkeypatch):
     # After decomposition, current_user is in variable_resolution module
-    from server_execution import variable_resolution
+    from server_execution import variable_resolution  # pylint: disable=no-name-in-module
     monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
 
     with flask_app.test_request_context("/other"):
@@ -109,6 +109,6 @@ def test_resolve_variable_values_returns_copy_when_prefetch_skipped(monkeypatch)
 
 def test_fetch_variable_content_returns_none_without_app_context(monkeypatch):
     # After decomposition, current_user is in variable_resolution module
-    from server_execution import variable_resolution
+    from server_execution import variable_resolution  # pylint: disable=no-name-in-module
     monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
     assert server_execution._fetch_variable_content("/value") is None
