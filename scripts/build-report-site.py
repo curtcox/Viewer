@@ -29,13 +29,20 @@ REGEX_TOTAL_SCENARIOS = re.compile(r"Total scenarios:\s*(\d+)")
 REGEX_PASSED_SCENARIOS = re.compile(r"Passed:\s*(\d+)")
 REGEX_FAILED_SCENARIOS = re.compile(r"Failed:\s*(\d+)")
 
+# Regex pattern for Pylint output
+# Pattern: file.py:line:col: CODE: Message (symbolic-name)
+REGEX_PYLINT_LINE = re.compile(
+    r'^([^:]+):(\d+):(\d+):\s+([A-Z]\d{4}):\s+(.+?)\s+\(([a-z-]+)\)\s*$'
+)
+
 # HTML/CSS templates
 BASE_CSS = """    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
     a { color: #0366d6; text-decoration: none; }
     a:hover { text-decoration: underline; }"""
 
 COMMON_CSS = BASE_CSS + """
-    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }"""
+    pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    .pylint-output { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }"""
 
 GAUGE_CSS = BASE_CSS + """
     h1 { font-size: 2rem; margin-bottom: 1rem; }
@@ -484,6 +491,50 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
+def _enhance_pylint_output(output_text: str, github_repo: str = "curtcox/Viewer", github_branch: str = "main") -> str:
+    """Enhance pylint output with links to rule documentation and source code.
+
+    Args:
+        output_text: Raw pylint output text
+        github_repo: GitHub repository in format "owner/repo"
+        github_branch: Branch name for GitHub links
+
+    Returns:
+        HTML-formatted output with links
+    """
+    if not output_text.strip():
+        return escape(output_text)
+
+    lines = output_text.splitlines()
+    enhanced_lines = []
+
+    for line in lines:
+        match = REGEX_PYLINT_LINE.match(line)
+        if match:
+            file_path = match.group(1)
+            line_num = match.group(2)
+            col_num = match.group(3)
+            msg_code = match.group(4)
+            message = match.group(5)
+            symbolic_name = match.group(6)
+
+            # Create GitHub source link
+            github_url = f"https://github.com/{github_repo}/blob/{github_branch}/{file_path}#L{line_num}"
+            source_link = f'<a href="{github_url}">{escape(file_path)}:{line_num}:{col_num}</a>'
+
+            # Create Pylint documentation link
+            pylint_url = f"https://pylint.pycqa.org/en/latest/user_guide/messages/{symbolic_name}.html"
+            rule_link = f'<a href="{pylint_url}">{escape(msg_code)}</a>'
+
+            enhanced_line = f'{source_link}: {rule_link}: {escape(message)} ({escape(symbolic_name)})'
+            enhanced_lines.append(enhanced_line)
+        else:
+            # Not a pylint message line, just escape it
+            enhanced_lines.append(escape(line))
+
+    return '<br>\n'.join(enhanced_lines)
+
+
 def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
     """Build an index page for linter reports (Pylint, ShellCheck, Hadolint)."""
     linter_dir.mkdir(parents=True, exist_ok=True)
@@ -503,14 +554,22 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
     if output_path.exists():
         output_text = output_path.read_text(encoding="utf-8")
         if output_text.strip():
-            output_content = escape(output_text)
+            # Enhance pylint output with links
+            if linter_name == "Pylint":
+                output_content = _enhance_pylint_output(output_text)
+            else:
+                output_content = escape(output_text)
         else:
             output_content = "All checks passed - no issues found."
+
+    # Use <div> with pre-like styling for enhanced output instead of <pre> tag
+    output_tag = "div" if linter_name == "Pylint" else "pre"
+    output_class = ' class="pylint-output"' if linter_name == "Pylint" else ""
 
     body = f"""  <h1>{escape(title)}</h1>
   {summary_html}
   <h2>{escape(linter_name)} output</h2>
-  <pre>{output_content}</pre>"""
+  <{output_tag}{output_class}>{output_content}</{output_tag}>"""
 
     index_path.write_text(
         _render_html_page(title, body, COMMON_CSS),
