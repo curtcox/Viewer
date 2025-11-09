@@ -14,8 +14,8 @@ def render_scalar_html(value: Any) -> Markup:
     if isinstance(value, str):
         trimmed = value.strip()
         if trimmed.startswith("/") or trimmed.startswith("http://") or trimmed.startswith("https://"):
-            escaped_value = escape(value)
-            return Markup(f'<a href="{escaped_value}"><code>{escaped_value}</code></a>')
+            escaped_trimmed = escape(trimmed)
+            return Markup(f'<a href="{escaped_trimmed}"><code>{escaped_trimmed}</code></a>')
         return Markup(f"<code>{escape(value)}</code>")
 
     if value is None:

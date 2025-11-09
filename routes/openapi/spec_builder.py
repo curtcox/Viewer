@@ -58,7 +58,7 @@ def build_openapi_spec() -> Dict[str, Any]:
     parsed = urlsplit(server_url)
     hostname = parsed.hostname or ""
     port = parsed.port
-    if hostname and (port in (None, 80, 443) or (hostname == "localhost" and port == 5000)):
+    if hostname and port in (None, 80, 443):
         netloc = hostname
     else:
         netloc = parsed.netloc
