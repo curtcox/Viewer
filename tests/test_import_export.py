@@ -1,3 +1,6 @@
+"""Comprehensive tests for import/export functionality."""
+# pylint: disable=too-many-lines  # Test file intentionally comprehensive; splitting would reduce discoverability
+
 import base64
 import json
 import platform
