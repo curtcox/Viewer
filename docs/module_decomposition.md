@@ -6,9 +6,9 @@ This document provides guidance for decomposing oversized modules to address pyl
 
 **Completed:**
 - ✅ `routes/import_export.py` - Decomposed from 2,261 lines into 14 focused modules (largest: 443 lines)
+- ✅ `server_execution.py` - Decomposed from 1,413 lines into 9 focused modules (largest: 480 lines)
 
 **Remaining Work:**
-- ⏳ `server_execution.py` - 1,413 lines (HIGH priority)
 - ⏳ `routes/meta.py` - 1,005 lines (MEDIUM priority)
 - ⏳ `routes/openapi.py` - 1,527 lines (MEDIUM priority)
 
@@ -27,32 +27,67 @@ Mock patches must target where functions are **imported and used**, not their or
 - ❌ `patch('db_access.get_user_aliases')` - doesn't work
 - ✅ `patch('routes.import_export.export_sections.get_user_aliases')` - works
 
-## Modules to Decompose
+## Lessons Learned from server_execution
 
-### 1. server_execution.py (1,413 lines) - HIGH PRIORITY
+The decomposition of `server_execution.py` revealed additional critical insights:
 
-**Why High Priority:** Core execution logic with security implications and multiple complex functions
+### Key Success Factors
+- **Functional cohesion**: Modules grouped by business logic (parsing, execution, response, error handling)
+- **Single source of truth**: Centralized `current_user` access through one module prevents duplication
+- **Backward compatibility**: Shim file + `__getattr__` maintains all existing imports
+- **All tests passing**: 123/123 core tests pass when run individually
 
-**Proposed Structure:**
+### Final Structure
 ```
 server_execution/
-├── __init__.py - Package entry
-├── request_parsing.py - HTTP request parsing
-├── server_lookup.py - Server resolution logic
-├── execution_context.py - Execution environment setup
-├── code_execution.py - Core Python execution
-├── response_handling.py - Response formatting
-├── error_handling.py - Error capture and formatting
-└── routes.py - Flask route handlers
+├── __init__.py (197 lines) - Package entry with lazy loading
+├── variable_resolution.py (167 lines) - Variable prefetching and path resolution
+├── function_analysis.py (182 lines) - AST analysis for function parameters
+├── request_parsing.py (205 lines) - HTTP request parsing and parameter resolution
+├── response_handling.py (99 lines) - Output encoding and response formatting
+├── error_handling.py (114 lines) - Error capture and HTML rendering
+├── code_execution.py (480 lines) - Core execution logic (largest module)
+├── server_lookup.py (125 lines) - Server resolution and versioning
+└── invocation_tracking.py (86 lines) - Server invocation record creation
 ```
 
-**Key Complexity Issues:**
-- `_encode_output`: 43 lines with 6 nesting levels
-- `_render_execution_error_html`: 70 lines
-- `_evaluate_nested_path_to_value`: 48 lines, recursive
-- `_build_multi_parameter_error_page`: 70 lines
+### Critical Pattern: Centralizing Shared Dependencies
 
-### 2. routes/meta.py (1,005 lines) - MEDIUM PRIORITY
+**Problem:** `current_user` was initially imported in 4 modules, causing test complexity.
+
+**Solution:** Consolidate to single source of truth:
+1. Only `variable_resolution.py` imports `current_user` from `identity`
+2. Other modules call `_current_user_id()` helper function
+3. Tests patch `variable_resolution.current_user` and `identity.current_user` only
+
+**Why This Matters:**
+- Reduces mock complexity (2 patches instead of 5+)
+- Prevents Flask-Login LocalProxy issues in tests
+- Makes data flow explicit and traceable
+
+### Testing Pattern for Decomposed Modules
+
+When functions move to submodules, mock targets must follow:
+
+```python
+# Before decomposition
+patch('server_execution.get_server_by_name')
+patch('server_execution.current_user')
+
+# After decomposition
+patch('server_execution.server_lookup.get_server_by_name')  # where it's used
+patch('server_execution.variable_resolution.current_user')  # single source
+
+# For functions called within same module
+from server_execution import variable_resolution
+monkeypatch.setattr(variable_resolution, "_fetch_variable_content", mock)
+```
+
+**Note:** See `docs/test_isolation_issues.md` for details on test isolation challenges.
+
+## Modules to Decompose
+
+### 1. routes/meta.py (1,005 lines) - MEDIUM PRIORITY
 
 **Proposed Structure:**
 ```
