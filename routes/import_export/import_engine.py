@@ -5,8 +5,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from db_access import EntityInteractionRequest, record_entity_interaction, record_export
 from flask import flash, redirect, session, url_for
+
+from cid_presenter import format_cid
+from cid_utils import generate_cid
+from db_access import EntityInteractionRequest, record_entity_interaction, record_export
 from forms import ExportForm, ImportForm
 from identity import current_user
 
@@ -22,8 +25,6 @@ from .import_entities import (
     import_variables_with_names,
 )
 from .import_sources import ParsedImportPayload, verify_import_source_files
-from cid_presenter import format_cid
-from cid_utils import generate_cid
 
 
 @dataclass
@@ -219,9 +220,9 @@ def generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
         export_result['generated_at'] = datetime.now(timezone.utc).isoformat()
         return export_result
     except RuntimeError as exc:
-        import logging
+        import logging  # pylint: disable=import-outside-toplevel  # Lazy import for error path
         logger = logging.getLogger(__name__)
-        logger.warning(f"Failed to generate snapshot export after import: {exc}", exc_info=True)
+        logger.warning("Failed to generate snapshot export after import: %s", exc, exc_info=True)
         return None
 
 

@@ -214,7 +214,7 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
 
         try:
             payload = json.loads(raw.decode('utf-8'))
-        except Exception:
+        except (UnicodeDecodeError, json.JSONDecodeError):
             continue
 
         referer = _extract_referer_from_headers(payload.get('headers')) if isinstance(payload, dict) else None

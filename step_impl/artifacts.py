@@ -449,4 +449,3 @@ def _load_placeholder_image() -> tuple[bytes, str | None]:
             message,
         )
         return fallback, message
-

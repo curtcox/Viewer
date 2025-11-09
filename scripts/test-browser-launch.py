@@ -83,12 +83,10 @@ def main() -> int:
         print(f"File size: {file_size} bytes")
         if file_size > 0:
             return 0
-        else:
-            print("✗ Screenshot file is empty")
-            return 1
-    else:
-        print("\n✗ Screenshot file was not created")
+        print("✗ Screenshot file is empty")
         return 1
+    print("\n✗ Screenshot file was not created")
+    return 1
 
 
 if __name__ == "__main__":

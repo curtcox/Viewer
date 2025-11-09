@@ -261,4 +261,3 @@ def record_alias_path_coverage(alias_name: str) -> None:
     """Acknowledge alias detail path coverage for documentation purposes."""
 
     assert alias_name, "Alias name placeholder should not be empty."
-

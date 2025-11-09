@@ -212,7 +212,7 @@ def collect_secrets_section(
 
 
 def collect_app_source_section(
-    form: ExportForm,
+    _form: ExportForm,
     base_path: Path,
     cid_writer: CidWriter,
 ) -> dict[str, list[dict[str, str]]]:

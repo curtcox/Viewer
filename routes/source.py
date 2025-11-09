@@ -249,7 +249,7 @@ def source_browser(requested_path: str):
 
     safe_path = Path(normalized)
     if safe_path.is_absolute() or ".." in safe_path.parts:
-        abort(404)
+        return abort(404)
 
     relative_path = safe_path.as_posix()
     repository_root = Path(current_app.root_path)
@@ -260,7 +260,7 @@ def source_browser(requested_path: str):
     if _is_tracked_directory(relative_path, comprehensive_paths):
         return _render_directory(relative_path, comprehensive_paths)
 
-    abort(404)
+    return abort(404)
 
 
 def _collect_table_summaries() -> list[dict[str, Any]]:

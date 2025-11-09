@@ -62,4 +62,3 @@ def login_default_user() -> str:
 
 
 __all__ = ["get_shared_app", "get_shared_client", "login_default_user"]
-
