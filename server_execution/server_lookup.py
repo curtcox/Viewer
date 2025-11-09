@@ -5,7 +5,6 @@ from typing import Any, Callable, Dict, Iterable, Optional
 from flask import Response, jsonify, render_template
 
 from db_access import get_server_by_name
-from identity import current_user
 from server_execution.code_execution import (
     _auto_main_accepts_additional_path,
     execute_server_code,
@@ -13,6 +12,7 @@ from server_execution.code_execution import (
     execute_server_function,
     execute_server_function_from_definition,
 )
+from server_execution.variable_resolution import _current_user_id
 
 
 def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]) -> bool:
@@ -38,13 +38,17 @@ def try_server_execution_with_partial(
     server_name, partial = parts[0], parts[1]
     function_name = parts[2] if len(parts) == 3 else None
 
-    server = get_server_by_name(current_user.id, server_name)
+    user_id = _current_user_id()
+    if not user_id:
+        return None
+
+    server = get_server_by_name(user_id, server_name)
     if server and not getattr(server, "enabled", True):
         server = None
     if not server:
         return None
 
-    history = history_fetcher(current_user.id, server_name)
+    history = history_fetcher(user_id, server_name)
     matches = [h for h in history if h.get("definition_cid", "").startswith(partial)]
 
     if not matches:
@@ -99,8 +103,12 @@ def try_server_execution(path: str) -> Optional[Response]:
     if not parts:
         return None
 
+    user_id = _current_user_id()
+    if not user_id:
+        return None
+
     server_name = parts[0]
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(user_id, server_name)
     if server and not getattr(server, "enabled", True):
         server = None
     if not server:

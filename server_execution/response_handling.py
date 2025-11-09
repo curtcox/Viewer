@@ -9,7 +9,7 @@ from flask import Response, redirect
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, get_extension_from_mime_type
 from db_access import create_cid_record, get_cid_by_path
-from identity import current_user
+from server_execution.variable_resolution import _current_user_id
 
 
 def _encode_output(output: Any) -> bytes:
@@ -83,11 +83,13 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
 
     cid_record_path = cid_path(cid_value)
     existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes, current_user.id)
+    user_id = _current_user_id()
+    if not existing and cid_record_path and user_id:
+        create_cid_record(cid_value, output_bytes, user_id)
 
     from server_execution.invocation_tracking import create_server_invocation_record
-    create_server_invocation_record(current_user.id, server_name, cid_value)
+    if user_id:
+        create_server_invocation_record(user_id, server_name, cid_value)
 
     extension = get_extension_from_mime_type(content_type)
     if extension and cid_record_path:

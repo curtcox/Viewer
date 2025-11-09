@@ -12,14 +12,12 @@ from server_templates import get_server_templates
 
 @pytest.fixture(autouse=True)
 def patch_execution_environment(monkeypatch):
-    from server_execution import code_execution, response_handling, variable_resolution
+    from server_execution import code_execution, variable_resolution
     import identity
 
-    # Mock user needs to be set in identity module and all modules that import it
+    # Mock user - only variable_resolution imports current_user after refactoring
     mock_user = SimpleNamespace(id="user-123")
     monkeypatch.setattr(identity, "current_user", mock_user)
-    monkeypatch.setattr(code_execution, "current_user", mock_user)
-    monkeypatch.setattr(response_handling, "current_user", mock_user)
     monkeypatch.setattr(variable_resolution, "current_user", mock_user)
 
     monkeypatch.setattr(
@@ -35,6 +33,7 @@ def patch_execution_environment(monkeypatch):
             "server_name": server_name,
         }
 
+    # Patch where _handle_successful_execution is used, not where it's defined
     monkeypatch.setattr(code_execution, "_handle_successful_execution", fake_success)
 
 
@@ -221,8 +220,9 @@ def test_auto_main_uses_nested_server_response(monkeypatch):
         "inner": SimpleNamespace(definition=inner_definition),
     }
 
+    from server_execution import code_execution
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -252,8 +252,9 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
         "inner": SimpleNamespace(definition=inner_definition),
     }
 
+    from server_execution import code_execution
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -263,7 +264,8 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
             return SimpleNamespace(route=SimpleNamespace(target_path="/inner"))
         return None
 
-    monkeypatch.setattr(server_execution, "find_matching_alias", fake_find_matching_alias)
+    # Patch find_matching_alias where it's used (in code_execution)
+    monkeypatch.setattr(code_execution, "find_matching_alias", fake_find_matching_alias)
 
     with app.test_request_context("/outer/alias-to-inner"):
         result = server_execution.execute_server_code_from_definition(
@@ -283,14 +285,15 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
     cid_value = "bafyexamplecid"
     cid_bytes = b"payload-from-cid"
 
+    from server_execution import code_execution
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_server_by_name",
         lambda user_id, name: None,
     )
 
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_cid_by_path",
         lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
     )
@@ -321,8 +324,9 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
         "inner": SimpleNamespace(definition=inner_definition),
     }
 
+    from server_execution import code_execution
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_server_by_name",
         lambda user_id, name: servers.get(name),
     )
@@ -341,16 +345,18 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
      return {"output": f"{first}:{second}", "content_type": "text/plain"}
  """
 
+    from server_execution import code_execution
     monkeypatch.setattr(
-        db_access,
+        code_execution,
         "get_server_by_name",
         lambda user_id, name: None,
     )
 
     monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
 
+    from server_execution import request_parsing
     monkeypatch.setattr(
-        db_access,
+        request_parsing,
         "render_template",
         lambda template_name, **context: "\n".join(
             [
@@ -464,8 +470,9 @@ def test_try_server_execution_handles_helper_routes(monkeypatch):
 
     server = SimpleNamespace(definition=definition)
 
+    from server_execution import server_lookup
     monkeypatch.setattr(
-        db_access,
+        server_lookup,
         "get_server_by_name",
         lambda user_id, name: server if name == "widget" else None,
     )
@@ -485,8 +492,9 @@ def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
 
     server = SimpleNamespace(definition=definition)
 
+    from server_execution import server_lookup
     monkeypatch.setattr(
-        db_access,
+        server_lookup,
         "get_server_by_name",
         lambda user_id, name: server if name == "widget" else None,
     )

@@ -9,7 +9,6 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
 from db_access import get_cid_by_path, get_server_by_name, get_user_secrets, get_user_servers, get_user_variables
-from identity import current_user
 from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
 from server_execution.invocation_tracking import request_details
@@ -359,7 +358,7 @@ def model_as_dict(model_objects: Optional[Iterable[Any]]) -> Dict[str, Any]:
 
 
 def _load_user_context() -> Dict[str, Dict[str, Any]]:
-    user_id = getattr(current_user, "id", None)
+    user_id = _current_user_id()
     if not user_id:
         return {"variables": {}, "secrets": {}, "servers": {}}
 
