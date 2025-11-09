@@ -116,10 +116,11 @@ class TestServerExecutionErrorPages(unittest.TestCase):
                 msg="Source link label should match its /source relative path",
             )
 
-        self.assertIn(
-            "server_execution.py",
-            {label for _, label in parser.links},
-            msg="Server execution frame should expose a /source link",
+        # After decomposition, check for the code_execution module instead of server_execution.py
+        link_labels = {label for _, label in parser.links}
+        self.assertTrue(
+            "server_execution/code_execution.py" in link_labels or "server_execution.py" in link_labels,
+            msg=f"Server execution frame should expose a /source link, found: {link_labels}",
         )
 
     def test_error_page_includes_server_details_and_arguments(self) -> None:

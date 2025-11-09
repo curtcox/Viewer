@@ -17,15 +17,16 @@ class TestServerIdentityIndependence(unittest.TestCase):
 
     def _invoke_for_user(self, user_id: str) -> Response:
         with app.test_request_context('/shared-server'):
-            stub_server = SimpleNamespace(enabled=True)
+            stub_server = SimpleNamespace(enabled=True, definition="return {'output': 'OK', 'content_type': 'text/plain'}")
+            # After decomposition, patch where functions are used
             with patch(
-                'server_execution.get_server_by_name',
+                'server_execution.server_lookup.get_server_by_name',
                 return_value=stub_server,
             ) as mock_get_server, patch(
-                'server_execution.execute_server_code',
+                'server_execution.code_execution.execute_server_code',
                 side_effect=lambda *_, **__: Response('OK', mimetype='text/plain'),
             ):
-                with patch('server_execution.current_user', new=SimpleNamespace(id=user_id)):
+                with patch('server_execution.variable_resolution.current_user', new=SimpleNamespace(id=user_id)):
                     response = try_server_execution('/shared-server')
                 mock_get_server.assert_called_with(user_id, 'shared-server')
                 assert response is not None
