@@ -24,7 +24,6 @@ class TestVariablesSecretsIssue(unittest.TestCase):
 
     def tearDown(self):
         """Clean up test environment"""
-        pass
 
     @patch('routes.variables.current_user')
     @patch('routes.variables.get_user_variables')

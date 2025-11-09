@@ -39,7 +39,7 @@ def test_prepare_server_import_prefers_definition():
 
     result = prepare_server_import(entry, {}, errors)
 
-    assert errors == []
+    assert not errors
     assert result is not None
     assert result.name == "demo"
     assert result.definition == "sample"
@@ -51,7 +51,7 @@ def test_prepare_server_import_falls_back_to_cid():
 
     result = prepare_server_import(entry, {"abc": b"content"}, errors)
 
-    assert errors == []
+    assert not errors
     assert result is not None
     assert result.definition == "content"
 
@@ -79,7 +79,7 @@ def test_prepare_history_event_truncates_long_messages():
 
     event = prepare_history_event("demo", raw_event, errors)
 
-    assert errors == []
+    assert not errors
     assert isinstance(event, HistoryEvent)
     assert event.message.endswith("…")
     assert len(event.message) == 498  # 497 characters plus ellipsis

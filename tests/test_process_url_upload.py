@@ -78,4 +78,3 @@ class TestProcessUrlUpload(TestCase):
 
         with self.assertRaisesRegex(ValueError, 'Error processing URL: iter failure'):
             process_url_upload(form)
-

@@ -301,4 +301,3 @@ class TestGithubStyleLinks:
         fragment = _render_fragment("Avoid [[   |blank]] targets.")
 
         assert '[[   |blank]]' in fragment
-

@@ -98,7 +98,7 @@ def test_route_details_for_server_execution(client, integration_app, login_defau
     with integration_app.app_context():
         db.session.add(
             Server(
-                name="demo", 
+                name="demo",
                 definition=(
                     "def main():\n"
                     "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"

@@ -66,13 +66,13 @@ def test_empty_input():
     # Test empty list
     result = model_as_dict([])
     print(f"Empty list: {result}")
-    assert result == {}, f"Expected empty dict, got {result}"
+    assert not result, f"Expected empty dict, got {result}"
     print("✓ Empty list returns empty dict")
 
     # Test None
     result = model_as_dict(None)
     print(f"None input: {result}")
-    assert result == {}, f"Expected empty dict, got {result}"
+    assert not result, f"Expected empty dict, got {result}"
     print("✓ None input returns empty dict")
 
     print()

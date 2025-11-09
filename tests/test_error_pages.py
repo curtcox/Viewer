@@ -267,7 +267,7 @@ class TestEnhancedSourceBrowser(unittest.TestCase):
 
             files = _get_all_project_files(str(temp_path))
 
-            for filename in test_files.keys():
+            for filename in test_files:
                 self.assertIn(filename, files, f'Should discover {filename}')
 
     def test_get_comprehensive_paths_combines_tracked_and_all_files(self):
@@ -414,4 +414,3 @@ class TestStackTraceEnhancements(unittest.TestCase):
 
         # Should mark the error line with >>>
         self.assertIn('>>>    4: ERROR LINE', code_context)
-

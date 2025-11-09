@@ -104,12 +104,12 @@ def test_serialize_model_objects():
 
     # Test with empty list
     empty_result = serialize_model_objects([])
-    assert empty_result == []
+    assert not empty_result
     print("✓ Empty list handling works correctly\n")
 
     # Test with None
     none_result = serialize_model_objects(None)
-    assert none_result == []
+    assert not none_result
     print("✓ None handling works correctly\n")
 
 def test_fixed_build_request_args():

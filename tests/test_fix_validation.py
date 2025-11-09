@@ -20,7 +20,7 @@ def test_base_path_extraction():
 
     for input_path, expected_base_path in test_cases:
         # This is the logic added to not_found_error()
-        base_path = input_path.split('.')[0] if '.' in input_path else input_path
+        base_path = input_path.split('.', maxsplit=1)[0] if '.' in input_path else input_path
 
         print(f"Input: {input_path}")
         print(f"Expected: {expected_base_path}")
@@ -118,7 +118,7 @@ def test_echo_flow_simulation():
     print(f"6. User requests: {requested_path}")
 
     # Step 4: Apply the fix in not_found_error
-    base_path = requested_path.split('.')[0] if '.' in requested_path else requested_path
+    base_path = requested_path.split('.', maxsplit=1)[0] if '.' in requested_path else requested_path
 
     print(f"7. Base path extracted: {base_path}")
     print(f"8. Lookup path matches stored path: {base_path == stored_path}")
