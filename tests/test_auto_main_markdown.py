@@ -62,13 +62,14 @@ def test_auto_main_markdown_supports_mermaid_and_formdown():
 @pytest.fixture
 def patched_server_execution(monkeypatch):
     """Provide a predictable environment for server execution tests."""
-    from server_execution import code_execution
+    from server_execution import code_execution, response_handling, variable_resolution
 
-    monkeypatch.setattr(
-        code_execution,
-        "current_user",
-        SimpleNamespace(id="user-123"),
-    )
+    # Mock user needs to be set in all modules that import current_user
+    mock_user = SimpleNamespace(id="user-123")
+    monkeypatch.setattr(code_execution, "current_user", mock_user)
+    monkeypatch.setattr(response_handling, "current_user", mock_user)
+    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
+
     monkeypatch.setattr(
         code_execution,
         "_load_user_context",

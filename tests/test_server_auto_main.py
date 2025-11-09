@@ -12,13 +12,16 @@ from server_templates import get_server_templates
 
 @pytest.fixture(autouse=True)
 def patch_execution_environment(monkeypatch):
-    from server_execution import code_execution
+    from server_execution import code_execution, response_handling, variable_resolution
+    import identity
 
-    monkeypatch.setattr(
-        code_execution,
-        "current_user",
-        SimpleNamespace(id="user-123"),
-    )
+    # Mock user needs to be set in identity module and all modules that import it
+    mock_user = SimpleNamespace(id="user-123")
+    monkeypatch.setattr(identity, "current_user", mock_user)
+    monkeypatch.setattr(code_execution, "current_user", mock_user)
+    monkeypatch.setattr(response_handling, "current_user", mock_user)
+    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
+
     monkeypatch.setattr(
         code_execution,
         "_load_user_context",
