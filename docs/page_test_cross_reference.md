@@ -125,74 +125,6 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - _None_
 
-## templates/export.html
-
-**Routes:**
-- `routes/import_export.py::export_data` (paths: `/export`)
-
-**Unit tests:**
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_unselecting_all_aliases`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_cid_values_as_utf8_strings`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_only_checked_aliases`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_lists_selected_items`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_checked_uses_form_defaults`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_checked_hides_options_in_ui`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_unchecked_shows_options_in_ui`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_unchecked_applies_default_settings`
-
-**Integration tests:**
-- `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
-
-**Specs:**
-- _None_
-
-## templates/export_result.html
-
-**Routes:**
-- `routes/import_export.py::export_data` (paths: `/export`)
-
-**Unit tests:**
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_runtime_only`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_allows_unselecting_all_aliases`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_and_import_preserve_enablement`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_cid_values_as_utf8_strings`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_unreferenced_cids_by_default`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_excludes_virtualenv_python_files`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_app_source_cids`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_disabled_templates_with_template_selection`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_only_checked_aliases`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_runtime_section`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_selected_collections`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_includes_unreferenced_cids_when_requested`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_omits_disabled_items_without_selection`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_lists_selected_items`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_preview_respects_disabled_and_template_filters`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_requires_template_selection_for_templates`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_export_without_cid_map_omits_content_map`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_checked_uses_form_defaults`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_checked_hides_options_in_ui`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_toggle_unchecked_shows_options_in_ui`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_snapshot_unchecked_applies_default_settings`
-
-**Integration tests:**
-- `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
-
-**Specs:**
-- _None_
-
 ## templates/history.html
 
 **Routes:**
@@ -204,31 +136,6 @@ This document maps site pages to the automated checks that exercise them.
 
 **Integration tests:**
 - `tests/integration/test_history_page.py::test_history_page_displays_recent_activity`
-
-**Specs:**
-- _None_
-
-## templates/import.html
-
-**Routes:**
-- `routes/import_export.py::import_data` (paths: `/import`)
-
-**Unit tests:**
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_change_history_creates_events`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_cid_values_backward_compatibility`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_cid_values_from_utf8_strings`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_defaults_to_utf8_without_encoding`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_rejects_invalid_secret_key`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_rejects_mismatched_cid_map_entry`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_reports_mismatched_app_source`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_reports_missing_cid_content`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_reports_missing_selected_content`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_import_verifies_app_source_matches`
-- `tests/test_import_export.py::ImportExportRoutesTestCase::test_successful_import_creates_entries`
-- `tests/test_routes_comprehensive.py::TestSettingsRoutes::test_import_form_includes_ai_controls`
-
-**Integration tests:**
-- `tests/integration/test_import_export_flow.py::test_user_can_transport_server_between_sites`
 
 **Specs:**
 - _None_
@@ -303,9 +210,9 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/routes_overview.py::routes_overview` (paths: `/routes`)
 
 **Unit tests:**
-- `tests/test_routes_overview.py::RoutesOverviewTestCase::test_frontend_filtering_orders_exact_partial_and_not_found`
-- `tests/test_routes_overview.py::RoutesOverviewTestCase::test_lists_builtin_alias_and_server_routes`
-- `tests/test_routes_overview.py::RoutesOverviewTestCase::test_requires_login`
+- `tests/test_routes_overview.py::TestRoutesOverview::test_frontend_filtering_orders_exact_partial_and_not_found`
+- `tests/test_routes_overview.py::TestRoutesOverview::test_lists_builtin_alias_and_server_routes`
+- `tests/test_routes_overview.py::TestRoutesOverview::test_requires_login`
 
 **Integration tests:**
 - `tests/integration/test_routes_overview_page.py::test_routes_overview_lists_user_routes`

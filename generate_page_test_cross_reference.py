@@ -227,11 +227,22 @@ def gather_suite_coverage(reuse: bool) -> dict[str, coverage.Coverage]:
 
     suites = {
         "unit": {
-            "pytest_args": ["-m", "not integration"],
+            "pytest_args": [
+                "--override-ini",
+                'addopts=-m "not integration"',
+                "-m",
+                "not integration",
+            ],
             "data_file": coverage_dir / "unit.coverage",
         },
         "integration": {
-            "pytest_args": ["-m", "integration", "tests/integration"],
+            "pytest_args": [
+                "--override-ini",
+                "addopts=",
+                "-m",
+                "integration",
+                "tests/integration",
+            ],
             "data_file": coverage_dir / "integration.coverage",
         },
     }
