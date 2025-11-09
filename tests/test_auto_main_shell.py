@@ -1,3 +1,6 @@
+"""Tests for auto_main_shell functionality."""
+# pylint: disable=no-name-in-module  # False positive: server_execution submodules available via lazy loading
+
 from pathlib import Path
 from types import SimpleNamespace
 
