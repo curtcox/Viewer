@@ -3,7 +3,7 @@ import types
 import pytest
 from flask import Flask, redirect
 
-import server_execution
+import server_execution  # pylint: disable=no-name-in-module  # False positive: submodules available via lazy loading
 
 
 @pytest.fixture()

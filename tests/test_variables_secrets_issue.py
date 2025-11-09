@@ -13,7 +13,7 @@ sys.path.insert(0, '.')
 from app import app
 from routes.secrets import user_secrets
 from routes.variables import user_variables
-from server_execution import build_request_args, model_as_dict
+from server_execution import build_request_args, model_as_dict  # pylint: disable=no-name-in-module
 
 
 class TestVariablesSecretsIssue(unittest.TestCase):
