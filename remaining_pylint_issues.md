@@ -4,12 +4,12 @@
 
 ## What Needs to Be Done
 
-Most remaining issues are architectural necessities or acceptable patterns. The only actionable item is:
+Most remaining issues are architectural necessities or acceptable patterns. The remaining actionable items are:
 
 ### Module Decomposition (C0302)
-- **`server_execution.py`** (1,413 lines) should be decomposed
-- See `DECOMPOSITION_SUMMARY.md` for detailed plan
-- This would improve the score and code maintainability
+- **`routes/meta.py`** (1,005 lines) - MEDIUM priority
+- **`routes/openapi.py`** (1,527 lines) - MEDIUM priority
+- See `docs/module_decomposition.md` for detailed guidance based on successful decompositions
 
 ## Issues That Are Acceptable As-Is
 

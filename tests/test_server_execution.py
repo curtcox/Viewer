@@ -39,25 +39,25 @@ class TestCurrentUserId(unittest.TestCase):
 
     def test_returns_id_attribute(self):
         mock_user = types.SimpleNamespace(id="user-123")
-        with patch("server_execution.current_user", mock_user):
+        with patch("server_execution.variable_resolution.current_user", mock_user):
             result = _current_user_id()
         assert result == "user-123"
 
     def test_calls_id_if_callable(self):
         mock_user = types.SimpleNamespace(id=lambda: "user-456")
-        with patch("server_execution.current_user", mock_user):
+        with patch("server_execution.variable_resolution.current_user", mock_user):
             result = _current_user_id()
         assert result == "user-456"
 
     def test_falls_back_to_get_id(self):
         mock_user = types.SimpleNamespace(id=None, get_id=lambda: "user-789")
-        with patch("server_execution.current_user", mock_user):
+        with patch("server_execution.variable_resolution.current_user", mock_user):
             result = _current_user_id()
         assert result == "user-789"
 
     def test_returns_none_when_id_not_available(self):
         mock_user = types.SimpleNamespace(id=None)
-        with patch("server_execution.current_user", mock_user):
+        with patch("server_execution.variable_resolution.current_user", mock_user):
             result = _current_user_id()
         assert result is None
 
@@ -66,7 +66,7 @@ class TestCurrentUserId(unittest.TestCase):
             raise TypeError("bad call")
 
         mock_user = types.SimpleNamespace(id=bad_callable, get_id=lambda: "fallback")
-        with patch("server_execution.current_user", mock_user):
+        with patch("server_execution.variable_resolution.current_user", mock_user):
             result = _current_user_id()
         assert result == "fallback"
 
@@ -407,7 +407,7 @@ class TestBuildMultiParameterErrorPage(unittest.TestCase):
         app.config["TESTING"] = True
 
         with app.test_request_context("/test?a=1"):
-            with patch("server_execution.render_template") as mock_render:
+            with patch("server_execution.request_parsing.render_template") as mock_render:
                 mock_render.return_value = "<html>error</html>"
                 response = _build_multi_parameter_error_page(
                     "server",
@@ -493,10 +493,11 @@ class TestBuildRequestArgs(unittest.TestCase):
         app = Flask(__name__)
         mock_user = types.SimpleNamespace(id="user-123")
 
-        with patch("server_execution.current_user", mock_user):
-            with patch("server_execution.get_user_variables", return_value=[]):
-                with patch("server_execution.get_user_secrets", return_value=[]):
-                    with patch("server_execution.get_user_servers", return_value=[]):
+        # After decomposition, current_user is only in variable_resolution
+        with patch("server_execution.variable_resolution.current_user", mock_user):
+            with patch("server_execution.code_execution.get_user_variables", return_value=[]):
+                with patch("server_execution.code_execution.get_user_secrets", return_value=[]):
+                    with patch("server_execution.code_execution.get_user_servers", return_value=[]):
                         with app.test_request_context("/test"):
                             result = build_request_args()
 

@@ -4,14 +4,22 @@ import unittest
 
 # Lightweight module mocks so importing server_execution doesn't require external deps
 mock_flask = types.ModuleType("flask")
+mock_flask.Response = type('Response', (), {})  # Mock Response class
 mock_flask.jsonify = lambda *a, **k: None
 mock_flask.make_response = lambda x: types.SimpleNamespace(headers={}, status_code=200, data=x)
 mock_flask.redirect = lambda url: ("redirect", url)
 mock_flask.render_template = lambda *a, **k: ""
+mock_flask.url_for = lambda *a, **k: "/mock/url"
 mock_flask.request = types.SimpleNamespace(
     path="/", query_string=b"", remote_addr="127.0.0.1", user_agent=types.SimpleNamespace(string="UA"),
     headers={}, form={}, args={}, endpoint="ep", scheme="http", host="localhost", method="GET",
 )
+mock_flask.session = {}
+mock_flask.current_app = types.SimpleNamespace(
+    root_path="/mock/app", test_client=lambda: None, test_request_context=lambda **kw: None
+)
+mock_flask.has_app_context = lambda: False
+mock_flask.has_request_context = lambda: False
 sys.modules.setdefault("flask", mock_flask)
 
 mock_identity = types.ModuleType("identity")
@@ -63,6 +71,47 @@ mock_runner = types.ModuleType("text_function_runner")
 mock_runner.run_text_function = lambda code, args: {"output": "", "content_type": "text/html"}
 sys.modules.setdefault("text_function_runner", mock_runner)
 
+# Additional mocks for new decomposed modules
+mock_cid_presenter = types.ModuleType("cid_presenter")
+mock_cid_presenter.cid_path = lambda cid, ext=None: f"/{cid}" if not ext else f"/{cid}.{ext}"
+mock_cid_presenter.format_cid = lambda x: x
+sys.modules.setdefault("cid_presenter", mock_cid_presenter)
+
+mock_alias_routing = types.ModuleType("alias_routing")
+mock_alias_routing.find_matching_alias = lambda *a, **k: None
+sys.modules.setdefault("alias_routing", mock_alias_routing)
+
+mock_models = types.ModuleType("models")
+mock_models.ServerInvocation = type('ServerInvocation', (), {})
+sys.modules.setdefault("models", mock_models)
+
+mock_syntax_highlighting = types.ModuleType("syntax_highlighting")
+mock_syntax_highlighting.highlight_source = lambda *a, **k: ("", "")
+sys.modules.setdefault("syntax_highlighting", mock_syntax_highlighting)
+
+mock_werkzeug = types.ModuleType("werkzeug")
+mock_werkzeug.routing = types.ModuleType("werkzeug.routing")
+mock_werkzeug.routing.BuildError = Exception
+sys.modules.setdefault("werkzeug", mock_werkzeug)
+sys.modules.setdefault("werkzeug.routing", mock_werkzeug.routing)
+
+mock_routes = types.ModuleType("routes")
+mock_routes.source = types.ModuleType("routes.source")
+mock_routes.source._get_tracked_paths = lambda *a, **k: frozenset()
+sys.modules.setdefault("routes", mock_routes)
+sys.modules.setdefault("routes.source", mock_routes.source)
+
+mock_utils = types.ModuleType("utils")
+mock_utils.stack_trace = types.ModuleType("utils.stack_trace")
+mock_utils.stack_trace.build_stack_trace = lambda *a, **k: []
+mock_utils.stack_trace.extract_exception = lambda exc: exc
+sys.modules.setdefault("utils", mock_utils)
+sys.modules.setdefault("utils.stack_trace", mock_utils.stack_trace)
+
+mock_logfire = types.ModuleType("logfire")
+mock_logfire.instrument = lambda *a, **k: lambda f: f  # Decorator that returns function unchanged
+sys.modules.setdefault("logfire", mock_logfire)
+
 # Import the module under test after setting up mocks
 import server_execution  # noqa: E402
 
@@ -92,49 +141,65 @@ class TestServerExecutionOutputEncoding(unittest.TestCase):
 
 class TestExecuteServerCodeSharedFlow(unittest.TestCase):
     def setUp(self):
-        self.original_run_text_function = server_execution.run_text_function
-        self.original_build_request_args = server_execution.build_request_args
-        self.original_create_invocation = server_execution.create_server_invocation_record
-        self.original_make_response = server_execution.make_response
-        self.original_redirect = server_execution.redirect
-        self.original_create_cid_record = server_execution.create_cid_record
-        self.original_get_cid_by_path = server_execution.get_cid_by_path
-        self.original_generate_cid = server_execution.generate_cid
-        self.original_get_extension = server_execution.get_extension_from_mime_type
-        self.original_current_user = server_execution.current_user
-        self.original_render_error_html = server_execution._render_execution_error_html
-        server_execution.current_user = types.SimpleNamespace(id="user-123")
-        server_execution.build_request_args = lambda: {
+        # Import submodules to patch where functions are used
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
+
+        # Save originals
+        self.original_run_text_function = code_execution.run_text_function
+        self.original_build_request_args = code_execution.build_request_args
+        self.original_create_invocation = invocation_tracking.create_server_invocation_record
+        self.original_make_response = error_handling.make_response
+        self.original_redirect = response_handling.redirect
+        self.original_create_cid_record = response_handling.create_cid_record
+        self.original_get_cid_by_path = response_handling.get_cid_by_path
+        self.original_generate_cid = response_handling.generate_cid
+        self.original_get_extension = response_handling.get_extension_from_mime_type
+        # After decomposition, current_user is only in variable_resolution
+        self.original_current_user = variable_resolution.current_user
+        self.original_render_error_html = error_handling._render_execution_error_html
+
+        # Set mocks where they're used
+        mock_user = types.SimpleNamespace(id="user-123")
+        variable_resolution.current_user = mock_user
+        code_execution.build_request_args = lambda: {
             "request": {"path": "/mock"},
             "context": {"variables": {}, "secrets": {}, "servers": {}},
         }
-        server_execution.create_server_invocation_record = lambda *a, **k: None
-        server_execution.create_cid_record = lambda *a, **k: None
-        server_execution.get_cid_by_path = lambda *a, **k: None
-        server_execution.generate_cid = lambda b: "deadbeef"
-        server_execution.get_extension_from_mime_type = (
+        invocation_tracking.create_server_invocation_record = lambda *a, **k: None
+        response_handling.create_cid_record = lambda *a, **k: None
+        response_handling.get_cid_by_path = lambda *a, **k: None
+        response_handling.generate_cid = lambda b: "deadbeef"
+        response_handling.get_extension_from_mime_type = (
             lambda ct: "html" if ct == "text/html" else ""
         )
-        server_execution.make_response = lambda text: types.SimpleNamespace(
+        error_handling.make_response = lambda text: types.SimpleNamespace(
             headers={}, status_code=200, data=text
         )
-        server_execution.redirect = lambda url: ("redirect", url)
-        server_execution._render_execution_error_html = (
+        response_handling.redirect = lambda url: ("redirect", url)
+        error_handling._render_execution_error_html = (
             lambda exc, code, args, server_name: "<html>Error</html>"
         )
 
+        # Store modules for tearDown
+        self.code_execution = code_execution
+        self.response_handling = response_handling
+        self.error_handling = error_handling
+        self.invocation_tracking = invocation_tracking
+        self.variable_resolution = variable_resolution
+
     def tearDown(self):
-        server_execution.run_text_function = self.original_run_text_function
-        server_execution.build_request_args = self.original_build_request_args
-        server_execution.create_server_invocation_record = self.original_create_invocation
-        server_execution.make_response = self.original_make_response
-        server_execution.redirect = self.original_redirect
-        server_execution.create_cid_record = self.original_create_cid_record
-        server_execution.get_cid_by_path = self.original_get_cid_by_path
-        server_execution.generate_cid = self.original_generate_cid
-        server_execution.get_extension_from_mime_type = self.original_get_extension
-        server_execution.current_user = self.original_current_user
-        server_execution._render_execution_error_html = (
+        self.code_execution.run_text_function = self.original_run_text_function
+        self.code_execution.build_request_args = self.original_build_request_args
+        self.invocation_tracking.create_server_invocation_record = self.original_create_invocation
+        self.error_handling.make_response = self.original_make_response
+        self.response_handling.redirect = self.original_redirect
+        self.response_handling.create_cid_record = self.original_create_cid_record
+        self.response_handling.get_cid_by_path = self.original_get_cid_by_path
+        self.response_handling.generate_cid = self.original_generate_cid
+        self.response_handling.get_extension_from_mime_type = self.original_get_extension
+        # After decomposition, current_user is only in variable_resolution
+        self.variable_resolution.current_user = self.original_current_user
+        self.error_handling._render_execution_error_html = (
             self.original_render_error_html
         )
 
@@ -145,7 +210,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
             calls.append((code, args))
             return {"output": "hello", "content_type": "text/plain"}
 
-        server_execution.run_text_function = fake_runner
+        self.code_execution.run_text_function = fake_runner
 
         server = types.SimpleNamespace(definition="print('hello')")
 
@@ -163,7 +228,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def failing_runner(code, args):
             raise ValueError("boom")
 
-        server_execution.run_text_function = failing_runner
+        self.code_execution.run_text_function = failing_runner
 
         server = types.SimpleNamespace(definition="print('fail')")
 

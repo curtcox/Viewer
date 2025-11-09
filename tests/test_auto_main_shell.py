@@ -12,14 +12,16 @@ from text_function_runner import run_text_function
 @pytest.fixture
 def patched_server_execution(monkeypatch):
     """Provide a predictable environment for server execution tests."""
+    from server_execution import code_execution, variable_resolution
+    import identity
+
+    # After decomposition, current_user is only in variable_resolution
+    mock_user = SimpleNamespace(id="user-123")
+    monkeypatch.setattr(identity, "current_user", mock_user)
+    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
 
     monkeypatch.setattr(
-        server_execution,
-        "current_user",
-        SimpleNamespace(id="user-123"),
-    )
-    monkeypatch.setattr(
-        server_execution,
+        code_execution,
         "_load_user_context",
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
@@ -31,7 +33,7 @@ def patched_server_execution(monkeypatch):
             "server_name": server_name,
         }
 
-    monkeypatch.setattr(server_execution, "_handle_successful_execution", fake_success)
+    monkeypatch.setattr(code_execution, "_handle_successful_execution", fake_success)
 
 
 def test_auto_main_shell_main_executes_shell_command():

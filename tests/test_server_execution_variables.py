@@ -44,7 +44,9 @@ def test_resolve_redirect_target(location, current_path, expected):
 
 
 def test_fetch_variable_content_returns_route_body(flask_app, monkeypatch):
-    monkeypatch.setattr(server_execution, "current_user", types.SimpleNamespace(id="user-1"))
+    # After decomposition, current_user is in variable_resolution module
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
 
     with flask_app.test_request_context("/other"):
         result = server_execution._fetch_variable_content("/value")
@@ -53,7 +55,9 @@ def test_fetch_variable_content_returns_route_body(flask_app, monkeypatch):
 
 
 def test_fetch_variable_content_follows_relative_redirect(flask_app, monkeypatch):
-    monkeypatch.setattr(server_execution, "current_user", types.SimpleNamespace(id="user-1"))
+    # After decomposition, current_user is in variable_resolution module
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
 
     with flask_app.test_request_context("/other"):
         result = server_execution._fetch_variable_content("/redirect")
@@ -64,9 +68,11 @@ def test_fetch_variable_content_follows_relative_redirect(flask_app, monkeypatch
 def test_resolve_variable_values_prefetches_when_possible(monkeypatch):
     calls = []
 
-    monkeypatch.setattr(server_execution, "_should_skip_variable_prefetch", lambda: False)
+    # After decomposition, patch functions in variable_resolution module where they're used
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: False)
     monkeypatch.setattr(
-        server_execution,
+        variable_resolution,
         "_fetch_variable_content",
         lambda path: calls.append(path) or "resolved",
     )
@@ -78,8 +84,10 @@ def test_resolve_variable_values_prefetches_when_possible(monkeypatch):
 
 
 def test_resolve_variable_values_keeps_original_when_fetch_fails(monkeypatch):
-    monkeypatch.setattr(server_execution, "_should_skip_variable_prefetch", lambda: False)
-    monkeypatch.setattr(server_execution, "_fetch_variable_content", lambda path: None)
+    # After decomposition, patch functions in variable_resolution module where they're used
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: False)
+    monkeypatch.setattr(variable_resolution, "_fetch_variable_content", lambda path: None)
 
     original = {"foo": "/bar"}
     result = server_execution._resolve_variable_values(original)
@@ -89,7 +97,9 @@ def test_resolve_variable_values_keeps_original_when_fetch_fails(monkeypatch):
 
 def test_resolve_variable_values_returns_copy_when_prefetch_skipped(monkeypatch):
     data = {"foo": "/bar"}
-    monkeypatch.setattr(server_execution, "_should_skip_variable_prefetch", lambda: True)
+    # After decomposition, patch functions in variable_resolution module where they're used
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: True)
 
     result = server_execution._resolve_variable_values(data)
 
@@ -98,5 +108,7 @@ def test_resolve_variable_values_returns_copy_when_prefetch_skipped(monkeypatch)
 
 
 def test_fetch_variable_content_returns_none_without_app_context(monkeypatch):
-    monkeypatch.setattr(server_execution, "current_user", types.SimpleNamespace(id="user-1"))
+    # After decomposition, current_user is in variable_resolution module
+    from server_execution import variable_resolution
+    monkeypatch.setattr(variable_resolution, "current_user", types.SimpleNamespace(id="user-1"))
     assert server_execution._fetch_variable_content("/value") is None
