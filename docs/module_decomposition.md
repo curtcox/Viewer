@@ -35,7 +35,7 @@ The decomposition of `server_execution.py` revealed additional critical insights
 - **Functional cohesion**: Modules grouped by business logic (parsing, execution, response, error handling)
 - **Single source of truth**: Centralized `current_user` access through one module prevents duplication
 - **Backward compatibility**: Shim file + `__getattr__` maintains all existing imports
-- **All tests passing**: 123/123 core tests pass when run individually
+- **All tests passing**: 978/978 tests pass (including test isolation fixes)
 
 ### Final Structure
 ```
@@ -50,6 +50,13 @@ server_execution/
 ├── server_lookup.py (125 lines) - Server resolution and versioning
 └── invocation_tracking.py (86 lines) - Server invocation record creation
 ```
+
+### Test Results
+After decomposition and all fixes:
+- ✅ **978/978 tests passing** (0 failed)
+- ✅ All module decomposition test patches updated
+- ✅ All Flask context issues resolved
+- ✅ All flake8 E731 violations fixed
 
 ### Critical Pattern: Centralizing Shared Dependencies
 
@@ -83,7 +90,97 @@ from server_execution import variable_resolution
 monkeypatch.setattr(variable_resolution, "_fetch_variable_content", mock)
 ```
 
-**Note:** See `docs/test_isolation_issues.md` for details on test isolation challenges.
+### Test Isolation Best Practices
+
+After decomposing server_execution.py, we encountered and fixed 9 test failures (6 module decomposition issues + 3 Flask context issues). All 978 tests now pass. Key lessons learned:
+
+#### 1. Always Patch at the Import Site
+
+After module decomposition, patch where functions are **used**, not defined:
+
+```python
+# After decomposition of server_execution:
+# ❌ WRONG: Patches definition site
+@patch('server_execution.variable_resolution._current_user_id')
+
+# ✅ CORRECT: Patches the submodule where it's used
+from server_execution import server_lookup
+with patch.object(server_lookup, '_current_user_id', mock):
+    ...
+
+# OR patch at the import path
+@patch('server_execution.server_lookup._current_user_id')
+```
+
+#### 2. Use Context Managers for Patches
+
+Replace setUp/tearDown patching with context managers that automatically clean up:
+
+```python
+# ❌ BAD: Manual cleanup required
+def setUp(self):
+    self.original_user = code_execution.current_user
+    code_execution.current_user = mock_user
+
+def tearDown(self):
+    code_execution.current_user = self.original_user
+
+# ✅ GOOD: Automatic cleanup
+def test_something(self):
+    from server_execution import variable_resolution
+    with patch.object(variable_resolution, 'current_user', mock_user):
+        # Test code here
+        pass
+    # Automatically cleaned up when context exits
+```
+
+#### 3. Use Flask Test Contexts for Request/App Access
+
+When tests need Flask request or application context:
+
+```python
+from app import app
+
+# For request-dependent code
+with app.test_request_context('/path', method='POST'):
+    result = function_that_uses_request()
+
+# For application-dependent code (database, etc.)
+with app.app_context():
+    result = function_that_uses_db()
+
+# For both
+with app.app_context():
+    with app.test_request_context('/path'):
+        result = function_that_uses_both()
+```
+
+**Critical:** Don't use `patch.dict` to mock Flask's request object - it won't work because Flask's `request` is a LocalProxy requiring an active request context.
+
+#### 4. Avoid Direct Module Attribute Modification
+
+Don't modify module state directly; use patch decorators or context managers:
+
+```python
+# ❌ BAD: Modifies module state
+import my_module
+my_module.some_function = mock_function
+
+# ✅ GOOD: Uses patch context
+with patch('my_module.some_function', mock_function):
+    # test code
+```
+
+#### 5. Avoid Lambda-Assigned Mock Helpers (Flake8 E731)
+
+```python
+# ❌ BAD (flake8 E731 violation)
+mock_build_request_args = lambda: {"request": {...}, "context": {...}}
+
+# ✅ GOOD
+def mock_build_request_args():
+    return {"request": {...}, "context": {...}}
+```
 
 ## Modules to Decompose
 
@@ -179,5 +276,5 @@ Maintain zero breaking changes using two mechanisms:
 
 ## References
 
-- See `remaining_pylint_issues.md` for current pylint status
+- See `../remaining_pylint_issues.md` for current pylint status
 - See `CLAUDE_TEST_INSTRUCTIONS.md` for testing procedures
