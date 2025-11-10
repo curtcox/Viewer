@@ -815,6 +815,12 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="Dead Code Detection",
             report_link="vulture/index.html"
         ),
+        "python-smells": JobMetadata(
+            name="Python Smells",
+            icon="👃",
+            check_type="Code Smell Detection",
+            report_link="python-smells/index.html"
+        ),
         "shellcheck": JobMetadata(
             name="ShellCheck",
             icon="🐚",
@@ -953,6 +959,7 @@ def build_site(
     property_artifacts: Path | None,
     radon_artifacts: Path | None,
     vulture_artifacts: Path | None,
+    python_smells_artifacts: Path | None,
     pylint_artifacts: Path | None,
     shellcheck_artifacts: Path | None,
     hadolint_artifacts: Path | None,
@@ -969,6 +976,7 @@ def build_site(
     property_dir = output_dir / "property-tests"
     radon_dir = output_dir / "radon"
     vulture_dir = output_dir / "vulture"
+    python_smells_dir = output_dir / "python-smells"
     pylint_dir = output_dir / "pylint"
     shellcheck_dir = output_dir / "shellcheck"
     hadolint_dir = output_dir / "hadolint"
@@ -980,6 +988,7 @@ def build_site(
     _copy_artifacts(property_artifacts, property_dir)
     _copy_artifacts(radon_artifacts, radon_dir)
     _copy_artifacts(vulture_artifacts, vulture_dir)
+    _copy_artifacts(python_smells_artifacts, python_smells_dir)
     _copy_artifacts(pylint_artifacts, pylint_dir)
     _copy_artifacts(shellcheck_artifacts, shellcheck_dir)
     _copy_artifacts(hadolint_artifacts, hadolint_dir)
@@ -999,6 +1008,7 @@ def build_site(
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
     _build_linter_index(pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint"))
+    _build_linter_index(python_smells_dir, "Python Smells Report", "Python Smells", job_statuses.get("python-smells"))
     _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck", job_statuses.get("shellcheck"))
     _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
     _build_test_index_page(test_index_dir)
@@ -1043,6 +1053,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=None,
         help="Directory containing the Vulture dead code report artifacts.",
+    )
+    parser.add_argument(
+        "--python-smells-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Python Smells report artifacts.",
     )
     parser.add_argument(
         "--pylint-artifacts",
@@ -1099,6 +1115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         property_artifacts=parsed.property_artifacts,
         radon_artifacts=parsed.radon_artifacts,
         vulture_artifacts=parsed.vulture_artifacts,
+        python_smells_artifacts=parsed.python_smells_artifacts,
         pylint_artifacts=parsed.pylint_artifacts,
         shellcheck_artifacts=parsed.shellcheck_artifacts,
         hadolint_artifacts=parsed.hadolint_artifacts,
