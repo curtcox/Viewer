@@ -42,7 +42,10 @@ BASE_CSS = """    body { font-family: system-ui, sans-serif; margin: 2rem; line-
 
 COMMON_CSS = BASE_CSS + """
     pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
-    .pylint-output { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }"""
+    .pylint-output { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+    .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .warning strong { color: #856404; }
+    .warning ul { margin-top: 0.5rem; margin-bottom: 0.5rem; }"""
 
 GAUGE_CSS = BASE_CSS + """
     h1 { font-size: 2rem; margin-bottom: 1rem; }
@@ -535,24 +538,38 @@ def _enhance_pylint_output(output_text: str, github_repo: str = "curtcox/Viewer"
     return '<br>\n'.join(enhanced_lines)
 
 
-def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
-    """Build an index page for linter reports (Pylint, ShellCheck, Hadolint)."""
+def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_status: str | None = None) -> None:
+    """Build an index page for linter reports (Pylint, ShellCheck, Hadolint).
+
+    Args:
+        linter_dir: Directory containing the linter artifacts
+        title: Page title for the report
+        linter_name: Name of the linter (Pylint, ShellCheck, or Hadolint)
+        job_status: Optional job status ("success", "failure", "skipped") for better messaging
+    """
     linter_dir.mkdir(parents=True, exist_ok=True)
 
     summary_path = linter_dir / "summary.txt"
     output_path = linter_dir / "output.txt"
     index_path = linter_dir / "index.html"
 
+    # Check if artifacts exist and have content
+    summary_exists = summary_path.exists()
+    output_exists = output_path.exists()
+    has_summary_content = False
+    has_output_content = False
+
     summary_html = "<p>No summary available.</p>"
-    if summary_path.exists():
+    if summary_exists:
         summary_content = summary_path.read_text(encoding="utf-8")
         summary_lines = summary_content.strip().split("\n")
         summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
         if summary_items:  # Only show summary if we have non-empty items
             summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
+            has_summary_content = True
 
     output_content = "No output was captured."
-    if output_path.exists():
+    if output_exists:
         output_text = output_path.read_text(encoding="utf-8")
         if output_text.strip():
             # Enhance pylint output with links
@@ -560,17 +577,45 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
                 output_content = _enhance_pylint_output(output_text)
             else:
                 output_content = escape(output_text)
+            has_output_content = True
         else:
-            output_content = "All checks passed - no issues found."
+            if job_status == "failure":
+                output_content = "No output was captured."
+            else:
+                output_content = "All checks passed - no issues found."
+
+    # Provide context-aware messaging when job status doesn't match artifacts
+    if job_status == "failure" and not has_summary_content and not has_output_content:
+        # Job failed but we have no artifacts to show why
+        summary_html = f"""<div class="warning">
+  <p><strong>⚠ Check Failed</strong></p>
+  <p>The {escape(linter_name)} check failed, but detailed results are not available.</p>
+  <p>This typically indicates the check encountered an error before completion, such as:</p>
+  <ul>
+    <li>The linter tool failed to install or run</li>
+    <li>A timeout or resource limit was exceeded</li>
+    <li>An unexpected error occurred during execution</li>
+  </ul>
+  <p>Check the CI workflow logs for more details.</p>
+</div>"""
+        output_content = ""
+    elif job_status == "skipped":
+        summary_html = f"<p>The {escape(linter_name)} check was skipped.</p>"
+        output_content = ""
 
     # Use <div> with pre-like styling for enhanced output instead of <pre> tag
     output_tag = "div" if linter_name == "Pylint" else "pre"
     output_class = ' class="pylint-output"' if linter_name == "Pylint" else ""
 
+    # Only show output section if we have content to display
+    output_section = ""
+    if output_content:
+        output_section = f"""<h2>{escape(linter_name)} output</h2>
+  <{output_tag}{output_class}>{output_content}</{output_tag}>"""
+
     body = f"""  <h1>{escape(title)}</h1>
   {summary_html}
-  <h2>{escape(linter_name)} output</h2>
-  <{output_tag}{output_class}>{output_content}</{output_tag}>"""
+  {output_section}"""
 
     index_path.write_text(
         _render_html_page(title, body, COMMON_CSS),
@@ -943,6 +988,9 @@ def build_site(
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
 
+    # Load job statuses early so we can pass them to report builders for context-aware messaging
+    job_statuses = _load_job_statuses(job_statuses_path)
+
     gauge_public_base = _compose_public_url(public_base_url, "gauge-specs")
     enhance_gauge_report(gauge_dir, public_base_url=gauge_public_base)
     placeholder_count, screenshot_reasons = _collect_screenshot_issues(gauge_dir)
@@ -950,11 +998,10 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
-    _build_linter_index(pylint_dir, "Pylint Report", "Pylint")
-    _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck")
-    _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint")
+    _build_linter_index(pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint"))
+    _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck", job_statuses.get("shellcheck"))
+    _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
     _build_test_index_page(test_index_dir)
-    job_statuses = _load_job_statuses(job_statuses_path)
     _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
 
 
