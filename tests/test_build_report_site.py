@@ -154,3 +154,98 @@ def test_build_linter_index_valid_summary(tmp_path) -> None:
     assert "Exit code: 1" in content
     assert "Status: ✗ Issues found" in content
     assert "No summary available." not in content
+
+
+def test_build_linter_index_failure_no_artifacts(tmp_path) -> None:
+    """Test that job failure without artifacts shows clear warning message."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # No summary.txt or output.txt files (simulating artifact download failure)
+    # But job status is "failure"
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show warning message explaining the failure
+    assert "⚠ Check Failed" in content
+    assert "detailed results are not available" in content
+    assert "The Pylint check failed" in content
+    assert "Check the CI workflow logs for more details" in content
+    # Should not show the output section when we have no data
+    assert "<h2>Pylint output</h2>" not in content
+
+
+def test_build_linter_index_failure_empty_artifacts(tmp_path) -> None:
+    """Test that job failure with empty artifacts shows clear warning message."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create empty artifact files
+    (linter_dir / "summary.txt").write_text("", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show warning message
+    assert "⚠ Check Failed" in content
+    assert "detailed results are not available" in content
+
+
+def test_build_linter_index_skipped(tmp_path) -> None:
+    """Test that skipped job shows appropriate message."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="skipped")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show skipped message
+    assert "The Pylint check was skipped" in content
+    # Should not show the output section
+    assert "<h2>Pylint output</h2>" not in content
+
+
+def test_build_linter_index_failure_with_valid_artifacts(tmp_path) -> None:
+    """Test that job failure with valid artifacts shows the actual errors (not warning)."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create valid artifact files with error content
+    (linter_dir / "summary.txt").write_text("Exit code: 8\nStatus: ✗ Issues found", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("some/file.py:10:5: E0001: Syntax error", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show the actual summary and errors, NOT the warning
+    assert "Exit code: 8" in content
+    assert "Status: ✗ Issues found" in content
+    assert "some/file.py:10:5: E0001: Syntax error" in content
+    assert "⚠ Check Failed" not in content
+    assert "detailed results are not available" not in content
+
+
+def test_build_linter_index_success_no_artifacts(tmp_path) -> None:
+    """Test that successful job without artifacts shows success message (backward compatible)."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # No artifacts, but job succeeded
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="success")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show standard "no data" messages, not warnings
+    assert "No summary available" in content
+    assert "No output was captured" in content
+    assert "⚠ Check Failed" not in content
