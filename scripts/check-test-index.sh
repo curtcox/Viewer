@@ -20,6 +20,33 @@ else
   touch "$ORIGINAL_INDEX"
 fi
 
+# Check if TEST_INDEX.md exists and is not empty
+if [ ! -f "TEST_INDEX.md" ]; then
+  echo ""
+  echo "Error: TEST_INDEX.md is missing!"
+  echo "Please run 'python generate_test_index.py' to generate it."
+  rm -f "$ORIGINAL_INDEX"
+  exit 1
+fi
+
+if [ ! -s "TEST_INDEX.md" ]; then
+  echo ""
+  echo "Error: TEST_INDEX.md is empty!"
+  echo "Please run 'python generate_test_index.py' to generate it properly."
+  rm -f "$ORIGINAL_INDEX"
+  exit 1
+fi
+
+# Check if the original index file is empty (missing committed version)
+if [ ! -s "$ORIGINAL_INDEX" ]; then
+  echo ""
+  echo "Error: No committed version of TEST_INDEX.md found in git!"
+  echo "This may be the first time TEST_INDEX.md is being added."
+  echo "Please run 'python generate_test_index.py' and commit TEST_INDEX.md."
+  rm -f "$ORIGINAL_INDEX"
+  exit 1
+fi
+
 # Compare the committed version with the newly generated version
 if ! diff -u "$ORIGINAL_INDEX" TEST_INDEX.md; then
   echo ""
