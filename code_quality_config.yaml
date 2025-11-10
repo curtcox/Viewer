@@ -1,0 +1,150 @@
+# PyExamine Code Quality Configuration
+# This file configures thresholds for Python code smell detection
+# Source: https://github.com/KarthikShivasankar/python_smells_detector
+
+code_smells:
+  LONG_METHOD_LINES:
+    value: 45
+    explanation: "Methods longer than this many lines may be too complex and should be refactored"
+  LARGE_CLASS_METHODS:
+    value: 15
+    explanation: "Classes with more than this many methods may have too many responsibilities"
+  PRIMITIVE_OBSESSION_COUNT:
+    value: 4
+    explanation: "Functions with more than this many primitive parameters may indicate primitive obsession"
+  LONG_PARAMETER_LIST:
+    value: 5
+    explanation: "Functions with more than this many parameters may be hard to understand"
+  COMPLEX_CONDITIONAL:
+    value: 3
+    explanation: "If-else chains longer than this may indicate switch statement smell"
+  FEATURE_ENVY_CALLS:
+    value: 3
+    explanation: "Methods calling other objects more than this many times may have feature envy"
+  MESSAGE_CHAIN_LENGTH:
+    value: 3
+    explanation: "Call chains longer than this indicate tight coupling"
+  DUPLICATE_CODE_THRESHOLD:
+    value: 15
+    explanation: "Code blocks matching this many lines or more are considered duplicates"
+  DEAD_CODE_THRESHOLD:
+    value: 3
+    explanation: "Functions called fewer than this many times may be dead code"
+  SHOTGUN_SURGERY_THRESHOLD:
+    value: 5
+    explanation: "Methods called in more than this many places may cause shotgun surgery when changed"
+  DATA_CLUMPS_THRESHOLD:
+    value: 3
+    explanation: "Groups of parameters appearing together more than this many times may be data clumps"
+  SPECULATIVE_GENERALITY_THRESHOLD:
+    value: 2
+    explanation: "Abstract classes with fewer than this many concrete implementations may be speculative"
+  LAZY_CLASS_THRESHOLD:
+    value: 3
+    explanation: "Classes with fewer than this many methods may not be pulling their weight"
+  MIDDLE_MAN_THRESHOLD:
+    value: 5
+    explanation: "Classes delegating more than this percentage of methods may be middle men"
+  INAPPROPRIATE_INTIMACY_THRESHOLD:
+    value: 5
+    explanation: "Classes accessing more than this many private members of another class show inappropriate intimacy"
+  REFUSED_BEQUEST_THRESHOLD:
+    value: 50
+    explanation: "Subclasses using less than this percentage of parent methods may indicate refused bequest"
+  DIVERGENT_CHANGE_THRESHOLD:
+    value: 5
+    explanation: "Classes changed for more than this many different reasons may suffer from divergent change"
+  PARALLEL_INHERITANCE_THRESHOLD:
+    value: 3
+    explanation: "Creating subclass in one hierarchy requiring more than this many others indicates parallel inheritance"
+  COMMENTS_RATIO:
+    value: 30
+    explanation: "Files with more than this percentage of comment lines may be over-commented"
+  INCOMPLETE_LIBRARY_CLASS_THRESHOLD:
+    value: 3
+    explanation: "Adding more than this many utility methods to extend a library may indicate incomplete library class"
+  ALTERNATIVE_CLASSES_THRESHOLD:
+    value: 80
+    explanation: "Classes with more than this percentage similarity may be alternative classes with different interfaces"
+  TEMPORARY_FIELD_THRESHOLD:
+    value: 3
+    explanation: "Instance variables used in fewer than this many methods may be temporary fields"
+  LONG_SCOPE_CHAINING:
+    value: 3
+    explanation: "Variables passed through more than this many scope levels may indicate long scope chaining"
+  COMPLEX_COMPREHENSION_THRESHOLD:
+    value: 2
+    explanation: "List comprehensions with more than this many nested loops may be too complex"
+
+architectural_smells:
+  GOD_OBJECT_FUNCTIONS:
+    value: 20
+    explanation: "Modules with more than this many functions may be god objects"
+  UNSTABLE_DEPENDENCY_THRESHOLD:
+    value: 0.8
+    explanation: "Modules with instability ratio above this threshold may be unstable dependencies"
+  HUB_LIKE_DEPENDENCY_THRESHOLD:
+    value: 0.3
+    explanation: "Modules connected to more than this percentage of total modules may be hub-like dependencies"
+  CYCLIC_DEPENDENCY_MAX_LENGTH:
+    value: 3
+    explanation: "Cyclic dependencies involving more than this many modules are problematic"
+  REDUNDANT_ABSTRACTION_SIMILARITY:
+    value: 0.7
+    explanation: "Abstract classes with similarity above this threshold may be redundant abstractions"
+  SCATTERED_FUNCTIONALITY_THRESHOLD:
+    value: 5
+    explanation: "Functionality scattered across more than this many modules may indicate poor cohesion"
+
+structural_smells:
+  NOM_THRESHOLD:
+    value: 10
+    explanation: "Number of Methods: Classes with more than this many methods may be too complex"
+  WMPC1_THRESHOLD:
+    value: 20
+    explanation: "Weighted Methods per Class: Sum of method complexities exceeding this may indicate complex class"
+  NOP_THRESHOLD:
+    value: 10
+    explanation: "Number of Properties: Classes with more than this many properties may have data class smell"
+  DIT_THRESHOLD:
+    value: 3
+    explanation: "Depth of Inheritance Tree: Inheritance deeper than this may be too complex"
+  NOC_THRESHOLD:
+    value: 5
+    explanation: "Number of Children: Classes with more than this many direct subclasses may be too general"
+  CBO_THRESHOLD:
+    value: 5
+    explanation: "Coupling Between Objects: Classes coupled to more than this many others may be too coupled"
+  RFC_THRESHOLD:
+    value: 20
+    explanation: "Response For Class: Classes with response set larger than this may be too complex"
+  LCOM_THRESHOLD:
+    value: 0.8
+    explanation: "Lack of Cohesion of Methods: LCOM above this threshold indicates low cohesion"
+  MPC_THRESHOLD:
+    value: 25
+    explanation: "Message Passing Coupling: Classes making more than this many method calls may be too coupled"
+  DAC_THRESHOLD:
+    value: 5
+    explanation: "Data Abstraction Coupling: Classes using more than this many abstract data types may be too coupled"
+  FANOUT_THRESHOLD:
+    value: 15
+    explanation: "Fan-out: Methods calling more than this many other methods may be too complex"
+  CYCLOMATIC_COMPLEXITY_THRESHOLD:
+    value: 10
+    explanation: "Cyclomatic Complexity: Methods with complexity above this are hard to test and maintain"
+  MAX_NESTING_DEPTH:
+    value: 4
+    explanation: "Maximum Nesting Depth: Code nested deeper than this level is hard to understand"
+  MAX_FILE_LENGTH:
+    value: 250
+    explanation: "Maximum File Length: Files longer than this many lines may be too large"
+  LOC_THRESHOLD:
+    value: 1000
+    explanation: "Lines of Code: Modules with more than this many lines may need to be split"
+  HALSTEAD_DIFFICULTY_THRESHOLD:
+    value: 20
+    explanation: "Halstead Difficulty: Programs with difficulty above this are hard to understand"
+  MAINTAINABILITY_INDEX_THRESHOLD:
+    value: 20
+    explanation: "Maintainability Index: Code with MI below this threshold is hard to maintain"
