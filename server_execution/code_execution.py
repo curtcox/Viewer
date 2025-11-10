@@ -9,6 +9,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
 from db_access import get_cid_by_path, get_server_by_name, get_user_secrets, get_user_servers, get_user_variables
+# pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
 from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
 from server_execution.invocation_tracking import request_details
@@ -19,6 +20,7 @@ from server_execution.request_parsing import (
 )
 from server_execution.response_handling import _handle_successful_execution, _log_server_output
 from server_execution.variable_resolution import _current_user_id, _resolve_variable_values, _should_skip_variable_prefetch
+# pylint: enable=no-name-in-module
 from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
@@ -113,7 +115,7 @@ def _execute_nested_server_to_value(
             return _handle_execution_exception(exc, code_to_run, args_to_use, server_name)
 
         output, _ = _normalize_execution_result(result)
-        from server_execution.response_handling import _encode_output
+        from server_execution.response_handling import _encode_output  # pylint: disable=no-name-in-module
         output_bytes = _encode_output(output)
         try:
             return output_bytes.decode("utf-8")

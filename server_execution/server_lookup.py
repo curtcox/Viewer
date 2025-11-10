@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Iterable, Optional
 from flask import Response, jsonify, render_template
 
 from db_access import get_server_by_name
+# pylint: disable=no-name-in-module  # False positive: submodules exist
 from server_execution.code_execution import (
     _auto_main_accepts_additional_path,
     execute_server_code,
@@ -13,6 +14,7 @@ from server_execution.code_execution import (
     execute_server_function_from_definition,
 )
 from server_execution.variable_resolution import _current_user_id
+# pylint: enable=no-name-in-module
 
 
 def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]) -> bool:

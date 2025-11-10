@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from flask import Flask
 
+# pylint: disable=no-name-in-module  # False positive: names available via lazy loading in __getattr__
 from server_execution import (
     FunctionDetails,
     MissingParameterError,

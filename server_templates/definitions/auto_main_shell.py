@@ -45,6 +45,7 @@ def main(
             shell=True,
             capture_output=True,
             text=True,
+            check=False,  # Intentionally allow command failures; exit code displayed to user
         )
         gathered = _gather_command_output(completed)
         command_result = f"$ {executed}\n{gathered}" if gathered else f"$ {executed}"

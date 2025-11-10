@@ -388,7 +388,7 @@ class TestCIDFunctionality(unittest.TestCase):
         call_log = {}
 
         class FakeImage:
-            def save(self, buffer, format=None):
+            def save(self, buffer, format=None):  # pylint: disable=redefined-builtin  # Mock matches PIL API
                 call_log['format'] = format
                 buffer.write(sample_png_bytes)
 

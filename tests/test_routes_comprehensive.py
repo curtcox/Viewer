@@ -2,6 +2,8 @@
 """
 Comprehensive unit tests for routes.py
 """
+# pylint: disable=too-many-lines  # Test file intentionally comprehensive; splitting would reduce discoverability
+
 import json
 import os
 import re

@@ -38,7 +38,8 @@ def _load_artifacts_module():
 artifacts = _load_artifacts_module()
 
 
-class _FakePage:
+class _FakePage:  # pylint: disable=attribute-defined-outside-init
+    """Mock page object that captures method calls as attributes for testing."""
     def __init__(self, *, allow_wait_until: bool = True) -> None:
         self._allow_wait_until = allow_wait_until
 
@@ -81,7 +82,7 @@ def test_render_browser_screenshot_disables_signal_handlers(monkeypatch) -> None
         return _FakeBrowser(captured)
 
     fake_module = types.ModuleType("pyppeteer")
-    fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
+    fake_module.launch = _fake_launch
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
     result, error = artifacts._render_browser_screenshot("<html></html>")
@@ -116,7 +117,7 @@ def test_render_browser_screenshot_supports_legacy_setcontent(monkeypatch) -> No
         return _FakeBrowser(captured, page=page)
 
     fake_module = types.ModuleType("pyppeteer")
-    fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
+    fake_module.launch = _fake_launch
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
     result, error = artifacts._render_browser_screenshot("<html></html>")
@@ -133,7 +134,7 @@ def test_render_browser_screenshot_falls_back_when_launch_fails(monkeypatch) -> 
         raise RuntimeError("chromium download failed")
 
     fake_module = types.ModuleType("pyppeteer")
-    fake_module.launch = lambda **kwargs: _fake_launch(**kwargs)
+    fake_module.launch = _fake_launch
     monkeypatch.setitem(sys.modules, "pyppeteer", fake_module)
 
     result, error = artifacts._render_browser_screenshot("<html></html>")
