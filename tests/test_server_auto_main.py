@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 
-import db_access
 import server_execution
 import server_templates
 from app import app
