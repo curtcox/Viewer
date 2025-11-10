@@ -7,10 +7,27 @@ cd "${SCRIPT_DIR}"
 # shellcheck source=../goto_root
 source ../goto_root
 
-if ! git diff --exit-code TEST_INDEX.md; then
+# Get the committed version from git and compare with the generated version
+# The generated TEST_INDEX.md is already in the working directory (created by verify_test_index.sh)
+ORIGINAL_INDEX=$(mktemp)
+
+# Extract the committed version from git (if it exists)
+if git rev-parse --git-dir > /dev/null 2>&1; then
+  # We're in a git repository
+  git show HEAD:TEST_INDEX.md > "$ORIGINAL_INDEX" 2>/dev/null || touch "$ORIGINAL_INDEX"
+else
+  # Not in a git repository, just touch an empty file
+  touch "$ORIGINAL_INDEX"
+fi
+
+# Compare the committed version with the newly generated version
+if ! diff -u "$ORIGINAL_INDEX" TEST_INDEX.md; then
+  echo ""
   echo "Error: TEST_INDEX.md is out of date!"
   echo "Please run 'python generate_test_index.py' and commit the changes."
+  rm -f "$ORIGINAL_INDEX"
   exit 1
 fi
 
+rm -f "$ORIGINAL_INDEX"
 echo "Test index is up to date."
