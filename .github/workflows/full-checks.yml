@@ -319,6 +319,9 @@ jobs:
       - name: Verify test index
         id: verify_test_index
         run: |
+          # Fix git ownership issue in container
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
           mkdir -p test-index-report
           STATUS=0
           ./scripts/checks/verify_test_index.sh > test-index-report/output.txt 2>&1 || STATUS=$?
