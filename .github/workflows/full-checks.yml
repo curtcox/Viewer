@@ -144,7 +144,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Install PyExamine
         run: |
+          # Pin to specific commit to avoid supply-chain risks from main branch changes
+          # Commit 1c9360462281d897ab429878139e07ae3f98f104 (2025-01-27): README rename, stable state
           git clone https://github.com/KarthikShivasankar/python_smells_detector.git /tmp/python_smells_detector
+          cd /tmp/python_smells_detector
+          git checkout 1c9360462281d897ab429878139e07ae3f98f104
+          cd -
           python -m pip install --disable-pip-version-check -e /tmp/python_smells_detector
       - name: Generate Python Smells report
         run: ./scripts/checks/run_python_smells.sh --output-dir python-smells-report --summary-file python-smells-report/summary.md
