@@ -134,6 +134,41 @@ jobs:
           path: vulture-report
           if-no-files-found: error
 
+  python-smells:
+    name: Python Smells
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install PyExamine
+        run: |
+          # Pin to specific commit to avoid supply-chain risks from main branch changes
+          # Commit 1c9360462281d897ab429878139e07ae3f98f104 (2025-01-27): README rename, stable state
+          git clone https://github.com/KarthikShivasankar/python_smells_detector.git /tmp/python_smells_detector
+          cd /tmp/python_smells_detector
+          git checkout 1c9360462281d897ab429878139e07ae3f98f104
+          cd -
+          python -m pip install --disable-pip-version-check -e /tmp/python_smells_detector
+      - name: Generate Python Smells report
+        run: ./scripts/checks/run_python_smells.sh --output-dir python-smells-report --summary-file python-smells-report/summary.md
+      - name: Publish Python Smells summary
+        if: always()
+        run: |
+          if [ -f python-smells-report/summary.md ]; then
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              cat python-smells-report/summary.md >>"${GITHUB_STEP_SUMMARY}"
+            fi
+          fi
+      - name: Upload Python Smells artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-smells-report
+          path: python-smells-report
+          if-no-files-found: error
+
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
@@ -638,6 +673,7 @@ jobs:
       - mypy
       - radon
       - vulture
+      - python-smells
       - shellcheck
       - hadolint
       - eslint
@@ -668,6 +704,7 @@ jobs:
             "mypy": "${{ needs.mypy.result }}",
             "radon": "${{ needs.radon.result }}",
             "vulture": "${{ needs.vulture.result }}",
+            "python-smells": "${{ needs.python-smells.result }}",
             "shellcheck": "${{ needs.shellcheck.result }}",
             "hadolint": "${{ needs.hadolint.result }}",
             "eslint": "${{ needs.eslint.result }}",
@@ -718,6 +755,12 @@ jobs:
         with:
           name: vulture-report
           path: site/vulture
+      - name: Download Python Smells report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: python-smells-report
+          path: site/python-smells
       - name: Download Pylint report
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -757,6 +800,7 @@ jobs:
             --property-artifacts site/property-tests \
             --radon-artifacts site/radon \
             --vulture-artifacts site/vulture \
+            --python-smells-artifacts site/python-smells \
             --pylint-artifacts site/pylint \
             --shellcheck-artifacts site/shellcheck \
             --hadolint-artifacts site/hadolint \
