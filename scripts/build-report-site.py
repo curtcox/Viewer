@@ -548,7 +548,8 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str) -> None:
         summary_content = summary_path.read_text(encoding="utf-8")
         summary_lines = summary_content.strip().split("\n")
         summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
-        summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
+        if summary_items:  # Only show summary if we have non-empty items
+            summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
 
     output_content = "No output was captured."
     if output_path.exists():
@@ -591,7 +592,8 @@ def _build_test_index_page(test_index_dir: Path) -> None:
         summary_content = summary_path.read_text(encoding="utf-8")
         summary_lines = summary_content.strip().split("\n")
         summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
-        summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
+        if summary_items:  # Only show summary if we have non-empty items
+            summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
 
     test_index_link = ""
     if test_index_md.exists():

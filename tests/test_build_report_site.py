@@ -98,3 +98,59 @@ def test_write_landing_page_includes_notice(tmp_path) -> None:
     content = index_path.read_text(encoding="utf-8")
 
     assert notice in content
+
+
+def test_build_linter_index_empty_summary(tmp_path) -> None:
+    """Test that empty summary.txt shows 'No summary available' message."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create empty summary.txt
+    (linter_dir / "summary.txt").write_text("", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("No issues found", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    assert "No summary available." in content
+    assert "<h2>Summary</h2><ul></ul>" not in content
+
+
+def test_build_linter_index_whitespace_only_summary(tmp_path) -> None:
+    """Test that summary.txt with only whitespace shows 'No summary available' message."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create summary.txt with only whitespace
+    (linter_dir / "summary.txt").write_text("  \n  \n\t\n", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("No issues found", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    assert "No summary available." in content
+    assert "<h2>Summary</h2><ul></ul>" not in content
+
+
+def test_build_linter_index_valid_summary(tmp_path) -> None:
+    """Test that summary.txt with valid content is displayed correctly."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create summary.txt with valid content
+    (linter_dir / "summary.txt").write_text("Exit code: 1\nStatus: ✗ Issues found", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("Some pylint errors", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    assert "<h2>Summary</h2>" in content
+    assert "Exit code: 1" in content
+    assert "Status: ✗ Issues found" in content
+    assert "No summary available." not in content
