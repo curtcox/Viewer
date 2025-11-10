@@ -587,9 +587,9 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_stat
     # Provide context-aware messaging when job status doesn't match artifacts
     if job_status == "failure" and not has_summary_content and not has_output_content:
         # Job failed but we have no artifacts to show why
-        summary_html = """<div class="warning">
+        summary_html = f"""<div class="warning">
   <p><strong>⚠ Check Failed</strong></p>
-  <p>The {linter} check failed, but detailed results are not available.</p>
+  <p>The {escape(linter_name)} check failed, but detailed results are not available.</p>
   <p>This typically indicates the check encountered an error before completion, such as:</p>
   <ul>
     <li>The linter tool failed to install or run</li>
@@ -597,7 +597,7 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_stat
     <li>An unexpected error occurred during execution</li>
   </ul>
   <p>Check the CI workflow logs for more details.</p>
-</div>""".format(linter=escape(linter_name))
+</div>"""
         output_content = ""
     elif job_status == "skipped":
         summary_html = f"<p>The {escape(linter_name)} check was skipped.</p>"
