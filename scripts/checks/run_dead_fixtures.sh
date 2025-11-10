@@ -5,4 +5,5 @@ cd "${SCRIPT_DIR}"
 # shellcheck source=../../goto_root
 source ../../goto_root
 # Run dead-fixtures check across all tests (including integration tests)
-python -m pytest --dead-fixtures -q "$@"
+# Clear addopts from pytest.ini to include integration tests
+python -m pytest --override-ini addopts= --dead-fixtures -q "$@"
