@@ -5,7 +5,13 @@ import os
 import sys
 import ast
 import importlib.util
+from dataclasses import dataclass, field
 from pathlib import Path
+
+# Constants
+SEPARATOR_LENGTH = 70
+LINE_THRESHOLD = 1000
+BASE_MODULE_PATH = "routes/import_export"
 
 # Add the repo root to sys.path
 
@@ -23,6 +29,67 @@ def _resolve_repo_root() -> Path:
 
 
 sys.path.insert(0, str(_resolve_repo_root()))
+
+
+@dataclass
+class ValidationResult:
+    """Result of a validation check."""
+    passed: bool
+    message: str
+    details: list[str] = field(default_factory=list)
+
+
+class ValidationReporter:
+    """Handles all formatted output for validation results."""
+
+    def __init__(self, separator_length: int = SEPARATOR_LENGTH):
+        self.separator_length = separator_length
+
+    def section(self, title: str) -> None:
+        """Print a section header."""
+        print(f"\n{title}")
+        print("-" * self.separator_length)
+
+    def header(self, title: str) -> None:
+        """Print a main header."""
+        print("=" * self.separator_length)
+        print(title)
+        print("=" * self.separator_length)
+
+    def success(self, msg: str, indent: int = 0) -> None:
+        """Print a success message."""
+        prefix = "  " * indent
+        print(f"{prefix}✓ {msg}")
+
+    def failure(self, msg: str, indent: int = 0) -> None:
+        """Print a failure message."""
+        prefix = "  " * indent
+        print(f"{prefix}✗ {msg}")
+
+    def info(self, msg: str, indent: int = 0) -> None:
+        """Print an info message."""
+        prefix = "  " * indent
+        print(f"{prefix}{msg}")
+
+    def warning(self, msg: str, indent: int = 0) -> None:
+        """Print a warning message."""
+        prefix = "  " * indent
+        print(f"{prefix}⚠ {msg}")
+
+    def status(self, passed: bool, msg: str, indent: int = 0) -> None:
+        """Print a message with status indicator."""
+        if passed:
+            self.success(msg, indent)
+        else:
+            self.failure(msg, indent)
+
+    def result_summary(self, results: dict[str, bool]) -> None:
+        """Print a summary of all validation results."""
+        self.header("VALIDATION SUMMARY")
+        for check, passed in results.items():
+            status = "✅" if passed else "❌"
+            print(f"  {status} {check}")
+
 
 def check_module_imports(module_path: str) -> tuple[bool, str]:
     """Check if a module can be imported successfully."""
@@ -54,97 +121,111 @@ def analyze_imports(file_path: str) -> list[tuple[str, ...]]:
 
     return imports
 
-def main():
-    print("="*70)
-    print("COMPREHENSIVE IMPORT VALIDATION")
-    print("="*70)
 
-    modules = [
-        'routes/import_export/__init__.py',
-        'routes/import_export/cid_utils.py',
-        'routes/import_export/filesystem_collection.py',
-        'routes/import_export/dependency_analyzer.py',
-        'routes/import_export/export_helpers.py',
-        'routes/import_export/export_sections.py',
-        'routes/import_export/export_preview.py',
-        'routes/import_export/export_engine.py',
-        'routes/import_export/change_history.py',
-        'routes/import_export/import_sources.py',
-        'routes/import_export/import_entities.py',
-        'routes/import_export/import_engine.py',
-        'routes/import_export/routes_integration.py',
-        'routes/import_export/routes.py',
-    ]
+# Validation rules for import structure
+IMPORT_VALIDATION_RULES = {
+    'routes/import_export/import_sources.py': {
+        'required': [
+            ('from', 'cid_presenter', 'format_cid'),
+            ('from', 'cid_utils', 'generate_cid'),
+        ],
+        'forbidden': [
+            ('from', 'cid_utils', 'format_cid'),
+        ]
+    },
+    'routes/import_export/import_engine.py': {
+        'required': [
+            ('from', 'cid_presenter', 'format_cid'),
+            ('from', 'cid_utils', 'generate_cid'),
+        ],
+        'forbidden': [
+            ('from', 'cid_utils', 'format_cid'),
+        ]
+    },
+}
 
-    print("\n1. SYNTAX VALIDATION")
-    print("-" * 70)
-    syntax_ok = True
+
+def discover_modules(base_path: Path | None = None) -> list[str]:
+    """Find all .py files in routes/import_export/."""
+    if base_path is None:
+        base_path = _resolve_repo_root()
+
+    module_dir = base_path / BASE_MODULE_PATH
+    if not module_dir.exists():
+        return []
+
+    modules = sorted(str(p.relative_to(base_path)) for p in module_dir.rglob("*.py"))
+    return modules
+
+
+def validate_syntax(modules: list[str], reporter: ValidationReporter) -> ValidationResult:
+    """Validate syntax of all modules."""
+    reporter.section("1. SYNTAX VALIDATION")
+    details = []
+    all_passed = True
+
     for module in modules:
         try:
             module_path = Path(module)
             with module_path.open(encoding="utf-8") as source:
                 compile(source.read(), module, 'exec')
-            print(f"  ✓ {module}")
+            reporter.success(module, indent=1)
+            details.append(f"✓ {module}")
         except SyntaxError as e:
-            print(f"  ✗ {module}: {e}")
-            syntax_ok = False
+            reporter.failure(f"{module}: {e}", indent=1)
+            details.append(f"✗ {module}: {e}")
+            all_passed = False
 
-    if not syntax_ok:
-        print("\n❌ Syntax validation failed!")
-        return 1
+    message = "All modules have valid syntax" if all_passed else "Syntax errors found"
+    return ValidationResult(passed=all_passed, message=message, details=details)
 
-    print("\n2. IMPORT STRUCTURE ANALYSIS")
-    print("-" * 70)
 
-    # Check for problematic imports
-    problematic = {
-        'routes/import_export/import_sources.py': {
-            'must_have': [
-                ('from', 'cid_presenter', 'format_cid'),
-                ('from', 'cid_utils', 'generate_cid'),
-            ],
-            'must_not_have': [
-                ('from', 'cid_utils', 'format_cid'),
-            ]
-        },
-        'routes/import_export/import_engine.py': {
-            'must_have': [
-                ('from', 'cid_presenter', 'format_cid'),
-                ('from', 'cid_utils', 'generate_cid'),
-            ],
-            'must_not_have': [
-                ('from', 'cid_utils', 'format_cid'),
-            ]
-        },
-    }
+def validate_import_structure(
+    rules: dict[str, dict[str, list[tuple[str, ...]]]],
+    reporter: ValidationReporter
+) -> ValidationResult:
+    """Validate import structure according to rules."""
+    reporter.section("2. IMPORT STRUCTURE ANALYSIS")
+    details = []
+    all_passed = True
 
-    import_ok = True
-    for module_path, checks in problematic.items():
+    for module_path, checks in rules.items():
         imports = analyze_imports(module_path)
-        print(f"\n  {module_path}:")
+        reporter.info(f"{module_path}:", indent=1)
 
-        for required in checks['must_have']:
+        for required in checks['required']:
             if required in imports:
-                print(f"    ✓ Has: {required}")
+                msg = f"Has: {required}"
+                reporter.success(msg, indent=2)
+                details.append(f"✓ {module_path}: {msg}")
             else:
-                print(f"    ✗ Missing: {required}")
-                import_ok = False
+                msg = f"Missing: {required}"
+                reporter.failure(msg, indent=2)
+                details.append(f"✗ {module_path}: {msg}")
+                all_passed = False
 
-        for forbidden in checks['must_not_have']:
+        for forbidden in checks['forbidden']:
             if forbidden in imports:
-                print(f"    ✗ Incorrect import: {forbidden}")
-                import_ok = False
+                msg = f"Incorrect import: {forbidden}"
+                reporter.failure(msg, indent=2)
+                details.append(f"✗ {module_path}: {msg}")
+                all_passed = False
             else:
-                print(f"    ✓ Correctly avoids: {forbidden}")
+                msg = f"Correctly avoids: {forbidden}"
+                reporter.success(msg, indent=2)
+                details.append(f"✓ {module_path}: {msg}")
 
-    if not import_ok:
-        print("\n❌ Import structure validation failed!")
-        return 1
+    message = "Import structure is correct" if all_passed else "Import structure violations found"
+    return ValidationResult(passed=all_passed, message=message, details=details)
 
-    print("\n3. CIRCULAR IMPORT CHECK")
-    print("-" * 70)
 
-    # Check for potential circular imports
+def validate_circular_imports(modules: list[str], reporter: ValidationReporter) -> ValidationResult:
+    """Check for circular import dependencies."""
+    reporter.section("3. CIRCULAR IMPORT CHECK")
+    details = []
+    circular_found = False
+
+    # Build import graph
     import_graph = {}
     for module in modules:
         imports = analyze_imports(module)
@@ -155,42 +236,70 @@ def main():
             if imp[0] == 'from' and imp[1].startswith('routes.import_export'):
                 import_graph[module_name].append(imp[1])
 
-    circular_found = False
+    # Check for circular dependencies
     for module, deps in import_graph.items():
         if deps:
-            print(f"  {module} → {', '.join(deps)}")
+            dep_info = f"{module} → {', '.join(deps)}"
+            reporter.info(dep_info, indent=1)
+            details.append(dep_info)
+
             # Simple check: if any dependency imports back to us
             for dep in deps:
                 if dep in import_graph and module in import_graph[dep]:
-                    print(f"    ⚠ Potential circular: {module} ↔ {dep}")
+                    warning = f"Potential circular: {module} ↔ {dep}"
+                    reporter.warning(warning, indent=2)
+                    details.append(f"⚠ {warning}")
                     circular_found = True
 
     if not circular_found:
-        print("  ✓ No circular imports detected")
+        msg = "No circular imports detected"
+        reporter.success(msg, indent=1)
+        details.append(f"✓ {msg}")
 
-    print("\n4. BACKWARD COMPATIBILITY CHECK")
-    print("-" * 70)
+    message = "Circular imports detected" if circular_found else "No circular imports"
+    return ValidationResult(passed=not circular_found, message=message, details=details)
 
-    # Check that the compatibility shim exists and has correct exports
+
+def validate_backward_compatibility(reporter: ValidationReporter) -> ValidationResult:
+    """Check that the compatibility shim exists and has correct exports."""
+    reporter.section("4. BACKWARD COMPATIBILITY CHECK")
+    details = []
+
     shim_path = 'routes/import_export.py'
+    required_exports = ['export_data', 'import_data', 'export_size']
+
     try:
         with Path(shim_path).open(encoding="utf-8") as shim_file:
             shim_content = shim_file.read()
 
-        required_exports = ['export_data', 'import_data', 'export_size']
         all_present = all(export in shim_content for export in required_exports)
 
         if not all_present:
-            print(f"  ✗ {shim_path} missing some exports")
-            return 1
+            msg = f"{shim_path} missing some exports"
+            reporter.failure(msg, indent=1)
+            details.append(f"✗ {msg}")
+            return ValidationResult(passed=False, message=msg, details=details)
 
-        print(f"  ✓ {shim_path} exports: {', '.join(required_exports)}")
+        msg = f"{shim_path} exports: {', '.join(required_exports)}"
+        reporter.success(msg, indent=1)
+        details.append(f"✓ {msg}")
+        return ValidationResult(passed=True, message="Backward compatibility maintained", details=details)
+
     except FileNotFoundError:
-        print(f"  ✗ {shim_path} not found")
-        return 1
+        msg = f"{shim_path} not found"
+        reporter.failure(msg, indent=1)
+        details.append(f"✗ {msg}")
+        return ValidationResult(passed=False, message=msg, details=details)
 
-    print("\n5. MODULE SIZE VERIFICATION")
-    print("-" * 70)
+
+def validate_module_sizes(
+    modules: list[str],
+    reporter: ValidationReporter,
+    threshold: int = LINE_THRESHOLD
+) -> ValidationResult:
+    """Verify that modules are under the size threshold."""
+    reporter.section("5. MODULE SIZE VERIFICATION")
+    details = []
 
     max_lines = 0
     max_module = None
@@ -201,36 +310,76 @@ def main():
         with module_path.open(encoding="utf-8") as source:
             lines = sum(1 for _ in source)
 
-        status = "✓" if lines < 1000 else "✗"
-        print(f"  {status} {module}: {lines} lines")
+        passed = lines < threshold
+        msg = f"{module}: {lines} lines"
+        reporter.status(passed, msg, indent=1)
+        details.append(f"{'✓' if passed else '✗'} {msg}")
 
         if lines > max_lines:
             max_lines = lines
             max_module = module
 
-        if lines >= 1000:
+        if lines >= threshold:
             all_under_threshold = False
 
-    print(f"\n  Largest module: {max_module} ({max_lines} lines)")
+    largest_info = f"Largest module: {max_module} ({max_lines} lines)"
+    reporter.info(f"\n{largest_info}", indent=1)
+    details.append(largest_info)
 
     if not all_under_threshold:
-        print("  ⚠ Some modules exceed 1000-line threshold")
+        warning = f"Some modules exceed {threshold}-line threshold"
+        reporter.warning(warning, indent=1)
+        details.append(f"⚠ {warning}")
 
-    print("\n" + "="*70)
-    print("VALIDATION SUMMARY")
-    print("="*70)
+    message = f"All modules under {threshold} lines" if all_under_threshold else f"Some modules exceed {threshold} lines"
+    return ValidationResult(passed=all_under_threshold, message=message, details=details)
 
+
+def main() -> int:
+    """Run all validation checks and report results."""
+    reporter = ValidationReporter()
+    reporter.header("COMPREHENSIVE IMPORT VALIDATION")
+
+    # Discover modules
+    modules = discover_modules()
+    if not modules:
+        print("No modules found in routes/import_export/")
+        return 1
+
+    # Run syntax validation
+    syntax_result = validate_syntax(modules, reporter)
+    if not syntax_result.passed:
+        reporter.info(f"\n❌ {syntax_result.message}")
+        return 1
+
+    # Run import structure validation
+    import_result = validate_import_structure(IMPORT_VALIDATION_RULES, reporter)
+    if not import_result.passed:
+        reporter.info(f"\n❌ {import_result.message}")
+        return 1
+
+    # Run circular import check
+    circular_result = validate_circular_imports(modules, reporter)
+
+    # Run backward compatibility check
+    compat_result = validate_backward_compatibility(reporter)
+    if not compat_result.passed:
+        reporter.info(f"\n❌ {compat_result.message}")
+        return 1
+
+    # Run module size verification
+    size_result = validate_module_sizes(modules, reporter)
+
+    # Summary
+    print()
     results = {
-        "Syntax validation": syntax_ok,
-        "Import structure": import_ok,
-        "Circular imports": not circular_found,
-        "Backward compatibility": True,
-        "Module sizes": all_under_threshold,
+        "Syntax validation": syntax_result.passed,
+        "Import structure": import_result.passed,
+        "Circular imports": circular_result.passed,
+        "Backward compatibility": compat_result.passed,
+        "Module sizes": size_result.passed,
     }
-
-    for check, passed in results.items():
-        status = "✅" if passed else "❌"
-        print(f"  {status} {check}")
+    reporter.result_summary(results)
 
     if all(results.values()):
         print("\n🎉 ALL VALIDATIONS PASSED!")
