@@ -10,6 +10,7 @@ relying on this compatibility layer.
 """
 from __future__ import annotations
 from typing import Any
+import importlib
 
 # === LAZY IMPORT CONFIGURATION ===
 # Dictionary-based lookup for cleaner, more maintainable lazy imports
@@ -71,13 +72,14 @@ def __getattr__(name: str) -> Any:
     # === TEST BACKWARD COMPATIBILITY ===
     if name in _LAZY_IMPORTS_INTERNAL:
         module_name, attr_name = _LAZY_IMPORTS_INTERNAL[name]
-        module = __import__(module_name, fromlist=[attr_name], level=1)
+        # Use importlib for proper relative import handling
+        module = importlib.import_module(module_name, package=__name__)
         return getattr(module, attr_name)
 
     # === DATABASE ACCESS (for test mocking) ===
     if name in _LAZY_IMPORTS_DATABASE:
         module_name, attr_name = _LAZY_IMPORTS_DATABASE[name]
-        module = __import__(module_name, fromlist=[attr_name])
+        module = importlib.import_module(module_name)
         return getattr(module, attr_name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
