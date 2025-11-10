@@ -224,6 +224,30 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"Running PyExamine on {project_path}...")
     output, stderr, exit_code = _run_command(command)
 
+    # Check for command failure
+    # PyExamine may exit non-zero when it finds smells or encounters errors
+    # We need to distinguish between legitimate findings and actual failures
+    if exit_code != 0:
+        # Check if output looks like an error rather than findings
+        combined_output = f"{output}\n{stderr}".lower()
+        error_indicators = [
+            "error:", "traceback", "exception:", "failed to",
+            "could not", "no such file", "permission denied",
+            "invalid", "cannot"
+        ]
+
+        # If we see error indicators and have very little/no output, it's likely a real error
+        has_error_indicators = any(indicator in combined_output for indicator in error_indicators)
+        has_minimal_output = len(output.strip()) < 50
+
+        if has_error_indicators and has_minimal_output:
+            error_msg = f"PyExamine command failed with exit code {exit_code}."
+            if stderr.strip():
+                error_msg = f"{error_msg}\nStderr: {stderr.strip()}"
+            if output.strip():
+                error_msg = f"{error_msg}\nStdout: {output.strip()}"
+            raise SmellsError(error_msg)
+
     # Combine stdout and stderr for full output
     full_output = output
     if stderr:
