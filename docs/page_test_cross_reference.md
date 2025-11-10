@@ -459,20 +459,6 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - _None_
 
-## templates/swagger.html
-
-**Routes:**
-- `routes/openapi.py::openapi_docs` (paths: `/openapi`)
-
-**Unit tests:**
-- `tests/test_openapi.py::TestOpenAPI::test_swagger_ui_page_includes_bundle`
-
-**Integration tests:**
-- _None_
-
-**Specs:**
-- _None_
-
 ## templates/upload.html
 
 **Routes:**
