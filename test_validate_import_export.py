@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for validate_import_export.py."""
 
-import tempfile
 from pathlib import Path
 
 from validate_import_export import (
@@ -33,7 +32,7 @@ def test_validate_circular_imports_with_windows_paths():
         normalized = Path(file_path).as_posix()
         if "module_a" in normalized:
             return [('from', 'routes.import_export.module_b', 'something')]
-        elif "module_b" in normalized:
+        if "module_b" in normalized:
             return [('from', 'routes.import_export.module_a', 'func_a')]
         return []
 
@@ -69,7 +68,7 @@ def test_validate_circular_imports_with_posix_paths():
         normalized = Path(file_path).as_posix()
         if "module_a" in normalized:
             return [('from', 'routes.import_export.module_b', 'something')]
-        elif "module_b" in normalized:
+        if "module_b" in normalized:
             return [('from', 'routes.import_export.module_a', 'func_a')]
         return []
 
@@ -103,7 +102,7 @@ def test_validate_circular_imports_no_cycles():
         normalized = Path(file_path).as_posix()
         if "module_a" in normalized:
             return [('from', 'routes.import_export.module_b', 'something')]
-        elif "module_b" in normalized:
+        if "module_b" in normalized:
             return []  # No imports from A
         return []
 
