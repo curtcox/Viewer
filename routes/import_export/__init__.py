@@ -79,7 +79,8 @@ def __getattr__(name: str) -> Any:
     # === DATABASE ACCESS (for test mocking) ===
     if name in _LAZY_IMPORTS_DATABASE:
         module_name, attr_name = _LAZY_IMPORTS_DATABASE[name]
-        module = importlib.import_module(module_name)
+        # Use package context for proper module resolution
+        module = importlib.import_module(module_name, package=__package__)
         return getattr(module, attr_name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
