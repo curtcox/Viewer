@@ -249,3 +249,32 @@ def test_build_linter_index_success_no_artifacts(tmp_path) -> None:
     assert "No summary available" in content
     assert "No output was captured" in content
     assert "⚠ Check Failed" not in content
+
+
+def test_build_linter_index_failure_with_summary_but_empty_output(tmp_path) -> None:
+    """Test that failure with summary but empty output shows neutral message, not success."""
+    linter_dir = tmp_path / "pylint"
+    linter_dir.mkdir(parents=True)
+
+    # Create summary showing failure, but empty output.txt
+    (linter_dir / "summary.txt").write_text("Exit code: 2\nStatus: ✗ Issues found", encoding="utf-8")
+    (linter_dir / "output.txt").write_text("", encoding="utf-8")
+
+    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+
+    index_path = linter_dir / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+
+    # Should show the failure summary
+    assert "Exit code: 2" in content
+    assert "Status: ✗ Issues found" in content
+
+    # Should NOT show success message (this is the regression test)
+    assert "All checks passed - no issues found" not in content
+
+    # Should show neutral "no output" message instead
+    assert "No output was captured" in content
+
+    # Should not show the warning for missing artifacts (we have summary)
+    assert "⚠ Check Failed" not in content
+    assert "detailed results are not available" not in content

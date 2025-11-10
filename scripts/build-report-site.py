@@ -579,7 +579,10 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_stat
                 output_content = escape(output_text)
             has_output_content = True
         else:
-            output_content = "All checks passed - no issues found."
+            if job_status == "failure":
+                output_content = "No output was captured."
+            else:
+                output_content = "All checks passed - no issues found."
 
     # Provide context-aware messaging when job status doesn't match artifacts
     if job_status == "failure" and not has_summary_content and not has_output_content:
