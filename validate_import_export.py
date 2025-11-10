@@ -229,7 +229,8 @@ def validate_circular_imports(modules: list[str], reporter: ValidationReporter) 
     import_graph = {}
     for module in modules:
         imports = analyze_imports(module)
-        module_name = module.replace('/', '.').replace('.py', '')
+        # Normalize to POSIX-style path before converting to module name
+        module_name = Path(module).as_posix().replace('/', '.').replace('.py', '')
         import_graph[module_name] = []
 
         for imp in imports:
