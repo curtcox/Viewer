@@ -157,15 +157,31 @@ class TestSearchHighlighting(BaseTestCase):
         payload = response.get_json()
 
         cids = payload['categories']['cids']
-        if cids['count'] > 0:
-            cid_item = cids['items'][0]
-            name_highlighted = cid_item.get('name_highlighted', '')
+        self.assertGreater(cids['count'], 0, "Should find CID with 'needle' in path")
 
-            # If the path is preserved as display name, it should have highlighting
-            # Note: The actual CID hash might be used instead of path in some cases
-            # This test documents the actual behavior
-            self.assertIsInstance(name_highlighted, str)
-            self.assertTrue(len(name_highlighted) > 0)
+        cid_item = cids['items'][0]
+        name_highlighted = cid_item.get('name_highlighted', '')
+
+        # Verify name_highlighted exists and is a string
+        self.assertIsInstance(name_highlighted, str)
+        self.assertTrue(len(name_highlighted) > 0, "name_highlighted should not be empty")
+
+        # Verify the search term is actually highlighted with <mark> tags
+        self.assertIn(
+            '<mark>',
+            name_highlighted,
+            "name_highlighted should contain <mark> tags when search term matches"
+        )
+
+        # Verify the search term appears within <mark> tags
+        # Check for case-insensitive match since query is lowercased
+        import re
+        mark_pattern = re.compile(r'<mark>([^<]*)</mark>', re.IGNORECASE)
+        marked_text = mark_pattern.findall(name_highlighted)
+        self.assertTrue(
+            any('needle' in text.lower() for text in marked_text),
+            f"Search term 'needle' should appear within <mark> tags in: {name_highlighted}"
+        )
 
     def test_all_search_categories_include_highlighted_names(self):
         """All search result categories should include name_highlighted field.
