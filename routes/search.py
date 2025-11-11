@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from flask import jsonify, render_template, request, url_for
 
@@ -22,7 +22,7 @@ from . import main_bp
 from .text_highlighter import TextHighlighter
 
 # Configuration constants
-_CATEGORY_CONFIG: Dict[str, Dict[str, Any]] = {
+_CATEGORY_CONFIG: dict[str, dict[str, Any]] = {
     "aliases": {"label": "Aliases"},
     "servers": {"label": "Servers"},
     "cids": {"label": "CIDs"},
@@ -38,10 +38,10 @@ PREVIEW_LENGTH: int = 20
 _ALIAS_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
-AliasLookup = Dict[str, Dict[str, Dict[str, Optional[str]]]]
+AliasLookup = dict[str, dict[str, dict[str, str | None]]]
 
 
-def _lookup_key_variants(value: Optional[str]) -> set[str]:
+def _lookup_key_variants(value: str | None) -> set[str]:
     """Return candidate lookup keys for the supplied path."""
 
     variants: set[str] = set()
@@ -66,7 +66,7 @@ def _lookup_key_variants(value: Optional[str]) -> set[str]:
     return {variant for variant in variants if variant}
 
 
-def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> AliasLookup:
+def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> AliasLookup:
     """Return a mapping of target paths to aliases referencing them."""
 
     lookup: AliasLookup = {}
@@ -99,13 +99,13 @@ def _build_alias_lookup(user_id: str, aliases: Optional[List[Any]] = None) -> Al
     return lookup
 
 
-def _alias_matches_for(target_path: Optional[str], lookup: Optional[AliasLookup]) -> List[Dict[str, Optional[str]]]:
+def _alias_matches_for(target_path: str | None, lookup: AliasLookup | None) -> list[dict[str, str | None]]:
     """Return aliases referencing the provided target path."""
 
     if not lookup or target_path is None:
         return []
 
-    matches: Dict[str, Dict[str, Optional[str]]] = {}
+    matches: dict[str, dict[str, str | None]] = {}
     for key in _lookup_key_variants(target_path):
         bucket = lookup.get(key)
         if not bucket:
@@ -118,13 +118,13 @@ def _alias_matches_for(target_path: Optional[str], lookup: Optional[AliasLookup]
     return sorted(matches.values(), key=lambda entry: (entry.get("name") or "").lower())
 
 
-def _alias_form_url(target_path: Optional[str], name_suggestion: Optional[str] = None) -> Optional[str]:
+def _alias_form_url(target_path: str | None, name_suggestion: str | None = None) -> str | None:
     """Return the alias creation URL with helpful defaults when possible."""
 
     if not target_path:
         return None
 
-    params: Dict[str, str] = {"target_path": target_path}
+    params: dict[str, str] = {"target_path": target_path}
 
     if name_suggestion and _ALIAS_NAME_PATTERN.fullmatch(name_suggestion):
         params["name"] = name_suggestion
@@ -144,10 +144,10 @@ def _parse_enabled(value: str | None) -> bool:
 def _alias_results(
     user_id: str,
     query_lower: str,
-    alias_lookup: Optional[AliasLookup] = None,
-    aliases: Optional[List[Any]] = None,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
+    alias_lookup: AliasLookup | None = None,
+    aliases: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
     source = aliases if aliases is not None else get_user_aliases(user_id)
 
     for alias in source:
@@ -166,7 +166,7 @@ def _alias_results(
         ):
             continue
 
-        details: List[Dict[str, str]] = []
+        details: list[dict[str, str]] = []
         for label, values in (
             ("Target Path", target_paths),
             ("Match Pattern", match_patterns),
@@ -197,10 +197,10 @@ def _alias_results(
 def _server_results(
     user_id: str,
     query_lower: str,
-    alias_lookup: Optional[AliasLookup] = None,
-    _unused_aliases: Optional[List[Any]] = None,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
+    alias_lookup: AliasLookup | None = None,
+    _unused_aliases: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
     for server in get_user_servers(user_id):
         name_text = getattr(server, "name", "") or ""
         definition = getattr(server, "definition", "") or ""
@@ -208,7 +208,7 @@ def _server_results(
         if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
-        details: List[Dict[str, str]] = []
+        details: list[dict[str, str]] = []
         snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
@@ -233,10 +233,10 @@ def _server_results(
 def _variable_results(
     user_id: str,
     query_lower: str,
-    alias_lookup: Optional[AliasLookup] = None,
-    _unused_aliases: Optional[List[Any]] = None,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
+    alias_lookup: AliasLookup | None = None,
+    _unused_aliases: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
     for variable in get_user_variables(user_id):
         name_text = getattr(variable, "name", "") or ""
         definition = getattr(variable, "definition", "") or ""
@@ -244,7 +244,7 @@ def _variable_results(
         if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
-        details: List[Dict[str, str]] = []
+        details: list[dict[str, str]] = []
         snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
@@ -269,10 +269,10 @@ def _variable_results(
 def _secret_results(
     user_id: str,
     query_lower: str,
-    alias_lookup: Optional[AliasLookup] = None,
-    _unused_aliases: Optional[List[Any]] = None,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
+    alias_lookup: AliasLookup | None = None,
+    _unused_aliases: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
     for secret in get_user_secrets(user_id):
         name_text = getattr(secret, "name", "") or ""
         definition = getattr(secret, "definition", "") or ""
@@ -280,7 +280,7 @@ def _secret_results(
         if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
-        details: List[Dict[str, str]] = []
+        details: list[dict[str, str]] = []
         snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
@@ -305,10 +305,10 @@ def _secret_results(
 def _cid_results(
     user_id: str,
     query_lower: str,
-    alias_lookup: Optional[AliasLookup] = None,
-    _unused_aliases: Optional[List[Any]] = None,
-) -> List[Dict[str, Any]]:
-    results: List[Dict[str, Any]] = []
+    alias_lookup: AliasLookup | None = None,
+    _unused_aliases: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
 
     def created_at_value(record: Any) -> datetime:
         value = getattr(record, "created_at", None)
@@ -342,7 +342,7 @@ def _cid_results(
         ):
             continue
 
-        details: List[Dict[str, str]] = []
+        details: list[dict[str, str]] = []
         snippet = TextHighlighter.highlight_snippet(content_text, query_lower)
         if snippet:
             details.append({"label": "Content", "value": snippet})
@@ -380,38 +380,72 @@ def search_page():
     return render_template("search.html", title="Search")
 
 
-@main_bp.route("/search/results")
-def search_results():
-    """Return JSON search results for the requested query and filters."""
+def _extract_search_query() -> tuple[str, str]:
+    """Extract and normalize the search query from request parameters.
 
+    Returns:
+        tuple: (original_query, lowercase_query)
+    """
     query = (request.args.get("q") or "").strip()
     query_lower = query.lower()
+    return query, query_lower
 
-    applied_filters = {
+
+def _parse_search_filters() -> dict[str, bool]:
+    """Parse category filter parameters from the request.
+
+    Returns:
+        dict: Mapping of category keys to their enabled status
+    """
+    return {
         key: _parse_enabled(request.args.get(key)) for key in _CATEGORY_CONFIG
     }
 
-    response_categories: Dict[str, Dict[str, Any]] = {}
 
-    if not query_lower:
-        for key, config in _CATEGORY_CONFIG.items():
-            response_categories[key] = {
-                "label": config["label"],
-                "count": 0,
-                "items": [],
-            }
-        return jsonify(
-            {
-                "query": query,
-                "total_count": 0,
-                "categories": response_categories,
-                "applied_filters": applied_filters,
-            }
-        )
+def _empty_search_response(applied_filters: dict[str, bool]) -> dict[str, Any]:
+    """Create an empty search response with no results.
 
-    user_id = current_user.id
-    alias_records = get_user_aliases(user_id)
-    alias_lookup = _build_alias_lookup(user_id, alias_records)
+    Args:
+        applied_filters: Current filter configuration
+
+    Returns:
+        dict: Empty search response structure
+    """
+    response_categories: dict[str, dict[str, Any]] = {}
+    for key, config in _CATEGORY_CONFIG.items():
+        response_categories[key] = {
+            "label": config["label"],
+            "count": 0,
+            "items": [],
+        }
+    return {
+        "query": "",
+        "total_count": 0,
+        "categories": response_categories,
+        "applied_filters": applied_filters,
+    }
+
+
+def _execute_search(
+    user_id: str,
+    query_lower: str,
+    applied_filters: dict[str, bool],
+    alias_lookup: AliasLookup,
+    alias_records: list[Any]
+) -> tuple[dict[str, dict[str, Any]], int]:
+    """Execute search across all enabled categories.
+
+    Args:
+        user_id: Current user ID
+        query_lower: Lowercase search query
+        applied_filters: Category filter configuration
+        alias_lookup: Precomputed alias lookup table
+        alias_records: List of user aliases
+
+    Returns:
+        tuple: (response_categories, total_count)
+    """
+    response_categories: dict[str, dict[str, Any]] = {}
     total_count = 0
 
     for key, config in _CATEGORY_CONFIG.items():
@@ -434,6 +468,26 @@ def search_results():
             "count": count,
             "items": items,
         }
+
+    return response_categories, total_count
+
+
+@main_bp.route("/search/results")
+def search_results():
+    """Return JSON search results for the requested query and filters."""
+    query, query_lower = _extract_search_query()
+    applied_filters = _parse_search_filters()
+
+    if not query_lower:
+        return jsonify(_empty_search_response(applied_filters))
+
+    user_id = current_user.id
+    alias_records = get_user_aliases(user_id)
+    alias_lookup = _build_alias_lookup(user_id, alias_records)
+
+    response_categories, total_count = _execute_search(
+        user_id, query_lower, applied_filters, alias_lookup, alias_records
+    )
 
     return jsonify(
         {

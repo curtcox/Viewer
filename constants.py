@@ -1,6 +1,40 @@
 """Application-wide constants for entity types, labels, and magic strings."""
 
-# Entity type constants
+from enum import Enum
+
+
+class UploadType(Enum):
+    """Upload type constants."""
+    FILE = 'file'
+    TEXT = 'text'
+    URL = 'url'
+
+
+class EntityType(Enum):
+    """Entity type constants."""
+    ALIAS = 'alias'
+    SERVER = 'server'
+    CID = 'cid'
+    VARIABLE = 'variable'
+    SECRET = 'secret'
+    UPLOAD = 'upload'
+    SERVER_EVENT = 'server_event'
+    SERVER_TEST = 'server-test'
+
+
+class ActionType(Enum):
+    """Action type constants."""
+    SAVE = 'save'
+    SAVE_AS = 'save-as'
+
+
+class ServerMode(Enum):
+    """Server test mode constants."""
+    MAIN = 'main'
+    QUERY = 'query'
+
+
+# Entity type constants (for backward compatibility)
 ENTITY_TYPE_ALIAS = 'alias'
 ENTITY_TYPE_SERVER = 'server'
 ENTITY_TYPE_CID = 'cid'
