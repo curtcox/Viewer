@@ -134,11 +134,20 @@ class TestServeCidContent(unittest.TestCase):
 
     def test_conditional_request_uses_if_modified_since_header(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.note"
-        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2015 07:28:00 GMT'})
+        # Use a future date to ensure it's >= the resource's created_at time
+        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2099 07:28:00 GMT'})
         self.assertIsNotNone(response)
         self.assertEqual(response.status_code, 304)
         self.assertIn('Last-Modified', response.headers)
         self.assertIn('ETag', response.headers)
+
+    def test_conditional_request_with_old_if_modified_since_returns_full_response(self):
+        path = "/bafybeihelloworld123456789012345678901234567890123456.note"
+        # Use an old date - resource is newer, so should return full content (200)
+        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2015 07:28:00 GMT'})
+        self.assertIsNotNone(response)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_data(), b"test content")
 
     def test_markdown_without_extension_serves_raw_content(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456"
