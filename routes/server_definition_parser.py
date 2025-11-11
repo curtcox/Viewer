@@ -40,7 +40,8 @@ class ServerDefinitionParser:
                     aliases.setdefault(source, set()).add(alias)
 
         # Handle alias-to-alias assignments (e.g., vars2 = vars)
-        for new_alias, existing_alias in self._ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN.findall(definition):
+        pattern = self._ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN
+        for new_alias, existing_alias in pattern.findall(definition):
             if not new_alias or not existing_alias:
                 continue
             for source, source_aliases in aliases.items():
@@ -105,8 +106,14 @@ class ServerDefinitionParser:
         matches: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
 
         normalized = {
-            'variables': {str(name) for name in (known_variables or []) if isinstance(name, str) and name},
-            'secrets': {str(name) for name in (known_secrets or []) if isinstance(name, str) and name},
+            'variables': {
+                str(name) for name in (known_variables or [])
+                if isinstance(name, str) and name
+            },
+            'secrets': {
+                str(name) for name in (known_secrets or [])
+                if isinstance(name, str) and name
+            },
         }
 
         if not normalized['variables'] and not normalized['secrets']:

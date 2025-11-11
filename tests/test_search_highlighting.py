@@ -1,7 +1,6 @@
 """Test search route highlighting functionality after refactoring."""
 from __future__ import annotations
 
-import pytest
 from tests.test_support import AppTestCase
 
 
@@ -53,8 +52,16 @@ class TestSearchHighlighting(AppTestCase):
 
         name_highlighted = cid_item['name_highlighted']
         self.assertIsInstance(name_highlighted, str, "name_highlighted should be a string")
-        self.assertIn('<mark>', name_highlighted, "name_highlighted should contain <mark> tags for matches")
-        self.assertIn('</mark>', name_highlighted, "name_highlighted should contain closing </mark> tags")
+        self.assertIn(
+            '<mark>',
+            name_highlighted,
+            "name_highlighted should contain <mark> tags for matches"
+        )
+        self.assertIn(
+            '</mark>',
+            name_highlighted,
+            "name_highlighted should contain closing </mark> tags"
+        )
 
     def test_all_search_categories_include_highlighted_names(self):
         """All search result categories should include name_highlighted field.
