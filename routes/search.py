@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from flask import jsonify, render_template, request, url_for
-from markupsafe import escape
 
 from alias_definition import collect_alias_routes
 from cid_presenter import cid_path, format_cid
@@ -20,7 +19,9 @@ from db_access import (
 from identity import current_user
 
 from . import main_bp
+from .text_highlighter import TextHighlighter
 
+# Configuration constants
 _CATEGORY_CONFIG: Dict[str, Dict[str, Any]] = {
     "aliases": {"label": "Aliases"},
     "servers": {"label": "Servers"},
@@ -29,6 +30,10 @@ _CATEGORY_CONFIG: Dict[str, Dict[str, Any]] = {
     "secrets": {"label": "Secrets"},
 }
 
+# Search and display constants
+SEARCH_CONTEXT_CHARS: int = 60
+MAX_UPLOAD_HISTORY: int = 100
+PREVIEW_LENGTH: int = 20
 
 _ALIAS_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
@@ -136,70 +141,6 @@ def _parse_enabled(value: str | None) -> bool:
     return normalized not in {"0", "false", "off", "no"}
 
 
-def _has_match(text: str | None, query_lower: str) -> bool:
-    """Return True when the search term appears in the supplied text."""
-
-    if not text or not query_lower:
-        return False
-    return query_lower in text.lower()
-
-
-def _highlight_full(text: str | None, query_lower: str) -> str:
-    """Return the supplied text with all matches wrapped in <mark> tags."""
-
-    if not text:
-        return ""
-    if not query_lower:
-        return str(escape(text))
-
-    lower_text = text.lower()
-    query_length = len(query_lower)
-    if query_length == 0:
-        return str(escape(text))
-
-    result_parts: List[str] = []
-    cursor = 0
-
-    while True:
-        match_index = lower_text.find(query_lower, cursor)
-        if match_index == -1:
-            remaining = text[cursor:]
-            if remaining:
-                result_parts.append(str(escape(remaining)))
-            break
-
-        if match_index > cursor:
-            result_parts.append(str(escape(text[cursor:match_index])))
-
-        matched_text = text[match_index: match_index + query_length]
-        result_parts.append(f"<mark>{escape(matched_text)}</mark>")
-        cursor = match_index + query_length
-
-    return "".join(result_parts)
-
-
-def _highlight_snippet(text: str | None, query_lower: str, *, context: int = 60) -> str:
-    """Return a snippet of text around the first match with highlighting."""
-
-    if not text or not query_lower:
-        return ""
-
-    lower_text = text.lower()
-    match_index = lower_text.find(query_lower)
-    if match_index == -1:
-        return ""
-
-    query_length = len(query_lower)
-    start = max(match_index - context, 0)
-    end = min(match_index + query_length + context, len(text))
-
-    snippet = text[start:end]
-    highlighted = _highlight_full(snippet, query_lower)
-    prefix = "..." if start > 0 else ""
-    suffix = "..." if end < len(text) else ""
-    return f"{prefix}{highlighted}{suffix}"
-
-
 def _alias_results(
     user_id: str,
     query_lower: str,
@@ -219,9 +160,9 @@ def _alias_results(
         match_patterns = [route.match_pattern or "" for route in routes if route.match_pattern]
 
         if not (
-            _has_match(name_text, query_lower)
-            or any(_has_match(path, query_lower) for path in target_paths)
-            or any(_has_match(pattern, query_lower) for pattern in match_patterns)
+            TextHighlighter.has_match(name_text, query_lower)
+            or any(TextHighlighter.has_match(path, query_lower) for path in target_paths)
+            or any(TextHighlighter.has_match(pattern, query_lower) for pattern in match_patterns)
         ):
             continue
 
@@ -231,7 +172,7 @@ def _alias_results(
             ("Match Pattern", match_patterns),
         ):
             for value in values:
-                highlighted = _highlight_full(value, query_lower)
+                highlighted = TextHighlighter.highlight_full(value, query_lower)
                 if "<mark>" in highlighted:
                     details.append({"label": label, "value": highlighted})
                     break
@@ -242,7 +183,7 @@ def _alias_results(
             {
                 "id": getattr(alias, "id", None),
                 "name": name_text,
-                "name_highlighted": _highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
                 "url": url_for("main.view_alias", alias_name=name_text) if name_text else None,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -264,11 +205,11 @@ def _server_results(
         name_text = getattr(server, "name", "") or ""
         definition = getattr(server, "definition", "") or ""
 
-        if not (_has_match(name_text, query_lower) or _has_match(definition, query_lower)):
+        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
         details: List[Dict[str, str]] = []
-        snippet = _highlight_snippet(definition, query_lower)
+        snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
@@ -278,7 +219,7 @@ def _server_results(
             {
                 "id": getattr(server, "id", None),
                 "name": name_text,
-                "name_highlighted": _highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -300,11 +241,11 @@ def _variable_results(
         name_text = getattr(variable, "name", "") or ""
         definition = getattr(variable, "definition", "") or ""
 
-        if not (_has_match(name_text, query_lower) or _has_match(definition, query_lower)):
+        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
         details: List[Dict[str, str]] = []
-        snippet = _highlight_snippet(definition, query_lower)
+        snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
@@ -314,7 +255,7 @@ def _variable_results(
             {
                 "id": getattr(variable, "id", None),
                 "name": name_text,
-                "name_highlighted": _highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -336,11 +277,11 @@ def _secret_results(
         name_text = getattr(secret, "name", "") or ""
         definition = getattr(secret, "definition", "") or ""
 
-        if not (_has_match(name_text, query_lower) or _has_match(definition, query_lower)):
+        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
             continue
 
         details: List[Dict[str, str]] = []
-        snippet = _highlight_snippet(definition, query_lower)
+        snippet = TextHighlighter.highlight_snippet(definition, query_lower)
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
@@ -350,7 +291,7 @@ def _secret_results(
             {
                 "id": getattr(secret, "id", None),
                 "name": name_text,
-                "name_highlighted": _highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -381,7 +322,7 @@ def _cid_results(
         get_user_uploads(user_id),
         key=created_at_value,
         reverse=True,
-    )[:100]
+    )[:MAX_UPLOAD_HISTORY]
 
     for cid_record in uploads:
         path = getattr(cid_record, "path", "") or ""
@@ -395,14 +336,14 @@ def _cid_results(
             content_text = ""
 
         if not (
-            _has_match(display_name, query_lower)
-            or _has_match(cid_value, query_lower)
-            or _has_match(content_text, query_lower)
+            TextHighlighter.has_match(display_name, query_lower)
+            or TextHighlighter.has_match(cid_value, query_lower)
+            or TextHighlighter.has_match(content_text, query_lower)
         ):
             continue
 
         details: List[Dict[str, str]] = []
-        snippet = _highlight_snippet(content_text, query_lower)
+        snippet = TextHighlighter.highlight_snippet(content_text, query_lower)
         if snippet:
             details.append({"label": "Content", "value": snippet})
 
@@ -413,7 +354,7 @@ def _cid_results(
             {
                 "id": getattr(cid_record, "id", None),
                 "name": display_name,
-                "name_highlighted": _highlight_full(display_name, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(display_name, query_lower),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),

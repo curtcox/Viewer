@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from typing import Optional
 
 import logfire
 from flask import abort, flash, redirect, render_template, request, url_for
@@ -46,42 +47,25 @@ from models import Alias, Variable
 from upload_templates import get_upload_templates
 
 from . import main_bp
+from .cid_helper import CidHelper
 from .history import _load_request_referers
 
+# Display constants
+CONTENT_PREVIEW_LENGTH: int = 20
 
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
-def _shorten_cid(cid, length=6):
+def _shorten_cid(cid: Optional[str], length: int = 6) -> str:
     """Return a shortened CID label for display."""
     return format_cid_short(cid, length)
-
-
-def _resolve_file_size(record, default: int | None = None) -> int:
-    """Return a best-effort file size from a CID record."""
-
-    if default is not None:
-        return default
-
-    if not record:
-        return 0
-
-    size = getattr(record, "file_size", None)
-    if size is not None:
-        return int(size)
-
-    file_data = getattr(record, "file_data", None)
-    if file_data:
-        return len(file_data)
-
-    return 0
 
 
 def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Variable], Variable | None]:
     """Return the user's variables and the one currently pointing at ``cid_value``."""
 
     variables = get_user_variables(user_id)
-    normalized = format_cid(cid_value)
+    normalized = CidHelper.normalize(cid_value)
     if not normalized:
         return variables, None
 
@@ -109,9 +93,9 @@ def _render_upload_success(
 ):
     """Render the upload success page with variable assignment helpers."""
 
-    normalized = format_cid(cid_value)
-    record = get_cid_by_path(cid_path(normalized)) if normalized else None
-    resolved_size = _resolve_file_size(record, file_size)
+    normalized = CidHelper.normalize(cid_value)
+    record = CidHelper.get_record(cid_value)
+    resolved_size = CidHelper.resolve_size(record, file_size if file_size is not None else 0)
     variables, assigned_variable = _collect_variable_assignment(normalized, current_user.id)
 
     return render_template(
@@ -135,6 +119,62 @@ def _persist_alias_from_upload(alias: Alias) -> Alias:
     return alias
 
 
+def _process_upload_by_type(form) -> tuple[bytes, Optional[str], Optional[str]]:
+    """Process upload based on upload_type field.
+
+    Args:
+        form: The FileUploadForm instance
+
+    Returns:
+        tuple: (file_content, detected_mime_type, original_filename)
+
+    Raises:
+        ValueError: If upload processing fails
+    """
+    detected_mime_type: Optional[str] = None
+    original_filename: Optional[str] = None
+
+    if form.upload_type.data == 'file':
+        file_content, original_filename = process_file_upload(form)
+    elif form.upload_type.data == 'text':
+        file_content = process_text_upload(form)
+    elif form.upload_type.data == 'url':
+        file_content, detected_mime_type = process_url_upload(form)
+    else:
+        raise ValueError(f"Unknown upload type: {form.upload_type.data}")
+
+    return file_content, detected_mime_type, original_filename
+
+
+def _determine_view_extension(
+    upload_type: str,
+    original_filename: Optional[str],
+    detected_mime_type: Optional[str]
+) -> str:
+    """Determine the view URL extension based on upload type and metadata."""
+    if upload_type == 'text':
+        return "txt"
+
+    if upload_type == 'file' and original_filename and '.' in original_filename:
+        return original_filename.rsplit('.', 1)[1].lower()
+
+    if detected_mime_type:
+        extension = get_extension_from_mime_type(detected_mime_type)
+        if extension:
+            return extension.lstrip('.')
+
+    return ""
+
+
+def _determine_filename(upload_type: str, original_filename: Optional[str], form) -> Optional[str]:
+    """Determine the filename based on upload type."""
+    if upload_type == 'file':
+        return original_filename
+    if upload_type == 'url':
+        return form.url.data or None
+    return None
+
+
 @main_bp.route('/upload', methods=['GET', 'POST'])
 def upload():
     """File upload page with CID storage."""
@@ -153,44 +193,32 @@ def upload():
         )
 
     if form.validate_on_submit():
+        # Process upload
         try:
-            detected_mime_type = None
-            original_filename = None
-
-            if form.upload_type.data == 'file':
-                file_content, original_filename = process_file_upload(form)
-            elif form.upload_type.data == 'text':
-                file_content = process_text_upload(form)
-            else:
-                file_content, detected_mime_type = process_url_upload(form)
+            file_content, detected_mime_type, original_filename = _process_upload_by_type(form)
         except ValueError as exc:
             flash(str(exc), 'error')
             return _render_form()
 
+        # Generate CID and check for existing record
         cid_value = format_cid(generate_cid(file_content))
-
         cid_record_path = cid_path(cid_value)
         existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+
         if existing:
             flash(
-                Markup(
-                    f"Content with this hash already exists! {render_cid_link(cid_value)}"
-                ),
+                Markup(f"Content with this hash already exists! {render_cid_link(cid_value)}"),
                 'warning',
             )
         else:
             create_cid_record(cid_value, file_content, current_user.id)
             flash(
-                Markup(
-                    f"Content uploaded successfully! {render_cid_link(cid_value)}"
-                ),
+                Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
                 'success',
             )
 
-        view_url_extension = ""
-
+        # Record interaction for text uploads
         if form.upload_type.data == 'text':
-            view_url_extension = "txt"
             record_entity_interaction(
                 EntityInteractionRequest(
                     user_id=current_user.id,
@@ -201,19 +229,14 @@ def upload():
                     content=form.text_content.data or '',
                 )
             )
-        elif form.upload_type.data == 'file' and original_filename:
-            if '.' in original_filename:
-                view_url_extension = original_filename.rsplit('.', 1)[1].lower()
-        elif detected_mime_type:
-            extension = get_extension_from_mime_type(detected_mime_type)
-            if extension:
-                view_url_extension = extension.lstrip('.')
 
-        filename = None
-        if form.upload_type.data == 'file':
-            filename = original_filename
-        elif form.upload_type.data == 'url':
-            filename = form.url.data or None
+        # Determine view extension and filename
+        view_url_extension = _determine_view_extension(
+            form.upload_type.data,
+            original_filename,
+            detected_mime_type
+        )
+        filename = _determine_filename(form.upload_type.data, original_filename, form)
 
         return _render_upload_success(
             cid_value,
@@ -243,7 +266,7 @@ def uploads():
         if upload_record.file_data:
             try:
                 content_text = upload_record.file_data.decode('utf-8', errors='replace')
-                upload_record.content_preview = content_text[:20].replace('\n', ' ').replace('\r', ' ')
+                upload_record.content_preview = content_text[:CONTENT_PREVIEW_LENGTH].replace('\n', ' ').replace('\r', ' ')
             except (AttributeError, UnicodeDecodeError):
                 upload_record.content_preview = upload_record.file_data[:10].hex()
         else:
@@ -442,7 +465,7 @@ def assign_cid_variable():
         flash('CID not found. Upload content before assigning it to a variable.', 'error')
         return redirect(url_for('main.upload'))
 
-    file_size = _resolve_file_size(cid_record)
+    file_size = CidHelper.resolve_size(cid_record)
     assignment_value = cid_path(cid_value) or cid_value
 
     if not variable_name:
