@@ -29,8 +29,8 @@ def _gather_command_output(result: subprocess.CompletedProcess[str]) -> str:
 def main(
     command: str = "",
     endpoint: str | None = None,
-    context=None,
-):
+    context: object | None = None,
+) -> dict[str, str]:
     """Render a minimal HTML shell runner and execute submitted commands."""
 
     shell_endpoint: str = endpoint or os.environ.get("SHELL_ENDPOINT") or "/shell"
