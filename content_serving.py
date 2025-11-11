@@ -7,6 +7,8 @@ including caching, content type detection, and special rendering modes.
 import base64
 import io
 from dataclasses import dataclass
+from datetime import datetime
+from email.utils import parsedate_to_datetime
 from typing import Optional
 
 from flask import Response, make_response, render_template, request
@@ -185,12 +187,11 @@ def _determine_content_type(path: str, path_info: PathInfo) -> str:
     """
     if path_info.is_qr:
         return CONTENT_TYPE_HTML_UTF8
-    elif path_info.is_markdown_html:
+    if path_info.is_markdown_html:
         return CONTENT_TYPE_HTML
-    elif path_info.is_text:
+    if path_info.is_text:
         return CONTENT_TYPE_TEXT_UTF8
-    else:
-        return get_mime_type_from_extension(path)
+    return get_mime_type_from_extension(path)
 
 
 def _ensure_utf8_text(data: bytes) -> Optional[bytes]:
@@ -298,6 +299,26 @@ def _add_response_headers(
     response.headers['Expires'] = CACHE_EXPIRES_HEADER
 
 
+def _parse_if_modified_since(header_value: str) -> Optional[datetime]:
+    """Parse If-Modified-Since header to datetime.
+
+    Args:
+        header_value: HTTP date string from If-Modified-Since header
+
+    Returns:
+        Parsed datetime object, or None if parsing fails
+
+    Example:
+        >>> _parse_if_modified_since("Wed, 21 Oct 2015 07:28:00 GMT")
+        datetime.datetime(2015, 10, 21, 7, 28, tzinfo=...)
+    """
+    try:
+        return parsedate_to_datetime(header_value)
+    except (TypeError, ValueError):
+        # Invalid date format - ignore the header
+        return None
+
+
 # ============================================================================
 # CONTENT SERVING
 # ============================================================================
@@ -350,8 +371,12 @@ def serve_cid_content(cid_content, path: str) -> Optional[Response]:
     if request.headers.get(HEADER_IF_NONE_MATCH) == etag:
         return _make_304_response(etag, cid_content)
 
-    if request.headers.get(HEADER_IF_MODIFIED_SINCE):
-        return _make_304_response(etag, cid_content)
+    # Check If-Modified-Since header
+    if_modified_since_header = request.headers.get(HEADER_IF_MODIFIED_SINCE)
+    if if_modified_since_header:
+        if_modified_since = _parse_if_modified_since(if_modified_since_header)
+        if if_modified_since and if_modified_since >= cid_content.created_at:
+            return _make_304_response(etag, cid_content)
 
     # Build full response
     response = make_response(response_body)
