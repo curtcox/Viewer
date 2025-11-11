@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from typing import Any
 
 import logfire
 from constants import ActionType, EntityType, UploadType
@@ -530,7 +531,7 @@ def edit_cid(cid_prefix):
 
         return _render_upload_success(
             cid_value,
-            file_size=len(file_content),
+            file_size=len(text_content.encode('utf-8')),
             detected_mime_type='text/plain',
             view_url_extension='txt',
             filename=None,
