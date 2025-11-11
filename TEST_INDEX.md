@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1890
-- Unit Tests: 1756
+**Total Tests:** 1896
+- Unit Tests: 1758
 - Integration Tests: 101
 - Property Tests: 12
-- Gauge Tests: 21
+- Gauge Tests: 25
 
 ## Unit Tests
 
-Total: 1756 tests
+Total: 1758 tests
 
 - [TestAiStubServer.test_ai_alias_created_when_missing](tests/test_ai_stub_server.py:41)
 - [TestAiStubServer.test_ai_alias_definition_can_be_updated_by_user](tests/test_ai_stub_server.py:67)
@@ -691,12 +691,13 @@ Total: 1756 tests
 - [TestServeCidContent.test_cid_with_filename_sets_content_disposition](tests/test_serve_cid_content.py:46)
 - [TestServeCidContent.test_cid_with_multiple_dots_in_filename](tests/test_serve_cid_content.py:63)
 - [TestServeCidContent.test_conditional_request_uses_if_modified_since_header](tests/test_serve_cid_content.py:135)
+- [TestServeCidContent.test_conditional_request_with_old_if_modified_since_returns_full_response](tests/test_serve_cid_content.py:144)
 - [TestServeCidContent.test_conditional_requests_with_filename](tests/test_serve_cid_content.py:126)
 - [TestServeCidContent.test_content_with_none_file_data_returns_none](tests/test_serve_cid_content.py:112)
 - [TestServeCidContent.test_edge_cases](tests/test_serve_cid_content.py:77)
-- [TestServeCidContent.test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:156)
+- [TestServeCidContent.test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:165)
 - [TestServeCidContent.test_filename_with_special_characters](tests/test_serve_cid_content.py:94)
-- [TestServeCidContent.test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:143)
+- [TestServeCidContent.test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:152)
 - [TestServeCidContent.test_none_content_returns_none](tests/test_serve_cid_content.py:108)
 - [Definition validation remains accessible in the default workspace.](tests/test_server_definition_validation_route.py:104)
 - [Unsupported auto main signatures should include helpful reasons.](tests/test_server_definition_validation_route.py:82)
@@ -969,6 +970,7 @@ Total: 1756 tests
 - [Test that comprehensive file discovery includes all project files, not just git-tracked.](tests/test_enhanced_error_pages.py:57)
 - [Test that source links are generated for all project files, not just git-tracked.](tests/test_error_pages.py:163)
 - [test_conditional_request_uses_if_modified_since_header](tests/test_serve_cid_content.py:135)
+- [test_conditional_request_with_old_if_modified_since_returns_full_response](tests/test_serve_cid_content.py:144)
 - [test_conditional_requests_with_filename](tests/test_serve_cid_content.py:126)
 - [Test that constants are defined with reasonable values.](tests/test_upload_handlers.py:20)
 - [Test that CID.filename.ext paths get content disposition](tests/test_content_disposition.py:171)
@@ -1117,7 +1119,7 @@ Total: 1756 tests
 - [test_execute_functions_share_error_flow](tests/test_server_execution_output_encoding.py:205)
 - [test_execute_functions_share_success_flow](tests/test_server_execution_output_encoding.py:147)
 - [Test what should happen with variables and secrets](tests/test_variables_secrets_simple.py:74)
-- [test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:156)
+- [test_explicit_markdown_html_extension_renders_markdown](tests/test_serve_cid_content.py:165)
 - [test_export_allows_runtime_only](tests/test_import_export.py:812)
 - [test_export_allows_unselecting_all_aliases](tests/test_import_export.py:273)
 - [test_export_and_import_preserve_enablement](tests/test_import_export.py:399)
@@ -1367,7 +1369,7 @@ Total: 1756 tests
 - [test_make_session_permanent_marks_session](tests/test_analytics.py:44)
 - [test_markdown_heuristic_balances_inline_and_structural_cues](tests/test_cid_functionality.py:565)
 - [test_markdown_heuristic_ignores_plain_python_text](tests/test_cid_functionality.py:569)
-- [test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:143)
+- [test_markdown_without_extension_serves_raw_content](tests/test_serve_cid_content.py:152)
 - [test_matches_three_segment_path](tests/test_server_execution.py:614)
 - [test_matches_two_segment_path](tests/test_server_execution.py:610)
 - [test_mermaid_fenced_block_renders_to_svg_image](tests/test_markdown_rendering.py:133)
@@ -1880,8 +1882,8 @@ Total: 101 tests
 Total: 12 tests
 
 - [test_alias_matching_independent_of_user](tests/property/test_identity_independence_properties.py:21)
-- [When an extension is provided, the MIME type matches the extension.](tests/property/test_serve_cid_content_properties.py:33)
-- [A /CID request returns exactly the stored content.](tests/property/test_serve_cid_content_properties.py:15)
+- [When an extension is provided, the MIME type matches the extension.](tests/property/test_serve_cid_content_properties.py:34)
+- [A /CID request returns exactly the stored content.](tests/property/test_serve_cid_content_properties.py:16)
 - [test_convert_response_json_to_csv_preserves_rows](tests/property/test_response_format_properties.py:42)
 - [test_decrypt_rejects_modified_payload](tests/property/test_encryption_properties.py:32)
 - [Round-tripping embedded CID components preserves the content.](tests/property/test_cid_properties.py:57)
@@ -1894,9 +1896,13 @@ Total: 12 tests
 
 ## Gauge Tests
 
-Total: 21 scenarios
+Total: 25 scenarios
 
 - [Accept headers request alternate representations](specs/content_negotiation.spec:31)
+- [Alias detail page displays basic information](specs/alias_view.spec:3)
+- [Alias detail page displays status badge](specs/alias_view.spec:18)
+- [Alias detail page shows definition section](specs/alias_view.spec:24)
+- [Alias detail page shows navigation buttons](specs/alias_view.spec:11)
 - [Alias form responds the same for all users](specs/alias_management.spec:28)
 - [Aliases list shows available shortcuts](specs/alias_management.spec:21)
 - [Default workspace profile is accessible](specs/profile.spec:3)
