@@ -46,7 +46,10 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_supports_xml_extension`
 
 **Specs:**
-- _None_
+- alias_view.spec — Alias detail page displays basic information
+- alias_view.spec — Alias detail page shows navigation buttons
+- alias_view.spec — Alias detail page displays status badge
+- alias_view.spec — Alias detail page shows definition section
 
 ## templates/aliases.html
 
