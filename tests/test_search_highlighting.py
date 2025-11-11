@@ -1,10 +1,45 @@
+#!/usr/bin/env python3
 """Test search route highlighting functionality after refactoring."""
 from __future__ import annotations
 
-from tests.test_support import AppTestCase
+import os
+import unittest
+
+# Set up test environment before importing app
+os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
+os.environ['SESSION_SECRET'] = 'test-secret-key'
+os.environ['TESTING'] = 'True'
+
+from app import create_app
+from database import db
+from models import Alias, CID, Secret, Server, Variable
 
 
-class TestSearchHighlighting(AppTestCase):
+class BaseTestCase(unittest.TestCase):
+    """Base test case with common setup and teardown."""
+
+    def setUp(self):
+        """Set up test environment."""
+        self.app = create_app({
+            'TESTING': True,
+            'WTF_CSRF_ENABLED': False,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'
+        })
+        self.client = self.app.test_client()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+
+        db.create_all()
+        self.test_user_id = 'test_user_123'
+
+    def tearDown(self):
+        """Clean up after test."""
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+
+class TestSearchHighlighting(BaseTestCase):
     """Tests to ensure search results use TextHighlighter correctly."""
 
     def test_cid_search_results_include_highlighted_names(self):
@@ -13,9 +48,6 @@ class TestSearchHighlighting(AppTestCase):
         This test ensures the refactoring to TextHighlighter.highlight_full() works correctly.
         Previously used _highlight_full() which would cause NameError if not migrated.
         """
-        from models import CID
-        from db import db
-
         # Create a CID with searchable content
         cid_record = CID(
             path='/test-cid-path',
@@ -48,10 +80,18 @@ class TestSearchHighlighting(AppTestCase):
 
         # Verify name_highlighted field exists and contains highlighting
         cid_item = cids['items'][0]
-        self.assertIn('name_highlighted', cid_item, "CID result should have name_highlighted field")
+        self.assertIn(
+            'name_highlighted',
+            cid_item,
+            "CID result should have name_highlighted field"
+        )
 
         name_highlighted = cid_item['name_highlighted']
-        self.assertIsInstance(name_highlighted, str, "name_highlighted should be a string")
+        self.assertIsInstance(
+            name_highlighted,
+            str,
+            "name_highlighted should be a string"
+        )
         self.assertIn(
             '<mark>',
             name_highlighted,
@@ -68,9 +108,6 @@ class TestSearchHighlighting(AppTestCase):
 
         Ensures TextHighlighter is used consistently across all result types.
         """
-        from models import Alias, Server, Variable, Secret, CID
-        from db import db
-
         # Create test data for all categories
         alias = Alias(
             name='query-alias',
@@ -132,9 +169,6 @@ class TestSearchHighlighting(AppTestCase):
 
         Ensures TextHighlighter.highlight_full() uses proper escaping.
         """
-        from models import CID
-        from db import db
-
         # Create CID with special characters
         cid_record = CID(
             path='/test<script>alert("xss")</script>',
