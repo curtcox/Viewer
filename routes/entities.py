@@ -1,6 +1,6 @@
 """Shared CRUD helper utilities for route modules."""
 from datetime import datetime, timezone
-from typing import Any, Type
+from typing import Any, Callable, Dict, Optional, Type
 
 import logfire
 from flask import flash
@@ -17,16 +17,102 @@ from db_access import (
 )
 
 
+# Type-based dispatch for entity operations
+# This eliminates fragile string-based type checking
+
+class EntityTypeRegistry:
+    """Registry for entity type-specific operations.
+
+    This class provides type-safe dispatch for operations that differ
+    based on entity type, eliminating the need for string-based type checking.
+    """
+
+    def __init__(self):
+        """Initialize the registry with entity type mappings."""
+        # Import models lazily to avoid circular dependencies
+        from models import Secret, Server, Variable
+
+        # Map entity classes to their get_by_name functions
+        self._get_by_name_funcs: Dict[Type, Callable] = {
+            Server: get_server_by_name,
+            Variable: get_variable_by_name,
+            Secret: get_secret_by_name,
+        }
+
+        # Map entity classes to their CID update functions
+        self._cid_update_funcs: Dict[Type, Callable] = {}
+
+    def get_by_name(self, entity_class: Type, user_id: str, name: str) -> Optional[Any]:
+        """Get entity by name using type dispatch.
+
+        Args:
+            entity_class: Entity model class
+            user_id: User identifier
+            name: Entity name
+
+        Returns:
+            Entity instance or None if not found
+
+        Raises:
+            ValueError: If entity_class is not registered in the registry
+        """
+        func = self._get_by_name_funcs.get(entity_class)
+        if func is None:
+            raise ValueError(
+                f"Unregistered entity type: {entity_class.__name__}. "
+                f"Entity type must be registered in EntityTypeRegistry._get_by_name_funcs. "
+                f"Registered types: {', '.join(cls.__name__ for cls in self._get_by_name_funcs)}"
+            )
+        return func(user_id, name)
+
+    def update_definitions_cid(self, entity_class: Type, user_id: str) -> Optional[str]:
+        """Update definitions CID for entity type.
+
+        Args:
+            entity_class: Entity model class
+            user_id: User identifier
+
+        Returns:
+            Updated CID or None if not applicable
+        """
+        # Lazy load CID update functions to avoid circular imports
+        if not self._cid_update_funcs:
+            from .secrets import update_secret_definitions_cid
+            from .servers import update_server_definitions_cid
+            from .variables import update_variable_definitions_cid
+            from models import Secret, Server, Variable
+
+            self._cid_update_funcs = {
+                Server: update_server_definitions_cid,
+                Variable: update_variable_definitions_cid,
+                Secret: update_secret_definitions_cid,
+            }
+
+        func = self._cid_update_funcs.get(entity_class)
+        if func is None:
+            return None
+        return func(user_id)
+
+    def requires_definition_cid(self, entity_class: Type) -> bool:
+        """Check if entity type requires definition CID storage.
+
+        Args:
+            entity_class: Entity model class
+
+        Returns:
+            True if entity needs definition CID
+        """
+        from models import Server
+        return entity_class is Server
+
+
+# Global registry instance
+_entity_registry = EntityTypeRegistry()
+
+
 def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:
     """Check if a name already exists for a user, optionally excluding a specific record."""
-    if model_class.__name__ == 'Server':
-        entity = get_server_by_name(user_id, name)
-    elif model_class.__name__ == 'Variable':
-        entity = get_variable_by_name(user_id, name)
-    elif model_class.__name__ == 'Secret':
-        entity = get_secret_by_name(user_id, name)
-    else:
-        entity = None
+    entity = _entity_registry.get_by_name(model_class, user_id, name)
 
     if entity and exclude_id and getattr(entity, 'id', None) == exclude_id:
         return False
@@ -68,7 +154,7 @@ def create_entity(
     if template_field is not None:
         entity_data['template'] = bool(template_field.data)
 
-    if model_class.__name__ == 'Server':
+    if _entity_registry.requires_definition_cid(model_class):
         definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
         entity_data['definition_cid'] = definition_cid
 
@@ -93,18 +179,7 @@ def create_entity(
         )
     )
 
-    if model_class.__name__ == 'Server':
-        from .servers import update_server_definitions_cid
-
-        update_server_definitions_cid(user_id)
-    elif model_class.__name__ == 'Variable':
-        from .variables import update_variable_definitions_cid
-
-        update_variable_definitions_cid(user_id)
-    elif model_class.__name__ == 'Secret':
-        from .secrets import update_secret_definitions_cid
-
-        update_secret_definitions_cid(user_id)
+    _entity_registry.update_definitions_cid(model_class, user_id)
 
     flash(
         Markup('{entity} "{name}" created successfully!').format(
@@ -136,7 +211,7 @@ def update_entity(
             )
             return False
 
-    if type(entity).__name__ == 'Server':
+    if _entity_registry.requires_definition_cid(type(entity)):
         if form.definition.data != entity.definition:
             definition_cid = save_server_definition_as_cid(form.definition.data, entity.user_id)
             entity.definition_cid = definition_cid
@@ -173,18 +248,7 @@ def update_entity(
         )
     )
 
-    if type(entity).__name__ == 'Server':
-        from .servers import update_server_definitions_cid
-
-        update_server_definitions_cid(entity.user_id)
-    elif type(entity).__name__ == 'Variable':
-        from .variables import update_variable_definitions_cid
-
-        update_variable_definitions_cid(entity.user_id)
-    elif type(entity).__name__ == 'Secret':
-        from .secrets import update_secret_definitions_cid
-
-        update_secret_definitions_cid(entity.user_id)
+    _entity_registry.update_definitions_cid(type(entity), entity.user_id)
 
     flash(
         Markup('{entity} "{name}" updated successfully!').format(
