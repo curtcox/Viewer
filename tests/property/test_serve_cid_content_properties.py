@@ -7,6 +7,7 @@ from flask import Flask
 from hypothesis import given, strategies as st
 
 from cid_utils import EXTENSION_TO_MIME, serve_cid_content
+from content_rendering import decode_text_safely
 
 _app = Flask(__name__)
 
@@ -43,5 +44,10 @@ def test_cid_page_mime_matches_extension(extension_entry, content_bytes):
 
     assert response is not None
 
-    expected_mime = "text/plain; charset=utf-8" if base_mime == "text/plain" else base_mime
+    # For text/plain (.txt extension), the charset depends on whether content is valid UTF-8
+    if base_mime == "text/plain":
+        is_valid_utf8 = decode_text_safely(content_bytes) is not None
+        expected_mime = "text/plain; charset=utf-8" if is_valid_utf8 else "text/plain"
+    else:
+        expected_mime = base_mime
     assert response.headers.get("Content-Type") == expected_mime

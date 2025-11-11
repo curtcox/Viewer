@@ -248,7 +248,8 @@ def _process_content_body(
         utf8_text = _ensure_utf8_text(response_body)
         if utf8_text is not None:
             return utf8_text, CONTENT_TYPE_TEXT_UTF8
-        return response_body, CONTENT_TYPE_TEXT_UTF8
+        # If not valid UTF-8, return with neutral content type (no charset)
+        return response_body, CONTENT_TYPE_TEXT_PLAIN
 
     # Handle auto-detection for binary files without extension
     if content_type == CONTENT_TYPE_OCTET_STREAM and not path_info.has_extension:
