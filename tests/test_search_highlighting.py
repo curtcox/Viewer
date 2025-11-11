@@ -260,4 +260,8 @@ class TestSearchHighlighting(BaseTestCase):
         # Should escape HTML but keep <mark> tags
         self.assertIn('<mark>', name_highlighted)
         self.assertIn('&lt;script&gt;', name_highlighted, "Should escape < and >")
-        self.assertIn('&quot;', name_highlighted, "Should escape quotes")
+        # Quotes can be escaped as &quot; or &#34; (both valid HTML entities)
+        self.assertTrue(
+            '&quot;' in name_highlighted or '&#34;' in name_highlighted,
+            "Should escape quotes"
+        )
