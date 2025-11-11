@@ -1,15 +1,15 @@
-"""Tests for :func:`routes.servers._extract_server_dependencies`."""
+"""Tests for :func:`routes.servers._extract_context_references`."""
 
 from __future__ import annotations
 
-from routes.servers import _extract_server_dependencies
+from routes.servers import _extract_context_references
 
 
 def test_returns_empty_collections_for_blank_definitions() -> None:
     """Missing or empty definitions should result in empty lists."""
 
-    assert _extract_server_dependencies(None) == {"variables": [], "secrets": []}
-    assert _extract_server_dependencies("") == {"variables": [], "secrets": []}
+    assert _extract_context_references(None) == {"variables": [], "secrets": []}
+    assert _extract_context_references("") == {"variables": [], "secrets": []}
 
 
 def test_detects_direct_and_alias_based_context_usage() -> None:
@@ -33,7 +33,7 @@ extra_direct = context['variables']['direct']
 unused = secrets_alias.get('token')
 """
 
-    references = _extract_server_dependencies(definition)
+    references = _extract_context_references(definition)
 
     assert references["variables"] == ["alias-get", "alias-index", "direct"]
     assert references["secrets"] == ["explicit", "password", "token"]
@@ -54,7 +54,7 @@ ignored = secret_alias_extra.get('ignored')
 token = secret_alias.get('token')
 """
 
-    references = _extract_server_dependencies(definition)
+    references = _extract_context_references(definition)
 
     assert references["variables"] == ["city"]
     assert references["secrets"] == ["token"]
@@ -70,7 +70,7 @@ value = other['value']
 settings = context.get('settings')
 name = settings.get('name')
 """
-    references = _extract_server_dependencies(definition)
+    references = _extract_context_references(definition)
 
     assert references["variables"] == []
     assert references["secrets"] == []
@@ -89,7 +89,7 @@ secrets_alias = s
 first_name = vars_alias['first_name']
 api_key = secrets_alias.get('api_key')
 """
-    references = _extract_server_dependencies(definition)
+    references = _extract_context_references(definition)
 
     assert references["variables"] == ["first_name"]
     assert references["secrets"] == ["api_key"]
@@ -109,7 +109,7 @@ unused_secrets = context['secrets']
 city = variables_alias['city']
 token = secrets_alias.get('token')
 """
-    references = _extract_server_dependencies(definition)
+    references = _extract_context_references(definition)
 
     assert references["variables"] == ["city"]
     assert references["secrets"] == ["token"]
@@ -124,7 +124,7 @@ def test_includes_known_variables_and_secrets_from_parameters() -> None:
 def main(name: str, email: str, api_key: str, Auth: str):
     return f"Hello {name} <{email}> using {api_key} with {Auth}"
 """
-    references = _extract_server_dependencies(
+    references = _extract_context_references(
         definition,
         known_variables=["name", "email", "unused_variable"],
         known_secrets=["api_key", "Auth", "unused_secret"],

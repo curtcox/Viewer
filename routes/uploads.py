@@ -50,7 +50,7 @@ from upload_templates import get_upload_templates
 from . import main_bp
 from .cid_helper import CidHelper
 from .history import _load_request_referers
-from .servers import _enrich_invocation_with_links
+from .servers import enrich_invocation_with_links
 
 # Display constants
 CONTENT_PREVIEW_LENGTH: int = 20
@@ -91,23 +91,7 @@ def _save_cid_content(text_content: str, user_id: str) -> str:
         str: CID value (formatted)
     """
     file_content = text_content.encode('utf-8')
-    cid_value = format_cid(generate_cid(file_content))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-
-    if existing:
-        flash(
-            Markup(f"Content with this hash already exists! {render_cid_link(cid_value)}"),
-            'warning',
-        )
-    else:
-        create_cid_record(cid_value, file_content, user_id)
-        flash(
-            Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
-            'success',
-        )
-
-    return cid_value
+    return _store_or_find_content(file_content, user_id)
 
 
 def _shorten_cid(cid: str | None, length: int = 6) -> str:
@@ -654,7 +638,7 @@ def server_events():
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        _enrich_invocation_with_links(invocation)
+        enrich_invocation_with_links(invocation)
         invocation.server_link = url_for(
             'main.view_server',
             server_name=invocation.server_name,

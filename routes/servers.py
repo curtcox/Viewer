@@ -58,7 +58,7 @@ def _generate_and_format_cid(content: bytes) -> str:
     return format_cid(generate_cid(content))
 
 
-def _enrich_invocation_with_links(invocation: Any) -> Any:
+def enrich_invocation_with_links(invocation: Any) -> Any:
     """Add display links and labels to an invocation record.
 
     Args:
@@ -194,6 +194,10 @@ def _extract_route_references(definition: str | None) -> list[str]:
     """
     parser = ServerDefinitionParser()
     return parser.extract_route_references(definition)
+
+
+# Compatibility alias for backward compatibility
+_extract_context_references = _extract_server_dependencies
 
 
 def _build_server_test_config(server_name: str | None, definition: str | None) -> dict[str, Any] | None:
@@ -852,7 +856,7 @@ def get_server_invocation_history(user_id: str, server_name: str) -> list[Any]:
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        _enrich_invocation_with_links(invocation)
+        enrich_invocation_with_links(invocation)
         request_cid = getattr(invocation, 'request_details_cid', None)
         invocation.request_referer = (
             referer_by_request.get(request_cid)
@@ -866,6 +870,7 @@ def get_server_invocation_history(user_id: str, server_name: str) -> list[Any]:
 __all__ = [
     'delete_server',
     'edit_server',
+    'enrich_invocation_with_links',
     'get_server_definition_history',
     'get_server_invocation_history',
     'new_server',

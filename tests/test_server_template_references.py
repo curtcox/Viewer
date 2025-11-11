@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from routes.servers import _extract_server_dependencies
+from routes.servers import _extract_context_references
 from server_templates import iter_server_templates
 
 _SECRET_LITERAL_PATTERN = re.compile(
@@ -36,7 +36,7 @@ def test_template_context_references_are_detected() -> None:
             continue
 
         exercised = True
-        references = _extract_server_dependencies(definition)
+        references = _extract_context_references(definition)
 
         assert references['secrets'] == expected_secrets
         assert references['variables'] == expected_variables
@@ -52,7 +52,7 @@ def main(city, api_token, context=None):
     return {"output": f"{city} {api_token}", "content_type": "text/plain"}
 """
 
-    references = _extract_server_dependencies(
+    references = _extract_context_references(
         definition,
         known_variables={'city'},
         known_secrets={'api_token'},
@@ -70,7 +70,7 @@ def main(city, api_token, context=None):
     return {"output": f"{city} {api_token}", "content_type": "text/plain"}
 """
 
-    references = _extract_server_dependencies(
+    references = _extract_context_references(
         definition,
         known_variables={'other'},
         known_secrets={'different'},
