@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
+from bulk_editor import create_variable_bulk_handler
 from cid_utils import (
     get_current_variable_definitions_cid,
     store_variable_definitions_cid,
@@ -32,6 +33,9 @@ from .meta import inspect_path_metadata
 
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
+# Create bulk editor handler for variables
+_bulk_editor = create_variable_bulk_handler()
+
 
 def update_variable_definitions_cid(user_id):
     """Update the variable definitions CID after variable changes."""
@@ -44,72 +48,19 @@ def user_variables():
 
 def _build_variables_editor_payload(variables_list: List[Variable]) -> str:
     """Return a JSON string representing the user's variables for the editor."""
-
-    return json.dumps(
-        {variable.name: variable.definition for variable in variables_list},
-        indent=4,
-        sort_keys=True,
-        ensure_ascii=False,
-    )
+    return _bulk_editor.build_payload(variables_list)
 
 
 def _parse_variables_editor_payload(raw_payload: str) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
     """Validate and normalize the JSON payload supplied by the bulk editor."""
-
-    try:
-        loaded = json.loads(raw_payload)
-    except json.JSONDecodeError as exc:
-        return None, f"Invalid JSON: {exc.msg}"
-
-    if not isinstance(loaded, dict):
-        return None, "Variables JSON must be an object mapping variable names to values."
-
-    normalized: Dict[str, str] = {}
-    for name, value in loaded.items():
-        if not isinstance(name, str):
-            return None, "All variable names must be strings."
-        if not _VARIABLE_NAME_PATTERN.fullmatch(name):
-            return None, (
-                f'Invalid variable name "{name}". Variable names may only contain '
-                "letters, numbers, dots, hyphens, and underscores."
-            )
-
-        if isinstance(value, str):
-            normalized[name] = value
-        else:
-            normalized[name] = json.dumps(value, ensure_ascii=False)
-
-    return normalized, None
+    return _bulk_editor.parse_payload(raw_payload)
 
 
 def _apply_variables_editor_changes(
     user_id: str, desired_values: Dict[str, str], existing: List[Variable]
 ) -> None:
     """Persist the desired variables, replacing the user's current collection."""
-
-    existing_by_name = {variable.name: variable for variable in existing}
-    desired_names = set(desired_values.keys())
-
-    # Delete removed variables first so unique constraints do not interfere with renames.
-    for name in sorted(set(existing_by_name.keys()) - desired_names):
-        delete_entity(existing_by_name[name])
-
-    for name, definition in desired_values.items():
-        current = existing_by_name.get(name)
-        if current is None:
-            save_entity(
-                Variable(
-                    name=name,
-                    definition=definition,
-                    user_id=user_id,
-                )
-            )
-            continue
-
-        if current.definition != definition:
-            current.definition = definition
-            current.updated_at = datetime.now(timezone.utc)
-            save_entity(current)
+    _bulk_editor.apply_changes(user_id, desired_values, existing)
 
 def _status_label(status: int) -> Optional[str]:
     try:
