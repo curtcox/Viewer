@@ -261,3 +261,42 @@ def record_alias_path_coverage(alias_name: str) -> None:
     """Acknowledge alias detail path coverage for documentation purposes."""
 
     assert alias_name, "Alias name placeholder should not be empty."
+
+
+@step('When I visit the alias detail page for <alias_name>')
+def when_i_visit_alias_detail_page(alias_name: str) -> None:
+    """Navigate to the alias detail page for the specified alias."""
+
+    alias_name = alias_name.strip().strip('"')
+    path = f"/aliases/{alias_name}"
+    when_i_visit_path(path)
+
+
+@step('Given there is an enabled alias named <alias_name> pointing to <target_path>')
+def given_enabled_alias_exists(alias_name: str, target_path: str) -> None:
+    """Persist an enabled alias with the provided name and target path."""
+
+    client = _require_client()
+    _login_default_user(client)
+
+    alias_name = alias_name.strip().strip('"')
+    target_path = target_path.strip().strip('"')
+
+    with _app_context():
+        user = ensure_default_user()
+        definition_text = format_primary_alias_line(
+            match_type="literal",
+            match_pattern=None,
+            target_path=target_path,
+            alias_name=alias_name,
+        )
+        alias = Alias(
+            name=alias_name,
+            user_id=user.id,
+            definition=definition_text,
+            enabled=True,
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+    _scenario_state["alias_name"] = alias_name
