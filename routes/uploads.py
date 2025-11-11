@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
-from typing import Optional
 
 import logfire
+from constants import ActionType, EntityType, UploadType
 from flask import abort, flash, redirect, render_template, request, url_for
 from markupsafe import Markup
 
@@ -56,7 +56,7 @@ CONTENT_PREVIEW_LENGTH: int = 20
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
-def _shorten_cid(cid: Optional[str], length: int = 6) -> str:
+def _shorten_cid(cid: str | None, length: int = 6) -> str:
     """Return a shortened CID label for display."""
     return format_cid_short(cid, length)
 
@@ -119,7 +119,7 @@ def _persist_alias_from_upload(alias: Alias) -> Alias:
     return alias
 
 
-def _process_upload_by_type(form) -> tuple[bytes, Optional[str], Optional[str]]:
+def _process_upload_by_type(form) -> tuple[bytes, str | None, str | None]:
     """Process upload based on upload_type field.
 
     Args:
@@ -131,14 +131,14 @@ def _process_upload_by_type(form) -> tuple[bytes, Optional[str], Optional[str]]:
     Raises:
         ValueError: If upload processing fails
     """
-    detected_mime_type: Optional[str] = None
-    original_filename: Optional[str] = None
+    detected_mime_type: str | None = None
+    original_filename: str | None = None
 
-    if form.upload_type.data == 'file':
+    if form.upload_type.data == UploadType.FILE.value:
         file_content, original_filename = process_file_upload(form)
-    elif form.upload_type.data == 'text':
+    elif form.upload_type.data == UploadType.TEXT.value:
         file_content = process_text_upload(form)
-    elif form.upload_type.data == 'url':
+    elif form.upload_type.data == UploadType.URL.value:
         file_content, detected_mime_type = process_url_upload(form)
     else:
         raise ValueError(f"Unknown upload type: {form.upload_type.data}")
@@ -148,14 +148,14 @@ def _process_upload_by_type(form) -> tuple[bytes, Optional[str], Optional[str]]:
 
 def _determine_view_extension(
     upload_type: str,
-    original_filename: Optional[str],
-    detected_mime_type: Optional[str]
+    original_filename: str | None,
+    detected_mime_type: str | None
 ) -> str:
     """Determine the view URL extension based on upload type and metadata."""
-    if upload_type == 'text':
+    if upload_type == UploadType.TEXT.value:
         return "txt"
 
-    if upload_type == 'file' and original_filename and '.' in original_filename:
+    if upload_type == UploadType.FILE.value and original_filename and '.' in original_filename:
         return original_filename.rsplit('.', 1)[1].lower()
 
     if detected_mime_type:
@@ -166,13 +166,103 @@ def _determine_view_extension(
     return ""
 
 
-def _determine_filename(upload_type: str, original_filename: Optional[str], form) -> Optional[str]:
+def _determine_filename(upload_type: str, original_filename: str | None, form) -> str | None:
     """Determine the filename based on upload type."""
-    if upload_type == 'file':
+    if upload_type == UploadType.FILE.value:
         return original_filename
-    if upload_type == 'url':
+    if upload_type == UploadType.URL.value:
         return form.url.data or None
     return None
+
+
+def _store_or_find_content(file_content: bytes, user_id: str) -> str:
+    """Store content or find existing CID.
+
+    Args:
+        file_content: Content bytes to store
+        user_id: User ID for ownership
+
+    Returns:
+        str: CID value (formatted)
+    """
+    cid_value = format_cid(generate_cid(file_content))
+    cid_record_path = cid_path(cid_value)
+    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+
+    if existing:
+        flash(
+            Markup(f"Content with this hash already exists! {render_cid_link(cid_value)}"),
+            'warning',
+        )
+    else:
+        create_cid_record(cid_value, file_content, user_id)
+        flash(
+            Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
+            'success',
+        )
+
+    return cid_value
+
+
+def _record_upload_interaction(form, change_message: str, user_id: str) -> None:
+    """Record interaction for text uploads.
+
+    Args:
+        form: Upload form instance
+        change_message: User's change message
+        user_id: User ID
+    """
+    if form.upload_type.data == UploadType.TEXT.value:
+        record_entity_interaction(
+            EntityInteractionRequest(
+                user_id=user_id,
+                entity_type=EntityType.UPLOAD.value,
+                entity_name=UploadType.TEXT.value,
+                action=ActionType.SAVE.value,
+                message=change_message,
+                content=form.text_content.data or '',
+            )
+        )
+
+
+def _process_upload_submission(form, change_message: str):
+    """Process a validated upload form submission.
+
+    Args:
+        form: Validated FileUploadForm
+        change_message: User's change message
+
+    Returns:
+        Response: Upload success page
+    """
+    # Process upload
+    try:
+        file_content, detected_mime_type, original_filename = _process_upload_by_type(form)
+    except ValueError as exc:
+        flash(str(exc), 'error')
+        return None  # Signal to render form
+
+    # Generate CID and store/find
+    cid_value = _store_or_find_content(file_content, current_user.id)
+
+    # Record interaction
+    _record_upload_interaction(form, change_message, current_user.id)
+
+    # Determine metadata
+    view_url_extension = _determine_view_extension(
+        form.upload_type.data,
+        original_filename,
+        detected_mime_type
+    )
+    filename = _determine_filename(form.upload_type.data, original_filename, form)
+
+    return _render_upload_success(
+        cid_value,
+        file_size=len(file_content),
+        detected_mime_type=detected_mime_type,
+        view_url_extension=view_url_extension,
+        filename=filename,
+    )
 
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
@@ -180,11 +270,10 @@ def upload():
     """File upload page with CID storage."""
     form = FileUploadForm()
     upload_templates = get_upload_templates()
-
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_form():
-        interactions = load_interaction_history(current_user.id, 'upload', 'text')
+        interactions = load_interaction_history(current_user.id, EntityType.UPLOAD.value, UploadType.TEXT.value)
         return render_template(
             'upload.html',
             form=form,
@@ -193,58 +282,10 @@ def upload():
         )
 
     if form.validate_on_submit():
-        # Process upload
-        try:
-            file_content, detected_mime_type, original_filename = _process_upload_by_type(form)
-        except ValueError as exc:
-            flash(str(exc), 'error')
+        result = _process_upload_submission(form, change_message)
+        if result is None:
             return _render_form()
-
-        # Generate CID and check for existing record
-        cid_value = format_cid(generate_cid(file_content))
-        cid_record_path = cid_path(cid_value)
-        existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-
-        if existing:
-            flash(
-                Markup(f"Content with this hash already exists! {render_cid_link(cid_value)}"),
-                'warning',
-            )
-        else:
-            create_cid_record(cid_value, file_content, current_user.id)
-            flash(
-                Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
-                'success',
-            )
-
-        # Record interaction for text uploads
-        if form.upload_type.data == 'text':
-            record_entity_interaction(
-                EntityInteractionRequest(
-                    user_id=current_user.id,
-                    entity_type='upload',
-                    entity_name='text',
-                    action='save',
-                    message=change_message,
-                    content=form.text_content.data or '',
-                )
-            )
-
-        # Determine view extension and filename
-        view_url_extension = _determine_view_extension(
-            form.upload_type.data,
-            original_filename,
-            detected_mime_type
-        )
-        filename = _determine_filename(form.upload_type.data, original_filename, form)
-
-        return _render_upload_success(
-            cid_value,
-            file_size=len(file_content),
-            detected_mime_type=detected_mime_type,
-            view_url_extension=view_url_extension,
-            filename=filename,
-        )
+        return result
 
     return _render_form()
 
@@ -259,7 +300,7 @@ def uploads():
     user_uploads = [
         upload
         for upload in user_uploads
-        if getattr(upload, 'creation_method', 'upload') != 'server_event'
+        if getattr(upload, 'creation_method', EntityType.UPLOAD.value) != EntityType.SERVER_EVENT.value
     ]
 
     for upload_record in user_uploads:
@@ -326,7 +367,7 @@ def edit_cid(cid_prefix):
     form = EditCidForm()
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
-    interaction_history = load_interaction_history(current_user.id, 'cid', full_cid)
+    interaction_history = load_interaction_history(current_user.id, EntityType.CID.value, full_cid)
     content_references = extract_references_from_bytes(
         getattr(cid_record, 'file_data', None),
         current_user.id,
@@ -414,9 +455,9 @@ def edit_cid(cid_prefix):
         record_entity_interaction(
             EntityInteractionRequest(
                 user_id=current_user.id,
-                entity_type='cid',
+                entity_type=EntityType.CID.value,
                 entity_name=full_cid,
-                action='save',
+                action=ActionType.SAVE.value,
                 message=change_message,
                 content=text_content,
             )
@@ -521,9 +562,9 @@ def assign_cid_variable():
         record_entity_interaction(
             EntityInteractionRequest(
                 user_id=current_user.id,
-                entity_type='variable',
+                entity_type=EntityType.VARIABLE.value,
                 entity_name=variable_name,
-                action='save',
+                action=ActionType.SAVE.value,
                 message='Assigned CID from upload page',
                 content=assignment_value,
             )
@@ -615,7 +656,7 @@ def _attach_creation_sources(user_uploads):
                 invocation_by_cid[cid_key] = invocation
 
     for upload_record in user_uploads:
-        upload_record.creation_method = 'upload'
+        upload_record.creation_method = EntityType.UPLOAD.value
         upload_record.server_invocation_link = None
         upload_record.server_invocation_server_name = None
 
@@ -625,7 +666,7 @@ def _attach_creation_sources(user_uploads):
 
         invocation = invocation_by_cid.get(cid)
         if invocation:
-            upload_record.creation_method = 'server_event'
+            upload_record.creation_method = EntityType.SERVER_EVENT.value
             upload_record.server_invocation_server_name = invocation.server_name
             if invocation.invocation_cid:
                 upload_record.server_invocation_link = cid_path(

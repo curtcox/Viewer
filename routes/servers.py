@@ -3,8 +3,10 @@
 import json
 import re
 from datetime import datetime, timezone
-from typing import Dict, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import Any
 
+from constants import ActionType, EntityType, ServerMode
 from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
@@ -45,10 +47,10 @@ from .server_definition_parser import ServerDefinitionParser
 
 
 def _extract_context_references(
-    definition: Optional[str],
-    known_variables: Optional[Iterable[str]] = None,
-    known_secrets: Optional[Iterable[str]] = None,
-) -> Dict[str, List[str]]:
+    definition: str | None,
+    known_variables: Iterable[str] | None = None,
+    known_secrets: Iterable[str] | None = None,
+) -> dict[str, list[str]]:
     """Return referenced variable and secret names from a server definition."""
     if not definition:
         return {'variables': [], 'secrets': []}
@@ -72,13 +74,13 @@ def _extract_context_references(
     )
 
 
-def _extract_route_references(definition: Optional[str]) -> List[str]:
+def _extract_route_references(definition: str | None) -> list[str]:
     """Return route-like paths referenced within the server definition."""
     parser = ServerDefinitionParser()
     return parser.extract_route_references(definition)
 
 
-def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
+def _build_server_test_config(server_name: str | None, definition: str | None):
     """Create the context needed to render the server test form."""
 
     if not server_name:
@@ -89,13 +91,13 @@ def _build_server_test_config(server_name: Optional[str], definition: Optional[s
 
     if description:
         return {
-            'mode': 'main',
+            'mode': ServerMode.MAIN.value,
             'action': action_path,
             'parameters': description.get('parameters', []),
         }
 
     return {
-        'mode': 'query',
+        'mode': ServerMode.QUERY.value,
         'action': action_path,
     }
 
@@ -124,17 +126,17 @@ def _escape_formdown_attribute(value: str) -> str:
     return text.replace('\n', '\\n')
 
 
-def _render_server_test_formdown(server: Server, config: Dict[str, object], defaults: Dict[str, str]) -> str:
+def _render_server_test_formdown(server: Server, config: dict[str, object], defaults: dict[str, str]) -> str:
     """Build the formdown document that mirrors the inline server test form."""
 
     if not server or not config:
         return ''
 
     action = str(config.get('action') or f'/{server.name}')
-    mode = (config.get('mode') or 'query').lower()
+    mode = (config.get('mode') or ServerMode.QUERY.value).lower()
     form_id = _sanitize_formdown_identifier(f"{server.name}-test-page")
 
-    normalized_defaults: Dict[str, str] = {}
+    normalized_defaults: dict[str, str] = {}
     for key, value in (defaults or {}).items():
         if value is None:
             continue
@@ -150,7 +152,7 @@ def _render_server_test_formdown(server: Server, config: Dict[str, object], defa
         '',
     ]
 
-    if mode == 'main':
+    if mode == ServerMode.MAIN.value:
         parameters = config.get('parameters') or []
         if parameters:
             lines.extend(['## Parameters', ''])
@@ -196,7 +198,7 @@ def _render_server_test_formdown(server: Server, config: Dict[str, object], defa
     return '\n'.join(lines).strip() + '\n'
 
 
-def _highlight_definition_content(definition: Optional[str], history, server_name: str):
+def _highlight_definition_content(definition: str | None, history, server_name: str):
     """Return highlighted content for the current definition and history entries."""
 
     highlighted_definition = None
@@ -260,7 +262,7 @@ def upload_server_test_page(server_name):
     if not isinstance(payload, dict):
         payload = {}
 
-    defaults: Dict[str, str] = {}
+    defaults: dict[str, str] = {}
     values = payload.get('values')
     if isinstance(values, dict):
         for key, value in values.items():
@@ -269,7 +271,7 @@ def upload_server_test_page(server_name):
             defaults[str(key)] = str(value)
 
     mode = (test_config.get('mode') or 'query').lower()
-    if mode == 'main':
+    if mode == ServerMode.MAIN.value:
         allowed_names = {
             str(parameter.get('name'))
             for parameter in test_config.get('parameters') or []
@@ -301,8 +303,56 @@ def upload_server_test_page(server_name):
     return response
 
 
+def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
+    """Parse a server definition snapshot from a CID record.
+
+    Args:
+        cid: CID record containing server definitions
+        server_name: Name of the server to extract
+
+    Returns:
+        dict: Parsed snapshot data, or None if parsing fails
+    """
+    try:
+        content = cid.file_data.decode('utf-8')
+    except (UnicodeDecodeError, AttributeError):
+        return None
+
+    try:
+        server_definitions = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    if not isinstance(server_definitions, dict) or server_name not in server_definitions:
+        return None
+
+    definition_text = server_definitions[server_name]
+    definition_bytes = definition_text.encode('utf-8')
+    per_server_cid = format_cid(generate_cid(definition_bytes))
+
+    snapshot_cid = format_cid(cid.path)
+    snapshot_path = cid_path(snapshot_cid) if snapshot_cid else None
+
+    return {
+        'definition': definition_text,
+        'definition_cid': per_server_cid,
+        'snapshot_cid': snapshot_cid,
+        'snapshot_path': snapshot_path,
+        'created_at': cid.created_at,
+        'is_current': False,
+    }
+
+
 def get_server_definition_history(user_id, server_name):
-    """Get historical server definitions for a specific server."""
+    """Get historical server definitions for a specific server.
+
+    Args:
+        user_id: User ID to get history for
+        server_name: Name of the server
+
+    Returns:
+        list: History of server definitions, most recent first
+    """
     cids = get_user_uploads(user_id)
 
     history = []
@@ -313,35 +363,9 @@ def get_server_definition_history(user_id, server_name):
         return history
 
     for cid in iterator:
-        try:
-            content = cid.file_data.decode('utf-8')
-
-            try:
-                server_definitions = json.loads(content)
-
-                if isinstance(server_definitions, dict) and server_name in server_definitions:
-                    definition_text = server_definitions[server_name]
-                    definition_bytes = definition_text.encode('utf-8')
-                    per_server_cid = format_cid(generate_cid(definition_bytes))
-
-                    snapshot_cid = format_cid(cid.path)
-                    snapshot_path = cid_path(snapshot_cid) if snapshot_cid else None
-
-                    history.append(
-                        {
-                            'definition': definition_text,
-                            'definition_cid': per_server_cid,
-                            'snapshot_cid': snapshot_cid,
-                            'snapshot_path': snapshot_path,
-                            'created_at': cid.created_at,
-                            'is_current': False,
-                        }
-                    )
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-        except (UnicodeDecodeError, AttributeError):
-            continue
+        snapshot = _parse_server_snapshot(cid, server_name)
+        if snapshot:
+            history.append(snapshot)
 
     if history:
         history[0]['is_current'] = True
@@ -358,69 +382,115 @@ def user_servers():
     return get_user_servers(current_user.id)
 
 
+def _build_reference_links(entity_type: str, names: list[str]) -> list[dict[str, str]]:
+    """Build link dictionaries for entity references.
+
+    Args:
+        entity_type: Type of entity ('variable' or 'secret')
+        names: List of entity names
+
+    Returns:
+        list: Link dictionaries with 'label' and 'url' keys
+    """
+    return [
+        {
+            'label': name,
+            'url': url_for(f'main.view_{entity_type}', **{f'{entity_type}_name': name}),
+        }
+        for name in names
+    ]
+
+
+def _build_route_links(paths: list[str]) -> list[dict[str, str]]:
+    """Build link dictionaries for route references.
+
+    Args:
+        paths: List of route paths
+
+    Returns:
+        list: Link dictionaries with 'label' and 'url' keys
+    """
+    return [
+        {
+            'label': path,
+            'url': path,
+        }
+        for path in paths
+    ]
+
+
+def _build_server_row(
+    server,
+    known_variables: set[str],
+    known_secrets: set[str]
+) -> dict[str, object]:
+    """Build display data for a single server row.
+
+    Args:
+        server: Server model instance
+        known_variables: Set of known variable names
+        known_secrets: Set of known secret names
+
+    Returns:
+        dict: Server row data with references
+    """
+    definition_text = getattr(server, 'definition', '')
+    context_refs = _extract_context_references(
+        definition_text,
+        known_variables=known_variables,
+        known_secrets=known_secrets,
+    )
+    route_refs = _extract_route_references(definition_text)
+
+    return {
+        'server': server,
+        'variables': _build_reference_links('variable', context_refs.get('variables', [])),
+        'secrets': _build_reference_links('secret', context_refs.get('secrets', [])),
+        'routes': _build_route_links(route_refs),
+    }
+
+
+def _get_known_entity_names(user_id: str) -> tuple[set[str], set[str]]:
+    """Get sets of known variable and secret names for the user.
+
+    Args:
+        user_id: User ID
+
+    Returns:
+        tuple: (known_variable_names, known_secret_names)
+    """
+    known_variable_names = {
+        str(variable.name)
+        for variable in get_user_variables(user_id)
+        if getattr(variable, 'name', None)
+    }
+    known_secret_names = {
+        str(secret.name)
+        for secret in get_user_secrets(user_id)
+        if getattr(secret, 'name', None)
+    }
+    return known_variable_names, known_secret_names
+
+
 @main_bp.route('/servers')
 def servers():
     """Display user's servers."""
     servers_list = user_servers()
     if _wants_structured_response():
         return jsonify([_server_to_json(server) for server in servers_list])
+
     server_definitions_cid = None
-    server_rows: List[Dict[str, object]] = []
+    server_rows: list[dict[str, object]] = []
+
     if servers_list:
         server_definitions_cid = format_cid(
             get_current_server_definitions_cid(current_user.id)
         )
 
-        known_variable_names = {
-            str(variable.name)
-            for variable in get_user_variables(current_user.id)
-            if getattr(variable, 'name', None)
-        }
-        known_secret_names = {
-            str(secret.name)
-            for secret in get_user_secrets(current_user.id)
-            if getattr(secret, 'name', None)
-        }
+        known_variables, known_secrets = _get_known_entity_names(current_user.id)
 
         for server in servers_list:
-            definition_text = getattr(server, 'definition', '')
-            context_refs = _extract_context_references(
-                definition_text,
-                known_variables=known_variable_names,
-                known_secrets=known_secret_names,
-            )
-            route_refs = _extract_route_references(definition_text)
-
-            variable_links = [
-                {
-                    'label': name,
-                    'url': url_for('main.view_variable', variable_name=name),
-                }
-                for name in context_refs.get('variables', [])
-            ]
-            secret_links = [
-                {
-                    'label': name,
-                    'url': url_for('main.view_secret', secret_name=name),
-                }
-                for name in context_refs.get('secrets', [])
-            ]
-            route_links = [
-                {
-                    'label': path,
-                    'url': path,
-                }
-                for path in route_refs
-            ]
-
-            server_rows.append(
-                {
-                    'server': server,
-                    'variables': variable_links,
-                    'secrets': secret_links,
-                    'routes': route_links,
-                }
-            )
+            server_rows.append(_build_server_row(server, known_variables, known_secrets))
 
     return render_template(
         'servers.html',
@@ -490,7 +560,7 @@ def new_server():
             return redirect(url_for('main.servers'))
 
     entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(current_user.id, 'server', entity_name_hint)
+    interaction_history = load_interaction_history(current_user.id, EntityType.SERVER.value, entity_name_hint)
 
     return render_template(
         'server_form.html',
@@ -532,7 +602,7 @@ def view_server(server_name):
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
             current_user.id,
-            'server-test',
+            EntityType.SERVER_TEST.value,
             test_config.get('action'),
         )
 
@@ -576,12 +646,12 @@ def edit_server(server_name):
     change_message = (request.form.get('change_message') or '').strip()
     definition_text_current = form.definition.data or server.definition or ''
 
-    server_interactions = load_interaction_history(current_user.id, 'server', server.name)
+    server_interactions = load_interaction_history(current_user.id, EntityType.SERVER.value, server.name)
     test_interactions = []
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
             current_user.id,
-            'server-test',
+            EntityType.SERVER_TEST.value,
             test_config.get('action'),
         )
 
@@ -589,7 +659,7 @@ def edit_server(server_name):
 
     if form.validate_on_submit():
         save_action = (request.form.get('submit_action') or '').strip().lower()
-        if save_action == 'save-as':
+        if save_action == ActionType.SAVE_AS.value:
             if create_entity(
                 Server,
                 form,
@@ -727,5 +797,5 @@ def _wants_structured_response() -> bool:
     return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
-def _server_to_json(server: Server) -> Dict[str, object]:
+def _server_to_json(server: Server) -> dict[str, object]:
     return model_to_dict(server)
