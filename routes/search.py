@@ -354,7 +354,7 @@ def _cid_results(
             {
                 "id": getattr(cid_record, "id", None),
                 "name": display_name,
-                "name_highlighted": _highlight_full(display_name, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(display_name, query_lower),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
