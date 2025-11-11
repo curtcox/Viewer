@@ -46,12 +46,121 @@ from .history import _load_request_referers
 from .server_definition_parser import ServerDefinitionParser
 
 
-def _extract_context_references(
+def _generate_and_format_cid(content: bytes) -> str:
+    """Generate CID from content and return formatted string.
+
+    Args:
+        content: Content bytes to hash
+
+    Returns:
+        str: Formatted CID
+    """
+    return format_cid(generate_cid(content))
+
+
+def enrich_invocation_with_links(invocation: Any) -> Any:
+    """Add display links and labels to an invocation record.
+
+    Args:
+        invocation: Invocation record to enrich
+
+    Returns:
+        The same invocation object with added attributes
+    """
+    invocation.invocation_link = cid_path(
+        getattr(invocation, 'invocation_cid', None),
+        'json',
+    )
+    invocation.invocation_label = format_cid_short(
+        getattr(invocation, 'invocation_cid', None)
+    )
+    invocation.request_details_link = cid_path(
+        getattr(invocation, 'request_details_cid', None),
+        'json',
+    )
+    invocation.request_details_label = format_cid_short(
+        getattr(invocation, 'request_details_cid', None)
+    )
+    invocation.result_link = cid_path(
+        getattr(invocation, 'result_cid', None),
+        'txt',
+    )
+    invocation.result_label = format_cid_short(
+        getattr(invocation, 'result_cid', None)
+    )
+    invocation.servers_cid_link = cid_path(
+        getattr(invocation, 'servers_cid', None),
+        'json',
+    )
+    invocation.servers_cid_label = format_cid_short(
+        getattr(invocation, 'servers_cid', None)
+    )
+    return invocation
+
+
+def _prepare_server_form_context(
+    form: Any,
+    title: str,
+    server: Any,
+    history: list[Any],
+    invocations: list[Any],
+    test_config: dict[str, Any] | None,
+    interaction_history: list[Any],
+    test_interactions: list[Any],
+    syntax_css: str | None,
+    server_test_upload_url: str | None = None,
+) -> dict[str, object]:
+    """Prepare common context for server form rendering.
+
+    Args:
+        form: ServerForm instance
+        title: Page title
+        server: Server instance (None for new server)
+        history: Definition history
+        invocations: Server invocations
+        test_config: Test configuration
+        interaction_history: Interaction history
+        test_interactions: Test interactions
+        syntax_css: Syntax highlighting CSS
+        server_test_upload_url: Optional upload URL
+
+    Returns:
+        dict: Template context
+    """
+    context = {
+        'form': form,
+        'title': title,
+        'server': server,
+        'definition_history': history,
+        'server_invocations': invocations,
+        'server_invocation_count': len(invocations),
+        'server_test_config': test_config,
+        'interaction_history': interaction_history,
+        'ai_entity_name': server.name if server else ((form.name.data or '').strip()),
+        'ai_entity_name_field': form.name.id,
+        'server_test_interactions': test_interactions,
+        'syntax_css': syntax_css,
+    }
+    if server_test_upload_url:
+        context['server_test_upload_url'] = server_test_upload_url
+    return context
+
+
+def _extract_server_dependencies(
     definition: str | None,
     known_variables: Iterable[str] | None = None,
     known_secrets: Iterable[str] | None = None,
 ) -> dict[str, list[str]]:
-    """Return referenced variable and secret names from a server definition."""
+    """Extract variable and secret dependencies from server definition.
+
+    Args:
+        definition: Server definition text
+        known_variables: Optional set of known variable names
+        known_secrets: Optional set of known secret names
+
+    Returns:
+        dict: Mapping with 'variables' and 'secrets' keys containing dependency lists
+    """
     if not definition:
         return {'variables': [], 'secrets': []}
 
@@ -75,12 +184,23 @@ def _extract_context_references(
 
 
 def _extract_route_references(definition: str | None) -> list[str]:
-    """Return route-like paths referenced within the server definition."""
+    """Return route-like paths referenced within the server definition.
+
+    Args:
+        definition: Server definition text
+
+    Returns:
+        list: Route paths referenced in the definition
+    """
     parser = ServerDefinitionParser()
     return parser.extract_route_references(definition)
 
 
-def _build_server_test_config(server_name: str | None, definition: str | None):
+# Compatibility alias for backward compatibility
+_extract_context_references = _extract_server_dependencies
+
+
+def _build_server_test_config(server_name: str | None, definition: str | None) -> dict[str, Any] | None:
     """Create the context needed to render the server test form."""
 
     if not server_name:
@@ -198,7 +318,11 @@ def _render_server_test_formdown(server: Server, config: dict[str, object], defa
     return '\n'.join(lines).strip() + '\n'
 
 
-def _highlight_definition_content(definition: str | None, history, server_name: str):
+def _highlight_definition_content(
+    definition: str | None,
+    history: list[dict[str, Any]],
+    server_name: str
+) -> tuple[str | None, str | None]:
     """Return highlighted content for the current definition and history entries."""
 
     highlighted_definition = None
@@ -291,7 +415,7 @@ def upload_server_test_page(server_name):
         return response
 
     content_bytes = document.encode('utf-8')
-    cid_value = format_cid(generate_cid(content_bytes))
+    cid_value = _generate_and_format_cid(content_bytes)
     record_path = cid_path(cid_value)
     existing = get_cid_by_path(record_path) if record_path else None
     if not existing:
@@ -328,7 +452,7 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
 
     definition_text = server_definitions[server_name]
     definition_bytes = definition_text.encode('utf-8')
-    per_server_cid = format_cid(generate_cid(definition_bytes))
+    per_server_cid = _generate_and_format_cid(definition_bytes)
 
     snapshot_cid = format_cid(cid.path)
     snapshot_path = cid_path(snapshot_cid) if snapshot_cid else None
@@ -343,7 +467,7 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
     }
 
 
-def get_server_definition_history(user_id, server_name):
+def get_server_definition_history(user_id: str, server_name: str) -> list[dict[str, Any]]:
     """Get historical server definitions for a specific server.
 
     Args:
@@ -373,12 +497,24 @@ def get_server_definition_history(user_id, server_name):
     return history
 
 
-def update_server_definitions_cid(user_id):
-    """Update the server definitions CID after server changes."""
+def update_server_definitions_cid(user_id: str) -> str | None:
+    """Update the server definitions CID after server changes.
+
+    Args:
+        user_id: User ID
+
+    Returns:
+        str: Updated CID value or None
+    """
     return store_server_definitions_cid(user_id)
 
 
-def user_servers():
+def user_servers() -> list[Server]:
+    """Get all servers for the current user.
+
+    Returns:
+        list: User's server instances
+    """
     return get_user_servers(current_user.id)
 
 
@@ -435,7 +571,7 @@ def _build_server_row(
         dict: Server row data with references
     """
     definition_text = getattr(server, 'definition', '')
-    context_refs = _extract_context_references(
+    context_refs = _extract_server_dependencies(
         definition_text,
         known_variables=known_variables,
         known_secrets=known_secrets,
@@ -678,39 +814,20 @@ def edit_server(server_name):
                 content_text=definition_text_current,
             ):
                 return redirect(url_for('main.view_server', server_name=server.name))
-        return render_template(
-            'server_form.html',
-            form=form,
-            title=f'Edit Server "{server.name}"',
-            server=server,
-            definition_history=history,
-            server_invocations=invocations,
-            server_invocation_count=len(invocations),
-            server_test_config=test_config,
-            interaction_history=server_interactions,
-            ai_entity_name=server.name,
-            ai_entity_name_field=form.name.id,
-            server_test_interactions=test_interactions,
-            syntax_css=syntax_css,
-            server_test_upload_url=upload_url,
-        )
 
-    return render_template(
-        'server_form.html',
+    context = _prepare_server_form_context(
         form=form,
         title=f'Edit Server "{server.name}"',
         server=server,
-        definition_history=history,
-        server_invocations=invocations,
-        server_invocation_count=len(invocations),
-        server_test_config=test_config,
+        history=history,
+        invocations=invocations,
+        test_config=test_config,
         interaction_history=server_interactions,
-        ai_entity_name=server.name,
-        ai_entity_name_field=form.name.id,
-        server_test_interactions=test_interactions,
+        test_interactions=test_interactions,
         syntax_css=syntax_css,
         server_test_upload_url=upload_url,
     )
+    return render_template('server_form.html', **context)
 
 
 @main_bp.route('/servers/<server_name>/delete', methods=['POST'])
@@ -729,7 +846,7 @@ def delete_server(server_name):
     return redirect(url_for('main.servers'))
 
 
-def get_server_invocation_history(user_id, server_name):
+def get_server_invocation_history(user_id: str, server_name: str) -> list[Any]:
     """Return invocation events for a specific server ordered from newest to oldest."""
     invocations = get_user_server_invocations_by_server(user_id, server_name)
 
@@ -739,35 +856,7 @@ def get_server_invocation_history(user_id, server_name):
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        invocation.invocation_link = cid_path(
-            getattr(invocation, 'invocation_cid', None),
-            'json',
-        )
-        invocation.invocation_label = format_cid_short(
-            getattr(invocation, 'invocation_cid', None)
-        )
-        invocation.request_details_link = cid_path(
-            getattr(invocation, 'request_details_cid', None),
-            'json',
-        )
-        invocation.request_details_label = format_cid_short(
-            getattr(invocation, 'request_details_cid', None)
-        )
-        invocation.result_link = cid_path(
-            getattr(invocation, 'result_cid', None),
-            'txt',
-        )
-        invocation.result_label = format_cid_short(
-            getattr(invocation, 'result_cid', None)
-        )
-        invocation.servers_cid_link = cid_path(
-            getattr(invocation, 'servers_cid', None),
-            'json',
-        )
-        invocation.servers_cid_label = format_cid_short(
-            getattr(invocation, 'servers_cid', None)
-        )
-
+        enrich_invocation_with_links(invocation)
         request_cid = getattr(invocation, 'request_details_cid', None)
         invocation.request_referer = (
             referer_by_request.get(request_cid)
@@ -781,6 +870,7 @@ def get_server_invocation_history(user_id, server_name):
 __all__ = [
     'delete_server',
     'edit_server',
+    'enrich_invocation_with_links',
     'get_server_definition_history',
     'get_server_invocation_history',
     'new_server',
