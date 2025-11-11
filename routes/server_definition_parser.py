@@ -144,9 +144,9 @@ class ServerDefinitionParser:
         alias_refs = self.find_aliased_references(definition, aliases)
 
         combined: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
-        for source in combined:
-            combined[source].update(direct_refs.get(source, set()))
-            combined[source].update(alias_refs.get(source, set()))
+        for source, values in combined.items():
+            values.update(direct_refs.get(source, set()))
+            values.update(alias_refs.get(source, set()))
 
         if parameter_names:
             param_refs = self.find_parameter_references(
@@ -154,8 +154,8 @@ class ServerDefinitionParser:
                 known_variables,
                 known_secrets
             )
-            for source in combined:
-                combined[source].update(param_refs.get(source, set()))
+            for source, values in combined.items():
+                values.update(param_refs.get(source, set()))
 
         return {source: sorted(values) for source, values in combined.items()}
 
