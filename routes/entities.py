@@ -51,11 +51,18 @@ class EntityTypeRegistry:
             name: Entity name
 
         Returns:
-            Entity instance or None
+            Entity instance or None if not found
+
+        Raises:
+            ValueError: If entity_class is not registered in the registry
         """
         func = self._get_by_name_funcs.get(entity_class)
         if func is None:
-            return None
+            raise ValueError(
+                f"Unregistered entity type: {entity_class.__name__}. "
+                f"Entity type must be registered in EntityTypeRegistry._get_by_name_funcs. "
+                f"Registered types: {', '.join(cls.__name__ for cls in self._get_by_name_funcs.keys())}"
+            )
         return func(user_id, name)
 
     def update_definitions_cid(self, entity_class: Type, user_id: str) -> Optional[str]:

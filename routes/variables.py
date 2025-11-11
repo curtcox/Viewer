@@ -1,6 +1,4 @@
 """Variable management routes and helpers."""
-import json
-import re
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -30,8 +28,6 @@ from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 from .meta import inspect_path_metadata
 
-
-_VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 # Create bulk editor handler for variables
 _bulk_editor = create_variable_bulk_handler()

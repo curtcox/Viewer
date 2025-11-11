@@ -6,7 +6,7 @@ through JSON payloads, eliminating duplication across variables, secrets, etc.
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Generic, List, Optional, Pattern, Tuple, Type, TypeVar
+from typing import Dict, Generic, List, Optional, Pattern, Tuple, Type, TypeVar
 
 from constants import Patterns
 from db_access import delete_entity, save_entity

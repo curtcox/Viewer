@@ -1,6 +1,4 @@
 """Secret management routes and helpers."""
-import json
-import re
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
@@ -28,8 +26,6 @@ from . import main_bp
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 
-
-_SECRET_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 # Create bulk editor handler for secrets
 _bulk_editor = create_secret_bulk_handler()
