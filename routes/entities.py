@@ -61,7 +61,7 @@ class EntityTypeRegistry:
             raise ValueError(
                 f"Unregistered entity type: {entity_class.__name__}. "
                 f"Entity type must be registered in EntityTypeRegistry._get_by_name_funcs. "
-                f"Registered types: {', '.join(cls.__name__ for cls in self._get_by_name_funcs.keys())}"
+                f"Registered types: {', '.join(cls.__name__ for cls in self._get_by_name_funcs)}"
             )
         return func(user_id, name)
 
