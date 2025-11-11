@@ -41,105 +41,7 @@ from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .history import _load_request_referers
-
-_INDEX_ACCESS_PATTERN = re.compile(
-    r"context\[['\"](variables|secrets)['\"]\]\[['\"]([^'\"]+)['\"]\]"
-)
-
-_GET_ACCESS_PATTERN = re.compile(
-    r"context\[['\"](variables|secrets)['\"]\]\.get\(\s*['\"]([^'\"]+)['\"]"
-)
-
-_ALIAS_ASSIGNMENT_PATTERNS = (
-    re.compile(r"(\w+)\s*=\s*context\[['\"](variables|secrets)['\"]\]"),
-    re.compile(
-        r"(\w+)\s*=\s*context\.get\(\s*['\"](variables|secrets)['\"](?:\s*,[^)]*)?\)"
-    ),
-)
-
-_ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN = re.compile(r"(\w+)\s*=\s*(\w+)")
-
-_ROUTE_PATTERN = re.compile(r"['\"](/[-_A-Za-z0-9./]*)['\"]")
-
-
-def _find_aliases(definition: str) -> Dict[str, set[str]]:
-    """Return a mapping of context sources to their aliases."""
-    aliases: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-
-    for pattern in _ALIAS_ASSIGNMENT_PATTERNS:
-        for alias, source in pattern.findall(definition):
-            if alias and source:
-                aliases.setdefault(source, set()).add(alias)
-
-    for new_alias, existing_alias in _ALIAS_TO_ALIAS_ASSIGNMENT_PATTERN.findall(definition):
-        if not new_alias or not existing_alias:
-            continue
-        for source, source_aliases in aliases.items():
-            if existing_alias in source_aliases:
-                source_aliases.add(new_alias)
-    return aliases
-
-
-def _find_direct_references(definition: str) -> Dict[str, set[str]]:
-    """Find direct references to variables and secrets."""
-    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    for pattern in (_INDEX_ACCESS_PATTERN, _GET_ACCESS_PATTERN):
-        for source, name in pattern.findall(definition):
-            if source in matches and name:
-                matches[source].add(name)
-    return matches
-
-
-def _find_alias_references(definition: str, aliases: Dict[str, set[str]]) -> Dict[str, set[str]]:
-    """Find alias-based references to variables and secrets."""
-    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    for source, alias_names in aliases.items():
-        for alias in alias_names:
-            if not alias:
-                continue
-
-            alias_pattern = re.compile(
-                rf"(?<!\w){re.escape(alias)}"
-                r"(?:\[['\"]([^'\"]+)['\"]\]"
-                r"|\.get\(\s*['\"]([^'\"]+)['\"](?:\s*,[^)]*)?\))"
-            )
-
-            for match in alias_pattern.finditer(definition):
-                name = match.group(1) or match.group(2)
-                if source in matches and name:
-                    matches[source].add(name)
-    return matches
-
-
-def _find_parameter_references(
-    definition: str,
-    known_variables: Optional[Iterable[str]] = None,
-    known_secrets: Optional[Iterable[str]] = None,
-) -> Dict[str, set[str]]:
-    """Find references from function parameter names."""
-    matches: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    normalized = {
-        'variables': {str(name) for name in (known_variables or []) if isinstance(name, str) and name},
-        'secrets': {str(name) for name in (known_secrets or []) if isinstance(name, str) and name},
-    }
-
-    if not normalized['variables'] and not normalized['secrets']:
-        return matches
-
-    description = describe_main_function_parameters(definition)
-    if not description:
-        return matches
-
-    parameter_names = {
-        str(parameter.get('name'))
-        for parameter in description.get('parameters', [])
-        if isinstance(parameter, dict) and parameter.get('name')
-    }
-
-    for source in ('variables', 'secrets'):
-        for name in parameter_names & normalized[source]:
-            matches[source].add(name)
-    return matches
+from .server_definition_parser import ServerDefinitionParser
 
 
 def _extract_context_references(
@@ -151,40 +53,29 @@ def _extract_context_references(
     if not definition:
         return {'variables': [], 'secrets': []}
 
-    aliases = _find_aliases(definition)
-    direct_refs = _find_direct_references(definition)
-    alias_refs = _find_alias_references(definition, aliases)
-    param_refs = _find_parameter_references(definition, known_variables, known_secrets)
+    # Extract parameter names if available
+    parameter_names = None
+    description = describe_main_function_parameters(definition)
+    if description:
+        parameter_names = {
+            str(parameter.get('name'))
+            for parameter in description.get('parameters', [])
+            if isinstance(parameter, dict) and parameter.get('name')
+        }
 
-    combined: Dict[str, set[str]] = {'variables': set(), 'secrets': set()}
-    for source, values in combined.items():
-        values.update(direct_refs.get(source, set()))
-        values.update(alias_refs.get(source, set()))
-        values.update(param_refs.get(source, set()))
-
-    return {source: sorted(values) for source, values in combined.items()}
+    parser = ServerDefinitionParser()
+    return parser.extract_context_references(
+        definition,
+        known_variables=known_variables,
+        known_secrets=known_secrets,
+        parameter_names=parameter_names
+    )
 
 
 def _extract_route_references(definition: Optional[str]) -> List[str]:
     """Return route-like paths referenced within the server definition."""
-
-    if not definition:
-        return []
-
-    candidates: set[str] = set()
-    for match in _ROUTE_PATTERN.finditer(definition):
-        value = match.group(1)
-        if not value or value in {"/", "//"}:
-            continue
-        if value.startswith('//'):
-            continue
-        if value.startswith('/http') or value.startswith('/https'):
-            continue
-        if not re.search(r"[A-Za-z]", value):
-            continue
-        candidates.add(value)
-
-    return sorted(candidates)
+    parser = ServerDefinitionParser()
+    return parser.extract_route_references(definition)
 
 
 def _build_server_test_config(server_name: Optional[str], definition: Optional[str]):
