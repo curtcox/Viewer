@@ -27,6 +27,7 @@ from . import main_bp
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 from .meta import inspect_path_metadata
+from .response_utils import wants_structured_response
 
 
 # Create bulk editor handler for variables
@@ -264,7 +265,7 @@ def variables():
     variable_definitions_cid = None
     if variables_list:
         variable_definitions_cid = get_current_variable_definitions_cid(current_user.id)
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify([_variable_to_json(variable) for variable in variables_list])
     return render_template(
         'variables.html',
@@ -383,7 +384,7 @@ def view_variable(variable_name):
 
     matching_route = build_matching_route_info(variable.definition)
 
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify(_variable_to_json(variable))
 
     return render_template(
@@ -468,10 +469,6 @@ __all__ = [
     'variables',
     'view_variable',
 ]
-
-
-def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _variable_to_json(variable: Variable) -> Dict[str, Any]:

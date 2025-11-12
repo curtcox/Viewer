@@ -41,6 +41,7 @@ from models import Alias
 from serialization import model_to_dict
 
 from .enabled import extract_enabled_value_from_request, request_prefers_json
+from .response_utils import wants_structured_response
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
@@ -319,7 +320,7 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
 def aliases():
     """Display the authenticated user's aliases."""
     alias_list = get_user_aliases(current_user.id)
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify([_alias_to_json(alias) for alias in alias_list])
     return render_template('aliases.html', aliases=alias_list)
 
@@ -451,7 +452,7 @@ def view_alias(alias_name: str):
         _serialize_definition_line(entry) for entry in definition_summary
     ]
 
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify(_alias_to_json(alias))
 
     return render_template(
@@ -775,10 +776,6 @@ __all__ = [
     'alias_match_preview',
     'alias_definition_status',
 ]
-
-
-def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _alias_to_json(alias: Alias) -> Dict[str, Any]:

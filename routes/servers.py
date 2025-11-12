@@ -43,6 +43,7 @@ from .core import derive_name_from_path
 from .entities import create_entity, update_entity
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .history import _load_request_referers
+from .response_utils import wants_structured_response
 from .server_definition_parser import ServerDefinitionParser
 
 
@@ -476,7 +477,7 @@ def _get_known_entity_names(user_id: str) -> tuple[set[str], set[str]]:
 def servers():
     """Display user's servers."""
     servers_list = user_servers()
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify([_server_to_json(server) for server in servers_list])
 
     server_definitions_cid = None
@@ -606,7 +607,7 @@ def view_server(server_name):
             test_config.get('action'),
         )
 
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify(_server_to_json(server))
 
     return render_template(
@@ -791,10 +792,6 @@ __all__ = [
     'upload_server_test_page',
     'validate_server_definition',
 ]
-
-
-def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _server_to_json(server: Server) -> dict[str, object]:

@@ -25,6 +25,7 @@ from serialization import model_to_dict
 from . import main_bp
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
+from .response_utils import wants_structured_response
 
 
 # Create bulk editor handler for secrets
@@ -62,7 +63,7 @@ def secrets():
     secret_definitions_cid = None
     if secrets_list:
         secret_definitions_cid = get_current_secret_definitions_cid(current_user.id)
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify([_secret_to_json(secret) for secret in secrets_list])
     return render_template(
         'secrets.html',
@@ -178,7 +179,7 @@ def view_secret(secret_name):
     if not secret:
         abort(404)
 
-    if _wants_structured_response():
+    if wants_structured_response():
         return jsonify(_secret_to_json(secret))
 
     return render_template('secret_view.html', secret=secret)
@@ -252,10 +253,6 @@ __all__ = [
     'user_secrets',
     'view_secret',
 ]
-
-
-def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
 
 
 def _secret_to_json(secret: Secret) -> Dict[str, object]:
