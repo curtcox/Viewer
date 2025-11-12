@@ -5,9 +5,9 @@ import subprocess
 from contextlib import closing
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple, Union
 
-from flask import abort, current_app, render_template, send_file
+from flask import Response, abort, current_app, render_template, send_file
 from sqlalchemy import MetaData, Table, inspect, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -159,7 +159,7 @@ def _directory_listing(path: str, tracked_paths: Iterable[str]) -> Tuple[List[st
     return sorted(directories), sorted(files)
 
 
-def _render_directory(path: str, tracked_paths: frozenset[str]):
+def _render_directory(path: str, tracked_paths: frozenset[str]) -> str:
     """Render the directory listing template."""
     directories, files = _directory_listing(path, tracked_paths)
     breadcrumbs = _build_breadcrumbs(path)
@@ -182,7 +182,7 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
     )
 
 
-def _render_file(path: str, root_path: Path):
+def _render_file(path: str, root_path: Path) -> Union[str, Response]:
     """Render a file from the repository, falling back to download for binary data."""
     repository_root = root_path.resolve()
     file_path = (repository_root / path).resolve()

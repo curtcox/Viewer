@@ -76,7 +76,7 @@ class EntityRouteConfig:
         self.build_view_context = build_view_context
 
 
-def create_list_route(bp: Blueprint, config: EntityRouteConfig):
+def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], Any]:
     """Create the list route: GET /{entities}
 
     Args:
@@ -87,7 +87,7 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig):
         The route function
     """
     @bp.route(f'/{config.plural_name}')
-    def list_entities():
+    def list_entities() -> Any:
         """List all entities for the current user."""
         entities_list = config.get_user_entities(current_user.id)
 
@@ -112,7 +112,7 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig):
     return list_entities
 
 
-def create_view_route(bp: Blueprint, config: EntityRouteConfig):
+def create_view_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Any]:
     """Create the view route: GET /{entities}/<name>
 
     Args:
@@ -123,7 +123,7 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig):
         The route function
     """
     @bp.route(f'/{config.plural_name}/<{config.param_name}>')
-    def view_entity(**kwargs):
+    def view_entity(**kwargs: Any) -> Any:
         """View a specific entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
@@ -146,7 +146,7 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig):
     return view_entity
 
 
-def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
+def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Any]:
     """Create the enabled toggle route: POST /{entities}/<name>/enabled
 
     Args:
@@ -157,7 +157,7 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
         The route function
     """
     @bp.route(f'/{config.plural_name}/<{config.param_name}>/enabled', methods=['POST'])
-    def update_entity_enabled(**kwargs):
+    def update_entity_enabled(**kwargs: Any) -> Any:
         """Toggle the enabled status for an entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
@@ -185,7 +185,7 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
     return update_entity_enabled
 
 
-def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
+def create_delete_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Any]:
     """Create the delete route: POST /{entities}/<name>/delete
 
     Args:
@@ -196,7 +196,7 @@ def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
         The route function
     """
     @bp.route(f'/{config.plural_name}/<{config.param_name}>/delete', methods=['POST'])
-    def delete_entity_route(**kwargs):
+    def delete_entity_route(**kwargs: Any) -> Any:
         """Delete a specific entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
