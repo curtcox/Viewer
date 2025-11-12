@@ -36,14 +36,25 @@ MAX_UPLOAD_HISTORY: int = 100
 PREVIEW_LENGTH: int = 20
 
 _ALIAS_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+_FALSY_VALUES = frozenset({'0', 'false', 'off', 'no'})
 
 
 AliasLookup = dict[str, dict[str, dict[str, str | None]]]
 
 
-def _lookup_key_variants(value: str | None) -> set[str]:
-    """Return candidate lookup keys for the supplied path."""
+def _normalize_path_for_lookup(value: str | None) -> set[str]:
+    """Return normalized path variations for alias lookup.
 
+    Handles cases like:
+    - With/without leading slash
+    - With/without trailing slash
+
+    Args:
+        value: Path to normalize
+
+    Returns:
+        set: Normalized path variations for lookup
+    """
     variants: set[str] = set()
     if value is None:
         return variants
@@ -67,8 +78,26 @@ def _lookup_key_variants(value: str | None) -> set[str]:
 
 
 def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> AliasLookup:
-    """Return a mapping of target paths to aliases referencing them."""
+    """Build a reverse index mapping target paths to aliases.
 
+    Creates a lookup table where keys are normalized path variants and values
+    are dictionaries of aliases that reference those paths. This enables
+    efficient "what aliases point to this path?" queries.
+
+    Args:
+        user_id: User ID to filter aliases
+        aliases: Optional pre-fetched alias list (avoids DB query)
+
+    Returns:
+        Nested dict: {path_variant: {alias_name: alias_info}}
+
+    Example:
+        {
+            "/api/endpoint": {
+                "my_alias": {"name": "my_alias", "url": "/alias/my_alias", ...}
+            }
+        }
+    """
     lookup: AliasLookup = {}
     source = aliases if aliases is not None else get_user_aliases(user_id)
 
@@ -92,7 +121,7 @@ def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> Alias
             if not target_path:
                 continue
 
-            for key in _lookup_key_variants(target_path):
+            for key in _normalize_path_for_lookup(target_path):
                 bucket = lookup.setdefault(key, {})
                 bucket[name] = entry
 
@@ -106,7 +135,7 @@ def _alias_matches_for(target_path: str | None, lookup: AliasLookup | None) -> l
         return []
 
     matches: dict[str, dict[str, str | None]] = {}
-    for key in _lookup_key_variants(target_path):
+    for key in _normalize_path_for_lookup(target_path):
         bucket = lookup.get(key)
         if not bucket:
             continue
@@ -133,12 +162,21 @@ def _alias_form_url(target_path: str | None, name_suggestion: str | None = None)
 
 
 def _parse_enabled(value: str | None) -> bool:
-    """Return True when a category should be included in the search."""
+    """Return True when a category should be included in search.
 
+    Treats None and empty strings as True (enabled by default).
+    Recognizes: '0', 'false', 'off', 'no' as False.
+
+    Args:
+        value: String value to parse
+
+    Returns:
+        bool: True if category should be included
+    """
     if value is None:
         return True
     normalized = value.strip().lower()
-    return normalized not in {"0", "false", "off", "no"}
+    return normalized not in _FALSY_VALUES
 
 
 def _alias_results(

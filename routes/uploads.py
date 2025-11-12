@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timezone
+from typing import Any
 
 import logfire
 from constants import ActionType, EntityType, UploadType
@@ -49,11 +50,48 @@ from upload_templates import get_upload_templates
 from . import main_bp
 from .cid_helper import CidHelper
 from .history import _load_request_referers
+from .servers import enrich_invocation_with_links
 
 # Display constants
 CONTENT_PREVIEW_LENGTH: int = 20
 
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
+
+
+def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str | None]:
+    """Validate alias name and check for conflicts.
+
+    Args:
+        alias_name: Alias name to validate
+        user_id: User ID for conflict checking
+
+    Returns:
+        tuple: (validated_alias_name, error_message)
+               Returns (None, error_message) if validation fails
+               Returns (alias_name, None) if validation succeeds
+    """
+    if not alias_name:
+        return None, None
+
+    existing = get_alias_by_name(user_id, alias_name)
+    if existing:
+        return None, 'Alias with this name already exists.'
+
+    return alias_name, None
+
+
+def _save_cid_content(text_content: str, user_id: str) -> str:
+    """Save content and return CID, flashing appropriate messages.
+
+    Args:
+        text_content: Text content to save
+        user_id: User ID for ownership
+
+    Returns:
+        str: CID value (formatted)
+    """
+    file_content = text_content.encode('utf-8')
+    return _store_or_find_content(file_content, user_id)
 
 
 def _shorten_cid(cid: str | None, length: int = 6) -> str:
@@ -62,8 +100,15 @@ def _shorten_cid(cid: str | None, length: int = 6) -> str:
 
 
 def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Variable], Variable | None]:
-    """Return the user's variables and the one currently pointing at ``cid_value``."""
+    """Return the user's variables and the one currently pointing at ``cid_value``.
 
+    Args:
+        cid_value: CID to search for
+        user_id: User ID
+
+    Returns:
+        tuple: (list of all variables, assigned variable or None)
+    """
     variables = get_user_variables(user_id)
     normalized = CidHelper.normalize(cid_value)
     if not normalized:
@@ -113,8 +158,14 @@ def _render_upload_success(
 
 @logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
 def _persist_alias_from_upload(alias: Alias) -> Alias:
-    """Persist alias changes that originate from upload workflows."""
+    """Persist alias changes that originate from upload workflows.
 
+    Args:
+        alias: Alias instance to persist
+
+    Returns:
+        Alias: The persisted alias
+    """
     save_entity(alias)
     return alias
 
@@ -151,7 +202,16 @@ def _determine_view_extension(
     original_filename: str | None,
     detected_mime_type: str | None
 ) -> str:
-    """Determine the view URL extension based on upload type and metadata."""
+    """Determine the view URL extension based on upload type and metadata.
+
+    Args:
+        upload_type: Type of upload (file, text, url)
+        original_filename: Original filename if available
+        detected_mime_type: Detected MIME type if available
+
+    Returns:
+        str: View URL extension
+    """
     if upload_type == UploadType.TEXT.value:
         return "txt"
 
@@ -166,8 +226,17 @@ def _determine_view_extension(
     return ""
 
 
-def _determine_filename(upload_type: str, original_filename: str | None, form) -> str | None:
-    """Determine the filename based on upload type."""
+def _determine_filename(upload_type: str, original_filename: str | None, form: Any) -> str | None:
+    """Determine the filename based on upload type.
+
+    Args:
+        upload_type: Type of upload
+        original_filename: Original filename if available
+        form: Upload form instance
+
+    Returns:
+        str: Filename or None
+    """
     if upload_type == UploadType.FILE.value:
         return original_filename
     if upload_type == UploadType.URL.value:
@@ -204,7 +273,7 @@ def _store_or_find_content(file_content: bytes, user_id: str) -> str:
     return cid_value
 
 
-def _record_upload_interaction(form, change_message: str, user_id: str) -> None:
+def _record_upload_interaction(form: Any, change_message: str, user_id: str) -> None:
     """Record interaction for text uploads.
 
     Args:
@@ -225,7 +294,7 @@ def _record_upload_interaction(form, change_message: str, user_id: str) -> None:
         )
 
 
-def _process_upload_submission(form, change_message: str):
+def _process_upload_submission(form: Any, change_message: str) -> Any:
     """Process a validated upload form submission.
 
     Args:
@@ -233,7 +302,7 @@ def _process_upload_submission(form, change_message: str):
         change_message: User's change message
 
     Returns:
-        Response: Upload success page
+        Response: Upload success page or None to signal form render
     """
     # Process upload
     try:
@@ -377,43 +446,24 @@ def edit_cid(cid_prefix):
         alias_name_input = ''
         if not alias_for_cid:
             alias_name_input = form.alias_name.data or ''
-            if alias_name_input:
-                existing_alias = get_alias_by_name(current_user.id, alias_name_input)
-                if existing_alias:
-                    form.alias_name.errors.append('Alias with this name already exists.')
-                    return render_template(
-                        'edit_cid.html',
-                        form=form,
-                        cid=full_cid,
-                        submit_label=submit_label,
-                        current_alias_name=getattr(alias_for_cid, 'name', None),
-                        show_alias_field=alias_for_cid is None,
-                        interaction_history=interaction_history,
-                        content_references=content_references,
-                    )
+            validated_alias, error_message = _validate_alias_name(alias_name_input, current_user.id)
+            if alias_name_input and error_message:
+                form.alias_name.errors.append(error_message)
+                return render_template(
+                    'edit_cid.html',
+                    form=form,
+                    cid=full_cid,
+                    submit_label=submit_label,
+                    current_alias_name=getattr(alias_for_cid, 'name', None),
+                    show_alias_field=alias_for_cid is None,
+                    interaction_history=interaction_history,
+                    content_references=content_references,
+                )
+            alias_name_input = validated_alias or ''
 
         text_content = form.text_content.data or ''
         change_message = (request.form.get('change_message') or '').strip()
-        file_content = text_content.encode('utf-8')
-        cid_value = format_cid(generate_cid(file_content))
-        cid_record_path = cid_path(cid_value)
-        existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-
-        if existing:
-            flash(
-                Markup(
-                    f"Content with this hash already exists! {render_cid_link(cid_value)}"
-                ),
-                'warning',
-            )
-        else:
-            create_cid_record(cid_value, file_content, current_user.id)
-            flash(
-                Markup(
-                    f"Content uploaded successfully! {render_cid_link(cid_value)}"
-                ),
-                'success',
-            )
+        cid_value = _save_cid_content(text_content, current_user.id)
 
         new_target_path = cid_path(cid_value)
         if alias_for_cid:
@@ -465,7 +515,7 @@ def edit_cid(cid_prefix):
 
         return _render_upload_success(
             cid_value,
-            file_size=len(file_content),
+            file_size=len(text_content.encode('utf-8')),
             detected_mime_type='text/plain',
             view_url_extension='txt',
             filename=None,
@@ -588,37 +638,10 @@ def server_events():
     referer_by_request = _load_request_referers(invocations)
 
     for invocation in invocations:
-        invocation.invocation_link = cid_path(
-            getattr(invocation, 'invocation_cid', None),
-            'json',
-        )
-        invocation.invocation_label = _shorten_cid(
-            getattr(invocation, 'invocation_cid', None)
-        )
-        invocation.request_details_link = cid_path(
-            getattr(invocation, 'request_details_cid', None),
-            'json',
-        )
-        invocation.request_details_label = _shorten_cid(
-            getattr(invocation, 'request_details_cid', None)
-        )
-        invocation.result_link = cid_path(
-            getattr(invocation, 'result_cid', None),
-            'txt',
-        )
-        invocation.result_label = _shorten_cid(
-            getattr(invocation, 'result_cid', None)
-        )
+        enrich_invocation_with_links(invocation)
         invocation.server_link = url_for(
             'main.view_server',
             server_name=invocation.server_name,
-        )
-        invocation.servers_cid_link = cid_path(
-            getattr(invocation, 'servers_cid', None),
-            'json',
-        )
-        invocation.servers_cid_label = _shorten_cid(
-            getattr(invocation, 'servers_cid', None)
         )
         request_cid = getattr(invocation, 'request_details_cid', None)
         invocation.request_referer = referer_by_request.get(request_cid) if request_cid else None
@@ -635,8 +658,12 @@ def screenshot_server_events_demo():
     abort(404)
 
 
-def _attach_creation_sources(user_uploads):
-    """Annotate uploads with information about how they were created."""
+def _attach_creation_sources(user_uploads: list[Any]) -> None:
+    """Annotate uploads with information about how they were created.
+
+    Args:
+        user_uploads: List of upload records to annotate
+    """
     if not user_uploads:
         return
 
