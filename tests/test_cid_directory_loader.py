@@ -180,21 +180,21 @@ class TestCidDirectoryLoader(unittest.TestCase):
     def test_existing_cid_with_different_content_causes_exit(self):
         """Test that existing CID with different content causes SystemExit."""
         with self.app.app_context():
-            # Create and load a CID
-            original_content = b"original content"
-            cid_value = generate_cid(original_content)
+            # Create correct file content and its CID
+            correct_content = b"correct file content"
+            cid_value = generate_cid(correct_content)
 
-            # Manually insert the CID into database
+            # Manually insert the CID into database with WRONG content
+            # This simulates database corruption
             from db_access import create_cid_record
-            create_cid_record(cid_value, original_content, self.user_id)
+            wrong_content = b"corrupted database content"
+            create_cid_record(cid_value, wrong_content, self.user_id)
 
-            # Now create a file with same CID but different content
-            # This simulates a hash collision or data corruption
-            different_content = b"different content"
+            # Create a file with correct content that matches its CID filename
             cid_file = self.cid_dir / cid_value
-            cid_file.write_bytes(different_content)
+            cid_file.write_bytes(correct_content)
 
-            # Should raise SystemExit
+            # Should raise SystemExit because DB has different content for this CID
             with self.assertRaises(SystemExit) as context:
                 load_cids_from_directory(self.app, self.user_id)
 
