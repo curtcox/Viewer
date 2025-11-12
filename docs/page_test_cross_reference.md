@@ -29,48 +29,6 @@ This document maps site pages to the automated checks that exercise them.
 - alias_management.spec — Alias form responds the same for all users
 - alias_management.spec — Users can create aliases through the form
 
-## templates/alias_view.html
-
-**Routes:**
-- `routes/aliases.py::view_alias` (paths: `/aliases/<alias_name>`)
-
-**Unit tests:**
-- `tests/test_alias_routing.py::TestAliasRouting::test_view_alias_displays_nested_alias_paths`
-- `tests/test_alias_routing.py::TestAliasRouting::test_view_alias_page`
-- `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_detail_displays_cid_link_for_cid_target`
-
-**Integration tests:**
-- `tests/integration/test_alias_pages.py::test_alias_detail_page_displays_alias_information`
-- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_returns_record`
-- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_alias_detail_endpoint_supports_xml_extension`
-
-**Specs:**
-- _None_
-
-## templates/aliases.html
-
-**Routes:**
-- `routes/aliases.py::aliases` (paths: `/aliases`)
-
-**Unit tests:**
-- `tests/test_alias_routing.py::TestAliasRouting::test_aliases_route_lists_aliases`
-- `tests/test_alias_routing.py::TestAliasRouting::test_aliases_route_lists_aliases_for_default_user`
-- `tests/test_error_page_source_links.py::TestErrorPageSourceLinks::test_aliases_error_shows_source_links_in_stack_trace`
-- `tests/test_routes_comprehensive.py::TestAliasRoutes::test_alias_list_displays_cid_link_for_cid_target`
-
-**Integration tests:**
-- `tests/integration/test_alias_pages.py::test_aliases_page_includes_enabled_toggle`
-- `tests/integration/test_alias_pages.py::test_aliases_page_lists_user_aliases`
-- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_honors_plain_text_accept_header`
-- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_json_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_aliases_endpoint_supports_xml_extension`
-
-**Specs:**
-- alias_management.spec — Aliases list shows available shortcuts
-- content_negotiation.spec — Accept headers request alternate representations
-
 ## templates/edit_cid.html
 
 **Routes:**
@@ -253,44 +211,6 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - secret_form.spec — Secret form is accessible
 
-## templates/secret_view.html
-
-**Routes:**
-- `routes/secrets.py::view_secret` (paths: `/secrets/<secret_name>`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_missing_returns_404`
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_view_secret_page_displays_secret_details`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_returns_record`
-- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_secret_detail_endpoint_supports_xml_extension`
-- `tests/integration/test_secret_pages.py::test_secret_detail_page_displays_secret_information`
-
-**Specs:**
-- _None_
-
-## templates/secrets.html
-
-**Routes:**
-- `routes/secrets.py::secrets` (paths: `/secrets`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_new_secret_post_persists_secret_and_flashes_success`
-- `tests/test_routes_comprehensive.py::TestSecretRoutes::test_secrets_list_returns_ok_for_authenticated_user`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_json_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_secrets_endpoint_supports_xml_extension`
-- `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
-- `tests/integration/test_secret_pages.py::test_secrets_list_page_displays_user_secrets`
-- `tests/integration/test_secret_pages.py::test_secrets_page_includes_enabled_toggle`
-
-**Specs:**
-- secrets.spec — Secrets list is accessible
-
 ## templates/secrets_bulk_edit.html
 
 **Routes:**
@@ -346,49 +266,6 @@ This document maps site pages to the automated checks that exercise them.
 **Specs:**
 - server_form.spec — New server form is accessible
 - server_form.spec — Server form stays available without a user session
-
-## templates/server_view.html
-
-**Routes:**
-- `routes/servers.py::view_server` (paths: `/servers/<server_name>`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_nonexistent_server_returns_404`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_falls_back_to_query_test_form`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_includes_main_test_form`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_invocation_history_table`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_view_server_renders_referenced_entities_and_returns_ok`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_returns_record`
-- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_server_detail_endpoint_supports_xml_extension`
-- `tests/integration/test_server_pages.py::test_server_detail_page_displays_server_information`
-
-**Specs:**
-- _None_
-
-## templates/servers.html
-
-**Routes:**
-- `routes/servers.py::servers` (paths: `/servers`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_new_server_post_creates_template_backed_server`
-- `tests/test_routes_comprehensive.py::TestServerRoutes::test_servers_list_shows_overview_and_create_link`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_json_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_servers_endpoint_supports_xml_extension`
-- `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
-- `tests/integration/test_server_pages.py::test_servers_page_includes_enabled_toggle`
-- `tests/integration/test_server_pages.py::test_servers_page_links_auto_main_context_matches`
-- `tests/integration/test_server_pages.py::test_servers_page_lists_user_servers`
-- `tests/integration/test_server_pages.py::test_servers_page_shows_referenced_variables_and_secrets`
-
-**Specs:**
-- _None_
 
 ## templates/settings.html
 
@@ -551,43 +428,6 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
 - `tests/integration/test_variable_pages.py::test_new_variable_form_includes_templates`
 - `tests/integration/test_variable_pages.py::test_new_variable_form_renders_for_authenticated_user`
-
-**Specs:**
-- _None_
-
-## templates/variable_view.html
-
-**Routes:**
-- `routes/variables.py::view_variable` (paths: `/variables/<variable_name>`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variable_view_shows_matching_route_summary`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_returns_record`
-- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_variable_detail_endpoint_supports_xml_extension`
-- `tests/integration/test_variable_pages.py::test_variable_detail_page_displays_variable_information`
-
-**Specs:**
-- _None_
-
-## templates/variables.html
-
-**Routes:**
-- `routes/variables.py::variables` (paths: `/variables`)
-
-**Unit tests:**
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_new_variable_post_creates_template_variable`
-- `tests/test_routes_comprehensive.py::TestVariableRoutes::test_variables_list_shows_sorted_user_variables`
-
-**Integration tests:**
-- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_csv_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_json_extension`
-- `tests/integration/test_content_negotiation_integration.py::test_variables_endpoint_supports_xml_extension`
-- `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
-- `tests/integration/test_variable_pages.py::test_variables_page_includes_enabled_toggle`
-- `tests/integration/test_variable_pages.py::test_variables_page_lists_user_variables`
 
 **Specs:**
 - _None_
