@@ -8,11 +8,11 @@ from io import StringIO
 
 import pytest
 
+import main
 from app import create_app, db
 from cid_utils import generate_cid
 from db_access import create_cid_record
 from identity import ensure_default_user
-from main import handle_boot_cid_import
 from models import Alias, Server
 
 pytestmark = pytest.mark.integration
@@ -36,7 +36,14 @@ class TestBootCidCLI:
             self.user = ensure_default_user()  # pylint: disable=attribute-defined-outside-init
             self.user_id = self.user.id  # pylint: disable=attribute-defined-outside-init
 
+        # Monkeypatch main.app so handle_boot_cid_import uses our test app
+        original_app = main.app
+        main.app = self.app
+
         yield
+
+        # Restore original app
+        main.app = original_app
 
         with self.app.app_context():
             db.session.remove()
@@ -72,7 +79,7 @@ class TestBootCidCLI:
 
         try:
             # Call the CLI handler (should not raise)
-            handle_boot_cid_import(boot_cid)
+            main.handle_boot_cid_import(boot_cid)
         finally:
             sys.stdout = old_stdout
 
@@ -107,7 +114,7 @@ class TestBootCidCLI:
         try:
             # Should exit with status 1
             with pytest.raises(SystemExit) as exc_info:
-                handle_boot_cid_import(boot_cid)
+                main.handle_boot_cid_import(boot_cid)
 
             # Verify exit code
             assert exc_info.value.code == 1
@@ -130,7 +137,7 @@ class TestBootCidCLI:
         try:
             # Should exit with status 1
             with pytest.raises(SystemExit) as exc_info:
-                handle_boot_cid_import("not-a-valid-cid")
+                main.handle_boot_cid_import("not-a-valid-cid")
 
             # Verify exit code
             assert exc_info.value.code == 1
@@ -183,7 +190,7 @@ class TestBootCidCLI:
         sys.stdout = captured_output
 
         try:
-            handle_boot_cid_import(boot_cid)
+            main.handle_boot_cid_import(boot_cid)
         finally:
             sys.stdout = old_stdout
 
@@ -226,7 +233,7 @@ class TestBootCidCLI:
         sys.stdout = captured_output
 
         try:
-            handle_boot_cid_import(boot_cid)
+            main.handle_boot_cid_import(boot_cid)
         finally:
             sys.stdout = old_stdout
 
