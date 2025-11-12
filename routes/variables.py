@@ -1,9 +1,8 @@
 """Variable management routes and helpers."""
-from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_variable_bulk_handler
 from cid_utils import (
@@ -11,11 +10,9 @@ from cid_utils import (
     store_variable_definitions_cid,
 )
 from db_access import (
-    delete_entity,
     get_user_template_variables,
     get_user_variables,
     get_variable_by_name,
-    save_entity,
 )
 from forms import BulkVariablesForm, VariableForm
 from identity import current_user
@@ -24,10 +21,9 @@ from models import Variable
 from serialization import model_to_dict
 
 from . import main_bp
-from .enabled import extract_enabled_value_from_request, request_prefers_json
+from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 from .entities import create_entity, update_entity
 from .meta import inspect_path_metadata
-from .response_utils import wants_structured_response
 
 
 # Create bulk editor handler for variables
@@ -220,6 +216,21 @@ def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str
     return "Unknown resolution", []
 
 
+def _build_variables_list_context(variables_list: list, user_id: str) -> Dict[str, Any]:
+    """Build extra context for variables list view."""
+    context = {}
+    if variables_list:
+        context['variable_definitions_cid'] = get_current_variable_definitions_cid(user_id)
+    return context
+
+
+def _build_variable_view_context(variable: Variable, user_id: str) -> Dict[str, Any]:
+    """Build extra context for variable view page."""
+    return {
+        'matching_route': build_matching_route_info(variable.definition)
+    }
+
+
 def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
     if not value or not isinstance(value, str):
         return None
@@ -258,44 +269,21 @@ def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
     return info
 
 
-@main_bp.route('/variables')
-def variables():
-    """Display user's variables."""
-    variables_list = user_variables()
-    variable_definitions_cid = None
-    if variables_list:
-        variable_definitions_cid = get_current_variable_definitions_cid(current_user.id)
-    if wants_structured_response():
-        return jsonify([_variable_to_json(variable) for variable in variables_list])
-    return render_template(
-        'variables.html',
-        variables=variables_list,
-        variable_definitions_cid=variable_definitions_cid,
-    )
+# Configure and register standard CRUD routes using the factory
+_variable_config = EntityRouteConfig(
+    entity_class=Variable,
+    entity_type='variable',
+    plural_name='variables',
+    get_by_name_func=get_variable_by_name,
+    get_user_entities_func=get_user_variables,
+    form_class=VariableForm,
+    update_cid_func=update_variable_definitions_cid,
+    to_json_func=lambda v: model_to_dict(v),
+    build_list_context=_build_variables_list_context,
+    build_view_context=_build_variable_view_context,
+)
 
-
-@main_bp.route('/variables/<variable_name>/enabled', methods=['POST'])
-def update_variable_enabled(variable_name: str):
-    """Update the enabled status for a specific variable."""
-
-    variable = get_variable_by_name(current_user.id, variable_name)
-    if not variable:
-        abort(404)
-
-    try:
-        enabled_value = extract_enabled_value_from_request()
-    except ValueError:
-        abort(400)
-
-    variable.enabled = enabled_value
-    variable.updated_at = datetime.now(timezone.utc)
-    save_entity(variable)
-    update_variable_definitions_cid(current_user.id)
-
-    if request_prefers_json():
-        return jsonify({'variable': variable.name, 'enabled': variable.enabled})
-
-    return redirect(url_for('main.variables'))
+register_standard_crud_routes(main_bp, _variable_config)
 
 
 @main_bp.route('/variables/_/edit', methods=['GET', 'POST'])
@@ -375,25 +363,6 @@ def new_variable():
     )
 
 
-@main_bp.route('/variables/<variable_name>')
-def view_variable(variable_name):
-    """View a specific variable."""
-    variable = get_variable_by_name(current_user.id, variable_name)
-    if not variable:
-        abort(404)
-
-    matching_route = build_matching_route_info(variable.definition)
-
-    if wants_structured_response():
-        return jsonify(_variable_to_json(variable))
-
-    return render_template(
-        'variable_view.html',
-        variable=variable,
-        matching_route=matching_route,
-    )
-
-
 @main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
 def edit_variable(variable_name):
     """Edit a specific variable."""
@@ -445,31 +414,10 @@ def edit_variable(variable_name):
     )
 
 
-@main_bp.route('/variables/<variable_name>/delete', methods=['POST'])
-def delete_variable(variable_name):
-    """Delete a specific variable."""
-    variable = get_variable_by_name(current_user.id, variable_name)
-    if not variable:
-        abort(404)
-
-    delete_entity(variable)
-    update_variable_definitions_cid(current_user.id)
-
-    flash(f'Variable "{variable_name}" deleted successfully!', 'success')
-    return redirect(url_for('main.variables'))
-
-
 __all__ = [
     'bulk_edit_variables',
-    'delete_variable',
     'edit_variable',
     'new_variable',
     'update_variable_definitions_cid',
     'user_variables',
-    'variables',
-    'view_variable',
 ]
-
-
-def _variable_to_json(variable: Variable) -> Dict[str, Any]:
-    return model_to_dict(variable)
