@@ -8,6 +8,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from flask import Blueprint, Flask
+from werkzeug.exceptions import NotFound
 
 from routes.crud_factory import (
     EntityRouteConfig,
@@ -189,7 +190,7 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         self.app.register_blueprint(bp)
 
         # Check that the route was registered
-        rules = [rule for rule in self.app.url_map.iter_rules()]
+        rules = list(self.app.url_map.iter_rules())
         self.assertTrue(any(rule.rule == '/tests' for rule in rules))
 
     def test_create_view_route_uses_custom_param_name(self):
@@ -271,6 +272,9 @@ class TestCrudFactoryRoutes(unittest.TestCase):
     def test_view_route_aborts_404_when_entity_not_found(self, mock_abort, mock_user):
         """Test that view route aborts with 404 when entity not found."""
         mock_user.id = 'user123'
+        # Make abort raise NotFound exception like the real abort does
+        mock_abort.side_effect = NotFound()
+
         config_not_found = EntityRouteConfig(
             entity_class=Mock,
             entity_type='test',
@@ -284,7 +288,9 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         route_func = create_view_route(bp, config_not_found)
 
         with self.app.test_request_context():
-            route_func(test_name='missing')
+            # Should raise NotFound when entity not found
+            with self.assertRaises(NotFound):
+                route_func(test_name='missing')
 
             mock_abort.assert_called_once_with(404)
 
