@@ -2,12 +2,11 @@
 
 import json
 import re
-from datetime import datetime, timezone
 from collections.abc import Iterable
 from typing import Any
 
 from constants import ActionType, EntityType, ServerMode
-from flask import abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import abort, jsonify, redirect, render_template, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
@@ -17,7 +16,6 @@ from cid_utils import (
 )
 from db_access import (
     create_cid_record,
-    delete_entity,
     get_cid_by_path,
     get_server_by_name,
     get_user_secrets,
@@ -26,7 +24,6 @@ from db_access import (
     get_user_template_servers,
     get_user_uploads,
     get_user_variables,
-    save_entity,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
@@ -40,10 +37,9 @@ from syntax_highlighting import highlight_source
 
 from . import main_bp
 from .core import derive_name_from_path
+from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 from .entities import create_entity, update_entity
-from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .history import _load_request_referers
-from .response_utils import wants_structured_response
 from .server_definition_parser import ServerDefinitionParser
 
 
@@ -473,56 +469,94 @@ def _get_known_entity_names(user_id: str) -> tuple[set[str], set[str]]:
     return known_variable_names, known_secret_names
 
 
-@main_bp.route('/servers')
-def servers():
-    """Display user's servers."""
-    servers_list = user_servers()
-    if wants_structured_response():
-        return jsonify([_server_to_json(server) for server in servers_list])
+def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, Any]:
+    """Build extra context for servers list view.
 
-    server_definitions_cid = None
-    server_rows: list[dict[str, object]] = []
+    Args:
+        servers_list: List of server entities
+        user_id: User ID
+
+    Returns:
+        Dictionary with server-specific list view context
+    """
+    context = {}
 
     if servers_list:
-        server_definitions_cid = format_cid(
-            get_current_server_definitions_cid(current_user.id)
+        context['server_definitions_cid'] = format_cid(
+            get_current_server_definitions_cid(user_id)
         )
 
-        known_variables, known_secrets = _get_known_entity_names(current_user.id)
+        known_variables, known_secrets = _get_known_entity_names(user_id)
 
+        server_rows = []
         for server in servers_list:
             server_rows.append(_build_server_row(server, known_variables, known_secrets))
 
-    return render_template(
-        'servers.html',
-        servers=servers_list,
-        server_definitions_cid=server_definitions_cid,
-        server_rows=server_rows,
+        context['server_rows'] = server_rows
+
+    return context
+
+
+def _build_server_view_context(server: Server, user_id: str) -> dict[str, Any]:
+    """Build extra context for server detail view.
+
+    Args:
+        server: Server entity
+        user_id: User ID
+
+    Returns:
+        Dictionary with server-specific detail view context
+    """
+    history = get_server_definition_history(user_id, server.name)
+    invocations = get_server_invocation_history(user_id, server.name)
+    test_config = _build_server_test_config(server.name, server.definition)
+
+    highlighted_definition, syntax_css = _highlight_definition_content(
+        server.definition,
+        history,
+        server.name,
     )
 
+    definition_references = extract_references_from_text(
+        getattr(server, 'definition', ''),
+        user_id,
+    )
 
-@main_bp.route('/servers/<server_name>/enabled', methods=['POST'])
-def update_server_enabled(server_name: str):
-    """Update the enabled status for a specific server."""
+    test_interactions = []
+    if test_config and test_config.get('action'):
+        test_interactions = load_interaction_history(
+            user_id,
+            EntityType.SERVER_TEST.value,
+            test_config.get('action'),
+        )
 
-    server = get_server_by_name(current_user.id, server_name)
-    if not server:
-        abort(404)
+    return {
+        'definition_history': history,
+        'server_invocations': invocations,
+        'server_invocation_count': len(invocations),
+        'server_test_config': test_config,
+        'server_test_interactions': test_interactions,
+        'highlighted_definition': highlighted_definition,
+        'syntax_css': syntax_css,
+        'definition_references': definition_references,
+    }
 
-    try:
-        enabled_value = extract_enabled_value_from_request()
-    except ValueError:
-        abort(400)
 
-    server.enabled = enabled_value
-    server.updated_at = datetime.now(timezone.utc)
-    save_entity(server)
-    update_server_definitions_cid(current_user.id)
+# Configure and register standard CRUD routes using the factory
+_server_config = EntityRouteConfig(
+    entity_class=Server,
+    entity_type='server',
+    plural_name='servers',
+    get_by_name_func=get_server_by_name,
+    get_user_entities_func=get_user_servers,
+    form_class=ServerForm,
+    update_cid_func=update_server_definitions_cid,
+    to_json_func=lambda s: model_to_dict(s),
+    build_list_context=_build_servers_list_context,
+    build_view_context=_build_server_view_context,
+)
 
-    if request_prefers_json():
-        return jsonify({'server': server.name, 'enabled': server.enabled})
-
-    return redirect(url_for('main.servers'))
+register_standard_crud_routes(main_bp, _server_config)
 
 
 @main_bp.route('/servers/new', methods=['GET', 'POST'])
@@ -574,53 +608,6 @@ def new_server():
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
         server_test_interactions=[],
-    )
-
-
-@main_bp.route('/servers/<server_name>')
-def view_server(server_name):
-    """View a specific server."""
-    server = get_server_by_name(current_user.id, server_name)
-    if not server:
-        abort(404)
-
-    history = get_server_definition_history(current_user.id, server_name)
-    invocations = get_server_invocation_history(current_user.id, server_name)
-    test_config = _build_server_test_config(server.name, server.definition)
-
-    highlighted_definition, syntax_css = _highlight_definition_content(
-        server.definition,
-        history,
-        server.name,
-    )
-
-    definition_references = extract_references_from_text(
-        getattr(server, 'definition', ''),
-        current_user.id,
-    )
-
-    test_interactions = []
-    if test_config and test_config.get('action'):
-        test_interactions = load_interaction_history(
-            current_user.id,
-            EntityType.SERVER_TEST.value,
-            test_config.get('action'),
-        )
-
-    if wants_structured_response():
-        return jsonify(_server_to_json(server))
-
-    return render_template(
-        'server_view.html',
-        server=server,
-        definition_history=history,
-        server_invocations=invocations,
-        server_invocation_count=len(invocations),
-        server_test_config=test_config,
-        server_test_interactions=test_interactions,
-        highlighted_definition=highlighted_definition,
-        syntax_css=syntax_css,
-        definition_references=definition_references,
     )
 
 
@@ -714,22 +701,6 @@ def edit_server(server_name):
     )
 
 
-@main_bp.route('/servers/<server_name>/delete', methods=['POST'])
-def delete_server(server_name):
-    """Delete a specific server."""
-    server = get_server_by_name(current_user.id, server_name)
-    if not server:
-        abort(404)
-
-    user_id = server.user_id
-    delete_entity(server)
-
-    update_server_definitions_cid(user_id)
-
-    flash(f'Server "{server_name}" deleted successfully!', 'success')
-    return redirect(url_for('main.servers'))
-
-
 def get_server_invocation_history(user_id, server_name):
     """Return invocation events for a specific server ordered from newest to oldest."""
     invocations = get_user_server_invocations_by_server(user_id, server_name)
@@ -780,19 +751,12 @@ def get_server_invocation_history(user_id, server_name):
 
 
 __all__ = [
-    'delete_server',
     'edit_server',
     'get_server_definition_history',
     'get_server_invocation_history',
     'new_server',
-    'servers',
     'update_server_definitions_cid',
     'user_servers',
-    'view_server',
     'upload_server_test_page',
     'validate_server_definition',
 ]
-
-
-def _server_to_json(server: Server) -> dict[str, object]:
-    return model_to_dict(server)
