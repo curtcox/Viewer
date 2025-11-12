@@ -152,9 +152,9 @@ class TestCrudFactoryRoutes(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
+        # Create fresh app and blueprint for each test to avoid conflicts
         self.app = Flask(__name__)
         self.app.config['TESTING'] = True
-        self.bp = Blueprint('test', __name__)
 
         # Mock entity and functions
         self.mock_entity = Mock()
@@ -174,18 +174,27 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             form_class=Mock,
         )
 
+    def _create_blueprint(self):
+        """Create a fresh blueprint for each test."""
+        return Blueprint('test', __name__)
+
     def test_create_list_route_registers_correct_url(self):
         """Test that create_list_route registers the correct URL pattern."""
-        route_func = create_list_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_list_route(bp, self.config)
 
         self.assertEqual(route_func.__name__, 'tests')
 
+        # Register blueprint with app to access routes
+        self.app.register_blueprint(bp)
+
         # Check that the route was registered
-        rules = [rule for rule in self.bp.url_map.iter_rules()]
+        rules = [rule for rule in self.app.url_map.iter_rules()]
         self.assertTrue(any(rule.rule == '/tests' for rule in rules))
 
     def test_create_view_route_uses_custom_param_name(self):
         """Test that create_view_route uses the custom parameter name."""
+        bp = self._create_blueprint()
         custom_config = EntityRouteConfig(
             entity_class=Mock,
             entity_type='alias',
@@ -196,33 +205,39 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             param_name='alias_name',  # Custom parameter name
         )
 
-        route_func = create_view_route(self.bp, custom_config)
+        route_func = create_view_route(bp, custom_config)
 
         self.assertEqual(route_func.__name__, 'view_alias')
 
+        # Register blueprint with app to access routes
+        self.app.register_blueprint(bp)
+
         # Check that the route uses the custom parameter
-        rules = list(self.bp.url_map.iter_rules())
+        rules = list(self.app.url_map.iter_rules())
         alias_rule = next((r for r in rules if 'alias_name' in str(r.rule)), None)
         self.assertIsNotNone(alias_rule, "Should have route with alias_name parameter")
 
     def test_create_enabled_toggle_route_has_correct_name(self):
         """Test that enabled toggle route has correct function name."""
-        route_func = create_enabled_toggle_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_enabled_toggle_route(bp, self.config)
 
         self.assertEqual(route_func.__name__, 'update_test_enabled')
 
     def test_create_delete_route_has_correct_name(self):
         """Test that delete route has correct function name."""
-        route_func = create_delete_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_delete_route(bp, self.config)
 
         self.assertEqual(route_func.__name__, 'delete_test')
 
     def test_register_standard_crud_routes_creates_all_routes(self):
         """Test that register_standard_crud_routes creates all 4 routes."""
-        register_standard_crud_routes(self.bp, self.config)
+        bp = self._create_blueprint()
+        register_standard_crud_routes(bp, self.config)
 
         # Register the blueprint with the app to access routes
-        self.app.register_blueprint(self.bp)
+        self.app.register_blueprint(bp)
 
         # Check that all 4 routes were created
         rules = list(self.app.url_map.iter_rules())
@@ -242,7 +257,8 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         mock_user.id = 'user123'
         mock_render.return_value = 'rendered'
 
-        route_func = create_list_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_list_route(bp, self.config)
 
         with self.app.test_request_context():
             route_func()
@@ -264,7 +280,8 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             form_class=Mock,
         )
 
-        route_func = create_view_route(self.bp, config_not_found)
+        bp = self._create_blueprint()
+        route_func = create_view_route(bp, config_not_found)
 
         with self.app.test_request_context():
             route_func(test_name='missing')
@@ -278,7 +295,8 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         """Test that enabled toggle route updates entity.enabled."""
         mock_user.id = 'user123'
 
-        route_func = create_enabled_toggle_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_enabled_toggle_route(bp, self.config)
 
         with self.app.test_request_context(method='POST'):
             # Mock redirect to avoid actual redirect
@@ -296,7 +314,8 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         """Test that delete route deletes entity and shows success message."""
         mock_user.id = 'user123'
 
-        route_func = create_delete_route(self.bp, self.config)
+        bp = self._create_blueprint()
+        route_func = create_delete_route(bp, self.config)
 
         with self.app.test_request_context(method='POST'):
             with patch('routes.crud_factory.redirect'):
