@@ -235,7 +235,7 @@ def _is_tracked_directory(path: str, tracked_paths: frozenset[str]) -> bool:
 
 @main_bp.route("/source", defaults={"requested_path": ""}, strict_slashes=False)
 @main_bp.route("/source/<path:requested_path>")
-def source_browser(requested_path: str):
+def source_browser(requested_path: str) -> Union[str, Response]:
     """Browse all project source files with comprehensive coverage."""
     # Get comprehensive paths (both git-tracked and all project files)
     comprehensive_paths = _get_comprehensive_paths(current_app.root_path)
@@ -286,7 +286,7 @@ def _collect_table_summaries() -> list[dict[str, Any]]:
 
 
 @main_bp.route("/source/instance")
-def source_instance_overview():
+def source_instance_overview() -> str:
     """Render an overview of database tables and their fields."""
 
     tables = _collect_table_summaries()
@@ -294,7 +294,7 @@ def source_instance_overview():
 
 
 @main_bp.route("/source/instance/<string:table_name>")
-def source_instance_table(table_name: str):
+def source_instance_table(table_name: str) -> str:
     """Render the raw contents of a single database table."""
 
     try:
