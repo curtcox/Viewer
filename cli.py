@@ -1,7 +1,6 @@
 """Command-line interface utilities for the Viewer application."""
 
 import json
-import os
 import sys
 import webbrowser
 from typing import Optional, Tuple
