@@ -72,11 +72,11 @@ class EntityMessages:
 
         Example:
             >>> EntityMessages.already_exists('alias', 'home')
-            'A alias named "home" already exists.'
+            'An Alias named "home" already exists.'
         """
-        # Use 'an' for vowel sounds
-        article = 'an' if entity_type[0].lower() in 'aeiou' else 'a'
-        return f'A {article} {entity_type} named "{name}" already exists.'
+        # Use 'An' for vowel sounds, 'A' otherwise
+        article = 'An' if entity_type[0].lower() in 'aeiou' else 'A'
+        return f'{article} {entity_type.title()} named "{name}" already exists.'
 
     @staticmethod
     def not_found(entity_type: str, name: str) -> str:

@@ -34,6 +34,7 @@ class EntityRouteConfig:
         get_user_entities_func: Callable[[str], list],
         form_class: Type,
         # Optional customization
+        param_name: Optional[str] = None,  # URL parameter name (default: {entity_type}_name)
         update_cid_func: Optional[Callable[[str], Any]] = None,
         to_json_func: Optional[Callable[[Any], Dict[str, Any]]] = None,
         # Template names
@@ -52,6 +53,7 @@ class EntityRouteConfig:
             get_by_name_func: Function to get entity by name: (user_id, name) -> entity
             get_user_entities_func: Function to get all user entities: (user_id) -> list
             form_class: WTForms form class for this entity
+            param_name: URL parameter name for entity routes (default: {entity_type}_name)
             update_cid_func: Optional function to update CID after changes: (user_id) -> cid
             to_json_func: Optional function to convert entity to JSON: (entity) -> dict
             list_template: Optional template name for list view (default: {plural_name}.html)
@@ -62,6 +64,7 @@ class EntityRouteConfig:
         self.entity_class = entity_class
         self.entity_type = entity_type
         self.plural_name = plural_name
+        self.param_name = param_name or f'{entity_type}_name'
         self.get_by_name = get_by_name_func
         self.get_user_entities = get_user_entities_func
         self.form_class = form_class
@@ -119,9 +122,10 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<entity_name>')
-    def view_entity(entity_name: str):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>')
+    def view_entity(**kwargs):
         """View a specific entity."""
+        entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
         if not entity:
             abort(404)
@@ -152,9 +156,10 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<entity_name>/enabled', methods=['POST'])
-    def update_entity_enabled(entity_name: str):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>/enabled', methods=['POST'])
+    def update_entity_enabled(**kwargs):
         """Toggle the enabled status for an entity."""
+        entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
         if not entity:
             abort(404)
@@ -190,9 +195,10 @@ def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<entity_name>/delete', methods=['POST'])
-    def delete_entity_route(entity_name: str):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>/delete', methods=['POST'])
+    def delete_entity_route(**kwargs):
         """Delete a specific entity."""
+        entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
         if not entity:
             abort(404)
