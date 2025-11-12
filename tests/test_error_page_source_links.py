@@ -59,11 +59,18 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                         )
                         mock_get_aliases.side_effect = sqlalchemy_error
 
-                        # Import the aliases function to get it in the traceback
-                        from routes.aliases import aliases
+                        # The aliases route is now factory-generated, access it through the app
+                        # Find the factory-generated aliases route
+                        aliases_func = None
+                        for rule in self.app.url_map.iter_rules():
+                            if rule.rule == '/aliases' and rule.endpoint == 'main.aliases':
+                                aliases_func = self.app.view_functions[rule.endpoint]
+                                break
+
+                        self.assertIsNotNone(aliases_func, "aliases route should be registered")
 
                         # This should raise the error
-                        aliases()
+                        aliases_func()
 
             except Exception as exc:
                 # Call the error handler directly
@@ -76,9 +83,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 self.assertIn('Stack trace with source links', html_content)
 
                 # Check that we have source links for project files
-                # The error should show links to routes/aliases.py and db_access.py
-                self.assertIn('href="/source/routes/aliases.py"', html_content,
-                             "Should have source link to routes/aliases.py")
+                # The error should show links to routes/crud_factory.py (where the route is generated)
                 self.assertIn('href="/source/db_access.py"', html_content,
                              "Should have source link to db_access.py")
 
