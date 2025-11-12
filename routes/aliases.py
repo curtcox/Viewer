@@ -25,7 +25,6 @@ from alias_matching import evaluate_test_strings, matches_path
 from cid_presenter import extract_cid_from_path
 from db_access import (
     EntityInteractionRequest,
-    delete_entity,
     get_alias_by_name,
     get_user_aliases,
     get_user_template_aliases,
@@ -40,11 +39,10 @@ from interaction_log import load_interaction_history
 from models import Alias
 from serialization import model_to_dict
 
-from .enabled import extract_enabled_value_from_request, request_prefers_json
-from .response_utils import wants_structured_response
 
 from . import main_bp
 from .core import derive_name_from_path, get_existing_routes
+from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 
 
 # Constants
@@ -316,39 +314,53 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
     }
 
 
-@main_bp.route('/aliases')
-def aliases():
-    """Display the authenticated user's aliases."""
-    alias_list = get_user_aliases(current_user.id)
-    if wants_structured_response():
-        return jsonify([_alias_to_json(alias) for alias in alias_list])
-    return render_template('aliases.html', aliases=alias_list)
+def _build_alias_view_context(alias: Alias, user_id: str) -> Dict[str, Any]:
+    """Build extra context for alias view page."""
+    primary_route = get_primary_alias_route(alias)
+    target_references = extract_references_from_target(
+        primary_route.target_path if primary_route else None,
+        user_id,
+    )
+
+    definition_summary = summarize_definition_lines(
+        getattr(alias, "definition", None),
+        alias_name=getattr(alias, "name", None),
+    )
+    definition_lines = [
+        _serialize_definition_line(entry) for entry in definition_summary
+    ]
+
+    return {
+        'target_references': target_references,
+        'alias_definition_lines': definition_lines,
+    }
 
 
-@main_bp.route('/aliases/<alias_name>/enabled', methods=['POST'])
-def update_alias_enabled(alias_name: str):
-    """Update the enabled status for a specific alias."""
+def _alias_to_json(alias: Alias) -> Dict[str, Any]:
+    return model_to_dict(
+        alias,
+        {
+            "match_type": alias.get_primary_match_type(),
+            "match_pattern": alias.get_primary_match_pattern(),
+            "target_path": alias.get_primary_target_path(),
+            "ignore_case": alias.get_primary_ignore_case(),
+        },
+    )
 
-    alias = get_alias_by_name(current_user.id, alias_name)
-    if not alias:
-        abort(404)
 
-    try:
-        enabled_value = extract_enabled_value_from_request()
-    except ValueError:
-        abort(400)
+# Configure and register standard CRUD routes using the factory
+_alias_config = EntityRouteConfig(
+    entity_class=Alias,
+    entity_type='alias',
+    plural_name='aliases',
+    get_by_name_func=get_alias_by_name,
+    get_user_entities_func=get_user_aliases,
+    form_class=AliasForm,
+    to_json_func=_alias_to_json,
+    build_view_context=_build_alias_view_context,
+)
 
-    alias.enabled = enabled_value
-    alias.updated_at = datetime.now(timezone.utc)
-    _persist_alias(alias)
-
-    if request_prefers_json():
-        return jsonify({
-            'alias': alias.name,
-            'enabled': alias.enabled,
-        })
-
-    return redirect(url_for('main.aliases'))
+register_standard_crud_routes(main_bp, _alias_config)
 
 
 @main_bp.route('/aliases/new', methods=['GET', 'POST'])
@@ -428,38 +440,6 @@ def new_alias():
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
         alias_templates=alias_templates,
-    )
-
-
-@main_bp.route('/aliases/<alias_name>')
-def view_alias(alias_name: str):
-    """View a single alias."""
-    alias = get_alias_by_name(current_user.id, alias_name)
-    if not alias:
-        abort(404)
-
-    primary_route = get_primary_alias_route(alias)
-    target_references = extract_references_from_target(
-        primary_route.target_path if primary_route else None,
-        current_user.id,
-    )
-
-    definition_summary = summarize_definition_lines(
-        getattr(alias, "definition", None),
-        alias_name=getattr(alias, "name", None),
-    )
-    definition_lines = [
-        _serialize_definition_line(entry) for entry in definition_summary
-    ]
-
-    if wants_structured_response():
-        return jsonify(_alias_to_json(alias))
-
-    return render_template(
-        'alias_view.html',
-        alias=alias,
-        target_references=target_references,
-        alias_definition_lines=definition_lines,
     )
 
 
@@ -600,19 +580,6 @@ def edit_alias(alias_name: str):
         return render_edit_form()
 
     return render_edit_form()
-
-
-@main_bp.route('/aliases/<alias_name>/delete', methods=['POST'])
-def delete_alias(alias_name: str):
-    """Delete an existing alias."""
-
-    alias = get_alias_by_name(current_user.id, alias_name)
-    if not alias:
-        abort(404)
-
-    delete_entity(alias)
-    flash(f'Alias "{alias_name}" deleted successfully!', 'success')
-    return redirect(url_for('main.aliases'))
 
 
 @main_bp.route('/aliases/match-preview', methods=['POST'])
@@ -768,23 +735,8 @@ def alias_definition_status():
 
 
 __all__ = [
-    'aliases',
     'new_alias',
-    'view_alias',
     'edit_alias',
-    'delete_alias',
     'alias_match_preview',
     'alias_definition_status',
 ]
-
-
-def _alias_to_json(alias: Alias) -> Dict[str, Any]:
-    return model_to_dict(
-        alias,
-        {
-            "match_type": alias.get_primary_match_type(),
-            "match_pattern": alias.get_primary_match_pattern(),
-            "target_path": alias.get_primary_target_path(),
-            "ignore_case": alias.get_primary_ignore_case(),
-        },
-    )
