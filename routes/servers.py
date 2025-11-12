@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from constants import ActionType, EntityType, ServerMode
-from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (

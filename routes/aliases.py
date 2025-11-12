@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, TypeAlias
 from urllib.parse import urlsplit
 
 import logfire
-from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
 from alias_definition import (

@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1896
-- Unit Tests: 1758
+**Total Tests:** 1904
+- Unit Tests: 1766
 - Integration Tests: 101
 - Property Tests: 12
 - Gauge Tests: 25
 
 ## Unit Tests
 
-Total: 1758 tests
+Total: 1766 tests
 
 - [TestAiStubServer.test_ai_alias_created_when_missing](tests/test_ai_stub_server.py:41)
 - [TestAiStubServer.test_ai_alias_definition_can_be_updated_by_user](tests/test_ai_stub_server.py:67)
@@ -670,6 +670,10 @@ Total: 1758 tests
 - [Privacy endpoint should stay disabled and answer with a 404.](tests/test_routes_comprehensive.py:886)
 - [Search results should highlight matches across every enabled category.](tests/test_routes_comprehensive.py:696)
 - [/terms should behave like a missing page while the legacy route stays disabled.](tests/test_routes_comprehensive.py:880)
+- [All search result categories should include name_highlighted field. Ensures TextHighlighter is used consistently across all result types.](tests/test_search_highlighting.py:186)
+- [CID name should be highlighted when search term appears in the path.](tests/test_search_highlighting.py:130)
+- [CID search results should include name_highlighted field with proper <mark> tags. This test ensures the refactoring to TextHighlighter.highlight_full() works correctly. Previously used _highlight_full() which would cause NameError if not migrated.](tests/test_search_highlighting.py:54)
+- [Search highlighting should properly escape special characters. Ensures TextHighlighter.highlight_full() uses proper escaping.](tests/test_search_highlighting.py:249)
 - [Test that same secret content produces same CID](tests/test_secret_definitions_cid.py:192)
 - [Test that different secret content produces different CIDs](tests/test_secret_definitions_cid.py:209)
 - [Test JSON generation with no secrets](tests/test_secret_definitions_cid.py:86)
@@ -851,6 +855,7 @@ Total: 1758 tests
 - [Test that error pages show comprehensive source links for all project files.](tests/test_enhanced_error_pages.py:32)
 - [test_aliases_route_lists_aliases](tests/test_alias_routing.py:448)
 - [test_aliases_route_lists_aliases_for_default_user](tests/test_alias_routing.py:439)
+- [All search result categories should include name_highlighted field. Ensures TextHighlighter is used consistently across all result types.](tests/test_search_highlighting.py:186)
 - [Test that allowed_builtins exposes builtin functions.](tests/test_text_function_runner.py:55)
 - [test_allows_partial_resolution](tests/test_server_execution.py:369)
 - [test_analyzes_valid_definition_with_main](tests/test_server_execution.py:241)
@@ -924,11 +929,13 @@ Total: 1758 tests
 - [test_cid_lookup_helpers](tests/test_db_access.py:303)
 - [Simulate the CID lookup with the fix](tests/test_fix_validation.py:33)
 - [Test that CID model only has the required fields](tests/test_cid_functionality.py:497)
+- [CID name should be highlighted when search term appears in the path.](tests/test_search_highlighting.py:130)
 - [test_cid_only_no_content_disposition](tests/test_serve_cid_content.py:28)
 - [Test /{CID} - should return None (no content disposition)](tests/test_content_disposition.py:46)
 - [Test /{CID} - should return None](tests/test_serve_cid_integration.py:20)
 - [Test potential mismatch between CID storage and serving](tests/test_cid_serving_issue.py:44)
 - [CID search results should be sorted by newest first and capped at 100 items.](tests/test_routes_comprehensive.py:794)
+- [CID search results should include name_highlighted field with proper <mark> tags. This test ensures the refactoring to TextHighlighter.highlight_full() works correctly. Previously used _highlight_full() which would cause NameError if not migrated.](tests/test_search_highlighting.py:54)
 - [Test the CID serving logic from routes.py](tests/test_cid_serving_issue.py:32)
 - [Test that different secret content produces different CIDs](tests/test_secret_definitions_cid.py:209)
 - [Test that different variable content produces different CIDs](tests/test_variable_definitions_cid.py:209)
@@ -1582,6 +1589,7 @@ Total: 1758 tests
 - [Ensure save() stores content using store_cid_from_bytes.](tests/test_text_function_runner.py:164)
 - [save() should call an id attribute when it is callable.](tests/test_text_function_runner.py:183)
 - [test_screenshot_demo_removed](tests/test_routes_comprehensive.py:998)
+- [Search highlighting should properly escape special characters. Ensures TextHighlighter.highlight_full() uses proper escaping.](tests/test_search_highlighting.py:249)
 - [The search page should render the filter checkboxes and status helper.](tests/test_routes_comprehensive.py:192)
 - [Search results should highlight matches across every enabled category.](tests/test_routes_comprehensive.py:696)
 - [Test that Secret defaults to enabled=True when not specified.](tests/test_enabled_field_persistence.py:224)

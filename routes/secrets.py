@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
-from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 
 from bulk_editor import create_secret_bulk_handler
 from cid_utils import (
