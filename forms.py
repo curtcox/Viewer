@@ -20,6 +20,54 @@ from alias_definition import AliasDefinitionError, parse_alias_definition
 def _strip_filter(value: Any) -> Any:
     return value.strip() if isinstance(value, str) else value
 
+class EntityForm(FlaskForm):
+    """Base form for all entity types (Server, Variable, Secret).
+
+    This base class consolidates common fields and validation logic that was
+    previously duplicated across ServerForm, VariableForm, and SecretForm.
+
+    The form automatically customizes labels based on the entity_type parameter.
+    """
+
+    name = StringField(
+        'Name',
+        validators=[
+            DataRequired(),
+            Regexp(
+                r'^[a-zA-Z0-9._-]+$',
+                message='Name can only contain letters, numbers, dots, hyphens, and underscores'
+            )
+        ],
+        filters=[_strip_filter],
+    )
+    definition = TextAreaField(
+        'Definition',
+        validators=[DataRequired()],
+        render_kw={'rows': 15}
+    )
+    enabled = BooleanField('Enabled', default=True)
+    template = BooleanField('Template', default=False)
+    submit = SubmitField('Save')
+
+    def __init__(self, *args, entity_type: str = 'Entity', **kwargs):
+        """Initialize the form with entity-specific labels.
+
+        Args:
+            *args: Positional arguments for FlaskForm
+            entity_type: Type of entity (e.g., 'Server', 'Variable', 'Secret')
+            **kwargs: Keyword arguments for FlaskForm
+        """
+        super().__init__(*args, **kwargs)
+        self.name.label.text = f'{entity_type} Name'
+        self.definition.label.text = f'{entity_type} Definition'
+        self.submit.label.text = f'Save {entity_type}'
+
+    def validate_name(self, field: Field) -> None:
+        """Validate name format for URL safety."""
+        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
+            raise ValidationError(f'{self.name.label.text} contains invalid characters for URLs')
+
+
 class FileUploadForm(FlaskForm):
     upload_type = RadioField('Upload Method', choices=[
         ('file', 'Upload File'),
@@ -75,35 +123,19 @@ class EditCidForm(FlaskForm):
     )
     submit = SubmitField('Save Changes')
 
-class ServerForm(FlaskForm):
-    name = StringField('Server Name', validators=[
-        DataRequired(),
-        Regexp(r'^[a-zA-Z0-9._-]+$', message='Server name can only contain letters, numbers, dots, hyphens, and underscores')
-    ])
-    definition = TextAreaField('Server Definition', validators=[DataRequired()], render_kw={'rows': 15})
-    enabled = BooleanField('Enabled', default=True)
-    template = BooleanField('Template', default=False)
-    submit = SubmitField('Save Server')
+class ServerForm(EntityForm):
+    """Form for server management."""
 
-    def validate_name(self, field: Field) -> None:
-        # Additional validation to ensure URL safety
-        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
-            raise ValidationError('Server name contains invalid characters for URLs')
+    def __init__(self, *args, **kwargs):
+        """Initialize ServerForm with 'Server' labels."""
+        super().__init__(*args, entity_type='Server', **kwargs)
 
-class VariableForm(FlaskForm):
-    name = StringField('Variable Name', validators=[
-        DataRequired(),
-        Regexp(r'^[a-zA-Z0-9._-]+$', message='Variable name can only contain letters, numbers, dots, hyphens, and underscores')
-    ])
-    definition = TextAreaField('Variable Definition', validators=[DataRequired()], render_kw={'rows': 15})
-    enabled = BooleanField('Enabled', default=True)
-    template = BooleanField('Template', default=False)
-    submit = SubmitField('Save Variable')
+class VariableForm(EntityForm):
+    """Form for variable management."""
 
-    def validate_name(self, field: Field) -> None:
-        # Additional validation to ensure URL safety
-        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
-            raise ValidationError('Variable name contains invalid characters for URLs')
+    def __init__(self, *args, **kwargs):
+        """Initialize VariableForm with 'Variable' labels."""
+        super().__init__(*args, entity_type='Variable', **kwargs)
 
 
 class BulkVariablesForm(FlaskForm):
@@ -172,20 +204,12 @@ class AliasForm(FlaskForm):
         return True
 
 
-class SecretForm(FlaskForm):
-    name = StringField('Secret Name', validators=[
-        DataRequired(),
-        Regexp(r'^[a-zA-Z0-9._-]+$', message='Secret name can only contain letters, numbers, dots, hyphens, and underscores')
-    ])
-    definition = TextAreaField('Secret Definition', validators=[DataRequired()], render_kw={'rows': 15})
-    enabled = BooleanField('Enabled', default=True)
-    template = BooleanField('Template', default=False)
-    submit = SubmitField('Save Secret')
+class SecretForm(EntityForm):
+    """Form for secret management."""
 
-    def validate_name(self, field: Field) -> None:
-        # Additional validation to ensure URL safety
-        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
-            raise ValidationError('Secret name contains invalid characters for URLs')
+    def __init__(self, *args, **kwargs):
+        """Initialize SecretForm with 'Secret' labels."""
+        super().__init__(*args, entity_type='Secret', **kwargs)
 
 
 class ExportForm(FlaskForm):

@@ -1,8 +1,7 @@
 """Secret management routes and helpers."""
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
-from flask import abort, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_secret_bulk_handler
 from cid_utils import (
@@ -10,11 +9,9 @@ from cid_utils import (
     store_secret_definitions_cid,
 )
 from db_access import (
-    delete_entity,
     get_secret_by_name,
     get_user_secrets,
     get_user_template_secrets,
-    save_entity,
 )
 from forms import BulkSecretsForm, SecretForm
 from identity import current_user
@@ -23,7 +20,7 @@ from models import Secret
 from serialization import model_to_dict
 
 from . import main_bp
-from .enabled import extract_enabled_value_from_request, request_prefers_json
+from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 from .entities import create_entity, update_entity
 
 
@@ -55,44 +52,28 @@ def _apply_secrets_editor_changes(user_id: str, desired_values: Dict[str, str], 
     _bulk_editor.apply_changes(user_id, desired_values, existing)
 
 
-@main_bp.route('/secrets')
-def secrets():
-    """Display user's secrets."""
-    secrets_list = user_secrets()
-    secret_definitions_cid = None
+def _build_secrets_list_context(secrets_list: list, user_id: str) -> Dict[str, str]:
+    """Build extra context for secrets list view."""
+    context = {}
     if secrets_list:
-        secret_definitions_cid = get_current_secret_definitions_cid(current_user.id)
-    if _wants_structured_response():
-        return jsonify([_secret_to_json(secret) for secret in secrets_list])
-    return render_template(
-        'secrets.html',
-        secrets=secrets_list,
-        secret_definitions_cid=secret_definitions_cid,
-    )
+        context['secret_definitions_cid'] = get_current_secret_definitions_cid(user_id)
+    return context
 
 
-@main_bp.route('/secrets/<secret_name>/enabled', methods=['POST'])
-def update_secret_enabled(secret_name: str):
-    """Update the enabled status for a specific secret."""
+# Configure and register standard CRUD routes using the factory
+_secret_config = EntityRouteConfig(
+    entity_class=Secret,
+    entity_type='secret',
+    plural_name='secrets',
+    get_by_name_func=get_secret_by_name,
+    get_user_entities_func=get_user_secrets,
+    form_class=SecretForm,
+    update_cid_func=update_secret_definitions_cid,
+    to_json_func=model_to_dict,
+    build_list_context=_build_secrets_list_context,
+)
 
-    secret = get_secret_by_name(current_user.id, secret_name)
-    if not secret:
-        abort(404)
-
-    try:
-        enabled_value = extract_enabled_value_from_request()
-    except ValueError:
-        abort(400)
-
-    secret.enabled = enabled_value
-    secret.updated_at = datetime.now(timezone.utc)
-    save_entity(secret)
-    update_secret_definitions_cid(current_user.id)
-
-    if request_prefers_json():
-        return jsonify({'secret': secret.name, 'enabled': secret.enabled})
-
-    return redirect(url_for('main.secrets'))
+register_standard_crud_routes(main_bp, _secret_config)
 
 
 @main_bp.route('/secrets/_/edit', methods=['GET', 'POST'])
@@ -171,19 +152,6 @@ def new_secret():
     )
 
 
-@main_bp.route('/secrets/<secret_name>')
-def view_secret(secret_name):
-    """View a specific secret."""
-    secret = get_secret_by_name(current_user.id, secret_name)
-    if not secret:
-        abort(404)
-
-    if _wants_structured_response():
-        return jsonify(_secret_to_json(secret))
-
-    return render_template('secret_view.html', secret=secret)
-
-
 @main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
 def edit_secret(secret_name):
     """Edit a specific secret."""
@@ -228,35 +196,10 @@ def edit_secret(secret_name):
     )
 
 
-@main_bp.route('/secrets/<secret_name>/delete', methods=['POST'])
-def delete_secret(secret_name):
-    """Delete a specific secret."""
-    secret = get_secret_by_name(current_user.id, secret_name)
-    if not secret:
-        abort(404)
-
-    delete_entity(secret)
-    update_secret_definitions_cid(current_user.id)
-
-    flash(f'Secret "{secret_name}" deleted successfully!', 'success')
-    return redirect(url_for('main.secrets'))
-
-
 __all__ = [
     'bulk_edit_secrets',
-    'delete_secret',
     'edit_secret',
     'new_secret',
-    'secrets',
     'update_secret_definitions_cid',
     'user_secrets',
-    'view_secret',
 ]
-
-
-def _wants_structured_response() -> bool:
-    return getattr(g, "response_format", None) in {"json", "xml", "csv"}
-
-
-def _secret_to_json(secret: Secret) -> Dict[str, object]:
-    return model_to_dict(secret)
