@@ -66,7 +66,7 @@ class EntityRouteConfig:
         self.get_user_entities = get_user_entities_func
         self.form_class = form_class
         self.update_cid = update_cid_func
-        self.to_json = to_json_func or (lambda e: model_to_dict(e))
+        self.to_json = to_json_func or model_to_dict
         self.list_template = list_template or f'{plural_name}.html'
         self.view_template = view_template or f'{entity_type}_view.html'
         self.build_list_context = build_list_context

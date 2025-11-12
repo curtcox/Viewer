@@ -69,7 +69,7 @@ _secret_config = EntityRouteConfig(
     get_user_entities_func=get_user_secrets,
     form_class=SecretForm,
     update_cid_func=update_secret_definitions_cid,
-    to_json_func=lambda s: model_to_dict(s),
+    to_json_func=model_to_dict,
     build_list_context=_build_secrets_list_context,
 )
 

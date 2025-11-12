@@ -49,12 +49,12 @@ class EntityForm(FlaskForm):
     template = BooleanField('Template', default=False)
     submit = SubmitField('Save')
 
-    def __init__(self, entity_type: str = 'Entity', *args, **kwargs):
+    def __init__(self, *args, entity_type: str = 'Entity', **kwargs):
         """Initialize the form with entity-specific labels.
 
         Args:
-            entity_type: Type of entity (e.g., 'Server', 'Variable', 'Secret')
             *args: Positional arguments for FlaskForm
+            entity_type: Type of entity (e.g., 'Server', 'Variable', 'Secret')
             **kwargs: Keyword arguments for FlaskForm
         """
         super().__init__(*args, **kwargs)
@@ -128,14 +128,14 @@ class ServerForm(EntityForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize ServerForm with 'Server' labels."""
-        super().__init__('Server', *args, **kwargs)
+        super().__init__(*args, entity_type='Server', **kwargs)
 
 class VariableForm(EntityForm):
     """Form for variable management."""
 
     def __init__(self, *args, **kwargs):
         """Initialize VariableForm with 'Variable' labels."""
-        super().__init__('Variable', *args, **kwargs)
+        super().__init__(*args, entity_type='Variable', **kwargs)
 
 
 class BulkVariablesForm(FlaskForm):
@@ -209,7 +209,7 @@ class SecretForm(EntityForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize SecretForm with 'Secret' labels."""
-        super().__init__('Secret', *args, **kwargs)
+        super().__init__(*args, entity_type='Secret', **kwargs)
 
 
 class ExportForm(FlaskForm):

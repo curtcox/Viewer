@@ -278,7 +278,7 @@ _variable_config = EntityRouteConfig(
     get_user_entities_func=get_user_variables,
     form_class=VariableForm,
     update_cid_func=update_variable_definitions_cid,
-    to_json_func=lambda v: model_to_dict(v),
+    to_json_func=model_to_dict,
     build_list_context=_build_variables_list_context,
     build_view_context=_build_variable_view_context,
 )

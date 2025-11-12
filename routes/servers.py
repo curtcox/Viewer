@@ -687,7 +687,7 @@ _server_config = EntityRouteConfig(
     get_user_entities_func=get_user_servers,
     form_class=ServerForm,
     update_cid_func=update_server_definitions_cid,
-    to_json_func=lambda s: model_to_dict(s),
+    to_json_func=model_to_dict,
     build_list_context=_build_servers_list_context,
     build_view_context=_build_server_view_context,
 )
