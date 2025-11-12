@@ -11,9 +11,9 @@ import pytest
 from app import create_app, db
 from cid_utils import generate_cid
 from db_access import create_cid_record
+from identity import ensure_default_user
 from main import handle_boot_cid_import
 from models import Alias, Server
-from user_management import ensure_default_user
 
 pytestmark = pytest.mark.integration
 
