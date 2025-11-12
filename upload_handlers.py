@@ -6,7 +6,7 @@ This module provides functions for processing different types of uploads:
 - URL-based content downloads
 """
 
-from typing import Tuple
+from typing import Any, Tuple
 from urllib.parse import urlparse
 
 import requests
@@ -42,7 +42,7 @@ DEFAULT_USER_AGENT = (
 # FILE UPLOAD HANDLERS
 # ============================================================================
 
-def process_file_upload(form) -> Tuple[bytes, str]:
+def process_file_upload(form: Any) -> Tuple[bytes, str]:
     """Process file upload from form and return file content and filename.
 
     Args:
@@ -63,7 +63,7 @@ def process_file_upload(form) -> Tuple[bytes, str]:
     return file_content, filename
 
 
-def process_text_upload(form) -> bytes:
+def process_text_upload(form: Any) -> bytes:
     """Process text upload from form and return file content.
 
     Args:
@@ -83,7 +83,7 @@ def process_text_upload(form) -> bytes:
     return file_content
 
 
-def process_url_upload(form) -> Tuple[bytes, str]:
+def process_url_upload(form: Any) -> Tuple[bytes, str]:
     """Process URL upload by downloading content and return file content and MIME type.
 
     Downloads content from the provided URL, with size limits and streaming.
