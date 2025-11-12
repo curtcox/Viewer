@@ -30,7 +30,7 @@ def test_validation_result_creation():
     result = ValidationResult(passed=True, message="Test passed")
     assert result.passed is True
     assert result.message == "Test passed"
-    assert result.details == []
+    assert not result.details
 
 
 def test_validation_result_with_details():

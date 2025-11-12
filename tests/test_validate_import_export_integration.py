@@ -278,7 +278,6 @@ __all__ = ['export_data', 'import_data', 'export_size']
 """
             (routes_dir / 'import_export.py').write_text(shim_content)
 
-            import os
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
