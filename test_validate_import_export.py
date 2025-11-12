@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """Tests for validate_import_export.py."""
 
-import sys
 import tempfile
-from io import StringIO
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 from validate_import_export import (
-    IMPORT_VALIDATION_RULES,
     ValidationReporter,
     ValidationResult,
     analyze_imports,
