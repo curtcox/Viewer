@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 1904
-- Unit Tests: 1766
+**Total Tests:** 1909
+- Unit Tests: 1771
 - Integration Tests: 101
 - Property Tests: 12
 - Gauge Tests: 25
 
 ## Unit Tests
 
-Total: 1766 tests
+Total: 1771 tests
 
 - [TestAiStubServer.test_ai_alias_created_when_missing](tests/test_ai_stub_server.py:41)
 - [TestAiStubServer.test_ai_alias_definition_can_be_updated_by_user](tests/test_ai_stub_server.py:67)
@@ -1099,6 +1099,8 @@ Total: 1766 tests
 - [Test that enhanced code context shows line numbers and error markers.](tests/test_error_page_source_links.py:195)
 - [Test that code context includes proper line numbers and markers.](tests/test_error_pages.py:371)
 - [Test that enhanced source browser can serve untracked project files.](tests/test_error_pages.py:290)
+- [Test that enrich_invocation_with_links adds all expected link attributes.](tests/test_routes_refactoring.py:11)
+- [Test that enrich_invocation_with_links handles None CID values gracefully.](tests/test_routes_refactoring.py:35)
 - [test_ensure_primary_line_inserts_when_missing](tests/test_alias_definition.py:302)
 - [test_ensure_primary_line_preserves_existing_mapping](tests/test_alias_definition.py:307)
 - [Test that enabled field persists correctly after session refresh.](tests/test_enabled_field_import_export.py:275)
@@ -1583,6 +1585,7 @@ Total: 1766 tests
 - [test_returns_remaining_segments](tests/test_server_execution.py:516)
 - [test_returns_true_for_parameterized_main](tests/test_server_execution.py:541)
 - [save() should pass bytes values to storage without re-encoding.](tests/test_text_function_runner.py:253)
+- [Test that _save_cid_content properly delegates to _store_or_find_content.](tests/test_routes_refactoring.py:52)
 - [save() should coerce non-text values into UTF-8 bytes.](tests/test_text_function_runner.py:236)
 - [If the id attribute raises TypeError, fall back to get_id().](tests/test_text_function_runner.py:200)
 - [save() should raise when no user identifier is available.](tests/test_text_function_runner.py:220)
@@ -1668,6 +1671,8 @@ Total: 1766 tests
 - [Test that stack traces include paths from comprehensive file discovery.](tests/test_error_pages.py:335)
 - [test_stack_trace_links_when_repo_root_differs](tests/test_error_pages.py:54)
 - [test_store_cid_entry_optional_behaviour](tests/test_import_export.py:1288)
+- [Test that _store_or_find_content creates new content when it doesn't exist.](tests/test_routes_refactoring.py:73)
+- [Test that _store_or_find_content finds existing content.](tests/test_routes_refactoring.py:92)
 - [Test storing secret definitions as CID](tests/test_secret_definitions_cid.py:114)
 - [Test that identical content doesn't create duplicate CIDs](tests/test_secret_definitions_cid.py:132)
 - [Test storing server definitions JSON as CID](tests/test_server_definitions_cid.py:85)
