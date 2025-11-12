@@ -82,7 +82,7 @@ def collect_server_section(
     form: ExportForm,
     user_id: str,
     cid_writer: CidWriter,
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Return server export entries including CID references."""
     servers = list(get_user_servers(user_id))
     selected_names = selected_name_set(form.selected_servers.data)
@@ -92,7 +92,7 @@ def collect_server_section(
             for server in servers
             if isinstance(getattr(server, 'name', None), str) and server.name
         }
-    servers_payload: list[dict[str, str]] = []
+    servers_payload: list[dict[str, Any]] = []
     for server in servers:
         name = getattr(server, 'name', '')
         if not isinstance(name, str) or not name or name not in selected_names:
@@ -124,7 +124,7 @@ def collect_server_section(
     return servers_payload
 
 
-def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, str]]:
+def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, Any]]:
     """Return variable export entries for the user."""
     variables = list(get_user_variables(user_id))
     selected_names = selected_name_set(form.selected_variables.data)
@@ -134,7 +134,7 @@ def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, 
             for variable in variables
             if isinstance(getattr(variable, 'name', None), str) and variable.name
         }
-    variable_payload: list[dict[str, str]] = []
+    variable_payload: list[dict[str, Any]] = []
     for variable in variables:
         name = getattr(variable, 'name', '')
         if not isinstance(name, str) or not name or name not in selected_names:

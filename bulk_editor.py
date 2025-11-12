@@ -6,13 +6,25 @@ through JSON payloads, eliminating duplication across variables, secrets, etc.
 
 import json
 from datetime import datetime, timezone
-from typing import Dict, Generic, List, Optional, Pattern, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Dict, Generic, List, Optional, Pattern, Protocol, Tuple, Type, TypeVar
 
 from constants import Patterns
-from db_access import delete_entity, save_entity
 
-# TypeVar for generic entity type
-T = TypeVar('T')
+if TYPE_CHECKING:
+    from db_access import delete_entity, save_entity
+    from models import Secret, Variable
+
+
+class EntityProtocol(Protocol):
+    """Protocol defining the required interface for bulk-editable entities."""
+    name: str
+    definition: str
+    user_id: str
+    updated_at: datetime
+
+
+# TypeVar for generic entity type bound to EntityProtocol
+T = TypeVar('T', bound=EntityProtocol)
 
 # Validation result: (parsed_dict_or_none, error_message_or_none)
 ValidationResult = Tuple[Optional[Dict[str, str]], Optional[str]]
@@ -131,6 +143,8 @@ class BulkEditorHandler(Generic[T]):
             desired_values: Dict of name->definition for desired final state
             existing: Current list of entities
         """
+        from db_access import delete_entity, save_entity
+
         # Build lookup for existing entities
         existing_by_name = {entity.name: entity for entity in existing}
         desired_names = set(desired_values.keys())
@@ -146,7 +160,7 @@ class BulkEditorHandler(Generic[T]):
 
             if current is None:
                 # Create new entity
-                new_entity = self.entity_class(
+                new_entity = self.entity_class(  # type: ignore[call-arg]
                     name=name,
                     definition=definition,
                     user_id=user_id,
@@ -163,7 +177,7 @@ class BulkEditorHandler(Generic[T]):
 # These can be imported and used directly
 
 
-def create_variable_bulk_handler():
+def create_variable_bulk_handler() -> "BulkEditorHandler[Variable]":
     """Create a bulk editor handler for variables.
 
     Returns:
@@ -173,7 +187,7 @@ def create_variable_bulk_handler():
     return BulkEditorHandler(Variable, "variable", Patterns.ENTITY_NAME)
 
 
-def create_secret_bulk_handler():
+def create_secret_bulk_handler() -> "BulkEditorHandler[Secret]":
     """Create a bulk editor handler for secrets.
 
     Returns:

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from flask import current_app, render_template, url_for
+from flask import Response, current_app, render_template, url_for
 
 from alias_definition import collect_alias_routes
 from db_access import get_user_aliases, get_user_servers
@@ -212,8 +212,8 @@ def _mark_duplicates(entries: List[RouteEntry]) -> None:
                 entry.is_duplicate = True
 
 
-@main_bp.route("/routes")
-def routes_overview():
+@main_bp.route("/routes")  # type: ignore[misc]
+def routes_overview() -> Response | str:
     """Render a comprehensive list of routes, aliases, and servers."""
 
     repository_root = Path(current_app.root_path)

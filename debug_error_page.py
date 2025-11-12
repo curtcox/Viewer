@@ -8,7 +8,7 @@ from database import db
 from routes.core import internal_error
 
 
-def debug_error_page():
+def debug_error_page() -> None:
     """Generate and examine error page HTML."""
     app = create_app({
         'TESTING': True,

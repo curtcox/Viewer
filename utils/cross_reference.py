@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from flask import url_for
 
@@ -16,7 +16,7 @@ from utils.dom_keys import _entity_key, _reference_key
 
 # Import these functions via a late import to avoid circular dependency
 # and to allow tests to mock them at routes.core level
-def _get_ref_dependencies():
+def _get_ref_dependencies() -> Tuple[Any, Any, Any, Any]:
     """Late import to avoid circular dependency with routes.core."""
     import routes.core as core
     return (
@@ -73,14 +73,14 @@ def _entity_url(entity_type: str, identifier: str) -> Optional[str]:
         return None
 
     if entity_type == 'alias':
-        return url_for('main.view_alias', alias_name=identifier)
+        return str(url_for('main.view_alias', alias_name=identifier))
     if entity_type == 'server':
-        return url_for('main.view_server', server_name=identifier)
+        return str(url_for('main.view_server', server_name=identifier))
     if entity_type == 'cid':
         normalized = format_cid(identifier)
         if not normalized:
             return None
-        return url_for('main.meta_route', requested_path=normalized)
+        return str(url_for('main.meta_route', requested_path=normalized))
     return None
 
 
@@ -370,13 +370,14 @@ def _collect_cid_entries(
     named_entity_keys = alias_keys | server_keys
     cid_entries: List[Dict[str, Any]] = []
 
+    empty_set: Set[str] = set()
     for cid_entry in cid_candidates:
-        cid_key = cid_entry['entity_key']
-        related_keys = state.entity_implied.get(cid_key, set())
+        cid_key = cast(str, cid_entry['entity_key'])
+        related_keys = state.entity_implied.get(cid_key, empty_set)
         has_named_relation = any(key in named_entity_keys for key in related_keys)
         related_reference_keys = (
-            state.entity_outgoing_refs.get(cid_key, set())
-            | state.entity_incoming_refs.get(cid_key, set())
+            state.entity_outgoing_refs.get(cid_key, empty_set)
+            | state.entity_incoming_refs.get(cid_key, empty_set)
         )
 
         if not has_named_relation or not related_reference_keys:
@@ -390,7 +391,7 @@ def _collect_cid_entries(
 def _filter_references(
     state: CrossReferenceState,
     all_entity_keys: Set[str],
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], Dict[str, Set[str]], Dict[str, Set[str]]]:
     """
     Filter references to only those between existing entities.
 
@@ -399,7 +400,7 @@ def _filter_references(
         all_entity_keys: Set of all entity keys to include
 
     Returns:
-        List of filtered reference dictionaries
+        Tuple of (filtered references, reference keys by source, reference keys by target)
     """
     filtered_references: List[Dict[str, Any]] = []
     reference_keys_by_source: Dict[str, Set[str]] = defaultdict(set)

@@ -192,8 +192,15 @@ class TestIndexer:
                 )
             )
 
-    def _get_display_name(self, node: ast.AST, fallback: str) -> str:
+    def _get_display_name(
+        self, node: ast.AST, fallback: str
+    ) -> str:
         """Return a readable display name for a test node."""
+        # ast.get_docstring requires specific node types
+        if not isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)
+        ):
+            return fallback
 
         docstring = ast.get_docstring(node)
         if not docstring:
@@ -313,7 +320,7 @@ class TestIndexer:
         return self.generate_markdown()
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     indexer = TestIndexer()
     markdown = indexer.run()

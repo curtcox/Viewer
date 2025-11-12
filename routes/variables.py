@@ -1,8 +1,8 @@
 """Variable management routes and helpers."""
 from http import HTTPStatus
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, MutableMapping, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import Response, abort, flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_variable_bulk_handler
 from cid_utils import (
@@ -30,12 +30,13 @@ from .meta import inspect_path_metadata
 _bulk_editor = create_variable_bulk_handler()
 
 
-def update_variable_definitions_cid(user_id):
+def update_variable_definitions_cid(user_id: str) -> str:
     """Update the variable definitions CID after variable changes."""
     return store_variable_definitions_cid(user_id)
 
 
-def user_variables():
+def user_variables() -> List[Variable]:
+    """Get all variables for the current user."""
     return get_user_variables(current_user.id)
 
 
@@ -216,9 +217,9 @@ def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str
     return "Unknown resolution", []
 
 
-def _build_variables_list_context(variables_list: list, user_id: str) -> Dict[str, Any]:
+def _build_variables_list_context(variables_list: List[Variable], user_id: str) -> Dict[str, Any]:
     """Build extra context for variables list view."""
-    context = {}
+    context: Dict[str, Any] = {}
     if variables_list:
         context['variable_definitions_cid'] = get_current_variable_definitions_cid(user_id)
     return context
@@ -229,6 +230,13 @@ def _build_variable_view_context(variable: Variable, user_id: str) -> Dict[str, 
     return {
         'matching_route': build_matching_route_info(variable.definition)
     }
+
+
+def _model_to_dict_wrapper(instance: Any) -> Dict[str, Any]:
+    """Wrapper for model_to_dict that matches EntityRouteConfig signature."""
+    result = model_to_dict(instance)
+    # Convert MutableMapping to Dict for type compatibility
+    return dict(result)
 
 
 def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -278,7 +286,7 @@ _variable_config = EntityRouteConfig(
     get_user_entities_func=get_user_variables,
     form_class=VariableForm,
     update_cid_func=update_variable_definitions_cid,
-    to_json_func=model_to_dict,
+    to_json_func=_model_to_dict_wrapper,
     build_list_context=_build_variables_list_context,
     build_view_context=_build_variable_view_context,
 )
@@ -286,8 +294,8 @@ _variable_config = EntityRouteConfig(
 register_standard_crud_routes(main_bp, _variable_config)
 
 
-@main_bp.route('/variables/_/edit', methods=['GET', 'POST'])
-def bulk_edit_variables():
+@main_bp.route('/variables/_/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def bulk_edit_variables() -> str | Response:
     """Edit all variables at once using a JSON payload."""
 
     variables_list = user_variables()
@@ -301,7 +309,7 @@ def bulk_edit_variables():
         normalized, error = _parse_variables_editor_payload(payload)
         if error:
             form.variables_json.errors.append(error)
-        else:
+        elif normalized is not None:
             _apply_variables_editor_changes(current_user.id, normalized, variables_list)
             update_variable_definitions_cid(current_user.id)
             flash('Variables updated successfully!', 'success')
@@ -318,8 +326,8 @@ def bulk_edit_variables():
     )
 
 
-@main_bp.route('/variables/new', methods=['GET', 'POST'])
-def new_variable():
+@main_bp.route('/variables/new', methods=['GET', 'POST'])  # type: ignore[misc]
+def new_variable() -> str | Response:
     """Create a new variable."""
     form = VariableForm()
 
@@ -363,12 +371,15 @@ def new_variable():
     )
 
 
-@main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
-def edit_variable(variable_name):
+@main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def edit_variable(variable_name: str) -> str | Response:
     """Edit a specific variable."""
     variable = get_variable_by_name(current_user.id, variable_name)
     if not variable:
         abort(404)
+
+    # After the abort check, variable is guaranteed to be non-None
+    assert variable is not None
 
     form = VariableForm(obj=variable)
 

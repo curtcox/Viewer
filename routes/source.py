@@ -5,9 +5,9 @@ import subprocess
 from contextlib import closing
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple, cast
 
-from flask import abort, current_app, render_template, send_file
+from flask import Response, abort, current_app, render_template, send_file
 from sqlalchemy import MetaData, Table, inspect, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -159,7 +159,7 @@ def _directory_listing(path: str, tracked_paths: Iterable[str]) -> Tuple[List[st
     return sorted(directories), sorted(files)
 
 
-def _render_directory(path: str, tracked_paths: frozenset[str]):
+def _render_directory(path: str, tracked_paths: frozenset[str]) -> str:
     """Render the directory listing template."""
     directories, files = _directory_listing(path, tracked_paths)
     breadcrumbs = _build_breadcrumbs(path)
@@ -167,22 +167,25 @@ def _render_directory(path: str, tracked_paths: frozenset[str]):
         current_app.root_path, current_app.config.get("GITHUB_REPOSITORY_URL")
     )
 
-    return render_template(
-        "source_browser.html",
-        breadcrumbs=breadcrumbs,
-        current_path=path,
-        directories=directories,
-        files=files,
-        file_content=None,
-        highlighted_content=None,
-        syntax_css=None,
-        is_file=False,
-        path_prefix=f"{path}/" if path else "",
-        **commit_context,
+    return cast(
+        str,
+        render_template(
+            "source_browser.html",
+            breadcrumbs=breadcrumbs,
+            current_path=path,
+            directories=directories,
+            files=files,
+            file_content=None,
+            highlighted_content=None,
+            syntax_css=None,
+            is_file=False,
+            path_prefix=f"{path}/" if path else "",
+            **commit_context,
+        ),
     )
 
 
-def _render_file(path: str, root_path: Path):
+def _render_file(path: str, root_path: Path) -> str | Response:
     """Render a file from the repository, falling back to download for binary data."""
     repository_root = root_path.resolve()
     file_path = (repository_root / path).resolve()
@@ -212,18 +215,21 @@ def _render_file(path: str, root_path: Path):
         current_app.root_path, current_app.config.get("GITHUB_REPOSITORY_URL")
     )
 
-    return render_template(
-        "source_browser.html",
-        breadcrumbs=breadcrumbs,
-        current_path=path,
-        directories=[],
-        files=[],
-        file_content=file_content,
-        highlighted_content=highlighted_content,
-        syntax_css=syntax_css,
-        is_file=True,
-        path_prefix=f"{path}/" if path else "",
-        **commit_context,
+    return cast(
+        str,
+        render_template(
+            "source_browser.html",
+            breadcrumbs=breadcrumbs,
+            current_path=path,
+            directories=[],
+            files=[],
+            file_content=file_content,
+            highlighted_content=highlighted_content,
+            syntax_css=syntax_css,
+            is_file=True,
+            path_prefix=f"{path}/" if path else "",
+            **commit_context,
+        ),
     )
 
 
@@ -233,9 +239,9 @@ def _is_tracked_directory(path: str, tracked_paths: frozenset[str]) -> bool:
     return any(tracked.startswith(prefix) for tracked in tracked_paths)
 
 
-@main_bp.route("/source", defaults={"requested_path": ""}, strict_slashes=False)
-@main_bp.route("/source/<path:requested_path>")
-def source_browser(requested_path: str):
+@main_bp.route("/source", defaults={"requested_path": ""}, strict_slashes=False)  # type: ignore[misc]
+@main_bp.route("/source/<path:requested_path>")  # type: ignore[misc]
+def source_browser(requested_path: str) -> str | Response:
     """Browse all project source files with comprehensive coverage."""
     # Get comprehensive paths (both git-tracked and all project files)
     comprehensive_paths = _get_comprehensive_paths(current_app.root_path)
@@ -285,16 +291,16 @@ def _collect_table_summaries() -> list[dict[str, Any]]:
     return summaries
 
 
-@main_bp.route("/source/instance")
-def source_instance_overview():
+@main_bp.route("/source/instance")  # type: ignore[misc]
+def source_instance_overview() -> str:
     """Render an overview of database tables and their fields."""
 
     tables = _collect_table_summaries()
-    return render_template("source_instance.html", tables=tables)
+    return cast(str, render_template("source_instance.html", tables=tables))
 
 
-@main_bp.route("/source/instance/<string:table_name>")
-def source_instance_table(table_name: str):
+@main_bp.route("/source/instance/<string:table_name>")  # type: ignore[misc]
+def source_instance_table(table_name: str) -> str:
     """Render the raw contents of a single database table."""
 
     try:
@@ -321,10 +327,13 @@ def source_instance_table(table_name: str):
     columns = [column.name for column in table.columns]
     row_count = len(rows)
 
-    return render_template(
-        "source_instance_table.html",
-        table_name=table_name,
-        columns=columns,
-        rows=rows,
-        row_count=row_count,
+    return cast(
+        str,
+        render_template(
+            "source_instance_table.html",
+            table_name=table_name,
+            columns=columns,
+            rows=rows,
+            row_count=row_count,
+        ),
     )

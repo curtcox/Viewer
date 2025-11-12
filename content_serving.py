@@ -13,13 +13,15 @@ from typing import Optional
 
 from flask import Response, make_response, render_template, request
 
+from models import CID
+
+_qrcode_import_error: Optional[ModuleNotFoundError] = None
+
 try:
-    import qrcode  # type: ignore[import-not-found]
+    import qrcode
 except ModuleNotFoundError as exc:  # pragma: no cover
-    qrcode = None  # type: ignore[assignment]
+    qrcode = None
     _qrcode_import_error = exc
-else:
-    _qrcode_import_error = None
 
 from content_rendering import decode_text_safely, render_markdown_document
 from cid_presenter import cid_path
@@ -80,7 +82,7 @@ class PathInfo:
     target_cid: str
 
     @classmethod
-    def from_path(cls, path: str, cid_content) -> 'PathInfo':
+    def from_path(cls, path: str, cid_content: CID) -> 'PathInfo':
         """Parse request path and extract CID information.
 
         Args:
@@ -269,7 +271,7 @@ def _process_content_body(
 def _add_response_headers(
     response: Response,
     etag: str,
-    cid_content,
+    cid_content: CID,
     filename: Optional[str],
     path_info: PathInfo
 ) -> None:
@@ -324,7 +326,7 @@ def _parse_if_modified_since(header_value: str) -> Optional[datetime]:
 # CONTENT SERVING
 # ============================================================================
 
-def serve_cid_content(cid_content, path: str) -> Optional[Response]:
+def serve_cid_content(cid_content: Optional[CID], path: str) -> Optional[Response]:
     """Serve CID content with appropriate headers and caching.
 
     Handles various content types and rendering modes:
@@ -402,7 +404,7 @@ def _serve_qr_code(target_cid: str) -> bytes:
     """
     qr_target_url = f"https://256t.org/{target_cid}"
     qr_image_url = generate_qr_data_url(qr_target_url)
-    html = render_template(
+    html: str = render_template(
         'cid_qr.html',
         title='CID QR Code',
         cid=target_cid,
@@ -428,7 +430,7 @@ def _serve_markdown_html(response_body: bytes) -> Optional[bytes]:
     return None
 
 
-def _make_304_response(etag: str, cid_content) -> Response:
+def _make_304_response(etag: str, cid_content: CID) -> Response:
     """Create a 304 Not Modified response.
 
     Args:

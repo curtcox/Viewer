@@ -1,7 +1,7 @@
 """Server invocation record creation and tracking."""
 
 import json
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from flask import request
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,7 +12,7 @@ from db_access import ServerInvocationInput, create_cid_record, create_server_in
 from models import ServerInvocation
 
 
-def request_details():
+def request_details() -> Dict[str, Any]:
     """Collect request details for server execution context."""
     return {
         "path": request.path,

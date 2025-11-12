@@ -7,7 +7,7 @@ from alias_definition import get_primary_alias_route
 from database import db
 
 
-class CID(db.Model):
+class CID(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
     file_data = db.Column(db.LargeBinary, nullable=False)  # For actual file bytes
@@ -18,7 +18,7 @@ class CID(db.Model):
     def __repr__(self) -> str:
         return f'<CID {self.path}>'
 
-class PageView(db.Model):
+class PageView(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, nullable=False)
     path = db.Column(db.String(255), nullable=False)
@@ -30,7 +30,7 @@ class PageView(db.Model):
     def __repr__(self) -> str:
         return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
 
-class Server(db.Model):
+class Server(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
@@ -48,7 +48,7 @@ class Server(db.Model):
         return f'<Server {self.name} by {self.user_id}>'
 
 
-class Alias(db.Model):
+class Alias(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=True)
@@ -121,7 +121,7 @@ class Alias(db.Model):
         return f'<Alias {self.name} -> {target}>'
 
 
-class EntityInteraction(db.Model):
+class EntityInteraction(db.Model):  # type: ignore[misc]
     __tablename__ = 'entity_interactions'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -142,7 +142,7 @@ class EntityInteraction(db.Model):
         return f'<EntityInteraction {self.entity_type}:{self.entity_name} {self.action}>'
 
 
-class Variable(db.Model):
+class Variable(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
@@ -158,7 +158,7 @@ class Variable(db.Model):
     def __repr__(self) -> str:
         return f'<Variable {self.name} by {self.user_id}>'
 
-class Secret(db.Model):
+class Secret(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, index=True)
     definition = db.Column(db.Text, nullable=False)
@@ -174,7 +174,7 @@ class Secret(db.Model):
     def __repr__(self) -> str:
         return f'<Secret {self.name} by {self.user_id}>'
 
-class ServerInvocation(db.Model):
+class ServerInvocation(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, nullable=False)
     server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
@@ -190,7 +190,7 @@ class ServerInvocation(db.Model):
         return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
 
 
-class Export(db.Model):
+class Export(db.Model):  # type: ignore[misc]
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, nullable=False, index=True)
     cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the export

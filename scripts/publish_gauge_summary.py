@@ -8,7 +8,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 def parse_gauge_html_report(html_path: Path) -> dict[str, Any] | None:
@@ -37,7 +37,7 @@ def parse_gauge_html_report(html_path: Path) -> dict[str, Any] | None:
                 # Clean up the JSON string (remove trailing commas, etc.)
                 json_str = re.sub(r",\s*}", "}", json_str)
                 json_str = re.sub(r",\s*]", "]", json_str)
-                return json.loads(json_str)
+                return cast(dict[str, Any], json.loads(json_str))
             except (json.JSONDecodeError, AttributeError):
                 continue
 
@@ -124,8 +124,8 @@ def parse_gauge_log(log_path: Path) -> dict[str, Any]:
     return result
 
 
-def _process_spec_failures(spec: dict, specs_run: list, specs_failed: list,
-                          failed_scenarios: list) -> None:
+def _process_spec_failures(spec: dict[str, Any], specs_run: list[str], specs_failed: list[str],
+                          failed_scenarios: list[str]) -> None:
     """Process a spec to extract failure information."""
     if not isinstance(spec, dict):
         return
@@ -151,7 +151,7 @@ def _process_spec_failures(spec: dict, specs_run: list, specs_failed: list,
             specs_failed.append(spec_name)
 
 
-def _extract_html_specs(html_data: dict, specs_run: list) -> None:
+def _extract_html_specs(html_data: dict[str, Any], specs_run: list[str]) -> None:
     """Extract spec names from HTML data specs section."""
     if "specs" not in html_data:
         return
@@ -164,8 +164,8 @@ def _extract_html_specs(html_data: dict, specs_run: list) -> None:
             specs_run.append(spec_name)
 
 
-def _extract_execution_results(html_data: dict, specs_run: list, specs_failed: list,
-                               failed_scenarios: list) -> None:
+def _extract_execution_results(html_data: dict[str, Any], specs_run: list[str], specs_failed: list[str],
+                               failed_scenarios: list[str]) -> None:
     """Extract execution results from HTML data."""
     exec_result = html_data.get("executionResult", {})
     if not isinstance(exec_result, dict):

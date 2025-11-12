@@ -18,7 +18,7 @@ try:
     _markdown_available = True
     _markdown_import_error = None
 except ModuleNotFoundError as exc:  # pragma: no cover
-    markdown = None  # type: ignore[assignment]
+    markdown = None
     _markdown_available = False
     _markdown_import_error = exc
 

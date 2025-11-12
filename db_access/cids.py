@@ -1,7 +1,7 @@
 """CID management operations."""
 
 from datetime import datetime, timezone
-from typing import Callable, Dict, Iterable, List, Optional, Set
+from typing import Callable, Dict, Iterable, List, Optional, Set, cast
 
 from database import db
 import models
@@ -9,7 +9,7 @@ from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
 
 SaveServerDefinition = Callable[[str, int], str]
-StoreServerDefinitions = Callable[[int], str]
+StoreServerDefinitions = Callable[[str], str]
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
@@ -28,7 +28,7 @@ def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitio
 
 def get_cid_by_path(path: str) -> Optional[CID]:
     """Return a CID record by its path."""
-    return CID.query.filter_by(path=path).first()
+    return cast(Optional[CID], CID.query.filter_by(path=path).first())
 
 
 def find_cids_by_prefix(prefix: str) -> List[CID]:
@@ -41,7 +41,8 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
         return []
 
     pattern = f"/{normalized}%"
-    return (
+    return cast(
+        List[CID],
         CID.query
         .filter(CID.path.like(pattern))
         .order_by(CID.path.asc())
@@ -69,7 +70,8 @@ def get_user_uploads(user_id: str) -> List[CID]:
     else:
         query = db.session.query
 
-    return (
+    return cast(
+        List[CID],
         query(CID)
         .filter(CID.uploaded_by_user_id == user_id)
         .order_by(CID.created_at.desc())
@@ -83,12 +85,13 @@ def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
     if not normalized_paths:
         return []
 
-    return CID.query.filter(CID.path.in_(normalized_paths)).all()
+    return cast(List[CID], CID.query.filter(CID.path.in_(normalized_paths)).all())
 
 
 def get_recent_cids(limit: int = 10) -> List[CID]:
     """Return the most recent CID records."""
-    return (
+    return cast(
+        List[CID],
         CID.query
         .order_by(CID.created_at.desc())
         .limit(limit)
@@ -98,12 +101,12 @@ def get_recent_cids(limit: int = 10) -> List[CID]:
 
 def get_first_cid() -> Optional[CID]:
     """Return the first CID record in the table."""
-    return CID.query.first()
+    return cast(Optional[CID], CID.query.first())
 
 
 def count_cids() -> int:
     """Return the total number of CID records."""
-    return CID.query.count()
+    return cast(int, CID.query.count())
 
 
 def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
@@ -175,9 +178,11 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
             )
             if definition_changed:
                 server.definition = updated_definition
+                # When definition_changed is True, updated_definition is guaranteed to be str
+                assert updated_definition is not None
                 server.definition_cid = save_definition(
                     updated_definition,
-                    server.user_id,
+                    int(server.user_id),
                 )
                 server.updated_at = now
                 server_updates += 1

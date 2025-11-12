@@ -11,7 +11,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping, TypedDict
 
 import coverage
 import pytest
@@ -38,6 +38,14 @@ class RouteFunctionInfo:
 
 
 RouteCollection = list[RouteFunctionInfo]
+
+
+class PageInfo(TypedDict):
+    """Type definition for page information dictionary."""
+
+    routes: list[RouteFunctionInfo]
+    tests: dict[str, set[str]]
+    specs: set[str]
 
 
 class TemplateCollector(ast.NodeVisitor):
@@ -187,7 +195,12 @@ def _apply_test_environment() -> contextlib.AbstractContextManager[None]:
                 elif key in os.environ:
                     del os.environ[key]
 
-        def __exit__(self, exc_type, exc, tb) -> None:  # type: ignore[override]
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: Any,
+        ) -> None:
             for key, value in self._original.items():
                 if value is None:
                     os.environ.pop(key, None)
@@ -249,7 +262,8 @@ def gather_suite_coverage(reuse: bool) -> dict[str, coverage.Coverage]:
 
     collected: dict[str, coverage.Coverage] = {}
     for name, cfg in suites.items():
-        data_file: Path = cfg["data_file"]
+        data_file = cfg["data_file"]
+        assert isinstance(data_file, Path)
         if reuse and data_file.exists():
             cov = coverage.Coverage(data_file=str(data_file))
             cov.load()
@@ -257,7 +271,9 @@ def gather_suite_coverage(reuse: bool) -> dict[str, coverage.Coverage]:
             print(f"[crossref] Reused existing coverage data for {name} suite.")
             continue
 
-        cov = run_pytest_suite(name, cfg["pytest_args"], data_file)
+        pytest_args = cfg["pytest_args"]
+        assert isinstance(pytest_args, list)
+        cov = run_pytest_suite(name, pytest_args, data_file)
         collected[name] = cov
     return collected
 
@@ -312,8 +328,8 @@ def map_specs_by_route(spec_dir: Path) -> dict[str, set[str]]:
     return mapping
 
 
-def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]]) -> dict[str, dict[str, object]]:
-    pages: dict[str, dict[str, object]] = {}
+def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]]) -> dict[str, PageInfo]:
+    pages: dict[str, PageInfo] = {}
     for route in routes:
         route_specs = set()
         for path in route.route_paths:
@@ -323,11 +339,11 @@ def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]
         for template in sorted(route.templates):
             entry = pages.setdefault(
                 template,
-                {
-                    "routes": [],
-                    "tests": defaultdict(set),
-                    "specs": set(),
-                },
+                PageInfo(
+                    routes=[],
+                    tests=defaultdict(set),
+                    specs=set(),
+                ),
             )
             entry["routes"].append(route)
             entry["specs"].update(route.specs)
@@ -336,14 +352,14 @@ def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]
     return pages
 
 
-def generate_markdown(pages: Mapping[str, dict[str, object]]) -> str:
+def generate_markdown(pages: Mapping[str, PageInfo]) -> str:
     lines = ["# Page Test Cross Reference", "", "This document maps site pages to the automated checks that exercise them.", ""]
 
     for template in sorted(pages):
         info = pages[template]
-        routes: list[RouteFunctionInfo] = info["routes"]  # type: ignore[assignment]
-        tests: Mapping[str, set[str]] = info["tests"]  # type: ignore[assignment]
-        specs: set[str] = info["specs"]  # type: ignore[assignment]
+        routes = info["routes"]
+        tests = info["tests"]
+        specs = info["specs"]
 
         lines.append(f"## templates/{template}")
         lines.append("")

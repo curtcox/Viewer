@@ -18,7 +18,7 @@ from db_access import get_all_servers, save_entity
 
 app = create_app()
 
-def migrate_add_server_cid():
+def migrate_add_server_cid() -> bool:
     """Add definition_cid column to Server table and populate existing servers"""
 
     with app.app_context():

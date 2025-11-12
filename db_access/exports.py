@@ -1,5 +1,5 @@
 """Database access functions for exports."""
-from typing import List
+from typing import List, cast
 
 from models import Export
 from db_access._common import save_entity
@@ -14,7 +14,8 @@ def record_export(user_id: str, cid: str) -> Export:
 
 def get_user_exports(user_id: str, limit: int = 100) -> List[Export]:
     """Return the most recent exports for a user ordered from newest to oldest."""
-    return (
+    return cast(
+        List[Export],
         Export.query
         .filter(Export.user_id == user_id)
         .order_by(Export.created_at.desc())

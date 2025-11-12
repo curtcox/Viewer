@@ -109,7 +109,7 @@ def analyze_imports(file_path: str) -> list[tuple[str, ...]]:
     with Path(file_path).open(encoding="utf-8") as file_handle:
         tree = ast.parse(file_handle.read(), filename=file_path)
 
-    imports = []
+    imports: list[tuple[str, ...]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -123,7 +123,7 @@ def analyze_imports(file_path: str) -> list[tuple[str, ...]]:
 
 
 # Validation rules for import structure
-IMPORT_VALIDATION_RULES = {
+IMPORT_VALIDATION_RULES: dict[str, dict[str, list[tuple[str, ...]]]] = {
     'routes/import_export/import_sources.py': {
         'required': [
             ('from', 'cid_presenter', 'format_cid'),
@@ -226,7 +226,7 @@ def validate_circular_imports(modules: list[str], reporter: ValidationReporter) 
     circular_found = False
 
     # Build import graph
-    import_graph = {}
+    import_graph: dict[str, list[str]] = {}
     for module in modules:
         imports = analyze_imports(module)
         # Normalize path separators (handle both / and \) before converting to module name

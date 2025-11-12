@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask import jsonify, request
 
 from db_access import EntityInteractionRequest, record_entity_interaction
@@ -7,8 +9,8 @@ from interaction_log import load_interaction_history, summarise_interaction
 from . import main_bp
 
 
-@main_bp.route('/api/interactions', methods=['POST'])
-def create_interaction_entry():
+@main_bp.route('/api/interactions', methods=['POST'])  # type: ignore[misc]
+def create_interaction_entry() -> Any:
     """Persist an interaction triggered from the client and return updated history."""
 
     payload = request.get_json(silent=True) or {}

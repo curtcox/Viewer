@@ -17,7 +17,7 @@ from .meta_path_utils import (
 META_SOURCE_LINK = "/source/routes/meta.py"
 
 
-def serialize_alias(alias, route=None) -> Dict[str, Any]:
+def serialize_alias(alias: Any, route: Any = None) -> Dict[str, Any]:
     """Return a JSON-serializable representation of an alias."""
     selected_route = route or get_primary_alias_route(alias)
     effective_pattern = None

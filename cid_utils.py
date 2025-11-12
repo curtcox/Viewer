@@ -116,13 +116,13 @@ _mermaid_renderer = MermaidRenderer()
 try:
     import markdown  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
-    markdown = None  # type: ignore[assignment]
+    markdown = None
 
 try:
-    import qrcode  # type: ignore[import-not-found]
+    import qrcode
 except ModuleNotFoundError as exc:  # pragma: no cover
-    qrcode = None  # type: ignore[assignment]
-    _qrcode_import_error = exc
+    qrcode = None
+    _qrcode_import_error: ModuleNotFoundError | None = exc
 else:
     _qrcode_import_error = None
 
@@ -138,11 +138,11 @@ try:
         get_user_variables,
     )
 except (RuntimeError, ImportError):
-    create_cid_record = None
-    get_cid_by_path = None
-    get_user_servers = None
-    get_user_variables = None
-    get_user_secrets = None
+    create_cid_record = None  # type: ignore[assignment]
+    get_cid_by_path = None  # type: ignore[assignment]
+    get_user_servers = None  # type: ignore[assignment]
+    get_user_variables = None  # type: ignore[assignment]
+    get_user_secrets = None  # type: ignore[assignment]
 
 
 # Legacy pattern support for save_server_definition_as_cid
@@ -158,4 +158,4 @@ def save_server_definition_as_cid(definition: str, user_id: int) -> str:
     Returns:
         CID string
     """
-    return store_cid_from_bytes(definition.encode('utf-8'), user_id)
+    return store_cid_from_bytes(definition.encode('utf-8'), str(user_id))

@@ -44,7 +44,7 @@ def parse_dependency_name(raw_value: Any) -> str | None:
     return match.group(0).lower()
 
 
-def _parse_pyproject_dependencies(pyproject_path) -> set[str]:
+def _parse_pyproject_dependencies(pyproject_path: Any) -> set[str]:
     """Extract dependency names from pyproject.toml file."""
     dependency_names: set[str] = set()
     if not pyproject_path.exists():
@@ -112,7 +112,7 @@ def gather_dependency_versions() -> dict[str, dict[str, str]]:
     return dependency_versions
 
 
-def build_runtime_section() -> dict[str, dict[str, str]]:
+def build_runtime_section() -> dict[str, Any]:
     """Build runtime environment section for exports."""
     return {
         'python': {

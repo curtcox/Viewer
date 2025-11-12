@@ -132,7 +132,8 @@ def _discover_cid_references(text: str) -> List[Dict[str, str]]:
     if not candidates:
         return []
 
-    paths = {cid_path(candidate) for candidate in candidates if cid_path(candidate)}
+    path_results = [cid_path(candidate) for candidate in candidates]
+    paths = [p for p in path_results if p is not None]
     if not paths:
         return []
 

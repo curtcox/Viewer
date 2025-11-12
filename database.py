@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase):  # type: ignore[misc]  # DeclarativeBase is properly typed but mypy strict mode treats it as Any
     pass
 
 # Create the database instance

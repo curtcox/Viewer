@@ -57,7 +57,7 @@ def register_response_format_handlers(app: Flask) -> None:
             continue
         base_rules[rule.endpoint] = _RuleDetails.from_rule(rule)
 
-    format_config = {
+    format_config: MutableMapping[str, Any] = {
         "base_endpoints": set(base_rules.keys()),
         "forced_endpoints": {},
     }
@@ -84,7 +84,7 @@ def register_response_format_handlers(app: Flask) -> None:
 
     app.config["RESPONSE_FORMAT_CONFIG"] = format_config
 
-    @app.before_request
+    @app.before_request  # type: ignore[misc]
     def _determine_response_format() -> None:
         config = current_app.config.get("RESPONSE_FORMAT_CONFIG")
         if not config:
@@ -110,7 +110,7 @@ def register_response_format_handlers(app: Flask) -> None:
         default_format = "json" if prefers_json else "html"
         g.response_format = resolve_format_from_accept(request.accept_mimetypes, default_format)
 
-    @app.after_request
+    @app.after_request  # type: ignore[misc]
     def _apply_response_format(response: Response) -> Response:
         config = current_app.config.get("RESPONSE_FORMAT_CONFIG")
         if not config:
@@ -335,7 +335,7 @@ def _json_to_csv(payload: Any) -> str:
     return buffer.getvalue()
 
 
-def _write_csv_row(writer: csv.writer, header: Iterable[str], values: Iterable[Any]) -> None:
+def _write_csv_row(writer: Any, header: Iterable[str], values: Iterable[Any]) -> None:
     header_list = [str(column) for column in header]
     writer.writerow(header_list)
     writer.writerow([_stringify_csv_value(value) for value in values])

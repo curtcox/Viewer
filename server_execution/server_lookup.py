@@ -57,18 +57,24 @@ def try_server_execution_with_partial(
         return render_template("404.html", path=path), 404
 
     if len(matches) > 1:
+        matches_list = []
+        for m in matches:
+            created_at_value = m.get("created_at")
+            created_at_str = (
+                created_at_value.isoformat()
+                if created_at_value is not None
+                else None
+            )
+            matches_list.append({
+                "definition_cid": m.get("definition_cid"),
+                "snapshot_cid": m.get("snapshot_cid"),
+                "created_at": created_at_str,
+            })
         payload = {
             "error": "Multiple matching server versions",
             "server": server_name,
             "partial": partial,
-            "matches": [
-                {
-                    "definition_cid": m.get("definition_cid"),
-                    "snapshot_cid": m.get("snapshot_cid"),
-                    "created_at": m.get("created_at").isoformat() if m.get("created_at") else None,
-                }
-                for m in matches
-            ],
+            "matches": matches_list,
         }
         return jsonify(payload), 400
 

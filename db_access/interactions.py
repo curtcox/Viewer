@@ -65,7 +65,7 @@ def record_entity_interaction(
             if request.content and request.content != existing.content:
                 existing.content = request.content
                 db.session.commit()
-            return existing
+            return existing  # type: ignore[no-any-return]
 
     interaction = EntityInteraction(
         user_id=request.user_id,
@@ -100,7 +100,7 @@ def get_recent_entity_interactions(
     if limit:
         query = query.limit(limit)
 
-    return query.all()
+    return query.all()  # type: ignore[no-any-return]
 
 
 def find_entity_interaction(lookup: EntityInteractionLookup) -> EntityInteraction | None:
@@ -116,7 +116,7 @@ def find_entity_interaction(lookup: EntityInteractionLookup) -> EntityInteractio
     if lookup.created_at is not None:
         query = query.filter(EntityInteraction.created_at == lookup.created_at)
 
-    return query.first()
+    return query.first()  # type: ignore[no-any-return]
 
 
 def get_entity_interactions(
@@ -125,7 +125,7 @@ def get_entity_interactions(
     entity_name: str,
 ) -> List[EntityInteraction]:
     """Return all stored interactions for an entity ordered from oldest to newest."""
-    return (
+    return (  # type: ignore[no-any-return]
         EntityInteraction.query
         .filter_by(user_id=user_id, entity_type=entity_type, entity_name=entity_name)
         .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())

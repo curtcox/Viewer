@@ -1,11 +1,12 @@
 import argparse
 import signal
 import sys
+from typing import Any
 
 from app import app
 
 
-def signal_handler(_sig, _frame):
+def signal_handler(_sig: Any, _frame: Any) -> None:
     print('\nShutting down gracefully...')
     sys.exit(0)
 

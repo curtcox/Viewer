@@ -35,12 +35,12 @@ RESULT_KEY_UPDATED = "updated"
 
 def get_user_aliases(user_id: str) -> List[Alias]:
     """Return all aliases for a user ordered by name."""
-    return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
+    return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()  # type: ignore[no-any-return]
 
 
 def get_user_template_aliases(user_id: str) -> List[Alias]:
     """Return template aliases for a user ordered by name."""
-    return (
+    return (  # type: ignore[no-any-return]
         Alias.query.filter_by(user_id=user_id, template=True)
         .order_by(Alias.name)
         .all()
@@ -49,7 +49,7 @@ def get_user_template_aliases(user_id: str) -> List[Alias]:
 
 def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:
     """Return an alias by name for a user."""
-    return Alias.query.filter_by(user_id=user_id, name=name).first()
+    return Alias.query.filter_by(user_id=user_id, name=name).first()  # type: ignore[no-any-return]
 
 
 def get_first_alias_name(user_id: str) -> Optional[str]:
@@ -62,7 +62,7 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
         .first()
     )
     if preferred is not None:
-        return preferred.name
+        return preferred.name  # type: ignore[no-any-return]
 
     fallback = (
         Alias.query.filter_by(user_id=user_id)
@@ -113,14 +113,14 @@ def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
             if not route_target:
                 continue
             if route_target in candidates:
-                return alias
+                return alias  # type: ignore[no-any-return]
 
     return None
 
 
 def count_user_aliases(user_id: str) -> int:
     """Return the count of aliases for a user."""
-    return Alias.query.filter_by(user_id=user_id).count()
+    return Alias.query.filter_by(user_id=user_id).count()  # type: ignore[no-any-return]
 
 
 @dataclass
@@ -196,7 +196,7 @@ def _update_existing_aliases(
         if old_cid:
             updated_definition, definition_changed = _replace_cid_text(
                 original_definition,
-                old_path,
+                old_path,  # type: ignore[arg-type]
                 new_path,
                 old_cid,
                 new_cid,

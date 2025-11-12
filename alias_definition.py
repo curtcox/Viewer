@@ -263,8 +263,8 @@ class DatabaseStrategy(VariableResolutionStrategy):
 class VariableResolver:
     """Resolves variables using a chain of strategies."""
 
-    def __init__(self):
-        self.strategies = [
+    def __init__(self) -> None:
+        self.strategies: list[VariableResolutionStrategy] = [
             ProvidedVariablesStrategy(),
             AliasAttributeStrategy(),
             DatabaseStrategy(),
@@ -472,7 +472,7 @@ def _normalize_variable_map(variable_source: Any) -> dict[str, str]:
         return {}
 
     if isinstance(variable_source, Mapping):
-        items = variable_source.items()
+        items: Iterable[tuple[Any, Any]] = variable_source.items()
     else:
         items = _extract_variable_items(variable_source)
 
@@ -775,6 +775,7 @@ def _get_alias_definition_text(
     """Extract and resolve the definition text from an alias object."""
     raw_definition = getattr(alias, "definition", None)
 
+    definition: Optional[str]
     if raw_definition is not None and not isinstance(raw_definition, str):
         definition = str(raw_definition)
     else:
@@ -784,7 +785,7 @@ def _get_alias_definition_text(
     variable_values = resolver.resolve(alias, variables)
     resolved_definition = _substitute_variables(definition, variable_values)
 
-    return resolved_definition if resolved_definition is not None else definition
+    return resolved_definition if resolved_definition is not None else (definition or "")
 
 
 def _is_mock_alias(alias: Any) -> bool:

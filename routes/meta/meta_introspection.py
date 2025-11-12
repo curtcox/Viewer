@@ -22,7 +22,7 @@ def collect_source_links(obj: Any) -> List[str]:
 
     for target in (obj, inspect.unwrap(obj)):
         try:
-            source_path = inspect.getsourcefile(target) or inspect.getfile(target)  # type: ignore[arg-type]
+            source_path = inspect.getsourcefile(target) or inspect.getfile(target)
         except (TypeError, OSError):
             continue
 
@@ -115,7 +115,7 @@ def collect_template_links(obj: Any) -> List[str]:
     return dedupe_links(links)
 
 
-def build_route_resolution(path: str, rule, values: Dict[str, Any], status_code: int = 200, meta_source_link: str = "/source/routes/meta.py") -> Dict[str, Any]:
+def build_route_resolution(path: str, rule: Any, values: Dict[str, Any], status_code: int = 200, meta_source_link: str = "/source/routes/meta.py") -> Dict[str, Any]:
     """Return metadata for a matched Flask route."""
     endpoint = getattr(rule, "endpoint", None)
     methods = sorted(m for m in (getattr(rule, "methods", None) or []) if m not in {"HEAD", "OPTIONS"})

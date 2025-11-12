@@ -7,7 +7,7 @@ This module provides a factory for creating standard CRUD routes for entities
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Type
 
-from flask import Blueprint, abort, flash, jsonify, redirect, render_template, url_for
+from flask import Blueprint, Response, abort, flash, jsonify, redirect, render_template, url_for
 
 from db_access import delete_entity, save_entity
 from identity import current_user
@@ -27,12 +27,12 @@ class EntityRouteConfig:
 
     def __init__(
         self,
-        entity_class: Type,
+        entity_class: Type[Any],
         entity_type: str,  # 'server', 'variable', 'secret', 'alias'
         plural_name: str,  # 'servers', 'variables', etc.
         get_by_name_func: Callable[[str, str], Any],
-        get_user_entities_func: Callable[[str], list],
-        form_class: Type,
+        get_user_entities_func: Callable[[str], list[Any]],
+        form_class: Type[Any],
         # Optional customization
         param_name: Optional[str] = None,  # URL parameter name (default: {entity_type}_name)
         update_cid_func: Optional[Callable[[str], Any]] = None,
@@ -41,9 +41,9 @@ class EntityRouteConfig:
         list_template: Optional[str] = None,
         view_template: Optional[str] = None,
         # Extra context builders for views
-        build_list_context: Optional[Callable[[list, str], Dict[str, Any]]] = None,
+        build_list_context: Optional[Callable[[list[Any], str], Dict[str, Any]]] = None,
         build_view_context: Optional[Callable[[Any, str], Dict[str, Any]]] = None,
-    ):
+    ) -> None:
         """Initialize entity route configuration.
 
         Args:
@@ -76,7 +76,7 @@ class EntityRouteConfig:
         self.build_view_context = build_view_context
 
 
-def create_list_route(bp: Blueprint, config: EntityRouteConfig):
+def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], Response | str]:
     """Create the list route: GET /{entities}
 
     Args:
@@ -86,8 +86,8 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}')
-    def list_entities():
+    @bp.route(f'/{config.plural_name}')  # type: ignore[misc]
+    def list_entities() -> Response | str:
         """List all entities for the current user."""
         entities_list = config.get_user_entities(current_user.id)
 
@@ -109,10 +109,10 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig):
         return render_template(config.list_template, **context)
 
     list_entities.__name__ = config.plural_name
-    return list_entities
+    return list_entities  # type: ignore[no-any-return]
 
 
-def create_view_route(bp: Blueprint, config: EntityRouteConfig):
+def create_view_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Response | str]:
     """Create the view route: GET /{entities}/<name>
 
     Args:
@@ -122,8 +122,8 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<{config.param_name}>')
-    def view_entity(**kwargs):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>')  # type: ignore[misc]
+    def view_entity(**kwargs: Any) -> Response | str:
         """View a specific entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
@@ -143,10 +143,10 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig):
         return render_template(config.view_template, **context)
 
     view_entity.__name__ = f'view_{config.entity_type}'
-    return view_entity
+    return view_entity  # type: ignore[no-any-return]
 
 
-def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
+def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Response]:
     """Create the enabled toggle route: POST /{entities}/<name>/enabled
 
     Args:
@@ -156,8 +156,8 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<{config.param_name}>/enabled', methods=['POST'])
-    def update_entity_enabled(**kwargs):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>/enabled', methods=['POST'])  # type: ignore[misc]
+    def update_entity_enabled(**kwargs: Any) -> Response:
         """Toggle the enabled status for an entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
@@ -182,10 +182,10 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig):
         return redirect(url_for(f'main.{config.plural_name}'))
 
     update_entity_enabled.__name__ = f'update_{config.entity_type}_enabled'
-    return update_entity_enabled
+    return update_entity_enabled  # type: ignore[no-any-return]
 
 
-def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
+def create_delete_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..., Response]:
     """Create the delete route: POST /{entities}/<name>/delete
 
     Args:
@@ -195,8 +195,8 @@ def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
     Returns:
         The route function
     """
-    @bp.route(f'/{config.plural_name}/<{config.param_name}>/delete', methods=['POST'])
-    def delete_entity_route(**kwargs):
+    @bp.route(f'/{config.plural_name}/<{config.param_name}>/delete', methods=['POST'])  # type: ignore[misc]
+    def delete_entity_route(**kwargs: Any) -> Response:
         """Delete a specific entity."""
         entity_name = kwargs[config.param_name]
         entity = config.get_by_name(current_user.id, entity_name)
@@ -212,10 +212,10 @@ def create_delete_route(bp: Blueprint, config: EntityRouteConfig):
         return redirect(url_for(f'main.{config.plural_name}'))
 
     delete_entity_route.__name__ = f'delete_{config.entity_type}'
-    return delete_entity_route
+    return delete_entity_route  # type: ignore[no-any-return]
 
 
-def register_standard_crud_routes(bp: Blueprint, config: EntityRouteConfig):
+def register_standard_crud_routes(bp: Blueprint, config: EntityRouteConfig) -> None:
     """Register all standard CRUD routes for an entity type.
 
     This creates and registers the following routes:

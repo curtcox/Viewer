@@ -777,7 +777,8 @@ def _load_job_statuses(job_statuses_path: Path | None) -> dict[str, str]:
         return {}
 
     try:
-        return json.loads(job_statuses_path.read_text(encoding="utf-8"))
+        result: dict[str, str] = json.loads(job_statuses_path.read_text(encoding="utf-8"))
+        return result
     except (json.JSONDecodeError, OSError):
         return {}
 

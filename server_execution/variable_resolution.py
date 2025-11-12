@@ -101,7 +101,8 @@ def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
             break
 
         try:
-            return response.get_data(as_text=True)
+            data: str = response.get_data(as_text=True)
+            return data
         except (UnicodeDecodeError, AttributeError, ValueError):
             # Handle decoding or response access errors
             return None

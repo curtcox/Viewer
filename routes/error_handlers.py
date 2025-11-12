@@ -1,6 +1,7 @@
 """Error handler functions for HTTP errors."""
 
 from pathlib import Path
+from typing import Any
 from flask import current_app, render_template, request
 
 from alias_routing import is_potential_alias_path, try_alias_redirect
@@ -15,7 +16,7 @@ from server_execution import (
 )
 
 
-def get_existing_routes():
+def get_existing_routes() -> set[str]:
     """
     Get set of existing routes that should take precedence over server names.
 
@@ -25,7 +26,7 @@ def get_existing_routes():
     return RESERVED_ROUTES
 
 
-def not_found_error(error):  # pylint: disable=unused-argument  # Required by Flask error handler
+def not_found_error(error: Exception) -> Any:  # pylint: disable=unused-argument  # Required by Flask error handler
     """
     Custom 404 handler that checks CID table and server names for content.
 
@@ -71,7 +72,7 @@ def not_found_error(error):  # pylint: disable=unused-argument  # Required by Fl
     return render_template('404.html', path=path), 404
 
 
-def internal_error(error):
+def internal_error(error: Exception) -> Any:
     """
     Enhanced 500 error handler with comprehensive stack trace reporting.
 

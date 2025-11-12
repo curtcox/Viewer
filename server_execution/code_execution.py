@@ -208,7 +208,7 @@ def _inject_nested_parameter_value(
 
 def _build_unsupported_signature_response(
     function_name: str, details: FunctionDetails
-):
+) -> Response:
     payload = {
         "error": f"Unsupported {function_name}() signature for automatic request mapping",
         "reasons": details.unsupported_reasons,
@@ -425,7 +425,7 @@ def _execute_server_code_common(
         return _handle_execution_exception(exc, code, args, server_name)
 
 
-@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
+@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -438,7 +438,7 @@ def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     )
 
 
-@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
+@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def execute_server_code_from_definition(definition_text: str, server_name: str) -> Optional[Response]:
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
@@ -451,7 +451,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str) 
     )
 
 
-@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
+@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def execute_server_function(server: Any, server_name: str, function_name: str) -> Optional[Response]:
     """Execute a named helper function within a server definition."""
 
@@ -465,7 +465,7 @@ def execute_server_function(server: Any, server_name: str, function_name: str) -
     )
 
 
-@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
+@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ) -> Optional[Response]:

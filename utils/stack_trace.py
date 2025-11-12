@@ -52,7 +52,7 @@ class StackTraceBuilder:
             List of exceptions in the chain
         """
         exceptions = []
-        current = exc
+        current: Optional[Exception] = exc
         seen = set()
 
         while current and id(current) not in seen:
@@ -60,7 +60,8 @@ class StackTraceBuilder:
             exceptions.append(current)
 
             # Follow __cause__ first (explicit chaining), then __context__ (implicit)
-            current = getattr(current, '__cause__', None) or getattr(current, '__context__', None)
+            next_exc: Optional[Exception] = getattr(current, '__cause__', None) or getattr(current, '__context__', None)
+            current = next_exc
 
         return exceptions
 
@@ -198,9 +199,9 @@ class StackTraceBuilder:
         Returns:
             Code context string with line numbers
         """
-        code_context = frame.line
+        code_context: Optional[str] = frame.line
         try:
-            if frame.line and absolute_path.exists():
+            if frame.line and frame.lineno is not None and absolute_path.exists():
                 # Try to get more lines of context around the error
                 with open(absolute_path, 'r', encoding='utf-8') as f:
                     lines = f.readlines()
@@ -219,7 +220,7 @@ class StackTraceBuilder:
             # Fall back to the original line if we can't read context
             pass
 
-        return code_context
+        return code_context or ""
 
     def _process_exception_chain(self, exception_chain: List[Exception]) -> List[Dict[str, Any]]:
         """

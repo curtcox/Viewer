@@ -45,7 +45,7 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 
 
-def create_app(config_override: Optional[dict] = None) -> Flask:
+def create_app(config_override: Optional[dict[str, Any]] = None) -> Flask:
     """Application factory for creating configured Flask instances."""
     logger = logging.getLogger(__name__)
 
@@ -162,7 +162,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     flask_app.register_blueprint(main_bp)
     register_response_format_handlers(flask_app)
 
-    @flask_app.context_processor
+    @flask_app.context_processor  # type: ignore[misc]
     def inject_identity() -> dict[str, Any]:
         """Expose the always-on user to templates."""
 

@@ -34,7 +34,14 @@ class _FunctionAnalyzer(ast.NodeVisitor):
         finally:
             self.function_depth -= 1
 
-    visit_AsyncFunctionDef = visit_FunctionDef
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:  # pragma: no cover - exercised indirectly
+        self.function_depth += 1
+        try:
+            if self.function_depth == 2 and node.name == self.target_name:
+                self.target_node = node  # type: ignore[assignment]
+            self.generic_visit(node)
+        finally:
+            self.function_depth -= 1
 
     def visit_Return(self, node: ast.Return) -> None:  # pragma: no cover - exercised indirectly
         if self.function_depth == 1:

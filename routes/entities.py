@@ -27,22 +27,22 @@ class EntityTypeRegistry:
     based on entity type, eliminating the need for string-based type checking.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the registry with entity type mappings."""
         # Import models lazily to avoid circular dependencies
         from models import Secret, Server, Variable
 
         # Map entity classes to their get_by_name functions
-        self._get_by_name_funcs: Dict[Type, Callable] = {
+        self._get_by_name_funcs: Dict[Type[Any], Callable[..., Any]] = {
             Server: get_server_by_name,
             Variable: get_variable_by_name,
             Secret: get_secret_by_name,
         }
 
         # Map entity classes to their CID update functions
-        self._cid_update_funcs: Dict[Type, Callable] = {}
+        self._cid_update_funcs: Dict[Type[Any], Callable[..., Any]] = {}
 
-    def get_by_name(self, entity_class: Type, user_id: str, name: str) -> Optional[Any]:
+    def get_by_name(self, entity_class: Type[Any], user_id: str, name: str) -> Optional[Any]:
         """Get entity by name using type dispatch.
 
         Args:
@@ -65,7 +65,7 @@ class EntityTypeRegistry:
             )
         return func(user_id, name)
 
-    def update_definitions_cid(self, entity_class: Type, user_id: str) -> Optional[str]:
+    def update_definitions_cid(self, entity_class: Type[Any], user_id: str) -> Optional[str]:
         """Update definitions CID for entity type.
 
         Args:
@@ -91,9 +91,9 @@ class EntityTypeRegistry:
         func = self._cid_update_funcs.get(entity_class)
         if func is None:
             return None
-        return func(user_id)
+        return func(user_id)  # type: ignore[no-any-return]
 
-    def requires_definition_cid(self, entity_class: Type) -> bool:
+    def requires_definition_cid(self, entity_class: Type[Any]) -> bool:
         """Check if entity type requires definition CID storage.
 
         Args:
@@ -119,10 +119,10 @@ def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_i
     return entity is not None
 
 
-@logfire.instrument("entities.create_entity({model_class=}, {form=}, {user_id=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire.instrument("entities.create_entity({model_class=}, {form=}, {user_id=}, {entity_type=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def create_entity(
     model_class: Type[Any],
-    form,
+    form: Any,
     user_id: str,
     entity_type: str,
     *,
@@ -155,7 +155,7 @@ def create_entity(
         entity_data['template'] = bool(template_field.data)
 
     if _entity_registry.requires_definition_cid(model_class):
-        definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
+        definition_cid = save_server_definition_as_cid(form.definition.data, user_id)  # type: ignore[arg-type]
         entity_data['definition_cid'] = definition_cid
 
     entity = model_class(**entity_data)
@@ -191,10 +191,10 @@ def create_entity(
     return True
 
 
-@logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def update_entity(
-    entity,
-    form,
+    entity: Any,
+    form: Any,
     entity_type: str,
     change_message: str | None = None,
     content_text: str | None = None,

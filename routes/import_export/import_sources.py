@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import requests
 
@@ -60,7 +60,7 @@ def load_import_payload(form: ImportForm) -> str | None:
             form.import_file.errors.append('Choose a JSON file to upload.')
             return None
         try:
-            raw_bytes = file_storage.read()
+            raw_bytes = cast(bytes, file_storage.read())
         except RuntimeError:
             form.import_file.errors.append('Unable to read the uploaded file.')
             return None
@@ -74,7 +74,7 @@ def load_import_payload(form: ImportForm) -> str | None:
             return None
 
     if source == 'text':
-        return form.import_text.data.strip()
+        return cast(str, form.import_text.data).strip()
 
     if source == 'url':
         url = form.import_url.data.strip()

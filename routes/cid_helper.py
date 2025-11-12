@@ -1,6 +1,6 @@
 """Helper class for CID operations."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from cid_presenter import cid_path, format_cid
 from db_access import get_cid_by_path
@@ -22,7 +22,7 @@ class CidHelper:
         return format_cid(cid_value)
 
     @staticmethod
-    def get_record(cid_value: str):
+    def get_record(cid_value: str) -> Any:
         """Get a CID record by its value.
 
         Args:
@@ -38,7 +38,7 @@ class CidHelper:
         return get_cid_by_path(path) if path else None
 
     @staticmethod
-    def resolve_size(record, default: int = 0) -> int:
+    def resolve_size(record: Any, default: int = 0) -> int:
         """Return a best-effort file size from a CID record.
 
         Args:

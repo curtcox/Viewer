@@ -5,13 +5,14 @@ import json
 from typing import Any
 
 from flask import jsonify, render_template, request, session
+from flask.wrappers import Response
 
 from db_access import get_user_exports
 from forms import ExportForm, ImportForm
 from identity import current_user
 from interaction_log import load_interaction_history
 
-from . import main_bp  # pylint: disable=no-name-in-module  # Lazy loaded via __getattr__
+from . import main_bp
 from .cid_utils import format_size
 from .export_engine import build_export_payload
 from .export_preview import build_export_preview
@@ -25,8 +26,8 @@ from .import_engine import (
 from .import_sources import load_import_payload, parse_import_payload
 
 
-@main_bp.route('/export', methods=['GET', 'POST'])
-def export_data():
+@main_bp.route('/export', methods=['GET', 'POST'])  # type: ignore[misc, attr-defined]
+def export_data() -> str:
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     preview = build_export_preview(form, current_user.id)
@@ -35,13 +36,13 @@ def export_data():
         from db_access import record_export
         export_result = build_export_payload(form, current_user.id)
         record_export(current_user.id, export_result['cid_value'])
-        return render_template('export_result.html', **export_result)
+        return render_template('export_result.html', **export_result)  # type: ignore[no-any-return]
 
-    return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
+    return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)  # type: ignore[no-any-return]
 
 
-@main_bp.route('/export/size', methods=['POST'])
-def export_size():
+@main_bp.route('/export/size', methods=['POST'])  # type: ignore[misc, attr-defined]
+def export_size() -> dict[str, Any] | tuple[dict[str, Any], int]:
     """Return the size of the export JSON for the current selections."""
     form = ExportForm()
     build_export_preview(form, current_user.id)
@@ -62,8 +63,8 @@ def export_size():
     return {'ok': False, 'errors': form.errors}, 400
 
 
-@main_bp.route('/import', methods=['GET', 'POST'])
-def import_data():
+@main_bp.route('/import', methods=['GET', 'POST'])  # type: ignore[misc, attr-defined]
+def import_data() -> tuple[Response, int] | str:
     """Allow users to import data collections from JSON content."""
     # Check if this is a JSON request (REST API)
     is_json_request = request.is_json or (
@@ -78,7 +79,7 @@ def import_data():
     return _handle_form_import()
 
 
-def _handle_json_import():
+def _handle_json_import() -> tuple[Response, int]:
     """Handle JSON API import requests."""
     try:
         json_data = request.get_json() or {}
@@ -107,7 +108,7 @@ def _handle_json_import():
         from .import_engine import generate_snapshot_export
         snapshot_export = generate_snapshot_export(context.user_id)
 
-        response_data = {'ok': True}
+        response_data: dict[str, Any] = {'ok': True}
         if context.errors:
             response_data['errors'] = context.errors
         if context.warnings:
@@ -127,16 +128,16 @@ def _handle_json_import():
         return jsonify({'ok': False, 'error': str(exc)}), 400
 
 
-def _handle_form_import():
+def _handle_form_import() -> str:
     """Handle HTML form import requests."""
     form = ImportForm()
     change_message = (request.form.get('change_message') or '').strip()
 
-    def _render_import_form(snapshot_export: dict[str, Any] | None = None):
+    def _render_import_form(snapshot_export: dict[str, Any] | None = None) -> str:
         interactions = load_interaction_history(current_user.id, 'import', 'json')
         snapshot_info = session.pop('import_snapshot_export', None) or snapshot_export
         imported_names = session.pop('import_summary_names', None)
-        return render_template(
+        return render_template(  # type: ignore[no-any-return]
             'import.html',
             form=form,
             import_interactions=interactions,
@@ -156,7 +157,7 @@ def _handle_form_import():
             return _render_import_form()
 
         assert parsed_payload is not None
-        return process_import_submission(form, change_message, _render_import_form, parsed_payload)
+        return process_import_submission(form, change_message, _render_import_form, parsed_payload)  # type: ignore[no-any-return]
 
     return _render_import_form()
 

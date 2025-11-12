@@ -82,7 +82,7 @@ def create_server_invocation(
 
 def get_user_server_invocations(user_id: str) -> List[ServerInvocation]:
     """Return invocation events for a user ordered from newest to oldest."""
-    return (
+    return (  # type: ignore[no-any-return]
         ServerInvocation.query
         .filter(ServerInvocation.user_id == user_id)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
@@ -92,7 +92,7 @@ def get_user_server_invocations(user_id: str) -> List[ServerInvocation]:
 
 def get_user_server_invocations_by_server(user_id: str, server_name: str) -> List[ServerInvocation]:
     """Return invocation events for a specific server ordered from newest to oldest."""
-    return (
+    return (  # type: ignore[no-any-return]
         ServerInvocation.query
         .filter(
             ServerInvocation.user_id == user_id,
@@ -112,7 +112,7 @@ def get_user_server_invocations_by_result_cids(
     if not cid_values:
         return []
 
-    return (
+    return (  # type: ignore[no-any-return]
         ServerInvocation.query
         .filter(
             ServerInvocation.user_id == user_id,
@@ -137,4 +137,4 @@ def find_server_invocations_by_cid(cid_value: str) -> List[ServerInvocation]:
         ServerInvocation.secrets_cid == cid_value,
     ]
 
-    return ServerInvocation.query.filter(or_(*filters)).all()
+    return ServerInvocation.query.filter(or_(*filters)).all()  # type: ignore[no-any-return]

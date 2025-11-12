@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import jsonify, render_template, request, url_for
+from flask import Response, jsonify, render_template, request, url_for
 
 from alias_definition import collect_alias_routes
 from cid_presenter import cid_path, format_cid
@@ -158,7 +158,7 @@ def _alias_form_url(target_path: str | None, name_suggestion: str | None = None)
     if name_suggestion and _ALIAS_NAME_PATTERN.fullmatch(name_suggestion):
         params["name"] = name_suggestion
 
-    return url_for("main.new_alias", **params)
+    return url_for("main.new_alias", **params)  # type: ignore[no-any-return]
 
 
 def _parse_enabled(value: str | None) -> bool:
@@ -353,8 +353,8 @@ def _cid_results(
         if value is None:
             return datetime.fromtimestamp(0, tz=timezone.utc)
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value
+            return value.replace(tzinfo=timezone.utc)  # type: ignore[no-any-return]
+        return value  # type: ignore[no-any-return]
 
     uploads = sorted(
         get_user_uploads(user_id),
@@ -411,11 +411,11 @@ _COLLECTORS = {
 }
 
 
-@main_bp.route("/search")
-def search_page():
+@main_bp.route("/search")  # type: ignore[misc]
+def search_page() -> str:
     """Render the workspace search page."""
 
-    return render_template("search.html", title="Search")
+    return render_template("search.html", title="Search")  # type: ignore[no-any-return]
 
 
 def _extract_search_query() -> tuple[str, str]:
@@ -510,8 +510,8 @@ def _execute_search(
     return response_categories, total_count
 
 
-@main_bp.route("/search/results")
-def search_results():
+@main_bp.route("/search/results")  # type: ignore[misc]
+def search_results() -> Response:
     """Return JSON search results for the requested query and filters."""
     query, query_lower = _extract_search_query()
     applied_filters = _parse_search_filters()

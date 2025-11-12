@@ -20,7 +20,7 @@ from alias_definition import AliasDefinitionError, parse_alias_definition
 def _strip_filter(value: Any) -> Any:
     return value.strip() if isinstance(value, str) else value
 
-class EntityForm(FlaskForm):
+class EntityForm(FlaskForm):  # type: ignore[misc]
     """Base form for all entity types (Server, Variable, Secret).
 
     This base class consolidates common fields and validation logic that was
@@ -49,7 +49,7 @@ class EntityForm(FlaskForm):
     template = BooleanField('Template', default=False)
     submit = SubmitField('Save')
 
-    def __init__(self, *args, entity_type: str = 'Entity', **kwargs):
+    def __init__(self, *args: Any, entity_type: str = 'Entity', **kwargs: Any) -> None:
         """Initialize the form with entity-specific labels.
 
         Args:
@@ -68,7 +68,7 @@ class EntityForm(FlaskForm):
             raise ValidationError(f'{self.name.label.text} contains invalid characters for URLs')
 
 
-class FileUploadForm(FlaskForm):
+class FileUploadForm(FlaskForm):  # type: ignore[misc]
     upload_type = RadioField('Upload Method', choices=[
         ('file', 'Upload File'),
         ('text', 'Paste Text'),
@@ -104,7 +104,7 @@ class FileUploadForm(FlaskForm):
         return True
 
 
-class EditCidForm(FlaskForm):
+class EditCidForm(FlaskForm):  # type: ignore[misc]
     text_content = TextAreaField(
         'CID Content',
         validators=[DataRequired()],
@@ -126,19 +126,19 @@ class EditCidForm(FlaskForm):
 class ServerForm(EntityForm):
     """Form for server management."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize ServerForm with 'Server' labels."""
         super().__init__(*args, entity_type='Server', **kwargs)
 
 class VariableForm(EntityForm):
     """Form for variable management."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize VariableForm with 'Variable' labels."""
         super().__init__(*args, entity_type='Variable', **kwargs)
 
 
-class BulkVariablesForm(FlaskForm):
+class BulkVariablesForm(FlaskForm):  # type: ignore[misc]
     variables_json = TextAreaField(
         'Variables JSON',
         validators=[DataRequired()],
@@ -147,7 +147,7 @@ class BulkVariablesForm(FlaskForm):
     submit = SubmitField('Save Variables')
 
 
-class BulkSecretsForm(FlaskForm):
+class BulkSecretsForm(FlaskForm):  # type: ignore[misc]
     secrets_json = TextAreaField(
         'Secrets JSON',
         validators=[DataRequired()],
@@ -155,7 +155,7 @@ class BulkSecretsForm(FlaskForm):
     )
     submit = SubmitField('Save Secrets')
 
-class AliasForm(FlaskForm):
+class AliasForm(FlaskForm):  # type: ignore[misc]
     name = StringField(
         'Alias Name',
         validators=[
@@ -180,12 +180,12 @@ class AliasForm(FlaskForm):
     template = BooleanField('Template', default=False)
     submit = SubmitField('Save Alias')
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._parsed_definition = None
+        self._parsed_definition: Any = None
 
     @property
-    def parsed_definition(self):
+    def parsed_definition(self) -> Any:
         return self._parsed_definition
 
     def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
@@ -207,12 +207,12 @@ class AliasForm(FlaskForm):
 class SecretForm(EntityForm):
     """Form for secret management."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize SecretForm with 'Secret' labels."""
         super().__init__(*args, entity_type='Secret', **kwargs)
 
 
-class ExportForm(FlaskForm):
+class ExportForm(FlaskForm):  # type: ignore[misc]
     snapshot = BooleanField('Snapshot', default=True)
     include_aliases = BooleanField('Aliases', default=True)
     include_disabled_aliases = BooleanField('Disabled aliases')
@@ -252,7 +252,7 @@ class ExportForm(FlaskForm):
         return True
 
 
-class ImportForm(FlaskForm):
+class ImportForm(FlaskForm):  # type: ignore[misc]
     import_source = RadioField(
         'Import Method',
         choices=[

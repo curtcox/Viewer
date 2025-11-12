@@ -1,5 +1,7 @@
 """Context processors for injecting variables into all templates."""
 
+from typing import Any
+
 from flask import current_app, has_request_context, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -13,7 +15,7 @@ from db_access import (
 from identity import current_user
 
 
-def inject_observability_info():
+def inject_observability_info() -> dict[str, Any]:
     """
     Expose Logfire and LangSmith availability to all templates.
 
@@ -31,7 +33,7 @@ def inject_observability_info():
     }
 
 
-def inject_meta_inspector_link():
+def inject_meta_inspector_link() -> dict[str, str]:
     """
     Expose the per-page /meta inspector link to templates.
 
@@ -53,7 +55,7 @@ def inject_meta_inspector_link():
     return {"meta_inspector_url": meta_url}
 
 
-def inject_viewer_navigation():
+def inject_viewer_navigation() -> dict[str, Any]:
     """
     Expose collections used by the unified Viewer navigation menu.
 

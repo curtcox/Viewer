@@ -154,7 +154,7 @@ def _resolve_function_parameters(
 
 def _build_missing_parameter_response(
     function_name: str, error: MissingParameterError
-):
+) -> Response:
     payload = {
         "error": f"Missing required parameters for {function_name}()",
         "missing_parameters": [

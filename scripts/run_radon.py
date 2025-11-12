@@ -98,7 +98,8 @@ def _resolve_config(raw: dict[str, object], args: argparse.Namespace) -> RadonCo
         else _as_list(raw.get("ignore"))
     )
 
-    fail_rank = (args.fail_rank or raw.get("fail_rank") or "E").upper()
+    fail_rank_raw = args.fail_rank or raw.get("fail_rank") or "E"
+    fail_rank = str(fail_rank_raw).upper()
     if fail_rank not in RANK_ORDER:
         valid = ", ".join(RANK_ORDER)
         raise RadonError(f"Invalid fail rank '{fail_rank}'. Choose one of: {valid}.")
@@ -318,8 +319,9 @@ def _format_markdown_summary(
                 "| --- | ---: | --- |",
             ]
         )
-        for entry in sorted(maintainability, key=lambda e: e.mi)[: config.top_results]:
-            lines.append(f"| {entry.rank} | {entry.mi:.2f} | {entry.path} |")
+        mi_entry: MaintainabilityEntry
+        for mi_entry in sorted(maintainability, key=lambda e: e.mi)[: config.top_results]:
+            lines.append(f"| {mi_entry.rank} | {mi_entry.mi:.2f} | {mi_entry.path} |")
 
     if extras:
         lines.extend(["", "## Additional data", ""])
@@ -491,9 +493,9 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     extras: dict[str, dict[str, object]] = {}
     if cc_extras:
-        extras.update({f"complexity_{key}": value for key, value in cc_extras.items()})
+        extras.update({f"complexity_{key}": value for key, value in cc_extras.items() if isinstance(value, dict)})
     if mi_extras:
-        extras.update({f"maintainability_{key}": value for key, value in mi_extras.items()})
+        extras.update({f"maintainability_{key}": value for key, value in mi_extras.items() if isinstance(value, dict)})
 
     markdown = _format_markdown_summary(
         complexity=complexity_entries,

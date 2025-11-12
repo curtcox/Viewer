@@ -137,7 +137,7 @@ def _prefill_definition_from_hints(
 
 
 def _build_definition_value(
-    definition_text: str, parsed, new_name: str
+    definition_text: str, parsed: Any, new_name: str
 ) -> Optional[str]:
     """Build final definition value from parsed data.
 
@@ -164,7 +164,7 @@ def _build_definition_value(
     return definition_text or None
 
 
-@logfire.instrument(
+@logfire.instrument(  # type: ignore[misc]
     "aliases._persist_alias({alias=})", extract_args=True, record_return=True
 )
 def _persist_alias(alias: Alias) -> Alias:
@@ -337,7 +337,7 @@ def _build_alias_view_context(alias: Alias, user_id: str) -> Dict[str, Any]:
 
 
 def _alias_to_json(alias: Alias) -> Dict[str, Any]:
-    return model_to_dict(
+    result = model_to_dict(
         alias,
         {
             "match_type": alias.get_primary_match_type(),
@@ -346,6 +346,7 @@ def _alias_to_json(alias: Alias) -> Dict[str, Any]:
             "ignore_case": alias.get_primary_ignore_case(),
         },
     )
+    return dict(result)  # Convert MutableMapping to dict
 
 
 # Configure and register standard CRUD routes using the factory
@@ -363,8 +364,8 @@ _alias_config = EntityRouteConfig(
 register_standard_crud_routes(main_bp, _alias_config)
 
 
-@main_bp.route('/aliases/new', methods=['GET', 'POST'])
-def new_alias():
+@main_bp.route('/aliases/new', methods=['GET', 'POST'])  # type: ignore[misc]
+def new_alias() -> str:
     """Create a new alias for the authenticated user."""
     form = AliasForm()
     change_message = (request.form.get('change_message') or '').strip()
@@ -424,14 +425,14 @@ def new_alias():
                 )
             )
             flash(f'Alias "{name}" created successfully!', 'success')
-            return redirect(url_for('main.aliases'))
+            return redirect(url_for('main.aliases'))  # type: ignore[no-any-return]
 
     entity_name_hint = (form.name.data or '').strip()
     interaction_history = load_interaction_history(
         current_user.id, 'alias', entity_name_hint
     )
 
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         'alias_form.html',
         form=form,
         title='Create New Alias',
@@ -485,7 +486,7 @@ def _handle_save_as(
         )
     )
     flash(f'Alias "{alias_copy.name}" created successfully!', 'success')
-    return url_for('main.view_alias', alias_name=alias_copy.name)
+    return url_for('main.view_alias', alias_name=alias_copy.name)  # type: ignore[no-any-return]
 
 
 # pylint: disable=too-many-positional-arguments  # Helper needs all params for alias handling
@@ -525,22 +526,25 @@ def _handle_rename(
         )
     )
     flash(f'Alias "{alias.name}" updated successfully!', 'success')
-    return url_for('main.view_alias', alias_name=alias.name)
+    return url_for('main.view_alias', alias_name=alias.name)  # type: ignore[no-any-return]
 
 
-@main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
-def edit_alias(alias_name: str):
+@main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def edit_alias(alias_name: str) -> str:
     """Edit an existing alias."""
     alias = get_alias_by_name(current_user.id, alias_name)
     if not alias:
         abort(404)
+
+    # After the abort check, alias is guaranteed to be non-None
+    assert alias is not None
 
     form = AliasForm(obj=alias)
     change_message = (request.form.get('change_message') or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
 
     def render_edit_form() -> str:
-        return render_template(
+        return render_template(  # type: ignore[no-any-return]
             'alias_form.html',
             form=form,
             title=f'Edit Alias "{alias.name}"',
@@ -569,21 +573,21 @@ def edit_alias(alias_name: str):
                 form, alias, new_name, definition_value, change_message, validator
             )
             if redirect_url:
-                return redirect(redirect_url)
+                return redirect(redirect_url)  # type: ignore[no-any-return]
             return render_edit_form()
 
         redirect_url = _handle_rename(
             form, alias, new_name, definition_value, change_message, validator
         )
         if redirect_url:
-            return redirect(redirect_url)
+            return redirect(redirect_url)  # type: ignore[no-any-return]
         return render_edit_form()
 
     return render_edit_form()
 
 
-@main_bp.route('/aliases/match-preview', methods=['POST'])
-def alias_match_preview():
+@main_bp.route('/aliases/match-preview', methods=['POST'])  # type: ignore[misc]
+def alias_match_preview() -> tuple[Any, int] | Any:
     """Return live matching results for the provided alias configuration."""
 
     if not getattr(current_user, 'id', None):
@@ -681,8 +685,8 @@ def alias_match_preview():
     )
 
 
-@main_bp.route('/aliases/definition-status', methods=['POST'])
-def alias_definition_status():
+@main_bp.route('/aliases/definition-status', methods=['POST'])  # type: ignore[misc]
+def alias_definition_status() -> tuple[Any, int] | Any:
     """Return the validation status for an alias definition."""
 
     if not getattr(current_user, 'id', None):

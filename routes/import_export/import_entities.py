@@ -275,7 +275,7 @@ def impl_import_servers(
         prepared = prepare_server_import(entry, cid_map, errors)
         if prepared is None:
             continue
-        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)
+        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)  # type: ignore[arg-type]
         existing = get_server_by_name(user_id, prepared.name)
         if existing:
             existing.definition = prepared.definition

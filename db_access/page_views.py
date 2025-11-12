@@ -17,7 +17,7 @@ def save_page_view(page_view: PageView) -> PageView:
 
 def count_user_page_views(user_id: str) -> int:
     """Return the number of page views recorded for a user."""
-    return PageView.query.filter_by(user_id=user_id).count()
+    return PageView.query.filter_by(user_id=user_id).count()  # type: ignore[no-any-return]
 
 
 def count_unique_page_view_paths(user_id: str) -> int:
@@ -34,7 +34,7 @@ def count_unique_page_view_paths(user_id: str) -> int:
 def get_popular_page_paths(user_id: str, limit: int = 5) -> List[Tuple[str, int]]:
     """Return the most frequently viewed paths for a user."""
     # pylint: disable=not-callable  # SQLAlchemy func.count is callable
-    return (
+    return (  # type: ignore[no-any-return]
         db.session.query(PageView.path, func.count(PageView.path).label('count'))
         .filter_by(user_id=user_id)
         .group_by(PageView.path)
@@ -55,4 +55,4 @@ def paginate_user_page_views(user_id: str, page: int, per_page: int = 50) -> Pag
 
 def count_page_views() -> int:
     """Return the total number of page view records."""
-    return PageView.query.count()
+    return PageView.query.count()  # type: ignore[no-any-return]

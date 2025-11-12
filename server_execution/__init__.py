@@ -4,6 +4,8 @@ This package provides the core server execution functionality for Viewer,
 including code analysis, parameter resolution, and execution handling.
 """
 
+from typing import Any
+
 # Import public API from submodules
 from server_execution.code_execution import (
     AUTO_MAIN_PARAMS_NAME,
@@ -128,7 +130,7 @@ _LAZY_IMPORTS = {
 
 
 # Lazy loading for internal/private functions (for testing and backward compatibility)
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Dynamically load internal functions when accessed."""
     if name in _LAZY_IMPORTS:
         module_name, attr_name = _LAZY_IMPORTS[name]

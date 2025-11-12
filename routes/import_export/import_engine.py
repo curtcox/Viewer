@@ -114,7 +114,7 @@ def import_section(context: ImportContext, plan: SectionImportPlan) -> int:
     if isinstance(result, tuple) and len(result) == 3:
         imported_count, import_errors, imported_names = result
     else:
-        imported_count, import_errors = result  # type: ignore[misc]
+        imported_count, import_errors = result
         imported_names = []
     context.errors.extend(import_errors)
     if imported_count:
@@ -166,7 +166,7 @@ def import_selected_sections(context: ImportContext) -> None:
         SectionImportPlan(
             include=context.form.include_history.data,
             section_key='change_history',
-            importer=lambda section: import_change_history(context.user_id, section),
+            importer=lambda section: (*import_change_history(context.user_id, section), []),
             singular_label='history event',
             plural_label='history events',
         ),
@@ -226,7 +226,7 @@ def generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
         return None
 
 
-def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> Any:
+def finalise_import(context: ImportContext, render_form: Callable[[Any], Any]) -> Any:
     """Flash messages and finalize the import process."""
     for message in context.errors:
         flash(message, 'danger')
@@ -272,7 +272,7 @@ def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> A
 def process_import_submission(
     form: ImportForm,
     change_message: str,
-    render_form: Callable[[], Any],
+    render_form: Callable[[Any], Any],
     parsed_payload: ParsedImportPayload,
 ) -> Any:
     """Handle an import form submission and return the appropriate response."""

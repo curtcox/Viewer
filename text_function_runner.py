@@ -10,7 +10,7 @@ from db_access import get_cid_by_path
 from identity import current_user
 
 
-def _coerce_to_bytes(value) -> bytes:
+def _coerce_to_bytes(value: Any) -> bytes:
     if isinstance(value, bytes):
         return value
     if isinstance(value, str):
@@ -18,7 +18,7 @@ def _coerce_to_bytes(value) -> bytes:
     return str(value).encode("utf-8")
 
 
-def _get_current_user_id():
+def _get_current_user_id() -> str | None:
     try:
         user = current_user
     except (RuntimeError, AttributeError):
@@ -43,7 +43,7 @@ def _get_current_user_id():
     return str(user_id)
 
 
-def _save_content(value):
+def _save_content(value: Any) -> str:
     user_id = _get_current_user_id()
     if not user_id:
         raise RuntimeError("save() requires an authenticated user with an id")
@@ -52,7 +52,7 @@ def _save_content(value):
     return store_cid_from_bytes(content, user_id)
 
 
-def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict"):
+def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict") -> bytes | str:
     """Return the stored CID content, optionally decoding it as text."""
 
     if not isinstance(cid_value, str):
@@ -94,7 +94,7 @@ _SAFE_TYPING_GLOBALS = {
 def run_text_function(
     body_text: str,
     arg_map: Dict[str, object],
-):
+) -> Any:
     """
     Define and execute a function from multi-line Python `body_text` in one call.
 
@@ -121,7 +121,7 @@ def run_text_function(
     src = f"def {fn_name}({', '.join(param_names)}):\n{textwrap.indent(body_text, '    ')}"
 
     # Global namespace with all builtins available plus helper utilities
-    ns = {
+    ns: Dict[str, Any] = {
         "__builtins__": builtins,
         "save": _save_content,
         "load": _load_content,

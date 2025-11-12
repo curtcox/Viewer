@@ -119,7 +119,7 @@ def resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
                     {
                         "definition_cid": m.get("definition_cid"),
                         "snapshot_cid": m.get("snapshot_cid"),
-                        "created_at": m.get("created_at").isoformat() if m.get("created_at") else None,
+                        "created_at": created_at.isoformat() if (created_at := m.get("created_at")) is not None else None,
                     }
                     for m in matches
                 ],
@@ -128,11 +128,12 @@ def resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
         return payload
 
     match = matches[0]
+    created_at = match.get("created_at")
     base_details = {
         "definition_cid": match.get("definition_cid"),
         "snapshot_cid": match.get("snapshot_cid"),
-        "created_at": match.get("created_at").isoformat()
-        if match.get("created_at")
+        "created_at": created_at.isoformat()
+        if created_at is not None
         else None,
     }
 

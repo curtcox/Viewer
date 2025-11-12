@@ -28,7 +28,7 @@ META_SOURCE_LINK = "/source/routes/meta.py"
 
 def metadata_status(metadata: Dict[str, Any]) -> int:
     """Return the HTTP status code that should accompany metadata."""
-    status = metadata.get("status_code", 200)
+    status: int = metadata.get("status_code", 200)
     if status in {301, 302, 303, 307, 308}:
         return 200
     return status
@@ -113,13 +113,13 @@ def gather_metadata(
             attach_alias_targeting_metadata(metadata, metadata.get("path", path))
         return metadata, 200
     except NotFound:
-        metadata, status = handle_not_found(
+        maybe_metadata, status = handle_not_found(
             path,
             include_alias_target_metadata=include_alias_target_metadata,
         )
-        if metadata and include_alias_relations:
-            attach_alias_targeting_metadata(metadata, metadata.get("path", path))
-        return metadata, status
+        if maybe_metadata and include_alias_relations:
+            attach_alias_targeting_metadata(maybe_metadata, maybe_metadata.get("path", path))
+        return maybe_metadata, status
 
     metadata = build_route_resolution(path, rule, values, meta_source_link=META_SOURCE_LINK)
     if metadata and include_alias_relations:
@@ -127,9 +127,9 @@ def gather_metadata(
     return metadata, 200
 
 
-@main_bp.route("/meta", defaults={"requested_path": ""}, strict_slashes=False)
-@main_bp.route("/meta/<path:requested_path>")
-def meta_route(requested_path: str):
+@main_bp.route("/meta", defaults={"requested_path": ""}, strict_slashes=False)  # type: ignore[misc]
+@main_bp.route("/meta/<path:requested_path>")  # type: ignore[misc]
+def meta_route(requested_path: str) -> tuple[Response, int]:
     """Return diagnostic information about how a path is served."""
     html_format = False
     effective_path = requested_path
@@ -149,7 +149,7 @@ def meta_route(requested_path: str):
 
     if html_format:
         html = render_metadata_html(metadata)
-        return Response(html, status=status_code, mimetype="text/html")
+        return Response(html, status=status_code, mimetype="text/html"), 200
 
     return jsonify(metadata), status_code
 
@@ -159,7 +159,7 @@ def inspect_path_metadata(
     *,
     include_alias_relations: bool = True,
     include_alias_target_metadata: bool = True,
-):
+) -> Tuple[Optional[Dict[str, Any]], int]:
     """Expose metadata gathering for reuse outside the /meta route."""
 
     normalized = normalize_target_path(requested_path)

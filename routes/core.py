@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import NoReturn, Optional
 
 from flask import abort, redirect, render_template, url_for
 
@@ -77,85 +77,85 @@ main_bp.app_context_processor(inject_meta_inspector_link)
 main_bp.app_context_processor(inject_viewer_navigation)
 
 
-@main_bp.route('/')
-def index():
+@main_bp.route('/')  # type: ignore[misc]
+def index() -> str:
     """Landing page with marketing and observability information."""
     cross_reference = build_cross_reference_data(current_user.id)
 
-    return render_template('index.html', cross_reference=cross_reference)
+    return render_template('index.html', cross_reference=cross_reference)  # type: ignore[no-any-return]
 
 
-@main_bp.route('/dashboard')
-def dashboard():
+@main_bp.route('/dashboard')  # type: ignore[misc]
+def dashboard() -> str:
     """User dashboard - directs members to their profile overview."""
-    return redirect(url_for('main.profile'))
+    return redirect(url_for('main.profile'))  # type: ignore[no-any-return]
 
 
-@main_bp.route('/profile')
-def profile():
+@main_bp.route('/profile')  # type: ignore[misc]
+def profile() -> str:
     """User profile placeholder for future external account management."""
-    return render_template('profile.html')
+    return render_template('profile.html')  # type: ignore[no-any-return]
 
 
-@main_bp.route('/subscribe', methods=['GET', 'POST'])
-def subscribe():
+@main_bp.route('/subscribe', methods=['GET', 'POST'])  # type: ignore[misc]
+def subscribe() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/accept-terms', methods=['GET', 'POST'])
-def accept_terms():
+@main_bp.route('/accept-terms', methods=['GET', 'POST'])  # type: ignore[misc]
+def accept_terms() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/plans')
-def plans():
+@main_bp.route('/plans')  # type: ignore[misc]
+def plans() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/terms')
-def terms():
+@main_bp.route('/terms')  # type: ignore[misc]
+def terms() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/privacy')
-def privacy():
+@main_bp.route('/privacy')  # type: ignore[misc]
+def privacy() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/invitations')
-def invitations():
+@main_bp.route('/invitations')  # type: ignore[misc]
+def invitations() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/create-invitation', methods=['GET', 'POST'])
-def create_invitation():
+@main_bp.route('/create-invitation', methods=['GET', 'POST'])  # type: ignore[misc]
+def create_invitation() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/require-invitation', methods=['GET', 'POST'])
-def require_invitation():
+@main_bp.route('/require-invitation', methods=['GET', 'POST'])  # type: ignore[misc]
+def require_invitation() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/invite/<invitation_code>')
-def accept_invitation(invitation_code):  # pylint: disable=unused-argument
+@main_bp.route('/invite/<invitation_code>')  # type: ignore[misc]
+def accept_invitation(invitation_code: str) -> NoReturn:  # type: ignore[misc]  # pylint: disable=unused-argument
     """Accept invitation route (placeholder - returns 404)."""
     abort(404)
 
 
-@main_bp.route('/_screenshot/cid-demo')
-def screenshot_cid_demo():
+@main_bp.route('/_screenshot/cid-demo')  # type: ignore[misc]
+def screenshot_cid_demo() -> NoReturn:  # type: ignore[misc]
     abort(404)
 
 
-@main_bp.route('/settings')
-def settings():
+@main_bp.route('/settings')  # type: ignore[misc]
+def settings() -> str:
     """Settings page with links to servers, variables, aliases, and secrets."""
     counts = get_user_settings_counts(current_user.id)
-    return render_template('settings.html', **counts)
+    return render_template('settings.html', **counts)  # type: ignore[no-any-return]
 
 
-def get_user_settings_counts(user_id):
+def get_user_settings_counts(user_id: str) -> dict[str, int | str | None]:
     """
     Get counts of a user's saved resources for settings display.
 

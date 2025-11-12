@@ -1,7 +1,7 @@
 """Secret management routes and helpers."""
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import Response, abort, flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_secret_bulk_handler
 from cid_utils import (
@@ -28,12 +28,12 @@ from .entities import create_entity, update_entity
 _bulk_editor = create_secret_bulk_handler()
 
 
-def update_secret_definitions_cid(user_id):
+def update_secret_definitions_cid(user_id: str) -> str:
     """Update the secret definitions CID after secret changes."""
     return store_secret_definitions_cid(user_id)
 
 
-def user_secrets():
+def user_secrets() -> List[Secret]:
     return get_user_secrets(current_user.id)
 
 
@@ -52,9 +52,9 @@ def _apply_secrets_editor_changes(user_id: str, desired_values: Dict[str, str], 
     _bulk_editor.apply_changes(user_id, desired_values, existing)
 
 
-def _build_secrets_list_context(secrets_list: list, user_id: str) -> Dict[str, str]:
+def _build_secrets_list_context(secrets_list: List[Secret], user_id: str) -> Dict[str, str]:
     """Build extra context for secrets list view."""
-    context = {}
+    context: Dict[str, str] = {}
     if secrets_list:
         context['secret_definitions_cid'] = get_current_secret_definitions_cid(user_id)
     return context
@@ -69,15 +69,15 @@ _secret_config = EntityRouteConfig(
     get_user_entities_func=get_user_secrets,
     form_class=SecretForm,
     update_cid_func=update_secret_definitions_cid,
-    to_json_func=model_to_dict,
+    to_json_func=lambda entity: dict(model_to_dict(entity)),
     build_list_context=_build_secrets_list_context,
 )
 
 register_standard_crud_routes(main_bp, _secret_config)
 
 
-@main_bp.route('/secrets/_/edit', methods=['GET', 'POST'])
-def bulk_edit_secrets():
+@main_bp.route('/secrets/_/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def bulk_edit_secrets() -> str | Response:
     """Edit all secrets at once using a JSON payload."""
 
     secrets_list = user_secrets()
@@ -91,7 +91,7 @@ def bulk_edit_secrets():
         normalized, error = _parse_secrets_editor_payload(payload)
         if error:
             form.secrets_json.errors.append(error)
-        else:
+        elif normalized is not None:
             _apply_secrets_editor_changes(current_user.id, normalized, secrets_list)
             update_secret_definitions_cid(current_user.id)
             flash('Secrets updated successfully!', 'success')
@@ -108,8 +108,8 @@ def bulk_edit_secrets():
     )
 
 
-@main_bp.route('/secrets/new', methods=['GET', 'POST'])
-def new_secret():
+@main_bp.route('/secrets/new', methods=['GET', 'POST'])  # type: ignore[misc]
+def new_secret() -> str | Response:
     """Create a new secret."""
     form = SecretForm()
 
@@ -152,12 +152,15 @@ def new_secret():
     )
 
 
-@main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
-def edit_secret(secret_name):
+@main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def edit_secret(secret_name: str) -> str | Response:
     """Edit a specific secret."""
     secret = get_secret_by_name(current_user.id, secret_name)
     if not secret:
         abort(404)
+
+    # Assert for type checker that secret is not None after abort
+    assert secret is not None
 
     form = SecretForm(obj=secret)
 

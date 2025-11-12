@@ -27,7 +27,7 @@ from db_access import (
 
 app = create_app()
 
-def inspect_database():
+def inspect_database() -> None:
     """Inspect the database and show summary information"""
     with app.app_context():
         print("=" * 60)
@@ -76,7 +76,7 @@ def inspect_database():
         print("Viewer expects authentication and subscription details to be handled externally.")
         print()
 
-def show_cid_details(cid_path: str | None = None):
+def show_cid_details(cid_path: str | None = None) -> None:
     """Show detailed information about a specific CID"""
     with app.app_context():
         if cid_path:

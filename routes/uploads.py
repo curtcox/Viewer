@@ -94,7 +94,7 @@ def _save_cid_content(text_content: str, user_id: str) -> str:
     return _store_or_find_content(file_content, user_id)
 
 
-def _shorten_cid(cid: str | None, length: int = 6) -> str:
+def _shorten_cid(cid: str | None, length: int = 6) -> str | None:
     """Return a shortened CID label for display."""
     return format_cid_short(cid, length)
 
@@ -135,7 +135,7 @@ def _render_upload_success(
     view_url_extension: str | None = None,
     filename: str | None = None,
     assignment_variable_name: str | None = None,
-):
+) -> str:
     """Render the upload success page with variable assignment helpers."""
 
     normalized = CidHelper.normalize(cid_value)
@@ -143,7 +143,7 @@ def _render_upload_success(
     resolved_size = CidHelper.resolve_size(record, file_size if file_size is not None else 0)
     variables, assigned_variable = _collect_variable_assignment(normalized, current_user.id)
 
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         'upload_success.html',
         cid=normalized,
         file_size=resolved_size,
@@ -156,7 +156,7 @@ def _render_upload_success(
     )
 
 
-@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
+@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)  # type: ignore[misc]
 def _persist_alias_from_upload(alias: Alias) -> Alias:
     """Persist alias changes that originate from upload workflows.
 
@@ -170,7 +170,7 @@ def _persist_alias_from_upload(alias: Alias) -> Alias:
     return alias
 
 
-def _process_upload_by_type(form) -> tuple[bytes, str | None, str | None]:
+def _process_upload_by_type(form: Any) -> tuple[bytes, str | None, str | None]:
     """Process upload based on upload_type field.
 
     Args:
@@ -334,16 +334,16 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
     )
 
 
-@main_bp.route('/upload', methods=['GET', 'POST'])
-def upload():
+@main_bp.route('/upload', methods=['GET', 'POST'])  # type: ignore[misc]
+def upload() -> str:
     """File upload page with CID storage."""
     form = FileUploadForm()
     upload_templates = get_upload_templates()
     change_message = (request.form.get('change_message') or '').strip()
 
-    def _render_form():
+    def _render_form() -> str:
         interactions = load_interaction_history(current_user.id, EntityType.UPLOAD.value, UploadType.TEXT.value)
-        return render_template(
+        return render_template(  # type: ignore[no-any-return]
             'upload.html',
             form=form,
             upload_templates=upload_templates,
@@ -354,13 +354,13 @@ def upload():
         result = _process_upload_submission(form, change_message)
         if result is None:
             return _render_form()
-        return result
+        return result  # type: ignore[no-any-return]
 
     return _render_form()
 
 
-@main_bp.route('/uploads')
-def uploads():
+@main_bp.route('/uploads')  # type: ignore[misc]
+def uploads() -> str:
     """Display user's uploaded files."""
     user_uploads = get_user_uploads(current_user.id)
 
@@ -389,7 +389,7 @@ def uploads():
 
     total_storage = sum(upload.file_size or 0 for upload in user_uploads)
 
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         'uploads.html',
         uploads=user_uploads,
         total_uploads=len(user_uploads),
@@ -397,13 +397,13 @@ def uploads():
     )
 
 
-@main_bp.route('/_screenshot/uploads')
-def screenshot_uploads_demo():
+@main_bp.route('/_screenshot/uploads')  # type: ignore[misc]
+def screenshot_uploads_demo() -> None:
     abort(404)
 
 
-@main_bp.route('/edit/<cid_prefix>', methods=['GET', 'POST'])
-def edit_cid(cid_prefix):
+@main_bp.route('/edit/<cid_prefix>', methods=['GET', 'POST'])  # type: ignore[misc]
+def edit_cid(cid_prefix: str) -> str:
     """Allow users to edit existing CID content as text."""
     normalized_prefix = format_cid(cid_prefix.split('.')[0] if cid_prefix else cid_prefix)
     matches = find_cids_by_prefix(normalized_prefix)
@@ -424,7 +424,7 @@ def edit_cid(cid_prefix):
 
     if len(matches) > 1:
         match_values = [format_cid(match.path) for match in matches]
-        return render_template(
+        return render_template(  # type: ignore[no-any-return]
             'edit_cid_choices.html',
             cid_prefix=normalized_prefix,
             matches=match_values,
@@ -449,7 +449,7 @@ def edit_cid(cid_prefix):
             validated_alias, error_message = _validate_alias_name(alias_name_input, current_user.id)
             if alias_name_input and error_message:
                 form.alias_name.errors.append(error_message)
-                return render_template(
+                return render_template(  # type: ignore[no-any-return]
                     'edit_cid.html',
                     form=form,
                     cid=full_cid,
@@ -466,6 +466,18 @@ def edit_cid(cid_prefix):
         cid_value = _save_cid_content(text_content, current_user.id)
 
         new_target_path = cid_path(cid_value)
+        if not new_target_path:
+            flash('Unable to determine CID path.', 'error')
+            return render_template(  # type: ignore[no-any-return]
+                'edit_cid.html',
+                form=form,
+                cid=full_cid,
+                submit_label=submit_label,
+                current_alias_name=getattr(alias_for_cid, 'name', None),
+                show_alias_field=alias_for_cid is None,
+                interaction_history=interaction_history,
+                content_references=content_references,
+            )
         if alias_for_cid:
             primary_route = get_primary_alias_route(alias_for_cid)
             if primary_route:
@@ -525,7 +537,7 @@ def edit_cid(cid_prefix):
         existing_text = cid_record.file_data.decode('utf-8', errors='replace')
         form.text_content.data = existing_text
 
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         'edit_cid.html',
         form=form,
         cid=full_cid,
@@ -537,8 +549,8 @@ def edit_cid(cid_prefix):
     )
 
 
-@main_bp.route('/upload/assign-variable', methods=['POST'])
-def assign_cid_variable():
+@main_bp.route('/upload/assign-variable', methods=['POST'])  # type: ignore[misc]
+def assign_cid_variable() -> str:
     """Assign the supplied CID to an existing or new variable."""
 
     cid_value = format_cid(request.form.get('cid'))
@@ -549,12 +561,16 @@ def assign_cid_variable():
 
     if not cid_value:
         flash('A CID is required to assign it to a variable.', 'error')
-        return redirect(url_for('main.upload'))
+        return redirect(url_for('main.upload'))  # type: ignore[no-any-return]
 
-    cid_record = get_cid_by_path(cid_path(cid_value))
+    cid_path_value = cid_path(cid_value)
+    if not cid_path_value:
+        flash('Invalid CID format.', 'error')
+        return redirect(url_for('main.upload'))  # type: ignore[no-any-return]
+    cid_record = get_cid_by_path(cid_path_value)
     if not cid_record:
         flash('CID not found. Upload content before assigning it to a variable.', 'error')
-        return redirect(url_for('main.upload'))
+        return redirect(url_for('main.upload'))  # type: ignore[no-any-return]
 
     file_size = CidHelper.resolve_size(cid_record)
     assignment_value = cid_path(cid_value) or cid_value
@@ -630,8 +646,8 @@ def assign_cid_variable():
     )
 
 
-@main_bp.route('/server_events')
-def server_events():
+@main_bp.route('/server_events')  # type: ignore[misc]
+def server_events() -> str:
     """Display server invocation events for the current user."""
     invocations = get_user_server_invocations(current_user.id)
 
@@ -646,15 +662,15 @@ def server_events():
         request_cid = getattr(invocation, 'request_details_cid', None)
         invocation.request_referer = referer_by_request.get(request_cid) if request_cid else None
 
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         'server_events.html',
         events=invocations,
         total_events=len(invocations),
     )
 
 
-@main_bp.route('/_screenshot/server-events')
-def screenshot_server_events_demo():
+@main_bp.route('/_screenshot/server-events')  # type: ignore[misc]
+def screenshot_server_events_demo() -> None:
     abort(404)
 
 
@@ -669,7 +685,7 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
 
     invocations = get_user_server_invocations(current_user.id)
 
-    invocation_by_cid = {}
+    invocation_by_cid: dict[str, Any] = {}
     for invocation in invocations:
         for attr in (
             'result_cid',
@@ -691,13 +707,13 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
         if not cid:
             continue
 
-        invocation = invocation_by_cid.get(cid)
-        if invocation:
+        matched_invocation: Any = invocation_by_cid.get(cid)
+        if matched_invocation is not None:
             upload_record.creation_method = EntityType.SERVER_EVENT.value
-            upload_record.server_invocation_server_name = invocation.server_name
-            if invocation.invocation_cid:
+            upload_record.server_invocation_server_name = matched_invocation.server_name
+            if matched_invocation.invocation_cid:
                 upload_record.server_invocation_link = cid_path(
-                    invocation.invocation_cid,
+                    matched_invocation.invocation_cid,
                     'json',
                 )
 

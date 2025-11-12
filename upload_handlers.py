@@ -6,12 +6,15 @@ This module provides functions for processing different types of uploads:
 - URL-based content downloads
 """
 
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 from urllib.parse import urlparse
 
 import requests
 
 from mime_utils import get_extension_from_mime_type
+
+if TYPE_CHECKING:
+    from forms import FileUploadForm
 
 
 # ============================================================================
@@ -42,7 +45,7 @@ DEFAULT_USER_AGENT = (
 # FILE UPLOAD HANDLERS
 # ============================================================================
 
-def process_file_upload(form) -> Tuple[bytes, str]:
+def process_file_upload(form: "FileUploadForm") -> Tuple[bytes, str]:
     """Process file upload from form and return file content and filename.
 
     Args:
@@ -58,12 +61,12 @@ def process_file_upload(form) -> Tuple[bytes, str]:
         True
     """
     uploaded_file = form.file.data
-    file_content = uploaded_file.read()
-    filename = uploaded_file.filename or 'upload'
+    file_content: bytes = uploaded_file.read()
+    filename: str = uploaded_file.filename or 'upload'
     return file_content, filename
 
 
-def process_text_upload(form) -> bytes:
+def process_text_upload(form: "FileUploadForm") -> bytes:
     """Process text upload from form and return file content.
 
     Args:
@@ -78,12 +81,12 @@ def process_text_upload(form) -> bytes:
         >>> isinstance(content, bytes)
         True
     """
-    text_content = form.text_content.data
-    file_content = text_content.encode('utf-8')
+    text_content: str = form.text_content.data
+    file_content: bytes = text_content.encode('utf-8')
     return file_content
 
 
-def process_url_upload(form) -> Tuple[bytes, str]:
+def process_url_upload(form: "FileUploadForm") -> Tuple[bytes, str]:
     """Process URL upload by downloading content and return file content and MIME type.
 
     Downloads content from the provided URL, with size limits and streaming.
@@ -105,7 +108,7 @@ def process_url_upload(form) -> Tuple[bytes, str]:
         >>> isinstance(mime, str)
         True
     """
-    url = form.url.data.strip()
+    url: str = form.url.data.strip()
 
     try:
         headers = {'User-Agent': DEFAULT_USER_AGENT}

@@ -40,7 +40,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             List of entities ordered alphabetically by name
         """
-        return self.model.query.filter_by(user_id=user_id).order_by(self.model.name).all()
+        # Flask-SQLAlchemy's .query attribute and model attributes are added dynamically
+        # at runtime and not available in the type system for generic Type[T]
+        return self.model.query.filter_by(user_id=user_id).order_by(self.model.name).all()  # type: ignore[attr-defined, no-any-return]
 
     def get_templates_for_user(self, user_id: str) -> List[T]:
         """Get template entities for a user, ordered by name.
@@ -51,11 +53,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             List of template entities ordered alphabetically by name
         """
-        return (
-            self.model.query.filter_by(user_id=user_id, template=True)
-            .order_by(self.model.name)
-            .all()
-        )
+        # Flask-SQLAlchemy's .query attribute and model attributes are added dynamically
+        # at runtime and not available in the type system for generic Type[T]
+        return self.model.query.filter_by(user_id=user_id, template=True).order_by(self.model.name).all()  # type: ignore[attr-defined, no-any-return]
 
     def get_by_name(self, user_id: str, name: str) -> Optional[T]:
         """Get entity by name for a user.
@@ -67,7 +67,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             Entity if found, None otherwise
         """
-        return self.model.query.filter_by(user_id=user_id, name=name).first()
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query.filter_by(user_id=user_id, name=name).first()  # type: ignore[attr-defined, no-any-return]
 
     def get_first_name(self, user_id: str, exclude_name: Optional[str] = None) -> Optional[str]:
         """Get the first entity name for a user, ordered alphabetically.
@@ -79,13 +81,17 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             First entity name if any exist, None otherwise
         """
-        query = self.model.query.filter_by(user_id=user_id)
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        query = self.model.query.filter_by(user_id=user_id)  # type: ignore[attr-defined]
 
         # Optionally exclude a specific name (useful for finding alternatives)
         if exclude_name:
-            query = query.filter(self.model.name != exclude_name)
+            # Model attributes like .name are not available in the type system for generic Type[T]
+            query = query.filter(self.model.name != exclude_name)  # type: ignore[attr-defined]
 
-        entity = query.order_by(self.model.name.asc()).first()
+        # Model attributes like .name are not available in the type system for generic Type[T]
+        entity = query.order_by(self.model.name.asc()).first()  # type: ignore[attr-defined]
         return entity.name if entity else None
 
     def count_for_user(self, user_id: str) -> int:
@@ -97,7 +103,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             Number of entities owned by the user
         """
-        return self.model.query.filter_by(user_id=user_id).count()
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query.filter_by(user_id=user_id).count()  # type: ignore[attr-defined, no-any-return]
 
     def get_all(self) -> List[T]:
         """Get all entities across all users (admin operation).
@@ -105,7 +113,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             List of all entities
         """
-        return self.model.query.all()
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query.all()  # type: ignore[attr-defined, no-any-return]
 
     def count_all(self) -> int:
         """Count all entities across all users (admin operation).
@@ -113,7 +123,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             Total number of entities
         """
-        return self.model.query.count()
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query.count()  # type: ignore[attr-defined, no-any-return]
 
     def exists(self, user_id: str, name: str) -> bool:
         """Check if an entity with given name exists for a user.
@@ -125,7 +137,9 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             True if entity exists, False otherwise
         """
-        return self.model.query.filter_by(user_id=user_id, name=name).count() > 0
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query.filter_by(user_id=user_id, name=name).count() > 0  # type: ignore[attr-defined, no-any-return]
 
     def _base_query(self) -> Query:
         """Get base query for the model (for subclass extension).
@@ -133,4 +147,6 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             SQLAlchemy query object
         """
-        return self.model.query
+        # Flask-SQLAlchemy's .query attribute is added dynamically at runtime and not
+        # available in the type system for generic Type[T]
+        return self.model.query  # type: ignore[attr-defined]

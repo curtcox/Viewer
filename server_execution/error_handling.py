@@ -74,7 +74,7 @@ def _render_execution_error_html(
         # Handle JSON serialization errors
         args_json = _stringify(args)
 
-    return render_template(
+    html: str = render_template(
         "500.html",
         stack_trace=stack_trace,
         exception_type=exception_type,
@@ -86,6 +86,7 @@ def _render_execution_error_html(
         server_name=server_name,
         server_definition_url=server_definition_url,
     )
+    return html
 
 
 def _handle_execution_exception(

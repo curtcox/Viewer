@@ -34,6 +34,9 @@ def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[st
     if content:
         return
 
+    if user_id is None:
+        return
+
     try:
         db_access.create_cid_record(cid_value, content_bytes, user_id)
     except RuntimeError:
@@ -55,7 +58,7 @@ def get_cid_content(path: str) -> Any:
         return None
 
 
-def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int]) -> str:
+def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[str]) -> str:
     """Store content in a CID record and return the CID.
 
     Args:
@@ -75,7 +78,7 @@ def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int]) -> str:
     return cid_value
 
 
-def store_cid_from_json(json_content: str, user_id: Optional[int]) -> str:
+def store_cid_from_json(json_content: str, user_id: Optional[str]) -> str:
     """Store JSON content in a CID record and return the CID.
 
     Args:
@@ -98,7 +101,7 @@ def store_cid_from_json(json_content: str, user_id: Optional[int]) -> str:
 # SERVER DEFINITIONS
 # ============================================================================
 
-def generate_all_server_definitions_json(user_id: int) -> str:
+def generate_all_server_definitions_json(user_id: str) -> str:
     """Generate JSON containing all server definitions for a user.
 
     Args:
@@ -126,7 +129,7 @@ def generate_all_server_definitions_json(user_id: int) -> str:
     return json.dumps(server_definitions, indent=2, sort_keys=True)
 
 
-def store_server_definitions_cid(user_id: int) -> str:
+def store_server_definitions_cid(user_id: str) -> str:
     """Store all server definitions as JSON in a CID and return the CID.
 
     Args:
@@ -139,7 +142,7 @@ def store_server_definitions_cid(user_id: int) -> str:
     return store_cid_from_json(json_content, user_id)
 
 
-def get_current_server_definitions_cid(user_id: int) -> str:
+def get_current_server_definitions_cid(user_id: str) -> str:
     """Get the CID for the current server definitions JSON.
 
     Creates the CID if it doesn't exist.
@@ -165,7 +168,7 @@ def get_current_server_definitions_cid(user_id: int) -> str:
 # VARIABLE DEFINITIONS
 # ============================================================================
 
-def generate_all_variable_definitions_json(user_id: int) -> str:
+def generate_all_variable_definitions_json(user_id: str) -> str:
     """Generate JSON containing all variable definitions for a user.
 
     Args:
@@ -188,7 +191,7 @@ def generate_all_variable_definitions_json(user_id: int) -> str:
     return json.dumps(variable_definitions, indent=2, sort_keys=True)
 
 
-def store_variable_definitions_cid(user_id: int) -> str:
+def store_variable_definitions_cid(user_id: str) -> str:
     """Store all variable definitions as JSON in a CID and return the CID.
 
     Args:
@@ -201,7 +204,7 @@ def store_variable_definitions_cid(user_id: int) -> str:
     return store_cid_from_json(json_content, user_id)
 
 
-def get_current_variable_definitions_cid(user_id: int) -> str:
+def get_current_variable_definitions_cid(user_id: str) -> str:
     """Get the CID for the current variable definitions JSON.
 
     Creates the CID if it doesn't exist.
@@ -227,7 +230,7 @@ def get_current_variable_definitions_cid(user_id: int) -> str:
 # SECRET DEFINITIONS
 # ============================================================================
 
-def generate_all_secret_definitions_json(user_id: int) -> str:
+def generate_all_secret_definitions_json(user_id: str) -> str:
     """Generate JSON containing all secret definitions for a user.
 
     Args:
@@ -250,7 +253,7 @@ def generate_all_secret_definitions_json(user_id: int) -> str:
     return json.dumps(secret_definitions, indent=2, sort_keys=True)
 
 
-def store_secret_definitions_cid(user_id: int) -> str:
+def store_secret_definitions_cid(user_id: str) -> str:
     """Store all secret definitions as JSON in a CID and return the CID.
 
     Args:
@@ -267,7 +270,7 @@ def store_secret_definitions_cid(user_id: int) -> str:
     return cid_value
 
 
-def get_current_secret_definitions_cid(user_id: int) -> str:
+def get_current_secret_definitions_cid(user_id: str) -> str:
     """Get the CID for the current secret definitions JSON.
 
     Creates the CID if it doesn't exist.

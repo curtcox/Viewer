@@ -1,7 +1,7 @@
 """History-related routes."""
 import json
 from types import SimpleNamespace
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from flask import render_template, request
 
@@ -18,8 +18,8 @@ from models import ServerInvocation
 from . import main_bp
 
 
-@main_bp.route('/history')
-def history():
+@main_bp.route('/history')  # type: ignore[misc]
+def history() -> str:
     """Display user's page view history."""
     page = request.args.get('page', 1, type=int)
     per_page = 50
@@ -30,7 +30,7 @@ def history():
     stats = get_user_history_statistics(current_user.id)
     stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
 
-    return render_template('history.html', page_views=page_views, **stats)
+    return render_template('history.html', page_views=page_views, **stats)  # type: ignore[no-any-return]
 
 
 def _extract_result_cid(path: str) -> str | None:
@@ -54,7 +54,7 @@ def _extract_cid_components(path: Optional[str]) -> tuple[str, Optional[str]] | 
     return split_cid_path(path)
 
 
-def _get_page_view_items(page_views: object) -> List:
+def _get_page_view_items(page_views: object) -> List[Any]:
     """Extract a list of page view objects from pagination or list input."""
     if page_views is None:
         return []
@@ -114,7 +114,7 @@ def _normalize_popular_paths(popular_paths: object) -> List[SimpleNamespace]:
         return []
 
     normalized: List[SimpleNamespace] = []
-    for entry in popular_paths:
+    for entry in popular_paths:  # type: ignore[attr-defined]
         path_value: Optional[str] = None
         count_value: int = 0
 
@@ -263,16 +263,16 @@ def _attach_server_event_links(page_views: object) -> None:
         if not cid:
             continue
 
-        invocation = invocation_by_result.get(cid)
-        if not invocation:
+        matched_invocation: ServerInvocation | None = invocation_by_result.get(cid)
+        if not matched_invocation:
             continue
 
         # Attach both the invocation object and helpful links for templates.
-        view.server_invocation = invocation
-        view.server_invocation_link = cid_path(invocation.invocation_cid, 'json')
+        view.server_invocation = matched_invocation
+        view.server_invocation_link = cid_path(matched_invocation.invocation_cid, 'json')
 
         referer = None
-        request_cid = getattr(invocation, 'request_details_cid', None)
+        request_cid = getattr(matched_invocation, 'request_details_cid', None)
         if request_cid:
             referer = referer_by_request_cid.get(request_cid)
 

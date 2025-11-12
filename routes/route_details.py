@@ -561,13 +561,13 @@ def describe_request_path(path: str) -> RouteResolution:
     )
 
 
-@main_bp.route("/routes/", defaults={"requested_path": ""})
-@main_bp.route("/routes/<path:requested_path>")
+@main_bp.route("/routes/", defaults={"requested_path": ""})  # type: ignore[misc]
+@main_bp.route("/routes/<path:requested_path>")  # type: ignore[misc]
 def route_details(requested_path: str) -> str:
     """Render a detailed explanation for a specific request path."""
 
     resolution = describe_request_path(requested_path)
-    return render_template(
+    return render_template(  # type: ignore[no-any-return]
         "route_details.html",
         resolution=resolution,
     )

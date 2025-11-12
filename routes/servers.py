@@ -250,7 +250,8 @@ def _render_server_test_formdown(server: Server, config: dict[str, object], defa
         return ''
 
     action = str(config.get('action') or f'/{server.name}')
-    mode = (config.get('mode') or ServerMode.QUERY.value).lower()
+    mode_value = config.get('mode') or ServerMode.QUERY.value
+    mode = str(mode_value).lower()
     form_id = _sanitize_formdown_identifier(f"{server.name}-test-page")
 
     normalized_defaults: dict[str, str] = {}
@@ -270,7 +271,8 @@ def _render_server_test_formdown(server: Server, config: dict[str, object], defa
     ]
 
     if mode == ServerMode.MAIN.value:
-        parameters = config.get('parameters') or []
+        parameters_raw = config.get('parameters') or []
+        parameters = list(parameters_raw) if hasattr(parameters_raw, '__iter__') and not isinstance(parameters_raw, str) else []
         if parameters:
             lines.extend(['## Parameters', ''])
         for parameter in parameters:
@@ -333,20 +335,22 @@ def _highlight_definition_content(
         )
 
     for entry in history or []:
-        highlighted, css = highlight_source(
-            entry.get('definition'),
-            filename=f"{server_name}.py",
-            fallback_lexer='python',
-        )
-        entry['highlighted_definition'] = highlighted
-        if not syntax_css and css:
-            syntax_css = css
+        entry_definition = entry.get('definition')
+        if entry_definition:
+            highlighted, css = highlight_source(
+                str(entry_definition),
+                filename=f"{server_name}.py",
+                fallback_lexer='python',
+            )
+            entry['highlighted_definition'] = highlighted
+            if not syntax_css and css:
+                syntax_css = css
 
     return highlighted_definition, syntax_css
 
 
-@main_bp.route('/servers/validate-definition', methods=['POST'])
-def validate_server_definition():
+@main_bp.route('/servers/validate-definition', methods=['POST'])  # type: ignore[misc]
+def validate_server_definition() -> Any:
     """Validate a server definition and report auto main compatibility."""
 
     payload = request.get_json(silent=True)
@@ -365,13 +369,15 @@ def validate_server_definition():
     return jsonify(analysis)
 
 
-@main_bp.route('/servers/<server_name>/upload-test-page', methods=['POST'])
-def upload_server_test_page(server_name):
+@main_bp.route('/servers/<server_name>/upload-test-page', methods=['POST'])  # type: ignore[misc]
+def upload_server_test_page(server_name: str) -> Any:
     """Persist a formdown page that mirrors the inline server test form."""
 
     server = get_server_by_name(current_user.id, server_name)
     if not server:
         abort(404)
+
+    assert server is not None  # Help mypy understand abort(404) doesn't return
 
     test_config = _build_server_test_config(server.name, server.definition)
     if not test_config:
@@ -424,7 +430,7 @@ def upload_server_test_page(server_name):
     return response
 
 
-def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
+def _parse_server_snapshot(cid: Any, server_name: str) -> dict[str, Any] | None:
     """Parse a server definition snapshot from a CID record.
 
     Args:
@@ -476,7 +482,7 @@ def get_server_definition_history(user_id: str, server_name: str) -> list[dict[s
     """
     cids = get_user_uploads(user_id)
 
-    history = []
+    history: list[dict[str, Any]] = []
 
     try:
         iterator = iter(cids)
@@ -553,7 +559,7 @@ def _build_route_links(paths: list[str]) -> list[dict[str, str]]:
 
 
 def _build_server_row(
-    server,
+    server: Any,
     known_variables: set[str],
     known_secrets: set[str]
 ) -> dict[str, object]:
@@ -605,7 +611,7 @@ def _get_known_entity_names(user_id: str) -> tuple[set[str], set[str]]:
     return known_variable_names, known_secret_names
 
 
-def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, Any]:
+def _build_servers_list_context(servers_list: list[Any], user_id: str) -> dict[str, Any]:
     """Build extra context for servers list view.
 
     Args:
@@ -615,7 +621,7 @@ def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, A
     Returns:
         Dictionary with server-specific list view context
     """
-    context = {}
+    context: dict[str, Any] = {}
 
     if servers_list:
         context['server_definitions_cid'] = format_cid(
@@ -624,7 +630,7 @@ def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, A
 
         known_variables, known_secrets = _get_known_entity_names(user_id)
 
-        server_rows = []
+        server_rows: list[dict[str, object]] = []
         for server in servers_list:
             server_rows.append(_build_server_row(server, known_variables, known_secrets))
 
@@ -660,11 +666,13 @@ def _build_server_view_context(server: Server, user_id: str) -> dict[str, Any]:
 
     test_interactions = []
     if test_config and test_config.get('action'):
-        test_interactions = load_interaction_history(
-            user_id,
-            EntityType.SERVER_TEST.value,
-            test_config.get('action'),
-        )
+        action = test_config.get('action')
+        if action is not None:
+            test_interactions = load_interaction_history(
+                user_id,
+                EntityType.SERVER_TEST.value,
+                str(action),
+            )
 
     return {
         'definition_history': history,
@@ -687,7 +695,7 @@ _server_config = EntityRouteConfig(
     get_user_entities_func=get_user_servers,
     form_class=ServerForm,
     update_cid_func=update_server_definitions_cid,
-    to_json_func=model_to_dict,
+    to_json_func=lambda entity: model_to_dict(entity),  # type: ignore[arg-type,return-value]
     build_list_context=_build_servers_list_context,
     build_view_context=_build_server_view_context,
 )
@@ -695,8 +703,8 @@ _server_config = EntityRouteConfig(
 register_standard_crud_routes(main_bp, _server_config)
 
 
-@main_bp.route('/servers/new', methods=['GET', 'POST'])
-def new_server():
+@main_bp.route('/servers/new', methods=['GET', 'POST'])  # type: ignore[misc]
+def new_server() -> Any:
     """Create a new server."""
     form = ServerForm()
 
@@ -747,12 +755,14 @@ def new_server():
     )
 
 
-@main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
-def edit_server(server_name):
+@main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])  # type: ignore[misc]
+def edit_server(server_name: str) -> Any:
     """Edit a specific server."""
     server = get_server_by_name(current_user.id, server_name)
     if not server:
         abort(404)
+
+    assert server is not None  # Help mypy understand abort(404) doesn't return
 
     form = ServerForm(obj=server)
 
@@ -773,11 +783,13 @@ def edit_server(server_name):
     server_interactions = load_interaction_history(current_user.id, EntityType.SERVER.value, server.name)
     test_interactions = []
     if test_config and test_config.get('action'):
-        test_interactions = load_interaction_history(
-            current_user.id,
-            EntityType.SERVER_TEST.value,
-            test_config.get('action'),
-        )
+        action = test_config.get('action')
+        if action is not None:
+            test_interactions = load_interaction_history(
+                current_user.id,
+                EntityType.SERVER_TEST.value,
+                str(action),
+            )
 
     upload_url = url_for('main.upload_server_test_page', server_name=server.name)
 
