@@ -67,7 +67,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_record = get_cid_by_path(cid_path)
             self.assertIsNotNone(cid_record)
             self.assertEqual(bytes(cid_record.file_data), content)
-            self.assertEqual(cid_record.user_id, self.user_id)
+            self.assertEqual(cid_record.uploaded_by_user_id, self.user_id)
 
     def test_load_multiple_cids_from_directory(self):
         """Test loading multiple CID files from directory."""
@@ -111,7 +111,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             load_cids_from_directory(self.app, self.user_id)
 
             # Verify hidden files were not loaded
-            all_cids = CID.query.filter_by(user_id=self.user_id).all()
+            all_cids = CID.query.filter_by(uploaded_by_user_id=self.user_id).all()
             for cid in all_cids:
                 self.assertFalse(cid.path.endswith('.hidden_file'))
                 self.assertFalse(cid.path.endswith('.gitignore'))
