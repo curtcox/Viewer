@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 import server_execution
-import server_templates
+import reference_templates.servers as server_templates
 from app import app
-from server_templates import get_server_templates
+from reference_templates.servers import get_server_templates
 
 
 @pytest.fixture(autouse=True)

@@ -3,7 +3,7 @@
 jobs=1
 
 # Ignore server template files - they're executed with injected variables (request, context, load, etc.)
-ignore=server_templates/definitions
+ignore=reference_templates/servers/definitions
 
 [MESSAGES CONTROL]
 # Disable messages that are false positives or design choices

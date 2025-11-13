@@ -14,7 +14,7 @@ from formdown_renderer import render_formdown_html
 # Test resources live in the repository root outside of ``tests/``.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FORMDOWN_SHOWCASE_PATH = (
-    REPO_ROOT / "upload_templates" / "contents" / "formdown_showcase.formdown"
+    REPO_ROOT / "reference_templates" / "uploads" / "contents" / "formdown_showcase.formdown"
 )
 
 

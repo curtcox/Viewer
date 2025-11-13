@@ -10,7 +10,7 @@ import pytest
 import server_execution
 from app import app
 from cid_utils import MermaidRenderLocation, _render_markdown_document
-from server_templates.definitions import auto_main_markdown
+from reference_templates.servers.definitions import auto_main_markdown
 from text_function_runner import run_text_function
 
 
@@ -91,7 +91,7 @@ def patched_server_execution(monkeypatch):
 
 def test_auto_main_markdown_runs_through_text_function_runner():
     definition = """
-from server_templates.definitions import auto_main_markdown
+from reference_templates.servers.definitions import auto_main_markdown
 
 return auto_main_markdown.main(markdown=markdown)
 """.strip()
@@ -104,7 +104,7 @@ return auto_main_markdown.main(markdown=markdown)
 
 
 def test_auto_main_markdown_executes_via_server_execution(patched_server_execution):
-    definition = Path("server_templates/definitions/auto_main_markdown.py").read_text(encoding='utf-8')
+    definition = Path("reference_templates/servers/definitions/auto_main_markdown.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/markdown", json={"markdown": "Hello from server execution"}):
         result = server_execution.execute_server_code_from_definition(
@@ -120,7 +120,7 @@ def test_auto_main_markdown_executes_via_server_execution(patched_server_executi
 def test_auto_main_markdown_matches_markdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     markdown_sample = (
-        repo_root / "upload_templates" / "contents" / "markdown_showcase.md"
+        repo_root / "reference_templates" / "uploads" / "contents" / "markdown_showcase.md"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(markdown_sample)
@@ -133,7 +133,7 @@ def test_auto_main_markdown_matches_markdown_showcase_template():
 def test_auto_main_markdown_matches_formdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     formdown_sample = (
-        repo_root / "upload_templates" / "contents" / "formdown_showcase.formdown"
+        repo_root / "reference_templates" / "uploads" / "contents" / "formdown_showcase.formdown"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(formdown_sample)
