@@ -410,7 +410,6 @@ class ServerImport:
   - Test export without template flag
   - Test import without template flag
   - Test templates variable export/import
-  - Test backward compatibility
 
 ### Phase 5: Context Processors
 
@@ -656,7 +655,6 @@ def migrate_templates_to_variable():
 5. Concurrent template updates
 6. Migration with mixed template/non-template entities
 7. Import/export round-trip without template flags
-8. Backward compatibility with old exports
 
 ### Phase 8: Documentation Updates
 
@@ -689,67 +687,6 @@ def migrate_templates_to_variable():
 - Link to new template documentation
 - Note breaking changes
 
-### Phase 9: Backward Compatibility
-
-#### 9.1 Handle Old Exports
-**File**: `routes/import_export/import_entities.py`
-
-**Changes**:
-- Support importing old exports that include `template` flag
-- Silently ignore template flag if present
-- Log warning about deprecated field
-
-**Example**:
-```python
-def import_alias(data: dict, user_id: str):
-    """Import alias, handling legacy template field."""
-    if 'template' in data:
-        logger.warning(f"Ignoring deprecated 'template' field in alias import")
-
-    # Continue with import without template field
-    ...
-```
-
-#### 9.2 Graceful Degradation
-**File**: `template_manager.py`
-
-**Changes**:
-- If templates variable doesn't exist, return empty templates
-- Don't fail on missing or invalid templates
-- Provide helpful error messages in UI
-
-### Phase 10: Rollout Plan
-
-#### 10.1 Pre-Migration Validation
-1. Run full test suite on current code
-2. Create database backup
-3. Document current template usage statistics
-4. Identify users with templates enabled
-
-#### 10.2 Migration Execution
-1. Deploy new code with feature flag disabled
-2. Run migration script on staging
-3. Validate migration results
-4. Enable feature flag
-5. Monitor for errors
-6. Deploy to production
-
-#### 10.3 Post-Migration Validation
-1. Verify all templates migrated correctly
-2. Check template status displays properly
-3. Validate import/export functionality
-4. Monitor error logs
-5. Gather user feedback
-
-#### 10.4 Rollback Plan
-1. Keep template columns in database initially (deprecated)
-2. Feature flag to switch between old/new system
-3. If issues found, disable feature flag
-4. Fix issues and re-deploy
-5. Only drop columns after stable period
-
-## File Changes Summary
-
 ### New Files (11)
 1. `template_manager.py` - Core template logic
 2. `template_status.py` - Status label generation
@@ -776,7 +713,7 @@ def import_alias(data: dict, user_id: str):
 10. `routes/context_processors.py` - Add template helpers
 11. `routes/import_export/export_helpers.py` - New template checking
 12. `routes/import_export/export_sections.py` - Remove template flag
-13. `routes/import_export/import_entities.py` - Remove template flag, backward compatibility
+13. `routes/import_export/import_entities.py` - Remove template flag
 14. `templates/aliases.html` - Add status component, remove badge
 15. `templates/servers.html` - Add status component, remove badge
 16. `templates/variables.html` - Add status component, remove badge
@@ -812,30 +749,6 @@ def import_alias(data: dict, user_id: str):
 
 ## Risk Assessment
 
-### High Risk
-- Database migration (column removal)
-- Breaking changes for existing template users
-
-**Mitigation**:
-- Thorough testing of migration script
-- Staged rollout with feature flag
-- Keep columns initially (mark deprecated)
-- Comprehensive backward compatibility
-
-### Medium Risk
-- Import/export compatibility
-- Performance with large template configurations
-
-**Mitigation**:
-- Support old export format
-- CID storage for large templates
-- Load testing with large configs
-- Caching of parsed templates
-
-### Low Risk
-- UI changes
-- New routes
-
 **Mitigation**:
 - Integration tests for UI
 - Route permission tests
@@ -851,39 +764,14 @@ def import_alias(data: dict, user_id: str):
 6. ✅ All tests passing (unit, integration, spec)
 7. ✅ Test coverage meets targets
 8. ✅ No performance degradation
-9. ✅ Zero data loss during migration
-10. ✅ Documentation complete
+9. ✅ Documentation complete
 
-## Timeline Estimate
+## Notes
 
-- **Phase 1** (Infrastructure): 2-3 days
-- **Phase 2** (UI Updates): 2 days
-- **Phase 3** (Routes/Forms): 1-2 days
-- **Phase 4** (Import/Export): 2 days
-- **Phase 5** (Context): 0.5 days
-- **Phase 6** (Migration): 1-2 days
-- **Phase 7** (Testing): 3-4 days
-- **Phase 8** (Documentation): 1 day
-- **Phase 9** (Compatibility): 1 day
-- **Phase 10** (Rollout): 1 day
-
-**Total**: ~15-19 days
-
-## Open Questions
-
-1. Should we allow per-entity-type template variables (e.g., `templates.aliases`) or only global `templates`?
-2. Should templates be versioned (tracking changes over time)?
-3. Should there be a UI for managing individual templates (vs editing raw JSON)?
-4. Should we support template inheritance/composition?
-5. How should template permissions work in multi-user scenarios?
-6. Should we maintain a template changelog?
-7. Should templates support validation rules for derived entities?
-
-## Next Steps
-
-1. Review and approve plan
-2. Create tracking issues for each phase
-3. Set up feature flag
-4. Begin Phase 1 implementation
-5. Establish testing schedule
-6. Plan staging environment validation
+1. Only allow global `templates` variable.
+2. No template versioning.
+3. No separate UI for managing individual templates (vs editing raw JSON).
+4. No template inheritance/composition.
+5. No template permissions in multi-user scenarios.
+6. No template changelog.
+7. No template validation rules for derived entities.
