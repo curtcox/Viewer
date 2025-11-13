@@ -45,7 +45,6 @@ from forms import EditCidForm, FileUploadForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias, Variable
-from upload_templates import get_upload_templates
 
 from . import main_bp
 from .cid_helper import CidHelper
@@ -338,7 +337,6 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
 def upload():
     """File upload page with CID storage."""
     form = FileUploadForm()
-    upload_templates = get_upload_templates()
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_form():
@@ -346,7 +344,6 @@ def upload():
         return render_template(
             'upload.html',
             form=form,
-            upload_templates=upload_templates,
             upload_interactions=interactions,
         )
 

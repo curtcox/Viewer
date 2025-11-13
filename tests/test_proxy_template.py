@@ -8,7 +8,7 @@ import server_execution
 from app import app
 from text_function_runner import run_text_function
 
-TEMPLATE_PATH = Path("server_templates/definitions/proxy.py")
+TEMPLATE_PATH = Path("reference_templates/servers/definitions/proxy.py")
 
 
 @pytest.fixture()

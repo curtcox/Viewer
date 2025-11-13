@@ -48,7 +48,7 @@ exclude = [
     "test-gauge",
     "test-unit",
     "tests",
-    "upload_templates",
+    "reference_templates",
 ]
 ignore = ["**/__init__.py"]
 # The Radon job fails when any block is graded worse than this rank.  The

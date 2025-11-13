@@ -8,7 +8,7 @@ import pytest
 
 import server_execution
 from app import app
-from server_templates.definitions import auto_main_shell
+from reference_templates.servers.definitions import auto_main_shell
 from text_function_runner import run_text_function
 
 

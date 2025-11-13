@@ -32,7 +32,6 @@ from interaction_log import load_interaction_history
 from models import Server
 from serialization import model_to_dict
 from server_execution import analyze_server_definition, describe_main_function_parameters
-from server_templates import get_server_templates
 from syntax_highlighting import highlight_source
 
 from . import main_bp
@@ -737,7 +736,6 @@ def new_server():
         'server_form.html',
         form=form,
         title='Create New Server',
-        server_templates=get_server_templates(),
         user_server_templates=user_server_templates,
         server=None,
         interaction_history=interaction_history,

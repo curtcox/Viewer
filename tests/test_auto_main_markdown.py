@@ -10,7 +10,7 @@ import pytest
 import server_execution
 from app import app
 from cid_utils import MermaidRenderLocation, _render_markdown_document
-from server_templates.definitions import auto_main_markdown
+from reference_templates.servers.definitions import auto_main_markdown
 from text_function_runner import run_text_function
 
 
