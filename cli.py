@@ -120,7 +120,7 @@ def is_valid_boot_cid(cid_record: CID) -> Tuple[bool, Optional[str]]:
         return False, "CID has no content"
 
     try:
-        content = bytes(cid_record.file_data).decode('utf-8')
+        content = cid_record.file_data.decode('utf-8')
     except UnicodeDecodeError:
         return False, "Content is not valid UTF-8"
 
@@ -158,7 +158,7 @@ def list_boot_cids() -> list[Tuple[str, dict]]:
 
         # Parse the JSON to get section info
         try:
-            content = bytes(cid_record.file_data).decode('utf-8')
+            content = cid_record.file_data.decode('utf-8')
             payload = json.loads(content)
             sections = []
             for section in ['aliases', 'servers', 'variables', 'secrets', 'change_history']:
@@ -176,8 +176,17 @@ def list_boot_cids() -> list[Tuple[str, dict]]:
 
         boot_cids.append((cid_value, metadata))
 
-    # Sort by creation date (newest first)
-    boot_cids.sort(key=lambda x: x[1]['created_at'], reverse=True)
+    # Sort by creation date (newest first), handling None values
+    # None values should come last, so use a very old date for them
+    # (since we're sorting in reverse, old dates will be sorted to the end)
+    from datetime import datetime
+    # Use a sentinel value that's timezone-naive to avoid comparison issues
+    sentinel_date = datetime(1970, 1, 1)
+    boot_cids.sort(
+        key=lambda x: x[1]['created_at'] if x[1]['created_at'] is not None
+                     else sentinel_date,
+        reverse=True
+    )
 
     return boot_cids
 

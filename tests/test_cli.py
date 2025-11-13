@@ -403,5 +403,74 @@ class TestOpenBrowser(unittest.TestCase):
         self.assertFalse(result)
 
 
+class TestListBootCidsWithNullTimestamps(unittest.TestCase):
+    """Tests for listing boot CIDs with null timestamps."""
+
+    def setUp(self):
+        self.app = create_app({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'WTF_CSRF_ENABLED': False,
+        })
+
+        with self.app.app_context():
+            db.create_all()
+            self.user_id = 'test-user-123'
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_list_boot_cids_with_null_created_at(self):
+        """Test that boot CIDs with null created_at are handled correctly."""
+        with self.app.app_context():
+            from database import db as database
+
+            # Create boot CIDs with null created_at
+            boot1_content = json.dumps({'aliases': 'AAAAAAAA'}).encode('utf-8')
+            cid1_value = generate_cid(boot1_content)
+            cid1 = CID(
+                path=f'/{cid1_value}',
+                file_data=boot1_content,
+                file_size=len(boot1_content),
+                uploaded_by_user_id=self.user_id,
+            )
+            database.session.add(cid1)
+            database.session.flush()  # Get the ID
+            # Update to set created_at to None (bypassing default)
+            database.session.execute(
+                database.text(f"UPDATE cid SET created_at = NULL WHERE id = {cid1.id}")
+            )
+
+            # Create boot CID with valid created_at
+            boot2_content = json.dumps({'servers': 'AAAAAAAB'}).encode('utf-8')
+            cid2_value = generate_cid(boot2_content)
+            from datetime import datetime, timezone
+            cid2 = CID(
+                path=f'/{cid2_value}',
+                file_data=boot2_content,
+                file_size=len(boot2_content),
+                uploaded_by_user_id=self.user_id,
+                created_at=datetime.now(timezone.utc)
+            )
+            database.session.add(cid2)
+            database.session.commit()
+
+            # Should not raise an error when sorting
+            boot_cids = list_boot_cids()
+
+            # Should return both CIDs
+            cid_values = [cid for cid, _ in boot_cids]
+            self.assertIn(cid1_value, cid_values)
+            self.assertIn(cid2_value, cid_values)
+
+            # CID with valid timestamp should be sorted before CID with null timestamp
+            cid1_index = cid_values.index(cid1_value)
+            cid2_index = cid_values.index(cid2_value)
+            self.assertLess(cid2_index, cid1_index,
+                           "CID with valid timestamp should come before CID with null timestamp")
+
+
 if __name__ == '__main__':
     unittest.main()

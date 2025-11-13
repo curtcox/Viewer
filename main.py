@@ -185,7 +185,7 @@ if __name__ == "__main__":
         help='Launch the app and open it in the default web browser',
     )
     parser.add_argument(
-        '--help',
+        '-h', '--help',
         action='store_true',
         help='Show help message and exit',
     )
