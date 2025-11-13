@@ -61,7 +61,8 @@ class TestServerExecutionErrorPages(unittest.TestCase):
 
         template_path = (
             Path(self.app.root_path)
-            / "server_templates"
+            / "reference_templates"
+            / "servers"
             / "definitions"
             / "jinja_renderer.py"
         )
