@@ -37,7 +37,6 @@ from models import (
     Variable,
 )
 from routes.core import _build_cross_reference_data
-from reference_templates.servers import get_server_templates
 
 
 def _alias_definition(
