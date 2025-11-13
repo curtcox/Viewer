@@ -190,6 +190,12 @@ if __name__ == "__main__":
         help='Show help message and exit',
     )
     parser.add_argument(
+        '--port',
+        type=int,
+        default=5001,
+        help='Port to run the server on (default: 5001)',
+    )
+    parser.add_argument(
         'positional',
         nargs='*',
         help='URL and/or CID arguments',
@@ -234,9 +240,9 @@ if __name__ == "__main__":
 
         # Determine the URL to open
         if url:
-            browser_url = url if url.startswith('http') else f"http://localhost:5001{url}"
+            browser_url = url if url.startswith('http') else f"http://localhost:{args.port}{url}"
         else:
-            browser_url = "http://localhost:5001"
+            browser_url = f"http://localhost:{args.port}"
 
         print(f"Opening browser to {browser_url}")
         # Open browser in a separate thread to not block the app startup
@@ -245,7 +251,7 @@ if __name__ == "__main__":
 
     # Start the Flask app
     try:
-        app.run(host="0.0.0.0", port=5001, debug=True, use_reloader=False)
+        app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
     except KeyboardInterrupt:
         print('\nShutting down gracefully...')
         sys.exit(0)
