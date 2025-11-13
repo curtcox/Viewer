@@ -208,7 +208,7 @@ def drop_template_columns():
                     print(f"  Dropped template column from {table} table")
                 except Exception as e:
                     print(f"  Warning: Could not drop template column from {table}: {e}")
-                    print(f"  This is expected for SQLite < 3.35.0. Column will remain but is unused.")
+                    print("  This is expected for SQLite < 3.35.0. Column will remain but is unused.")
                     db.session.rollback()
             else:
                 print(f"  Template column already removed from {table} table")

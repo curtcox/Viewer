@@ -14,7 +14,6 @@ from template_manager import (
     ENTITY_TYPE_ALIASES,
     ENTITY_TYPE_SERVERS,
     ENTITY_TYPE_VARIABLES,
-    ENTITY_TYPE_SECRETS,
     get_templates_config,
     validate_templates_json,
     get_template_status,
