@@ -16,8 +16,25 @@ def get_user_servers(user_id: str) -> List[Server]:
 
 
 def get_user_template_servers(user_id: str) -> List[Server]:
-    """Return template servers for a user ordered by name."""
-    return _server_repo.get_templates_for_user(user_id)
+    """Return template servers from templates variable configuration."""
+    from template_manager import get_templates_for_type, ENTITY_TYPE_SERVERS
+
+    templates = get_templates_for_type(user_id, ENTITY_TYPE_SERVERS)
+
+    # Convert template dicts to Server objects (read-only representations)
+    server_objects = []
+    for template in templates:
+        # Create a minimal Server object from template data
+        server = Server()
+        server.id = None  # Templates don't have IDs
+        server.name = template.get('name', template.get('key', ''))
+        server.user_id = user_id
+        server.definition = ''
+        server.enabled = True
+        server.template = True  # Mark as template for backwards compatibility
+        server_objects.append(server)
+
+    return sorted(server_objects, key=lambda s: s.name if s.name else '')
 
 
 def get_server_by_name(user_id: str, name: str) -> Optional[Server]:

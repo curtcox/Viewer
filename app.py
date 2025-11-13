@@ -168,6 +168,16 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
         return {"current_user": current_user}
 
+    @flask_app.context_processor
+    def inject_template_helpers() -> dict[str, Any]:
+        """Expose template management helpers to all templates."""
+        from template_status import get_template_link_info, generate_template_status_label
+
+        return {
+            'get_template_link_info': get_template_link_info,
+            'generate_template_status_label': generate_template_status_label,
+        }
+
     # Force registration of custom error handlers even in debug mode
     # This ensures our enhanced error pages with source links always work
     flask_app.register_error_handler(500, internal_error)

@@ -15,8 +15,25 @@ def get_user_variables(user_id: str) -> List[Variable]:
 
 
 def get_user_template_variables(user_id: str) -> List[Variable]:
-    """Return template variables for a user ordered by name."""
-    return _variable_repo.get_templates_for_user(user_id)
+    """Return template variables from templates variable configuration."""
+    from template_manager import get_templates_for_type, ENTITY_TYPE_VARIABLES
+
+    templates = get_templates_for_type(user_id, ENTITY_TYPE_VARIABLES)
+
+    # Convert template dicts to Variable objects (read-only representations)
+    variable_objects = []
+    for template in templates:
+        # Create a minimal Variable object from template data
+        variable = Variable()
+        variable.id = None  # Templates don't have IDs
+        variable.name = template.get('name', template.get('key', ''))
+        variable.user_id = user_id
+        variable.definition = ''
+        variable.enabled = True
+        variable.template = True  # Mark as template for backwards compatibility
+        variable_objects.append(variable)
+
+    return sorted(variable_objects, key=lambda v: v.name if v.name else '')
 
 
 def get_variable_by_name(user_id: str, name: str) -> Optional[Variable]:
