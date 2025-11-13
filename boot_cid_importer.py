@@ -109,7 +109,7 @@ def load_and_validate_boot_cid(boot_cid: str) -> tuple[Optional[dict[str, Any]],
         return None, f"Boot CID has no content: {normalized}"
 
     try:
-        content = bytes(cid_record.file_data).decode('utf-8')
+        content = cid_record.file_data.decode('utf-8')
     except UnicodeDecodeError as e:
         return None, f"Boot CID content is not valid UTF-8: {normalized}\nError: {e}"
 
