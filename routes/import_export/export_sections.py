@@ -103,7 +103,7 @@ def collect_server_section(
 
         if not should_export_entry(
             enabled,
-            False  # Templates no longer stored as entity attribute,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=form.include_disabled_servers.data,
             include_templates=form.include_template_servers.data,
         ):
@@ -140,7 +140,7 @@ def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, 
 
         if not should_export_entry(
             enabled,
-            False  # Templates no longer stored as entity attribute,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=form.include_disabled_variables.data,
             include_templates=form.include_template_variables.data,
         ):
@@ -183,7 +183,7 @@ def collect_secrets_section(
 
         if not should_export_entry(
             enabled,
-            False  # Templates no longer stored as entity attribute,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=include_disabled,
             include_templates=include_templates,
         ):

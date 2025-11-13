@@ -234,7 +234,6 @@ def test_new_server_form_includes_saved_templates(
             name="templated-server",
             definition="def main():\n    return {'output': 'ok'}\n",
             user_id="default-user",
-            template=True,
         )
         db.session.add(server)
         db.session.commit()

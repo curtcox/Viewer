@@ -49,7 +49,6 @@ def test_new_secret_form_includes_templates(
             name="templated-secret",
             definition="return 'secret'",
             user_id="default-user",
-            template=True,
         )
         db.session.add(secret)
         db.session.commit()

@@ -212,21 +212,20 @@ class TestImportExportRoutes(unittest.TestCase):
                 user_id=self.user_id,
                 enabled=False,
             )
-            alias_template = Alias(
-                name='alias-template',
-                definition='template',
+            alias_regular = Alias(
+                name='alias-regular',
+                definition='regular',
                 user_id=self.user_id,
-                template=True,
             )
             secret = Secret(name='secret-two', definition='top-secret', user_id=self.user_id)
-            db.session.add_all([alias_disabled, alias_template, secret])
+            db.session.add_all([alias_disabled, alias_regular, secret])
             db.session.commit()
 
         with self.logged_in():
             response = self.client.get('/export')
             html = response.get_data(as_text=True)
             self.assertNotIn('data-export-item-name="alias-disabled"', html)
-            self.assertNotIn('data-export-item-name="alias-template"', html)
+            self.assertIn('data-export-item-name="alias-regular"', html)
 
             response = self.client.post(
                 '/export',
@@ -242,7 +241,7 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
         self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-disabled"[^>]*checked')
-        self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-template"[^>]*checked')
+        self.assertRegex(html, r'name="selected_aliases"[^>]*value="alias-regular"[^>]*checked')
         self.assertRegex(html, r'name="selected_secrets"[^>]*value="secret-two"[^>]*checked')
         self.assertNotIn('<div class="text-muted small fst-italic">Secrets are not selected for export.</div>', html)
 
@@ -348,8 +347,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertNotIn('definition', aliases[0])
         self.assertIn('enabled', aliases[0])
         self.assertTrue(aliases[0]['enabled'])
-        self.assertIn('template', aliases[0])
-        self.assertFalse(aliases[0]['template'])
         alias_definition_cid = aliases[0]['definition_cid']
 
         servers = self._load_section(payload, 'servers')
@@ -358,8 +355,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertNotIn('definition', servers[0])
         self.assertIn('enabled', servers[0])
         self.assertTrue(servers[0]['enabled'])
-        self.assertIn('template', servers[0])
-        self.assertFalse(servers[0]['template'])
 
         cid_values = payload.get('cid_values', {})
         self.assertIn(alias_definition_cid, cid_values)
@@ -379,15 +374,11 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertEqual(variables[0]['definition'], 'value')
         self.assertIn('enabled', variables[0])
         self.assertTrue(variables[0]['enabled'])
-        self.assertIn('template', variables[0])
-        self.assertFalse(variables[0]['template'])
 
         secrets_section = self._load_section(payload, 'secrets')
         self.assertEqual(secrets_section.get('encryption'), SECRET_ENCRYPTION_SCHEME)
         self.assertIn('enabled', secrets_section['items'][0])
         self.assertTrue(secrets_section['items'][0]['enabled'])
-        self.assertIn('template', secrets_section['items'][0])
-        self.assertFalse(secrets_section['items'][0]['template'])
         ciphertext = secrets_section['items'][0]['ciphertext']
         self.assertEqual(decrypt_secret_value(ciphertext, 'passphrase'), 'super-secret')
 
@@ -477,17 +468,9 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Verify the disabled flag is preserved
         self.assertFalse(disabled_alias['enabled'])
-        self.assertIn('template', disabled_alias)
-        self.assertFalse(disabled_alias['template'])
         self.assertFalse(disabled_server['enabled'])
-        self.assertIn('template', disabled_server)
-        self.assertFalse(disabled_server['template'])
         self.assertFalse(disabled_variable['enabled'])
-        self.assertIn('template', disabled_variable)
-        self.assertFalse(disabled_variable['template'])
         self.assertFalse(disabled_secret['enabled'])
-        self.assertIn('template', disabled_secret)
-        self.assertFalse(disabled_secret['template'])
 
         with self.app.app_context():
             Alias.query.delete()
@@ -603,25 +586,21 @@ class TestImportExportRoutes(unittest.TestCase):
                         name='template-alias',
                         user_id=self.user_id,
                         definition=alias_definition,
-                        template=True,
                     ),
                     Server(
                         name='template-server',
                         user_id=self.user_id,
                         definition='print("template")',
-                        template=True,
                     ),
                     Variable(
                         name='template-variable',
                         user_id=self.user_id,
                         definition='value',
-                        template=True,
                     ),
                     Secret(
                         name='template-secret',
                         user_id=self.user_id,
                         definition='secret-value',
-                        template=True,
                     ),
                 ]
             )
@@ -644,16 +623,23 @@ class TestImportExportRoutes(unittest.TestCase):
 
         _, payload = self._load_export_payload()
 
-        self.assertIsNone(self._load_section(payload, 'aliases'))
-        self.assertIsNone(self._load_section(payload, 'servers'))
+        # Entities are now exported as regular entities (no longer templates)
+        aliases = self._load_section(payload, 'aliases')
+        self.assertIsNotNone(aliases)
+        self.assertEqual(len(aliases), 1)
+
+        servers = self._load_section(payload, 'servers')
+        self.assertIsNotNone(servers)
+        self.assertEqual(len(servers), 1)
 
         variable_entries = self._load_section(payload, 'variables')
-        self.assertEqual(variable_entries, [])
+        self.assertEqual(len(variable_entries), 1)
 
         secrets_section = self._load_section(payload, 'secrets')
         assert secrets_section is not None
-        self.assertEqual(secrets_section.get('items'), [])
+        self.assertEqual(len(secrets_section.get('items')), 1)
 
+        # Second export with all include flags is redundant now but should also work
         with self.app.app_context():
             CID.query.delete()
             db.session.commit()
@@ -682,21 +668,17 @@ class TestImportExportRoutes(unittest.TestCase):
         alias_entries = self._load_section(payload, 'aliases')
         assert alias_entries is not None
         self.assertEqual(len(alias_entries), 1)
-        self.assertTrue(alias_entries[0]['template'])
 
         server_entries = self._load_section(payload, 'servers')
         assert server_entries is not None
         self.assertEqual(len(server_entries), 1)
-        self.assertTrue(server_entries[0]['template'])
 
         variable_entries = self._load_section(payload, 'variables')
         self.assertEqual(len(variable_entries), 1)
-        self.assertTrue(variable_entries[0]['template'])
 
         secrets_section = self._load_section(payload, 'secrets')
         assert secrets_section is not None
         self.assertEqual(len(secrets_section.get('items', [])), 1)
-        self.assertTrue(secrets_section['items'][0]['template'])
 
     def test_export_includes_disabled_templates_with_template_selection(self):
         alias_definition = format_primary_alias_line(
@@ -714,28 +696,24 @@ class TestImportExportRoutes(unittest.TestCase):
                         user_id=self.user_id,
                         definition=alias_definition,
                         enabled=False,
-                        template=True,
                     ),
                     Server(
                         name='disabled-template-server',
                         user_id=self.user_id,
                         definition='print("disabled template")',
                         enabled=False,
-                        template=True,
                     ),
                     Variable(
                         name='disabled-template-variable',
                         user_id=self.user_id,
                         definition='value',
                         enabled=False,
-                        template=True,
                     ),
                     Secret(
                         name='disabled-template-secret',
                         user_id=self.user_id,
                         definition='secret-value',
                         enabled=False,
-                        template=True,
                     ),
                 ]
             )
@@ -746,12 +724,16 @@ class TestImportExportRoutes(unittest.TestCase):
                 '/export',
                 data={
                     'include_aliases': 'y',
+                    'include_disabled_aliases': 'y',
                     'include_template_aliases': 'y',
                     'include_servers': 'y',
+                    'include_disabled_servers': 'y',
                     'include_template_servers': 'y',
                     'include_variables': 'y',
+                    'include_disabled_variables': 'y',
                     'include_template_variables': 'y',
                     'include_secrets': 'y',
+                    'include_disabled_secrets': 'y',
                     'include_template_secrets': 'y',
                     'secret_key': 'key',
                     'submit': True,
@@ -765,21 +747,17 @@ class TestImportExportRoutes(unittest.TestCase):
         alias_entries = self._load_section(payload, 'aliases')
         assert alias_entries is not None
         self.assertEqual(alias_entries[0]['enabled'], False)
-        self.assertTrue(alias_entries[0]['template'])
 
         server_entries = self._load_section(payload, 'servers')
         assert server_entries is not None
         self.assertEqual(server_entries[0]['enabled'], False)
-        self.assertTrue(server_entries[0]['template'])
 
         variable_entries = self._load_section(payload, 'variables')
         self.assertEqual(variable_entries[0]['enabled'], False)
-        self.assertTrue(variable_entries[0]['template'])
 
         secrets_section = self._load_section(payload, 'secrets')
         assert secrets_section is not None
         self.assertEqual(secrets_section['items'][0]['enabled'], False)
-        self.assertTrue(secrets_section['items'][0]['template'])
 
     def test_export_includes_runtime_section(self):
         with self.logged_in():
@@ -1575,9 +1553,9 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_snapshot_unchecked_applies_default_settings(self):
         """Test that when snapshot is unchecked, the correct defaults are applied."""
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=False, template=True)
-            server = Server(name='test-server', definition='print("test")', user_id=self.user_id, enabled=False, template=True)
-            variable = Variable(name='test-var', definition='value', user_id=self.user_id, enabled=False, template=True)
+            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=False)
+            server = Server(name='test-server', definition='print("test")', user_id=self.user_id, enabled=False)
+            variable = Variable(name='test-var', definition='value', user_id=self.user_id, enabled=False)
             db.session.add_all([alias, server, variable])
             db.session.commit()
 
@@ -1605,7 +1583,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertEqual(len(aliases), 1)
         self.assertEqual(aliases[0]['name'], 'test-alias')
         self.assertFalse(aliases[0]['enabled'])
-        self.assertTrue(aliases[0]['template'])
 
         # Servers: all including disabled and templates
         servers = self._load_section(payload, 'servers')
@@ -1613,7 +1590,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertEqual(len(servers), 1)
         self.assertEqual(servers[0]['name'], 'test-server')
         self.assertFalse(servers[0]['enabled'])
-        self.assertTrue(servers[0]['template'])
 
         # Variables: all including disabled and templates
         variables = self._load_section(payload, 'variables')
@@ -1621,7 +1597,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertEqual(len(variables), 1)
         self.assertEqual(variables[0]['name'], 'test-var')
         self.assertFalse(variables[0]['enabled'])
-        self.assertTrue(variables[0]['template'])
 
         # Secrets: none
         self.assertNotIn('secrets', payload)
