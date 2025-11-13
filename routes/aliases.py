@@ -512,7 +512,6 @@ def _handle_rename(
     alias.definition = definition_value or None
     alias.updated_at = datetime.now(timezone.utc)
     alias.enabled = bool(form.enabled.data)
-    alias.template = bool(form.template.data)
     _persist_alias(alias)
     record_entity_interaction(
         EntityInteractionRequest(

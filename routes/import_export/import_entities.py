@@ -36,7 +36,6 @@ class AliasImport:
     name: str
     definition: str
     enabled: bool
-    template: bool
 
 
 @dataclass
@@ -46,7 +45,6 @@ class ServerImport:
     name: str
     definition: str
     enabled: bool
-    template: bool
 
 
 def prepare_alias_import(
@@ -111,13 +109,11 @@ def prepare_alias_import(
     definition_value = definition_text
 
     enabled = coerce_enabled_flag(entry.get('enabled'))
-    template = coerce_enabled_flag(entry.get('template'))
 
     return AliasImport(
         name=name,
         definition=definition_value,
         enabled=enabled,
-        template=template,
     )
 
 
@@ -178,13 +174,11 @@ def prepare_server_import(
         return None
 
     enabled = coerce_enabled_flag(entry.get('enabled'))
-    template = coerce_enabled_flag(entry.get('template'))
 
     return ServerImport(
         name=name,
         definition=definition_text,
         enabled=enabled,
-        template=template,
     )
 
 
@@ -212,7 +206,6 @@ def impl_import_aliases(
             existing.definition = prepared.definition
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = prepared.enabled
-            existing.template = prepared.template
             save_entity(existing)
         else:
             alias = Alias(
@@ -220,7 +213,6 @@ def impl_import_aliases(
                 user_id=user_id,
                 definition=prepared.definition,
                 enabled=prepared.enabled,
-                template=prepared.template,
             )
             save_entity(alias)
         imported += 1
@@ -272,7 +264,6 @@ def impl_import_servers(
             existing.definition_cid = definition_cid
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = prepared.enabled
-            existing.template = prepared.template
             save_entity(existing)
         else:
             server = Server(
@@ -281,7 +272,6 @@ def impl_import_servers(
                 user_id=user_id,
                 definition_cid=definition_cid,
                 enabled=prepared.enabled,
-                template=prepared.template,
             )
             save_entity(server)
         imported += 1
@@ -329,13 +319,11 @@ def impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[s
             errors.append('Variable entry must include both name and definition.')
             continue
         enabled = coerce_enabled_flag(entry.get('enabled'))
-        template = coerce_enabled_flag(entry.get('template'))
         existing = get_variable_by_name(user_id, name)
         if existing:
             existing.definition = definition
             existing.updated_at = datetime.now(timezone.utc)
             existing.enabled = enabled
-            existing.template = template
             save_entity(existing)
         else:
             variable = Variable(
@@ -343,7 +331,6 @@ def impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[s
                 definition=definition,
                 user_id=user_id,
                 enabled=enabled,
-                template=template,
             )
             save_entity(variable)
         imported += 1
@@ -396,13 +383,11 @@ def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, 
                 continue
             plaintext = decrypt_secret_value(ciphertext, key)
             enabled = coerce_enabled_flag(entry.get('enabled'))
-            template = coerce_enabled_flag(entry.get('template'))
             existing = get_secret_by_name(user_id, name)
             if existing:
                 existing.definition = plaintext
                 existing.updated_at = datetime.now(timezone.utc)
                 existing.enabled = enabled
-                existing.template = template
                 save_entity(existing)
             else:
                 secret = Secret(
@@ -410,7 +395,6 @@ def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, 
                     definition=plaintext,
                     user_id=user_id,
                     enabled=enabled,
-                    template=template,
                 )
                 save_entity(secret)
             imported += 1
