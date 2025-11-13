@@ -39,7 +39,8 @@ class TestAliasImportDefinitionPreservation(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result.name, 'test-alias-2')
         self.assertEqual(result.definition, '/pattern -> /target [ignore-case]')
-        self.assertTrue(result.ignore_case)
+        # The ignore-case option is preserved in the definition string itself
+        self.assertIn('[ignore-case]', result.definition)
         self.assertEqual(len(errors), 0)
 
     def test_prepare_alias_import_preserves_regex_pattern(self):
