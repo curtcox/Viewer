@@ -16,7 +16,7 @@ def get_user_secrets(user_id: str) -> List[Secret]:
 
 def get_user_template_secrets(user_id: str) -> List[Secret]:
     """Return template secrets from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_SECRETS
+    from template_manager import get_templates_for_type, ENTITY_TYPE_SECRETS, resolve_cid_value
 
     templates = get_templates_for_type(user_id, ENTITY_TYPE_SECRETS)
 
@@ -25,10 +25,19 @@ def get_user_template_secrets(user_id: str) -> List[Secret]:
     for template in templates:
         # Create a minimal Secret object from template data
         secret = Secret()
-        secret.id = None  # Templates don't have IDs
+        # Use template key as ID for UI to reference
+        secret.id = template.get('key', '')
         secret.name = template.get('name', template.get('key', ''))
         secret.user_id = user_id
-        secret.definition = ''
+
+        # Try to get definition from various possible fields
+        definition = template.get('definition')
+        if not definition and template.get('definition_cid'):
+            definition = resolve_cid_value(template.get('definition_cid'))
+        if not definition and template.get('value_cid'):
+            definition = resolve_cid_value(template.get('value_cid'))
+
+        secret.definition = definition or ''
         secret.enabled = True
         secret.template = True  # Mark as template for backwards compatibility
         secret_objects.append(secret)

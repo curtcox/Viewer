@@ -45,12 +45,28 @@ def test_new_secret_form_includes_templates(
     """Secrets flagged as templates should appear on the new form."""
 
     with integration_app.app_context():
-        secret = Secret(
-            name="templated-secret",
-            definition="return 'secret'",
+        # Create centralized templates variable with secret template
+        import json
+        from models import Variable
+
+        templates_config = {
+            "aliases": {},
+            "servers": {},
+            "variables": {},
+            "secrets": {
+                "templated-secret": {
+                    "name": "templated-secret",
+                    "definition": "return 'secret'",
+                }
+            }
+        }
+
+        templates_var = Variable(
+            name="templates",
             user_id="default-user",
+            definition=json.dumps(templates_config),
         )
-        db.session.add(secret)
+        db.session.add(templates_var)
         db.session.commit()
 
     login_default_user()
@@ -61,7 +77,6 @@ def test_new_secret_form_includes_templates(
     page = response.get_data(as_text=True)
     assert "data-secret-template-id" in page
     assert "templated-secret" in page
-    assert "name=\"template\"" in page
 
 
 def test_edit_secret_form_displays_existing_secret(

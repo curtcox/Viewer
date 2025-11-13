@@ -17,7 +17,7 @@ def get_user_servers(user_id: str) -> List[Server]:
 
 def get_user_template_servers(user_id: str) -> List[Server]:
     """Return template servers from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_SERVERS
+    from template_manager import get_templates_for_type, ENTITY_TYPE_SERVERS, resolve_cid_value
 
     templates = get_templates_for_type(user_id, ENTITY_TYPE_SERVERS)
 
@@ -26,10 +26,17 @@ def get_user_template_servers(user_id: str) -> List[Server]:
     for template in templates:
         # Create a minimal Server object from template data
         server = Server()
-        server.id = None  # Templates don't have IDs
+        # Use template key as ID for UI to reference
+        server.id = template.get('key', '')
         server.name = template.get('name', template.get('key', ''))
         server.user_id = user_id
-        server.definition = ''
+
+        # Try to get definition from various possible fields
+        definition = template.get('definition')
+        if not definition and template.get('definition_cid'):
+            definition = resolve_cid_value(template.get('definition_cid'))
+
+        server.definition = definition or ''
         server.enabled = True
         server.template = True  # Mark as template for backwards compatibility
         server_objects.append(server)
