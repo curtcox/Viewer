@@ -49,10 +49,9 @@ def generate_template_status_label(
     # Format label
     if count == 0:
         return "No templates"
-    elif count == 1:
+    if count == 1:
         return "1 template"
-    else:
-        return f"{count} templates"
+    return f"{count} templates"
 
 
 def get_template_link_info(
