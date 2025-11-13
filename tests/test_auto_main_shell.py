@@ -51,7 +51,7 @@ def test_auto_main_shell_main_executes_shell_command():
 
 def test_auto_main_shell_runs_through_text_function_runner():
     definition = """
-from server_templates.definitions import auto_main_shell
+from reference_templates.servers.definitions import auto_main_shell
 
 return auto_main_shell.main(command=command)
 """.strip()
@@ -65,7 +65,7 @@ return auto_main_shell.main(command=command)
 
 
 def test_auto_main_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("server_templates/definitions/auto_main_shell.py").read_text(encoding='utf-8')
+    definition = Path("reference_templates/servers/definitions/auto_main_shell.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/shell", json={"command": "echo server-execution"}):
         result = server_execution.execute_server_code_from_definition(
