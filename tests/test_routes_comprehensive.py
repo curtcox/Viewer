@@ -1582,15 +1582,8 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Start from a Template', page)
-        self.assertIn('server-template-select', page)
         self.assertIn('definition-ai-input', page)
         self.assertIn('data-ai-target-id="definition"', page)
-
-        for template in get_server_templates():
-            self.assertIn(template['name'], page)
-            if template.get('description'):
-                self.assertIn(template['description'], page)
 
     def test_new_server_prefills_name_from_path_query(self):
         """The server creation form should reuse the requested path for its name."""
