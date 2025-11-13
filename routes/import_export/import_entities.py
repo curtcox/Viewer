@@ -7,9 +7,7 @@ from typing import Any, Optional
 
 from alias_definition import (
     AliasDefinitionError,
-    format_primary_alias_line,
     parse_alias_definition,
-    replace_primary_definition_line,
 )
 from cid_utils import save_server_definition_as_cid
 from db_access import (
@@ -103,22 +101,14 @@ def prepare_alias_import(
         return None
 
     try:
-        parsed_definition = parse_alias_definition(definition_text, alias_name=name)
+        # Validate the definition (raises AliasDefinitionError if invalid)
+        _ = parse_alias_definition(definition_text, alias_name=name)
     except AliasDefinitionError as exc:
         errors.append(f'Alias "{name}" definition could not be parsed: {exc}')
         return None
 
-    canonical_primary = format_primary_alias_line(
-        parsed_definition.match_type,
-        parsed_definition.match_pattern,
-        parsed_definition.target_path,
-        ignore_case=parsed_definition.ignore_case,
-        alias_name=name,
-    )
-    definition_value = replace_primary_definition_line(
-        definition_text,
-        canonical_primary,
-    )
+    # Preserve the original definition format during import
+    definition_value = definition_text
 
     enabled = coerce_enabled_flag(entry.get('enabled'))
     template = coerce_enabled_flag(entry.get('template'))
