@@ -198,7 +198,8 @@ def get_templates_for_type(user_id: str, entity_type: str) -> List[Dict[str, Any
     result = []
     for key, template_data in type_templates.items():
         if isinstance(template_data, dict):
-            template_with_key = {'key': key, **template_data}
+            # Unpack template_data first, then override 'key' to ensure it matches the dict key
+            template_with_key = {**template_data, 'key': key}
             result.append(template_with_key)
 
     return result
@@ -231,7 +232,10 @@ def get_template_by_key(
 
     template_data = type_templates.get(template_key)
     if template_data and isinstance(template_data, dict):
-        return {'key': template_key, **template_data}
+        # Clone template_data and set 'key' only if not present
+        result = dict(template_data)
+        result.setdefault('key', template_key)
+        return result
 
     return None
 
@@ -243,7 +247,8 @@ def resolve_cid_value(cid_or_value: str) -> Optional[str]:
         cid_or_value: Either a CID reference or a direct value
 
     Returns:
-        The resolved value, or None if CID cannot be resolved
+        The resolved value if the CID is found and can be decoded,
+        or the original input string if CID resolution fails
     """
     if not cid_or_value:
         return None
@@ -261,7 +266,11 @@ def resolve_cid_value(cid_or_value: str) -> Optional[str]:
         cid_record = get_cid_by_path(cid_path)
         if cid_record and cid_record.file_data:
             return cid_record.file_data.decode('utf-8')
-    except (UnicodeDecodeError, Exception) as e:
+    except (UnicodeDecodeError, KeyError, AttributeError, TypeError) as e:
+        # UnicodeDecodeError: file_data cannot be decoded as UTF-8
+        # KeyError: CID lookup failed
+        # AttributeError: cid_record or file_data is None
+        # TypeError: unexpected type in processing
         logger.debug("Could not resolve CID %s: %s", cid_or_value, e)
 
     # Return the original value if not a CID or couldn't resolve
