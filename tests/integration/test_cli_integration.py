@@ -61,6 +61,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         self.assertEqual(result.returncode, 0)
@@ -77,6 +78,7 @@ class TestCliIntegration(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
 
             # Should exit with 0
@@ -96,6 +98,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with error code
@@ -116,6 +119,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with error code
@@ -132,6 +136,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with error code
@@ -149,6 +154,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with 0 for successful request
@@ -166,6 +172,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit successfully
@@ -183,6 +190,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with error
@@ -199,6 +207,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should exit with error
@@ -217,6 +226,7 @@ class TestCliIntegration(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Will fail because AAAAAAAA is empty CID, but should recognize the flag
@@ -235,6 +245,7 @@ class TestCliArgumentParsing(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         self.assertEqual(result.returncode, 0)
@@ -248,6 +259,7 @@ class TestCliArgumentParsing(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         self.assertEqual(result.returncode, 0)
@@ -268,6 +280,7 @@ class TestCliUrlDetection(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should make HTTP request, not treat as CID
@@ -281,6 +294,7 @@ class TestCliUrlDetection(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Should make HTTP request
@@ -294,6 +308,7 @@ class TestCliUrlDetection(unittest.TestCase):
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
 
         # Will fail to connect but should be treated as URL
