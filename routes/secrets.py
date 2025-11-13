@@ -118,7 +118,7 @@ def new_secret():
 
     secret_templates = [
         {
-            'id': secret.id,
+            'id': getattr(secret, 'template_key', None) or secret.id,
             'name': secret.name,
             'definition': secret.definition or '',
             'suggested_name': f"{secret.name}-copy" if secret.name else '',

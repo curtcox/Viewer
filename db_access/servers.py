@@ -26,8 +26,10 @@ def get_user_template_servers(user_id: str) -> List[Server]:
     for template in templates:
         # Create a minimal Server object from template data
         server = Server()
-        # Use template key as ID for UI to reference
-        server.id = template.get('key', '')
+        # Templates are not persisted DB rows, so id remains None
+        server.id = None
+        # Store the template key in a separate attribute for UI use
+        server.template_key = template.get('key', '')
         server.name = template.get('name', template.get('key', ''))
         server.user_id = user_id
 

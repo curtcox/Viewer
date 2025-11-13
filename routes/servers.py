@@ -710,7 +710,7 @@ def new_server():
 
     user_server_templates = [
         {
-            'id': f'user-{server.id}',
+            'id': getattr(server, 'template_key', None) or (f'user-{server.id}' if server.id else None),
             'name': server.name,
             'definition': server.definition or '',
             'suggested_name': f"{server.name}-copy" if server.name else '',

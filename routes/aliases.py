@@ -385,7 +385,7 @@ def new_alias():
 
     alias_templates = [
         {
-            'id': alias.id,
+            'id': getattr(alias, 'template_key', None) or alias.id,
             'name': alias.name,
             'definition': alias.definition or '',
             'suggested_name': f"{alias.name}-copy" if alias.name else '',

@@ -49,8 +49,10 @@ def get_user_template_aliases(user_id: str) -> List[Alias]:
     for template in templates:
         # Create a minimal Alias object from template data
         alias = Alias()
-        # Use template key as ID for UI to reference
-        alias.id = template.get('key', '')
+        # Templates are not persisted DB rows, so id remains None
+        alias.id = None
+        # Store the template key in a separate attribute for UI use
+        alias.template_key = template.get('key', '')
         alias.name = template.get('name', template.get('key', ''))
         alias.user_id = user_id
 

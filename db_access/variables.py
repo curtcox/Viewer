@@ -25,8 +25,10 @@ def get_user_template_variables(user_id: str) -> List[Variable]:
     for template in templates:
         # Create a minimal Variable object from template data
         variable = Variable()
-        # Use template key as ID for UI to reference
-        variable.id = template.get('key', '')
+        # Templates are not persisted DB rows, so id remains None
+        variable.id = None
+        # Store the template key in a separate attribute for UI use
+        variable.template_key = template.get('key', '')
         variable.name = template.get('name', template.get('key', ''))
         variable.user_id = user_id
 

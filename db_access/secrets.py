@@ -25,8 +25,10 @@ def get_user_template_secrets(user_id: str) -> List[Secret]:
     for template in templates:
         # Create a minimal Secret object from template data
         secret = Secret()
-        # Use template key as ID for UI to reference
-        secret.id = template.get('key', '')
+        # Templates are not persisted DB rows, so id remains None
+        secret.id = None
+        # Store the template key in a separate attribute for UI use
+        secret.template_key = template.get('key', '')
         secret.name = template.get('name', template.get('key', ''))
         secret.user_id = user_id
 
