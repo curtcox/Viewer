@@ -101,7 +101,8 @@ def prepare_alias_import(
         return None
 
     try:
-        parsed_definition = parse_alias_definition(definition_text, alias_name=name)
+        # Validate the definition (raises AliasDefinitionError if invalid)
+        _ = parse_alias_definition(definition_text, alias_name=name)
     except AliasDefinitionError as exc:
         errors.append(f'Alias "{name}" definition could not be parsed: {exc}')
         return None
