@@ -46,7 +46,6 @@ class EntityForm(FlaskForm):
         render_kw={'rows': 15}
     )
     enabled = BooleanField('Enabled', default=True)
-    template = BooleanField('Template', default=False)
     submit = SubmitField('Save')
 
     def __init__(self, *args, entity_type: str = 'Entity', **kwargs):
@@ -324,3 +323,27 @@ class ImportForm(FlaskForm):
             return False
 
         return True
+
+
+def validate_templates_json(form: 'TemplatesConfigForm', field: Field) -> None:
+    """Validate templates JSON structure."""
+    from template_manager import validate_templates_json as validate_json
+
+    if not field.data or not field.data.strip():
+        raise ValidationError('Templates configuration cannot be empty')
+
+    is_valid, error = validate_json(field.data)
+    if not is_valid:
+        raise ValidationError(f'Invalid templates JSON: {error}')
+
+
+class TemplatesConfigForm(FlaskForm):
+    """Form for editing templates configuration."""
+
+    templates_json = TextAreaField(
+        'Templates Configuration',
+        validators=[DataRequired(), validate_templates_json],
+        render_kw={'rows': 20, 'class': 'font-monospace'}
+    )
+    use_cid = BooleanField('Store as CID', default=False)
+    submit = SubmitField('Save Templates')

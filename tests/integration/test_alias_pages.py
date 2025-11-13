@@ -192,7 +192,6 @@ def test_new_alias_form_includes_template_options(
                 '/target',
                 alias_name='template-source',
             ),
-            template=True,
         )
         db.session.add(alias)
         db.session.commit()

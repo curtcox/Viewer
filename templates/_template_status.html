@@ -1,0 +1,12 @@
+{% macro render_template_status(user_id, entity_type=None) %}
+    {# Get template status link information #}
+    {% set status_info = get_template_link_info(user_id, entity_type) %}
+
+    {# Render the template status link #}
+    <div class="template-status-wrapper mb-3">
+        <a href="{{ status_info['url'] }}"
+           class="template-status {{ status_info['css_class'] }} text-decoration-none">
+            <span class="badge bg-secondary">{{ status_info['label'] }}</span>
+        </a>
+    </div>
+{% endmacro %}

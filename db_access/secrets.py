@@ -15,8 +15,25 @@ def get_user_secrets(user_id: str) -> List[Secret]:
 
 
 def get_user_template_secrets(user_id: str) -> List[Secret]:
-    """Return template secrets for a user ordered by name."""
-    return _secret_repo.get_templates_for_user(user_id)
+    """Return template secrets from templates variable configuration."""
+    from template_manager import get_templates_for_type, ENTITY_TYPE_SECRETS
+
+    templates = get_templates_for_type(user_id, ENTITY_TYPE_SECRETS)
+
+    # Convert template dicts to Secret objects (read-only representations)
+    secret_objects = []
+    for template in templates:
+        # Create a minimal Secret object from template data
+        secret = Secret()
+        secret.id = None  # Templates don't have IDs
+        secret.name = template.get('name', template.get('key', ''))
+        secret.user_id = user_id
+        secret.definition = ''
+        secret.enabled = True
+        secret.template = True  # Mark as template for backwards compatibility
+        secret_objects.append(secret)
+
+    return sorted(secret_objects, key=lambda s: s.name if s.name else '')
 
 
 def get_secret_by_name(user_id: str, name: str) -> Optional[Secret]:

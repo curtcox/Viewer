@@ -410,7 +410,6 @@ def new_alias():
                 user_id=current_user.id,
                 definition=definition_value,
                 enabled=bool(form.enabled.data),
-                template=bool(form.template.data),
             )
             _persist_alias(alias)
             record_entity_interaction(
@@ -471,7 +470,6 @@ def _handle_save_as(
         user_id=alias.user_id,
         definition=definition_value or None,
         enabled=bool(form.enabled.data),
-        template=bool(form.template.data),
     )
     _persist_alias(alias_copy)
     record_entity_interaction(
@@ -512,7 +510,6 @@ def _handle_rename(
     alias.definition = definition_value or None
     alias.updated_at = datetime.now(timezone.utc)
     alias.enabled = bool(form.enabled.data)
-    alias.template = bool(form.template.data)
     _persist_alias(alias)
     record_entity_interaction(
         EntityInteractionRequest(

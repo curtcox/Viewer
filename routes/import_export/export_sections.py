@@ -56,11 +56,10 @@ def collect_alias_section(
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = cid_writer.cid_for_content(definition_bytes)
         enabled = bool(getattr(alias, 'enabled', True))
-        template = bool(getattr(alias, 'template', False))
 
         if not should_export_entry(
             enabled,
-            template,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=form.include_disabled_aliases.data,
             include_templates=form.include_template_aliases.data,
         ):
@@ -71,7 +70,6 @@ def collect_alias_section(
                 'name': name,
                 'definition_cid': definition_cid,
                 'enabled': enabled,
-                'template': template,
             }
         )
 
@@ -102,11 +100,10 @@ def collect_server_section(
         definition_bytes = definition_text.encode('utf-8')
         definition_cid = cid_writer.cid_for_content(definition_bytes)
         enabled = bool(getattr(server, 'enabled', True))
-        template = bool(getattr(server, 'template', False))
 
         if not should_export_entry(
             enabled,
-            template,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=form.include_disabled_servers.data,
             include_templates=form.include_template_servers.data,
         ):
@@ -117,7 +114,6 @@ def collect_server_section(
                 'name': name,
                 'definition_cid': definition_cid,
                 'enabled': enabled,
-                'template': template,
             }
         )
 
@@ -141,11 +137,10 @@ def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, 
             continue
 
         enabled = bool(getattr(variable, 'enabled', True))
-        template = bool(getattr(variable, 'template', False))
 
         if not should_export_entry(
             enabled,
-            template,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=form.include_disabled_variables.data,
             include_templates=form.include_template_variables.data,
         ):
@@ -156,7 +151,6 @@ def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, 
                 'name': name,
                 'definition': variable.definition,
                 'enabled': enabled,
-                'template': template,
             }
         )
 
@@ -186,11 +180,10 @@ def collect_secrets_section(
             continue
 
         enabled = bool(getattr(secret, 'enabled', True))
-        template = bool(getattr(secret, 'template', False))
 
         if not should_export_entry(
             enabled,
-            template,
+            False,  # Templates no longer stored as entity attribute
             include_disabled=include_disabled,
             include_templates=include_templates,
         ):
@@ -201,7 +194,6 @@ def collect_secrets_section(
                 'name': name,
                 'ciphertext': encrypt_secret_value(secret.definition, key),
                 'enabled': enabled,
-                'template': template,
             }
         )
 

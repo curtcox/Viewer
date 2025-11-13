@@ -39,12 +39,25 @@ def get_user_aliases(user_id: str) -> List[Alias]:
 
 
 def get_user_template_aliases(user_id: str) -> List[Alias]:
-    """Return template aliases for a user ordered by name."""
-    return (
-        Alias.query.filter_by(user_id=user_id, template=True)
-        .order_by(Alias.name)
-        .all()
-    )
+    """Return template aliases from templates variable configuration."""
+    from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES
+
+    templates = get_templates_for_type(user_id, ENTITY_TYPE_ALIASES)
+
+    # Convert template dicts to Alias objects (read-only representations)
+    alias_objects = []
+    for template in templates:
+        # Create a minimal Alias object from template data
+        alias = Alias()
+        alias.id = None  # Templates don't have IDs
+        alias.name = template.get('name', template.get('key', ''))
+        alias.user_id = user_id
+        alias.definition = None
+        alias.enabled = True
+        alias.template = True  # Mark as template for backwards compatibility
+        alias_objects.append(alias)
+
+    return sorted(alias_objects, key=lambda a: a.name if a.name else '')
 
 
 def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:

@@ -174,7 +174,6 @@ def test_new_variable_form_includes_templates(
             name="TEMPLATE_VAR",
             definition="sample-value",
             user_id="default-user",
-            template=True,
         )
         db.session.add(variable)
         db.session.commit()
