@@ -232,7 +232,6 @@ def test_new_server_form_includes_saved_templates(
     with integration_app.app_context():
         # Create centralized templates variable with server template
         import json
-        from models import Variable
 
         templates_config = {
             "aliases": {},

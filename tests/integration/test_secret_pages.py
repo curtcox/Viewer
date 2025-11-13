@@ -46,7 +46,6 @@ def test_new_secret_form_includes_templates(
 
     with integration_app.app_context():
         # Create centralized templates variable with secret template
-        import json
         from models import Variable
 
         templates_config = {

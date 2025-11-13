@@ -171,8 +171,6 @@ def test_new_variable_form_includes_templates(
 
     with integration_app.app_context():
         # Create centralized templates variable with variable template
-        import json
-
         templates_config = {
             "aliases": {},
             "servers": {},
