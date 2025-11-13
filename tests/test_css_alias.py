@@ -150,7 +150,7 @@ class TestCssAliasDefaults(unittest.TestCase):
         return record.path
 
     def test_css_alias_light_mode_theme_content_changes(self):
-        light_css = Path('upload_templates/contents/css_light_mode.css').read_text(encoding='utf-8')
+        light_css = Path('reference_templates/uploads/contents/css_light_mode.css').read_text(encoding='utf-8')
         light_path = self._create_theme_cid('css/light-theme', light_css)
 
         self._update_css_alias_definition(
@@ -166,7 +166,7 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.assertNotIn(b'#121212', response.data)
 
     def test_css_alias_dark_mode_theme_content_changes(self):
-        dark_css = Path('upload_templates/contents/css_dark_mode.css').read_text(encoding='utf-8')
+        dark_css = Path('reference_templates/uploads/contents/css_dark_mode.css').read_text(encoding='utf-8')
         dark_path = self._create_theme_cid('css/dark-theme', dark_css)
 
         self._update_css_alias_definition(
