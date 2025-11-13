@@ -113,7 +113,6 @@ def prepare_alias_import(
         parsed_definition.match_pattern,
         parsed_definition.target_path,
         ignore_case=parsed_definition.ignore_case,
-        alias_name=name,
     )
     definition_value = replace_primary_definition_line(
         definition_text,
