@@ -10,6 +10,23 @@ def signal_handler(_sig, _frame):
     sys.exit(0)
 
 
+def get_default_boot_cid() -> str | None:
+    """Get the default boot CID from reference_templates/boot.cid.
+
+    Returns:
+        The boot CID if the file exists and is readable, None otherwise
+    """
+    from pathlib import Path  # pylint: disable=import-outside-toplevel
+
+    boot_cid_file = Path(__file__).parent / "reference_templates" / "boot.cid"
+    if boot_cid_file.exists():
+        try:
+            return boot_cid_file.read_text(encoding='utf-8').strip()
+        except Exception:  # pylint: disable=broad-except
+            return None
+    return None
+
+
 def handle_boot_cid_import(boot_cid: str) -> None:
     """Handle boot CID import if specified.
 
@@ -221,6 +238,14 @@ if __name__ == "__main__":
             print("Error: Cannot specify both --boot-cid and positional CID argument", file=sys.stderr)
             sys.exit(1)
         cid = args.boot_cid
+
+    # Use default boot CID if no CID was specified and no URL (i.e., starting server)
+    # Don't load default CID if just making an HTTP request
+    if cid is None and url is None:
+        default_cid = get_default_boot_cid()
+        if default_cid:
+            print(f"Using default boot CID from reference_templates/boot.cid: {default_cid}")
+            cid = default_cid
 
     # Register signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
