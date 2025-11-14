@@ -33,6 +33,7 @@ from models import Server
 from serialization import model_to_dict
 from server_execution import analyze_server_definition, describe_main_function_parameters
 from syntax_highlighting import highlight_source
+from template_status import get_template_link_info
 
 from . import main_bp
 from .core import derive_name_from_path
@@ -732,6 +733,8 @@ def new_server():
     entity_name_hint = (form.name.data or '').strip()
     interaction_history = load_interaction_history(current_user.id, EntityType.SERVER.value, entity_name_hint)
 
+    template_link_info = get_template_link_info(current_user.id, 'servers')
+
     return render_template(
         'server_form.html',
         form=form,
@@ -742,6 +745,7 @@ def new_server():
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
         server_test_interactions=[],
+        template_link_info=template_link_info,
     )
 
 

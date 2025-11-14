@@ -888,7 +888,7 @@ def main(request):
         self.assertEqual(response.status_code, 404)
 
     def test_404_page_includes_creation_links(self):
-        """The 404 page should offer shortcuts for creating aliases or servers."""
+        """The 404 page should offer shortcuts for creating aliases, servers, variables, and secrets."""
         missing_path = '/missing/path'
 
         response = self.client.get(missing_path)
@@ -897,6 +897,8 @@ def main(request):
         page = response.get_data(as_text=True)
         self.assertIn(f"/aliases/new?path={missing_path}", page)
         self.assertIn(f"/servers/new?path={missing_path}", page)
+        self.assertIn("/variables/new", page)
+        self.assertIn("/secrets/new", page)
 
 
 class TestAuthenticatedRoutes(BaseTestCase):

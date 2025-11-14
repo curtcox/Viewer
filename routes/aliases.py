@@ -38,6 +38,7 @@ from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias
 from serialization import model_to_dict
+from template_status import get_template_link_info
 
 
 from . import main_bp
@@ -430,6 +431,8 @@ def new_alias():
         current_user.id, 'alias', entity_name_hint
     )
 
+    template_link_info = get_template_link_info(current_user.id, 'aliases')
+
     return render_template(
         'alias_form.html',
         form=form,
@@ -439,6 +442,7 @@ def new_alias():
         ai_entity_name=entity_name_hint,
         ai_entity_name_field=form.name.id,
         alias_templates=alias_templates,
+        template_link_info=template_link_info,
     )
 
 

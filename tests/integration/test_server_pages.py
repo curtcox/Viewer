@@ -263,6 +263,48 @@ def test_new_server_form_includes_saved_templates(
     assert "templated-server" in page
 
 
+def test_new_server_form_includes_template_link(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """New server form should display a link to /variables/templates with status."""
+
+    with integration_app.app_context():
+        import json
+
+        templates_config = {
+            "aliases": {},
+            "servers": {
+                "server1": {
+                    "name": "server1",
+                    "definition": "def main():\n    return {'output': 'ok'}\n",
+                }
+            },
+            "variables": {},
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
+            user_id="default-user",
+            definition=json.dumps(templates_config),
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/servers/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should have a link to /variables/templates?type=servers
+    assert "/variables/templates" in page
+    # Should show "1 template" for servers
+    assert "1 template" in page
+
+
 def test_server_detail_page_displays_server_information(
     client,
     integration_app,

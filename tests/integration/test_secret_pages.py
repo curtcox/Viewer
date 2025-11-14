@@ -78,6 +78,48 @@ def test_new_secret_form_includes_templates(
     assert "templated-secret" in page
 
 
+def test_new_secret_form_includes_template_link(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """New secret form should display a link to /variables/templates with status."""
+
+    with integration_app.app_context():
+        from models import Variable
+
+        templates_config = {
+            "aliases": {},
+            "servers": {},
+            "variables": {},
+            "secrets": {
+                "secret1": {
+                    "name": "secret1",
+                    "definition": "secret-value-1",
+                }
+            }
+        }
+
+        templates_var = Variable(
+            name="templates",
+            user_id="default-user",
+            definition=json.dumps(templates_config),
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/secrets/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should have a link to /variables/templates?type=secrets
+    assert "/variables/templates" in page
+    # Should show "1 template" for secrets
+    assert "1 template" in page
+
+
 def test_edit_secret_form_displays_existing_secret(
     client,
     integration_app,

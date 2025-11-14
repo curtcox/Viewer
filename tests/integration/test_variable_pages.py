@@ -201,6 +201,54 @@ def test_new_variable_form_includes_templates(
     assert "TEMPLATE_VAR" in page
 
 
+def test_new_variable_form_includes_template_link(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """New variable form should display a link to /variables/templates with status."""
+
+    with integration_app.app_context():
+        templates_config = {
+            "aliases": {},
+            "servers": {},
+            "variables": {
+                "VAR1": {
+                    "name": "VAR1",
+                    "definition": "value1",
+                },
+                "VAR2": {
+                    "name": "VAR2",
+                    "definition": "value2",
+                },
+                "VAR3": {
+                    "name": "VAR3",
+                    "definition": "value3",
+                }
+            },
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
+            user_id="default-user",
+            definition=json.dumps(templates_config),
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/variables/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should have a link to /variables/templates?type=variables
+    assert "/variables/templates" in page
+    # Should show "3 templates" for variables
+    assert "3 templates" in page
+
+
 def test_edit_variable_form_displays_existing_variable_details(
     client,
     integration_app,

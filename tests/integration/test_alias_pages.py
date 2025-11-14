@@ -220,3 +220,51 @@ def test_new_alias_form_includes_template_options(
     page = response.get_data(as_text=True)
     assert "data-alias-template-id" in page
     assert "template-source" in page
+
+
+def test_new_alias_form_includes_template_link(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """New alias form should display a link to /variables/templates with status."""
+
+    with integration_app.app_context():
+        # Create centralized templates variable with alias template
+        import json
+        from models import Variable
+
+        templates_config = {
+            "aliases": {
+                "template1": {
+                    "name": "template1",
+                    "definition": "test -> /test",
+                },
+                "template2": {
+                    "name": "template2",
+                    "definition": "test2 -> /test2",
+                }
+            },
+            "servers": {},
+            "variables": {},
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
+            user_id="default-user",
+            definition=json.dumps(templates_config),
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/aliases/new")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should have a link to /variables/templates?type=aliases
+    assert "/variables/templates" in page
+    # Should show "2 templates" for aliases
+    assert "2 templates" in page or "2 template" in page
