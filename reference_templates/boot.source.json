@@ -1,0 +1,27 @@
+{
+  "version": 6,
+  "generated_at": "2025-11-14T00:00:00.000000+00:00",
+  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "reference_templates/aliases/ai.txt",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "reference_templates/servers/definitions/ai_stub.py",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "GENERATED:templates.json",
+      "enabled": true
+    }
+  ]
+}

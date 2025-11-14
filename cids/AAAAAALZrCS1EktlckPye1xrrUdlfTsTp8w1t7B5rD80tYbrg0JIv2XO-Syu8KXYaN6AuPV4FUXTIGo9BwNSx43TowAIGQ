@@ -1,0 +1,27 @@
+{
+  "version": 6,
+  "generated_at": "2025-11-14T00:00:00.000000+00:00",
+  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "AAAAAAAXbGl0ZXJhbCAvYWkgLT4gL2FpX3N0dWI",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "AAAAABL9cuRlcPsce4iVbnW0pjCPKx_Ipc0s2-Wvzv_l1VZAK_Qijnw7ok_Fglw6vY9Ih-GZ4EI1VRqbMkzT0JVgeNF6YQ",
+      "enabled": true
+    }
+  ]
+}
