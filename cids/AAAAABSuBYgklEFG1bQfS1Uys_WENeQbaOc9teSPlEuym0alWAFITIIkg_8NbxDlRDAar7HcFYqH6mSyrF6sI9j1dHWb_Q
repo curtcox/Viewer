@@ -1,0 +1,251 @@
+/* Midnight neon dark mode preset for Viewer */
+
+:root {
+    --surface-base: #05070f;
+    --surface-panel: #11162a;
+    --surface-overlay: rgba(56, 189, 248, 0.18);
+    --text-strong: #f9fbff;
+    --text-muted: #d6dcff;
+    --primary: #818cf8;
+    --primary-strong: #6366f1;
+    --accent: #22d3ee;
+    --border: rgba(129, 140, 248, 0.42);
+    --shadow: rgba(2, 6, 23, 0.9);
+}
+
+body {
+    font-family: "Space Grotesk", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7;
+    margin: 0;
+    color: var(--text-strong);
+    background: radial-gradient(circle at top left, rgba(129, 140, 248, 0.32), transparent 45%),
+        radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.28), transparent 50%),
+        var(--surface-base);
+    color-scheme: dark;
+    min-height: 100vh;
+}
+
+a {
+    color: var(--accent);
+    text-decoration-color: rgba(34, 211, 238, 0.6);
+    text-decoration-thickness: 0.14em;
+    font-weight: 600;
+}
+
+a:hover,
+a:focus {
+    color: var(--primary);
+}
+
+.container,
+.container-sm,
+.container-md,
+.container-lg,
+.container-xl,
+.container-xxl {
+    max-width: 100% !important;
+}
+
+.navbar {
+    background: rgba(5, 7, 15, 0.85) !important;
+    border-bottom: 1px solid var(--border);
+    border-radius: 1.5rem;
+    padding: 0.85rem 1.6rem;
+    box-shadow: 0 1rem 2.5rem rgba(99, 102, 241, 0.3);
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent) !important;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 600;
+    padding: 0.55rem 1.1rem;
+    color: var(--text-muted) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    color: var(--accent) !important;
+}
+
+.card {
+    border-radius: 1.3rem;
+    border: 1px solid var(--border);
+    background: linear-gradient(160deg, rgba(17, 22, 42, 0.95), rgba(11, 15, 32, 0.94));
+    box-shadow: 0 1.8rem 3.6rem var(--shadow);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% -10%, rgba(34, 211, 238, 0.32), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-0.3rem) scale(1.01);
+    box-shadow: 0 2.2rem 3.8rem rgba(34, 211, 238, 0.32);
+}
+
+.card:hover::after {
+    opacity: 1;
+}
+
+.card-header {
+    background: rgba(99, 102, 241, 0.22);
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.card-body {
+    padding: 1.75rem;
+}
+
+.btn {
+    font-weight: 700;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    border: none;
+    padding: 0.8rem 1.9rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 40%, var(--primary-strong) 100%);
+    color: #05070f;
+    box-shadow: 0 1.6rem 3.2rem rgba(129, 140, 248, 0.42);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    transform: translateY(-3px);
+    box-shadow: 0 2rem 3.6rem rgba(99, 102, 241, 0.5);
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background: rgba(34, 211, 238, 0.15);
+}
+
+.badge {
+    background: rgba(34, 211, 238, 0.28);
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    padding: 0.4rem 0.8rem;
+    text-transform: uppercase;
+}
+
+.alert {
+    background: rgba(99, 102, 241, 0.28);
+    border: 1px solid rgba(129, 140, 248, 0.36);
+    border-radius: 1rem;
+    color: var(--text-strong);
+}
+
+.table {
+    border-radius: 1.1rem;
+    border: 1px solid var(--border);
+    background: rgba(15, 20, 39, 0.95);
+    color: var(--text-strong);
+}
+
+.table th {
+    background: rgba(99, 102, 241, 0.26);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+}
+
+.table td {
+    border-top: 1px solid rgba(129, 140, 248, 0.25);
+}
+
+code {
+    background: rgba(34, 211, 238, 0.24);
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.65rem;
+    font-size: 0.9rem;
+    color: var(--accent);
+}
+
+.status-indicator {
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 0.7rem rgba(34, 211, 238, 0.4);
+}
+
+.status-active {
+    background: #22d3ee;
+}
+
+.status-inactive {
+    background: #f97316;
+}
+
+.status-pending {
+    background: #facc15;
+}
+
+.loading-spinner {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    border: 0.16rem solid rgba(148, 163, 184, 0.25);
+    border-top-color: var(--accent);
+    animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        border-radius: 1rem;
+    }
+
+    .card-body {
+        padding: 1.3rem;
+    }
+}
+
+@media print {
+    body {
+        background: #121212;
+    }
+
+    .navbar,
+    .btn,
+    footer {
+        display: none !important;
+    }
+}
