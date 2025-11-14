@@ -1,8 +1,6 @@
 """Unit tests for generate_boot_image.py."""
 
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -115,7 +113,7 @@ class TestBootImageGenerator:
         assert generator.reference_templates_dir == temp_project / "reference_templates"
         assert generator.cids_dir == temp_project / "cids"
         assert generator.processed_files == set()
-        assert generator.file_to_cid == {}
+        assert not generator.file_to_cid
 
     def test_ensure_cids_directory(self, temp_project):
         """Test that cids directory is created if it doesn't exist."""
@@ -233,7 +231,7 @@ class TestBootImageGenerator:
         assert templates_json_path.exists()
 
         # Verify templates.json has correct structure
-        with open(templates_json_path, 'r') as f:
+        with open(templates_json_path, 'r', encoding='utf-8') as f:
             templates_data = json.load(f)
 
         assert "aliases" in templates_data
@@ -264,7 +262,7 @@ class TestBootImageGenerator:
         assert boot_json_path.exists()
 
         # Verify boot.json has correct structure
-        with open(boot_json_path, 'r') as f:
+        with open(boot_json_path, 'r', encoding='utf-8') as f:
             boot_data = json.load(f)
 
         assert "version" in boot_data
@@ -327,7 +325,7 @@ class TestBootImageGenerator:
 
         # Add a reference to a non-existent file in templates.source.json
         templates_source_file = temp_project / "reference_templates" / "templates.source.json"
-        with open(templates_source_file, 'r') as f:
+        with open(templates_source_file, 'r', encoding='utf-8') as f:
             templates_data = json.load(f)
 
         templates_data["servers"]["missing"] = {
@@ -335,7 +333,7 @@ class TestBootImageGenerator:
             "definition_cid": "reference_templates/servers/definitions/missing.py"
         }
 
-        with open(templates_source_file, 'w') as f:
+        with open(templates_source_file, 'w', encoding='utf-8') as f:
             json.dump(templates_data, f, indent=2)
 
         # Should complete without error (with warning)

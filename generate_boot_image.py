@@ -11,9 +11,8 @@ This script:
 """
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, Set
 
 from cid_core import generate_cid
 
@@ -132,10 +131,9 @@ class BootImageGenerator:
                 else:
                     result[key] = self.replace_filenames_with_cids(value)
             return result
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return [self.replace_filenames_with_cids(item) for item in data]
-        else:
-            return data
+        return data
 
     def generate_templates_json(self) -> str:
         """Generate templates.json from templates.source.json.
@@ -148,7 +146,7 @@ class BootImageGenerator:
 
         # Read templates.source.json
         source_path = self.reference_templates_dir / "templates.source.json"
-        with open(source_path, 'r') as f:
+        with open(source_path, 'r', encoding='utf-8') as f:
             source_data = json.load(f)
 
         # Process all referenced files
@@ -161,7 +159,7 @@ class BootImageGenerator:
 
         # Write templates.json
         target_path = self.reference_templates_dir / "templates.json"
-        with open(target_path, 'w') as f:
+        with open(target_path, 'w', encoding='utf-8') as f:
             json.dump(templates_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
 
@@ -191,7 +189,7 @@ class BootImageGenerator:
 
         # Read boot.source.json
         source_path = self.reference_templates_dir / "boot.source.json"
-        with open(source_path, 'r') as f:
+        with open(source_path, 'r', encoding='utf-8') as f:
             source_data = json.load(f)
 
         # Process all referenced files (that weren't already processed)
@@ -211,7 +209,7 @@ class BootImageGenerator:
 
         # Write boot.json
         target_path = self.reference_templates_dir / "boot.json"
-        with open(target_path, 'w') as f:
+        with open(target_path, 'w', encoding='utf-8') as f:
             json.dump(boot_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
 
@@ -252,7 +250,7 @@ class BootImageGenerator:
         print(f"Templates CID: {templates_cid}")
         print(f"Boot CID:      {boot_cid}")
         print(f"\nTotal files processed: {len(self.processed_files)}")
-        print(f"\nTo boot with this image, run:")
+        print("\nTo boot with this image, run:")
         print(f"  python main.py --boot-cid {boot_cid}")
 
         return {

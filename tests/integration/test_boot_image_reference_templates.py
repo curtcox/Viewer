@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from io import StringIO
 from pathlib import Path
@@ -11,7 +10,6 @@ import pytest
 
 import main
 from app import create_app, db
-from cid_utils import generate_cid
 from db_access import create_cid_record
 from generate_boot_image import BootImageGenerator
 from identity import ensure_default_user
