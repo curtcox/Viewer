@@ -209,7 +209,7 @@ class TestTemplateManager(unittest.TestCase):
         incomplete = {
             'aliases': {},
             'servers': {}
-            # Missing 'variables' and 'secrets'
+            # Missing 'variables', 'secrets', and 'uploads'
         }
         is_valid, error = validate_templates_json(json.dumps(incomplete))
 
@@ -222,7 +222,8 @@ class TestTemplateManager(unittest.TestCase):
             'aliases': [],  # Should be dict
             'servers': {},
             'variables': {},
-            'secrets': {}
+            'secrets': {},
+            'uploads': {}
         }
         is_valid, error = validate_templates_json(json.dumps(invalid))
 
@@ -239,7 +240,8 @@ class TestTemplateManager(unittest.TestCase):
             },
             'servers': {},
             'variables': {},
-            'secrets': {}
+            'secrets': {},
+            'uploads': {}
         }
         is_valid, error = validate_templates_json(json.dumps(invalid))
 
@@ -268,11 +270,12 @@ class TestTemplateManager(unittest.TestCase):
         status = get_template_status(self.user_id)
 
         self.assertTrue(status['is_valid'])
-        self.assertEqual(status['count_total'], 2)
+        self.assertEqual(status['count_total'], 3)
         self.assertEqual(status['count_by_type']['aliases'], 1)
         self.assertEqual(status['count_by_type']['servers'], 1)
         self.assertEqual(status['count_by_type']['variables'], 0)
         self.assertEqual(status['count_by_type']['secrets'], 0)
+        self.assertEqual(status['count_by_type']['uploads'], 1)
 
     def test_get_templates_for_type_aliases(self):
         """Test getting templates for aliases type."""
