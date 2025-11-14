@@ -200,6 +200,25 @@ class TestCliIntegration(unittest.TestCase):
         # and not complain about unknown argument
         self.assertNotIn('unrecognized arguments', result.stderr)
 
+    def test_default_boot_cid_not_loaded_with_url(self):
+        """Test that default boot CID is NOT loaded when making HTTP requests."""
+        result = subprocess.run(
+            [sys.executable, 'main.py', '/'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should not mention loading default boot CID
+        self.assertNotIn('Using default boot CID', result.stdout)
+        self.assertNotIn('Using default boot CID', result.stderr)
+
+        # Should make HTTP request successfully
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('Status:', result.stdout)
+
 
 class TestCliArgumentParsing(unittest.TestCase):
     """Tests for CLI argument parsing logic."""
