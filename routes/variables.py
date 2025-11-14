@@ -19,6 +19,7 @@ from identity import current_user
 from interaction_log import load_interaction_history
 from models import Variable
 from serialization import model_to_dict
+from template_status import get_template_link_info
 
 from . import main_bp
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
@@ -350,6 +351,8 @@ def new_variable():
     entity_name_hint = (form.name.data or '').strip()
     interaction_history = load_interaction_history(current_user.id, 'variable', entity_name_hint)
 
+    template_link_info = get_template_link_info(current_user.id, 'variables')
+
     return render_template(
         'variable_form.html',
         form=form,
@@ -360,6 +363,7 @@ def new_variable():
         ai_entity_name_field=form.name.id,
         matching_route=None,
         variable_templates=variable_templates,
+        template_link_info=template_link_info,
     )
 
 

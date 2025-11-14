@@ -145,6 +145,17 @@
                         </div>
                         {% endif %}
 
+                        {% if template_link_info %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-cog text-muted"></i>
+                                <a href="{{ template_link_info.url }}" class="{{ template_link_info.css_class }}">
+                                    {{ template_link_info.label }}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div class="col-12">
                             {{ form.definition.label(class="form-label") }}
                             <div class="position-relative">
