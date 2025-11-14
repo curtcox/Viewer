@@ -127,3 +127,108 @@ def test_edit_cid_choices_page_prompts_for_selection(
     assert "Multiple Matches Found" in page
     assert f"href=\"/{first_cid}" in page
     assert f"href=\"/{second_cid}" in page
+
+
+def test_upload_page_displays_templates_when_configured(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Upload page should display template buttons when upload templates are defined."""
+    import json
+    from models import Variable
+
+    templates_config = {
+        'aliases': {},
+        'servers': {},
+        'variables': {},
+        'secrets': {},
+        'uploads': {
+            'hello_world': {
+                'name': 'Hello World',
+                'content': 'Hello, World!\n'
+            },
+            'json_example': {
+                'name': 'JSON Example',
+                'content': '{\n  "key": "value"\n}'
+            }
+        }
+    }
+
+    with integration_app.app_context():
+        templates_var = Variable(
+            name='templates',
+            definition=json.dumps(templates_config),
+            user_id='default-user'
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/upload")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Start from a Template" in page
+    assert "Hello World" in page
+    assert "JSON Example" in page
+    assert 'data-upload-template-id="hello_world"' in page
+    assert 'data-upload-template-id="json_example"' in page
+
+
+def test_upload_page_shows_template_status_link(
+    client,
+    integration_app,
+    login_default_user,
+):
+    """Upload page should show a link to the templates configuration page."""
+    import json
+    from models import Variable
+
+    templates_config = {
+        'aliases': {},
+        'servers': {},
+        'variables': {},
+        'secrets': {},
+        'uploads': {
+            'test_template': {
+                'name': 'Test Template',
+                'content': 'Test content'
+            }
+        }
+    }
+
+    with integration_app.app_context():
+        templates_var = Variable(
+            name='templates',
+            definition=json.dumps(templates_config),
+            user_id='default-user'
+        )
+        db.session.add(templates_var)
+        db.session.commit()
+
+    login_default_user()
+
+    response = client.get("/upload")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "/variables/templates?type=uploads" in page
+    assert "1 template" in page or "templates" in page
+
+
+def test_upload_page_no_templates_shown_when_none_configured(
+    client,
+    login_default_user,
+):
+    """Upload page should not show template section when no templates are configured."""
+
+    login_default_user()
+
+    response = client.get("/upload")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should not show the template selection UI
+    assert "Start from a Template" not in page or 'data-upload-template-id' not in page

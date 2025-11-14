@@ -14,6 +14,7 @@ from template_manager import (
     ENTITY_TYPE_ALIASES,
     ENTITY_TYPE_SERVERS,
     ENTITY_TYPE_VARIABLES,
+    ENTITY_TYPE_UPLOADS,
     get_templates_config,
     validate_templates_json,
     get_template_status,
@@ -60,7 +61,15 @@ class TestTemplateManager(unittest.TestCase):
                 }
             },
             'variables': {},
-            'secrets': {}
+            'secrets': {},
+            'uploads': {
+                'template3': {
+                    'name': 'Template Upload 1',
+                    'description': 'Test upload template',
+                    'content': 'Sample upload content',
+                    'metadata': {}
+                }
+            }
         }
 
     def tearDown(self):
@@ -200,7 +209,7 @@ class TestTemplateManager(unittest.TestCase):
         incomplete = {
             'aliases': {},
             'servers': {}
-            # Missing 'variables' and 'secrets'
+            # Missing 'variables', 'secrets', and 'uploads'
         }
         is_valid, error = validate_templates_json(json.dumps(incomplete))
 
@@ -213,7 +222,8 @@ class TestTemplateManager(unittest.TestCase):
             'aliases': [],  # Should be dict
             'servers': {},
             'variables': {},
-            'secrets': {}
+            'secrets': {},
+            'uploads': {}
         }
         is_valid, error = validate_templates_json(json.dumps(invalid))
 
@@ -230,7 +240,8 @@ class TestTemplateManager(unittest.TestCase):
             },
             'servers': {},
             'variables': {},
-            'secrets': {}
+            'secrets': {},
+            'uploads': {}
         }
         is_valid, error = validate_templates_json(json.dumps(invalid))
 
@@ -259,11 +270,12 @@ class TestTemplateManager(unittest.TestCase):
         status = get_template_status(self.user_id)
 
         self.assertTrue(status['is_valid'])
-        self.assertEqual(status['count_total'], 2)
+        self.assertEqual(status['count_total'], 3)
         self.assertEqual(status['count_by_type']['aliases'], 1)
         self.assertEqual(status['count_by_type']['servers'], 1)
         self.assertEqual(status['count_by_type']['variables'], 0)
         self.assertEqual(status['count_by_type']['secrets'], 0)
+        self.assertEqual(status['count_by_type']['uploads'], 1)
 
     def test_get_templates_for_type_aliases(self):
         """Test getting templates for aliases type."""
@@ -398,6 +410,39 @@ class TestTemplateManager(unittest.TestCase):
         result = resolve_cid_value('/SLASHCID')
 
         self.assertEqual(result, 'content with slash')
+
+    def test_get_templates_for_type_uploads(self):
+        """Test getting templates for uploads type."""
+        var = Variable(
+            name='templates',
+            definition=json.dumps(self.valid_templates),
+            user_id=self.user_id
+        )
+        db.session.add(var)
+        db.session.commit()
+
+        templates = get_templates_for_type(self.user_id, ENTITY_TYPE_UPLOADS)
+
+        self.assertEqual(len(templates), 1)
+        self.assertEqual(templates[0]['key'], 'template3')
+        self.assertEqual(templates[0]['name'], 'Template Upload 1')
+        self.assertEqual(templates[0]['content'], 'Sample upload content')
+
+    def test_get_template_status_includes_uploads(self):
+        """Test status includes uploads count."""
+        var = Variable(
+            name='templates',
+            definition=json.dumps(self.valid_templates),
+            user_id=self.user_id
+        )
+        db.session.add(var)
+        db.session.commit()
+
+        status = get_template_status(self.user_id)
+
+        self.assertTrue(status['is_valid'])
+        self.assertEqual(status['count_total'], 3)
+        self.assertEqual(status['count_by_type']['uploads'], 1)
 
 
 if __name__ == '__main__':

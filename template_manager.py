@@ -19,12 +19,14 @@ ENTITY_TYPE_ALIASES = 'aliases'
 ENTITY_TYPE_SERVERS = 'servers'
 ENTITY_TYPE_VARIABLES = 'variables'
 ENTITY_TYPE_SECRETS = 'secrets'
+ENTITY_TYPE_UPLOADS = 'uploads'
 
 VALID_ENTITY_TYPES = {
     ENTITY_TYPE_ALIASES,
     ENTITY_TYPE_SERVERS,
     ENTITY_TYPE_VARIABLES,
     ENTITY_TYPE_SECRETS,
+    ENTITY_TYPE_UPLOADS,
 }
 
 
@@ -150,6 +152,7 @@ def get_template_status(user_id: str) -> Dict[str, Any]:
                 ENTITY_TYPE_SERVERS: 0,
                 ENTITY_TYPE_VARIABLES: 0,
                 ENTITY_TYPE_SECRETS: 0,
+                ENTITY_TYPE_UPLOADS: 0,
             },
         }
 
