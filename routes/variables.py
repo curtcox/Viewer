@@ -328,7 +328,7 @@ def new_variable():
 
     variable_templates = [
         {
-            'id': variable.id,
+            'id': getattr(variable, 'template_key', None) or variable.id,
             'name': variable.name,
             'definition': variable.definition or '',
             'suggested_name': f"{variable.name}-copy" if variable.name else '',

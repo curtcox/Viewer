@@ -40,7 +40,7 @@ def get_user_aliases(user_id: str) -> List[Alias]:
 
 def get_user_template_aliases(user_id: str) -> List[Alias]:
     """Return template aliases from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES
+    from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES, resolve_cid_value
 
     templates = get_templates_for_type(user_id, ENTITY_TYPE_ALIASES)
 
@@ -49,10 +49,21 @@ def get_user_template_aliases(user_id: str) -> List[Alias]:
     for template in templates:
         # Create a minimal Alias object from template data
         alias = Alias()
-        alias.id = None  # Templates don't have IDs
+        # Templates are not persisted DB rows, so id remains None
+        alias.id = None
+        # Store the template key in a separate attribute for UI use
+        alias.template_key = template.get('key', '')
         alias.name = template.get('name', template.get('key', ''))
         alias.user_id = user_id
-        alias.definition = None
+
+        # Try to get definition from various possible fields
+        definition = template.get('definition')
+        if not definition and template.get('definition_cid'):
+            definition = resolve_cid_value(template.get('definition_cid'))
+        if not definition and template.get('target_path_cid'):
+            definition = resolve_cid_value(template.get('target_path_cid'))
+
+        alias.definition = definition or ''
         alias.enabled = True
         alias.template = True  # Mark as template for backwards compatibility
         alias_objects.append(alias)

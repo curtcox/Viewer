@@ -16,7 +16,7 @@ def get_user_variables(user_id: str) -> List[Variable]:
 
 def get_user_template_variables(user_id: str) -> List[Variable]:
     """Return template variables from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_VARIABLES
+    from template_manager import get_templates_for_type, ENTITY_TYPE_VARIABLES, resolve_cid_value
 
     templates = get_templates_for_type(user_id, ENTITY_TYPE_VARIABLES)
 
@@ -25,10 +25,19 @@ def get_user_template_variables(user_id: str) -> List[Variable]:
     for template in templates:
         # Create a minimal Variable object from template data
         variable = Variable()
-        variable.id = None  # Templates don't have IDs
+        # Templates are not persisted DB rows, so id remains None
+        variable.id = None
+        # Store the template key in a separate attribute for UI use
+        variable.template_key = template.get('key', '')
         variable.name = template.get('name', template.get('key', ''))
         variable.user_id = user_id
-        variable.definition = ''
+
+        # Try to get definition from various possible fields
+        definition = template.get('definition')
+        if not definition and template.get('definition_cid'):
+            definition = resolve_cid_value(template.get('definition_cid'))
+
+        variable.definition = definition or ''
         variable.enabled = True
         variable.template = True  # Mark as template for backwards compatibility
         variable_objects.append(variable)

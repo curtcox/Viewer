@@ -230,12 +230,27 @@ def test_new_server_form_includes_saved_templates(
     """User-marked server templates should appear as reusable buttons."""
 
     with integration_app.app_context():
-        server = Server(
-            name="templated-server",
-            definition="def main():\n    return {'output': 'ok'}\n",
+        # Create centralized templates variable with server template
+        import json
+
+        templates_config = {
+            "aliases": {},
+            "servers": {
+                "templated-server": {
+                    "name": "templated-server",
+                    "definition": "def main():\n    return {'output': 'ok'}\n",
+                }
+            },
+            "variables": {},
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
             user_id="default-user",
+            definition=json.dumps(templates_config),
         )
-        db.session.add(server)
+        db.session.add(templates_var)
         db.session.commit()
 
     login_default_user()
@@ -246,7 +261,6 @@ def test_new_server_form_includes_saved_templates(
     page = response.get_data(as_text=True)
     assert "data-server-template-id" in page
     assert "templated-server" in page
-    assert "name=\"template\"" in page
 
 
 def test_server_detail_page_displays_server_information(

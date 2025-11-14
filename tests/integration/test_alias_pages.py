@@ -183,17 +183,33 @@ def test_new_alias_form_includes_template_options(
     """Template aliases should surface as reusable buttons on the new form."""
 
     with integration_app.app_context():
-        alias = Alias(
-            name="template-source",
+        # Create centralized templates variable with alias template
+        import json
+        from models import Variable
+
+        templates_config = {
+            "aliases": {
+                "template-source": {
+                    "name": "template-source",
+                    "definition": format_primary_alias_line(
+                        'literal',
+                        '/template-source',
+                        '/target',
+                        alias_name='template-source',
+                    ),
+                }
+            },
+            "servers": {},
+            "variables": {},
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
             user_id="default-user",
-            definition=format_primary_alias_line(
-                'literal',
-                '/template-source',
-                '/target',
-                alias_name='template-source',
-            ),
+            definition=json.dumps(templates_config),
         )
-        db.session.add(alias)
+        db.session.add(templates_var)
         db.session.commit()
 
     login_default_user()
@@ -204,4 +220,3 @@ def test_new_alias_form_includes_template_options(
     page = response.get_data(as_text=True)
     assert "data-alias-template-id" in page
     assert "template-source" in page
-    assert "name=\"template\"" in page

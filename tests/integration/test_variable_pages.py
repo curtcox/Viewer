@@ -170,12 +170,25 @@ def test_new_variable_form_includes_templates(
     """Variables marked as templates should appear on the creation form."""
 
     with integration_app.app_context():
-        variable = Variable(
-            name="TEMPLATE_VAR",
-            definition="sample-value",
+        # Create centralized templates variable with variable template
+        templates_config = {
+            "aliases": {},
+            "servers": {},
+            "variables": {
+                "TEMPLATE_VAR": {
+                    "name": "TEMPLATE_VAR",
+                    "definition": "sample-value",
+                }
+            },
+            "secrets": {}
+        }
+
+        templates_var = Variable(
+            name="templates",
             user_id="default-user",
+            definition=json.dumps(templates_config),
         )
-        db.session.add(variable)
+        db.session.add(templates_var)
         db.session.commit()
 
     login_default_user()
@@ -186,7 +199,6 @@ def test_new_variable_form_includes_templates(
     page = response.get_data(as_text=True)
     assert "data-variable-template-id" in page
     assert "TEMPLATE_VAR" in page
-    assert "name=\"template\"" in page
 
 
 def test_edit_variable_form_displays_existing_variable_details(
