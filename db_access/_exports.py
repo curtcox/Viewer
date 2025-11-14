@@ -34,6 +34,9 @@ from .cids import (
     get_user_uploads,
     update_cid_references,
 )
+from .uploads import (
+    get_user_template_uploads,
+)
 from .exports import (
     get_user_exports,
     record_export,
@@ -135,6 +138,7 @@ EXPORTS: Dict[str, Any] = {
     "find_cids_by_prefix": find_cids_by_prefix,
     "create_cid_record": create_cid_record,
     "get_user_uploads": get_user_uploads,
+    "get_user_template_uploads": get_user_template_uploads,
     "get_cids_by_paths": get_cids_by_paths,
     "get_recent_cids": get_recent_cids,
     "get_first_cid": get_first_cid,

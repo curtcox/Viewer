@@ -65,6 +65,7 @@ if TYPE_CHECKING:  # pragma: no cover
         get_user_template_aliases,
         get_user_template_secrets,
         get_user_template_servers,
+        get_user_template_uploads,
         get_user_template_variables,
         get_user_uploads,
         get_user_variables,

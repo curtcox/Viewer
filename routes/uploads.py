@@ -32,6 +32,7 @@ from db_access import (
     get_alias_by_target_path,
     get_cid_by_path,
     get_user_server_invocations,
+    get_user_template_uploads,
     get_user_uploads,
     get_user_variables,
     get_variable_by_name,
@@ -45,6 +46,7 @@ from forms import EditCidForm, FileUploadForm
 from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias, Variable
+from template_status import get_template_link_info
 
 from . import main_bp
 from .cid_helper import CidHelper
@@ -341,10 +343,14 @@ def upload():
 
     def _render_form():
         interactions = load_interaction_history(current_user.id, EntityType.UPLOAD.value, UploadType.TEXT.value)
+        upload_templates = get_user_template_uploads(current_user.id)
+        template_link_info = get_template_link_info(current_user.id, 'uploads')
         return render_template(
             'upload.html',
             form=form,
             upload_interactions=interactions,
+            upload_templates=upload_templates,
+            template_link_info=template_link_info,
         )
 
     if form.validate_on_submit():
