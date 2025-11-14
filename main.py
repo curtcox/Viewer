@@ -239,8 +239,9 @@ if __name__ == "__main__":
             sys.exit(1)
         cid = args.boot_cid
 
-    # Use default boot CID if no CID was specified
-    if cid is None:
+    # Use default boot CID if no CID was specified and no URL (i.e., starting server)
+    # Don't load default CID if just making an HTTP request
+    if cid is None and url is None:
         default_cid = get_default_boot_cid()
         if default_cid:
             print(f"Using default boot CID from reference_templates/boot.cid: {default_cid}")
