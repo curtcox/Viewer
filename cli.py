@@ -266,6 +266,7 @@ OPTIONS:
     --list              List all valid boot CIDs and exit
     --show              Launch the app and open it in the default web browser
     --boot-cid CID      Import a boot CID on startup (legacy, use positional CID instead)
+    --port PORT         Port to run the server on (default: 5001)
 
 ARGUMENTS:
     URL                 A URL to make a GET request to (must start with http://, https://, or /)
