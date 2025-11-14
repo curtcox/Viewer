@@ -222,8 +222,8 @@ class TestCliIntegration(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn('Status:', result.stdout)
 
-    def test_url_with_cid_exits_without_server(self):
-        """Test that providing both URL and CID exits without starting server.
+    def test_url_with_valid_cid_exits_without_server(self):
+        """Test that providing both URL and valid CID exits without starting server.
 
         NOTE: Currently there's a known issue where boot CID import from CLI
         fails due to CSRF token requiring request context. This test verifies
@@ -248,40 +248,48 @@ class TestCliIntegration(unittest.TestCase):
                 valid_cid = line[5:].strip()
                 break
 
-        # If we have a valid CID, test URL + CID combination
-        if valid_cid:
-            result = subprocess.run(
-                [sys.executable, 'main.py', '/', valid_cid],
-                cwd=Path(__file__).parent.parent.parent,
-                capture_output=True,
-                text=True,
-                timeout=5,  # Should exit quickly, not hang like a server
-                check=False,
-            )
+        # Skip test if no valid CID available
+        if not valid_cid:
+            self.skipTest("No valid boot CID available in database")
 
-            # The important thing is it completes within timeout (not start server)
-            # Due to known bug with CSRF, it currently errors during CID import
-            # but still exits quickly without starting the server
-            self.assertNotIn('Running on', result.stdout)
-            self.assertNotIn('Running on', result.stderr)
+        result = subprocess.run(
+            [sys.executable, 'main.py', '/', valid_cid],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,  # Should exit quickly, not hang like a server
+            check=False,
+        )
 
-            # Should exit (with any code), not hang
-            self.assertIsNotNone(result.returncode)
-        else:
-            # If no boot CID available, test with invalid CID to verify argument parsing
-            result = subprocess.run(
-                [sys.executable, 'main.py', '/', 'AAAAAAAA'],
-                cwd=Path(__file__).parent.parent.parent,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
+        # The important thing is it completes within timeout (not start server)
+        # Due to known bug with CSRF, it currently errors during CID import
+        # but still exits quickly without starting the server
+        self.assertNotIn('Running on', result.stdout)
+        self.assertNotIn('Running on', result.stderr)
 
-            # Should fail on invalid CID before attempting to start server
-            self.assertNotEqual(result.returncode, 0)
-            # Should show CID-related error
-            self.assertTrue('CID' in result.stderr or 'cid' in result.stderr.lower())
+        # Should exit (with any code), not hang
+        self.assertIsNotNone(result.returncode)
+
+    def test_url_with_invalid_cid_exits_without_server(self):
+        """Test that providing both URL and invalid CID exits without starting server."""
+        result = subprocess.run(
+            [sys.executable, 'main.py', '/', 'AAAAAAAA'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should fail on invalid CID before attempting to start server
+        self.assertNotEqual(result.returncode, 0)
+
+        # Should show CID-related error
+        self.assertTrue('CID' in result.stderr or 'cid' in result.stderr.lower())
+
+        # Should NOT show server startup messages
+        self.assertNotIn('Running on', result.stdout)
+        self.assertNotIn('Running on', result.stderr)
 
 
 class TestCliArgumentParsing(unittest.TestCase):
@@ -433,8 +441,8 @@ class TestNonServerRunOptions(unittest.TestCase):
         self.assertNotIn('Running on', result.stdout)
         self.assertNotIn('Running on', result.stderr)
 
-    def test_list_exits_without_server(self):
-        """Test --list exits immediately without starting server."""
+    def test_list_with_cids_found_exits_without_server(self):
+        """Test --list exits immediately without starting server when boot CIDs exist."""
         result = subprocess.run(
             [sys.executable, 'main.py', '--list'],
             cwd=Path(__file__).parent.parent.parent,
@@ -447,10 +455,43 @@ class TestNonServerRunOptions(unittest.TestCase):
         # Should exit successfully
         self.assertEqual(result.returncode, 0)
 
-        # Should show boot CID information or message about none found
-        self.assertTrue(
-            'Found' in result.stdout or 'No valid boot CIDs' in result.stdout
+        # Should show boot CID information (assuming test database has CIDs)
+        # If no CIDs found, skip this test
+        if 'No valid boot CIDs' in result.stdout:
+            self.skipTest("No boot CIDs in database - cannot test 'found' case")
+
+        self.assertIn('Found', result.stdout)
+        self.assertIn('CID:', result.stdout)
+
+        # Should NOT show server startup messages
+        self.assertNotIn('Running on', result.stdout)
+        self.assertNotIn('Running on', result.stderr)
+
+    def test_list_without_cids_exits_without_server(self):
+        """Test --list exits immediately without starting server when no boot CIDs exist.
+
+        NOTE: This test validates the command structure but may skip if boot CIDs
+        are present in the database. Testing the true "not found" case would require
+        database manipulation which is beyond the scope of CLI integration tests.
+        """
+        result = subprocess.run(
+            [sys.executable, 'main.py', '--list'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
+
+        # Should exit successfully
+        self.assertEqual(result.returncode, 0)
+
+        # If boot CIDs are found, skip this test (can't test "not found" without DB manipulation)
+        if 'Found' in result.stdout:
+            self.skipTest("Boot CIDs present in database - cannot test 'not found' case")
+
+        # Should show "no boot CIDs" message
+        self.assertIn('No valid boot CIDs', result.stdout)
 
         # Should NOT show server startup messages
         self.assertNotIn('Running on', result.stdout)
@@ -518,44 +559,117 @@ class TestNonServerRunOptions(unittest.TestCase):
         self.assertNotIn('Running on', result.stdout)
         self.assertNotIn('Running on', result.stderr)
 
-    def test_all_non_server_options_complete_quickly(self):
-        """Test that all non-server options complete within reasonable time.
-
-        This is a meta-test that verifies none of the non-server options
-        are hanging or attempting to start the Flask server.
-        """
+    def test_help_completes_quickly(self):
+        """Test that --help completes within reasonable time without hanging."""
         import time
 
-        non_server_commands = [
-            ['--help'],
-            ['-h'],
-            ['--list'],
-            ['/'],
-        ]
+        start_time = time.time()
 
-        for cmd in non_server_commands:
-            start_time = time.time()
+        result = subprocess.run(
+            [sys.executable, 'main.py', '--help'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
 
-            result = subprocess.run(
-                [sys.executable, 'main.py'] + cmd,
-                cwd=Path(__file__).parent.parent.parent,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
+        elapsed = time.time() - start_time
 
-            elapsed = time.time() - start_time
+        # Should complete in < 3 seconds
+        self.assertLess(
+            elapsed,
+            3.0,
+            f"--help took {elapsed:.2f}s (should be < 3s)"
+        )
 
-            # All non-server options should complete in < 3 seconds
-            self.assertLess(
-                elapsed,
-                3.0,
-                f"Command {cmd} took {elapsed:.2f}s (should be < 3s)"
-            )
+        # Should exit (not hang)
+        self.assertIsNotNone(result.returncode)
+        self.assertEqual(result.returncode, 0)
 
-            # Should exit (not hang)
-            self.assertIsNotNone(result.returncode)
+    def test_help_short_completes_quickly(self):
+        """Test that -h completes within reasonable time without hanging."""
+        import time
+
+        start_time = time.time()
+
+        result = subprocess.run(
+            [sys.executable, 'main.py', '-h'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        elapsed = time.time() - start_time
+
+        # Should complete in < 3 seconds
+        self.assertLess(
+            elapsed,
+            3.0,
+            f"-h took {elapsed:.2f}s (should be < 3s)"
+        )
+
+        # Should exit (not hang)
+        self.assertIsNotNone(result.returncode)
+        self.assertEqual(result.returncode, 0)
+
+    def test_list_completes_quickly(self):
+        """Test that --list completes within reasonable time without hanging."""
+        import time
+
+        start_time = time.time()
+
+        result = subprocess.run(
+            [sys.executable, 'main.py', '--list'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        elapsed = time.time() - start_time
+
+        # Should complete in < 3 seconds
+        self.assertLess(
+            elapsed,
+            3.0,
+            f"--list took {elapsed:.2f}s (should be < 3s)"
+        )
+
+        # Should exit (not hang)
+        self.assertIsNotNone(result.returncode)
+        self.assertEqual(result.returncode, 0)
+
+    def test_url_completes_quickly(self):
+        """Test that URL argument completes within reasonable time without hanging."""
+        import time
+
+        start_time = time.time()
+
+        result = subprocess.run(
+            [sys.executable, 'main.py', '/'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        elapsed = time.time() - start_time
+
+        # Should complete in < 3 seconds
+        self.assertLess(
+            elapsed,
+            3.0,
+            f"URL / took {elapsed:.2f}s (should be < 3s)"
+        )
+
+        # Should exit (not hang)
+        self.assertIsNotNone(result.returncode)
+        self.assertEqual(result.returncode, 0)
 
 
 if __name__ == '__main__':
