@@ -223,6 +223,12 @@ class BootImageGenerator:
             f.write(boot_json_content)
         print(f"Stored boot.json -> {boot_cid}")
 
+        # Save boot CID to boot.cid file
+        boot_cid_file = self.reference_templates_dir / "boot.cid"
+        with open(boot_cid_file, 'w', encoding='utf-8') as f:
+            f.write(boot_cid)
+        print(f"Saved boot CID to: {boot_cid_file}")
+
         return boot_cid
 
     def generate(self) -> Dict[str, str]:
