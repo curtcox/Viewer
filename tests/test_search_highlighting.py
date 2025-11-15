@@ -192,22 +192,18 @@ class TestSearchHighlighting(BaseTestCase):
         alias = Alias(
             name='query-alias',
             definition='literal /servers/test-server',
-            user_id=self.test_user_id,
         )
         server = Server(
             name='query-server',
             definition='def main(): return "query"',
-            user_id=self.test_user_id,
         )
         variable = Variable(
             name='query-var',
             definition='query value',
-            user_id=self.test_user_id,
         )
         secret = Secret(
             name='query-secret',
             definition='query token',
-            user_id=self.test_user_id,
         )
         cid_record = CID(
             path='/query-cid',
