@@ -29,7 +29,6 @@ def test_boot_cid_import():
 
     with app.app_context():
         db.create_all()
-        user_id = 'test-user'
 
         print("\n1. Testing CID reference extraction...")
         test_payload = {
@@ -49,7 +48,7 @@ def test_boot_cid_import():
         aliases_data = [{'name': 'test-alias', 'target': '/test'}]
         aliases_content = json.dumps(aliases_data).encode('utf-8')
         aliases_cid = generate_cid(aliases_content)
-        create_cid_record(aliases_cid, aliases_content, user_id)
+        create_cid_record(aliases_cid, aliases_content)
 
         # Create boot CID that references a missing CID
         missing_cid = generate_cid(b"missing")
@@ -60,7 +59,7 @@ def test_boot_cid_import():
         }
         boot_content = json.dumps(boot_payload).encode('utf-8')
         boot_cid = generate_cid(boot_content)
-        create_cid_record(boot_cid, boot_content, user_id)
+        create_cid_record(boot_cid, boot_content)
 
         success, error = verify_boot_cid_dependencies(boot_cid)
         assert not success, "Should fail when CID is missing"
@@ -72,7 +71,7 @@ def test_boot_cid_import():
         servers_data = [{'name': 'test-server', 'definition': 'echo test'}]
         servers_content = json.dumps(servers_data).encode('utf-8')
         servers_cid = generate_cid(servers_content)
-        create_cid_record(servers_cid, servers_content, user_id)
+        create_cid_record(servers_cid, servers_content)
 
         # Create complete boot CID with all dependencies
         complete_payload = {
@@ -82,31 +81,31 @@ def test_boot_cid_import():
         }
         complete_content = json.dumps(complete_payload).encode('utf-8')
         complete_boot_cid = generate_cid(complete_content)
-        create_cid_record(complete_boot_cid, complete_content, user_id)
+        create_cid_record(complete_boot_cid, complete_content)
 
-        success, error = import_boot_cid(app, complete_boot_cid, user_id)
+        success, error = import_boot_cid(app, complete_boot_cid)
         assert success, f"Import should succeed: {error}"
         print("   ✓ Successfully imported boot CID")
 
         # Verify imports
-        alias = Alias.query.filter_by(name='test-alias', user_id=user_id).first()
+        alias = Alias.query.filter_by(name='test-alias').first()
         assert alias is not None, "Alias should be imported"
         print(f"   ✓ Alias '{alias.name}' imported")
 
-        server = Server.query.filter_by(name='test-server', user_id=user_id).first()
+        server = Server.query.filter_by(name='test-server').first()
         assert server is not None, "Server should be imported"
         print(f"   ✓ Server '{server.name}' imported")
 
         print("\n4. Testing error messages...")
         # Test invalid CID
-        success, error = import_boot_cid(app, "invalid-cid", user_id)
+        success, error = import_boot_cid(app, "invalid-cid")
         assert not success, "Should fail with invalid CID"
         assert "Invalid CID format" in error, "Should mention invalid format"
         print("   ✓ Invalid CID error message is helpful")
 
         # Test missing CID
         nonexistent_cid = generate_cid(b"nonexistent")
-        success, error = import_boot_cid(app, nonexistent_cid, user_id)
+        success, error = import_boot_cid(app, nonexistent_cid)
         assert not success, "Should fail with missing CID"
         assert "not found in database" in error, "Should mention CID not found"
         assert "cids directory" in error, "Should mention cids directory"

@@ -17,13 +17,13 @@ from cid_presenter import cid_path, format_cid
 # CID STORAGE HELPERS
 # ============================================================================
 
-def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[str]) -> None:
+def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[str] = None) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
     Args:
         cid_value: CID string
         content_bytes: Content to store
-        user_id: User ID for ownership (optional)
+        user_id: User ID for ownership (optional, deprecated - no longer used)
     """
     cid_record_path = cid_path(cid_value)
     try:
@@ -35,7 +35,7 @@ def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[st
         return
 
     try:
-        db_access.create_cid_record(cid_value, content_bytes, user_id)
+        db_access.create_cid_record(cid_value, content_bytes)
     except RuntimeError:
         return
 
@@ -55,32 +55,32 @@ def get_cid_content(path: str) -> Any:
         return None
 
 
-def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int]) -> str:
+def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int] = None) -> str:
     """Store content in a CID record and return the CID.
 
     Args:
         content_bytes: Content to store
-        user_id: User ID for ownership
+        user_id: User ID for ownership (optional, deprecated - no longer used)
 
     Returns:
         CID string
 
     Example:
-        >>> cid = store_cid_from_bytes(b"hello", user_id=1)
+        >>> cid = store_cid_from_bytes(b"hello")
         >>> isinstance(cid, str)
         True
     """
     cid_value = format_cid(generate_cid(content_bytes))
-    ensure_cid_exists(cid_value, content_bytes, user_id)
+    ensure_cid_exists(cid_value, content_bytes)
     return cid_value
 
 
-def store_cid_from_json(json_content: str, user_id: Optional[int]) -> str:
+def store_cid_from_json(json_content: str, user_id: Optional[int] = None) -> str:
     """Store JSON content in a CID record and return the CID.
 
     Args:
         json_content: JSON string to store
-        user_id: User ID for ownership
+        user_id: User ID for ownership (optional, deprecated - no longer used)
 
     Returns:
         CID string

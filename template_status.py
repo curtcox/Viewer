@@ -30,7 +30,7 @@ def generate_template_status_label(
     if not user_id:
         return "No templates"
 
-    status = get_template_status(user_id)
+    status = get_template_status()
 
     # Check if templates are invalid
     if not status['is_valid'] and status['count_total'] == 0:
@@ -76,7 +76,7 @@ def get_template_link_info(
             'css_class': 'template-status-empty',
         }
 
-    status = get_template_status(user_id)
+    status = get_template_status()
     label = generate_template_status_label(user_id, entity_type)
 
     # Determine URL

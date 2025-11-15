@@ -31,11 +31,11 @@ from .cids import (
     get_cids_by_paths,
     get_first_cid,
     get_recent_cids,
-    get_user_uploads,
+    get_uploads,
     update_cid_references,
 )
 from .uploads import (
-    get_user_template_uploads,
+    get_template_uploads,
 )
 from .exports import (
     get_user_exports,
@@ -65,7 +65,6 @@ from .page_views import (
     paginate_user_page_views,
     save_page_view,
 )
-from .profile import get_user_profile_data
 from .secrets import (
     count_secrets,
     count_user_secrets,
@@ -141,8 +140,10 @@ EXPORTS: Dict[str, Any] = {
     "get_cid_by_path": get_cid_by_path,
     "find_cids_by_prefix": find_cids_by_prefix,
     "create_cid_record": create_cid_record,
-    "get_user_uploads": get_user_uploads,
-    "get_user_template_uploads": get_user_template_uploads,
+    "get_uploads": get_uploads,  # New name
+    "get_user_uploads": get_uploads,  # Legacy name
+    "get_template_uploads": get_template_uploads,  # New name
+    "get_user_template_uploads": get_template_uploads,  # Legacy name
     "get_cids_by_paths": get_cids_by_paths,
     "get_recent_cids": get_recent_cids,
     "get_first_cid": get_first_cid,
@@ -172,8 +173,6 @@ EXPORTS: Dict[str, Any] = {
     # Exports
     "record_export": record_export,
     "get_user_exports": get_user_exports,
-    # Profile
-    "get_user_profile_data": get_user_profile_data,
 }
 
 __all__ = list(EXPORTS)
