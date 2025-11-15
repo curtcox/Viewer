@@ -99,7 +99,7 @@ def test_variable_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        variable = Variable.query.filter_by(name="API_URL").one()
         assert variable.enabled is True
 
     response = client.post(
@@ -110,7 +110,7 @@ def test_variable_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        variable = Variable.query.filter_by(name="API_URL").one()
         assert variable.enabled is False
 
 
@@ -343,10 +343,10 @@ def test_bulk_variable_editor_prefills_existing_variables(
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.add(
-            Variable(name="region", definition="Europe", user_id="default-user")
+            Variable(name="region", definition="Europe")
         )
         db.session.commit()
 
@@ -370,10 +370,10 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.add(
-            Variable(name="country", definition="France", user_id="default-user")
+            Variable(name="country", definition="France")
         )
         db.session.commit()
 
@@ -393,9 +393,9 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
     assert response.headers["Location"].endswith("/variables")
 
     with integration_app.app_context():
-        city = Variable.query.filter_by(user_id="default-user", name="city").one()
-        timezone = Variable.query.filter_by(user_id="default-user", name="timezone").one()
-        country = Variable.query.filter_by(user_id="default-user", name="country").first()
+        city = Variable.query.filter_by(name="city").one()
+        timezone = Variable.query.filter_by(name="timezone").one()
+        country = Variable.query.filter_by(name="country").first()
 
         assert city.definition == "Berlin"
         assert timezone.definition == "CET"
@@ -412,7 +412,7 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.commit()
 

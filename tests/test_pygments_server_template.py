@@ -30,7 +30,7 @@ class TestPygmentsServerTemplate(unittest.TestCase):
             / "pygments.py"
         )
         definition = template_path.read_text(encoding="utf-8")
-        self.server = Server(name="pygments", definition=definition, user_id=self.user_id)
+        self.server = Server(name="pygments", definition=definition)
         db.session.add(self.server)
         db.session.commit()
 
@@ -49,7 +49,6 @@ class TestPygmentsServerTemplate(unittest.TestCase):
             path=f"/{cid_value}",
             file_data=content.encode("utf-8"),
             file_size=len(content),
-            uploaded_by_user_id=self.user_id,
         )
         db.session.add(record)
         db.session.commit()

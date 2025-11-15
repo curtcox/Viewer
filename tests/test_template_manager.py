@@ -79,7 +79,7 @@ class TestTemplateManager(unittest.TestCase):
 
     def test_get_templates_config_no_variable(self):
         """Test when templates variable doesn't exist."""
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNone(result)
 
     def test_get_templates_config_empty_variable(self):
@@ -91,7 +91,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNone(result)
 
     def test_get_templates_config_direct_json(self):
@@ -103,7 +103,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNotNone(result)
         self.assertIn('aliases', result)
         self.assertIn('servers', result)
@@ -129,7 +129,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNotNone(result)
         self.assertIn('aliases', result)
         self.assertEqual(result['aliases']['template1']['name'], 'Template Alias 1')
@@ -152,7 +152,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNotNone(result)
         self.assertIn('aliases', result)
 
@@ -165,7 +165,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        result = get_templates_config(self.user_id)
+        result = get_templates_config()
         self.assertIsNone(result)
 
     def test_validate_templates_json_valid(self):
@@ -244,7 +244,7 @@ class TestTemplateManager(unittest.TestCase):
 
     def test_get_template_status_no_templates(self):
         """Test status when no templates exist."""
-        status = get_template_status(self.user_id)
+        status = get_template_status()
 
         self.assertFalse(status['is_valid'])
         self.assertEqual(status['count_total'], 0)
@@ -259,7 +259,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        status = get_template_status(self.user_id)
+        status = get_template_status()
 
         self.assertTrue(status['is_valid'])
         self.assertEqual(status['count_total'], 3)
@@ -278,7 +278,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_templates_for_type(self.user_id, ENTITY_TYPE_ALIASES)
+        templates = get_templates_for_type(ENTITY_TYPE_ALIASES)
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['key'], 'template1')
@@ -293,7 +293,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_templates_for_type(self.user_id, ENTITY_TYPE_SERVERS)
+        templates = get_templates_for_type(ENTITY_TYPE_SERVERS)
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['key'], 'template2')
@@ -308,13 +308,13 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_templates_for_type(self.user_id, ENTITY_TYPE_VARIABLES)
+        templates = get_templates_for_type(ENTITY_TYPE_VARIABLES)
 
         self.assertEqual(len(templates), 0)
 
     def test_get_templates_for_type_invalid_type(self):
         """Test getting templates for invalid entity type."""
-        templates = get_templates_for_type(self.user_id, 'invalid_type')
+        templates = get_templates_for_type('invalid_type')
 
         self.assertEqual(len(templates), 0)
 
@@ -405,7 +405,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_templates_for_type(self.user_id, ENTITY_TYPE_UPLOADS)
+        templates = get_templates_for_type(ENTITY_TYPE_UPLOADS)
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['key'], 'template3')
@@ -421,7 +421,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        status = get_template_status(self.user_id)
+        status = get_template_status()
 
         self.assertTrue(status['is_valid'])
         self.assertEqual(status['count_total'], 3)

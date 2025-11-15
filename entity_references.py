@@ -185,17 +185,17 @@ def extract_references_from_target(target_path: Optional[str], user_id: Optional
 
     if user_id:
         alias_identifier = normalized_path.lstrip("/")
-        alias = get_alias_by_name(user_id, alias_identifier)
+        alias = get_alias_by_name(alias_identifier)
         if not alias and alias_identifier.startswith("aliases/"):
             _, alias_name = alias_identifier.split("/", 1)
             if alias_name:
-                alias = get_alias_by_name(user_id, alias_name)
+                alias = get_alias_by_name(alias_name)
         if alias:
             references["aliases"].append(_build_alias_reference(alias.name))
 
         server_name = _server_name_from_path(normalized_path)
         if server_name:
-            server = get_server_by_name(user_id, server_name)
+            server = get_server_by_name(server_name)
             if server:
                 references["servers"].append(_build_server_reference(server.name))
 

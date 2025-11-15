@@ -38,14 +38,11 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""
-        test_user_id = 'test_user_datetime'
-
         # Test CID model datetime defaults
         cid = CID(
             path='/test/path/datetime',
             file_data=b'test content',
             file_size=12,
-            uploaded_by_user_id=test_user_id
         )
         db.session.add(cid)
         db.session.commit()
@@ -58,7 +55,6 @@ class TestModels(unittest.TestCase):
 
         # Test PageView model datetime defaults
         page_view = PageView(
-            user_id=test_user_id,
             path='/test',
             method='GET'
         )
@@ -75,7 +71,6 @@ class TestModels(unittest.TestCase):
         server = Server(
             name='test_server_datetime',
             definition='test definition',
-            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -94,7 +89,6 @@ class TestModels(unittest.TestCase):
         variable = Variable(
             name='test_var_datetime',
             definition='test value',
-            user_id=test_user_id
         )
         db.session.add(variable)
         db.session.commit()
@@ -113,7 +107,6 @@ class TestModels(unittest.TestCase):
         secret = Secret(
             name='test_secret_datetime',
             definition='test secret value',
-            user_id=test_user_id
         )
         db.session.add(secret)
         db.session.commit()
@@ -130,13 +123,10 @@ class TestModels(unittest.TestCase):
 
     def test_datetime_onupdate_functionality(self):
         """Test that onupdate datetime fields work correctly."""
-        test_user_id = 'test_user_onupdate'
-
         # Test Server model onupdate functionality
         server = Server(
             name='test_server_onupdate',
             definition='initial definition',
-            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -161,7 +151,6 @@ class TestModels(unittest.TestCase):
         variable = Variable(
             name='test_var_onupdate',
             definition='initial value',
-            user_id=test_user_id
         )
         db.session.add(variable)
         db.session.commit()
@@ -185,7 +174,6 @@ class TestModels(unittest.TestCase):
         secret = Secret(
             name='test_secret_onupdate',
             definition='initial secret',
-            user_id=test_user_id
         )
         db.session.add(secret)
         db.session.commit()

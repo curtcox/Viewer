@@ -75,7 +75,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(single_template),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -89,7 +88,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -103,7 +101,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -117,7 +114,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -131,7 +127,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -159,7 +154,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -175,7 +169,6 @@ class TestTemplateStatus(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()

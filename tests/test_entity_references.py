@@ -43,7 +43,6 @@ class TestEntityReferences(unittest.TestCase):
             )
             alias = Alias(
                 name=name,
-                user_id=self.user_id,
                 definition=definition_text,
             )
             db.session.add(alias)
@@ -52,7 +51,7 @@ class TestEntityReferences(unittest.TestCase):
 
     def _create_server(self, name: str, definition: str) -> str:
         with self.app.app_context():
-            server = Server(name=name, definition=definition, user_id=self.user_id)
+            server = Server(name=name, definition=definition)
             db.session.add(server)
             db.session.commit()
             return server.name
@@ -63,7 +62,6 @@ class TestEntityReferences(unittest.TestCase):
                 path=f'/{value}',
                 file_data=content,
                 file_size=len(content),
-                uploaded_by_user_id=self.user_id,
             )
             db.session.add(record)
             db.session.commit()

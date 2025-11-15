@@ -33,13 +33,10 @@ class TestMetaRoute(unittest.TestCase):
         return user_id
 
     def _create_cid(self, cid_value: str, content: bytes = b'test', user_id: str | None = None):
-        if user_id is None:
-            user_id = self._create_test_user()
         record = CID(
             path=f'/{cid_value}',
             file_data=content,
             file_size=len(content),
-            uploaded_by_user_id=user_id,
         )
         db.session.add(record)
         db.session.commit()
@@ -68,7 +65,6 @@ class TestMetaRoute(unittest.TestCase):
         )
         alias = Alias(
             name=name,
-            user_id=user_id,
             definition=definition_text,
         )
         db.session.add(alias)
@@ -76,7 +72,7 @@ class TestMetaRoute(unittest.TestCase):
         return alias
 
     def _create_server(self, user_id: str, name: str = 'demo-server', definition: str = 'print("hi")'):
-        server = Server(name=name, definition=definition, user_id=user_id)
+        server = Server(name=name, definition=definition)
         db.session.add(server)
         db.session.commit()
         return server
@@ -131,7 +127,6 @@ class TestMetaRoute(unittest.TestCase):
                 self._create_cid(cid, b'extra', user_id)
 
             invocation = ServerInvocation(
-                user_id=user_id,
                 server_name='demo-server',
                 result_cid='cid-result',
                 invocation_cid='cid-inv',

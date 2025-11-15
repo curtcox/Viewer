@@ -117,7 +117,6 @@ class TestDataFactory:
         cid = CID(
             path=path,
             file_data=content,
-            uploaded_by_user_id=user_id,
             timestamp=datetime.now(timezone.utc),
         )
         db.session.add(cid)

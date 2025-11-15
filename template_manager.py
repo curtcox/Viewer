@@ -215,7 +215,7 @@ def get_template_by_key(
         logger.warning("Invalid entity type requested: %s", entity_type)
         return None
 
-    templates_config = get_templates_config(user_id)
+    templates_config = get_templates_config()
     if not templates_config:
         return None
 

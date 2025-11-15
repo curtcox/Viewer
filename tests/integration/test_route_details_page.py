@@ -135,7 +135,6 @@ def test_route_details_for_direct_cid(client, integration_app, login_default_use
             CID(
                 path=f"/{cid_value}",
                 file_data=b"hello world",
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.commit()
@@ -257,7 +256,6 @@ def test_route_details_follow_alias_chain_to_cid(
             CID(
                 path=f"/{cid_value}",
                 file_data=b"cid target",
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.commit()

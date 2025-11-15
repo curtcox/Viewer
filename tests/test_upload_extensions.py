@@ -1,6 +1,6 @@
 import io
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from app import create_app, db
 from cid_presenter import format_cid
@@ -21,7 +21,6 @@ class TestUploadExtensions(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after tests"""
@@ -55,12 +54,8 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertEqual(content, b'test file content')
         self.assertEqual(filename, 'upload')
 
-    @patch('routes.uploads.current_user')
-    def test_upload_text_gets_txt_extension(self, mock_current_user):
+    def test_upload_text_gets_txt_extension(self):
         """Test that pasted text uploads get .txt extension in view URL"""
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
-
         with self.app.app_context():
             response = self.client.post('/upload', data={
                 'upload_type': 'text',
@@ -72,12 +67,8 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn(b'Upload Successful', response.data)
         self.assertIn(b'.txt', response.data)
 
-    @patch('routes.uploads.current_user')
-    def test_upload_file_preserves_original_extension(self, mock_current_user):
+    def test_upload_file_preserves_original_extension(self):
         """Test that file uploads preserve their original extension"""
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
-
         with self.app.app_context():
             file_data = io.BytesIO(b'PDF file content')
             file_data.name = 'document.pdf'
@@ -92,12 +83,8 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn(b'Upload Successful', response.data)
         self.assertIn(b'.pdf', response.data)
 
-    @patch('routes.uploads.current_user')
-    def test_upload_file_handles_no_extension(self, mock_current_user):
+    def test_upload_file_handles_no_extension(self):
         """Test that file uploads without extension don't break"""
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
-
         with self.app.app_context():
             file_data = io.BytesIO(b'File content without extension')
             file_data.name = 'document'
@@ -115,16 +102,12 @@ class TestUploadExtensions(unittest.TestCase):
         cid_pattern = rf'/[A-Za-z0-9_-]{{{CID_MIN_LENGTH},{CID_LENGTH}}}(?!\.)'
         self.assertRegex(response_text, cid_pattern)
 
-    @patch('routes.uploads.current_user')
-    def test_upload_success_includes_variable_assignment_form(self, mock_current_user):
+    def test_upload_success_includes_variable_assignment_form(self):
         """Upload success page should render variable assignment controls."""
-
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
 
         with self.app.app_context():
             db.session.add(
-                Variable(name='existing-var', definition='/old-cid', user_id=self.test_user_id)
+                Variable(name='existing-var', definition='/old-cid')
             )
             db.session.commit()
 
@@ -140,12 +123,8 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn('existing-var', page)
         self.assertIn('name="cid"', page)
 
-    @patch('routes.uploads.current_user')
-    def test_assign_cid_creates_new_variable(self, mock_current_user):
+    def test_assign_cid_creates_new_variable(self):
         """Assigning a CID should create a new variable."""
-
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
 
         content_text = 'new variable content'
 
@@ -174,20 +153,16 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn('currently assigned', assign_page)
 
         with self.app.app_context():
-            created = Variable.query.filter_by(user_id=self.test_user_id, name='NEW_ASSIGN').first()
+            created = Variable.query.filter_by(name='NEW_ASSIGN').first()
             self.assertIsNotNone(created)
             self.assertEqual(created.definition, f'/{cid_value}')
 
-    @patch('routes.uploads.current_user')
-    def test_assign_cid_updates_existing_variable(self, mock_current_user):
+    def test_assign_cid_updates_existing_variable(self):
         """Assigning a CID should update an existing variable definition."""
-
-        mock_current_user.id = self.test_user_id
-        mock_current_user.username = 'test-user'
 
         with self.app.app_context():
             db.session.add(
-                Variable(name='STATUS_PAGE', definition='/old-definition', user_id=self.test_user_id)
+                Variable(name='STATUS_PAGE', definition='/old-definition')
             )
             db.session.commit()
 
@@ -217,7 +192,7 @@ class TestUploadExtensions(unittest.TestCase):
         self.assertIn('STATUS_PAGE', page)
 
         with self.app.app_context():
-            refreshed = Variable.query.filter_by(user_id=self.test_user_id, name='STATUS_PAGE').one()
+            refreshed = Variable.query.filter_by(name='STATUS_PAGE').one()
             self.assertEqual(refreshed.definition, f'/{cid_value}')
 
 

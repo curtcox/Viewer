@@ -23,7 +23,6 @@ def test_uploads_page_displays_user_uploads(
             path=f"/{manual_cid_value}",
             file_data=b"Integration upload content",
             file_size=27,
-            uploaded_by_user_id="default-user",
         )
         db.session.add(upload)
         db.session.commit()
@@ -72,7 +71,6 @@ def test_edit_cid_page_prefills_existing_content(
             path=f"/{cid_value}",
             file_data=b"Existing CID text content",
             file_size=24,
-            uploaded_by_user_id="default-user",
         )
         db.session.add(editable_cid)
         db.session.commit()
@@ -105,7 +103,6 @@ def test_edit_cid_choices_page_prompts_for_selection(
                 path=f"/{first_cid}",
                 file_data=b"First matching content",
                 file_size=22,
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.add(
@@ -113,7 +110,6 @@ def test_edit_cid_choices_page_prompts_for_selection(
                 path=f"/{second_cid}",
                 file_data=b"Second matching content",
                 file_size=23,
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.commit()

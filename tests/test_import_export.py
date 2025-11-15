@@ -187,10 +187,10 @@ class TestImportExportRoutes(unittest.TestCase):
 
     def test_export_preview_lists_selected_items(self):
         with self.app.app_context():
-            alias = Alias(name='alias-one', definition='echo alias', user_id=self.user_id)
-            server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
-            variable = Variable(name='var-one', definition='value', user_id=self.user_id)
-            secret = Secret(name='secret-one', definition='secret', user_id=self.user_id)
+            alias = Alias(name='alias-one', definition='echo alias')
+            server = Server(name='server-one', definition='print("hi")')
+            variable = Variable(name='var-one', definition='value')
+            secret = Secret(name='secret-one', definition='secret')
             db.session.add_all([alias, server, variable, secret])
             db.session.commit()
 
@@ -209,15 +209,13 @@ class TestImportExportRoutes(unittest.TestCase):
             alias_disabled = Alias(
                 name='alias-disabled',
                 definition='disabled',
-                user_id=self.user_id,
                 enabled=False,
             )
             alias_regular = Alias(
                 name='alias-regular',
                 definition='regular',
-                user_id=self.user_id,
             )
-            secret = Secret(name='secret-two', definition='top-secret', user_id=self.user_id)
+            secret = Secret(name='secret-two', definition='top-secret')
             db.session.add_all([alias_disabled, alias_regular, secret])
             db.session.commit()
 
@@ -247,8 +245,8 @@ class TestImportExportRoutes(unittest.TestCase):
 
     def test_export_includes_only_checked_aliases(self):
         with self.app.app_context():
-            keep_alias = Alias(name='keep-alias', definition='echo keep', user_id=self.user_id)
-            drop_alias = Alias(name='drop-alias', definition='echo drop', user_id=self.user_id)
+            keep_alias = Alias(name='keep-alias', definition='echo keep')
+            drop_alias = Alias(name='drop-alias', definition='echo drop')
             db.session.add_all([keep_alias, drop_alias])
             db.session.commit()
 
@@ -271,7 +269,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
     def test_export_allows_unselecting_all_aliases(self):
         with self.app.app_context():
-            alias = Alias(name='only-alias', definition='echo 1', user_id=self.user_id)
+            alias = Alias(name='only-alias', definition='echo 1')
             db.session.add(alias)
             db.session.commit()
 
@@ -301,12 +299,11 @@ class TestImportExportRoutes(unittest.TestCase):
             definition_text = f"{definition_text}\n# export example"
             alias = Alias(
                 name='alias-one',
-                user_id=self.user_id,
                 definition=definition_text,
             )
-            server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
-            variable = Variable(name='var-one', definition='value', user_id=self.user_id)
-            secret = Secret(name='secret-one', definition='super-secret', user_id=self.user_id)
+            server = Server(name='server-one', definition='print("hi")')
+            variable = Variable(name='var-one', definition='value')
+            secret = Secret(name='secret-one', definition='super-secret')
             db.session.add_all([alias, server, variable, secret])
             db.session.commit()
 
@@ -400,25 +397,21 @@ class TestImportExportRoutes(unittest.TestCase):
                 [
                     Alias(
                         name='alias-disabled',
-                        user_id=self.user_id,
                         definition=alias_definition,
                         enabled=False,
                     ),
                     Server(
                         name='server-disabled',
-                        user_id=self.user_id,
                         definition='def main():\n    return "disabled"\n',
                         enabled=False,
                     ),
                     Variable(
                         name='variable-disabled',
-                        user_id=self.user_id,
                         definition='value',
                         enabled=False,
                     ),
                     Secret(
                         name='secret-disabled',
-                        user_id=self.user_id,
                         definition='super-secret',
                         enabled=False,
                     ),
@@ -518,25 +511,21 @@ class TestImportExportRoutes(unittest.TestCase):
                 [
                     Alias(
                         name='disabled-alias',
-                        user_id=self.user_id,
                         definition=alias_definition,
                         enabled=False,
                     ),
                     Server(
                         name='disabled-server',
-                        user_id=self.user_id,
                         definition='print("disabled")',
                         enabled=False,
                     ),
                     Variable(
                         name='disabled-variable',
-                        user_id=self.user_id,
                         definition='value',
                         enabled=False,
                     ),
                     Secret(
                         name='disabled-secret',
-                        user_id=self.user_id,
                         definition='secret-value',
                         enabled=False,
                     ),
@@ -584,22 +573,18 @@ class TestImportExportRoutes(unittest.TestCase):
                 [
                     Alias(
                         name='template-alias',
-                        user_id=self.user_id,
                         definition=alias_definition,
                     ),
                     Server(
                         name='template-server',
-                        user_id=self.user_id,
                         definition='print("template")',
                     ),
                     Variable(
                         name='template-variable',
-                        user_id=self.user_id,
                         definition='value',
                     ),
                     Secret(
                         name='template-secret',
-                        user_id=self.user_id,
                         definition='secret-value',
                     ),
                 ]
@@ -693,25 +678,21 @@ class TestImportExportRoutes(unittest.TestCase):
                 [
                     Alias(
                         name='disabled-template-alias',
-                        user_id=self.user_id,
                         definition=alias_definition,
                         enabled=False,
                     ),
                     Server(
                         name='disabled-template-server',
-                        user_id=self.user_id,
                         definition='print("disabled template")',
                         enabled=False,
                     ),
                     Variable(
                         name='disabled-template-variable',
-                        user_id=self.user_id,
                         definition='value',
                         enabled=False,
                     ),
                     Secret(
                         name='disabled-template-secret',
-                        user_id=self.user_id,
                         definition='secret-value',
                         enabled=False,
                     ),
@@ -811,7 +792,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
     def test_export_without_cid_map_omits_content_map(self):
         with self.app.app_context():
-            server = Server(name='server-one', definition='print("hi")', user_id=self.user_id)
+            server = Server(name='server-one', definition='print("hi")')
             db.session.add(server)
             db.session.commit()
 
@@ -850,12 +831,11 @@ class TestImportExportRoutes(unittest.TestCase):
         unreferenced_cid = format_cid(generate_cid(unreferenced_content))
 
         with self.app.app_context():
-            server = Server(name='server-one', definition=server_definition, user_id=self.user_id)
+            server = Server(name='server-one', definition=server_definition)
             unreferenced_record = CID(
                 path=f'/{unreferenced_cid}',
                 file_data=unreferenced_content,
                 file_size=len(unreferenced_content),
-                uploaded_by_user_id=self.user_id,
             )
             db.session.add_all([server, unreferenced_record])
             db.session.commit()
@@ -885,7 +865,6 @@ class TestImportExportRoutes(unittest.TestCase):
                 path=f'/{unreferenced_cid}',
                 file_data=unreferenced_content,
                 file_size=len(unreferenced_content),
-                uploaded_by_user_id=self.user_id,
             )
             db.session.add(unreferenced_record)
             db.session.commit()
@@ -1175,7 +1154,7 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertIn(b'1 secret', response.data)
 
         with self.app.app_context():
-            alias = Alias.query.filter_by(user_id=self.user_id, name='alias-b').first()
+            alias = Alias.query.filter_by( name='alias-b').first()
             self.assertIsNotNone(alias)
             assert alias is not None  # for type checker
             self.assertEqual(alias.target_path, '/demo')
@@ -1187,15 +1166,15 @@ class TestImportExportRoutes(unittest.TestCase):
             )
             self.assertIn('# imported alias', alias.definition)
 
-            server = Server.query.filter_by(user_id=self.user_id, name='server-b').first()
+            server = Server.query.filter_by( name='server-b').first()
             self.assertIsNotNone(server)
             self.assertEqual(server.definition, 'print("hello")')
 
-            variable = Variable.query.filter_by(user_id=self.user_id, name='var-b').first()
+            variable = Variable.query.filter_by( name='var-b').first()
             self.assertIsNotNone(variable)
             self.assertEqual(variable.definition, '42')
 
-            secret = Secret.query.filter_by(user_id=self.user_id, name='secret-b').first()
+            secret = Secret.query.filter_by( name='secret-b').first()
             self.assertIsNotNone(secret)
             self.assertEqual(secret.definition, 'value')
 
@@ -1448,7 +1427,7 @@ class TestImportExportRoutes(unittest.TestCase):
                 '/demo',
                 alias_name='alias-b',
             )
-            alias = Alias(name='alias-b', user_id=self.user_id, definition=definition_text)
+            alias = Alias(name='alias-b', definition=definition_text)
             db.session.add(alias)
             db.session.commit()
 
@@ -1465,7 +1444,6 @@ class TestImportExportRoutes(unittest.TestCase):
 
         with self.app.app_context():
             interactions = EntityInteraction.query.filter_by(
-                user_id=self.user_id,
                 entity_type='alias',
                 entity_name='alias-b',
             ).all()
@@ -1485,7 +1463,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Create a server with UTF-8 content
         with self.app.app_context():
-            server = Server(name='test-server', definition=definition_text, user_id=self.user_id)
+            server = Server(name='test-server', definition=definition_text)
             db.session.add(server)
             db.session.commit()
 
@@ -1553,9 +1531,9 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_snapshot_unchecked_applies_default_settings(self):
         """Test that when snapshot is unchecked, the correct defaults are applied."""
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=False)
-            server = Server(name='test-server', definition='print("test")', user_id=self.user_id, enabled=False)
-            variable = Variable(name='test-var', definition='value', user_id=self.user_id, enabled=False)
+            alias = Alias(name='test-alias', definition='echo test', enabled=False)
+            server = Server(name='test-server', definition='print("test")', enabled=False)
+            variable = Variable(name='test-var', definition='value', enabled=False)
             db.session.add_all([alias, server, variable])
             db.session.commit()
 
@@ -1613,8 +1591,8 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_snapshot_checked_uses_form_defaults(self):
         """Test that when snapshot is checked, it uses the default form settings."""
         with self.app.app_context():
-            alias = Alias(name='enabled-alias', definition='echo test', user_id=self.user_id, enabled=True)
-            disabled_alias = Alias(name='disabled-alias', definition='echo test', user_id=self.user_id, enabled=False)
+            alias = Alias(name='enabled-alias', definition='echo test', enabled=True)
+            disabled_alias = Alias(name='disabled-alias', definition='echo test', enabled=False)
             db.session.add_all([alias, disabled_alias])
             db.session.commit()
 
@@ -1669,7 +1647,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
             # Verify the server was imported correctly
             with self.app.app_context():
-                server = Server.query.filter_by(user_id=self.user_id, name='imported-server').first()
+                server = Server.query.filter_by( name='imported-server').first()
                 self.assertIsNotNone(server)
                 self.assertEqual(server.definition, server_definition)
 
@@ -1700,7 +1678,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
             # Verify the server was imported correctly
             with self.app.app_context():
-                server = Server.query.filter_by(user_id=self.user_id, name='old-format-server').first()
+                server = Server.query.filter_by( name='old-format-server').first()
                 self.assertIsNotNone(server)
                 self.assertEqual(server.definition, server_definition)
 
@@ -1733,7 +1711,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
             # Verify the alias was imported with correct UTF-8 content
             with self.app.app_context():
-                alias = Alias.query.filter_by(user_id=self.user_id, name='test-alias').first()
+                alias = Alias.query.filter_by( name='test-alias').first()
                 self.assertIsNotNone(alias)
                 # The alias name gets updated during import, so just check the target content is present
                 self.assertIn(content_with_unicode, alias.definition)
@@ -1741,7 +1719,7 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_export_records_export_in_database(self):
         """Test that exporting records an Export entry in the database."""
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id)
+            alias = Alias(name='test-alias', definition='echo test')
             db.session.add(alias)
             db.session.commit()
 
@@ -1756,7 +1734,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Verify export was recorded
         with self.app.app_context():
-            exports = Export.query.filter_by(user_id=self.user_id).all()
+            exports = Export.query.filter_by().all()
             self.assertEqual(len(exports), 1)
             export = exports[0]
             self.assertIsNotNone(export.cid)
@@ -1768,7 +1746,6 @@ class TestImportExportRoutes(unittest.TestCase):
             # Create some test exports
             for i in range(3):
                 export = Export(
-                    user_id=self.user_id,
                     cid=f'bafybeicid{i:03d}',
                     created_at=datetime.now(timezone.utc),
                 )
@@ -1792,7 +1769,6 @@ class TestImportExportRoutes(unittest.TestCase):
         with self.app.app_context():
             # Create exports for current user
             export1 = Export(
-                user_id=self.user_id,
                 cid='bafybeiuser1',
                 created_at=datetime.now(timezone.utc),
             )
@@ -1820,7 +1796,6 @@ class TestImportExportRoutes(unittest.TestCase):
             base_time = datetime.now(timezone.utc)
             for i in range(105):
                 export = Export(
-                    user_id=self.user_id,
                     cid=f'bafybeiexport{i:03d}',
                     created_at=base_time.replace(microsecond=i),
                 )
@@ -1847,13 +1822,13 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_import_generates_snapshot_export(self):
         """Test that importing data generates a snapshot export equivalent to the default export."""
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=True)
+            alias = Alias(name='test-alias', definition='echo test', enabled=True)
             db.session.add(alias)
             db.session.commit()
 
         # Count exports before import
         with self.app.app_context():
-            initial_exports = Export.query.filter_by(user_id=self.user_id).count()
+            initial_exports = Export.query.filter_by().count()
 
         # Create import payload with a valid alias definition (pattern -> target format)
         alias_definition = format_primary_alias_line('literal', None, '/servers/echo', alias_name='imported-alias')
@@ -1874,11 +1849,11 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Verify snapshot export was created
         with self.app.app_context():
-            exports = Export.query.filter_by(user_id=self.user_id).all()
+            exports = Export.query.filter_by().all()
             self.assertEqual(len(exports), initial_exports + 1, 'Snapshot export should be created after import')
 
             # Get the most recent export (the snapshot)
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.filter_by().order_by(Export.created_at.desc()).first()
             self.assertIsNotNone(snapshot_export)
 
             # Verify the snapshot export contains the imported data
@@ -1913,7 +1888,7 @@ class TestImportExportRoutes(unittest.TestCase):
         # The snapshot info should be in the page (either from session or flash)
         # We check for the CID pattern which should be present
         with self.app.app_context():
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.filter_by().order_by(Export.created_at.desc()).first()
             if snapshot_export:
                 # Check that snapshot CID is mentioned (might be in flash or session)
                 # The actual display depends on template, but we can verify export was created
@@ -1941,16 +1916,16 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Verify snapshot export was created
         with self.app.app_context():
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.filter_by().order_by(Export.created_at.desc()).first()
             self.assertIsNotNone(snapshot_export)
             self.assertEqual(snapshot_export.cid, data['snapshot']['cid'])
 
     def test_snapshot_export_contains_default_sections(self):
         """Test that snapshot export contains the default export sections."""
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='echo test', user_id=self.user_id, enabled=True)
-            server = Server(name='test-server', definition='print("test")', user_id=self.user_id, enabled=True)
-            variable = Variable(name='test-var', definition='value', user_id=self.user_id, enabled=True)
+            alias = Alias(name='test-alias', definition='echo test', enabled=True)
+            server = Server(name='test-server', definition='print("test")', enabled=True)
+            variable = Variable(name='test-var', definition='value', enabled=True)
             db.session.add_all([alias, server, variable])
             db.session.commit()
 
@@ -1968,7 +1943,7 @@ class TestImportExportRoutes(unittest.TestCase):
 
         # Get the snapshot export
         with self.app.app_context():
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.filter_by().order_by(Export.created_at.desc()).first()
             self.assertIsNotNone(snapshot_export)
 
             cid_record = CID.query.filter_by(path=f'/{snapshot_export.cid}').first()

@@ -64,7 +64,6 @@ class TestSearchHighlighting(BaseTestCase):
         cid_record = CID(
             path='/test-cid-path',
             file_data=b'searchable content here',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -135,7 +134,6 @@ class TestSearchHighlighting(BaseTestCase):
         cid_record = CID(
             path='/needle-in-path',
             file_data=b'some content',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -214,7 +212,6 @@ class TestSearchHighlighting(BaseTestCase):
         cid_record = CID(
             path='/query-cid',
             file_data=b'query content',
-            uploaded_by_user_id=self.test_user_id,
         )
 
         db.session.add_all([alias, server, variable, secret, cid_record])
@@ -257,7 +254,6 @@ class TestSearchHighlighting(BaseTestCase):
         cid_record = CID(
             path='/test<script>alert("xss")</script>',
             file_data=b'content',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()

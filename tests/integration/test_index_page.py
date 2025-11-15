@@ -23,7 +23,6 @@ def test_index_page_displays_cross_reference_dashboard(
         cid_record = CID(
             path=f"/{cid_value}",
             file_data=b"Integration cross-reference sample",
-            uploaded_by_user_id="default-user",
         )
         alias = Alias(
             name="sample-alias",

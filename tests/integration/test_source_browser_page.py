@@ -115,7 +115,7 @@ def test_source_instance_table_view_displays_rows(
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="example", definition="value", user_id="default-user")
+            Variable(name="example", definition="value")
         )
         db.session.commit()
 

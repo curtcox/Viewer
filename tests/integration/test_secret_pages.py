@@ -353,10 +353,10 @@ def test_bulk_secret_editor_prefills_existing_secrets(
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.add(
-            Secret(name="db_password", definition="hunter2", user_id="default-user")
+            Secret(name="db_password", definition="hunter2")
         )
         db.session.commit()
 
@@ -380,10 +380,10 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.add(
-            Secret(name="db_password", definition="hunter2", user_id="default-user")
+            Secret(name="db_password", definition="hunter2")
         )
         db.session.commit()
 
@@ -403,12 +403,12 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
     assert response.headers["Location"].endswith("/secrets")
 
     with integration_app.app_context():
-        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        api_key = Secret.query.filter_by(name="api_key").one()
         service_token = Secret.query.filter_by(
-            user_id="default-user", name="service_token"
+            name="service_token"
         ).one()
         db_password = Secret.query.filter_by(
-            user_id="default-user", name="db_password"
+            name="db_password"
         ).first()
 
         assert api_key.definition == "rotate-me"
@@ -426,7 +426,7 @@ def test_bulk_secret_editor_invalid_json_displays_errors(
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.commit()
 
@@ -447,5 +447,5 @@ def test_bulk_secret_editor_invalid_json_displays_errors(
     assert "Invalid JSON" in page
 
     with integration_app.app_context():
-        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        api_key = Secret.query.filter_by(name="api_key").one()
         assert api_key.definition == "super-secret"

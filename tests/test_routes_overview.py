@@ -51,11 +51,10 @@ class TestRoutesOverview(unittest.TestCase):
             '/target',
             alias_name='shared',
         )
-        alias = Alias(name='shared', user_id=self.user_id, definition=definition_text)
+        alias = Alias(name='shared', definition=definition_text)
         server = Server(
             name='shared',
             definition='def main(request):\n    return "ok"',
-            user_id=self.user_id,
         )
         db.session.add_all([alias, server])
         db.session.commit()

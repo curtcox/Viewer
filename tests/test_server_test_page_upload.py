@@ -39,7 +39,6 @@ class TestServerTestPageUpload(unittest.TestCase):
             id=None,
             name=name,
             definition=definition,
-            user_id=self.user_id,
             created_at=datetime.now(timezone.utc),
             updated_at=datetime.now(timezone.utc),
         )

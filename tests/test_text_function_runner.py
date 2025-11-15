@@ -217,16 +217,11 @@ return value["number"]
         body = "return save(value)"
         argmap = {"value": 12345}
 
-        class NumericUser:
-            def __init__(self):
-                self.id = 'numeric-user'
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-numeric'
-            with patch('text_function_runner.current_user', new=NumericUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'12345', 'numeric-user')
+        mock_store.assert_called_once_with(b'12345')
         self.assertEqual(result, 'cid-numeric')
 
     def test_save_allows_preencoded_bytes(self):
@@ -235,16 +230,11 @@ return value["number"]
         payload = b'\xffbinary data'
         argmap = {"blob": payload}
 
-        class BinaryUser:
-            def __init__(self):
-                self.id = 'binary-user'
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-bytes'
-            with patch('text_function_runner.current_user', new=BinaryUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(payload, 'binary-user')
+        mock_store.assert_called_once_with(payload)
         self.assertEqual(result, 'cid-bytes')
 
     def test_load_returns_text_content(self):

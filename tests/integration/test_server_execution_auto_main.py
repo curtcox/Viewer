@@ -20,7 +20,7 @@ def _store_server(app, name: str, definition: str) -> None:
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
         db.session.add(
-            Server(name=name, definition=normalized, user_id="default-user")
+            Server(name=name, definition=normalized)
         )
         db.session.commit()
 
@@ -31,7 +31,7 @@ def _store_alias(app, name: str, definition: str) -> None:
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
         db.session.add(
-            Alias(name=name, definition=normalized, user_id="default-user")
+            Alias(name=name, definition=normalized)
         )
         db.session.commit()
 
@@ -154,7 +154,7 @@ def test_nested_cid_contents_feed_server_input(
     cid_value = "bafytestcidvalue"
     with integration_app.app_context():
         db.session.add(
-            CID(path=f"/{cid_value}", file_data=b"cid-payload", uploaded_by_user_id="default-user")
+            CID(path=f"/{cid_value}", file_data=b"cid-payload")
         )
         db.session.commit()
 

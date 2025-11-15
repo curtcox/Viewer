@@ -214,7 +214,6 @@ class TestIsValidBootCid(unittest.TestCase):
                 path='/AAAAAAAA',
                 file_data=None,
                 file_size=0,
-                uploaded_by_user_id=self.user_id,
             )
 
             is_valid, error = is_valid_boot_cid(record)
@@ -434,7 +433,6 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
                 path=f'/{cid1_value}',
                 file_data=boot1_content,
                 file_size=len(boot1_content),
-                uploaded_by_user_id=self.user_id,
             )
             database.session.add(cid1)
             database.session.flush()  # Get the ID
@@ -451,7 +449,6 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
                 path=f'/{cid2_value}',
                 file_data=boot2_content,
                 file_size=len(boot2_content),
-                uploaded_by_user_id=self.user_id,
                 created_at=datetime.now(timezone.utc)
             )
             database.session.add(cid2)
