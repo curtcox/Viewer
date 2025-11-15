@@ -87,7 +87,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition='',
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -100,7 +99,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -119,7 +117,6 @@ class TestTemplateManager(unittest.TestCase):
             path='/TESTCID123',
             file_data=cid_data,
             file_size=len(cid_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -128,7 +125,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition='TESTCID123',
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -145,7 +141,6 @@ class TestTemplateManager(unittest.TestCase):
             path='/TESTCID456',
             file_data=cid_data,
             file_size=len(cid_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -153,7 +148,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition='/TESTCID456',
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -167,7 +161,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition='not valid json {{{',
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -262,7 +255,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -282,7 +274,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -298,7 +289,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -314,7 +304,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -334,7 +323,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -350,7 +338,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -380,7 +367,6 @@ class TestTemplateManager(unittest.TestCase):
             path='/RESOLVECID',
             file_data=cid_data,
             file_size=len(cid_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -402,7 +388,6 @@ class TestTemplateManager(unittest.TestCase):
             path='/SLASHCID',
             file_data=cid_data,
             file_size=len(cid_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -416,7 +401,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -433,7 +417,6 @@ class TestTemplateManager(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(self.valid_templates),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()

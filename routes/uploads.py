@@ -81,18 +81,17 @@ def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str
     return alias_name, None
 
 
-def _save_cid_content(text_content: str, user_id: str) -> str:
+def _save_cid_content(text_content: str) -> str:
     """Save content and return CID, flashing appropriate messages.
 
     Args:
         text_content: Text content to save
-        user_id: User ID for ownership
 
     Returns:
         str: CID value (formatted)
     """
     file_content = text_content.encode('utf-8')
-    return _store_or_find_content(file_content, user_id)
+    return _store_or_find_content(file_content)
 
 
 def _shorten_cid(cid: str | None, length: int = 6) -> str:
@@ -245,12 +244,11 @@ def _determine_filename(upload_type: str, original_filename: str | None, form: A
     return None
 
 
-def _store_or_find_content(file_content: bytes, user_id: str) -> str:
+def _store_or_find_content(file_content: bytes) -> str:
     """Store content or find existing CID.
 
     Args:
         file_content: Content bytes to store
-        user_id: User ID for ownership
 
     Returns:
         str: CID value (formatted)
@@ -265,7 +263,7 @@ def _store_or_find_content(file_content: bytes, user_id: str) -> str:
             'warning',
         )
     else:
-        create_cid_record(cid_value, file_content, user_id)
+        create_cid_record(cid_value, file_content)
         flash(
             Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
             'success',
@@ -274,18 +272,16 @@ def _store_or_find_content(file_content: bytes, user_id: str) -> str:
     return cid_value
 
 
-def _record_upload_interaction(form: Any, change_message: str, user_id: str) -> None:
+def _record_upload_interaction(form: Any, change_message: str) -> None:
     """Record interaction for text uploads.
 
     Args:
         form: Upload form instance
         change_message: User's change message
-        user_id: User ID
     """
     if form.upload_type.data == UploadType.TEXT.value:
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=user_id,
                 entity_type=EntityType.UPLOAD.value,
                 entity_name=UploadType.TEXT.value,
                 action=ActionType.SAVE.value,
@@ -313,10 +309,10 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
         return None  # Signal to render form
 
     # Generate CID and store/find
-    cid_value = _store_or_find_content(file_content, current_user.id)
+    cid_value = _store_or_find_content(file_content)
 
     # Record interaction
-    _record_upload_interaction(form, change_message, current_user.id)
+    _record_upload_interaction(form, change_message)
 
     # Determine metadata
     view_url_extension = _determine_view_extension(
@@ -466,7 +462,7 @@ def edit_cid(cid_prefix):
 
         text_content = form.text_content.data or ''
         change_message = (request.form.get('change_message') or '').strip()
-        cid_value = _save_cid_content(text_content, current_user.id)
+        cid_value = _save_cid_content(text_content)
 
         new_target_path = cid_path(cid_value)
         if alias_for_cid:
@@ -507,7 +503,6 @@ def edit_cid(cid_prefix):
 
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=current_user.id,
                 entity_type=EntityType.CID.value,
                 entity_name=full_cid,
                 action=ActionType.SAVE.value,
@@ -614,7 +609,6 @@ def assign_cid_variable():
         update_variable_definitions_cid(current_user.id)
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=current_user.id,
                 entity_type=EntityType.VARIABLE.value,
                 entity_name=variable_name,
                 action=ActionType.SAVE.value,

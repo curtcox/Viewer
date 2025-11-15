@@ -10,7 +10,6 @@ from db_access import (
     get_user_variables,
     rollback_session,
 )
-from identity import current_user
 
 
 def inject_observability_info():
@@ -63,15 +62,11 @@ def inject_viewer_navigation():
     if not has_request_context():
         return {}
 
-    user_id = getattr(current_user, "id", None)
-    if not user_id:
-        return {}
-
     try:
-        aliases = get_user_aliases(user_id)
-        servers = get_user_servers(user_id)
-        variables = get_user_variables(user_id)
-        secrets = get_user_secrets(user_id)
+        aliases = get_user_aliases()
+        servers = get_user_servers()
+        variables = get_user_variables()
+        secrets = get_user_secrets()
     except SQLAlchemyError:
         rollback_session()
         aliases = []

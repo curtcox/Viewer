@@ -11,7 +11,6 @@ from cid_presenter import format_cid
 from cid_utils import generate_cid
 from db_access import EntityInteractionRequest, record_entity_interaction, record_export
 from forms import ExportForm, ImportForm
-from identity import current_user
 
 from .cid_utils import load_export_section, parse_cid_values_section, store_cid_from_bytes
 from .change_history import import_change_history
@@ -32,7 +31,6 @@ class ImportContext:
     """Context object for managing import state."""
 
     form: ImportForm
-    user_id: str
     change_message: str
     raw_payload: str
     data: dict[str, Any]
@@ -71,7 +69,6 @@ def create_import_context(
     secret_key = (form.secret_key.data or '').strip()
     return ImportContext(
         form=form,
-        user_id=current_user.id,
         change_message=change_message,
         raw_payload=parsed_payload.raw_text,
         data=parsed_payload.data,
@@ -93,7 +90,7 @@ def ingest_import_cid_map(context: ImportContext) -> None:
             continue
         context.cid_lookup[cid_value] = content_bytes
         if context.form.process_cid_map.data:
-            store_cid_from_bytes(content_bytes, context.user_id)
+            store_cid_from_bytes(content_bytes)
 
 
 def import_section(context: ImportContext, plan: SectionImportPlan) -> int:
@@ -133,7 +130,7 @@ def import_selected_sections(context: ImportContext) -> None:
             include=context.form.include_aliases.data,
             section_key='aliases',
             importer=lambda section: import_aliases_with_names(
-                context.user_id, section, context.cid_lookup
+                section, context.cid_lookup
             ),
             singular_label='alias',
             plural_label='aliases',
@@ -142,7 +139,7 @@ def import_selected_sections(context: ImportContext) -> None:
             include=context.form.include_servers.data,
             section_key='servers',
             importer=lambda section: import_servers_with_names(
-                context.user_id, section, context.cid_lookup
+                section, context.cid_lookup
             ),
             singular_label='server',
             plural_label='servers',
@@ -150,7 +147,7 @@ def import_selected_sections(context: ImportContext) -> None:
         SectionImportPlan(
             include=context.form.include_variables.data,
             section_key='variables',
-            importer=lambda section: import_variables_with_names(context.user_id, section),
+            importer=lambda section: import_variables_with_names(section),
             singular_label='variable',
             plural_label='variables',
         ),
@@ -158,7 +155,7 @@ def import_selected_sections(context: ImportContext) -> None:
             include=context.form.include_secrets.data,
             section_key='secrets',
             importer=lambda section: import_secrets_with_names(
-                context.user_id, section, context.secret_key
+                section, context.secret_key
             ),
             singular_label='secret',
             plural_label='secrets',
@@ -166,7 +163,7 @@ def import_selected_sections(context: ImportContext) -> None:
         SectionImportPlan(
             include=context.form.include_history.data,
             section_key='change_history',
-            importer=lambda section: import_change_history(context.user_id, section),
+            importer=lambda section: import_change_history(section),
             singular_label='history event',
             plural_label='history events',
         ),
@@ -200,7 +197,7 @@ def handle_import_source_files(context: ImportContext) -> None:
     )
 
 
-def generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
+def generate_snapshot_export() -> dict[str, Any] | None:
     """Generate a snapshot export equivalent to the default export."""
     try:
         form = ExportForm()
@@ -214,9 +211,9 @@ def generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
         form.include_cid_map.data = True
         form.include_unreferenced_cid_data.data = False
 
-        build_export_preview(form, user_id)
-        export_result = build_export_payload(form, user_id, store_content=True)
-        record_export(user_id, export_result['cid_value'])
+        build_export_preview(form)
+        export_result = build_export_payload(form, store_content=True)
+        record_export(export_result['cid_value'])
         export_result['generated_at'] = datetime.now(timezone.utc).isoformat()
         return export_result
     except RuntimeError as exc:
@@ -241,7 +238,7 @@ def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> A
     for message in context.info_messages:
         flash(message, 'success')
 
-    snapshot_export = generate_snapshot_export(context.user_id)
+    snapshot_export = generate_snapshot_export()
     context.snapshot_export = snapshot_export
 
     if snapshot_export:
@@ -255,7 +252,6 @@ def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> A
     if context.errors or context.warnings or context.summaries:
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=context.user_id,
                 entity_type='import',
                 entity_name='json',
                 action='save',

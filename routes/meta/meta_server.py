@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from db_access import get_server_by_name
-from identity import current_user
 
 from .meta_path_utils import dedupe_links
 
@@ -38,7 +37,7 @@ def resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
     if function_name:
         payload["resolution"]["function_name"] = function_name
 
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server:
         return None
 
@@ -92,13 +91,13 @@ def resolve_versioned_server_path(path: str) -> Optional[Dict[str, Any]]:
     if function_name:
         payload["resolution"]["function_name"] = function_name
 
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server:
         return None
 
     from routes.servers import get_server_definition_history
 
-    history = get_server_definition_history(current_user.id, server_name)
+    history = get_server_definition_history(server_name)
     matches = [
         entry
         for entry in history

@@ -29,7 +29,6 @@ def test_variables_page_lists_user_variables(
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
@@ -56,7 +55,6 @@ def test_variables_page_includes_enabled_toggle(
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(variable)
@@ -86,7 +84,6 @@ def test_variable_enable_toggle_updates_state(
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(variable)
@@ -128,7 +125,6 @@ def test_variable_detail_page_displays_variable_information(
         variable = Variable(
             name="API_TOKEN",
             definition="super-secret-token",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
@@ -185,7 +181,6 @@ def test_new_variable_form_includes_templates(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -231,7 +226,6 @@ def test_new_variable_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -260,7 +254,6 @@ def test_edit_variable_form_displays_existing_variable_details(
         variable = Variable(
             name="API_TOKEN",
             definition="super-secret-token",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
@@ -287,12 +280,11 @@ def test_edit_variable_updates_definition_snapshot(
         variable = Variable(
             name="city",
             definition="return 'Paris'",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
 
-        initial_snapshot_cid = store_variable_definitions_cid("default-user")
+        initial_snapshot_cid = store_variable_definitions_cid()
 
     login_default_user()
 
@@ -314,13 +306,12 @@ def test_edit_variable_updates_definition_snapshot(
 
     with integration_app.app_context():
         updated_variable = Variable.query.filter_by(
-            user_id="default-user",
             name="region",
         ).first()
         assert updated_variable is not None
         assert updated_variable.definition == updated_definition
 
-        expected_snapshot_json = generate_all_variable_definitions_json("default-user")
+        expected_snapshot_json = generate_all_variable_definitions_json()
         expected_snapshot_cid = format_cid(
             generate_cid(expected_snapshot_json.encode("utf-8"))
         )

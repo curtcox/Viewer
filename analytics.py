@@ -14,7 +14,6 @@ from db_access import (
     rollback_session,
     save_page_view,
 )
-from identity import current_user
 from models import PageView  # noqa: F401
 
 
@@ -43,7 +42,6 @@ def should_track_page_view(response: Response) -> bool:
 def create_page_view_record() -> PageView:
     """Create a page view record for the current request."""
     return PageView(
-        user_id=current_user.id,
         path=request.path,
         method=request.method,
         user_agent=request.headers.get('User-Agent', '')[:500],
@@ -52,7 +50,7 @@ def create_page_view_record() -> PageView:
 
 
 def track_page_view(response: Response) -> Response:
-    """Track page views for authenticated users."""
+    """Track page views."""
     try:
         if should_track_page_view(response):
             page_view = create_page_view_record()
@@ -64,16 +62,16 @@ def track_page_view(response: Response) -> Response:
     return response
 
 
-def get_user_history_statistics(user_id: str) -> Dict[str, Any]:
-    """Calculate history statistics for a user."""
+def get_history_statistics() -> Dict[str, Any]:
+    """Calculate history statistics."""
     # Get total views count
-    total_views = count_user_page_views(user_id)
+    total_views = count_user_page_views()
 
     # Get unique paths count
-    unique_paths = count_unique_page_view_paths(user_id)
+    unique_paths = count_unique_page_view_paths()
 
     # Get most visited paths
-    popular_paths = get_popular_page_paths(user_id)
+    popular_paths = get_popular_page_paths()
 
     return {
         'total_views': total_views,
@@ -82,9 +80,9 @@ def get_user_history_statistics(user_id: str) -> Dict[str, Any]:
     }
 
 
-def get_paginated_page_views(user_id: str, page: int, per_page: int = 50) -> Pagination:
-    """Get paginated page views for a user."""
-    return paginate_user_page_views(user_id, page, per_page=per_page)
+def get_paginated_page_views(page: int, per_page: int = 50) -> Pagination:
+    """Get paginated page views."""
+    return paginate_user_page_views(page, per_page=per_page)
 
 
 __all__ = [
@@ -92,6 +90,6 @@ __all__ = [
     'should_track_page_view',
     'create_page_view_record',
     'track_page_view',
-    'get_user_history_statistics',
+    'get_history_statistics',
     'get_paginated_page_views',
 ]

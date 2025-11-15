@@ -65,7 +65,7 @@ def migrate_add_server_cid():
             for server in servers:
                 if not server.definition_cid and server.definition:
                     # Generate CID for existing definition
-                    cid = save_server_definition_as_cid(server.definition, server.user_id)
+                    cid = save_server_definition_as_cid(server.definition)
                     server.definition_cid = cid
                     print(f"✓ Updated server '{server.name}' with CID: {cid}")
                     save_entity(server)

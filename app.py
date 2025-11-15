@@ -24,7 +24,7 @@ from cid_presenter import (
     render_cid_link,
 )
 from database import db, init_db
-from identity import current_user, ensure_default_user, ensure_default_user_resources
+from identity import ensure_default_resources
 from link_presenter import (
     alias_full_url,
     alias_path,
@@ -163,12 +163,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     register_response_format_handlers(flask_app)
 
     @flask_app.context_processor
-    def inject_identity() -> dict[str, Any]:
-        """Expose the always-on user to templates."""
-
-        return {"current_user": current_user}
-
-    @flask_app.context_processor
     def inject_template_helpers() -> dict[str, Any]:
         """Expose template management helpers to all templates."""
         from template_status import get_template_link_info, generate_template_status_label
@@ -203,8 +197,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        default_user = ensure_default_user()
-        load_cids_from_directory(flask_app, default_user.id)
+        load_cids_from_directory(flask_app)
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
@@ -219,7 +212,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
         }
 
-        ensure_default_user_resources()
+        ensure_default_resources()
 
     return flask_app
 

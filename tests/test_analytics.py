@@ -88,7 +88,7 @@ class TestAnalytics(unittest.TestCase):
                 result = track_page_view(response)
 
         self.assertIs(result, response)
-        stored = PageView.query.filter_by(user_id=self.user_id).one()
+        stored = PageView.query.filter_by(path="/servers").one()
         self.assertEqual(stored.path, "/servers")
         self.assertEqual(stored.method, "GET")
         self.assertEqual(stored.user_agent, long_user_agent[:500])
@@ -123,7 +123,6 @@ class TestAnalytics(unittest.TestCase):
             ):
                 record = create_page_view_record()
 
-        self.assertEqual(record.user_id, self.user_id)
         self.assertEqual(record.path, "/notes")
         self.assertEqual(record.method, "POST")
         self.assertEqual(record.user_agent, "AgentX")
@@ -132,15 +131,14 @@ class TestAnalytics(unittest.TestCase):
     def test_get_user_history_statistics(self):
         now = datetime.now(timezone.utc)
         views = [
-            PageView(user_id=self.user_id, path="/a", viewed_at=now),
-            PageView(user_id=self.user_id, path="/a", viewed_at=now + timedelta(minutes=1)),
-            PageView(user_id=self.user_id, path="/b", viewed_at=now + timedelta(minutes=2)),
-            PageView(user_id="other", path="/a", viewed_at=now + timedelta(minutes=3)),
+            PageView(path="/a", viewed_at=now),
+            PageView(path="/a", viewed_at=now + timedelta(minutes=1)),
+            PageView(path="/b", viewed_at=now + timedelta(minutes=2)),
         ]
         db.session.add_all(views)
         db.session.commit()
 
-        stats = get_user_history_statistics(self.user_id)
+        stats = get_user_history_statistics()
         self.assertEqual(stats["total_views"], 3)
         self.assertEqual(stats["unique_paths"], 2)
         self.assertEqual(stats["popular_paths"][0].path, "/a")
@@ -151,14 +149,13 @@ class TestAnalytics(unittest.TestCase):
         for offset, path in enumerate(["/first", "/second", "/third"], start=1):
             db.session.add(
                 PageView(
-                    user_id=self.user_id,
                     path=path,
                     viewed_at=base_time + timedelta(hours=offset),
                 )
             )
         db.session.commit()
 
-        page = get_paginated_page_views(self.user_id, page=1, per_page=2)
+        page = get_paginated_page_views(page=1, per_page=2)
         self.assertEqual(page.total, 3)
         self.assertEqual(len(page.items), 2)
         self.assertEqual([item.path for item in page.items], ["/third", "/second"])

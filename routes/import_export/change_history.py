@@ -9,11 +9,11 @@ from db_access import (
     EntityInteractionLookup,
     EntityInteractionRequest,
     find_entity_interaction,
+    get_aliases,
     get_entity_interactions,
-    get_user_aliases,
-    get_user_secrets,
-    get_user_servers,
-    get_user_variables,
+    get_secrets,
+    get_servers,
+    get_variables,
     record_entity_interaction,
 )
 
@@ -43,10 +43,10 @@ def serialise_interaction_history(user_id: str, entity_type: str, entity_name: s
 def gather_change_history(user_id: str) -> dict[str, dict[str, list[dict[str, str]]]]:
     """Return change history grouped by entity collection."""
     collections: dict[str, tuple[str, Iterable[str]]] = {
-        'aliases': ('alias', (alias.name for alias in get_user_aliases(user_id))),
-        'servers': ('server', (server.name for server in get_user_servers(user_id))),
-        'variables': ('variable', (variable.name for variable in get_user_variables(user_id))),
-        'secrets': ('secret', (secret.name for secret in get_user_secrets(user_id))),
+        'aliases': ('alias', (alias.name for alias in get_aliases())),
+        'servers': ('server', (server.name for server in get_servers())),
+        'variables': ('variable', (variable.name for variable in get_variables())),
+        'secrets': ('secret', (secret.name for secret in get_secrets())),
     }
 
     history_payload: dict[str, dict[str, list[dict[str, str]]]] = {}

@@ -14,7 +14,6 @@ from db_access import (
     get_user_template_secrets,
 )
 from forms import BulkSecretsForm, SecretForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Secret
 from serialization import model_to_dict
@@ -29,13 +28,13 @@ from .entities import create_entity, update_entity
 _bulk_editor = create_secret_bulk_handler()
 
 
-def update_secret_definitions_cid(user_id):
+def update_secret_definitions_cid():
     """Update the secret definitions CID after secret changes."""
-    return store_secret_definitions_cid(user_id)
+    return store_secret_definitions_cid()
 
 
 def user_secrets():
-    return get_user_secrets(current_user.id)
+    return get_user_secrets()
 
 
 def _build_secrets_editor_payload(secret_list: List[Secret]) -> str:
@@ -48,16 +47,16 @@ def _parse_secrets_editor_payload(raw_payload: str) -> Tuple[Optional[Dict[str, 
     return _bulk_editor.parse_payload(raw_payload)
 
 
-def _apply_secrets_editor_changes(user_id: str, desired_values: Dict[str, str], existing: List[Secret]) -> None:
-    """Persist the desired secrets, replacing the user's current collection."""
-    _bulk_editor.apply_changes(user_id, desired_values, existing)
+def _apply_secrets_editor_changes(desired_values: Dict[str, str], existing: List[Secret]) -> None:
+    """Persist the desired secrets, replacing the current collection."""
+    _bulk_editor.apply_changes(desired_values, existing)
 
 
-def _build_secrets_list_context(secrets_list: list, user_id: str) -> Dict[str, str]:
+def _build_secrets_list_context(secrets_list: list) -> Dict[str, str]:
     """Build extra context for secrets list view."""
     context = {}
     if secrets_list:
-        context['secret_definitions_cid'] = get_current_secret_definitions_cid(user_id)
+        context['secret_definitions_cid'] = get_current_secret_definitions_cid()
     return context
 
 
@@ -93,8 +92,8 @@ def bulk_edit_secrets():
         if error:
             form.secrets_json.errors.append(error)
         else:
-            _apply_secrets_editor_changes(current_user.id, normalized, secrets_list)
-            update_secret_definitions_cid(current_user.id)
+            _apply_secrets_editor_changes(normalized, secrets_list)
+            update_secret_definitions_cid()
             flash('Secrets updated successfully!', 'success')
             return redirect(url_for('main.secrets'))
 
@@ -124,14 +123,13 @@ def new_secret():
             'definition': secret.definition or '',
             'suggested_name': f"{secret.name}-copy" if secret.name else '',
         }
-        for secret in get_user_template_secrets(current_user.id)
+        for secret in get_user_template_secrets()
     ]
 
     if form.validate_on_submit():
         if create_entity(
             Secret,
             form,
-            current_user.id,
             'secret',
             change_message=change_message,
             content_text=definition_text,
@@ -139,9 +137,9 @@ def new_secret():
             return redirect(url_for('main.secrets'))
 
     entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(current_user.id, 'secret', entity_name_hint)
+    interaction_history = load_interaction_history('secret', entity_name_hint)
 
-    template_link_info = get_template_link_info(current_user.id, 'secrets')
+    template_link_info = get_template_link_info('secrets')
 
     return render_template(
         'secret_form.html',
@@ -159,7 +157,7 @@ def new_secret():
 @main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
 def edit_secret(secret_name):
     """Edit a specific secret."""
-    secret = get_secret_by_name(current_user.id, secret_name)
+    secret = get_secret_by_name(secret_name)
     if not secret:
         abort(404)
 
@@ -168,7 +166,7 @@ def edit_secret(secret_name):
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or secret.definition or ''
 
-    interaction_history = load_interaction_history(current_user.id, 'secret', secret.name)
+    interaction_history = load_interaction_history('secret', secret.name)
 
     if form.validate_on_submit():
         if update_entity(

@@ -49,20 +49,19 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
     )
 
 
-def create_cid_record(cid: str, file_content: bytes, user_id: str) -> CID:
+def create_cid_record(cid: str, file_content: bytes) -> CID:
     """Create a new CID record."""
     record = CID(
         path=f"/{cid}",
         file_data=file_content,
         file_size=len(file_content),
-        uploaded_by_user_id=user_id,
     )
     save_entity(record)
     return record
 
 
-def get_user_uploads(user_id: str) -> List[CID]:
-    """Return all CID uploads for a user ordered from newest to oldest."""
+def get_uploads() -> List[CID]:
+    """Return all CID uploads ordered from newest to oldest."""
     session_provider = getattr(models, "db", None)
     if session_provider is not None and hasattr(session_provider, "session"):
         query = session_provider.session.query
@@ -71,7 +70,6 @@ def get_user_uploads(user_id: str) -> List[CID]:
 
     return (
         query(CID)
-        .filter(CID.uploaded_by_user_id == user_id)
         .order_by(CID.created_at.desc())
         .all()
     )
@@ -175,14 +173,9 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
             )
             if definition_changed:
                 server.definition = updated_definition
-                server.definition_cid = save_definition(
-                    updated_definition,
-                    server.user_id,
-                )
+                server.definition_cid = save_definition(updated_definition)
                 server.updated_at = now
                 server_updates += 1
-                if server.user_id:
-                    updated_server_users.add(server.user_id)
 
     total_updates = alias_updates + server_updates
     if not total_updates:
@@ -190,9 +183,8 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
 
     db.session.commit()
 
-    if server_updates and updated_server_users:
-        for user_id in updated_server_users:
-            store_definitions(user_id)
+    if server_updates:
+        store_definitions()
 
     return {"aliases": alias_updates, "servers": server_updates}
 

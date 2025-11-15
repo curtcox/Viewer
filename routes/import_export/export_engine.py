@@ -74,7 +74,6 @@ def build_export_payload(
     }
     base_path = app_root_path()
     cid_writer = CidWriter(
-        user_id=user_id,
         include_optional=form.include_cid_map.data,
         store_content=store_content,
     )

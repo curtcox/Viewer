@@ -33,7 +33,6 @@ def test_servers_page_lists_user_servers(
                 "    return f\"Forecast for {city}\"\n"
             ),
             definition_cid="bafyweatherdefinition",
-            user_id="default-user",
         )
         db.session.add(server)
         db.session.commit()
@@ -60,7 +59,6 @@ def test_servers_page_includes_enabled_toggle(
         server = Server(
             name="weather",
             definition="def main():\n    return 'ok'\n",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(server)
@@ -90,7 +88,6 @@ def test_server_enable_toggle_updates_state(
         server = Server(
             name="weather",
             definition="def main():\n    return 'ok'\n",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(server)
@@ -106,7 +103,7 @@ def test_server_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        server = Server.query.filter_by(user_id="default-user", name="weather").one()
+        server = Server.query.filter_by(name="weather").one()
         assert server.enabled is True
 
     response = client.post(
@@ -117,7 +114,7 @@ def test_server_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        server = Server.query.filter_by(user_id="default-user", name="weather").one()
+        server = Server.query.filter_by(name="weather").one()
         assert server.enabled is False
 
 
@@ -141,7 +138,6 @@ def test_servers_page_shows_referenced_variables_and_secrets(
                 "    return f'{city} {units} {token or fallback}'\n"
             ),
             definition_cid="bafyreferencelinks",
-            user_id="default-user",
         )
         db.session.add(server)
         db.session.commit()
@@ -172,15 +168,13 @@ def test_servers_page_links_auto_main_context_matches(
             Variable(
                 name="city",
                 definition="return 'London'",
-                user_id="default-user",
-            )
+                )
         )
         db.session.add(
             Secret(
                 name="api_token",
                 definition="return 'secret'",
-                user_id="default-user",
-            )
+                )
         )
         db.session.add(
             Server(
@@ -189,8 +183,7 @@ def test_servers_page_links_auto_main_context_matches(
                     "def main(city, api_token):\n"
                     "    return {\"output\": city + api_token}\n"
                 ),
-                user_id="default-user",
-            )
+                )
         )
         db.session.commit()
 
@@ -247,7 +240,6 @@ def test_new_server_form_includes_saved_templates(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -287,7 +279,6 @@ def test_new_server_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -320,7 +311,6 @@ def test_server_detail_page_displays_server_information(
                 "    return f\"Forecast for {city}\"\n"
             ),
             definition_cid="bafyweatherdefinition",
-            user_id="default-user",
         )
         db.session.add(server)
         db.session.commit()
@@ -352,18 +342,16 @@ def test_edit_server_updates_definition_snapshots(
         )
         original_cid = save_server_definition_as_cid(
             original_definition,
-            "default-user",
         )
         server = Server(
             name="weather",
             definition=original_definition,
             definition_cid=original_cid,
-            user_id="default-user",
         )
         db.session.add(server)
         db.session.commit()
 
-        initial_snapshot_cid = store_server_definitions_cid("default-user")
+        initial_snapshot_cid = store_server_definitions_cid()
 
     login_default_user()
 
@@ -388,7 +376,6 @@ def test_edit_server_updates_definition_snapshots(
 
     with integration_app.app_context():
         updated_server = Server.query.filter_by(
-            user_id="default-user",
             name="forecast",
         ).first()
         assert updated_server is not None
@@ -405,7 +392,7 @@ def test_edit_server_updates_definition_snapshots(
         assert definition_record is not None
         assert definition_record.file_data.decode("utf-8") == updated_definition
 
-        expected_snapshot_json = generate_all_server_definitions_json("default-user")
+        expected_snapshot_json = generate_all_server_definitions_json()
         expected_snapshot_cid = format_cid(
             generate_cid(expected_snapshot_json.encode("utf-8"))
         )

@@ -5,8 +5,6 @@ from urllib.parse import urljoin, urlsplit
 
 from flask import current_app, has_app_context, has_request_context, request, session
 
-from identity import current_user
-
 VARIABLE_PREFETCH_SESSION_KEY = "__viewer_variable_prefetch__"
 _MAX_VARIABLE_REDIRECTS = 5
 _REDIRECT_STATUSES = {301, 302, 303, 307, 308}
@@ -58,23 +56,6 @@ def _resolve_redirect_target(location: str, current_path: str) -> Optional[str]:
     return candidate
 
 
-def _current_user_id() -> Optional[Any]:
-    """Extract the current user ID, handling callable and non-callable forms."""
-    user_id = getattr(current_user, "id", None)
-    if callable(user_id):
-        try:
-            user_id = user_id()
-        except TypeError:
-            user_id = None
-
-    if user_id:
-        return user_id
-
-    # Fallback to get_id() method
-    getter = getattr(current_user, "get_id", None)
-    return getter() if callable(getter) else None
-
-
 def _fetch_variable_via_client(client: Any, start_path: str) -> Optional[str]:
     """Fetch content from a path via test client, following redirects up to a limit."""
     visited: set[str] = set()
@@ -119,14 +100,9 @@ def _fetch_variable_content(path: str) -> Optional[str]:
     if has_request_context() and normalized == request.path:
         return None
 
-    user_id = _current_user_id()
-    if not user_id:
-        return None
-
     client = current_app.test_client()
     try:
         with client.session_transaction() as sess:
-            sess["_user_id"] = str(user_id)
             sess["_fresh"] = True
             sess[VARIABLE_PREFETCH_SESSION_KEY] = True
 

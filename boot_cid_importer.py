@@ -166,7 +166,7 @@ def verify_boot_cid_dependencies(boot_cid: str) -> tuple[bool, Optional[str]]:
     return True, None
 
 
-def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Optional[str]]:
+def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
     """Import a boot CID using the same mechanism as the /import page.
 
     Note: This function must be called within an app.app_context().
@@ -174,7 +174,6 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     Args:
         app: Flask application instance
         boot_cid: The CID value to import
-        user_id: The user ID to associate with the import
 
     Returns:
         A tuple of (success, error_message)
@@ -221,7 +220,6 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
 
     context = ImportContext(
         form=form,
-        user_id=user_id,
         change_message=f"Boot import from CID {boot_cid}",
         raw_payload=raw_payload,
         data=payload,
@@ -248,7 +246,7 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
     from routes.import_export.import_engine import (  # pylint: disable=import-outside-toplevel
         generate_snapshot_export,
     )
-    snapshot_export = generate_snapshot_export(user_id)
+    snapshot_export = generate_snapshot_export()
 
     # Log success
     if context.summaries:

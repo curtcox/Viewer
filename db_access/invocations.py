@@ -14,8 +14,8 @@ class ServerInvocationInput:
     """Optional CID metadata recorded alongside a ``ServerInvocation``.
 
     Instances capture the optional content identifiers associated with an
-    invocation.  ``create_server_invocation`` always requires ``user_id``,
-    ``server_name``, and ``result_cid`` arguments while all attributes on this
+    invocation.  ``create_server_invocation`` always requires
+    ``server_name`` and ``result_cid`` arguments while all attributes on this
     helper remain optional.
     """
 
@@ -27,7 +27,6 @@ class ServerInvocationInput:
 
 
 def create_server_invocation(
-    user_id: str,
     server_name: str,
     result_cid: str,
     cid_metadata: Optional[Union[ServerInvocationInput, Dict[str, Optional[str]]]] = None,
@@ -36,7 +35,6 @@ def create_server_invocation(
     """Persist a ``ServerInvocation`` record.
 
     Args:
-        user_id: Identifier for the user who triggered the invocation.
         server_name: Name of the executed server.
         result_cid: CID that stores the invocation result payload.
         cid_metadata: Optional ``ServerInvocationInput`` (or mapping with the
@@ -67,7 +65,6 @@ def create_server_invocation(
     cid_data = ServerInvocationInput(**merged)
 
     invocation = ServerInvocation(
-        user_id=user_id,
         server_name=server_name,
         result_cid=result_cid,
         servers_cid=cid_data.servers_cid,
@@ -80,31 +77,26 @@ def create_server_invocation(
     return invocation
 
 
-def get_user_server_invocations(user_id: str) -> List[ServerInvocation]:
-    """Return invocation events for a user ordered from newest to oldest."""
+def get_server_invocations() -> List[ServerInvocation]:
+    """Return invocation events ordered from newest to oldest."""
     return (
         ServerInvocation.query
-        .filter(ServerInvocation.user_id == user_id)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
 
 
-def get_user_server_invocations_by_server(user_id: str, server_name: str) -> List[ServerInvocation]:
+def get_server_invocations_by_server(server_name: str) -> List[ServerInvocation]:
     """Return invocation events for a specific server ordered from newest to oldest."""
     return (
         ServerInvocation.query
-        .filter(
-            ServerInvocation.user_id == user_id,
-            ServerInvocation.server_name == server_name,
-        )
+        .filter(ServerInvocation.server_name == server_name)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
 
 
-def get_user_server_invocations_by_result_cids(
-    user_id: str,
+def get_server_invocations_by_result_cids(
     result_cids: Iterable[str],
 ) -> List[ServerInvocation]:
     """Return invocation events matching any of the provided result CIDs."""
@@ -114,10 +106,7 @@ def get_user_server_invocations_by_result_cids(
 
     return (
         ServerInvocation.query
-        .filter(
-            ServerInvocation.user_id == user_id,
-            ServerInvocation.result_cid.in_(cid_values),
-        )
+        .filter(ServerInvocation.result_cid.in_(cid_values))
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )

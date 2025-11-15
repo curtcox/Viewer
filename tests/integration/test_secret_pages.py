@@ -62,7 +62,6 @@ def test_new_secret_form_includes_templates(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -102,7 +101,6 @@ def test_new_secret_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -131,7 +129,6 @@ def test_edit_secret_form_displays_existing_secret(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
@@ -160,7 +157,6 @@ def test_secret_detail_page_displays_secret_information(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
@@ -189,12 +185,10 @@ def test_secrets_list_page_displays_user_secrets(
         first_secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         second_secret = Secret(
             name="staging-api-key",
             definition="staging-secret-value",
-            user_id="default-user",
         )
         db.session.add_all([first_secret, second_secret])
         db.session.commit()
@@ -222,7 +216,6 @@ def test_secrets_page_includes_enabled_toggle(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(secret)
@@ -252,7 +245,6 @@ def test_secret_enable_toggle_updates_state(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(secret)
@@ -269,7 +261,6 @@ def test_secret_enable_toggle_updates_state(
 
     with integration_app.app_context():
         secret = Secret.query.filter_by(
-            user_id="default-user",
             name="production-api-key",
         ).one()
         assert secret.enabled is True
@@ -283,7 +274,6 @@ def test_secret_enable_toggle_updates_state(
 
     with integration_app.app_context():
         secret = Secret.query.filter_by(
-            user_id="default-user",
             name="production-api-key",
         ).one()
         assert secret.enabled is False
@@ -300,12 +290,11 @@ def test_edit_secret_updates_definition_snapshot(
         secret = Secret(
             name="api-token",
             definition="return 'old-secret'",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
 
-        initial_snapshot_cid = store_secret_definitions_cid("default-user")
+        initial_snapshot_cid = store_secret_definitions_cid()
 
     login_default_user()
 
@@ -327,13 +316,12 @@ def test_edit_secret_updates_definition_snapshot(
 
     with integration_app.app_context():
         updated_secret = Secret.query.filter_by(
-            user_id="default-user",
             name="service-token",
         ).first()
         assert updated_secret is not None
         assert updated_secret.definition == updated_definition
 
-        expected_snapshot_json = generate_all_secret_definitions_json("default-user")
+        expected_snapshot_json = generate_all_secret_definitions_json()
         expected_snapshot_cid = format_cid(
             generate_cid(expected_snapshot_json.encode("utf-8"))
         )

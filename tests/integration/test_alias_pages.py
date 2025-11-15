@@ -22,7 +22,6 @@ def test_aliases_page_lists_user_aliases(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            user_id="default-user",
             definition=format_primary_alias_line(
                 "literal",
                 None,
@@ -53,7 +52,6 @@ def test_aliases_page_includes_enabled_toggle(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            user_id="default-user",
             enabled=False,
             definition=format_primary_alias_line(
                 "literal",
@@ -88,7 +86,6 @@ def test_alias_enable_toggle_updates_state(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            user_id="default-user",
             enabled=False,
             definition=format_primary_alias_line(
                 "literal",
@@ -110,7 +107,7 @@ def test_alias_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        alias = Alias.query.filter_by(user_id="default-user", name="docs").one()
+        alias = Alias.query.filter_by(name="docs").one()
         assert alias.enabled is True
 
     response = client.post(
@@ -121,7 +118,7 @@ def test_alias_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        alias = Alias.query.filter_by(user_id="default-user", name="docs").one()
+        alias = Alias.query.filter_by(name="docs").one()
         assert alias.enabled is False
 
 
@@ -153,7 +150,6 @@ def test_alias_detail_page_displays_alias_information(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            user_id="default-user",
             definition=format_primary_alias_line(
                 "literal",
                 None,
@@ -206,7 +202,6 @@ def test_new_alias_form_includes_template_options(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -252,7 +247,6 @@ def test_new_alias_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)

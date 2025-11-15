@@ -158,13 +158,11 @@ class TestCIDFunctionality(unittest.TestCase):
             cid_record = create_cid_record(
                 cid=cid,
                 file_content=file_content,
-                user_id=test_user.id
             )
             # Verify record properties
             self.assertEqual(cid_record.path, f"/{cid}")
             self.assertEqual(cid_record.file_data, file_content)
             self.assertEqual(cid_record.file_size, len(file_content))
-            self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
 
             # Verify fields that should NOT exist
             self.assertFalse(hasattr(cid_record, 'content'))
@@ -186,8 +184,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -223,8 +220,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -255,8 +251,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -285,8 +280,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -317,8 +311,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=markdown_body,
                     file_size=len(markdown_body),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -347,8 +340,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -444,8 +436,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -476,8 +467,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -506,7 +496,6 @@ class TestCIDFunctionality(unittest.TestCase):
                 path=f"/{cid}",
                 file_data=file_content,
                 file_size=len(file_content),
-                uploaded_by_user_id=test_user.id
             )
             db.session.add(cid_record)
             db.session.commit()
@@ -516,7 +505,6 @@ class TestCIDFunctionality(unittest.TestCase):
             self.assertEqual(cid_record.path, f"/{cid}")
             self.assertEqual(cid_record.file_data, file_content)
             self.assertEqual(cid_record.file_size, len(file_content))
-            self.assertEqual(cid_record.uploaded_by_user_id, test_user.id)
             self.assertIsNotNone(cid_record.created_at)
 
             # Verify removed fields don't exist
@@ -542,8 +530,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path="/bafybei123",
                     file_data=b"test content",  # Valid data initially
                     file_size=12,
-                    uploaded_by_user_id=test_user.id
-                )
+                    )
                 db.session.add(cid_record)
                 db.session.commit()
 

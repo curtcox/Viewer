@@ -8,7 +8,6 @@ from flask import url_for
 from cid_presenter import cid_path, format_cid
 from db_access import find_server_invocations_by_cid, get_cid_by_path
 from entity_references import extract_references_from_bytes
-from identity import current_user
 
 from .meta_path_utils import dedupe_links, split_extension
 
@@ -111,10 +110,8 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         metadata["server_events"] = server_events
         metadata["source_links"] = dedupe_links(metadata["source_links"] + ["/source/server_execution.py"])
 
-    user_id = current_user.id
     references = extract_references_from_bytes(
         getattr(cid_record, "file_data", None),
-        user_id,
     )
     if any(references.values()):
         metadata["referenced_entities"] = references

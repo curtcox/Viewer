@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, Optional, Type
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, url_for
 
 from db_access import delete_entity, save_entity
-from identity import current_user
 from serialization import model_to_dict
 
 from .enabled import extract_enabled_value_from_request, request_prefers_json
@@ -88,8 +87,8 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], 
     """
     @bp.route(f'/{config.plural_name}')
     def list_entities() -> Any:
-        """List all entities for the current user."""
-        entities_list = config.get_user_entities(current_user.id)
+        """List all entities."""
+        entities_list = config.get_user_entities()
 
         if wants_structured_response():
             return jsonify([config.to_json(e) for e in entities_list])
@@ -98,12 +97,12 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], 
 
         # Add entity-specific list context
         if config.build_list_context:
-            extra_context = config.build_list_context(entities_list, current_user.id)
+            extra_context = config.build_list_context(entities_list)
             context.update(extra_context)
 
         # Add CID if available
         if config.update_cid and entities_list:
-            cid = config.update_cid(current_user.id)
+            cid = config.update_cid()
             context[f'{config.entity_type}_definitions_cid'] = cid
 
         return render_template(config.list_template, **context)
@@ -126,7 +125,7 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[...,
     def view_entity(**kwargs: Any) -> Any:
         """View a specific entity."""
         entity_name = kwargs[config.param_name]
-        entity = config.get_by_name(current_user.id, entity_name)
+        entity = config.get_by_name(entity_name)
         if not entity:
             abort(404)
 
@@ -137,7 +136,7 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[...,
 
         # Add entity-specific view context
         if config.build_view_context:
-            extra_context = config.build_view_context(entity, current_user.id)
+            extra_context = config.build_view_context(entity)
             context.update(extra_context)
 
         return render_template(config.view_template, **context)
@@ -160,7 +159,7 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig) -> Cal
     def update_entity_enabled(**kwargs: Any) -> Any:
         """Toggle the enabled status for an entity."""
         entity_name = kwargs[config.param_name]
-        entity = config.get_by_name(current_user.id, entity_name)
+        entity = config.get_by_name(entity_name)
         if not entity:
             abort(404)
 
@@ -174,7 +173,7 @@ def create_enabled_toggle_route(bp: Blueprint, config: EntityRouteConfig) -> Cal
         save_entity(entity)
 
         if config.update_cid:
-            config.update_cid(current_user.id)
+            config.update_cid()
 
         if request_prefers_json():
             return jsonify({config.entity_type: entity.name, 'enabled': entity.enabled})
@@ -199,14 +198,14 @@ def create_delete_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[..
     def delete_entity_route(**kwargs: Any) -> Any:
         """Delete a specific entity."""
         entity_name = kwargs[config.param_name]
-        entity = config.get_by_name(current_user.id, entity_name)
+        entity = config.get_by_name(entity_name)
         if not entity:
             abort(404)
 
         delete_entity(entity)
 
         if config.update_cid:
-            config.update_cid(current_user.id)
+            config.update_cid()
 
         flash(EntityMessages.deleted(config.entity_type, entity_name), 'success')
         return redirect(url_for(f'main.{config.plural_name}'))

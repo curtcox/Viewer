@@ -34,7 +34,7 @@ def test_server_cid_functionality():
 
         # Test 1: Test save_server_definition_as_cid function
         definition1 = "print('Hello World')"
-        cid1 = save_server_definition_as_cid(definition1, test_user_id)
+        cid1 = save_server_definition_as_cid(definition1)
 
         # Verify CID was generated
         assert cid1 is not None
@@ -51,7 +51,7 @@ def test_server_cid_functionality():
         print("✓ CID record created in database")
 
         # Test 2: Test duplicate CID handling
-        cid2 = save_server_definition_as_cid(definition1, test_user_id)
+        cid2 = save_server_definition_as_cid(definition1)
         assert cid1 == cid2  # Should return same CID for same content
 
         # Should still only have one CID record
@@ -61,13 +61,13 @@ def test_server_cid_functionality():
 
         # Test 3: Test different content generates different CID
         definition2 = "print('Hello Universe')"
-        cid3 = save_server_definition_as_cid(definition2, test_user_id)
+        cid3 = save_server_definition_as_cid(definition2)
         assert cid3 != cid1
         print(f"✓ Different content generates different CID: {cid3}")
 
         # Test 4: Test direct server creation with CID
         definition = "print('Server code')"
-        cid = save_server_definition_as_cid(definition, test_user_id)
+        cid = save_server_definition_as_cid(definition)
 
         # Create server directly
         server = Server(
@@ -99,7 +99,7 @@ def test_server_cid_functionality():
 
         # Update server with new definition and CID
         if new_definition != server.definition:
-            new_cid = save_server_definition_as_cid(new_definition, server.user_id)
+            new_cid = save_server_definition_as_cid(new_definition)
             server.definition_cid = new_cid
 
         server.definition = new_definition

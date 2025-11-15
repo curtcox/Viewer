@@ -26,7 +26,7 @@ def _iter_candidate_files(directory: Path) -> Iterable[Path]:
         yield entry
 
 
-def load_cids_from_directory(app: Flask, user_id: str) -> None:
+def load_cids_from_directory(app: Flask) -> None:
     """Ensure the database contains CID entries for files in the directory.
 
     The directory defaults to ``app.root_path / "cids"`` but can be overridden via
@@ -70,7 +70,7 @@ def load_cids_from_directory(app: Flask, user_id: str) -> None:
         existing = get_cid_by_path(cid_path)
 
         if existing is None:
-            create_cid_record(generated_cid, file_bytes, user_id)
+            create_cid_record(generated_cid, file_bytes)
             LOGGER.info("Loaded CID %s from %s", generated_cid, file_path)
         else:
             if existing.file_data != file_bytes:

@@ -15,7 +15,7 @@ from werkzeug.routing import Map, RequestRedirect, Rule
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
 from db_access import get_user_aliases, get_user_variables
-from identity import current_user, ensure_default_user
+from identity import ensure_default_resources
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
 
@@ -158,29 +158,15 @@ def _resolve_user_id(user: Any) -> Optional[str]:
 def find_matching_alias(path: str) -> Optional[AliasMatch]:
     """Return the first alias route that matches the path.
 
-    Aliases are resolved for the active user first. When that user has no
-    matching alias, fall back to the default user's aliases so shared
-    resources such as the CSS helper remain available for every visitor.
+    Returns the first alias that matches the given path.
     """
 
-    default_user = ensure_default_user()
-    default_user_id = _resolve_user_id(default_user)
+    # Ensure default resources are initialized
+    ensure_default_resources()
 
-    active_user_id = _resolve_user_id(current_user)
-    candidate_ids: list[str] = []
-
-    if active_user_id:
-        candidate_ids.append(active_user_id)
-
-    if default_user_id and default_user_id not in candidate_ids:
-        candidate_ids.append(default_user_id)
-
-    for user_id in candidate_ids:
-        match = _match_alias_for_user(path, user_id)
-        if match is not None:
-            return match
-
-    return None
+    # Match against all aliases (no user scoping needed)
+    match = _match_alias_for_user(path, None)
+    return match
 
 
 @lru_cache(maxsize=128)

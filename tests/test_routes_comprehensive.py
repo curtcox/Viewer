@@ -309,7 +309,7 @@ def main(request):
         page = response.get_data(as_text=True)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user_id)
+            cross_reference = _build_cross_reference_data()
         cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
         alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'linked')
         server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'linked')
@@ -377,7 +377,7 @@ def main(request):
         page = response.get_data(as_text=True)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user_id)
+            cross_reference = _build_cross_reference_data()
 
         alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-server')
         relay_cid_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-cid')
@@ -482,7 +482,7 @@ def main(request):
         page = response.get_data(as_text=True)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user_id)
+            cross_reference = _build_cross_reference_data()
 
         source_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-source')
         target_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-target')
@@ -555,7 +555,7 @@ def main(request):
         self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user_id)
+            cross_reference = _build_cross_reference_data()
 
         self.assertFalse(
             any(entry['cid'] == cid_value for entry in cross_reference['cids']),
@@ -857,7 +857,7 @@ def main(request):
         self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
-            cross_reference = _build_cross_reference_data(self.test_user_id)
+            cross_reference = _build_cross_reference_data()
 
         self.assertFalse(
             any(entry['cid'] == cid_value for entry in cross_reference['cids']),

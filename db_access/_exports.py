@@ -104,7 +104,8 @@ EXPORTS: Dict[str, Any] = {
     "DEFAULT_ACTION": DEFAULT_ACTION,
     "MAX_MESSAGE_LENGTH": MAX_MESSAGE_LENGTH,
     # Servers
-    "get_user_servers": get_user_servers,
+    "get_servers": get_user_servers,  # New name
+    "get_user_servers": get_user_servers,  # Legacy name
     "get_user_template_servers": get_user_template_servers,
     "get_server_by_name": get_server_by_name,
     "get_first_server_name": get_first_server_name,
@@ -112,7 +113,8 @@ EXPORTS: Dict[str, Any] = {
     "get_all_servers": get_all_servers,
     "count_servers": count_servers,
     # Aliases
-    "get_user_aliases": get_user_aliases,
+    "get_aliases": get_user_aliases,  # New name
+    "get_user_aliases": get_user_aliases,  # Legacy name
     "get_user_template_aliases": get_user_template_aliases,
     "get_alias_by_name": get_alias_by_name,
     "get_first_alias_name": get_first_alias_name,
@@ -120,14 +122,16 @@ EXPORTS: Dict[str, Any] = {
     "count_user_aliases": count_user_aliases,
     "update_alias_cid_reference": update_alias_cid_reference,
     # Variables
-    "get_user_variables": get_user_variables,
+    "get_variables": get_user_variables,  # New name
+    "get_user_variables": get_user_variables,  # Legacy name
     "get_user_template_variables": get_user_template_variables,
     "get_variable_by_name": get_variable_by_name,
     "get_first_variable_name": get_first_variable_name,
     "count_user_variables": count_user_variables,
     "count_variables": count_variables,
     # Secrets
-    "get_user_secrets": get_user_secrets,
+    "get_secrets": get_user_secrets,  # New name
+    "get_user_secrets": get_user_secrets,  # Legacy name
     "get_user_template_secrets": get_user_template_secrets,
     "get_secret_by_name": get_secret_by_name,
     "get_first_secret_name": get_first_secret_name,

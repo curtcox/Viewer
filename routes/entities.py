@@ -42,12 +42,11 @@ class EntityTypeRegistry:
         # Map entity classes to their CID update functions
         self._cid_update_funcs: Dict[Type, Callable] = {}
 
-    def get_by_name(self, entity_class: Type, user_id: str, name: str) -> Optional[Any]:
+    def get_by_name(self, entity_class: Type, name: str) -> Optional[Any]:
         """Get entity by name using type dispatch.
 
         Args:
             entity_class: Entity model class
-            user_id: User identifier
             name: Entity name
 
         Returns:
@@ -63,14 +62,13 @@ class EntityTypeRegistry:
                 f"Entity type must be registered in EntityTypeRegistry._get_by_name_funcs. "
                 f"Registered types: {', '.join(cls.__name__ for cls in self._get_by_name_funcs)}"
             )
-        return func(user_id, name)
+        return func(name)
 
-    def update_definitions_cid(self, entity_class: Type, user_id: str) -> Optional[str]:
+    def update_definitions_cid(self, entity_class: Type) -> Optional[str]:
         """Update definitions CID for entity type.
 
         Args:
             entity_class: Entity model class
-            user_id: User identifier
 
         Returns:
             Updated CID or None if not applicable
@@ -91,7 +89,7 @@ class EntityTypeRegistry:
         func = self._cid_update_funcs.get(entity_class)
         if func is None:
             return None
-        return func(user_id)
+        return func()
 
     def requires_definition_cid(self, entity_class: Type) -> bool:
         """Check if entity type requires definition CID storage.
@@ -110,27 +108,26 @@ class EntityTypeRegistry:
 _entity_registry = EntityTypeRegistry()
 
 
-def check_name_exists(model_class: Type[Any], name: str, user_id: str, exclude_id: Any = None) -> bool:
+def check_name_exists(model_class: Type[Any], name: str, exclude_id: Any = None) -> bool:
     """Check if a name already exists for a user, optionally excluding a specific record."""
-    entity = _entity_registry.get_by_name(model_class, user_id, name)
+    entity = _entity_registry.get_by_name(model_class, name)
 
     if entity and exclude_id and getattr(entity, 'id', None) == exclude_id:
         return False
     return entity is not None
 
 
-@logfire.instrument("entities.create_entity({model_class=}, {form=}, {user_id=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire.instrument("entities.create_entity({model_class=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
 def create_entity(
     model_class: Type[Any],
     form,
-    user_id: str,
     entity_type: str,
     *,
     change_message: str | None = None,
     content_text: str | None = None,
 ) -> bool:
     """Generic function to create a new entity (server, variable, or secret)."""
-    if check_name_exists(model_class, form.name.data, user_id):
+    if check_name_exists(model_class, form.name.data):
         flash(
             Markup('A {entity} named "{name}" already exists').format(
                 entity=escape(entity_type),
@@ -143,7 +140,6 @@ def create_entity(
     entity_data = {
         'name': form.name.data,
         'definition': form.definition.data,
-        'user_id': user_id,
     }
 
     enabled_field = getattr(form, 'enabled', None)
@@ -151,7 +147,7 @@ def create_entity(
         entity_data['enabled'] = bool(enabled_field.data)
 
     if _entity_registry.requires_definition_cid(model_class):
-        definition_cid = save_server_definition_as_cid(form.definition.data, user_id)
+        definition_cid = save_server_definition_as_cid(form.definition.data)
         entity_data['definition_cid'] = definition_cid
 
     entity = model_class(**entity_data)
@@ -166,7 +162,6 @@ def create_entity(
 
     record_entity_interaction(
         EntityInteractionRequest(
-            user_id=user_id,
             entity_type=entity_type,
             entity_name=form.name.data,
             action='save',
@@ -175,7 +170,7 @@ def create_entity(
         )
     )
 
-    _entity_registry.update_definitions_cid(model_class, user_id)
+    _entity_registry.update_definitions_cid(model_class)
 
     flash(
         Markup('{entity} "{name}" created successfully!').format(
@@ -197,7 +192,7 @@ def update_entity(
 ) -> bool:
     """Generic function to update an entity (server, variable, or secret)."""
     if form.name.data != entity.name:
-        if check_name_exists(type(entity), form.name.data, entity.user_id, entity.id):
+        if check_name_exists(type(entity), form.name.data, entity.id):
             flash(
                 Markup('A {entity} named "{name}" already exists').format(
                     entity=escape(entity_type),
@@ -209,7 +204,7 @@ def update_entity(
 
     if _entity_registry.requires_definition_cid(type(entity)):
         if form.definition.data != entity.definition:
-            definition_cid = save_server_definition_as_cid(form.definition.data, entity.user_id)
+            definition_cid = save_server_definition_as_cid(form.definition.data)
             entity.definition_cid = definition_cid
 
     entity.name = form.name.data
@@ -231,7 +226,6 @@ def update_entity(
 
     record_entity_interaction(
         EntityInteractionRequest(
-            user_id=entity.user_id,
             entity_type=entity_type,
             entity_name=entity.name,
             action='save',
@@ -240,7 +234,7 @@ def update_entity(
         )
     )
 
-    _entity_registry.update_definitions_cid(type(entity), entity.user_id)
+    _entity_registry.update_definitions_cid(type(entity))
 
     flash(
         Markup('{entity} "{name}" updated successfully!').format(

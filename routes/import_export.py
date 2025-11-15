@@ -10,11 +10,11 @@ from __future__ import annotations
 from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes
 from db_access import (
-    get_user_aliases,
-    get_user_secrets,
-    get_user_servers,
+    get_aliases,
+    get_secrets,
+    get_servers,
     get_user_uploads,
-    get_user_variables,
+    get_variables,
 )
 
 # Re-export the main route functions
@@ -73,10 +73,10 @@ __all__ = [
     '_import_section',
     '_process_import_submission',
     '_gather_change_history',
-    'get_user_aliases',
-    'get_user_servers',
-    'get_user_variables',
-    'get_user_secrets',
+    'get_aliases',
+    'get_servers',
+    'get_variables',
+    'get_secrets',
     'get_user_uploads',
     'store_cid_from_bytes',
     'cid_path',

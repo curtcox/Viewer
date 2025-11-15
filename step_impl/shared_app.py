@@ -52,13 +52,11 @@ def login_default_user() -> str:
 
     with app.app_context():
         user = ensure_default_user()
-        user_id = user.id
 
     with client.session_transaction() as session:
-        session["_user_id"] = user_id
         session["_fresh"] = True
 
-    return user_id
+    return user.id
 
 
 __all__ = ["get_shared_app", "get_shared_client", "login_default_user"]

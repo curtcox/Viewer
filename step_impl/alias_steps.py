@@ -50,18 +50,6 @@ def _app_context():
     return _app.app_context()
 
 
-def _login_default_user(client: FlaskClient) -> str:
-    with _app_context():
-        user = ensure_default_user()
-        user_id = user.id
-
-    with client.session_transaction() as session:
-        session["_user_id"] = user_id
-        session["_fresh"] = True
-
-    return user_id
-
-
 @before_scenario()
 def setup_alias_scenario() -> None:
     """Spin up an isolated Flask app and client for each scenario."""
@@ -77,7 +65,8 @@ def setup_alias_scenario() -> None:
 
     _app, _client, _db_path = _create_isolated_app()
     if _client is not None:
-        _login_default_user(_client)
+        with _client.session_transaction() as session:
+            session["_fresh"] = True
 
 
 @after_scenario()
@@ -106,8 +95,8 @@ def given_i_am_signed_in() -> None:
     """Attach the default user session to the Gauge test client."""
 
     client = _require_client()
-    user_id = _login_default_user(client)
-    _scenario_state["user_id"] = user_id
+    with client.session_transaction() as session:
+        session["_fresh"] = True
 
 
 @step("When I navigate to /aliases/new")
@@ -151,8 +140,7 @@ def then_submitting_form_creates_alias() -> None:
     assert response.status_code == 302, "Alias creation should redirect on success."
 
     with _app_context():
-        user = ensure_default_user()
-        created = Alias.query.filter_by(user_id=user.id, name=alias_name).first()
+        created = Alias.query.filter_by(name=alias_name).first()
         assert created is not None, "Alias record was not created."
         assert created.target_path == "/guides", "Alias target path did not persist."
 
@@ -161,14 +149,10 @@ def then_submitting_form_creates_alias() -> None:
 def given_alias_exists(alias_name: str, target_path: str) -> None:
     """Persist an alias with the provided name and target path."""
 
-    client = _require_client()
-    _login_default_user(client)
-
     alias_name = alias_name.strip().strip('"')
     target_path = target_path.strip().strip('"')
 
     with _app_context():
-        user = ensure_default_user()
         definition_text = format_primary_alias_line(
             match_type="literal",
             match_pattern=None,
@@ -177,7 +161,6 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
         )
         alias = Alias(
             name=alias_name,
-            user_id=user.id,
             definition=definition_text,
         )
         db.session.add(alias)
@@ -235,8 +218,7 @@ def then_update_alias_target() -> None:
     assert response.status_code == 302, "Alias update should redirect to the detail page."
 
     with _app_context():
-        user = ensure_default_user()
-        alias = Alias.query.filter_by(user_id=user.id, name=alias_name).first()
+        alias = Alias.query.filter_by(name=alias_name).first()
         assert alias is not None, "Alias was not found after attempting to update it."
         expected_target = f"/{alias_name}/updated"
         assert alias.target_path == expected_target, "Alias target path did not update."
@@ -276,14 +258,10 @@ def when_i_visit_alias_detail_page(alias_name: str) -> None:
 def given_enabled_alias_exists(alias_name: str, target_path: str) -> None:
     """Persist an enabled alias with the provided name and target path."""
 
-    client = _require_client()
-    _login_default_user(client)
-
     alias_name = alias_name.strip().strip('"')
     target_path = target_path.strip().strip('"')
 
     with _app_context():
-        user = ensure_default_user()
         definition_text = format_primary_alias_line(
             match_type="literal",
             match_pattern=None,
@@ -292,7 +270,6 @@ def given_enabled_alias_exists(alias_name: str, target_path: str) -> None:
         )
         alias = Alias(
             name=alias_name,
-            user_id=user.id,
             definition=definition_text,
             enabled=True,
         )

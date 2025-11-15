@@ -1,7 +1,7 @@
-"""Generic CRUD operations for user-scoped entities.
+"""Generic CRUD operations for entities.
 
 This module provides a generic repository pattern for entities that share common
-attributes (user_id, name, template) to eliminate duplication across entity types.
+attributes (name, template) to eliminate duplication across entity types.
 """
 
 from typing import Generic, List, Optional, Type, TypeVar
@@ -12,10 +12,9 @@ T = TypeVar('T')
 
 
 class GenericEntityRepository(Generic[T]):
-    """Generic repository for user-scoped entities with common CRUD operations.
+    """Generic repository for entities with common CRUD operations.
 
     This class provides standard database operations for entities that have:
-    - user_id: str (for user scoping)
     - name: str (for entity identification)
     - template: bool (optional, for template entities)
 
@@ -31,55 +30,47 @@ class GenericEntityRepository(Generic[T]):
         """
         self.model = model_class
 
-    def get_all_for_user(self, user_id: str) -> List[T]:
-        """Get all entities for a user, ordered by name.
-
-        Args:
-            user_id: User identifier
+    def get_all(self) -> List[T]:
+        """Get all entities, ordered by name.
 
         Returns:
             List of entities ordered alphabetically by name
         """
-        return self.model.query.filter_by(user_id=user_id).order_by(self.model.name).all()
+        return self.model.query.order_by(self.model.name).all()
 
-    def get_templates_for_user(self, user_id: str) -> List[T]:
-        """Get template entities for a user, ordered by name.
-
-        Args:
-            user_id: User identifier
+    def get_templates(self) -> List[T]:
+        """Get template entities, ordered by name.
 
         Returns:
             List of template entities ordered alphabetically by name
         """
         return (
-            self.model.query.filter_by(user_id=user_id, template=True)
+            self.model.query.filter_by(template=True)
             .order_by(self.model.name)
             .all()
         )
 
-    def get_by_name(self, user_id: str, name: str) -> Optional[T]:
-        """Get entity by name for a user.
+    def get_by_name(self, name: str) -> Optional[T]:
+        """Get entity by name.
 
         Args:
-            user_id: User identifier
             name: Entity name
 
         Returns:
             Entity if found, None otherwise
         """
-        return self.model.query.filter_by(user_id=user_id, name=name).first()
+        return self.model.query.filter_by(name=name).first()
 
-    def get_first_name(self, user_id: str, exclude_name: Optional[str] = None) -> Optional[str]:
-        """Get the first entity name for a user, ordered alphabetically.
+    def get_first_name(self, exclude_name: Optional[str] = None) -> Optional[str]:
+        """Get the first entity name, ordered alphabetically.
 
         Args:
-            user_id: User identifier
             exclude_name: Optional name to exclude from results
 
         Returns:
             First entity name if any exist, None otherwise
         """
-        query = self.model.query.filter_by(user_id=user_id)
+        query = self.model.query
 
         # Optionally exclude a specific name (useful for finding alternatives)
         if exclude_name:
@@ -88,44 +79,24 @@ class GenericEntityRepository(Generic[T]):
         entity = query.order_by(self.model.name.asc()).first()
         return entity.name if entity else None
 
-    def count_for_user(self, user_id: str) -> int:
-        """Count entities for a user.
-
-        Args:
-            user_id: User identifier
+    def count(self) -> int:
+        """Count entities.
 
         Returns:
-            Number of entities owned by the user
-        """
-        return self.model.query.filter_by(user_id=user_id).count()
-
-    def get_all(self) -> List[T]:
-        """Get all entities across all users (admin operation).
-
-        Returns:
-            List of all entities
-        """
-        return self.model.query.all()
-
-    def count_all(self) -> int:
-        """Count all entities across all users (admin operation).
-
-        Returns:
-            Total number of entities
+            Number of entities
         """
         return self.model.query.count()
 
-    def exists(self, user_id: str, name: str) -> bool:
-        """Check if an entity with given name exists for a user.
+    def exists(self, name: str) -> bool:
+        """Check if an entity with given name exists.
 
         Args:
-            user_id: User identifier
             name: Entity name to check
 
         Returns:
             True if entity exists, False otherwise
         """
-        return self.model.query.filter_by(user_id=user_id, name=name).count() > 0
+        return self.model.query.filter_by(name=name).count() > 0
 
     def _base_query(self) -> Query:
         """Get base query for the model (for subclass extension).

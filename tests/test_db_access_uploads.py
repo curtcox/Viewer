@@ -61,7 +61,6 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -90,7 +89,6 @@ class TestDbAccessUploads(unittest.TestCase):
             path='/UPLOADTEMPLATECID',
             file_data=content_data,
             file_size=len(content_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -111,7 +109,6 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -149,7 +146,6 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
@@ -179,7 +175,6 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()

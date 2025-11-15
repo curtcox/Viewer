@@ -16,7 +16,6 @@ from db_access import (
     get_first_server_name,
     get_first_variable_name,
 )
-from identity import current_user
 from routes.context_processors import (
     inject_meta_inspector_link,
     inject_observability_info,
@@ -80,7 +79,7 @@ main_bp.app_context_processor(inject_viewer_navigation)
 @main_bp.route('/')
 def index():
     """Landing page with marketing and observability information."""
-    cross_reference = build_cross_reference_data(current_user.id)
+    cross_reference = build_cross_reference_data()
 
     return render_template('index.html', cross_reference=cross_reference)
 
@@ -151,29 +150,26 @@ def screenshot_cid_demo():
 @main_bp.route('/settings')
 def settings():
     """Settings page with links to servers, variables, aliases, and secrets."""
-    counts = get_user_settings_counts(current_user.id)
+    counts = get_user_settings_counts()
     return render_template('settings.html', **counts)
 
 
-def get_user_settings_counts(user_id):
+def get_user_settings_counts():
     """
-    Get counts of a user's saved resources for settings display.
-
-    Args:
-        user_id: The user ID to get counts for
+    Get counts of saved resources for settings display.
 
     Returns:
         Dictionary containing counts and example names
     """
     return {
-        'alias_count': count_user_aliases(user_id),
-        'server_count': count_user_servers(user_id),
-        'variable_count': count_user_variables(user_id),
-        'secret_count': count_user_secrets(user_id),
-        'alias_example_name': get_first_alias_name(user_id),
-        'server_example_name': get_first_server_name(user_id),
-        'variable_example_name': get_first_variable_name(user_id),
-        'secret_example_name': get_first_secret_name(user_id),
+        'alias_count': count_user_aliases(),
+        'server_count': count_user_servers(),
+        'variable_count': count_user_variables(),
+        'secret_count': count_user_secrets(),
+        'alias_example_name': get_first_alias_name(),
+        'server_example_name': get_first_server_name(),
+        'variable_example_name': get_first_variable_name(),
+        'secret_example_name': get_first_secret_name(),
     }
 
 
