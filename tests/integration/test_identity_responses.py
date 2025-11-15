@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 from database import db
 from db_access import get_alias_by_name, get_server_by_name
-import identity
 
 
 def _set_user_session(client, user_id: Optional[str]) -> None:
@@ -98,8 +97,6 @@ def test_css_alias_resolves_without_user_specific_alias(client):
 
     default_response = client.get('/css/custom.css', follow_redirects=True)
     assert default_response.status_code == 200
-
-    original_ensure = identity.ensure_css_alias
 
     def _maybe_ensure() -> bool:
         return False

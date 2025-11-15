@@ -3,7 +3,7 @@ Test cases for model methods, particularly focusing on datetime-related function
 """
 import os
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 # Set up test environment before importing app
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'

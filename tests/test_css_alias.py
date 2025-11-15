@@ -10,7 +10,6 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 from app import app, db
 from css_defaults import ensure_css_alias
 from db_access import create_cid_record, get_alias_by_name
-import identity
 from reference_templates.uploads import get_upload_templates
 
 
@@ -112,8 +111,6 @@ class TestCssAliasDefaults(unittest.TestCase):
 
     def test_css_alias_falls_back_to_default_user_when_missing(self):
         missing_user = 'missing-css-user'
-
-        original_ensure = identity.ensure_css_alias
 
         def _maybe_ensure() -> bool:
             return False
