@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List, Optional
 
 from flask import render_template, request
 
-from analytics import get_paginated_page_views, get_user_history_statistics
+from analytics import get_paginated_page_views, get_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
 from cid_utils import is_strict_cid_candidate, split_cid_path
 from db_access import (
@@ -26,7 +26,7 @@ def history():
     page_views = get_paginated_page_views(page, per_page)
     _attach_server_event_links(page_views)
     _attach_cid_links(page_views)
-    stats = get_user_history_statistics()
+    stats = get_history_statistics()
     stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
 
     return render_template('history.html', page_views=page_views, **stats)

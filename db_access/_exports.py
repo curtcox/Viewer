@@ -38,7 +38,7 @@ from .uploads import (
     get_template_uploads,
 )
 from .exports import (
-    get_user_exports,
+    get_exports,
     record_export,
 )
 from .interactions import (
@@ -53,16 +53,15 @@ from .invocations import (
     ServerInvocationInput,
     create_server_invocation,
     find_server_invocations_by_cid,
-    get_user_server_invocations,
-    get_user_server_invocations_by_result_cids,
-    get_user_server_invocations_by_server,
+    get_server_invocations,
+    get_server_invocations_by_result_cids,
+    get_server_invocations_by_server,
 )
 from .page_views import (
     count_page_views,
     count_unique_page_view_paths,
-    count_user_page_views,
     get_popular_page_paths,
-    paginate_user_page_views,
+    paginate_page_views,
     save_page_view,
 )
 from .secrets import (
@@ -151,11 +150,12 @@ EXPORTS: Dict[str, Any] = {
     "update_cid_references": update_cid_references,
     # Page views
     "save_page_view": save_page_view,
-    "count_user_page_views": count_user_page_views,
+    "count_page_views": count_page_views,
+    "count_user_page_views": count_page_views,  # Legacy name
     "count_unique_page_view_paths": count_unique_page_view_paths,
     "get_popular_page_paths": get_popular_page_paths,
-    "paginate_user_page_views": paginate_user_page_views,
-    "count_page_views": count_page_views,
+    "paginate_page_views": paginate_page_views,  # New name
+    "paginate_user_page_views": paginate_page_views,  # Legacy name
     # Interactions
     "EntityInteractionRequest": EntityInteractionRequest,
     "EntityInteractionLookup": EntityInteractionLookup,
@@ -166,13 +166,17 @@ EXPORTS: Dict[str, Any] = {
     # Invocations
     "ServerInvocationInput": ServerInvocationInput,
     "create_server_invocation": create_server_invocation,
-    "get_user_server_invocations": get_user_server_invocations,
-    "get_user_server_invocations_by_server": get_user_server_invocations_by_server,
-    "get_user_server_invocations_by_result_cids": get_user_server_invocations_by_result_cids,
+    "get_server_invocations": get_server_invocations,  # New name
+    "get_user_server_invocations": get_server_invocations,  # Legacy name
+    "get_server_invocations_by_server": get_server_invocations_by_server,  # New name
+    "get_user_server_invocations_by_server": get_server_invocations_by_server,  # Legacy name
+    "get_server_invocations_by_result_cids": get_server_invocations_by_result_cids,  # New name
+    "get_user_server_invocations_by_result_cids": get_server_invocations_by_result_cids,  # Legacy name
     "find_server_invocations_by_cid": find_server_invocations_by_cid,
     # Exports
     "record_export": record_export,
-    "get_user_exports": get_user_exports,
+    "get_exports": get_exports,  # New name
+    "get_user_exports": get_exports,  # Legacy name
 }
 
 __all__ = list(EXPORTS)

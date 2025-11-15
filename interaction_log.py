@@ -61,14 +61,13 @@ def summarise_interactions(interactions: Iterable[EntityInteraction]) -> List[Di
 
 
 def load_interaction_history(
-    user_id: str,
     entity_type: str,
     entity_name: str,
     limit: int = 10,
 ) -> List[Dict[str, Any]]:
     """Load and summarise the most recent interactions for an entity."""
 
-    interactions = get_recent_entity_interactions(user_id, entity_type, entity_name, limit)
+    interactions = get_recent_entity_interactions(entity_type, entity_name, limit)
     return summarise_interactions(interactions)
 
 
