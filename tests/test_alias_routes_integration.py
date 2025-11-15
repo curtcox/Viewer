@@ -45,7 +45,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="reports",
             definition="reports -> /{region}/{section}/{region}",
-,
         )
 
         variables = {"region": "emea", "section": "status"}
@@ -63,7 +62,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition=definition,
-,
         )
 
         routes = collect_alias_routes(alias, variables={"prefix": "docs"})
@@ -225,7 +223,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition="docs -> //external",
-,
         )
 
         routes = collect_alias_routes(alias)

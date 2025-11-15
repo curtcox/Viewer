@@ -26,18 +26,18 @@ class TestServerHistory(unittest.TestCase):
         self.user_id = "test_user_123"
         self.server_name = "test_server"
 
-    @patch('models.db')
-    def test_get_server_definition_history_empty(self, mock_db):
+    @patch('routes.servers.get_user_uploads')
+    def test_get_server_definition_history_empty(self, mock_get_user_uploads):
         """Test getting history when no CIDs exist"""
         # Mock empty query result
-        mock_db.session.query.return_value.filter.return_value.order_by.return_value.all.return_value = []
+        mock_get_user_uploads.return_value = []
 
-        history = get_server_definition_history(self.user_id, self.server_name)
+        history = get_server_definition_history(self.server_name)
 
         self.assertEqual(history, [])
 
-    @patch('models.db')
-    def test_get_server_definition_history_with_data(self, mock_db):
+    @patch('routes.servers.get_user_uploads')
+    def test_get_server_definition_history_with_data(self, mock_get_user_uploads):
         """Test getting history with actual server definitions"""
         # Create mock CID objects
         mock_cid1 = Mock()
@@ -57,11 +57,11 @@ class TestServerHistory(unittest.TestCase):
         }).encode('utf-8')
 
         # Mock query to return CIDs in reverse chronological order (newest first)
-        mock_db.session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
+        mock_get_user_uploads.return_value = [
             mock_cid2, mock_cid1
         ]
 
-        history = get_server_definition_history(self.user_id, self.server_name)
+        history = get_server_definition_history(self.server_name)
 
         # Should return 2 entries, newest first
         self.assertEqual(len(history), 2)
@@ -78,8 +78,8 @@ class TestServerHistory(unittest.TestCase):
         self.assertFalse(history[1]['is_current'])
         self.assertEqual(history[1]['created_at'], datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc))
 
-    @patch('models.db')
-    def test_get_server_definition_history_ignores_invalid_json(self, mock_db):
+    @patch('routes.servers.get_user_uploads')
+    def test_get_server_definition_history_ignores_invalid_json(self, mock_get_user_uploads):
         """Test that invalid JSON CIDs are ignored"""
         # Create mock CID with invalid JSON
         mock_cid_invalid = Mock()
@@ -95,19 +95,19 @@ class TestServerHistory(unittest.TestCase):
             "test_server": "print('valid')"
         }).encode('utf-8')
 
-        mock_db.session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
+        mock_get_user_uploads.return_value = [
             mock_cid_valid, mock_cid_invalid
         ]
 
-        history = get_server_definition_history(self.user_id, self.server_name)
+        history = get_server_definition_history(self.server_name)
 
         # Should only return the valid entry
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]['snapshot_cid'], 'cid_valid')
         self.assertEqual(history[0]['definition'], "print('valid')")
 
-    @patch('models.db')
-    def test_get_server_definition_history_server_not_in_cid(self, mock_db):
+    @patch('routes.servers.get_user_uploads')
+    def test_get_server_definition_history_server_not_in_cid(self, mock_get_user_uploads):
         """Test that CIDs without the requested server are ignored"""
         # Create mock CID that doesn't contain our server
         mock_cid = Mock()
@@ -118,9 +118,9 @@ class TestServerHistory(unittest.TestCase):
             "another_server": "print('another')"
         }).encode('utf-8')
 
-        mock_db.session.query.return_value.filter.return_value.order_by.return_value.all.return_value = [mock_cid]
+        mock_get_user_uploads.return_value = [mock_cid]
 
-        history = get_server_definition_history(self.user_id, self.server_name)
+        history = get_server_definition_history(self.server_name)
 
         # Should return empty list since our server isn't in any CID
         self.assertEqual(history, [])
