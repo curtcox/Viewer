@@ -30,13 +30,13 @@ class TestAiStubServer(unittest.TestCase):
         self.app_context.pop()
 
     def test_ai_stub_resources_created(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
-        server = get_server_by_name(self.user.id, 'ai_stub')
+        alias = get_alias_by_name('ai')
+        server = get_server_by_name('ai_stub')
         self.assertIsInstance(alias, Alias)
         self.assertIsInstance(server, Server)
 
     def test_ai_alias_created_when_missing(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         db.session.delete(alias)
         db.session.commit()
@@ -44,12 +44,12 @@ class TestAiStubServer(unittest.TestCase):
         changed = ensure_ai_stub()
         self.assertTrue(changed)
 
-        recreated = get_alias_by_name(self.user.id, 'ai')
+        recreated = get_alias_by_name('ai')
         self.assertIsInstance(recreated, Alias)
         self.assertIn('ai -> /ai_stub', recreated.definition)
 
     def test_ai_alias_preserved_when_already_defined(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         alias.definition = 'ai -> /custom-target'
         db.session.add(alias)
@@ -58,17 +58,17 @@ class TestAiStubServer(unittest.TestCase):
         changed = ensure_ai_stub()
         self.assertFalse(changed)
 
-        refreshed = get_alias_by_name(self.user.id, 'ai')
+        refreshed = get_alias_by_name('ai')
         self.assertEqual(refreshed.definition.strip(), 'ai -> /custom-target')
 
     def test_ai_alias_definition_can_be_updated_by_user(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         alias.definition = 'ai -> /custom-target'
         db.session.add(alias)
         db.session.commit()
 
-        fetched = get_alias_by_name(self.user.id, 'ai')
+        fetched = get_alias_by_name('ai')
         self.assertEqual(fetched.definition.strip(), 'ai -> /custom-target')
 
     def test_ai_stub_invocation_returns_expected_payload(self):
@@ -99,7 +99,7 @@ class TestAiStubServer(unittest.TestCase):
 
     def test_custom_ai_server_takes_precedence(self):
         # Remove the default alias so the custom server handles /ai directly
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         if alias:
             db.session.delete(alias)
             db.session.commit()

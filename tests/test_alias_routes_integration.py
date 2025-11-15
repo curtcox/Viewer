@@ -13,7 +13,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -32,7 +31,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="status",
             definition="status -> {status-page}",
-            user_id="user1",
         )
 
         routes = collect_alias_routes(
@@ -47,7 +45,7 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="reports",
             definition="reports -> /{region}/{section}/{region}",
-            user_id="user1",
+,
         )
 
         variables = {"region": "emea", "section": "status"}
@@ -65,7 +63,7 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition=definition,
-            user_id="user1",
+,
         )
 
         routes = collect_alias_routes(alias, variables={"prefix": "docs"})
@@ -80,7 +78,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition="docs/* -> /documentation/?q=* [glob]",
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -98,7 +95,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="blog",
             definition="blog-* -> /posts [glob, ignore-case]",
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -121,7 +117,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition=definition.strip(),
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -151,7 +146,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="article",
             definition="/article/\\d+ -> /articles [regex]",
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -169,7 +163,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="user",
             definition="/user/<id> -> /user-profile/<id>/view [flask]",
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -188,7 +181,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Mock()
         alias.name = "test"
         alias.definition = "test -> /target"
-        alias.user_id = "user1"
 
         # Remove the helper methods to simulate old-style aliases
         del alias.get_primary_match_type
@@ -215,7 +207,6 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="test",
             definition=None,
-            user_id="user1"
         )
 
         routes = collect_alias_routes(alias)
@@ -234,7 +225,7 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition="docs -> //external",
-            user_id="user1",
+,
         )
 
         routes = collect_alias_routes(alias)

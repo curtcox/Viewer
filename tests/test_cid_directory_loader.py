@@ -44,7 +44,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
         """Test loading CIDs from an empty directory succeeds."""
         with self.app.app_context():
             # Should not raise any errors
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify no CIDs were loaded (except any pre-loaded ones)
             # We expect only the default CIDs that were loaded during app creation
@@ -60,7 +60,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file.write_bytes(content)
 
             # Load CIDs
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify the CID was loaded
             cid_path = f'/{cid_value}'
@@ -86,7 +86,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
                 cid_file.write_bytes(content)
 
             # Load CIDs
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify all CIDs were loaded
             for i, cid_value in enumerate(cid_values):
@@ -107,7 +107,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             gitignore.write_bytes(b"*.tmp\n")
 
             # Load CIDs - should not fail
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify hidden files were not loaded
             all_cids = CID.query.all()
@@ -124,7 +124,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             # Should raise SystemExit with helpful message
             with self.assertRaises(SystemExit) as context:
-                load_cids_from_directory(self.app, self.user_id)
+                load_cids_from_directory(self.app)
 
             # Verify the error message mentions the invalid filename
             error_message = str(context.exception)
@@ -144,7 +144,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             # Should raise SystemExit with helpful message
             with self.assertRaises(SystemExit) as context:
-                load_cids_from_directory(self.app, self.user_id)
+                load_cids_from_directory(self.app)
 
             # Verify the error message shows the mismatch
             error_message = str(context.exception)
@@ -162,7 +162,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file.write_bytes(content)
 
             # Load CIDs first time
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Get the CID record
             cid_path = f'/{cid_value}'
@@ -170,7 +170,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             self.assertIsNotNone(first_load)
 
             # Load CIDs second time - should skip without error
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify the CID still exists and wasn't duplicated
             cid_records = CID.query.filter_by(path=cid_path).all()
@@ -195,7 +195,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             # Should raise SystemExit because DB has different content for this CID
             with self.assertRaises(SystemExit) as context:
-                load_cids_from_directory(self.app, self.user_id)
+                load_cids_from_directory(self.app)
 
             # Verify the error message
             error_message = str(context.exception)
@@ -212,7 +212,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             self.assertFalse(new_dir.exists())
 
             # Load CIDs - should create the directory
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify directory was created
             self.assertTrue(new_dir.exists())
@@ -236,7 +236,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             subdir_file.write_bytes(b"subdir content")
 
             # Load CIDs - should not fail and should only load the valid CID file
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify only the valid CID was loaded
             cid_path = f'/{cid_value}'
@@ -259,7 +259,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file.write_bytes(content)
 
             # Load CIDs
-            load_cids_from_directory(self.app, self.user_id)
+            load_cids_from_directory(self.app)
 
             # Verify the CID was loaded correctly
             cid_path = f'/{cid_value}'
@@ -308,7 +308,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             # Should raise SystemExit with directory path in message
             with self.assertRaises(SystemExit) as context:
-                load_cids_from_directory(self.app, self.user_id)
+                load_cids_from_directory(self.app)
 
             # Verify the error message includes the directory path
             error_message = str(context.exception)

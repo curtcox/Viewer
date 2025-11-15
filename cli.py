@@ -140,7 +140,7 @@ def list_boot_cids() -> list[Tuple[str, dict]]:
 
     Returns:
         List of tuples: (cid_value, metadata)
-        where metadata includes: size, uploaded_by, created_at, has_sections
+        where metadata includes: size, created_at, sections
     """
     all_cids = CID.query.all()
     boot_cids = []
@@ -169,7 +169,6 @@ def list_boot_cids() -> list[Tuple[str, dict]]:
 
         metadata = {
             'size': cid_record.file_size,
-            'uploaded_by': cid_record.uploaded_by_user_id,
             'created_at': cid_record.created_at,
             'sections': sections,
         }

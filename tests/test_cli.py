@@ -303,7 +303,7 @@ class TestListBootCids(unittest.TestCase):
 
             # Check metadata
             self.assertEqual(metadata['size'], len(boot_content))
-            self.assertEqual(metadata['uploaded_by'], self.user_id)
+            # uploaded_by is no longer included in metadata after user field removal
             self.assertIn('aliases', metadata['sections'])
             self.assertIn('servers', metadata['sections'])
             self.assertIsNotNone(metadata['created_at'])

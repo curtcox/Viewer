@@ -289,22 +289,22 @@ class TestBootCidImporter(unittest.TestCase):
             create_cid_record(boot_cid, content)
 
             # Import the boot CID
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             if not success:
                 self.fail(f"Import failed: {error}")
             self.assertTrue(success)
             self.assertIsNone(error)
 
             # Verify the alias was imported
-            alias = Alias.query.filter_by(name='test-alias', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='test-alias').first()
             self.assertIsNotNone(alias)
 
             # Verify the server was imported
-            server = Server.query.filter_by(name='test-server', user_id=self.user_id).first()
+            server = Server.query.filter_by(name='test-server').first()
             self.assertIsNotNone(server)
 
             # Verify snapshot export was generated
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.order_by(Export.created_at.desc()).first()
             self.assertIsNotNone(snapshot_export, 'Snapshot export should be created after boot CID import')
 
     def test_import_boot_cid_missing_dependency(self):
@@ -321,7 +321,7 @@ class TestBootCidImporter(unittest.TestCase):
             create_cid_record(boot_cid, content)
 
             # Import should fail
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("missing from the database", error)
@@ -371,14 +371,14 @@ class TestBootCidImporter(unittest.TestCase):
             create_cid_record(boot_cid, content)
 
             # Import the boot CID (aliases CID is in cid_values, not in DB)
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             if not success:
                 self.fail(f"Import failed: {error}")
             self.assertTrue(success)
             self.assertIsNone(error)
 
             # Verify the alias was imported
-            alias = Alias.query.filter_by(name='test-alias-2', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='test-alias-2').first()
             self.assertIsNotNone(alias)
 
 

@@ -81,13 +81,7 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         "path": cid_record_path,
         "file_size": cid_record.file_size,
         "created_at": cid_record.created_at.isoformat() if cid_record.created_at else None,
-        "uploaded_by_user_id": cid_record.uploaded_by_user_id,
     }
-
-    if cid_record.uploaded_by_user_id:
-        record["uploaded_by"] = {
-            "user_id": cid_record.uploaded_by_user_id,
-        }
 
     metadata: Dict[str, Any] = {
         "path": path,
