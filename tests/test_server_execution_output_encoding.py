@@ -178,8 +178,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(variable_resolution, 'current_user', mock_user), \
-             patch.object(code_execution, 'build_request_args', mock_build_request_args), \
+        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
              patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
              patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
              patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \
@@ -233,8 +232,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(variable_resolution, 'current_user', mock_user), \
-             patch.object(code_execution, 'build_request_args', mock_build_request_args), \
+        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
              patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
              patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
              patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \

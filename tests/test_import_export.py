@@ -46,10 +46,6 @@ class TestImportExportRoutes(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _login_patch(self, mock_current_user):
-        mock_current_user.id = self.user_id
-        return mock_current_user
-
     @contextmanager
     def logged_in(self):
         # No longer needed - user authentication removed

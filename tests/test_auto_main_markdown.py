@@ -65,13 +65,7 @@ def test_auto_main_markdown_supports_mermaid_and_formdown():
 @pytest.fixture
 def patched_server_execution(monkeypatch):
     """Provide a predictable environment for server execution tests."""
-    from server_execution import code_execution, variable_resolution
-    import identity
-
-    # After decomposition, current_user is only in variable_resolution
-    mock_user = SimpleNamespace(id="user-123")
-    monkeypatch.setattr(identity, "current_user", mock_user)
-    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
+    from server_execution import code_execution
 
     monkeypatch.setattr(
         code_execution,

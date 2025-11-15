@@ -42,20 +42,11 @@ class TestEnabledFieldImportExport(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _login_patch(self, mock_current_user):
-        """Configure mock current_user."""
-        mock_current_user.id = self.user_id
-        return mock_current_user
-
     @contextmanager
     def logged_in(self):
         """Context manager for logged-in user state."""
-        with ExitStack() as stack:
-            route_user = stack.enter_context(patch('routes.import_export.routes.current_user'))
-            self._login_patch(route_user)
-            import_user = stack.enter_context(patch('routes.import_export.import_engine.current_user'))
-            self._login_patch(import_user)
-            yield
+        # No longer needed - user authentication removed
+        yield
 
     def _create_test_entities(self, enabled_state):
         """Helper to create test entities with specified enabled state."""

@@ -887,16 +887,8 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertIn('/profile', response.location)
 
     def test_dashboard_without_access_redirects_to_profile(self):
-        """Test dashboard redirects users without access to profile."""
-
-        restricted_user_id = 'no_access_user'
-        self.login_user(restricted_user_id)
-
-        with patch('routes.core.current_user') as mock_user:
-            mock_user.id = restricted_user_id
-            mock_user.has_access.return_value = False
-
-            response = self.client.get('/dashboard', follow_redirects=False)
+        """Test dashboard redirects to profile."""
+        response = self.client.get('/dashboard', follow_redirects=False)
 
         self.assertEqual(response.status_code, 302)
         self.assertIn('/profile', response.location)
@@ -2287,10 +2279,9 @@ class TestErrorHandlers(BaseTestCase):
 class TestPageViewTracking(BaseTestCase):
     """Test page view tracking functionality."""
 
-    @patch('routes.core.current_user')
-    def test_page_view_tracking_authenticated(self, mock_current_user):
+    def test_page_view_tracking_authenticated(self):
         """Test page view tracking for authenticated users."""
-        mock_current_user.id = self.test_user_id
+        self.login_user()
 
         # Make request that should be tracked
         self.client.get('/profile')

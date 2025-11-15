@@ -26,7 +26,6 @@ from server_execution import (  # noqa: E402
 
 class TestVersionedServerInvocation(unittest.TestCase):
     def setUp(self):
-        self.user_id = 'user_1'
         self.server_name = 'my_server'
 
     def test_is_potential_versioned_server_path(self):
@@ -39,18 +38,14 @@ class TestVersionedServerInvocation(unittest.TestCase):
         self.assertFalse(is_potential_versioned_server_path('/a/b/c/d', existing))  # too many segments
 
     @patch('server_execution.server_lookup.get_server_by_name')
-    @patch('server_execution.server_lookup._current_user_id')
-    def test_try_partial_server_missing(self, mock_current_user_id, mock_get_server_by_name):
-        mock_current_user_id.return_value = self.user_id
+    def test_try_partial_server_missing(self, mock_get_server_by_name):
         mock_get_server_by_name.return_value = None
         result = try_server_execution_with_partial(f'/{self.server_name}/abc', Mock())
         self.assertIsNone(result)
 
     @patch('server_execution.server_lookup.render_template')
     @patch('server_execution.server_lookup.get_server_by_name')
-    @patch('server_execution.server_lookup._current_user_id')
-    def test_try_partial_no_matches_returns_404(self, mock_current_user_id, mock_get_server_by_name, mock_render):
-        mock_current_user_id.return_value = self.user_id
+    def test_try_partial_no_matches_returns_404(self, mock_get_server_by_name, mock_render):
         mock_get_server_by_name.return_value = object()
         mock_render.return_value = ('not found', 404)
         history_fetcher = Mock(return_value=[])
@@ -60,9 +55,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
 
     @patch('server_execution.server_lookup.jsonify')
     @patch('server_execution.server_lookup.get_server_by_name')
-    @patch('server_execution.server_lookup._current_user_id')
-    def test_try_partial_multiple_matches_returns_400_with_list(self, mock_current_user_id, mock_get_server_by_name, mock_jsonify):
-        mock_current_user_id.return_value = self.user_id
+    def test_try_partial_multiple_matches_returns_400_with_list(self, mock_get_server_by_name, mock_jsonify):
         mock_get_server_by_name.return_value = object()
         # Two matches with same prefix
         history_fetcher = Mock(return_value=[
@@ -77,9 +70,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
 
     @patch('server_execution.server_lookup.execute_server_code_from_definition')
     @patch('server_execution.server_lookup.get_server_by_name')
-    @patch('server_execution.server_lookup._current_user_id')
-    def test_try_partial_single_match_executes(self, mock_current_user_id, mock_get_server_by_name, mock_execute):
-        mock_current_user_id.return_value = self.user_id
+    def test_try_partial_single_match_executes(self, mock_get_server_by_name, mock_execute):
         mock_get_server_by_name.return_value = object()
         history_fetcher = Mock(return_value=[
             {
@@ -96,9 +87,7 @@ class TestVersionedServerInvocation(unittest.TestCase):
 
     @patch('server_execution.server_lookup.execute_server_function_from_definition')
     @patch('server_execution.server_lookup.get_server_by_name')
-    @patch('server_execution.server_lookup._current_user_id')
-    def test_try_partial_helper_executes(self, mock_current_user_id, mock_get_server_by_name, mock_execute_helper):
-        mock_current_user_id.return_value = self.user_id
+    def test_try_partial_helper_executes(self, mock_get_server_by_name, mock_execute_helper):
         mock_get_server_by_name.return_value = object()
         history_entry = {
             'definition_cid': 'abc123',

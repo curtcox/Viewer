@@ -14,13 +14,7 @@ from reference_templates.servers import get_server_templates
 
 @pytest.fixture(autouse=True)
 def patch_execution_environment(monkeypatch):
-    from server_execution import code_execution, variable_resolution
-    import identity
-
-    # Mock user - only variable_resolution imports current_user after refactoring
-    mock_user = SimpleNamespace(id="user-123")
-    monkeypatch.setattr(identity, "current_user", mock_user)
-    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
+    from server_execution import code_execution
 
     monkeypatch.setattr(
         code_execution,

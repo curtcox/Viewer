@@ -41,11 +41,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
             try:
                 # Mock the get_user_aliases function to raise a database error similar to the real issue
                 with patch('db_access.get_user_aliases') as mock_get_aliases:
-                    with patch('identity.current_user') as mock_current_user:
-                        # Mock authentication
-                        mock_current_user.id = self.test_user_id
-
-                        # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
+                    # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
                         import sqlite3
 
                         from sqlalchemy.exc import OperationalError

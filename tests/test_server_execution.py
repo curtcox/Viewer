@@ -454,15 +454,12 @@ class TestBuildRequestArgs(unittest.TestCase):
 
     def test_builds_request_args(self):
         app = Flask(__name__)
-        mock_user = types.SimpleNamespace(id="user-123")
 
-        # After decomposition, current_user is only in variable_resolution
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            with patch("server_execution.code_execution.get_user_variables", return_value=[]):
-                with patch("server_execution.code_execution.get_user_secrets", return_value=[]):
-                    with patch("server_execution.code_execution.get_user_servers", return_value=[]):
-                        with app.test_request_context("/test"):
-                            result = build_request_args()
+        with patch("server_execution.code_execution.get_variables", return_value=[]):
+            with patch("server_execution.code_execution.get_secrets", return_value=[]):
+                with patch("server_execution.code_execution.get_servers", return_value=[]):
+                    with app.test_request_context("/test"):
+                        result = build_request_args()
 
         assert "request" in result
         assert "context" in result

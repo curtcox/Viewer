@@ -230,12 +230,9 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
 
         with self.app.test_request_context('/test-auth-error'):
             try:
-                with patch('identity.current_user') as mock_user:
-                    mock_user.id = user_id
+                # Import something from aliases to get it in traceback
 
-                    # Import something from aliases to get it in traceback
-
-                    raise RuntimeError('Authenticated user error test')
+                raise RuntimeError('Authenticated user error test')
             except RuntimeError as exc:
                 from routes.core import internal_error
                 html_content, status_code = internal_error(exc)
