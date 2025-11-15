@@ -75,45 +75,41 @@ def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int] = None) ->
     return cid_value
 
 
-def store_cid_from_json(json_content: str, user_id: Optional[int] = None) -> str:
+def store_cid_from_json(json_content: str) -> str:
     """Store JSON content in a CID record and return the CID.
 
     Args:
         json_content: JSON string to store
-        user_id: User ID for ownership (optional, deprecated - no longer used)
 
     Returns:
         CID string
 
     Example:
-        >>> cid = store_cid_from_json('{"key": "value"}', user_id=1)
+        >>> cid = store_cid_from_json('{"key": "value"}')
         >>> isinstance(cid, str)
         True
     """
     json_bytes = json_content.encode('utf-8')
-    return store_cid_from_bytes(json_bytes, user_id)
+    return store_cid_from_bytes(json_bytes)
 
 
 # ============================================================================
 # SERVER DEFINITIONS
 # ============================================================================
 
-def generate_all_server_definitions_json(user_id: int) -> str:
-    """Generate JSON containing all server definitions for a user.
-
-    Args:
-        user_id: User ID
+def generate_all_server_definitions_json() -> str:
+    """Generate JSON containing all server definitions.
 
     Returns:
         JSON string with server definitions
 
     Example:
-        >>> json_str = generate_all_server_definitions_json(1)
+        >>> json_str = generate_all_server_definitions_json()
         >>> isinstance(json_str, str)
         True
     """
     try:
-        servers = db_access.get_user_servers(user_id)
+        servers = db_access.get_servers()
     except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
 
@@ -126,31 +122,25 @@ def generate_all_server_definitions_json(user_id: int) -> str:
     return json.dumps(server_definitions, indent=2, sort_keys=True)
 
 
-def store_server_definitions_cid(user_id: int) -> str:
+def store_server_definitions_cid() -> str:
     """Store all server definitions as JSON in a CID and return the CID.
-
-    Args:
-        user_id: User ID
 
     Returns:
         CID string
     """
-    json_content = generate_all_server_definitions_json(user_id)
-    return store_cid_from_json(json_content, user_id)
+    json_content = generate_all_server_definitions_json()
+    return store_cid_from_json(json_content)
 
 
-def get_current_server_definitions_cid(user_id: int) -> str:
+def get_current_server_definitions_cid() -> str:
     """Get the CID for the current server definitions JSON.
 
     Creates the CID if it doesn't exist.
 
-    Args:
-        user_id: User ID
-
     Returns:
         CID string
     """
-    json_content = generate_all_server_definitions_json(user_id)
+    json_content = generate_all_server_definitions_json()
     json_bytes = json_content.encode('utf-8')
     cid_value = format_cid(generate_cid(json_bytes))
 
@@ -158,24 +148,21 @@ def get_current_server_definitions_cid(user_id: int) -> str:
     content = get_cid_content(cid_record_path) if cid_record_path else None
     if content:
         return cid_value
-    return store_server_definitions_cid(user_id)
+    return store_server_definitions_cid()
 
 
 # ============================================================================
 # VARIABLE DEFINITIONS
 # ============================================================================
 
-def generate_all_variable_definitions_json(user_id: int) -> str:
-    """Generate JSON containing all variable definitions for a user.
-
-    Args:
-        user_id: User ID
+def generate_all_variable_definitions_json() -> str:
+    """Generate JSON containing all variable definitions.
 
     Returns:
         JSON string with variable definitions
     """
     try:
-        variables = db_access.get_user_variables(user_id)
+        variables = db_access.get_variables()
     except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
 
@@ -188,31 +175,25 @@ def generate_all_variable_definitions_json(user_id: int) -> str:
     return json.dumps(variable_definitions, indent=2, sort_keys=True)
 
 
-def store_variable_definitions_cid(user_id: int) -> str:
+def store_variable_definitions_cid() -> str:
     """Store all variable definitions as JSON in a CID and return the CID.
-
-    Args:
-        user_id: User ID
 
     Returns:
         CID string
     """
-    json_content = generate_all_variable_definitions_json(user_id)
-    return store_cid_from_json(json_content, user_id)
+    json_content = generate_all_variable_definitions_json()
+    return store_cid_from_json(json_content)
 
 
-def get_current_variable_definitions_cid(user_id: int) -> str:
+def get_current_variable_definitions_cid() -> str:
     """Get the CID for the current variable definitions JSON.
 
     Creates the CID if it doesn't exist.
 
-    Args:
-        user_id: User ID
-
     Returns:
         CID string
     """
-    json_content = generate_all_variable_definitions_json(user_id)
+    json_content = generate_all_variable_definitions_json()
     json_bytes = json_content.encode('utf-8')
     cid_value = format_cid(generate_cid(json_bytes))
 
@@ -220,24 +201,21 @@ def get_current_variable_definitions_cid(user_id: int) -> str:
     content = get_cid_content(cid_record_path) if cid_record_path else None
     if content:
         return cid_value
-    return store_variable_definitions_cid(user_id)
+    return store_variable_definitions_cid()
 
 
 # ============================================================================
 # SECRET DEFINITIONS
 # ============================================================================
 
-def generate_all_secret_definitions_json(user_id: int) -> str:
-    """Generate JSON containing all secret definitions for a user.
-
-    Args:
-        user_id: User ID
+def generate_all_secret_definitions_json() -> str:
+    """Generate JSON containing all secret definitions.
 
     Returns:
         JSON string with secret definitions
     """
     try:
-        secrets = db_access.get_user_secrets(user_id)
+        secrets = db_access.get_secrets()
     except RuntimeError:
         return json.dumps({}, indent=2, sort_keys=True)
 
@@ -250,35 +228,29 @@ def generate_all_secret_definitions_json(user_id: int) -> str:
     return json.dumps(secret_definitions, indent=2, sort_keys=True)
 
 
-def store_secret_definitions_cid(user_id: int) -> str:
+def store_secret_definitions_cid() -> str:
     """Store all secret definitions as JSON in a CID and return the CID.
-
-    Args:
-        user_id: User ID
 
     Returns:
         CID string
     """
-    json_content = generate_all_secret_definitions_json(user_id)
+    json_content = generate_all_secret_definitions_json()
     json_bytes = json_content.encode('utf-8')
     cid_value = format_cid(generate_cid(json_bytes))
 
-    ensure_cid_exists(cid_value, json_bytes, user_id)
+    ensure_cid_exists(cid_value, json_bytes)
     return cid_value
 
 
-def get_current_secret_definitions_cid(user_id: int) -> str:
+def get_current_secret_definitions_cid() -> str:
     """Get the CID for the current secret definitions JSON.
 
     Creates the CID if it doesn't exist.
 
-    Args:
-        user_id: User ID
-
     Returns:
         CID string
     """
-    json_content = generate_all_secret_definitions_json(user_id)
+    json_content = generate_all_secret_definitions_json()
     json_bytes = json_content.encode('utf-8')
     cid_value = format_cid(generate_cid(json_bytes))
 
@@ -286,4 +258,4 @@ def get_current_secret_definitions_cid(user_id: int) -> str:
     content = get_cid_content(cid_record_path) if cid_record_path else None
     if content:
         return cid_value
-    return store_secret_definitions_cid(user_id)
+    return store_secret_definitions_cid()

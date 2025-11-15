@@ -152,12 +152,9 @@ def extract_references_from_text(text: Optional[str], user_id: Optional[str] = N
 
     references = _empty_reference_map()
 
-    if user_id:
-        alias_names = [alias.name for alias in get_user_aliases(user_id)]
-        server_names = [server.name for server in get_user_servers(user_id)]
-    else:
-        alias_names = []
-        server_names = []
+    # No user scoping needed - get all aliases and servers
+    alias_names = [alias.name for alias in get_user_aliases()]
+    server_names = [server.name for server in get_user_servers()]
 
     if alias_names:
         references["aliases"] = _discover_alias_references(snippet, alias_names)

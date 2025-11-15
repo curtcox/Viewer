@@ -83,7 +83,7 @@ class TestValidateCid(unittest.TestCase):
         with self.app.app_context():
             content = b"test content"
             cid_value = generate_cid(content)
-            create_cid_record(cid_value, content, self.user_id)
+            create_cid_record(cid_value, content)
 
             is_valid, error_type, error_msg = validate_cid(cid_value)
             self.assertTrue(is_valid)
@@ -167,7 +167,7 @@ class TestIsValidBootCid(unittest.TestCase):
         with self.app.app_context():
             content = json.dumps({'aliases': 'AAAAAAAA', 'servers': 'AAAAAAAB'}).encode('utf-8')
             cid_value = generate_cid(content)
-            record = create_cid_record(cid_value, content, self.user_id)
+            record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertTrue(is_valid)
@@ -178,7 +178,7 @@ class TestIsValidBootCid(unittest.TestCase):
         with self.app.app_context():
             content = b"not json content"
             cid_value = generate_cid(content)
-            record = create_cid_record(cid_value, content, self.user_id)
+            record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
@@ -189,7 +189,7 @@ class TestIsValidBootCid(unittest.TestCase):
         with self.app.app_context():
             content = json.dumps(['item1', 'item2']).encode('utf-8')
             cid_value = generate_cid(content)
-            record = create_cid_record(cid_value, content, self.user_id)
+            record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
@@ -200,7 +200,7 @@ class TestIsValidBootCid(unittest.TestCase):
         with self.app.app_context():
             content = b'\xff\xfe\xfd'  # Invalid UTF-8
             cid_value = generate_cid(content)
-            record = create_cid_record(cid_value, content, self.user_id)
+            record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
@@ -247,7 +247,7 @@ class TestListBootCids(unittest.TestCase):
             # Create a non-boot CID
             content = b"just text, not json"
             cid_value = generate_cid(content)
-            create_cid_record(cid_value, content, self.user_id)
+            create_cid_record(cid_value, content)
 
             boot_cids = list_boot_cids()
             # Should not include the text CID
@@ -261,16 +261,16 @@ class TestListBootCids(unittest.TestCase):
             # Create valid boot CIDs
             boot1 = json.dumps({'aliases': 'AAAAAAAA'}).encode('utf-8')
             cid1 = generate_cid(boot1)
-            create_cid_record(cid1, boot1, self.user_id)
+            create_cid_record(cid1, boot1)
 
             boot2 = json.dumps({'servers': 'AAAAAAAB', 'variables': 'AAAAAAAC'}).encode('utf-8')
             cid2 = generate_cid(boot2)
-            create_cid_record(cid2, boot2, self.user_id)
+            create_cid_record(cid2, boot2)
 
             # Create a non-boot CID
             non_boot = b"not a boot cid"
             cid3 = generate_cid(non_boot)
-            create_cid_record(cid3, non_boot, self.user_id)
+            create_cid_record(cid3, non_boot)
 
             boot_cids = list_boot_cids()
 
@@ -288,7 +288,7 @@ class TestListBootCids(unittest.TestCase):
                 'servers': 'AAAAAAAB',
             }).encode('utf-8')
             cid_value = generate_cid(boot_content)
-            create_cid_record(cid_value, boot_content, self.user_id)
+            create_cid_record(cid_value, boot_content)
 
             boot_cids = list_boot_cids()
 
@@ -372,7 +372,7 @@ class TestMakeHttpGetRequest(unittest.TestCase):
         with self.app.app_context():
             content = b"test content for http request"
             cid_value = generate_cid(content)
-            create_cid_record(cid_value, content, self.user_id)
+            create_cid_record(cid_value, content)
 
             success, response_text, status_code = make_http_get_request(
                 self.app, f'/{cid_value}'

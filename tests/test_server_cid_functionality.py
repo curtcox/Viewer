@@ -47,7 +47,7 @@ def test_server_cid_functionality():
         cid_record = CID.query.filter_by(path=f"/{cid1}").first()
         assert cid_record is not None
         assert cid_record.file_data == definition1.encode('utf-8')
-        assert cid_record.uploaded_by_user_id == test_user_id
+        # CID record exists (no user_id field anymore)
         print("✓ CID record created in database")
 
         # Test 2: Test duplicate CID handling

@@ -14,7 +14,7 @@ from werkzeug.routing import Map, RequestRedirect, Rule
 
 from alias_definition import AliasRouteRule, collect_alias_routes
 from alias_matching import matches_path
-from db_access import get_user_aliases, get_user_variables
+from db_access import get_aliases, get_variables
 from identity import ensure_default_resources
 
 _FLASK_PLACEHOLDER_RE = re.compile(r"<(?:(?P<converter>[^:<>]+):)?(?P<name>[^<>]+)>")
@@ -82,14 +82,11 @@ class AliasMatch:
     route: AliasRouteRule
 
 
-def _user_variable_map(user_id: str | None) -> dict[str, str]:
-    """Return a mapping of enabled variable names to their values for ``user_id``."""
-
-    if not user_id:
-        return {}
+def _variable_map() -> dict[str, str]:
+    """Return a mapping of enabled variable names to their values."""
 
     try:
-        variables = get_user_variables(user_id)
+        variables = get_variables()
     except (SQLAlchemyError, AttributeError, RuntimeError):  # pragma: no cover - defensive guard for database errors and missing app context
         return {}
 
@@ -107,52 +104,16 @@ def _user_variable_map(user_id: str | None) -> dict[str, str]:
     return result
 
 
-def _alias_routes_for_user_in_declaration_order(user_id: str | None) -> Generator[tuple[Any, AliasRouteRule], None, None]:
+def _alias_routes_in_declaration_order() -> Generator[tuple[Any, AliasRouteRule], None, None]:
     """Yield alias routes in the order they are declared."""
 
-    if not user_id:
-        return
-
-    aliases = get_user_aliases(user_id)
-    variable_map = _user_variable_map(user_id)
+    aliases = get_aliases()
+    variable_map = _variable_map()
     for alias in aliases:
         if not getattr(alias, "enabled", True):
             continue
         for route in collect_alias_routes(alias, variables=variable_map):
             yield alias, route
-
-
-def _match_alias_for_user(path: str, user_id: str | None) -> Optional[AliasMatch]:
-    """Return the first alias route for ``user_id`` that matches ``path``."""
-
-    if not user_id:
-        return None
-
-    for alias, route in _alias_routes_for_user_in_declaration_order(user_id):
-        if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
-            return AliasMatch(alias=alias, route=route)
-    return None
-
-
-def _resolve_user_id(user: Any) -> Optional[str]:
-    """Return a string identifier for ``user`` when available."""
-
-    if user is None:
-        return None
-
-    user_id = getattr(user, "id", None)
-    if callable(user_id):
-        try:
-            user_id = user_id()
-        except TypeError:
-            user_id = None
-
-    if not user_id:
-        getter = getattr(user, "get_id", None)
-        if callable(getter):
-            user_id = getter()
-
-    return user_id
 
 
 def find_matching_alias(path: str) -> Optional[AliasMatch]:
@@ -165,8 +126,10 @@ def find_matching_alias(path: str) -> Optional[AliasMatch]:
     ensure_default_resources()
 
     # Match against all aliases (no user scoping needed)
-    match = _match_alias_for_user(path, None)
-    return match
+    for alias, route in _alias_routes_in_declaration_order():
+        if matches_path(route.match_type, route.match_pattern, path, route.ignore_case):
+            return AliasMatch(alias=alias, route=route)
+    return None
 
 
 @lru_cache(maxsize=128)

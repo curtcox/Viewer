@@ -82,27 +82,23 @@ class TestDBAccess(unittest.TestCase):
         self.app_context.pop()
 
     def test_entity_helpers(self):
-        server = Server(name='srv', definition='print(1)', user_id=self.user_id)
-        variable = Variable(name='var', definition='1', user_id=self.user_id)
-        secret = Secret(name='sec', definition='x', user_id=self.user_id)
+        server = Server(name='srv', definition='print(1)')
+        variable = Variable(name='var', definition='1')
+        secret = Secret(name='sec', definition='x')
         db.session.add_all([server, variable, secret])
         db.session.commit()
 
-        self.assertIsNotNone(get_server_by_name(self.user_id, 'srv'))
-        self.assertIsNotNone(get_variable_by_name(self.user_id, 'var'))
-        self.assertIsNotNone(get_secret_by_name(self.user_id, 'sec'))
-        self.assertEqual(count_user_servers(self.user_id), 1)
-        self.assertEqual(count_user_variables(self.user_id), 1)
-        self.assertEqual(count_user_secrets(self.user_id), 1)
+        self.assertIsNotNone(get_server_by_name('srv'))
+        self.assertIsNotNone(get_variable_by_name('var'))
+        self.assertIsNotNone(get_secret_by_name('sec'))
         self.assertEqual(count_servers(), 1)
         self.assertEqual(count_variables(), 1)
         self.assertEqual(count_secrets(), 1)
 
     def test_server_invocation_and_cid_helpers(self):
-        create_cid_record('cid1', b'data', self.user_id)
+        create_cid_record('cid1', b'data')
         self.assertIsNotNone(get_cid_by_path('/cid1'))
         invocation = create_server_invocation(
-            self.user_id,
             'srv',
             'cid1',
             ServerInvocationInput(),
@@ -114,9 +110,9 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(find_cids_by_prefix(''), [])
         self.assertEqual(find_cids_by_prefix('/'), [])
 
-        create_cid_record('alpha.one', b'a', self.user_id)
-        create_cid_record('alpha.two', b'b', self.user_id)
-        create_cid_record('beta.one', b'c', self.user_id)
+        create_cid_record('alpha.one', b'a')
+        create_cid_record('alpha.two', b'b')
+        create_cid_record('beta.one', b'c')
 
         matches = find_cids_by_prefix('alpha')
         self.assertEqual([cid.path for cid in matches], ['/alpha.one', '/alpha.two'])
@@ -126,10 +122,10 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
 
     def test_get_user_uploads_returns_latest_first(self):
-        create_cid_record('first', b'1', self.user_id)
-        create_cid_record('second', b'2', self.user_id)
+        create_cid_record('first', b'1')
+        create_cid_record('second', b'2')
 
-        uploads = get_user_uploads(self.user_id)
+        uploads = get_uploads()
         self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
         self.assertEqual(uploads[0].file_size, len(b'2'))
 
@@ -143,7 +139,7 @@ class TestDBAccess(unittest.TestCase):
         from sqlalchemy.exc import IntegrityError
 
         # Create first CID
-        create_cid_record('test_cid', b'test data', self.user_id)
+        create_cid_record('test_cid', b'test data')
 
         # Verify it was created
         cid = get_cid_by_path('/test_cid')
@@ -151,26 +147,25 @@ class TestDBAccess(unittest.TestCase):
 
         # Attempt to create duplicate should raise IntegrityError
         with self.assertRaises(IntegrityError):
-            create_cid_record('test_cid', b'different data', self.user_id)
+            create_cid_record('test_cid', b'different data')
 
     def test_page_view_helpers(self):
         views = [
-            PageView(user_id=self.user_id, path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(user_id=self.user_id, path='/beta', method='POST', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(user_id=self.user_id, path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/beta', method='POST', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
         ]
         for view in views:
             save_page_view(view)
 
-        self.assertEqual(count_user_page_views(self.user_id), 3)
-        self.assertEqual(count_unique_page_view_paths(self.user_id), 2)
         self.assertEqual(count_page_views(), 3)
+        self.assertEqual(count_unique_page_view_paths(), 2)
 
-        popular = get_popular_page_paths(self.user_id, limit=1)
+        popular = get_popular_page_paths(limit=1)
         self.assertTrue(popular)
         self.assertEqual(popular[0].path, '/alpha')
 
-        pagination = paginate_user_page_views(self.user_id, page=1, per_page=2)
+        pagination = paginate_page_views(page=1, per_page=2)
         self.assertEqual(pagination.total, 3)
         self.assertEqual(len(pagination.items), 2)
 
@@ -313,8 +308,8 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(alias.match_pattern, '/latest')
 
     def test_cid_lookup_helpers(self):
-        create_cid_record('gamma', b'g', self.user_id)
-        create_cid_record('delta', b'd', self.user_id)
+        create_cid_record('gamma', b'g')
+        create_cid_record('delta', b'd')
 
         paths = ['/gamma', '/delta']
         records = get_cids_by_paths(paths)

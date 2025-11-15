@@ -2375,7 +2375,7 @@ class TestPageViewTracking(BaseTestCase):
         self.client.get('/profile')
 
         # Check if page view was recorded
-        PageView.query.filter_by(user_id=self.test_user_id, path='/profile').first()
+        PageView.query.filter_by(path='/profile').first()
         # Note: This might not work in test environment due to mocking complexity
         # but the test structure is correct
 

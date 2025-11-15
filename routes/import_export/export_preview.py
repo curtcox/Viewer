@@ -5,7 +5,7 @@ from typing import Any
 
 from wtforms import SelectMultipleField
 
-from db_access import get_user_aliases, get_user_secrets, get_user_servers, get_user_variables
+from db_access import get_aliases, get_secrets, get_servers, get_variables
 from forms import ExportForm
 
 from .export_helpers import (
@@ -15,12 +15,15 @@ from .export_helpers import (
 )
 
 
-def build_export_preview(form: ExportForm, user_id: str) -> dict[str, dict[str, Any]]:
+def build_export_preview(
+    form: ExportForm,
+    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
+) -> dict[str, dict[str, Any]]:
     """Return metadata describing which items are currently selected for export."""
-    alias_entries = preview_item_entries(get_user_aliases(user_id))
-    server_entries = preview_item_entries(get_user_servers(user_id))
-    variable_entries = preview_item_entries(get_user_variables(user_id))
-    secret_entries = preview_item_entries(get_user_secrets(user_id))
+    alias_entries = preview_item_entries(get_aliases())
+    server_entries = preview_item_entries(get_servers())
+    variable_entries = preview_item_entries(get_variables())
+    secret_entries = preview_item_entries(get_secrets())
 
     return {
         'aliases': _build_section(
