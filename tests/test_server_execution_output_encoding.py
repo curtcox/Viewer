@@ -154,9 +154,6 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
             calls.append((code, args))
             return {"output": "hello", "content_type": "text/plain"}
 
-        # Use context managers for automatic cleanup
-        mock_user = types.SimpleNamespace(id="user-123")
-
         def mock_build_request_args():
             return {
                 "request": {"path": "/mock"},
@@ -207,9 +204,6 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
         def failing_runner(code, args):
             raise ValueError("boom")
-
-        # Use context managers for automatic cleanup
-        mock_user = types.SimpleNamespace(id="user-123")
 
         def mock_build_request_args():
             return {

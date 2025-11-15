@@ -225,8 +225,7 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
         """Test error page display when user is authenticated."""
 
         with self.app.app_context():
-            # Track the authenticated user identifier
-            user_id = 'test-user-123'
+            pass
 
         with self.app.test_request_context('/test-auth-error'):
             try:

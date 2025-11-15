@@ -93,6 +93,8 @@ def test_store_or_find_content_creates_new_content(
     mock_format_cid.assert_called_once_with('raw-cid-string')
     # Should create new record
     mock_create.assert_called_once_with('formatted-cid-value', file_content)
+    # Should render CID link
+    mock_render_cid_link.assert_called_once_with('formatted-cid-value')
     # Should flash success message
     assert mock_flash.call_count == 1
     flash_call = mock_flash.call_args[0]
@@ -127,6 +129,8 @@ def test_store_or_find_content_finds_existing_content(
 
     # Should not create new record
     mock_create.assert_not_called()
+    # Should render CID link
+    mock_render_cid_link.assert_called_once_with('formatted-cid-value')
     # Should flash warning message
     assert mock_flash.call_count == 1
     flash_call = mock_flash.call_args[0]
