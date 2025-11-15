@@ -3,7 +3,7 @@
 
 import re
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from app import create_app
 from database import db

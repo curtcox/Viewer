@@ -146,7 +146,7 @@ class TestServerExecutionOutputEncoding(unittest.TestCase):
 class TestExecuteServerCodeSharedFlow(unittest.TestCase):
     def test_execute_functions_share_success_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
 
         calls = []
 
@@ -203,7 +203,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
     def test_execute_functions_share_error_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
 
         def failing_runner(code, args):
             raise ValueError("boom")

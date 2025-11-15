@@ -2,7 +2,6 @@
 # pylint: disable=no-name-in-module  # False positive: server_execution submodules available via lazy loading
 
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest

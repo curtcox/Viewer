@@ -10,8 +10,7 @@ operations to show enabled=True for all entities regardless of actual state.
 
 import json
 import unittest
-from unittest.mock import patch
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager
 
 from app import create_app
 from database import db
