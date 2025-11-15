@@ -18,9 +18,9 @@ from db_access import (
 )
 
 
-def serialise_interaction_history(user_id: str, entity_type: str, entity_name: str) -> list[dict[str, str]]:
+def serialise_interaction_history(entity_type: str, entity_name: str) -> list[dict[str, str]]:
     """Serialize interaction history for a single entity."""
-    interactions = get_entity_interactions(user_id, entity_type, entity_name)
+    interactions = get_entity_interactions(entity_type, entity_name)
 
     history: list[dict[str, str]] = []
     for interaction in interactions:
@@ -40,7 +40,7 @@ def serialise_interaction_history(user_id: str, entity_type: str, entity_name: s
     return history
 
 
-def gather_change_history(user_id: str) -> dict[str, dict[str, list[dict[str, str]]]]:
+def gather_change_history() -> dict[str, dict[str, list[dict[str, str]]]]:
     """Return change history grouped by entity collection."""
     collections: dict[str, tuple[str, Iterable[str]]] = {
         'aliases': ('alias', (alias.name for alias in get_aliases())),
@@ -54,7 +54,7 @@ def gather_change_history(user_id: str) -> dict[str, dict[str, list[dict[str, st
     for key, (entity_type, names) in collections.items():
         collection_history: dict[str, list[dict[str, str]]] = {}
         for name in names:
-            events = serialise_interaction_history(user_id, entity_type, name)
+            events = serialise_interaction_history(entity_type, name)
             if events:
                 collection_history[name] = events
         if collection_history:
@@ -160,7 +160,7 @@ def iter_history_events(
                 yield name, event
 
 
-def import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[str]]:
+def import_change_history(raw_history: Any) -> Tuple[int, list[str]]:
     """Import change history events."""
     if raw_history is None:
         return 0, ['No change history data found in import file.']
@@ -181,7 +181,6 @@ def import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[str
         for name, event in iter_history_events(raw_history, key, errors):
             existing = find_entity_interaction(
                 EntityInteractionLookup(
-                    user_id=user_id,
                     entity_type=entity_type,
                     entity_name=name,
                     action=event.action,
@@ -194,7 +193,6 @@ def import_change_history(user_id: str, raw_history: Any) -> Tuple[int, list[str
 
             record_entity_interaction(
                 EntityInteractionRequest(
-                    user_id=user_id,
                     entity_type=entity_type,
                     entity_name=name,
                     action=event.action,

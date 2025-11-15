@@ -7,7 +7,7 @@ from typing import Any, Callable
 
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid
-from db_access import get_user_uploads
+from db_access import get_uploads
 from forms import ExportForm
 
 from .cid_utils import CidWriter, encode_section_content, normalise_cid, serialise_cid_value
@@ -26,14 +26,13 @@ from .filesystem_collection import app_root_path
 
 def include_unreferenced_cids(
     form: ExportForm,
-    user_id: str,
     cid_map_entries: dict[str, str],
 ) -> None:
     """Record uploaded CID content when the user requests unreferenced data."""
     if not form.include_cid_map.data or not form.include_unreferenced_cid_data.data:
         return
 
-    for record in get_user_uploads(user_id):
+    for record in get_uploads():
         normalised = normalise_cid(record.path)
         if not normalised or normalised in cid_map_entries:
             continue
@@ -62,7 +61,6 @@ def add_optional_section(
 
 def build_export_payload(
     form: ExportForm,
-    user_id: str,
     *,
     store_content: bool = True,
 ) -> dict[str, Any]:
@@ -89,21 +87,21 @@ def build_export_payload(
         sections,
         form.include_aliases.data,
         'aliases',
-        lambda: collect_alias_section(form, user_id, cid_writer),
+        lambda: collect_alias_section(form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_servers.data,
         'servers',
-        lambda: collect_server_section(form, user_id, cid_writer),
+        lambda: collect_server_section(form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_variables.data,
         'variables',
-        lambda: collect_variables_section(form, user_id),
+        lambda: collect_variables_section(form),
         require_truthy=False,
     )
 
@@ -113,7 +111,6 @@ def build_export_payload(
         'secrets',
         lambda: collect_secrets_section(
             form,
-            user_id,
             form.secret_key.data.strip(),
             form.include_disabled_secrets.data,
             form.include_template_secrets.data,
@@ -125,7 +122,7 @@ def build_export_payload(
         sections,
         form.include_history.data,
         'change_history',
-        lambda: gather_change_history(user_id),
+        lambda: gather_change_history(),
     )
 
     add_optional_section(
@@ -135,7 +132,7 @@ def build_export_payload(
         lambda: collect_app_source_section(form, base_path, cid_writer),
     )
 
-    include_unreferenced_cids(form, user_id, cid_writer.cid_map_entries)
+    include_unreferenced_cids(form, cid_writer.cid_map_entries)
 
     for section_name, section_value in sections.items():
         section_bytes = encode_section_content(section_value)

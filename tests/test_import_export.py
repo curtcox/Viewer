@@ -52,13 +52,8 @@ class TestImportExportRoutes(unittest.TestCase):
 
     @contextmanager
     def logged_in(self):
-        with ExitStack() as stack:
-            # Patch current_user where it's actually used in the route handlers and import engine
-            route_user = stack.enter_context(patch('routes.import_export.routes.current_user'))
-            self._login_patch(route_user)
-            import_user = stack.enter_context(patch('routes.import_export.import_engine.current_user'))
-            self._login_patch(import_user)
-            yield
+        # No longer needed - user authentication removed
+        yield
 
     def assert_flash_present(self, message: str, response_data: bytes):
         text = response_data.decode('utf-8')
@@ -1258,7 +1253,6 @@ class TestImportExportRoutes(unittest.TestCase):
         data = {'aliases': ['entry']}
         context = import_export._ImportContext(
             form=cast(ImportForm, object()),
-            user_id='user',
             change_message='',
             raw_payload='{}',
             data=data,
@@ -1294,7 +1288,6 @@ class TestImportExportRoutes(unittest.TestCase):
     def test_import_section_rejects_invalid_plan_shape(self):
         context = import_export._ImportContext(
             form=cast(ImportForm, object()),
-            user_id='user',
             change_message='',
             raw_payload='{}',
             data={},
@@ -1363,7 +1356,7 @@ class TestImportExportRoutes(unittest.TestCase):
                         form.include_history.data = False
                         form.include_source.data = False
 
-                        result = import_export._build_export_payload(form, self.user_id)
+                        result = import_export._build_export_payload(form)
 
         self.assertEqual(result['cid_value'], f'cid-{len(store_bytes_stub.calls)}')
         self.assertEqual(result['download_path'], '/downloads/export.json')
