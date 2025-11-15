@@ -11,7 +11,6 @@ os.environ['SESSION_SECRET'] = 'test-secret-key'
 os.environ['TESTING'] = 'True'
 
 from app import app
-from identity import ExternalUser
 from models import CID, PageView, Secret, Server, Variable, db
 
 
@@ -36,78 +35,6 @@ class TestModels(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
-    def test_user_has_access_with_valid_payment(self):
-        """Test User.has_access() with valid payment."""
-        future_date = datetime.now(timezone.utc) + timedelta(days=30)
-        user = ExternalUser(
-            id='test_user_1',
-            email='test@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=future_date,
-        )
-
-        self.assertTrue(user.has_access())
-
-    def test_user_has_access_with_expired_payment(self):
-        """Test User.has_access() with expired payment."""
-        past_date = datetime.now(timezone.utc) - timedelta(days=1)
-        user = ExternalUser(
-            id='test_user_2',
-            email='test2@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=past_date,
-        )
-
-        self.assertFalse(user.has_access())
-
-    def test_user_has_access_no_payment_expiry(self):
-        """Test User.has_access() with no payment expiry (lifetime access)."""
-        user = ExternalUser(
-            id='test_user_3',
-            email='test3@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=True,
-            payment_expires_at=None,
-        )
-
-        self.assertTrue(user.has_access())
-
-    def test_user_has_access_not_paid(self):
-        """Test User.has_access() when user is not paid."""
-        user = ExternalUser(
-            id='test_user_4',
-            email='test4@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=False,
-            current_terms_accepted=True,
-            payment_expires_at=None,
-        )
-
-        self.assertFalse(user.has_access())
-
-    def test_user_has_access_terms_not_accepted(self):
-        """Test User.has_access() when terms not accepted."""
-        user = ExternalUser(
-            id='test_user_5',
-            email='test5@example.com',
-            first_name='Test',
-            last_name='User',
-            is_paid=True,
-            current_terms_accepted=False,
-            payment_expires_at=None,
-        )
-
-        self.assertFalse(user.has_access())
 
     def test_datetime_defaults_on_model_creation(self):
         """Test that datetime defaults are set correctly when creating model instances."""

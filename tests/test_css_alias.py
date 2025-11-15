@@ -8,7 +8,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
-from css_defaults import ensure_css_alias_for_user
+from css_defaults import ensure_css_alias
 from db_access import create_cid_record, get_alias_by_name
 import identity
 from reference_templates.uploads import get_upload_templates
@@ -30,7 +30,7 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.app_context.pop()
 
     def test_css_alias_created_with_expected_definition(self):
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         lines = [line.strip() for line in alias.definition.splitlines() if line.strip()]
         self.assertGreaterEqual(len(lines), 4)
@@ -39,42 +39,42 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.assertIn('css/darkmode -> /static/css/custom.css', lines)
 
     def test_css_alias_created_when_missing(self):
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         db.session.delete(alias)
         db.session.commit()
 
-        changed = ensure_css_alias_for_user(self.user.id)
+        changed = ensure_css_alias()
         self.assertTrue(changed)
 
-        recreated = get_alias_by_name(self.user.id, 'CSS')
+        recreated = get_alias_by_name('CSS')
         self.assertIsNotNone(recreated)
         self.assertIn('css/custom.css -> /css/default', recreated.definition)
 
     def test_css_alias_preserved_when_already_defined(self):
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         alias.definition = 'css/custom.css -> /css/darkmode'
         db.session.add(alias)
         db.session.commit()
 
-        changed = ensure_css_alias_for_user(self.user.id)
+        changed = ensure_css_alias()
         self.assertFalse(changed)
 
-        refreshed = get_alias_by_name(self.user.id, 'CSS')
+        refreshed = get_alias_by_name('CSS')
         self.assertEqual(refreshed.definition.strip(), 'css/custom.css -> /css/darkmode')
 
     def test_css_alias_upgraded_when_theme_routes_missing(self):
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         alias.definition = 'css/custom.css -> /css/default\ncss/default -> /static/css/custom.css'
         db.session.add(alias)
         db.session.commit()
 
-        changed = ensure_css_alias_for_user(self.user.id)
+        changed = ensure_css_alias()
         self.assertTrue(changed)
 
-        refreshed = get_alias_by_name(self.user.id, 'CSS')
+        refreshed = get_alias_by_name('CSS')
         self.assertEqual(
             refreshed.definition,
             'css/custom.css -> /css/default\n'
@@ -84,13 +84,13 @@ class TestCssAliasDefaults(unittest.TestCase):
         )
 
     def test_css_alias_definition_can_be_updated_by_user(self):
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         alias.definition = 'css/custom.css -> /css/darkmode'
         db.session.add(alias)
         db.session.commit()
 
-        fetched = get_alias_by_name(self.user.id, 'CSS')
+        fetched = get_alias_by_name('CSS')
         self.assertEqual(fetched.definition.strip(), 'css/custom.css -> /css/darkmode')
 
     def test_css_alias_redirect_chain(self):
@@ -113,23 +113,27 @@ class TestCssAliasDefaults(unittest.TestCase):
     def test_css_alias_falls_back_to_default_user_when_missing(self):
         missing_user = 'missing-css-user'
 
-        original_ensure = identity.ensure_css_alias_for_user
+        original_ensure = identity.ensure_css_alias
 
-        def _maybe_ensure(user_id: str) -> bool:
-            if user_id == missing_user:
-                return False
-            return original_ensure(user_id)
+        def _maybe_ensure() -> bool:
+            return False
 
         with self.client.session_transaction() as session:
             session['_user_id'] = missing_user
 
-        with patch('identity.ensure_css_alias_for_user', side_effect=_maybe_ensure):
-            self.assertIsNone(get_alias_by_name(missing_user, 'CSS'))
+        # Delete the CSS alias to simulate it being missing
+        alias = get_alias_by_name('CSS')
+        if alias:
+            db.session.delete(alias)
+            db.session.commit()
+
+        with patch('identity.ensure_css_alias', side_effect=_maybe_ensure):
+            self.assertIsNone(get_alias_by_name('CSS'))
             response = self.client.get('/css/custom.css', follow_redirects=False)
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers['Location'], '/css/default')
-        self.assertIsNone(get_alias_by_name(missing_user, 'CSS'))
+        self.assertIsNone(get_alias_by_name('CSS'))
 
     def test_css_upload_templates_available(self):
         template_ids = {template['id'] for template in get_upload_templates()}
@@ -137,14 +141,14 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.assertIn('css-dark-mode', template_ids)
 
     def _update_css_alias_definition(self, definition: str) -> None:
-        alias = get_alias_by_name(self.user.id, 'CSS')
+        alias = get_alias_by_name('CSS')
         self.assertIsNotNone(alias)
         alias.definition = dedent(definition).strip()
         db.session.add(alias)
         db.session.commit()
 
     def _create_theme_cid(self, slug: str, css_text: str) -> str:
-        record = create_cid_record(slug, css_text.encode('utf-8'), self.user.id)
+        record = create_cid_record(slug, css_text.encode('utf-8'))
         return record.path
 
     def test_css_alias_light_mode_theme_content_changes(self):

@@ -1484,7 +1484,7 @@ class TestCidEditingRoutes(BaseTestCase):
 class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
 
-    @patch('routes.history.get_user_history_statistics')
+    @patch('routes.history.get_history_statistics')
     def test_history_page_displays_invocation_and_referer_details(self, mock_stats):
         """Ensure history page renders invocation links, server events, and referer metadata for page views."""
         result_cid = 'A' * CID_LENGTH
@@ -1542,7 +1542,7 @@ class TestHistoryRoutes(BaseTestCase):
         self.assertIn('Server event: test-server', page)
         self.assertIn('Referer: https://example.com/source', page)
 
-    @patch('routes.history.get_user_history_statistics')
+    @patch('routes.history.get_history_statistics')
     @patch('routes.history.get_paginated_page_views')
     def test_history_pagination_second_page_empty_results(self, mock_paginated, mock_stats):
         """Requesting page 2 returns 200 even when pagination yields no results."""

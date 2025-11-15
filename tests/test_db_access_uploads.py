@@ -10,7 +10,7 @@ os.environ['TESTING'] = 'True'
 
 from app import app
 from models import Variable, CID, db
-from db_access.uploads import get_user_template_uploads
+from db_access.uploads import get_template_uploads
 
 
 class TestDbAccessUploads(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestDbAccessUploads(unittest.TestCase):
 
     def test_get_user_template_uploads_no_templates(self):
         """Test getting upload templates when none exist."""
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 0)
 
@@ -65,7 +65,7 @@ class TestDbAccessUploads(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 2)
 
@@ -113,7 +113,7 @@ class TestDbAccessUploads(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['id'], 'cid_template')
@@ -150,7 +150,7 @@ class TestDbAccessUploads(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 3)
         self.assertEqual(templates[0]['name'], 'Alpha Template')
@@ -179,7 +179,7 @@ class TestDbAccessUploads(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['id'], 'empty')

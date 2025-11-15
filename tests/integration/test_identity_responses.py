@@ -99,15 +99,20 @@ def test_css_alias_resolves_without_user_specific_alias(client):
     default_response = client.get('/css/custom.css', follow_redirects=True)
     assert default_response.status_code == 200
 
-    original_ensure = identity.ensure_css_alias_for_user
+    original_ensure = identity.ensure_css_alias
 
-    def _maybe_ensure(user_id: str) -> bool:
-        if user_id == missing_user:
-            return False
-        return original_ensure(user_id)
+    def _maybe_ensure() -> bool:
+        return False
 
     _set_user_session(client, missing_user)
-    with patch('identity.ensure_css_alias_for_user', side_effect=_maybe_ensure):
+    # Delete CSS alias to simulate it being missing
+    with client.application.app_context():
+        alias = get_alias_by_name('CSS')
+        if alias:
+            db.session.delete(alias)
+            db.session.commit()
+
+    with patch('identity.ensure_css_alias', side_effect=_maybe_ensure):
         missing_response = client.get('/css/custom.css', follow_redirects=True)
 
     assert missing_response.status_code == default_response.status_code

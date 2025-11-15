@@ -35,7 +35,6 @@ from db_access import (
     get_recent_cids,
     get_secret_by_name,
     get_server_by_name,
-    get_user_profile_data,
     get_user_server_invocations,
     get_user_server_invocations_by_result_cids,
     get_user_server_invocations_by_server,
@@ -81,13 +80,6 @@ class TestDBAccess(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
-    def test_get_user_profile_data(self):
-        data = get_user_profile_data(self.user_id)
-        self.assertEqual(data['payments'], [])
-        self.assertEqual(data['terms_history'], [])
-        self.assertFalse(data['needs_terms_acceptance'])
-        self.assertIsNone(data['current_terms_version'])
 
     def test_entity_helpers(self):
         server = Server(name='srv', definition='print(1)', user_id=self.user_id)
