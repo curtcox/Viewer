@@ -391,6 +391,121 @@ class TestCliUrlDetection(unittest.TestCase):
         self.assertTrue('Error' in result.stderr or 'Status:' in result.stdout)
 
 
+class TestRunScriptWithoutEnv(unittest.TestCase):
+    """Tests for run script behavior when .env file is missing.
+
+    These tests verify that the run script properly handles missing .env file
+    for commands that don't need environment variables (like --help, --list).
+    """
+
+    def setUp(self):
+        """Back up .env file if it exists."""
+        self.project_root = Path(__file__).parent.parent.parent
+        self.env_file = self.project_root / '.env'
+        self.env_backup = self.project_root / '.env.backup_for_test'
+
+        # Backup .env if it exists
+        if self.env_file.exists():
+            import shutil
+            shutil.copy(self.env_file, self.env_backup)
+            self.env_file.unlink()
+
+    def tearDown(self):
+        """Restore .env file if it was backed up."""
+        if self.env_backup.exists():
+            import shutil
+            shutil.move(self.env_backup, self.env_file)
+
+    def test_help_works_without_env(self):
+        """Test that --help works even when .env file is missing."""
+        result = subprocess.run(
+            ['./run', '--help'],
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should exit successfully
+        self.assertEqual(result.returncode, 0)
+
+        # Should show help text
+        self.assertIn('USAGE', result.stdout)
+        self.assertIn('OPTIONS', result.stdout)
+
+        # Should NOT show .env missing error
+        self.assertNotIn('.env not found', result.stderr)
+        self.assertNotIn('.env not found', result.stdout)
+
+    def test_help_short_works_without_env(self):
+        """Test that -h works even when .env file is missing."""
+        result = subprocess.run(
+            ['./run', '-h'],
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should exit successfully
+        self.assertEqual(result.returncode, 0)
+
+        # Should show help text
+        self.assertIn('USAGE', result.stdout)
+
+        # Should NOT show .env missing error
+        self.assertNotIn('.env not found', result.stderr)
+        self.assertNotIn('.env not found', result.stdout)
+
+    def test_list_works_without_env(self):
+        """Test that --list works even when .env file is missing."""
+        result = subprocess.run(
+            ['./run', '--list'],
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should exit successfully
+        self.assertEqual(result.returncode, 0)
+
+        # Should show either boot CIDs or "no boot CIDs" message
+        self.assertTrue(
+            'Found' in result.stdout or 'No valid boot CIDs' in result.stdout
+        )
+
+        # Should NOT show .env missing error
+        self.assertNotIn('.env not found', result.stderr)
+        self.assertNotIn('.env not found', result.stdout)
+
+    def test_server_start_fails_with_helpful_message_without_env(self):
+        """Test that starting server without .env shows helpful error message."""
+        result = subprocess.run(
+            ['./run'],
+            cwd=self.project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Should exit with error
+        self.assertNotEqual(result.returncode, 0)
+
+        # Should show helpful error message
+        self.assertIn('.env file not found', result.stderr)
+        self.assertIn('./install', result.stderr)
+        self.assertIn('.env.sample', result.stderr)
+
+        # Should NOT try to start server
+        self.assertNotIn('Running on', result.stdout)
+        self.assertNotIn('Running on', result.stderr)
+
+
 class TestNonServerRunOptions(unittest.TestCase):
     """Tests for run options that exit without starting the Flask server.
 

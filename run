@@ -2,18 +2,61 @@
 set -e
 cd "$(dirname "$0")"
 
+# Check if virtual environment exists and activate it
 if [ -d "venv" ]; then
   source venv/bin/activate
+else
+  # Only warn if not running help/list commands
+  case "$*" in
+    *--help*|*-h*|*--list*)
+      # These commands can run without venv, though it may fail
+      ;;
+    *)
+      echo "Warning: Virtual environment (venv) not found. Run ./install to set up the environment." >&2
+      ;;
+  esac
 fi
 
-if [ ! -f ".env" ]; then
-  echo ".env not found. Run ./install or copy .env.sample to .env"
-  exit 1
-fi
+# Check if .env file is needed for this command
+# Commands like --help, --list don't need environment variables
+needs_env=true
+case "$*" in
+  *--help*|*-h*|*--list*)
+    needs_env=false
+    ;;
+esac
 
-# Load environment variables from .env file while preserving quoted values
-set -a
-source .env
-set +a
+# Only require .env for commands that need it
+if [ "$needs_env" = true ]; then
+  if [ ! -f ".env" ]; then
+    echo "Error: .env file not found" >&2
+    echo "" >&2
+    echo "The .env file contains required environment variables for running the application." >&2
+    echo "To fix this issue:" >&2
+    echo "  1. Run ./install to set up the environment and create .env automatically, or" >&2
+    echo "  2. Manually copy .env.sample to .env: cp .env.sample .env" >&2
+    echo "" >&2
+    echo "For help without setup, run: python main.py --help" >&2
+    exit 1
+  fi
+
+  # Load environment variables from .env file while preserving quoted values
+  set -a
+  if ! source .env 2>/dev/null; then
+    echo "Error: Failed to load .env file" >&2
+    echo "" >&2
+    echo "The .env file exists but contains syntax errors or cannot be read." >&2
+    echo "Common issues:" >&2
+    echo "  - Unquoted values with special characters" >&2
+    echo "  - Missing closing quotes" >&2
+    echo "  - Invalid bash syntax" >&2
+    echo "" >&2
+    echo "To fix this issue:" >&2
+    echo "  1. Check the .env file for syntax errors, or" >&2
+    echo "  2. Restore from template: cp .env.sample .env" >&2
+    exit 1
+  fi
+  set +a
+fi
 
 python main.py "$@"
