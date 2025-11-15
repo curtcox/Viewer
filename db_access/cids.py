@@ -1,7 +1,7 @@
 """CID management operations."""
 
 from datetime import datetime, timezone
-from typing import Callable, Dict, Iterable, List, Optional, Set
+from typing import Callable, Dict, Iterable, List, Optional
 
 from database import db
 import models
@@ -138,7 +138,6 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
 
     alias_updates = 0
     server_updates = 0
-    updated_server_users: Set[str] = set()
     now = datetime.now(timezone.utc)
 
     aliases: List[Alias] = Alias.query.all()

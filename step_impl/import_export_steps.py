@@ -15,7 +15,7 @@ from getgauge.python import after_scenario, before_scenario, step
 from app import create_app
 from cid_presenter import cid_path
 from database import db
-from identity import ensure_default_user
+from identity import ensure_default_resources
 from models import CID, Server
 from step_impl.artifacts import attach_response_snapshot
 
@@ -162,7 +162,7 @@ def given_origin_site_with_server(server_name: str, server_message: str) -> None
     )
 
     with origin_app.app_context():
-        user = ensure_default_user()
+        ensure_default_resources()
         db.session.add(
             Server(name=server_name, definition=server_definition)
         )

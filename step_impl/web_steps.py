@@ -4,7 +4,6 @@ from __future__ import annotations
 import csv
 import io
 import xml.etree.ElementTree as ET
-from typing import Optional
 
 from flask import Flask
 from flask.testing import FlaskClient

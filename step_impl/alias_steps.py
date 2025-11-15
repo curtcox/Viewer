@@ -12,7 +12,6 @@ from getgauge.python import after_scenario, before_scenario, step
 from alias_definition import format_primary_alias_line
 from app import create_app
 from database import db
-from identity import ensure_default_user
 from models import Alias
 from step_impl.artifacts import attach_response_snapshot
 

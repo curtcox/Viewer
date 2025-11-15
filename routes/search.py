@@ -16,7 +16,6 @@ from db_access import (
     get_user_uploads,
     get_user_variables,
 )
-from identity import current_user
 
 from . import main_bp
 from .text_highlighter import TextHighlighter
