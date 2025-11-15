@@ -53,15 +53,13 @@ def test_save_cid_content_delegates_to_store_or_find(mock_store):
     """Test that _save_cid_content properly delegates to _store_or_find_content."""
     mock_store.return_value = 'test-cid-value'
     text_content = "Hello, World!"
-    user_id = "test-user-123"
 
-    result = _save_cid_content(text_content, user_id)
+    result = _save_cid_content(text_content)
 
     # Should call _store_or_find_content with encoded bytes
     mock_store.assert_called_once()
     call_args = mock_store.call_args[0]
     assert call_args[0] == text_content.encode('utf-8')
-    assert call_args[1] == user_id
 
     # Should return the CID value
     assert result == 'test-cid-value'
@@ -74,9 +72,8 @@ def test_store_or_find_content_creates_new_content(mock_flash, mock_get_cid, moc
     """Test that _store_or_find_content creates new content when it doesn't exist."""
     mock_get_cid.return_value = None
     file_content = b"Test content"
-    user_id = "test-user-123"
 
-    _store_or_find_content(file_content, user_id)
+    _store_or_find_content(file_content)
 
     # Should create new record
     mock_create.assert_called_once()
@@ -94,9 +91,8 @@ def test_store_or_find_content_finds_existing_content(mock_flash, mock_get_cid, 
     mock_existing = MagicMock()
     mock_get_cid.return_value = mock_existing
     file_content = b"Test content"
-    user_id = "test-user-123"
 
-    _store_or_find_content(file_content, user_id)
+    _store_or_find_content(file_content)
 
     # Should not create new record
     mock_create.assert_not_called()

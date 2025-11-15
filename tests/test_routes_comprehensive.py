@@ -999,7 +999,9 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         # The user's upload must be stored in the database so it can be referenced later.
-        cid_record = CID.query.first()
+        # Query by the specific CID that should have been generated from the test data
+        expected_cid = generate_cid(test_data)
+        cid_record = CID.query.filter_by(path=f'/{expected_cid}').first()
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
 

@@ -17,7 +17,6 @@ from .export_helpers import (
 
 def build_export_preview(
     form: ExportForm,
-    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
 ) -> dict[str, dict[str, Any]]:
     """Return metadata describing which items are currently selected for export."""
     alias_entries = preview_item_entries(get_aliases())

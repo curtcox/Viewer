@@ -61,25 +61,21 @@ class TestEnabledFieldImportExport(unittest.TestCase):
             entities = [
                 Alias(
                     name=f'alias-{enabled_state}',
-                    user_id=self.user_id,
                     definition=alias_definition,
                     enabled=enabled_state,
                 ),
                 Server(
                     name=f'server-{enabled_state}',
-                    user_id=self.user_id,
                     definition='def main():\n    return "test"\n',
                     enabled=enabled_state,
                 ),
                 Variable(
                     name=f'variable-{enabled_state}',
-                    user_id=self.user_id,
                     definition='test-value',
                     enabled=enabled_state,
                 ),
                 Secret(
                     name=f'secret-{enabled_state}',
-                    user_id=self.user_id,
                     definition='test-secret',
                     enabled=enabled_state,
                 ),

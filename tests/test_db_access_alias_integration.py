@@ -33,13 +33,12 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test finding an alias by target path with simple definition."""
         alias = Alias(
             name="test",
-            definition="test -> /target",
-            user_id=self.user_id
+            definition="test -> /target"
         )
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/target")
+        result = get_alias_by_target_path("/target")
 
         self.assertEqual(result, alias)
 
@@ -47,13 +46,12 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test when no alias is found for the target path."""
         alias = Alias(
             name="test",
-            definition="test -> /other",
-            user_id=self.user_id
+            definition="test -> /other"
         )
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/target")
+        result = get_alias_by_target_path("/target")
 
         self.assertIsNone(result)
 
@@ -61,14 +59,13 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test when alias has correct target but wrong match type."""
         alias = Alias(
             name="test",
-            definition="test* -> /target [glob]",
-            user_id=self.user_id
+            definition="test* -> /target [glob]"
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/target")
+        result = get_alias_by_target_path("/target")
 
         # Should not match because it's glob, not literal
         self.assertIsNone(result)
@@ -77,19 +74,17 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test finding alias when multiple aliases exist."""
         alias1 = Alias(
             name="test1",
-            definition="test1 -> /target",
-            user_id=self.user_id
+            definition="test1 -> /target"
         )
         alias2 = Alias(
             name="test2",
-            definition="test2 -> /other",
-            user_id=self.user_id
+            definition="test2 -> /other"
         )
 
         db.session.add_all([alias1, alias2])
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/target")
+        result = get_alias_by_target_path("/target")
 
         self.assertEqual(result, alias1)
 
@@ -97,14 +92,13 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test when alias definition cannot be parsed."""
         alias = Alias(
             name="test",
-            definition="invalid definition",
-            user_id=self.user_id
+            definition="invalid definition"
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/test")
+        result = get_alias_by_target_path("/test")
 
         # Should fallback to name-based path
         self.assertEqual(result, alias)
@@ -113,14 +107,13 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test when alias has empty definition."""
         alias = Alias(
             name="test",
-            definition=None,
-            user_id=self.user_id
+            definition=None
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/test")
+        result = get_alias_by_target_path("/test")
 
         # Should fallback to name-based path
         self.assertEqual(result, alias)
@@ -134,14 +127,13 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """
         alias = Alias(
             name="docs",
-            definition=definition.strip(),
-            user_id=self.user_id
+            definition=definition.strip()
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/documentation")
+        result = get_alias_by_target_path("/documentation")
 
         # Should match the primary rule
         self.assertEqual(result, alias)
@@ -150,14 +142,13 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         """Test with complex definition including options."""
         alias = Alias(
             name="blog",
-            definition="blog-* -> /posts [glob, ignore-case]",
-            user_id=self.user_id
+            definition="blog-* -> /posts [glob, ignore-case]"
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        result = get_alias_by_target_path(self.user_id, "/posts")
+        result = get_alias_by_target_path("/posts")
 
         # Should not match because it's glob, not literal
         self.assertIsNone(result)

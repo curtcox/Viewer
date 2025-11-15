@@ -34,8 +34,7 @@ def collect_project_files_section(
 
 def collect_alias_section(
     form: ExportForm,
-    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
-    cid_writer: CidWriter = None,  # type: ignore[assignment]  # Required but has default for backward compatibility
+    cid_writer: CidWriter,  # Required for CID generation
 ) -> list[dict[str, Any]]:
     """Return alias export entries including CID references."""
     aliases = list(get_aliases())
@@ -78,8 +77,7 @@ def collect_alias_section(
 
 def collect_server_section(
     form: ExportForm,
-    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
-    cid_writer: CidWriter = None,  # type: ignore[assignment]  # Required but has default for backward compatibility
+    cid_writer: CidWriter,  # Required for CID generation
 ) -> list[dict[str, str]]:
     """Return server export entries including CID references."""
     servers = list(get_servers())
@@ -122,7 +120,6 @@ def collect_server_section(
 
 def collect_variables_section(
     form: ExportForm,
-    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
 ) -> list[dict[str, str]]:
     """Return variable export entries."""
     variables = list(get_variables())
@@ -162,7 +159,6 @@ def collect_variables_section(
 
 def collect_secrets_section(
     form: ExportForm,
-    user_id: str = "",  # Kept for backward compatibility, no longer used  # pylint: disable=unused-argument
     key: str = "",
     include_disabled: bool = False,
     include_templates: bool = False,

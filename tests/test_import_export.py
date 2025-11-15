@@ -1314,7 +1314,7 @@ class TestImportExportRoutes(unittest.TestCase):
                 def __init__(self):
                     self.calls: list[bytes] = []
 
-                def __call__(self, content: bytes, user_id: str) -> str:
+                def __call__(self, content: bytes) -> str:
                     self.calls.append(content)
                     return f'cid-{len(self.calls)}'
 
@@ -1323,11 +1323,11 @@ class TestImportExportRoutes(unittest.TestCase):
             with self.app.app_context():
                 with ExitStack() as stack:
                     stack.enter_context(patch('routes.import_export.filesystem_collection.app_root_path', return_value=base_path))
-                    stack.enter_context(patch('routes.import_export.export_sections.get_user_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
-                    stack.enter_context(patch('routes.import_export.export_sections.get_user_servers', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.export_sections.get_user_variables', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.export_sections.get_user_secrets', return_value=[]))
-                    stack.enter_context(patch('routes.import_export.export_engine.get_user_uploads', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_aliases', return_value=[SimpleNamespace(name='example', definition=alias_definition)]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_servers', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_variables', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_sections.get_secrets', return_value=[]))
+                    stack.enter_context(patch('routes.import_export.export_engine.get_uploads', return_value=[]))
                     stack.enter_context(patch('routes.import_export.change_history.gather_change_history', return_value={}))
                     stack.enter_context(patch('routes.import_export.cid_utils.store_cid_from_bytes', side_effect=store_bytes_stub))
                     stack.enter_context(patch('routes.import_export.export_engine.cid_path', return_value='/downloads/export.json'))
@@ -1752,18 +1752,14 @@ class TestImportExportRoutes(unittest.TestCase):
             self.assertIn(f'bafybeicid{i:03d}', html)
 
     def test_export_shows_only_user_exports(self):
-        """Test that exports are filtered by user."""
-        other_user_id = 'other-user-456'
-
+        """Test that exports are displayed (user filtering no longer applies)."""
         with self.app.app_context():
-            # Create exports for current user
+            # Create exports
             export1 = Export(
                 cid='bafybeiuser1',
                 created_at=datetime.now(timezone.utc),
             )
-            # Create exports for other user
             export2 = Export(
-                user_id=other_user_id,
                 cid='bafybeiuser2',
                 created_at=datetime.now(timezone.utc),
             )
@@ -1775,8 +1771,9 @@ class TestImportExportRoutes(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
+        # Both exports should be shown since user filtering is no longer applied
         self.assertIn('bafybeiuser1', html)
-        self.assertNotIn('bafybeiuser2', html)
+        self.assertIn('bafybeiuser2', html)
 
     def test_export_shows_only_100_most_recent(self):
         """Test that only the 100 most recent exports are shown."""
