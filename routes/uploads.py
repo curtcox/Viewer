@@ -43,7 +43,6 @@ from entity_references import (
     extract_references_from_bytes,
 )
 from forms import EditCidForm, FileUploadForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias, Variable
 from template_status import get_template_link_info
@@ -59,12 +58,11 @@ CONTENT_PREVIEW_LENGTH: int = 20
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
-def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str | None]:
+def _validate_alias_name(alias_name: str) -> tuple[str | None, str | None]:
     """Validate alias name and check for conflicts.
 
     Args:
         alias_name: Alias name to validate
-        user_id: User ID for conflict checking
 
     Returns:
         tuple: (validated_alias_name, error_message)
@@ -74,7 +72,7 @@ def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str
     if not alias_name:
         return None, None
 
-    existing = get_alias_by_name(user_id, alias_name)
+    existing = get_alias_by_name(alias_name)
     if existing:
         return None, 'Alias with this name already exists.'
 
@@ -99,17 +97,16 @@ def _shorten_cid(cid: str | None, length: int = 6) -> str:
     return format_cid_short(cid, length)
 
 
-def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Variable], Variable | None]:
+def _collect_variable_assignment(cid_value: str) -> tuple[list[Variable], Variable | None]:
     """Return the user's variables and the one currently pointing at ``cid_value``.
 
     Args:
         cid_value: CID to search for
-        user_id: User ID
 
     Returns:
         tuple: (list of all variables, assigned variable or None)
     """
-    variables = get_user_variables(user_id)
+    variables = get_user_variables()
     normalized = CidHelper.normalize(cid_value)
     if not normalized:
         return variables, None
@@ -141,7 +138,7 @@ def _render_upload_success(
     normalized = CidHelper.normalize(cid_value)
     record = CidHelper.get_record(cid_value)
     resolved_size = CidHelper.resolve_size(record, file_size if file_size is not None else 0)
-    variables, assigned_variable = _collect_variable_assignment(normalized, current_user.id)
+    variables, assigned_variable = _collect_variable_assignment(normalized)
 
     return render_template(
         'upload_success.html',
@@ -338,9 +335,9 @@ def upload():
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_form():
-        interactions = load_interaction_history(current_user.id, EntityType.UPLOAD.value, UploadType.TEXT.value)
-        upload_templates = get_user_template_uploads(current_user.id)
-        template_link_info = get_template_link_info(current_user.id, 'uploads')
+        interactions = load_interaction_history(EntityType.UPLOAD.value, UploadType.TEXT.value)
+        upload_templates = get_user_template_uploads()
+        template_link_info = get_template_link_info('uploads')
         return render_template(
             'upload.html',
             form=form,
@@ -361,7 +358,7 @@ def upload():
 @main_bp.route('/uploads')
 def uploads():
     """Display user's uploaded files."""
-    user_uploads = get_user_uploads(current_user.id)
+    user_uploads = get_user_uploads()
 
     _attach_creation_sources(user_uploads)
 
@@ -383,7 +380,6 @@ def uploads():
 
         upload_record.referenced_entities = extract_references_from_bytes(
             getattr(upload_record, 'file_data', None),
-            current_user.id,
         )
 
     total_storage = sum(upload.file_size or 0 for upload in user_uploads)
@@ -431,21 +427,20 @@ def edit_cid(cid_prefix):
 
     cid_record = matches[0]
     full_cid = format_cid(cid_record.path)
-    alias_for_cid = get_alias_by_target_path(current_user.id, cid_record.path)
+    alias_for_cid = get_alias_by_target_path(cid_record.path)
     form = EditCidForm()
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
-    interaction_history = load_interaction_history(current_user.id, EntityType.CID.value, full_cid)
+    interaction_history = load_interaction_history(EntityType.CID.value, full_cid)
     content_references = extract_references_from_bytes(
         getattr(cid_record, 'file_data', None),
-        current_user.id,
     )
 
     if form.validate_on_submit():
         alias_name_input = ''
         if not alias_for_cid:
             alias_name_input = form.alias_name.data or ''
-            validated_alias, error_message = _validate_alias_name(alias_name_input, current_user.id)
+            validated_alias, error_message = _validate_alias_name(alias_name_input)
             if alias_name_input and error_message:
                 form.alias_name.errors.append(error_message)
                 return render_template(
@@ -496,7 +491,6 @@ def edit_cid(cid_prefix):
             )
             new_alias = Alias(
                 name=alias_name_input,
-                user_id=current_user.id,
                 definition=primary_line,
             )
             _persist_alias_from_upload(new_alias)
@@ -582,7 +576,7 @@ def assign_cid_variable():
             assignment_variable_name=variable_name,
         )
 
-    existing_variable = get_variable_by_name(current_user.id, variable_name)
+    existing_variable = get_variable_by_name(variable_name)
     assignment_message = None
 
     if existing_variable:
@@ -598,7 +592,6 @@ def assign_cid_variable():
         new_variable = Variable(
             name=variable_name,
             definition=assignment_value,
-            user_id=current_user.id,
         )
         save_entity(new_variable)
         assignment_message = f'Created variable "{variable_name}" using this CID.'
@@ -606,7 +599,7 @@ def assign_cid_variable():
     if assignment_message:
         from .variables import update_variable_definitions_cid
 
-        update_variable_definitions_cid(current_user.id)
+        update_variable_definitions_cid()
         record_entity_interaction(
             EntityInteractionRequest(
                 entity_type=EntityType.VARIABLE.value,
@@ -630,7 +623,7 @@ def assign_cid_variable():
 @main_bp.route('/server_events')
 def server_events():
     """Display server invocation events for the current user."""
-    invocations = get_user_server_invocations(current_user.id)
+    invocations = get_user_server_invocations()
 
     referer_by_request = _load_request_referers(invocations)
 
@@ -664,7 +657,7 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
     if not user_uploads:
         return
 
-    invocations = get_user_server_invocations(current_user.id)
+    invocations = get_user_server_invocations()
 
     invocation_by_cid = {}
     for invocation in invocations:

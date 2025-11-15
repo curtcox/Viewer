@@ -48,7 +48,6 @@ _LAZY_IMPORTS_DATABASE = {
     'get_user_uploads': ('db_access', 'get_user_uploads'),
     'store_cid_from_bytes': ('cid_utils', 'store_cid_from_bytes'),
     'cid_path': ('cid_presenter', 'cid_path'),
-    'current_user': ('identity', 'current_user'),
 }
 
 
