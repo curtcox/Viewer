@@ -11,7 +11,6 @@ from db_access import (
     get_recent_entity_interactions,
     record_entity_interaction,
 )
-from identity import ensure_default_user
 
 
 class TestEntityInteractions(unittest.TestCase):
@@ -24,8 +23,6 @@ class TestEntityInteractions(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        self.user = ensure_default_user()
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()
@@ -34,7 +31,6 @@ class TestEntityInteractions(unittest.TestCase):
     def test_record_entity_interaction_persists(self):
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=self.user.id,
                 entity_type='server',
                 entity_name='example',
                 action='save',
@@ -43,7 +39,7 @@ class TestEntityInteractions(unittest.TestCase):
             )
         )
 
-        interactions = get_recent_entity_interactions(self.user.id, 'server', 'example')
+        interactions = get_recent_entity_interactions('server', 'example')
         self.assertEqual(len(interactions), 1)
         self.assertEqual(interactions[0].message, 'initial setup')
         self.assertEqual(interactions[0].content, 'print("hello world")')
@@ -51,7 +47,6 @@ class TestEntityInteractions(unittest.TestCase):
     def test_api_records_and_returns_updated_history(self):
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=self.user.id,
                 entity_type='server',
                 entity_name='example',
                 action='save',

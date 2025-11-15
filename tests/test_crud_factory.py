@@ -250,12 +250,10 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             "Should have view route with parameter"
         )
 
-    @patch('routes.crud_factory.current_user')
     @patch('routes.crud_factory.render_template')
     @patch('routes.crud_factory.wants_structured_response', return_value=False)
-    def test_list_route_calls_get_user_entities(self, mock_wants, mock_render, mock_user):
-        """Test that list route calls get_user_entities with user ID."""
-        mock_user.id = 'user123'
+    def test_list_route_calls_get_user_entities(self, mock_wants, mock_render):
+        """Test that list route calls get_user_entities."""
         mock_render.return_value = 'rendered'
 
         bp = self._create_blueprint()
@@ -264,14 +262,12 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         with self.app.test_request_context():
             route_func()
 
-            self.mock_get_user_entities.assert_called_once_with('user123')
+            self.mock_get_user_entities.assert_called_once()
             mock_render.assert_called_once()
 
-    @patch('routes.crud_factory.current_user')
     @patch('routes.crud_factory.abort')
-    def test_view_route_aborts_404_when_entity_not_found(self, mock_abort, mock_user):
+    def test_view_route_aborts_404_when_entity_not_found(self, mock_abort):
         """Test that view route aborts with 404 when entity not found."""
-        mock_user.id = 'user123'
         # Make abort raise NotFound exception like the real abort does
         mock_abort.side_effect = NotFound()
 
@@ -294,12 +290,10 @@ class TestCrudFactoryRoutes(unittest.TestCase):
 
             mock_abort.assert_called_once_with(404)
 
-    @patch('routes.crud_factory.current_user')
     @patch('routes.crud_factory.save_entity')
     @patch('routes.crud_factory.extract_enabled_value_from_request', return_value=False)
-    def test_enabled_toggle_route_updates_entity(self, mock_extract, mock_save, mock_user):
+    def test_enabled_toggle_route_updates_entity(self, mock_extract, mock_save):
         """Test that enabled toggle route updates entity.enabled."""
-        mock_user.id = 'user123'
 
         bp = self._create_blueprint()
         route_func = create_enabled_toggle_route(bp, self.config)
@@ -313,12 +307,10 @@ class TestCrudFactoryRoutes(unittest.TestCase):
                     self.assertFalse(self.mock_entity.enabled)
                     mock_save.assert_called_once_with(self.mock_entity)
 
-    @patch('routes.crud_factory.current_user')
     @patch('routes.crud_factory.delete_entity')
     @patch('routes.crud_factory.flash')
-    def test_delete_route_deletes_entity_and_flashes_message(self, mock_flash, mock_delete, mock_user):
+    def test_delete_route_deletes_entity_and_flashes_message(self, mock_flash, mock_delete):
         """Test that delete route deletes entity and shows success message."""
-        mock_user.id = 'user123'
 
         bp = self._create_blueprint()
         route_func = create_delete_route(bp, self.config)

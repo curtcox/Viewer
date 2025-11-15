@@ -1,7 +1,6 @@
 import os
 import unittest
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
 from unittest.mock import patch
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
@@ -34,7 +33,6 @@ class TestAnalytics(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-        self.user_id = "analytics-user"
 
     def tearDown(self):
         db.session.remove()
@@ -81,11 +79,7 @@ class TestAnalytics(unittest.TestCase):
             environ_overrides=environ_overrides,
         ):
             response = app.response_class(status=200)
-            with patch(
-                "analytics.current_user",
-                new=SimpleNamespace(id=self.user_id),
-            ):
-                result = track_page_view(response)
+            result = track_page_view(response)
 
         self.assertIs(result, response)
         stored = PageView.query.filter_by(path="/servers").one()
@@ -97,10 +91,7 @@ class TestAnalytics(unittest.TestCase):
     def test_track_page_view_rolls_back_on_error(self):
         with app.test_request_context("/servers"):
             response = app.response_class(status=200)
-            with patch(
-                "analytics.current_user",
-                new=SimpleNamespace(id=self.user_id),
-            ), patch("analytics.should_track_page_view", return_value=True), patch(
+            with patch("analytics.should_track_page_view", return_value=True), patch(
                 "analytics.create_page_view_record",
                 side_effect=RuntimeError("boom"),
             ), patch.object(db.session, "rollback") as rollback:
@@ -117,11 +108,7 @@ class TestAnalytics(unittest.TestCase):
             headers={"User-Agent": "AgentX"},
             environ_overrides={"REMOTE_ADDR": "198.51.100.1"},
         ):
-            with patch(
-                "analytics.current_user",
-                new=SimpleNamespace(id=self.user_id),
-            ):
-                record = create_page_view_record()
+            record = create_page_view_record()
 
         self.assertEqual(record.path, "/notes")
         self.assertEqual(record.method, "POST")

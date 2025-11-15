@@ -11,39 +11,33 @@ import pytest
 
 from alias_definition import format_primary_alias_line
 from database import db
-from identity import ensure_default_user
 from models import Alias, Secret, Server, Variable
 
 
 @pytest.fixture()
 def sample_entities(client) -> Dict[str, str]:
     with client.application.app_context():
-        user = ensure_default_user()
         alias_definition = format_primary_alias_line(
             "literal", "/json-alias", "/json-target", alias_name="json-alias"
         )
         alias = Alias(
             name="json-alias",
             definition=alias_definition,
-            user_id=user.id,
             enabled=True,
         )
         server = Server(
             name="json-server",
             definition="def main(query):\n    return query",
-            user_id=user.id,
             enabled=True,
         )
         variable = Variable(
             name="json-variable",
             definition="value",
-            user_id=user.id,
             enabled=True,
         )
         secret = Secret(
             name="json-secret",
             definition="secret-value",
-            user_id=user.id,
             enabled=True,
         )
         db.session.add_all([alias, server, variable, secret])

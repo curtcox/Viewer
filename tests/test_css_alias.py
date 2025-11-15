@@ -11,7 +11,6 @@ from app import app, db
 from css_defaults import ensure_css_alias_for_user
 from db_access import create_cid_record, get_alias_by_name
 import identity
-from identity import ensure_default_user
 from reference_templates.uploads import get_upload_templates
 
 
@@ -24,7 +23,6 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-        self.user = ensure_default_user()
 
     def tearDown(self):
         db.session.remove()

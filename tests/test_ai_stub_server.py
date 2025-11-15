@@ -11,7 +11,6 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 from app import app, db
 from ai_defaults import ensure_ai_stub_for_user
 from db_access import get_alias_by_name, get_server_by_name
-from identity import ensure_default_user
 from models import Alias, Server
 
 
@@ -24,8 +23,6 @@ class TestAiStubServer(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-
-        self.user = ensure_default_user()
 
     def tearDown(self):
         db.session.remove()
@@ -120,7 +117,7 @@ def main():
         'content_type': 'application/json',
     }
 """
-        server = Server(name='ai', definition=custom_definition, user_id=self.user.id)
+        server = Server(name='ai', definition=custom_definition)
         db.session.add(server)
         db.session.commit()
 

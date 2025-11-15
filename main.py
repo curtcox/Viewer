@@ -37,14 +37,10 @@ def handle_boot_cid_import(boot_cid: str) -> None:
         SystemExit: If the import fails
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
-    from identity import ensure_default_user  # pylint: disable=import-outside-toplevel
 
     with app.app_context():
-        # Get the default user
-        default_user = ensure_default_user()
-
         # Perform the import
-        success, error = import_boot_cid(app, boot_cid, default_user.id)
+        success, error = import_boot_cid(app, boot_cid)
 
         if not success:
             print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)

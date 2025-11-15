@@ -8,7 +8,6 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app
-from identity import ensure_default_user
 
 _app: Optional[Flask] = None
 _client: Optional[FlaskClient] = None
@@ -45,18 +44,16 @@ def get_shared_client() -> FlaskClient:
     return client
 
 
-def login_default_user() -> str:
-    """Attach the default user session to the shared Flask client."""
+def login_default_user() -> None:
+    """Initialize the shared Flask client session.
 
-    app, client = _initialise_app()
+    Note: In single-user mode, no user ID is needed.
+    """
 
-    with app.app_context():
-        user = ensure_default_user()
+    _, client = _initialise_app()
 
     with client.session_transaction() as session:
         session["_fresh"] = True
-
-    return user.id
 
 
 __all__ = ["get_shared_app", "get_shared_client", "login_default_user"]

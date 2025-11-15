@@ -5,7 +5,6 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db  # noqa: E402
-from identity import ensure_default_user  # noqa: E402
 
 
 class TestOpenAPI(unittest.TestCase):
@@ -17,8 +16,6 @@ class TestOpenAPI(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-        ensure_default_user()
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()

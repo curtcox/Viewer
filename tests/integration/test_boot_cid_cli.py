@@ -12,7 +12,6 @@ import main
 from app import create_app, db
 from cid_utils import generate_cid
 from db_access import create_cid_record
-from identity import ensure_default_user
 from models import Alias, Server
 
 pytestmark = pytest.mark.integration
@@ -33,8 +32,6 @@ class TestBootCidCLI:
 
         with self.app.app_context():
             db.create_all()
-            self.user = ensure_default_user()  # pylint: disable=attribute-defined-outside-init
-            self.user_id = self.user.id  # pylint: disable=attribute-defined-outside-init
 
         # Monkeypatch main.app so handle_boot_cid_import uses our test app
         original_app = main.app
@@ -61,7 +58,7 @@ class TestBootCidCLI:
             ]
             aliases_content = json.dumps(aliases_data).encode('utf-8')
             aliases_cid = generate_cid(aliases_content)
-            create_cid_record(aliases_cid, aliases_content, self.user_id)
+            create_cid_record(aliases_cid, aliases_content)
 
             # Create boot CID
             payload_data = {
@@ -70,7 +67,7 @@ class TestBootCidCLI:
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
         # Capture stdout
         captured_output = StringIO()
@@ -89,7 +86,7 @@ class TestBootCidCLI:
 
         # Verify the alias was imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='cli-test-alias', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='cli-test-alias').first()
             assert alias is not None
             assert alias.definition == '/cli-test -> /cli-target'
 
@@ -104,7 +101,7 @@ class TestBootCidCLI:
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
         # Capture stderr
         captured_error = StringIO()
@@ -161,7 +158,7 @@ class TestBootCidCLI:
             ]
             aliases_content = json.dumps(aliases_data).encode('utf-8')
             aliases_cid = generate_cid(aliases_content)
-            create_cid_record(aliases_cid, aliases_content, self.user_id)
+            create_cid_record(aliases_cid, aliases_content)
 
             # Create server content
             servers_data = [
@@ -172,7 +169,7 @@ class TestBootCidCLI:
             ]
             servers_content = json.dumps(servers_data).encode('utf-8')
             servers_cid = generate_cid(servers_content)
-            create_cid_record(servers_cid, servers_content, self.user_id)
+            create_cid_record(servers_cid, servers_content)
 
             # Create boot CID with both
             payload_data = {
@@ -182,7 +179,7 @@ class TestBootCidCLI:
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
         # Capture stdout
         captured_output = StringIO()
@@ -196,10 +193,10 @@ class TestBootCidCLI:
 
         # Verify both entities were imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='multi-alias', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='multi-alias').first()
             assert alias is not None
 
-            server = Server.query.filter_by(name='multi-server', user_id=self.user_id).first()
+            server = Server.query.filter_by(name='multi-server').first()
             assert server is not None
 
     def test_handle_boot_cid_import_with_cid_values(self):
@@ -225,7 +222,7 @@ class TestBootCidCLI:
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
         # Capture stdout
         captured_output = StringIO()
@@ -239,5 +236,5 @@ class TestBootCidCLI:
 
         # Verify the alias was imported even though its CID wasn't in DB
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='embedded-alias', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='embedded-alias').first()
             assert alias is not None

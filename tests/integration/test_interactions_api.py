@@ -9,7 +9,6 @@ import pytest
 from app import create_app
 from database import db
 from db_access import get_recent_entity_interactions
-from identity import ensure_default_user
 
 pytestmark = pytest.mark.integration
 
@@ -31,7 +30,6 @@ def integration_app():
 
     with app.app_context():
         db.create_all()
-        ensure_default_user()
         yield app
         db.session.remove()
         db.drop_all()

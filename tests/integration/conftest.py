@@ -7,7 +7,6 @@ import pytest
 
 from app import create_app
 from database import db
-from identity import ensure_default_user
 
 
 @pytest.fixture()
@@ -27,7 +26,6 @@ def integration_app():
 
     with app.app_context():
         db.create_all()
-        ensure_default_user()
         yield app
         db.session.remove()
         db.drop_all()
@@ -42,11 +40,13 @@ def client(integration_app):
 
 @pytest.fixture()
 def login_default_user(client):
-    """Authenticate the default user within the test client session."""
+    """Initialize the test client session.
+
+    Note: In single-user mode, no user ID is needed in the session.
+    """
 
     def _login():
         with client.session_transaction() as session:
-            session["_user_id"] = "default-user"
             session["_fresh"] = True
 
     return _login
