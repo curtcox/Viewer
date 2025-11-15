@@ -6,7 +6,7 @@ from typing import Any
 
 from flask import jsonify, render_template, request, session
 
-from db_access import get_user_exports
+from db_access import get_exports
 from forms import ExportForm, ImportForm
 from interaction_log import load_interaction_history
 
@@ -29,7 +29,7 @@ def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     preview = build_export_preview(form)
-    recent_exports = get_user_exports(limit=100)
+    recent_exports = get_exports(limit=100)
     if form.validate_on_submit():
         from db_access import record_export
         export_result = build_export_payload(form)
