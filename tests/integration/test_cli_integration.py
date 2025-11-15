@@ -506,6 +506,65 @@ class TestRunScriptWithoutEnv(unittest.TestCase):
         self.assertNotIn('Running on', result.stderr)
 
 
+class TestBootCidImport(unittest.TestCase):
+    """Tests for boot CID import from CLI."""
+
+    def test_boot_cid_import_works_without_csrf_error(self):
+        """Test that boot CID import works without CSRF token errors."""
+        # Get a valid boot CID from --list
+        list_result = subprocess.run(
+            [sys.executable, 'main.py', '--list'],
+            cwd=Path(__file__).parent.parent.parent,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+
+        # Extract a CID from the output if available
+        valid_cid = None
+        for line in list_result.stdout.splitlines():
+            if line.startswith('CID: '):
+                valid_cid = line[5:].strip()
+                break
+
+        # Skip test if no valid CID available
+        if not valid_cid:
+            self.skipTest("No valid boot CID available in database")
+
+        # Try to import the boot CID (will start server on success, so use Popen with timeout)
+        proc = subprocess.Popen(
+            [sys.executable, 'main.py', valid_cid],
+            cwd=Path(__file__).parent.parent.parent,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        # Wait up to 5 seconds for the process to complete or start server
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            # Process is still running (likely started server successfully)
+            # This means no CSRF error occurred - the import succeeded
+            proc.terminate()
+            try:
+                stdout, stderr = proc.communicate(timeout=2)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                stdout, stderr = proc.communicate()
+
+        # Should NOT have CSRF errors in output
+        combined_output = stdout + stderr
+        self.assertNotIn('RuntimeError: Working outside of request context', combined_output)
+        self.assertNotIn('csrf_impl.generate_csrf_token', combined_output)
+
+        # If it completed with error, check it's not a CSRF error
+        if proc.returncode is not None and proc.returncode != 0:
+            # Failed with an error - should be a proper error, not CSRF
+            self.assertNotIn('Working outside of request context', stderr)
+
+
 class TestNonServerRunOptions(unittest.TestCase):
     """Tests for run options that exit without starting the Flask server.
 

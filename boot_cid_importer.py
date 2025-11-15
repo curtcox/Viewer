@@ -205,9 +205,15 @@ def import_boot_cid(app: Flask, boot_cid: str, user_id: str) -> tuple[bool, Opti
         import_selected_sections,
     )
     from forms import ImportForm  # pylint: disable=import-outside-toplevel
+    from flask import has_request_context  # pylint: disable=import-outside-toplevel
 
     # Create a form with only the sections that exist in the payload enabled
-    form = ImportForm()
+    # Disable CSRF when called from CLI (no request context)
+    if has_request_context():
+        form = ImportForm()
+    else:
+        form = ImportForm(meta={'csrf': False})
+
     form.include_aliases.data = 'aliases' in payload
     form.include_servers.data = 'servers' in payload
     form.include_variables.data = 'variables' in payload

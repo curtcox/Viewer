@@ -203,7 +203,14 @@ def handle_import_source_files(context: ImportContext) -> None:
 def generate_snapshot_export(user_id: str) -> dict[str, Any] | None:
     """Generate a snapshot export equivalent to the default export."""
     try:
-        form = ExportForm()
+        from flask import has_request_context  # pylint: disable=import-outside-toplevel
+
+        # Disable CSRF when called from CLI (no request context)
+        if has_request_context():
+            form = ExportForm()
+        else:
+            form = ExportForm(meta={'csrf': False})
+
         form.snapshot.data = True
         form.include_aliases.data = True
         form.include_servers.data = True
