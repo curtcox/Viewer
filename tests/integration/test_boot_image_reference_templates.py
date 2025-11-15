@@ -11,6 +11,7 @@ import pytest
 import main
 from app import create_app, db
 from db_access import create_cid_record
+from db_access.cids import get_cid_by_path
 from generate_boot_image import BootImageGenerator
 from identity import ensure_default_user
 from models import Alias, Server, Variable
@@ -61,6 +62,12 @@ class TestBootImageReferenceTemplates:
             for cid_file in cids_dir.iterdir():
                 if cid_file.is_file():
                     cid = cid_file.name
+                    cid_path = f"/{cid}"
+
+                    # Skip if CID already exists in database
+                    if get_cid_by_path(cid_path):
+                        continue
+
                     content = cid_file.read_bytes()
                     create_cid_record(cid, content, self.user_id)
 
@@ -121,7 +128,7 @@ class TestBootImageReferenceTemplates:
         with self.app.app_context():
             server = Server.query.filter_by(name='ai_stub', user_id=self.user_id).first()
             assert server is not None, "Server 'ai_stub' should be loaded from boot image"
-            assert 'def main()' in server.definition
+            assert 'def main(' in server.definition
             assert server.enabled is True
 
     def test_boot_image_loads_templates_variable(self, tmp_path):

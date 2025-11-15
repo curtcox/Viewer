@@ -141,6 +141,26 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
         self.assertEqual(uploads[0].file_size, len(b'2'))
 
+    def test_duplicate_cid_creation_raises_integrity_error(self):
+        """Test that creating a duplicate CID raises IntegrityError.
+
+        This test ensures that attempting to create a CID with a path
+        that already exists will raise an IntegrityError due to the
+        UNIQUE constraint on the path column.
+        """
+        from sqlalchemy.exc import IntegrityError
+
+        # Create first CID
+        create_cid_record('test_cid', b'test data', self.user_id)
+
+        # Verify it was created
+        cid = get_cid_by_path('/test_cid')
+        self.assertIsNotNone(cid)
+
+        # Attempt to create duplicate should raise IntegrityError
+        with self.assertRaises(IntegrityError):
+            create_cid_record('test_cid', b'different data', self.user_id)
+
     def test_page_view_helpers(self):
         views = [
             PageView(user_id=self.user_id, path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
