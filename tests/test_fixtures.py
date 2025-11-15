@@ -79,7 +79,6 @@ class TestDataFactory:
         )
         alias = Alias(
             name=name,
-            user_id=user_id,
             definition=definition,
         )
         db.session.add(alias)
@@ -149,7 +148,6 @@ class TestDataFactory:
         server = Server(
             name=name,
             definition=definition,
-            user_id=user_id,
             definition_cid=definition_cid,
         )
         db.session.add(server)
@@ -179,8 +177,7 @@ class TestDataFactory:
         """
         variable = Variable(
             name=name,
-            value=value,
-            user_id=user_id,
+            definition=value,
         )
         db.session.add(variable)
         if commit:
@@ -209,8 +206,7 @@ class TestDataFactory:
         """
         secret = Secret(
             name=name,
-            encrypted_value=encrypted_value,
-            user_id=user_id,
+            definition=encrypted_value.decode('utf-8') if isinstance(encrypted_value, bytes) else encrypted_value,
         )
         db.session.add(secret)
         if commit:

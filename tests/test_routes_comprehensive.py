@@ -596,7 +596,7 @@ def main(request):
                 return None
             return SimpleNamespace(target_path=target)
 
-        def fake_target_refs(path, _user_id):
+        def fake_target_refs(path, user_id=None):
             if path == f'/{cid_value_main}':
                 return {'aliases': [], 'servers': [], 'cids': [{'cid': cid_value_main}]}
             if path == f'/{cid_value_target}':
