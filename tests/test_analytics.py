@@ -11,7 +11,7 @@ from flask import session
 from analytics import (
     create_page_view_record,
     get_paginated_page_views,
-    get_user_history_statistics,
+    get_history_statistics,
     make_session_permanent,
     should_track_page_view,
     track_page_view,
@@ -115,7 +115,7 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(record.user_agent, "AgentX")
         self.assertEqual(record.ip_address, "198.51.100.1")
 
-    def test_get_user_history_statistics(self):
+    def test_get_history_statistics(self):
         now = datetime.now(timezone.utc)
         views = [
             PageView(path="/a", viewed_at=now),
@@ -125,7 +125,7 @@ class TestAnalytics(unittest.TestCase):
         db.session.add_all(views)
         db.session.commit()
 
-        stats = get_user_history_statistics()
+        stats = get_history_statistics()
         self.assertEqual(stats["total_views"], 3)
         self.assertEqual(stats["unique_paths"], 2)
         self.assertEqual(stats["popular_paths"][0].path, "/a")

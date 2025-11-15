@@ -9,7 +9,7 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 # pylint: disable=wrong-import-position
 # Rationale: Environment variables must be set before app initialization
 from app import app, db
-from ai_defaults import ensure_ai_stub_for_user
+from ai_defaults import ensure_ai_stub
 from db_access import get_alias_by_name, get_server_by_name
 from models import Alias, Server
 
@@ -41,7 +41,7 @@ class TestAiStubServer(unittest.TestCase):
         db.session.delete(alias)
         db.session.commit()
 
-        changed = ensure_ai_stub_for_user(self.user.id)
+        changed = ensure_ai_stub()
         self.assertTrue(changed)
 
         recreated = get_alias_by_name(self.user.id, 'ai')
@@ -55,7 +55,7 @@ class TestAiStubServer(unittest.TestCase):
         db.session.add(alias)
         db.session.commit()
 
-        changed = ensure_ai_stub_for_user(self.user.id)
+        changed = ensure_ai_stub()
         self.assertFalse(changed)
 
         refreshed = get_alias_by_name(self.user.id, 'ai')
