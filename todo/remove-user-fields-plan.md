@@ -5,6 +5,7 @@ Convert Viewer into a single-user application by eliminating every `user_id`/`up
 ## Progress
 
 - ✅ Export routes now rely on the global `get_exports` helper instead of the legacy `get_user_exports`, ensuring exports are globally visible.
+- ✅ Upload and search routes now call the global `get_*` helpers for servers, variables, secrets, uploads, and invocations so UI listings operate without user scoping.
 
 ## Remaining Steps
 

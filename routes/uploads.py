@@ -31,10 +31,10 @@ from db_access import (
     get_alias_by_name,
     get_alias_by_target_path,
     get_cid_by_path,
-    get_user_server_invocations,
-    get_user_template_uploads,
-    get_user_uploads,
-    get_user_variables,
+    get_server_invocations,
+    get_template_uploads,
+    get_uploads,
+    get_variables,
     get_variable_by_name,
     record_entity_interaction,
     save_entity,
@@ -106,7 +106,7 @@ def _collect_variable_assignment(cid_value: str) -> tuple[list[Variable], Variab
     Returns:
         tuple: (list of all variables, assigned variable or None)
     """
-    variables = get_user_variables()
+    variables = get_variables()
     normalized = CidHelper.normalize(cid_value)
     if not normalized:
         return variables, None
@@ -336,7 +336,7 @@ def upload():
 
     def _render_form():
         interactions = load_interaction_history(EntityType.UPLOAD.value, UploadType.TEXT.value)
-        upload_templates = get_user_template_uploads()
+        upload_templates = get_template_uploads()
         template_link_info = get_template_link_info('uploads')
         return render_template(
             'upload.html',
@@ -357,8 +357,8 @@ def upload():
 
 @main_bp.route('/uploads')
 def uploads():
-    """Display user's uploaded files."""
-    user_uploads = get_user_uploads()
+    """Display uploaded files."""
+    user_uploads = get_uploads()
 
     _attach_creation_sources(user_uploads)
 
@@ -622,8 +622,8 @@ def assign_cid_variable():
 
 @main_bp.route('/server_events')
 def server_events():
-    """Display server invocation events for the current user."""
-    invocations = get_user_server_invocations()
+    """Display server invocation events."""
+    invocations = get_server_invocations()
 
     referer_by_request = _load_request_referers(invocations)
 
@@ -657,7 +657,7 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
     if not user_uploads:
         return
 
-    invocations = get_user_server_invocations()
+    invocations = get_server_invocations()
 
     invocation_by_cid = {}
     for invocation in invocations:

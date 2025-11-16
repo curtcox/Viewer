@@ -10,11 +10,11 @@ from flask import jsonify, render_template, request, url_for
 from alias_definition import collect_alias_routes
 from cid_presenter import cid_path, format_cid
 from db_access import (
-    get_user_aliases,
-    get_user_secrets,
-    get_user_servers,
-    get_user_uploads,
-    get_user_variables,
+    get_aliases,
+    get_secrets,
+    get_servers,
+    get_uploads,
+    get_variables,
 )
 
 from . import main_bp
@@ -235,7 +235,7 @@ def _server_results(
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for server in get_user_servers():
+    for server in get_servers():
         name_text = getattr(server, "name", "") or ""
         definition = getattr(server, "definition", "") or ""
 
@@ -270,7 +270,7 @@ def _variable_results(
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for variable in get_user_variables():
+    for variable in get_variables():
         name_text = getattr(variable, "name", "") or ""
         definition = getattr(variable, "definition", "") or ""
 
@@ -305,7 +305,7 @@ def _secret_results(
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for secret in get_user_secrets():
+    for secret in get_secrets():
         name_text = getattr(secret, "name", "") or ""
         definition = getattr(secret, "definition", "") or ""
 
@@ -350,7 +350,7 @@ def _cid_results(
         return value
 
     uploads = sorted(
-        get_user_uploads(),
+        get_uploads(),
         key=created_at_value,
         reverse=True,
     )[:MAX_UPLOAD_HISTORY]
@@ -510,7 +510,7 @@ def search_results():
     if not query_lower:
         return jsonify(_empty_search_response(applied_filters))
 
-    alias_records = get_user_aliases()
+    alias_records = get_aliases()
     alias_lookup = _build_alias_lookup(alias_records)
 
     response_categories, total_count = _execute_search(
