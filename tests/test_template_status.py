@@ -29,8 +29,6 @@ class TestTemplateStatus(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'testuser'
-
         # Sample valid templates structure
         self.valid_templates = {
             'aliases': {
@@ -57,7 +55,7 @@ class TestTemplateStatus(unittest.TestCase):
 
     def test_generate_label_no_templates(self):
         """Test label generation when no templates exist."""
-        label = generate_template_status_label(self.user_id)
+        label = generate_template_status_label()
 
         self.assertEqual(label, "No templates")
 
@@ -79,7 +77,7 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        label = generate_template_status_label(self.user_id)
+        label = generate_template_status_label()
 
         self.assertEqual(label, "1 template")
 
@@ -105,7 +103,7 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        label = generate_template_status_label(self.user_id, 'aliases')
+        label = generate_template_status_label('aliases')
 
         self.assertEqual(label, "2 templates")
 
@@ -118,7 +116,7 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        label = generate_template_status_label(self.user_id, 'variables')
+        label = generate_template_status_label('variables')
 
         self.assertEqual(label, "No templates")
 
@@ -131,19 +129,13 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        label = generate_template_status_label(self.user_id, 'servers')
+        label = generate_template_status_label('servers')
 
         self.assertEqual(label, "1 template")
 
-    def test_generate_label_empty_user_id(self):
-        """Test label generation with empty user ID."""
-        label = generate_template_status_label('')
-
-        self.assertEqual(label, "No templates")
-
     def test_get_link_info_no_templates(self):
         """Test link info generation with no templates."""
-        info = get_template_link_info(self.user_id)
+        info = get_template_link_info()
 
         self.assertEqual(info['label'], "No templates")
         self.assertEqual(info['url'], "/variables/templates")
@@ -158,7 +150,7 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        info = get_template_link_info(self.user_id)
+        info = get_template_link_info()
 
         self.assertEqual(info['label'], "3 templates")
         self.assertEqual(info['url'], "/variables/templates")
@@ -173,19 +165,11 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        info = get_template_link_info(self.user_id, 'aliases')
+        info = get_template_link_info('aliases')
 
         self.assertEqual(info['label'], "2 templates")
         self.assertEqual(info['url'], "/variables/templates?type=aliases")
         self.assertEqual(info['css_class'], "template-status-active")
-
-    def test_get_link_info_empty_user_id(self):
-        """Test link info generation with empty user ID."""
-        info = get_template_link_info('')
-
-        self.assertEqual(info['label'], "No templates")
-        self.assertEqual(info['url'], "/variables/templates")
-        self.assertEqual(info['css_class'], "template-status-empty")
 
 
 if __name__ == '__main__':

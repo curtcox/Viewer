@@ -131,11 +131,11 @@
                         </div>
                         {% endif %}
 
-                        {% if user_server_templates|default([]) %}
+                        {% if saved_server_templates|default([]) %}
                         <div class="col-12">
-                            <label class="form-label" for="user-server-template-select">Start from My Template</label>
-                            <div id="user-server-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Saved server templates">
-                                {% for template in user_server_templates %}
+                            <label class="form-label" for="saved-server-template-select">Start from a Saved Template</label>
+                            <div id="saved-server-template-select" class="d-flex flex-wrap gap-2" role="group" aria-label="Saved server templates">
+                                {% for template in saved_server_templates %}
                                 <button type="button" class="btn btn-outline-secondary btn-sm px-2" data-server-template-id="{{ template.id }}">
                                     {{ template.name }}
                                 </button>
@@ -451,7 +451,7 @@ function loadHistoricalDefinition(index) {
     <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
     <script src="{{ url_for('static', filename='js/rename_controls.js') }}"></script>
     <script src="{{ url_for('static', filename='js/server_form.js') }}"></script>
-    {% if (server_templates is defined and server_templates) or user_server_templates|default([]) %}
+    {% if (server_templates is defined and server_templates) or saved_server_templates|default([]) %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const templateButtons = document.querySelectorAll('[data-server-template-id]');
@@ -459,7 +459,7 @@ function loadHistoricalDefinition(index) {
             const nameField = document.getElementById('{{ form.name.id }}');
             const definitionEditor = window.serverDefinitionEditor;
             const builtinTemplates = {{ server_templates|default([])|tojson }};
-            const savedTemplates = {{ user_server_templates|default([])|tojson }};
+            const savedTemplates = {{ saved_server_templates|default([])|tojson }};
             const templates = builtinTemplates.concat(savedTemplates);
 
             if (!templateButtons.length || !definitionField) {

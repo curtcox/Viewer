@@ -1,5 +1,4 @@
 import unittest
-import uuid
 
 from alias_definition import format_primary_alias_line
 from app import app, db
@@ -23,15 +22,10 @@ class TestEntityReferences(unittest.TestCase):
         with self.app.app_context():
             db.create_all()
 
-        self.user_id = self._create_user()
-
     def tearDown(self):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
-
-    def _create_user(self) -> str:
-        return f'user-{uuid.uuid4().hex}'
 
     def _create_alias(self, name: str, target: str) -> str:
         with self.app.app_context():
@@ -75,7 +69,7 @@ class TestEntityReferences(unittest.TestCase):
         text = f"Visit /{alias_name} then /servers/{server_name} and /{cid_value}"
 
         with self.app.test_request_context('/'):
-            references = extract_references_from_text(text, self.user_id)
+            references = extract_references_from_text(text)
 
         alias_names = [ref['name'] for ref in references['aliases']]
         server_names = [ref['name'] for ref in references['servers']]
@@ -90,9 +84,9 @@ class TestEntityReferences(unittest.TestCase):
         cid_value = self._create_cid('targetcid', b'hello world')
 
         with self.app.test_request_context('/'):
-            server_refs = extract_references_from_target(f'/servers/{server_name}', self.user_id)
-            server_exec_refs = extract_references_from_target(f'/{server_name}', self.user_id)
-            cid_refs = extract_references_from_target(f'/{cid_value}', self.user_id)
+            server_refs = extract_references_from_target(f'/servers/{server_name}')
+            server_exec_refs = extract_references_from_target(f'/{server_name}')
+            cid_refs = extract_references_from_target(f'/{cid_value}')
 
         self.assertEqual(server_refs['servers'][0]['name'], server_name)
         self.assertEqual(server_exec_refs['servers'][0]['name'], server_name)
@@ -105,7 +99,7 @@ class TestEntityReferences(unittest.TestCase):
         self._create_cid('contentcid', content)
 
         with self.app.test_request_context('/'):
-            references = extract_references_from_bytes(content, self.user_id)
+            references = extract_references_from_bytes(content)
 
         alias_names = [ref['name'] for ref in references['aliases']]
         server_names = [ref['name'] for ref in references['servers']]

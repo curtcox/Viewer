@@ -174,7 +174,7 @@ def test_secret_detail_page_displays_secret_information(
     assert "Back to Secrets" in page
 
 
-def test_secrets_list_page_displays_user_secrets(
+def test_secrets_list_page_displays_saved_secrets(
     client,
     integration_app,
     login_default_user,
@@ -199,7 +199,7 @@ def test_secrets_list_page_displays_user_secrets(
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Secrets" in page
+    assert "Secrets" in page
     assert "production-api-key" in page
     assert "staging-api-key" in page
     assert "Create New Secret" in page

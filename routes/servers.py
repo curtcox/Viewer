@@ -501,8 +501,8 @@ def update_server_definitions_cid() -> str | None:
     return store_server_definitions_cid()
 
 
-def user_servers() -> list[Server]:
-    """Get all servers (legacy alias)."""
+def list_servers() -> list[Server]:
+    """Return all stored servers."""
     return get_servers()
 
 
@@ -693,7 +693,7 @@ def new_server():
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or ''
 
-    user_server_templates = [
+    saved_server_templates = [
         {
             'id': getattr(server, 'template_key', None) or (f'user-{server.id}' if server.id else None),
             'name': server.name,
@@ -722,7 +722,7 @@ def new_server():
         'server_form.html',
         form=form,
         title='Create New Server',
-        user_server_templates=user_server_templates,
+        saved_server_templates=saved_server_templates,
         server=None,
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
@@ -829,7 +829,7 @@ __all__ = [
     'get_server_invocation_history',
     'new_server',
     'update_server_definitions_cid',
-    'user_servers',
+    'list_servers',
     'upload_server_test_page',
     'validate_server_definition',
 ]

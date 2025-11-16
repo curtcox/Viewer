@@ -118,7 +118,7 @@ def test_fixed_build_request_args():
     print("TESTING FIXED build_request_args BEHAVIOR")
     print("=" * 60)
 
-    # Mock the model objects that would be returned by user_variables(), user_secrets(), user_servers()
+    # Mock the model objects that would be returned by list_variables(), list_secrets(), list_servers()
     mock_variables = [
         MockVariable('test_var1', 'value1', 'user123'),
         MockVariable('test_var2', 'value2', 'user123')

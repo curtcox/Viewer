@@ -9,12 +9,12 @@ from models import CID
 pytestmark = pytest.mark.integration
 
 
-def test_uploads_page_displays_user_uploads(
+def test_uploads_page_displays_saved_uploads(
     client,
     integration_app,
     login_default_user,
 ):
-    """The uploads list should show manual uploads created by the user."""
+    """The uploads list should show manual uploads created in the system."""
 
     manual_cid_value = "bafyuploadcidexample"
 
@@ -33,7 +33,7 @@ def test_uploads_page_displays_user_uploads(
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Uploads" in page
+    assert "Uploads" in page
     assert "Total Files" in page
     assert f"#{manual_cid_value[:9]}..." in page
 

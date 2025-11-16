@@ -1521,7 +1521,7 @@ class TestServerRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('My Servers', page)
+        self.assertIn('Servers', page)
         self.assertIn('Create New Server', page)
 
     def test_new_server_get(self):
@@ -1847,8 +1847,8 @@ class TestServerRoutes(BaseTestCase):
 class TestVariableRoutes(BaseTestCase):
     """Test variable management routes."""
 
-    def test_variables_list_shows_sorted_user_variables(self):
-        """Variables page should: 1) return 200, 2) show user variables, 3) sort them alphabetically."""
+    def test_variables_list_shows_sorted_saved_variables(self):
+        """Variables page should: 1) return 200, 2) show saved variables, 3) sort them alphabetically."""
 
         variable_a = Variable(
             name='alpha',
@@ -2119,7 +2119,7 @@ class TestAliasRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('My Aliases', page)
+        self.assertIn('Aliases', page)
         self.assertIn('cid-display dropdown', page)
         self.assertIn(f'href="/{cid_value}.txt"', page)
         self.assertNotIn(f'<code>/{cid_value}</code>', page)

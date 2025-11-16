@@ -37,8 +37,6 @@ class TestTemplateManager(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'testuser'
-
         # Sample valid templates structure
         self.valid_templates = {
             'aliases': {
@@ -327,7 +325,7 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        template = get_template_by_key(self.user_id, ENTITY_TYPE_ALIASES, 'template1')
+        template = get_template_by_key(ENTITY_TYPE_ALIASES, 'template1')
 
         self.assertIsNotNone(template)
         self.assertEqual(template['key'], 'template1')
@@ -342,13 +340,13 @@ class TestTemplateManager(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        template = get_template_by_key(self.user_id, ENTITY_TYPE_ALIASES, 'nonexistent')
+        template = get_template_by_key(ENTITY_TYPE_ALIASES, 'nonexistent')
 
         self.assertIsNone(template)
 
     def test_get_template_by_key_invalid_type(self):
         """Test getting template with invalid entity type."""
-        template = get_template_by_key(self.user_id, 'invalid_type', 'template1')
+        template = get_template_by_key('invalid_type', 'template1')
 
         self.assertIsNone(template)
 

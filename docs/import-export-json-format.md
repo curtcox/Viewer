@@ -2,13 +2,13 @@
 
 ## Overview
 
-The Viewer application uses a JSON-based format for exporting and importing user data across different instances. This format supports **Content-Addressed Storage (CAS)** via CID (Content Identifier) references, allowing efficient storage and transfer of large or duplicate content.
+The Viewer application uses a JSON-based format for exporting and importing global configuration data across different instances. This format supports **Content-Addressed Storage (CAS)** via CID (Content Identifier) references, allowing efficient storage and transfer of large or duplicate content.
 
-The import/export system enables users to:
-- **Export** their aliases, servers, variables, secrets, change history, and application source files
+The import/export system enables operators to:
+- **Export** aliases, servers, variables, secrets, change history, and application source files
 - **Import** data from other Viewer instances or backup files
 - **Transport** complete configurations between development, staging, and production environments
-- **Backup** and restore user data with integrity verification
+- **Backup** and restore configuration data with integrity verification
 
 ## Version History
 
@@ -680,7 +680,7 @@ form.include_aliases.data = True
 form.include_servers.data = True
 form.include_cid_map.data = True
 
-result = build_export_payload(form, user_id, store_content=True)
+result = build_export_payload(form, store_content=True)
 json_payload = result['json_payload']
 cid_value = result['cid_value']
 download_path = result['download_path']

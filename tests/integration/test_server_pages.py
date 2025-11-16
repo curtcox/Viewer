@@ -18,12 +18,12 @@ from models import CID, Secret, Server, Variable
 pytestmark = pytest.mark.integration
 
 
-def test_servers_page_lists_user_servers(
+def test_servers_page_lists_saved_servers(
     client,
     integration_app,
     login_default_user,
 ):
-    """The servers index page should list servers belonging to the user."""
+    """The servers index page should list saved servers."""
 
     with integration_app.app_context():
         server = Server(
@@ -43,7 +43,7 @@ def test_servers_page_lists_user_servers(
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Servers" in page
+    assert "Servers" in page
     assert "weather" in page
     assert "View Full Definition" in page
 

@@ -29,7 +29,7 @@ def test_current_behavior():
     print("CURRENT BEHAVIOR - Model Objects")
     print("=" * 60)
 
-    # This is what user_variables() and user_secrets() currently return
+    # This mimics what the legacy list_variables()/list_secrets() helpers returned
     variables = [
         MockVariable('test_var1', 'value1', 'user123'),
         MockVariable('test_var2', 'value2', 'user123')
@@ -146,7 +146,7 @@ def demonstrate_issue():
     print("\n" + "=" * 60)
     print("ROOT CAUSE")
     print("=" * 60)
-    print("The user_variables() and user_secrets() functions return SQLAlchemy model objects")
+    print("The list_variables() and list_secrets() helpers return SQLAlchemy model objects")
     print("instead of serializable dictionaries. When the echo1 server calls str() on the")
     print("arguments, it gets model object representations like '<Variable test_var1 by user123>'")
     print("instead of the actual variable data like {'name': 'test_var1', 'definition': 'value1'}")

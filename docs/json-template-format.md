@@ -255,9 +255,9 @@ Templates undergo strict validation when saved:
 
 | Function | Location | Purpose |
 |----------|----------|---------|
-| `get_templates_config(user_id)` | [template_manager.py:33-82](../template_manager.py#L33-L82) | Retrieves and parses templates variable |
-| `get_templates_for_type(user_id, entity_type)` | [template_manager.py:177-208](../template_manager.py#L177-L208) | Gets all templates for a specific entity type |
-| `get_template_by_key(user_id, entity_type, key)` | [template_manager.py:211-243](../template_manager.py#L211-L243) | Retrieves specific template by key |
+| `get_templates_config()` | [template_manager.py:33-82](../template_manager.py#L33-L82) | Retrieves and parses templates variable |
+| `get_templates_for_type(entity_type)` | [template_manager.py:177-208](../template_manager.py#L177-L208) | Gets all templates for a specific entity type |
+| `get_template_by_key(entity_type, key)` | [template_manager.py:211-243](../template_manager.py#L211-L243) | Retrieves specific template by key |
 | `resolve_cid_value(cid_or_value)` | [template_manager.py:246-280](../template_manager.py#L246-L280) | Resolves CID references to content |
 | `validate_templates_json(json_data)` | [template_manager.py:85-127](../template_manager.py#L85-L127) | Validates template JSON structure |
 

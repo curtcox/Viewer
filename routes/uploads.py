@@ -358,17 +358,17 @@ def upload():
 @main_bp.route('/uploads')
 def uploads():
     """Display uploaded files."""
-    user_uploads = get_uploads()
+    uploads_list = get_uploads()
 
-    _attach_creation_sources(user_uploads)
+    _attach_creation_sources(uploads_list)
 
-    user_uploads = [
+    uploads_list = [
         upload
-        for upload in user_uploads
+        for upload in uploads_list
         if getattr(upload, 'creation_method', EntityType.UPLOAD.value) != EntityType.SERVER_EVENT.value
     ]
 
-    for upload_record in user_uploads:
+    for upload_record in uploads_list:
         if upload_record.file_data:
             try:
                 content_text = upload_record.file_data.decode('utf-8', errors='replace')
@@ -382,12 +382,12 @@ def uploads():
             getattr(upload_record, 'file_data', None),
         )
 
-    total_storage = sum(upload.file_size or 0 for upload in user_uploads)
+    total_storage = sum(upload.file_size or 0 for upload in uploads_list)
 
     return render_template(
         'uploads.html',
-        uploads=user_uploads,
-        total_uploads=len(user_uploads),
+        uploads=uploads_list,
+        total_uploads=len(uploads_list),
         total_storage=total_storage,
     )
 
@@ -648,13 +648,13 @@ def screenshot_server_events_demo():
     abort(404)
 
 
-def _attach_creation_sources(user_uploads: list[Any]) -> None:
+def _attach_creation_sources(uploads_list: list[Any]) -> None:
     """Annotate uploads with information about how they were created.
 
     Args:
-        user_uploads: List of upload records to annotate
+        uploads_list: List of upload records to annotate
     """
-    if not user_uploads:
+    if not uploads_list:
         return
 
     invocations = get_server_invocations()
@@ -672,7 +672,7 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
             if cid_key and cid_key not in invocation_by_cid:
                 invocation_by_cid[cid_key] = invocation
 
-    for upload_record in user_uploads:
+    for upload_record in uploads_list:
         upload_record.creation_method = EntityType.UPLOAD.value
         upload_record.server_invocation_link = None
         upload_record.server_invocation_server_name = None

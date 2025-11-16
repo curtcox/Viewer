@@ -11,8 +11,8 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, '.')
 
 from app import app
-from routes.secrets import user_secrets
-from routes.variables import user_variables
+from routes.secrets import list_secrets
+from routes.variables import list_variables
 from server_execution import build_request_args, model_as_dict  # pylint: disable=no-name-in-module
 
 
@@ -27,8 +27,8 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         """Clean up test environment"""
 
     @patch('routes.variables.get_variables')
-    def test_user_variables_returns_model_objects(self, mock_get_vars):
-        """Test that user_variables() returns SQLAlchemy model objects, not serializable data"""
+    def test_list_variables_returns_model_objects(self, mock_get_vars):
+        """Test that list_variables() returns SQLAlchemy model objects, not serializable data"""
         # Create mock Variable objects
         mock_var1 = Mock()
         mock_var1.name = 'test_var1'
@@ -41,7 +41,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         mock_get_vars.return_value = [mock_var1, mock_var2]
 
         # Call the function
-        result = user_variables()
+        result = list_variables()
 
         # Verify it returns model objects, not serializable data
         self.assertEqual(len(result), 2)
@@ -53,14 +53,14 @@ class TestVariablesSecretsIssue(unittest.TestCase):
             import json
             json.dumps(result)
 
-        print(f"user_variables() returned: {result}")
+        print(f"list_variables() returned: {result}")
         print(f"Type of first item: {type(result[0])}")
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
 
     @patch('routes.secrets.get_secrets')
-    def test_user_secrets_returns_model_objects(self, mock_get_secrets):
-        """Test that user_secrets() returns SQLAlchemy model objects, not serializable data"""
+    def test_list_secrets_returns_model_objects(self, mock_get_secrets):
+        """Test that list_secrets() returns SQLAlchemy model objects, not serializable data"""
         # Create mock Secret objects
         mock_secret1 = Mock()
         mock_secret1.name = 'test_secret1'
@@ -69,7 +69,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         mock_get_secrets.return_value = [mock_secret1]
 
         # Call the function
-        result = user_secrets()
+        result = list_secrets()
 
         # Verify it returns model objects, not serializable data
         self.assertEqual(len(result), 1)
@@ -80,7 +80,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
             import json
             json.dumps(result)
 
-        print(f"user_secrets() returned: {result}")
+        print(f"list_secrets() returned: {result}")
         print(f"Type of first item: {type(result[0])}")
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")

@@ -7,10 +7,10 @@ from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.exc import SQLAlchemyError
 
 from db_access import (
+    count_page_views,
     count_unique_page_view_paths,
-    count_user_page_views,
     get_popular_page_paths,
-    paginate_user_page_views,
+    paginate_page_views,
     rollback_session,
     save_page_view,
 )
@@ -65,7 +65,7 @@ def track_page_view(response: Response) -> Response:
 def get_history_statistics() -> Dict[str, Any]:
     """Calculate history statistics."""
     # Get total views count
-    total_views = count_user_page_views()
+    total_views = count_page_views()
 
     # Get unique paths count
     unique_paths = count_unique_page_view_paths()
@@ -82,7 +82,7 @@ def get_history_statistics() -> Dict[str, Any]:
 
 def get_paginated_page_views(page: int, per_page: int = 50) -> Pagination:
     """Get paginated page views."""
-    return paginate_user_page_views(page, per_page=per_page)
+    return paginate_page_views(page, per_page=per_page)
 
 
 __all__ = [

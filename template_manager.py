@@ -199,12 +199,11 @@ def get_templates_for_type(entity_type: str) -> List[Dict[str, Any]]:
 
 
 def get_template_by_key(
-    user_id: str, entity_type: str, template_key: str
+    entity_type: str, template_key: str
 ) -> Optional[Dict[str, Any]]:
     """Get a specific template by its key.
 
     Args:
-        user_id: User identifier
         entity_type: Type of entity ('aliases', 'servers', 'variables', 'secrets')
         template_key: The key/identifier of the template
 

@@ -6,10 +6,10 @@ import pytest
 from alias_definition import format_primary_alias_line
 from database import db
 from db_access import (
-    count_user_aliases,
-    count_user_secrets,
-    count_user_servers,
-    count_user_variables,
+    count_aliases,
+    count_secrets,
+    count_servers,
+    count_variables,
     get_first_alias_name,
     get_first_secret_name,
     get_first_server_name,
@@ -30,7 +30,6 @@ def test_settings_page_displays_resource_counts_and_links(
     with integration_app.app_context():
         alias = Alias(
             name="docs",
-            user_id="default-user",
             definition=format_primary_alias_line(
                 "literal",
                 None,
@@ -41,26 +40,23 @@ def test_settings_page_displays_resource_counts_and_links(
         server = Server(
             name="engine",
             definition="print(\"ok\")",
-            user_id="default-user",
         )
         variable = Variable(
             name="app-config",
             definition="value = 1",
-            user_id="default-user",
         )
         secret = Secret(
             name="api-key",
             definition="secret-value",
-            user_id="default-user",
         )
         db.session.add_all([alias, server, variable, secret])
         db.session.commit()
 
         counts = {
-            "alias": count_user_aliases("default-user"),
-            "server": count_user_servers("default-user"),
-            "variable": count_user_variables("default-user"),
-            "secret": count_user_secrets("default-user"),
+            "alias": count_aliases(),
+            "server": count_servers(),
+            "variable": count_variables(),
+            "secret": count_secrets(),
         }
         examples = {
             "alias": get_first_alias_name("default-user"),

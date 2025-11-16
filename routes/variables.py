@@ -35,8 +35,8 @@ def update_variable_definitions_cid():
     return store_variable_definitions_cid()
 
 
-def user_variables():
-    """Legacy alias for retrieving variables."""
+def list_variables():
+    """Return all stored variables."""
     return get_variables()
 
 
@@ -291,7 +291,7 @@ register_standard_crud_routes(main_bp, _variable_config)
 def bulk_edit_variables():
     """Edit all variables at once using a JSON payload."""
 
-    variables_list = user_variables()
+    variables_list = list_variables()
     form = BulkVariablesForm()
 
     if request.method == 'GET':
@@ -422,5 +422,5 @@ __all__ = [
     'edit_variable',
     'new_variable',
     'update_variable_definitions_cid',
-    'user_variables',
+    'list_variables',
 ]

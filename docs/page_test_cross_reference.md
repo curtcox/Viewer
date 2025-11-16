@@ -265,7 +265,7 @@ This document maps site pages to the automated checks that exercise them.
 
 **Specs:**
 - server_form.spec — New server form is accessible
-- server_form.spec — Server form stays available without a user session
+- server_form.spec — Server form stays available without a login requirement
 
 ## templates/settings.html
 

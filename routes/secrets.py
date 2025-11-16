@@ -33,8 +33,8 @@ def update_secret_definitions_cid():
     return store_secret_definitions_cid()
 
 
-def user_secrets():
-    """Legacy alias for retrieving secrets."""
+def list_secrets():
+    """Return all stored secrets."""
     return get_secrets()
 
 
@@ -81,7 +81,7 @@ register_standard_crud_routes(main_bp, _secret_config)
 def bulk_edit_secrets():
     """Edit all secrets at once using a JSON payload."""
 
-    secrets_list = user_secrets()
+    secrets_list = list_secrets()
     form = BulkSecretsForm()
 
     if request.method == 'GET':
@@ -204,5 +204,5 @@ __all__ = [
     'edit_secret',
     'new_secret',
     'update_secret_definitions_cid',
-    'user_secrets',
+    'list_secrets',
 ]

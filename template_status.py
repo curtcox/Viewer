@@ -10,7 +10,7 @@ from template_manager import get_template_status
 
 
 def generate_template_status_label(
-    user_id: str, entity_type: Optional[str] = None
+    entity_type: Optional[str] = None
 ) -> str:
     """Generate a human-readable status label for templates.
 
@@ -27,9 +27,6 @@ def generate_template_status_label(
         - "No templates" - When templates variable is empty or doesn't exist
         - "Invalid template definition" - When JSON is malformed or CID is invalid
     """
-    if not user_id:
-        return "No templates"
-
     status = get_template_status()
 
     # Check if templates are invalid
@@ -55,7 +52,7 @@ def generate_template_status_label(
 
 
 def get_template_link_info(
-    user_id: str, entity_type: Optional[str] = None
+    entity_type: Optional[str] = None
 ) -> Dict[str, str]:
     """Get template status link information for rendering in templates.
 
@@ -69,15 +66,8 @@ def get_template_link_info(
         - 'url': URL to templates configuration page
         - 'css_class': CSS class for styling based on status
     """
-    if not user_id:
-        return {
-            'label': 'No templates',
-            'url': '/variables/templates',
-            'css_class': 'template-status-empty',
-        }
-
     status = get_template_status()
-    label = generate_template_status_label(user_id, entity_type)
+    label = generate_template_status_label(entity_type)
 
     # Determine URL
     url = '/variables/templates'

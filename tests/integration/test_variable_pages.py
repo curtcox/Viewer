@@ -18,12 +18,12 @@ from models import CID, Variable
 pytestmark = pytest.mark.integration
 
 
-def test_variables_page_lists_user_variables(
+def test_variables_page_lists_saved_variables(
     client,
     integration_app,
     login_default_user,
 ):
-    """The variables index page should list the user's variables."""
+    """The variables index page should list the saved variables."""
 
     with integration_app.app_context():
         variable = Variable(
@@ -39,7 +39,7 @@ def test_variables_page_lists_user_variables(
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Variables" in page
+    assert "Variables" in page
     assert "API_URL" in page
     assert "https://example.com/api" in page
 
