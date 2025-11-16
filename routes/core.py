@@ -7,10 +7,10 @@ from typing import Optional
 from flask import abort, redirect, render_template, url_for
 
 from db_access import (
-    count_user_aliases,
-    count_user_secrets,
-    count_user_servers,
-    count_user_variables,
+    count_aliases,
+    count_secrets,
+    count_servers,
+    count_variables,
     get_first_alias_name,
     get_first_secret_name,
     get_first_server_name,
@@ -150,22 +150,17 @@ def screenshot_cid_demo():
 @main_bp.route('/settings')
 def settings():
     """Settings page with links to servers, variables, aliases, and secrets."""
-    counts = get_user_settings_counts()
+    counts = get_settings_counts()
     return render_template('settings.html', **counts)
 
 
-def get_user_settings_counts():
-    """
-    Get counts of saved resources for settings display.
-
-    Returns:
-        Dictionary containing counts and example names
-    """
+def get_settings_counts():
+    """Return counts of globally saved resources for settings display."""
     return {
-        'alias_count': count_user_aliases(),
-        'server_count': count_user_servers(),
-        'variable_count': count_user_variables(),
-        'secret_count': count_user_secrets(),
+        'alias_count': count_aliases(),
+        'server_count': count_servers(),
+        'variable_count': count_variables(),
+        'secret_count': count_secrets(),
         'alias_example_name': get_first_alias_name(),
         'server_example_name': get_first_server_name(),
         'variable_example_name': get_first_variable_name(),
@@ -176,7 +171,7 @@ def get_user_settings_counts():
 __all__ = [
     'dashboard',
     'get_existing_routes',
-    'get_user_settings_counts',
+    'get_settings_counts',
     'index',
     'inject_observability_info',
     'inject_meta_inspector_link',

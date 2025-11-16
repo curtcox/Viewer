@@ -2,8 +2,8 @@
 
 This script:
 1. Queries all entities where template=True
-2. Builds a templates JSON structure for each user
-3. Stores it as a 'templates' variable
+2. Builds a global templates JSON structure
+3. Stores it as the global 'templates' variable
 4. Drops the template columns from database tables
 
 Usage:
@@ -29,7 +29,7 @@ def query_template_entities():
     """Query all template entities from the database before migration.
 
     Returns:
-        Tuple of (templates dict, user_id) for single user scenario
+        Templates dict keyed by entity type.
     """
     print("Querying existing template entities...")
 
@@ -40,19 +40,15 @@ def query_template_entities():
         'secrets': {}
     }
 
-    user_id = None
-
     # Query each entity type for templates
     # Note: We query directly with SQL since the models no longer have template column
 
     # Aliases
     try:
         result = db.session.execute(
-            text("SELECT id, name, user_id, definition, created_at FROM alias WHERE template = 1")
+            text("SELECT id, name, definition, created_at FROM alias WHERE template = 1")
         )
         for row in result:
-            if user_id is None:
-                user_id = row.user_id
             templates['aliases'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -70,11 +66,9 @@ def query_template_entities():
     # Servers
     try:
         result = db.session.execute(
-            text("SELECT id, name, user_id, definition, created_at FROM server WHERE template = 1")
+            text("SELECT id, name, definition, created_at FROM server WHERE template = 1")
         )
         for row in result:
-            if user_id is None:
-                user_id = row.user_id
             templates['servers'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -92,11 +86,9 @@ def query_template_entities():
     # Variables
     try:
         result = db.session.execute(
-            text("SELECT id, name, user_id, definition, created_at FROM variable WHERE template = 1")
+            text("SELECT id, name, definition, created_at FROM variable WHERE template = 1")
         )
         for row in result:
-            if user_id is None:
-                user_id = row.user_id
             # Skip the templates variable itself
             if row.name == 'templates':
                 continue
@@ -117,11 +109,9 @@ def query_template_entities():
     # Secrets
     try:
         result = db.session.execute(
-            text("SELECT id, name, user_id, definition, created_at FROM secret WHERE template = 1")
+            text("SELECT id, name, definition, created_at FROM secret WHERE template = 1")
         )
         for row in result:
-            if user_id is None:
-                user_id = row.user_id
             templates['secrets'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -136,16 +126,11 @@ def query_template_entities():
     except Exception as e:
         print(f"  No template column in secret table (already migrated?) - {e}")
 
-    return templates, user_id
+    return templates
 
 
-def create_templates_variable(templates, user_id):
-    """Create or update templates variable for single user.
-
-    Args:
-        templates: Templates structure for the user
-        user_id: The user ID to create the variable for
-    """
+def create_templates_variable(templates):
+    """Create or update the global templates variable."""
     print("\nCreating templates variable...")
 
     # Check if any templates exist
@@ -158,18 +143,11 @@ def create_templates_variable(templates, user_id):
         print("  No templates to migrate")
         return
 
-    if user_id is None:
-        print("  Warning: No user_id found in template entities, skipping variable creation")
-        return
-
     # Convert to JSON
     templates_json = json.dumps(templates, indent=2)
 
     # Check if templates variable already exists
-    existing = Variable.query.filter_by(
-        user_id=user_id,
-        name='templates'
-    ).first()
+    existing = Variable.query.filter_by(name='templates').first()
 
     if existing:
         print(f"  Updating existing templates variable ({total_templates} templates)")
@@ -180,7 +158,6 @@ def create_templates_variable(templates, user_id):
         new_var = Variable(
             name='templates',
             definition=templates_json,
-            user_id=user_id,
             enabled=True
         )
         db.session.add(new_var)
@@ -247,10 +224,10 @@ def main():
     with app.app_context():
         try:
             # Step 1: Query template entities
-            templates, user_id = query_template_entities()
+            templates = query_template_entities()
 
             # Step 2: Create templates variable
-            create_templates_variable(templates, user_id)
+            create_templates_variable(templates)
 
             # Step 3: Drop template columns
             drop_template_columns()

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from alias_definition import collect_alias_routes, get_primary_alias_route
 from alias_routing import find_matching_alias, try_alias_redirect
-from db_access import get_user_aliases
+from db_access import get_aliases
 
 from .meta_path_utils import (
     dedupe_links,
@@ -40,10 +40,10 @@ def serialize_alias(alias, route=None) -> Dict[str, Any]:
 
 
 def aliases_targeting_path(path: str) -> List[Dict[str, Any]]:
-    """Return aliases owned by the current user that target the supplied path."""
+    """Return aliases that target the supplied path."""
     normalized = normalize_target_path(path)
     aliases = []
-    for alias in get_user_aliases():
+    for alias in get_aliases():
         for route in collect_alias_routes(alias):
             target_path = normalize_alias_target_path(route.target_path)
             if not target_path:

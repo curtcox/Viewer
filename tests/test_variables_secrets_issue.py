@@ -26,7 +26,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
     def tearDown(self):
         """Clean up test environment"""
 
-    @patch('routes.variables.get_user_variables')
+    @patch('routes.variables.get_variables')
     def test_user_variables_returns_model_objects(self, mock_get_vars):
         """Test that user_variables() returns SQLAlchemy model objects, not serializable data"""
         # Create mock Variable objects
@@ -58,7 +58,7 @@ class TestVariablesSecretsIssue(unittest.TestCase):
         print(f"First item has name: {hasattr(result[0], 'name')}")
         print(f"First item has definition: {hasattr(result[0], 'definition')}")
 
-    @patch('routes.secrets.get_user_secrets')
+    @patch('routes.secrets.get_secrets')
     def test_user_secrets_returns_model_objects(self, mock_get_secrets):
         """Test that user_secrets() returns SQLAlchemy model objects, not serializable data"""
         # Create mock Secret objects

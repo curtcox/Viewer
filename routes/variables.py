@@ -10,9 +10,9 @@ from cid_utils import (
     store_variable_definitions_cid,
 )
 from db_access import (
-    get_user_template_variables,
-    get_user_variables,
+    get_template_variables,
     get_variable_by_name,
+    get_variables,
 )
 from forms import BulkVariablesForm, VariableForm
 from interaction_log import load_interaction_history
@@ -36,7 +36,8 @@ def update_variable_definitions_cid():
 
 
 def user_variables():
-    return get_user_variables()
+    """Legacy alias for retrieving variables."""
+    return get_variables()
 
 
 def _build_variables_editor_payload(variables_list: List[Variable]) -> str:
@@ -275,7 +276,7 @@ _variable_config = EntityRouteConfig(
     entity_type='variable',
     plural_name='variables',
     get_by_name_func=get_variable_by_name,
-    get_user_entities_func=get_user_variables,
+    get_entities_func=get_variables,
     form_class=VariableForm,
     update_cid_func=update_variable_definitions_cid,
     to_json_func=model_to_dict,
@@ -333,7 +334,7 @@ def new_variable():
             'definition': variable.definition or '',
             'suggested_name': f"{variable.name}-copy" if variable.name else '',
         }
-        for variable in get_user_template_variables()
+        for variable in get_template_variables()
     ]
 
     if form.validate_on_submit():

@@ -10,8 +10,8 @@ from cid_utils import (
 )
 from db_access import (
     get_secret_by_name,
-    get_user_secrets,
-    get_user_template_secrets,
+    get_secrets,
+    get_template_secrets,
 )
 from forms import BulkSecretsForm, SecretForm
 from interaction_log import load_interaction_history
@@ -34,7 +34,8 @@ def update_secret_definitions_cid():
 
 
 def user_secrets():
-    return get_user_secrets()
+    """Legacy alias for retrieving secrets."""
+    return get_secrets()
 
 
 def _build_secrets_editor_payload(secret_list: List[Secret]) -> str:
@@ -66,7 +67,7 @@ _secret_config = EntityRouteConfig(
     entity_type='secret',
     plural_name='secrets',
     get_by_name_func=get_secret_by_name,
-    get_user_entities_func=get_user_secrets,
+    get_entities_func=get_secrets,
     form_class=SecretForm,
     update_cid_func=update_secret_definitions_cid,
     to_json_func=model_to_dict,
@@ -123,7 +124,7 @@ def new_secret():
             'definition': secret.definition or '',
             'suggested_name': f"{secret.name}-copy" if secret.name else '',
         }
-        for secret in get_user_template_secrets()
+        for secret in get_template_secrets()
     ]
 
     if form.validate_on_submit():

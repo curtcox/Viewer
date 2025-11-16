@@ -13,7 +13,7 @@ from db_access import (
     get_aliases,
     get_secrets,
     get_servers,
-    get_user_uploads,
+    get_uploads,
     get_variables,
 )
 
@@ -77,7 +77,7 @@ __all__ = [
     'get_servers',
     'get_variables',
     'get_secrets',
-    'get_user_uploads',
+    'get_uploads',
     'store_cid_from_bytes',
     'cid_path',
 ]

@@ -4,10 +4,10 @@ from flask import current_app, has_request_context, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
 from db_access import (
-    get_user_aliases,
-    get_user_secrets,
-    get_user_servers,
-    get_user_variables,
+    get_aliases,
+    get_secrets,
+    get_servers,
+    get_variables,
     rollback_session,
 )
 
@@ -63,10 +63,10 @@ def inject_viewer_navigation():
         return {}
 
     try:
-        aliases = get_user_aliases()
-        servers = get_user_servers()
-        variables = get_user_variables()
-        secrets = get_user_secrets()
+        aliases = get_aliases()
+        servers = get_servers()
+        variables = get_variables()
+        secrets = get_secrets()
     except SQLAlchemyError:
         rollback_session()
         aliases = []

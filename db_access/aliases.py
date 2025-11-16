@@ -316,7 +316,3 @@ def _replace_cid_text(
     return updated, True
 
 
-# Backward compatibility aliases
-get_user_aliases = get_aliases
-get_user_template_aliases = get_template_aliases
-count_user_aliases = count_aliases

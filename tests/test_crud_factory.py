@@ -77,7 +77,7 @@ class TestEntityRouteConfig(unittest.TestCase):
         """Test EntityRouteConfig initialization with default values."""
         mock_entity_class = Mock()
         mock_get_by_name = Mock()
-        mock_get_user_entities = Mock()
+        mock_get_entities = Mock()
         mock_form_class = Mock()
 
         config = EntityRouteConfig(
@@ -85,7 +85,7 @@ class TestEntityRouteConfig(unittest.TestCase):
             entity_type='server',
             plural_name='servers',
             get_by_name_func=mock_get_by_name,
-            get_user_entities_func=mock_get_user_entities,
+            get_entities_func=mock_get_entities,
             form_class=mock_form_class,
         )
 
@@ -105,7 +105,7 @@ class TestEntityRouteConfig(unittest.TestCase):
             entity_type='alias',
             plural_name='aliases',
             get_by_name_func=Mock(),
-            get_user_entities_func=Mock(),
+            get_entities_func=Mock(),
             form_class=Mock(),
             param_name='custom_param',
         )
@@ -119,7 +119,7 @@ class TestEntityRouteConfig(unittest.TestCase):
             entity_type='variable',
             plural_name='variables',
             get_by_name_func=Mock(),
-            get_user_entities_func=Mock(),
+            get_entities_func=Mock(),
             form_class=Mock(),
             list_template='custom_list.html',
             view_template='custom_view.html',
@@ -138,7 +138,7 @@ class TestEntityRouteConfig(unittest.TestCase):
             entity_type='secret',
             plural_name='secrets',
             get_by_name_func=Mock(),
-            get_user_entities_func=Mock(),
+            get_entities_func=Mock(),
             form_class=Mock(),
             build_list_context=mock_list_builder,
             build_view_context=mock_view_builder,
@@ -164,14 +164,14 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         self.mock_entity.updated_at = datetime.now(timezone.utc)
 
         self.mock_get_by_name = Mock(return_value=self.mock_entity)
-        self.mock_get_user_entities = Mock(return_value=[self.mock_entity])
+        self.mock_get_entities = Mock(return_value=[self.mock_entity])
 
         self.config = EntityRouteConfig(
             entity_class=Mock,
             entity_type='test',
             plural_name='tests',
             get_by_name_func=self.mock_get_by_name,
-            get_user_entities_func=self.mock_get_user_entities,
+            get_entities_func=self.mock_get_entities,
             form_class=Mock,
         )
 
@@ -201,7 +201,7 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             entity_type='alias',
             plural_name='aliases',
             get_by_name_func=self.mock_get_by_name,
-            get_user_entities_func=self.mock_get_user_entities,
+            get_entities_func=self.mock_get_entities,
             form_class=Mock,
             param_name='alias_name',  # Custom parameter name
         )
@@ -252,8 +252,8 @@ class TestCrudFactoryRoutes(unittest.TestCase):
 
     @patch('routes.crud_factory.render_template')
     @patch('routes.crud_factory.wants_structured_response', return_value=False)
-    def test_list_route_calls_get_user_entities(self, mock_wants, mock_render):
-        """Test that list route calls get_user_entities."""
+    def test_list_route_calls_get_entities(self, mock_wants, mock_render):
+        """Test that list route calls get_entities."""
         mock_render.return_value = 'rendered'
 
         bp = self._create_blueprint()
@@ -262,7 +262,7 @@ class TestCrudFactoryRoutes(unittest.TestCase):
         with self.app.test_request_context():
             route_func()
 
-            self.mock_get_user_entities.assert_called_once()
+            self.mock_get_entities.assert_called_once()
             mock_render.assert_called_once()
 
     @patch('routes.crud_factory.abort')
@@ -276,7 +276,7 @@ class TestCrudFactoryRoutes(unittest.TestCase):
             entity_type='test',
             plural_name='tests',
             get_by_name_func=Mock(return_value=None),  # Entity not found
-            get_user_entities_func=Mock(),
+            get_entities_func=Mock(),
             form_class=Mock,
         )
 
@@ -345,7 +345,7 @@ class TestCrudFactoryBackwardCompatibility(unittest.TestCase):
                 entity_type=entity_type,
                 plural_name=plural_name,
                 get_by_name_func=Mock(),
-                get_user_entities_func=Mock(),
+                get_entities_func=Mock(),
                 form_class=Mock(),
             )
             self.assertEqual(
@@ -361,7 +361,7 @@ class TestCrudFactoryBackwardCompatibility(unittest.TestCase):
             entity_type='alias',
             plural_name='aliases',
             get_by_name_func=Mock(),
-            get_user_entities_func=Mock(),
+            get_entities_func=Mock(),
             form_class=Mock(),
             param_name='custom_name',
         )

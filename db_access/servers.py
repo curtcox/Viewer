@@ -67,10 +67,3 @@ def get_first_server_name() -> Optional[str]:
 def count_servers() -> int:
     """Return the count of servers."""
     return _server_repo.count()
-
-
-# Backward compatibility aliases
-get_user_servers = get_servers
-get_all_servers = get_servers
-get_user_template_servers = get_template_servers
-count_user_servers = count_servers

@@ -39,8 +39,8 @@ class TestErrorPageSourceLinks(unittest.TestCase):
         """Test that when aliases page throws an error, the error page shows source links."""
         with self.app.test_request_context('/aliases'):
             try:
-                # Mock the get_user_aliases function to raise a database error similar to the real issue
-                with patch('db_access.get_user_aliases') as mock_get_aliases:
+                # Mock the get_aliases function to raise a database error similar to the real issue
+                with patch('db_access.get_aliases') as mock_get_aliases:
                     # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
                         import sqlite3
 

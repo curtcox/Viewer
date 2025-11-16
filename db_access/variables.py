@@ -57,9 +57,3 @@ def get_first_variable_name() -> Optional[str]:
 def count_variables() -> int:
     """Return the count of variables."""
     return _variable_repo.count()
-
-
-# Backward compatibility aliases
-get_user_variables = get_variables
-get_user_template_variables = get_template_variables
-count_user_variables = count_variables

@@ -15,12 +15,12 @@ from ._common import (
     save_entity,
 )
 from .aliases import (
-    count_user_aliases,
+    count_aliases,
     get_alias_by_name,
     get_alias_by_target_path,
+    get_aliases,
     get_first_alias_name,
-    get_user_aliases,
-    get_user_template_aliases,
+    get_template_aliases,
     update_alias_cid_reference,
 )
 from .cids import (
@@ -66,28 +66,24 @@ from .page_views import (
 )
 from .secrets import (
     count_secrets,
-    count_user_secrets,
     get_first_secret_name,
     get_secret_by_name,
-    get_user_secrets,
-    get_user_template_secrets,
+    get_secrets,
+    get_template_secrets,
 )
 from .servers import (
     count_servers,
-    count_user_servers,
-    get_all_servers,
     get_first_server_name,
     get_server_by_name,
-    get_user_servers,
-    get_user_template_servers,
+    get_servers,
+    get_template_servers,
 )
 from .variables import (
-    count_user_variables,
     count_variables,
     get_first_variable_name,
-    get_user_template_variables,
-    get_user_variables,
+    get_template_variables,
     get_variable_by_name,
+    get_variables,
 )
 
 EXPORTS: Dict[str, Any] = {
@@ -102,47 +98,37 @@ EXPORTS: Dict[str, Any] = {
     "DEFAULT_ACTION": DEFAULT_ACTION,
     "MAX_MESSAGE_LENGTH": MAX_MESSAGE_LENGTH,
     # Servers
-    "get_servers": get_user_servers,  # New name
-    "get_user_servers": get_user_servers,  # Legacy name
-    "get_user_template_servers": get_user_template_servers,
+    "get_servers": get_servers,
+    "get_template_servers": get_template_servers,
     "get_server_by_name": get_server_by_name,
     "get_first_server_name": get_first_server_name,
-    "count_user_servers": count_user_servers,
-    "get_all_servers": get_all_servers,
     "count_servers": count_servers,
     # Aliases
-    "get_aliases": get_user_aliases,  # New name
-    "get_user_aliases": get_user_aliases,  # Legacy name
-    "get_user_template_aliases": get_user_template_aliases,
+    "get_aliases": get_aliases,
+    "get_template_aliases": get_template_aliases,
     "get_alias_by_name": get_alias_by_name,
     "get_first_alias_name": get_first_alias_name,
     "get_alias_by_target_path": get_alias_by_target_path,
-    "count_user_aliases": count_user_aliases,
+    "count_aliases": count_aliases,
     "update_alias_cid_reference": update_alias_cid_reference,
     # Variables
-    "get_variables": get_user_variables,  # New name
-    "get_user_variables": get_user_variables,  # Legacy name
-    "get_user_template_variables": get_user_template_variables,
+    "get_variables": get_variables,
+    "get_template_variables": get_template_variables,
     "get_variable_by_name": get_variable_by_name,
     "get_first_variable_name": get_first_variable_name,
-    "count_user_variables": count_user_variables,
     "count_variables": count_variables,
     # Secrets
-    "get_secrets": get_user_secrets,  # New name
-    "get_user_secrets": get_user_secrets,  # Legacy name
-    "get_user_template_secrets": get_user_template_secrets,
+    "get_secrets": get_secrets,
+    "get_template_secrets": get_template_secrets,
     "get_secret_by_name": get_secret_by_name,
     "get_first_secret_name": get_first_secret_name,
-    "count_user_secrets": count_user_secrets,
     "count_secrets": count_secrets,
     # CIDs
     "get_cid_by_path": get_cid_by_path,
     "find_cids_by_prefix": find_cids_by_prefix,
     "create_cid_record": create_cid_record,
-    "get_uploads": get_uploads,  # New name
-    "get_user_uploads": get_uploads,  # Legacy name
-    "get_template_uploads": get_template_uploads,  # New name
-    "get_user_template_uploads": get_template_uploads,  # Legacy name
+    "get_uploads": get_uploads,
+    "get_template_uploads": get_template_uploads,
     "get_cids_by_paths": get_cids_by_paths,
     "get_recent_cids": get_recent_cids,
     "get_first_cid": get_first_cid,
@@ -151,11 +137,9 @@ EXPORTS: Dict[str, Any] = {
     # Page views
     "save_page_view": save_page_view,
     "count_page_views": count_page_views,
-    "count_user_page_views": count_page_views,  # Legacy name
     "count_unique_page_view_paths": count_unique_page_view_paths,
     "get_popular_page_paths": get_popular_page_paths,
-    "paginate_page_views": paginate_page_views,  # New name
-    "paginate_user_page_views": paginate_page_views,  # Legacy name
+    "paginate_page_views": paginate_page_views,
     # Interactions
     "EntityInteractionRequest": EntityInteractionRequest,
     "EntityInteractionLookup": EntityInteractionLookup,
@@ -166,17 +150,13 @@ EXPORTS: Dict[str, Any] = {
     # Invocations
     "ServerInvocationInput": ServerInvocationInput,
     "create_server_invocation": create_server_invocation,
-    "get_server_invocations": get_server_invocations,  # New name
-    "get_user_server_invocations": get_server_invocations,  # Legacy name
-    "get_server_invocations_by_server": get_server_invocations_by_server,  # New name
-    "get_user_server_invocations_by_server": get_server_invocations_by_server,  # Legacy name
-    "get_server_invocations_by_result_cids": get_server_invocations_by_result_cids,  # New name
-    "get_user_server_invocations_by_result_cids": get_server_invocations_by_result_cids,  # Legacy name
+    "get_server_invocations": get_server_invocations,
+    "get_server_invocations_by_server": get_server_invocations_by_server,
+    "get_server_invocations_by_result_cids": get_server_invocations_by_result_cids,
     "find_server_invocations_by_cid": find_server_invocations_by_cid,
     # Exports
     "record_export": record_export,
-    "get_exports": get_exports,  # New name
-    "get_user_exports": get_exports,  # Legacy name
+    "get_exports": get_exports,
 }
 
 __all__ = list(EXPORTS)

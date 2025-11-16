@@ -45,9 +45,9 @@ mock_db_access.create_cid_record = lambda *a, **k: None
 mock_db_access.create_server_invocation = lambda *a, **k: types.SimpleNamespace(invoked_at=None, invocation_cid=None)
 mock_db_access.get_cid_by_path = lambda *a, **k: None
 mock_db_access.get_server_by_name = lambda *a, **k: None
-mock_db_access.get_user_secrets = lambda *a, **k: []
-mock_db_access.get_user_servers = lambda *a, **k: []
-mock_db_access.get_user_variables = lambda *a, **k: []
+mock_db_access.get_secrets = lambda *a, **k: []
+mock_db_access.get_servers = lambda *a, **k: []
+mock_db_access.get_variables = lambda *a, **k: []
 mock_db_access.save_entity = lambda *a, **k: None
 
 

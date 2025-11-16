@@ -17,13 +17,13 @@ from cid_utils import (
 from db_access import (
     create_cid_record,
     get_cid_by_path,
+    get_secrets,
     get_server_by_name,
-    get_user_secrets,
-    get_user_server_invocations_by_server,
-    get_user_servers,
-    get_user_template_servers,
-    get_user_uploads,
-    get_user_variables,
+    get_server_invocations_by_server,
+    get_servers,
+    get_template_servers,
+    get_uploads,
+    get_variables,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
@@ -472,7 +472,7 @@ def get_server_definition_history(server_name: str) -> list[dict[str, Any]]:
     Returns:
         list: History of server definitions, most recent first
     """
-    cids = get_user_uploads()
+    cids = get_uploads()
 
     history = []
 
@@ -502,12 +502,8 @@ def update_server_definitions_cid() -> str | None:
 
 
 def user_servers() -> list[Server]:
-    """Get all servers for the current user.
-
-    Returns:
-        list: User's server instances
-    """
-    return get_user_servers()
+    """Get all servers (legacy alias)."""
+    return get_servers()
 
 
 def _build_reference_links(entity_type: str, names: list[str]) -> list[dict[str, str]]:
@@ -586,12 +582,12 @@ def _get_known_entity_names() -> tuple[set[str], set[str]]:
     """
     known_variable_names = {
         str(variable.name)
-        for variable in get_user_variables()
+        for variable in get_variables()
         if getattr(variable, 'name', None)
     }
     known_secret_names = {
         str(secret.name)
-        for secret in get_user_secrets()
+        for secret in get_secrets()
         if getattr(secret, 'name', None)
     }
     return known_variable_names, known_secret_names
@@ -672,7 +668,7 @@ _server_config = EntityRouteConfig(
     entity_type='server',
     plural_name='servers',
     get_by_name_func=get_server_by_name,
-    get_user_entities_func=get_user_servers,
+    get_entities_func=get_servers,
     form_class=ServerForm,
     update_cid_func=update_server_definitions_cid,
     to_json_func=model_to_dict,
@@ -704,7 +700,7 @@ def new_server():
             'definition': server.definition or '',
             'suggested_name': f"{server.name}-copy" if server.name else '',
         }
-        for server in get_user_template_servers()
+        for server in get_template_servers()
     ]
 
     if form.validate_on_submit():
@@ -807,7 +803,7 @@ def edit_server(server_name):
 
 def get_server_invocation_history(server_name: str) -> list[Any]:
     """Return invocation events for a specific server ordered from newest to oldest."""
-    invocations = get_user_server_invocations_by_server(server_name)
+    invocations = get_server_invocations_by_server(server_name)
 
     if not invocations:
         return []

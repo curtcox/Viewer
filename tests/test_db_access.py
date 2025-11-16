@@ -31,10 +31,10 @@ from db_access import (
     get_recent_cids,
     get_secret_by_name,
     get_server_by_name,
+    get_server_invocations,
+    get_server_invocations_by_result_cids,
+    get_server_invocations_by_server,
     get_uploads,
-    get_user_server_invocations,
-    get_user_server_invocations_by_result_cids,
-    get_user_server_invocations_by_server,
     get_variable_by_name,
     EntityInteractionLookup,
     EntityInteractionRequest,
@@ -117,7 +117,7 @@ class TestDBAccess(unittest.TestCase):
         dotted_matches = find_cids_by_prefix('alpha.extra')
         self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
 
-    def test_get_user_uploads_returns_latest_first(self):
+    def test_get_uploads_returns_latest_first(self):
         create_cid_record('first', b'1')
         create_cid_record('second', b'2')
 
@@ -184,14 +184,14 @@ class TestDBAccess(unittest.TestCase):
         second.invoked_at = now - timedelta(minutes=5)
         save_entity(second)
 
-        all_invocations = get_user_server_invocations()
+        all_invocations = get_server_invocations()
         self.assertEqual([invocation.server_name for invocation in all_invocations], ['demo', 'other'])
 
-        by_server = get_user_server_invocations_by_server('demo')
+        by_server = get_server_invocations_by_server('demo')
         self.assertEqual(len(by_server), 1)
         self.assertEqual(by_server[0].result_cid, 'cid-first')
 
-        by_result = get_user_server_invocations_by_result_cids({'cid-first'})
+        by_result = get_server_invocations_by_result_cids({'cid-first'})
         self.assertEqual(len(by_result), 1)
         self.assertEqual(by_result[0].invocation_cid, 'invoke-1')
 

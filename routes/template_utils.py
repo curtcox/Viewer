@@ -26,7 +26,7 @@ def build_template_list(
         List of dictionaries with template data
 
     Example:
-        >>> servers = get_user_template_servers(user_id)
+        >>> servers = get_template_servers()
         >>> templates = build_template_list(servers)
         >>> # Returns:
         >>> # [

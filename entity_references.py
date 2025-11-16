@@ -11,11 +11,11 @@ from cid_presenter import cid_path, format_cid
 from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
     get_alias_by_name,
+    get_aliases,
     get_cid_by_path,
     get_cids_by_paths,
     get_server_by_name,
-    get_user_aliases,
-    get_user_servers,
+    get_servers,
 )
 
 ReferenceMap = Dict[str, List[Dict[str, str]]]
@@ -153,8 +153,8 @@ def extract_references_from_text(text: Optional[str], user_id: Optional[str] = N
     references = _empty_reference_map()
 
     # No user scoping needed - get all aliases and servers
-    alias_names = [alias.name for alias in get_user_aliases()]
-    server_names = [server.name for server in get_user_servers()]
+    alias_names = [alias.name for alias in get_aliases()]
+    server_names = [server.name for server in get_servers()]
 
     if alias_names:
         references["aliases"] = _discover_alias_references(snippet, alias_names)

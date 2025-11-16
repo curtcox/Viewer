@@ -33,13 +33,13 @@ class TestDbAccessUploads(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def test_get_user_template_uploads_no_templates(self):
+    def test_get_template_uploads_no_templates(self):
         """Test getting upload templates when none exist."""
         templates = get_template_uploads()
 
         self.assertEqual(len(templates), 0)
 
-    def test_get_user_template_uploads_with_templates(self):
+    def test_get_template_uploads_with_templates(self):
         """Test getting upload templates with direct content."""
         templates_config = {
             'aliases': {},
@@ -81,7 +81,7 @@ class TestDbAccessUploads(unittest.TestCase):
         self.assertEqual(json_template['name'], 'JSON Sample')
         self.assertEqual(json_template['content'], '{"key": "value"}')
 
-    def test_get_user_template_uploads_with_cid_content(self):
+    def test_get_template_uploads_with_cid_content(self):
         """Test getting upload templates with CID-referenced content."""
         # Create CID record with content
         content_data = b'This is template content from CID'
@@ -120,7 +120,7 @@ class TestDbAccessUploads(unittest.TestCase):
         self.assertEqual(templates[0]['name'], 'CID Template')
         self.assertEqual(templates[0]['content'], 'This is template content from CID')
 
-    def test_get_user_template_uploads_sorted_by_name(self):
+    def test_get_template_uploads_sorted_by_name(self):
         """Test that upload templates are sorted by name."""
         templates_config = {
             'aliases': {},
@@ -157,7 +157,7 @@ class TestDbAccessUploads(unittest.TestCase):
         self.assertEqual(templates[1]['name'], 'Beta Template')
         self.assertEqual(templates[2]['name'], 'Zebra Template')
 
-    def test_get_user_template_uploads_empty_content(self):
+    def test_get_template_uploads_empty_content(self):
         """Test handling of templates with no content."""
         templates_config = {
             'aliases': {},

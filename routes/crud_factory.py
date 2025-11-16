@@ -29,8 +29,8 @@ class EntityRouteConfig:
         entity_class: Type,
         entity_type: str,  # 'server', 'variable', 'secret', 'alias'
         plural_name: str,  # 'servers', 'variables', etc.
-        get_by_name_func: Callable[[str, str], Any],
-        get_user_entities_func: Callable[[str], list],
+        get_by_name_func: Callable[[str], Any],
+        get_entities_func: Callable[[], list],
         form_class: Type,
         # Optional customization
         param_name: Optional[str] = None,  # URL parameter name (default: {entity_type}_name)
@@ -49,23 +49,23 @@ class EntityRouteConfig:
             entity_class: The model class (Server, Variable, Secret, Alias)
             entity_type: String identifier ('server', 'variable', 'secret', 'alias')
             plural_name: Plural form for URLs ('servers', 'variables', etc.)
-            get_by_name_func: Function to get entity by name: (user_id, name) -> entity
-            get_user_entities_func: Function to get all user entities: (user_id) -> list
+            get_by_name_func: Function to get an entity by name.
+            get_entities_func: Function to get the full collection of entities.
             form_class: WTForms form class for this entity
             param_name: URL parameter name for entity routes (default: {entity_type}_name)
-            update_cid_func: Optional function to update CID after changes: (user_id) -> cid
+            update_cid_func: Optional function to update CID after changes.
             to_json_func: Optional function to convert entity to JSON: (entity) -> dict
             list_template: Optional template name for list view (default: {plural_name}.html)
             view_template: Optional template name for view page (default: {entity_type}_view.html)
-            build_list_context: Optional function to build extra list context: (entities, user_id) -> dict
-            build_view_context: Optional function to build extra view context: (entity, user_id) -> dict
+            build_list_context: Optional function to build extra list context.
+            build_view_context: Optional function to build extra view context.
         """
         self.entity_class = entity_class
         self.entity_type = entity_type
         self.plural_name = plural_name
         self.param_name = param_name or f'{entity_type}_name'
         self.get_by_name = get_by_name_func
-        self.get_user_entities = get_user_entities_func
+        self.get_entities = get_entities_func
         self.form_class = form_class
         self.update_cid = update_cid_func
         self.to_json = to_json_func or model_to_dict
@@ -88,7 +88,7 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], 
     @bp.route(f'/{config.plural_name}')
     def list_entities() -> Any:
         """List all entities."""
-        entities_list = config.get_user_entities()
+        entities_list = config.get_entities()
 
         if wants_structured_response():
             return jsonify([config.to_json(e) for e in entities_list])
@@ -239,7 +239,7 @@ def register_standard_crud_routes(bp: Blueprint, config: EntityRouteConfig):
         ...     entity_type='variable',
         ...     plural_name='variables',
         ...     get_by_name_func=get_variable_by_name,
-        ...     get_user_entities_func=get_user_variables,
+        ...     get_entities_func=get_variables,
         ...     form_class=VariableForm,
         ...     update_cid_func=update_variable_definitions_cid,
         ... )

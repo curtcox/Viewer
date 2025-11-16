@@ -10,7 +10,7 @@ from cid_presenter import cid_path, format_cid, render_cid_link
 from cid_utils import is_strict_cid_candidate, split_cid_path
 from db_access import (
     get_cids_by_paths,
-    get_user_server_invocations_by_result_cids,
+    get_server_invocations_by_result_cids,
 )
 from models import ServerInvocation
 
@@ -238,7 +238,7 @@ def _attach_server_event_links(page_views: object) -> None:
     if not result_cids:
         return
 
-    invocations = get_user_server_invocations_by_result_cids(
+    invocations = get_server_invocations_by_result_cids(
         result_cids,
     )
 

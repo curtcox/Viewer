@@ -59,9 +59,3 @@ def get_first_secret_name() -> Optional[str]:
 def count_secrets() -> int:
     """Return the count of secrets."""
     return _secret_repo.count()
-
-
-# Backward compatibility aliases
-get_user_secrets = get_secrets
-get_user_template_secrets = get_template_secrets
-count_user_secrets = count_secrets

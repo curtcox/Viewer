@@ -26,9 +26,9 @@ from cid_presenter import extract_cid_from_path
 from db_access import (
     EntityInteractionRequest,
     get_alias_by_name,
-    get_user_aliases,
-    get_user_template_aliases,
-    get_user_variables,
+    get_aliases,
+    get_template_aliases,
+    get_variables,
     record_entity_interaction,
     save_entity,
 )
@@ -350,7 +350,7 @@ _alias_config = EntityRouteConfig(
     entity_type='alias',
     plural_name='aliases',
     get_by_name_func=get_alias_by_name,
-    get_user_entities_func=get_user_aliases,
+    get_entities_func=get_aliases,
     form_class=AliasForm,
     to_json_func=_alias_to_json,
     build_view_context=_build_alias_view_context,
@@ -386,7 +386,7 @@ def new_alias():
             'definition': alias.definition or '',
             'suggested_name': f"{alias.name}-copy" if alias.name else '',
         }
-        for alias in get_user_template_aliases()
+        for alias in get_template_aliases()
     ]
 
     if form.validate_on_submit():
@@ -688,7 +688,7 @@ def alias_definition_status():
         alias_name = str(alias_name)
 
     try:
-        variables = get_user_variables()
+        variables = get_variables()
     except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive fallback when database fails
         variables = []
 

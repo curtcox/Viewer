@@ -10,10 +10,10 @@ os.environ['TESTING'] = 'True'
 
 from app import app
 from models import Variable, db
-from db_access.aliases import get_user_template_aliases
-from db_access.servers import get_user_template_servers
-from db_access.variables import get_user_template_variables
-from db_access.secrets import get_user_template_secrets
+from db_access.aliases import get_template_aliases
+from db_access.servers import get_template_servers
+from db_access.variables import get_template_variables
+from db_access.secrets import get_template_secrets
 
 
 class TestDBAccessTemplates(unittest.TestCase):
@@ -66,13 +66,13 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def test_get_user_template_aliases_empty(self):
+    def test_get_template_aliases_empty(self):
         """Test getting template aliases when no templates exist."""
-        aliases = get_user_template_aliases()
+        aliases = get_template_aliases()
 
         self.assertEqual(len(aliases), 0)
 
-    def test_get_user_template_aliases_with_templates(self):
+    def test_get_template_aliases_with_templates(self):
         """Test getting template aliases from templates variable."""
         var = Variable(
             name='templates',
@@ -81,7 +81,7 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        aliases = get_user_template_aliases()
+        aliases = get_template_aliases()
 
         self.assertEqual(len(aliases), 2)
         self.assertTrue(all(a.template for a in aliases))
@@ -89,13 +89,13 @@ class TestDBAccessTemplates(unittest.TestCase):
         names = [a.name for a in aliases]
         self.assertEqual(names, sorted(names))
 
-    def test_get_user_template_servers_empty(self):
+    def test_get_template_servers_empty(self):
         """Test getting template servers when no templates exist."""
-        servers = get_user_template_servers()
+        servers = get_template_servers()
 
         self.assertEqual(len(servers), 0)
 
-    def test_get_user_template_servers_with_templates(self):
+    def test_get_template_servers_with_templates(self):
         """Test getting template servers from templates variable."""
         var = Variable(
             name='templates',
@@ -104,19 +104,19 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        servers = get_user_template_servers()
+        servers = get_template_servers()
 
         self.assertEqual(len(servers), 1)
         self.assertTrue(all(s.template for s in servers))
         self.assertEqual(servers[0].name, 'Test Server 1')
 
-    def test_get_user_template_variables_empty(self):
+    def test_get_template_variables_empty(self):
         """Test getting template variables when no templates exist."""
-        variables = get_user_template_variables()
+        variables = get_template_variables()
 
         self.assertEqual(len(variables), 0)
 
-    def test_get_user_template_variables_with_templates(self):
+    def test_get_template_variables_with_templates(self):
         """Test getting template variables from templates variable."""
         var = Variable(
             name='templates',
@@ -125,19 +125,19 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        variables = get_user_template_variables()
+        variables = get_template_variables()
 
         self.assertEqual(len(variables), 1)
         self.assertTrue(all(v.template for v in variables))
         self.assertEqual(variables[0].name, 'Test Variable 1')
 
-    def test_get_user_template_secrets_empty(self):
+    def test_get_template_secrets_empty(self):
         """Test getting template secrets when no templates exist."""
-        secrets = get_user_template_secrets()
+        secrets = get_template_secrets()
 
         self.assertEqual(len(secrets), 0)
 
-    def test_get_user_template_secrets_with_templates(self):
+    def test_get_template_secrets_with_templates(self):
         """Test getting template secrets from templates variable."""
         var = Variable(
             name='templates',
@@ -146,7 +146,7 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        secrets = get_user_template_secrets()
+        secrets = get_template_secrets()
 
         self.assertEqual(len(secrets), 2)
         self.assertTrue(all(s.template for s in secrets))
@@ -163,8 +163,8 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        aliases = get_user_template_aliases()
-        servers = get_user_template_servers()
+        aliases = get_template_aliases()
+        servers = get_template_servers()
 
         self.assertTrue(all(a.id is None for a in aliases))
         self.assertTrue(all(s.id is None for s in servers))
@@ -178,10 +178,10 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        aliases = get_user_template_aliases()
-        servers = get_user_template_servers()
-        variables = get_user_template_variables()
-        secrets = get_user_template_secrets()
+        aliases = get_template_aliases()
+        servers = get_template_servers()
+        variables = get_template_variables()
+        secrets = get_template_secrets()
 
         self.assertTrue(all(a.template for a in aliases))
         self.assertTrue(all(s.template for s in servers))
@@ -197,8 +197,8 @@ class TestDBAccessTemplates(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        aliases = get_user_template_aliases()
-        servers = get_user_template_servers()
+        aliases = get_template_aliases()
+        servers = get_template_servers()
 
         # Should return empty lists on invalid JSON
         self.assertEqual(len(aliases), 0)
