@@ -15,7 +15,6 @@ pytestmark = pytest.mark.integration
 def test_server_events_page_lists_recent_invocations(
     client,
     integration_app,
-    login_default_user,
 ):
     """The server events page should render recorded invocations."""
 
@@ -44,8 +43,6 @@ def test_server_events_page_lists_recent_invocations(
         db.session.add(cid_record)
         db.session.add(invocation)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/server_events")
     assert response.status_code == 200

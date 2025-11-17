@@ -21,7 +21,6 @@ pytestmark = pytest.mark.integration
 def test_variables_page_lists_saved_variables(
     client,
     integration_app,
-    login_default_user,
 ):
     """The variables index page should list the saved variables."""
 
@@ -32,8 +31,6 @@ def test_variables_page_lists_saved_variables(
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables")
     assert response.status_code == 200
@@ -47,7 +44,6 @@ def test_variables_page_lists_saved_variables(
 def test_variables_page_includes_enabled_toggle(
     client,
     integration_app,
-    login_default_user,
 ):
     """Each variable card should surface an enabled/disabled toggle."""
 
@@ -59,8 +55,6 @@ def test_variables_page_includes_enabled_toggle(
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables")
     assert response.status_code == 200
@@ -76,7 +70,6 @@ def test_variables_page_includes_enabled_toggle(
 def test_variable_enable_toggle_updates_state(
     client,
     integration_app,
-    login_default_user,
 ):
     """Posting the toggle form should persist variable enablement."""
 
@@ -88,8 +81,6 @@ def test_variable_enable_toggle_updates_state(
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/variables/API_URL/enabled",
@@ -117,7 +108,6 @@ def test_variable_enable_toggle_updates_state(
 def test_variable_detail_page_displays_variable_information(
     client,
     integration_app,
-    login_default_user,
 ):
     """The variable detail page should render the variable metadata."""
 
@@ -129,8 +119,6 @@ def test_variable_detail_page_displays_variable_information(
         db.session.add(variable)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/variables/API_TOKEN")
     assert response.status_code == 200
 
@@ -140,13 +128,10 @@ def test_variable_detail_page_displays_variable_information(
     assert "Variable Information" in page
 
 
-def test_new_variable_form_renders_for_authenticated_user(
+def test_new_variable_form_renders_in_single_user_mode(
     client,
-    login_default_user,
 ):
-    """The new-variable form should render for logged-in users."""
-
-    login_default_user()
+    """The new-variable form should render without explicit login helpers."""
 
     response = client.get("/variables/new")
     assert response.status_code == 200
@@ -161,7 +146,6 @@ def test_new_variable_form_renders_for_authenticated_user(
 def test_new_variable_form_includes_templates(
     client,
     integration_app,
-    login_default_user,
 ):
     """Variables marked as templates should appear on the creation form."""
 
@@ -186,8 +170,6 @@ def test_new_variable_form_includes_templates(
         db.session.add(templates_var)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/variables/new")
     assert response.status_code == 200
 
@@ -199,7 +181,6 @@ def test_new_variable_form_includes_templates(
 def test_new_variable_form_includes_template_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """New variable form should display a link to /variables/templates with status."""
 
@@ -231,8 +212,6 @@ def test_new_variable_form_includes_template_link(
         db.session.add(templates_var)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/variables/new")
     assert response.status_code == 200
 
@@ -246,7 +225,6 @@ def test_new_variable_form_includes_template_link(
 def test_edit_variable_form_displays_existing_variable_details(
     client,
     integration_app,
-    login_default_user,
 ):
     """Editing a variable should prefill the form with its saved details."""
 
@@ -257,8 +235,6 @@ def test_edit_variable_form_displays_existing_variable_details(
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/API_TOKEN/edit")
     assert response.status_code == 200
@@ -272,7 +248,6 @@ def test_edit_variable_form_displays_existing_variable_details(
 def test_edit_variable_updates_definition_snapshot(
     client,
     integration_app,
-    login_default_user,
 ):
     """Variable edits should persist new definitions for subsequent page loads."""
 
@@ -285,8 +260,6 @@ def test_edit_variable_updates_definition_snapshot(
         db.session.commit()
 
         initial_snapshot_cid = store_variable_definitions_cid()
-
-    login_default_user()
 
     updated_definition = "return 'Berlin'"
 
@@ -337,7 +310,6 @@ def test_edit_variable_updates_definition_snapshot(
 def test_bulk_variable_editor_prefills_existing_variables(
     client,
     integration_app,
-    login_default_user,
 ):
     """The bulk editor should render the current variables as JSON."""
 
@@ -349,8 +321,6 @@ def test_bulk_variable_editor_prefills_existing_variables(
             Variable(name="region", definition="Europe")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/_/edit")
     assert response.status_code == 200
@@ -364,7 +334,6 @@ def test_bulk_variable_editor_prefills_existing_variables(
 def test_bulk_variable_editor_updates_and_deletes_variables(
     client,
     integration_app,
-    login_default_user,
 ):
     """Saving from the bulk editor should upsert provided variables and remove omissions."""
 
@@ -376,8 +345,6 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
             Variable(name="country", definition="France")
         )
         db.session.commit()
-
-    login_default_user()
 
     payload = {"city": "Berlin", "timezone": "CET"}
     response = client.post(
@@ -406,7 +373,6 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
 def test_bulk_variable_editor_invalid_json_displays_errors(
     client,
     integration_app,
-    login_default_user,
 ):
     """Invalid JSON submissions should be rejected and show an error message."""
 
@@ -415,8 +381,6 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
             Variable(name="city", definition="Paris")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/variables/_/edit",

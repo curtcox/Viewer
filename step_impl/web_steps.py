@@ -12,7 +12,7 @@ from getgauge.python import before_scenario, before_suite, step
 from database import db
 from models import Server
 from step_impl.artifacts import attach_response_snapshot
-from step_impl.shared_app import get_shared_app, get_shared_client, login_default_user
+from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
 
@@ -31,17 +31,10 @@ def _require_client() -> FlaskClient:
     return get_shared_client()
 
 
-def _login_default_user() -> str:
-    """Attach the default user session to the Gauge test client."""
-
-    return login_default_user()
-
-
 def _perform_get_request(path: str) -> None:
     """Issue a GET request for the provided path and store the response."""
 
     client = _require_client()
-    _login_default_user()
     response = client.get(path)
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -270,7 +263,6 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
     normalized_accept = _normalize_path(accept_header)
 
     client = _require_client()
-    _login_default_user()
     response = client.get(normalized_path, headers={"Accept": normalized_accept})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -280,7 +272,6 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
 def when_i_request_aliases_with_accept_text_plain() -> None:
     """Request aliases with Accept header text/plain."""
     client = _require_client()
-    _login_default_user()
     response = client.get("/aliases", headers={"Accept": "text/plain"})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -291,7 +282,6 @@ def when_i_request_server_detail_page(server_name: str) -> None:
     """Request the server detail page for the provided server name."""
 
     client = _require_client()
-    _login_default_user()
 
     server_name = server_name.strip().strip('"')
     response = client.get(f"/servers/{server_name}")
@@ -578,9 +568,8 @@ def then_page_should_contain_view_all_secrets() -> None:
 
 @step("Given there is a server named <server_name> returning <message>")
 def given_server_exists(server_name: str, message: str) -> None:
-    """Ensure a server with the provided name exists for the default user."""
+    """Ensure a server with the provided name exists in the workspace."""
 
-    _login_default_user()
     app = _require_app()
 
     server_name = server_name.strip().strip('"')

@@ -38,15 +38,3 @@ def client(integration_app):
     return integration_app.test_client()
 
 
-@pytest.fixture()
-def login_default_user(client):
-    """Initialize the test client session.
-
-    Note: In single-user mode, no user ID is needed in the session.
-    """
-
-    def _login():
-        with client.session_transaction() as session:
-            session["_fresh"] = True
-
-    return _login

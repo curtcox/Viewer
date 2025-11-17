@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="mb-4">
                 <h2><i class="fas fa-cog me-2"></i>Settings</h2>
-                <p class="text-muted">Manage your aliases, servers, variables, secrets, and other configurations.</p>
+                <p class="text-muted">Manage aliases, servers, variables, secrets, and other configurations.</p>
             </div>
 
             <div class="row">
@@ -55,7 +55,7 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p class="card-text">Manage your named server definitions. Each server can have a multi-line configuration or definition.</p>
+                            <p class="card-text">Manage named server definitions. Each server can have a multi-line configuration or definition.</p>
                             <div class="mb-3">
                                 <span class="badge bg-primary fs-6">{{ server_count }} server{{ 's' if server_count != 1 else '' }}</span>
                             </div>
@@ -90,7 +90,7 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p class="card-text">Manage your named variable definitions. Each variable can contain any text content or configuration values.</p>
+                            <p class="card-text">Manage named variable definitions. Each variable can contain any text content or configuration values.</p>
                             <div class="mb-3">
                                 <span class="badge bg-success fs-6">{{ variable_count }} variable{{ 's' if variable_count != 1 else '' }}</span>
                             </div>
@@ -125,7 +125,7 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p class="card-text">Manage your named secret definitions. Each secret can contain confidential information or sensitive configurations.</p>
+                            <p class="card-text">Manage named secret definitions. Each secret can contain confidential information or sensitive configurations.</p>
                             <div class="mb-3">
                                 <span class="badge bg-warning fs-6">{{ secret_count }} secret{{ 's' if secret_count != 1 else '' }}</span>
                             </div>
@@ -162,7 +162,7 @@
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p class="card-text">Download your configuration as JSON or import shared data files. Choose what to include and supply an encryption key for secrets.</p>
+                            <p class="card-text">Download the configuration as JSON or import shared data files. Choose what to include and supply an encryption key for secrets.</p>
                             <div class="d-grid gap-2 d-md-flex">
                                 <a href="{{ url_for('main.export_data') }}" class="btn btn-outline-secondary">
                                     <i class="fas fa-download me-1"></i>Export JSON
@@ -173,7 +173,7 @@
                             </div>
                         </div>
                         <div class="card-footer text-muted">
-                            <small>Secrets are encrypted with your passphrase to keep them safe in transit.</small>
+                            <small>Secrets are encrypted with the provided passphrase to keep them safe in transit.</small>
                         </div>
                     </div>
                 </div>
@@ -200,7 +200,7 @@
                                 <div class="col-md-4">
                                     <h6>Direct Access</h6>
                                     <div class="small text-muted">
-                                        <p class="mb-1">Access your items directly via URLs:</p>
+                                        <p class="mb-1">Access items directly via URLs:</p>
                                         <ul class="list-unstyled mb-0">
                                             <li>
                                                 <strong>Aliases:</strong>
@@ -240,12 +240,12 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h6>Personal Libraries</h6>
-                                    <p class="small text-muted">Each user maintains their own separate collections of aliases, servers, variables, and secrets with no conflicts.</p>
+                                    <h6>Unified Library</h6>
+                                    <p class="small text-muted">The application maintains a single shared collection of aliases, servers, variables, and secrets for the workspace.</p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6>Secure Storage</h6>
-                                    <p class="small text-muted">All data is stored securely and is only accessible by the authenticated user who created it.</p>
+                                    <p class="small text-muted">All data is stored securely within this application instance and is accessible to anyone with console access to the environment.</p>
                                 </div>
                             </div>
                         </div>

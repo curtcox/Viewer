@@ -12,12 +12,11 @@ from models import Alias
 pytestmark = pytest.mark.integration
 
 
-def test_aliases_page_lists_user_aliases(
+def test_aliases_page_lists_saved_aliases(
     client,
     integration_app,
-    login_default_user,
 ):
-    """The aliases index should render saved aliases for the default user."""
+    """The aliases index should render saved aliases for the workspace."""
 
     with integration_app.app_context():
         alias = Alias(
@@ -32,8 +31,6 @@ def test_aliases_page_lists_user_aliases(
         db.session.add(alias)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/aliases")
     assert response.status_code == 200
 
@@ -45,7 +42,6 @@ def test_aliases_page_lists_user_aliases(
 def test_aliases_page_includes_enabled_toggle(
     client,
     integration_app,
-    login_default_user,
 ):
     """Each alias entry should expose a toggle reflecting its enabled state."""
 
@@ -63,8 +59,6 @@ def test_aliases_page_includes_enabled_toggle(
         db.session.add(alias)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/aliases")
     assert response.status_code == 200
 
@@ -79,7 +73,6 @@ def test_aliases_page_includes_enabled_toggle(
 def test_alias_enable_toggle_updates_state(
     client,
     integration_app,
-    login_default_user,
 ):
     """Submitting the toggle form should persist the new enabled state."""
 
@@ -96,8 +89,6 @@ def test_alias_enable_toggle_updates_state(
         )
         db.session.add(alias)
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/aliases/docs/enabled",
@@ -122,13 +113,10 @@ def test_alias_enable_toggle_updates_state(
         assert alias.enabled is False
 
 
-def test_new_alias_form_renders_for_authenticated_user(
+def test_new_alias_form_renders_in_single_user_mode(
     client,
-    login_default_user,
 ):
-    """The new-alias form should render when the user is logged in."""
-
-    login_default_user()
+    """The new-alias form should render without explicit login helpers."""
 
     response = client.get("/aliases/new")
     assert response.status_code == 200
@@ -143,7 +131,6 @@ def test_new_alias_form_renders_for_authenticated_user(
 def test_alias_detail_page_displays_alias_information(
     client,
     integration_app,
-    login_default_user,
 ):
     """Viewing an alias should show its saved details."""
 
@@ -160,8 +147,6 @@ def test_alias_detail_page_displays_alias_information(
         db.session.add(alias)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/aliases/docs")
     assert response.status_code == 200
 
@@ -174,7 +159,6 @@ def test_alias_detail_page_displays_alias_information(
 def test_new_alias_form_includes_template_options(
     client,
     integration_app,
-    login_default_user,
 ):
     """Template aliases should surface as reusable buttons on the new form."""
 
@@ -207,8 +191,6 @@ def test_new_alias_form_includes_template_options(
         db.session.add(templates_var)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/aliases/new")
     assert response.status_code == 200
 
@@ -220,7 +202,6 @@ def test_new_alias_form_includes_template_options(
 def test_new_alias_form_includes_template_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """New alias form should display a link to /variables/templates with status."""
 
@@ -251,8 +232,6 @@ def test_new_alias_form_includes_template_link(
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/aliases/new")
     assert response.status_code == 200

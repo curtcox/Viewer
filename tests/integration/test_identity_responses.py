@@ -41,7 +41,7 @@ def _collect_css_redirect_chain(client):
     return hops
 
 
-def test_alias_creation_redirects_consistently(client, login_default_user):
+def test_alias_creation_redirects_consistently(client):
     alias_name = 'shared-alias'
     payload = {
         'name': alias_name,
@@ -50,7 +50,6 @@ def test_alias_creation_redirects_consistently(client, login_default_user):
         'submit': 'Save Alias',
     }
 
-    login_default_user()
     response_default = client.post('/aliases/new', data=payload, follow_redirects=False)
     assert response_default.status_code == 302
     assert response_default.headers['Location'] == '/aliases'
@@ -66,7 +65,7 @@ def test_alias_creation_redirects_consistently(client, login_default_user):
     assert repeat_alias.definition == default_alias.definition
 
 
-def test_server_creation_redirects_consistently(client, login_default_user):
+def test_server_creation_redirects_consistently(client):
     server_name = 'shared-server'
     definition = 'def main(**kwargs):\n    return "hello"'
     payload = {
@@ -76,7 +75,6 @@ def test_server_creation_redirects_consistently(client, login_default_user):
         'submit': 'Save Server',
     }
 
-    login_default_user()
     response_default = client.post('/servers/new', data=payload, follow_redirects=False)
     assert response_default.status_code == 302
     assert response_default.headers['Location'] == '/servers'

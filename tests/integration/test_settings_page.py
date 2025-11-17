@@ -23,7 +23,6 @@ pytestmark = pytest.mark.integration
 def test_settings_page_displays_resource_counts_and_links(
     client,
     integration_app,
-    login_default_user,
 ):
     """Settings page should list saved resources and expose direct access links."""
 
@@ -64,8 +63,6 @@ def test_settings_page_displays_resource_counts_and_links(
             "variable": get_first_variable_name(),
             "secret": get_first_secret_name(),
         }
-
-    login_default_user()
 
     response = client.get("/settings")
     assert response.status_code == 200

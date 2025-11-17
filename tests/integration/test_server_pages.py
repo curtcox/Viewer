@@ -21,7 +21,6 @@ pytestmark = pytest.mark.integration
 def test_servers_page_lists_saved_servers(
     client,
     integration_app,
-    login_default_user,
 ):
     """The servers index page should list saved servers."""
 
@@ -37,8 +36,6 @@ def test_servers_page_lists_saved_servers(
         db.session.add(server)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/servers")
     assert response.status_code == 200
 
@@ -51,7 +48,6 @@ def test_servers_page_lists_saved_servers(
 def test_servers_page_includes_enabled_toggle(
     client,
     integration_app,
-    login_default_user,
 ):
     """Each server row should display a toggle for its enabled state."""
 
@@ -63,8 +59,6 @@ def test_servers_page_includes_enabled_toggle(
         )
         db.session.add(server)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/servers")
     assert response.status_code == 200
@@ -80,7 +74,6 @@ def test_servers_page_includes_enabled_toggle(
 def test_server_enable_toggle_updates_state(
     client,
     integration_app,
-    login_default_user,
 ):
     """Submitting the toggle form should persist the server enabled flag."""
 
@@ -92,8 +85,6 @@ def test_server_enable_toggle_updates_state(
         )
         db.session.add(server)
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/servers/weather/enabled",
@@ -121,7 +112,6 @@ def test_server_enable_toggle_updates_state(
 def test_servers_page_shows_referenced_variables_and_secrets(
     client,
     integration_app,
-    login_default_user,
 ):
     """Server reference badges should mirror context usage in definitions."""
 
@@ -142,8 +132,6 @@ def test_servers_page_shows_referenced_variables_and_secrets(
         db.session.add(server)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/servers")
     assert response.status_code == 200
 
@@ -159,7 +147,6 @@ def test_servers_page_shows_referenced_variables_and_secrets(
 def test_servers_page_links_auto_main_context_matches(
     client,
     integration_app,
-    login_default_user,
 ):
     """Auto main parameters should surface matching context links."""
 
@@ -168,13 +155,13 @@ def test_servers_page_links_auto_main_context_matches(
             Variable(
                 name="city",
                 definition="return 'London'",
-                )
+            )
         )
         db.session.add(
             Secret(
                 name="api_token",
                 definition="return 'secret'",
-                )
+            )
         )
         db.session.add(
             Server(
@@ -183,11 +170,9 @@ def test_servers_page_links_auto_main_context_matches(
                     "def main(city, api_token):\n"
                     "    return {\"output\": city + api_token}\n"
                 ),
-                )
+            )
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/servers")
     assert response.status_code == 200
@@ -197,13 +182,10 @@ def test_servers_page_links_auto_main_context_matches(
     assert "/secrets/api_token" in page
 
 
-def test_new_server_form_renders_for_authenticated_user(
+def test_new_server_form_renders_in_single_user_mode(
     client,
-    login_default_user,
 ):
-    """The new-server form should render the creation UI when logged in."""
-
-    login_default_user()
+    """The new-server form should render without explicit login helpers."""
 
     response = client.get("/servers/new")
     assert response.status_code == 200
@@ -218,7 +200,6 @@ def test_new_server_form_renders_for_authenticated_user(
 def test_new_server_form_includes_saved_templates(
     client,
     integration_app,
-    login_default_user,
 ):
     """User-marked server templates should appear as reusable buttons."""
 
@@ -231,11 +212,14 @@ def test_new_server_form_includes_saved_templates(
             "servers": {
                 "templated-server": {
                     "name": "templated-server",
-                    "definition": "def main():\n    return {'output': 'ok'}\n",
+                    "definition": (
+                        "def main(city: str) -> str:\n"
+                        "    return  {\"output\": city}\n"
+                    ),
                 }
             },
             "variables": {},
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(
@@ -244,8 +228,6 @@ def test_new_server_form_includes_saved_templates(
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/servers/new")
     assert response.status_code == 200
@@ -258,7 +240,6 @@ def test_new_server_form_includes_saved_templates(
 def test_new_server_form_includes_template_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """New server form should display a link to /variables/templates with status."""
 
@@ -270,11 +251,11 @@ def test_new_server_form_includes_template_link(
             "servers": {
                 "server1": {
                     "name": "server1",
-                    "definition": "def main():\n    return {'output': 'ok'}\n",
+                    "definition": "test -> /test",
                 }
             },
             "variables": {},
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(
@@ -283,8 +264,6 @@ def test_new_server_form_includes_template_link(
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/servers/new")
     assert response.status_code == 200
@@ -299,7 +278,6 @@ def test_new_server_form_includes_template_link(
 def test_server_detail_page_displays_server_information(
     client,
     integration_app,
-    login_default_user,
 ):
     """Server detail page should render the saved definition and metadata."""
 
@@ -315,8 +293,6 @@ def test_server_detail_page_displays_server_information(
         db.session.add(server)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/servers/weather")
     assert response.status_code == 200
 
@@ -331,7 +307,6 @@ def test_server_detail_page_displays_server_information(
 def test_edit_server_updates_definition_snapshots(
     client,
     integration_app,
-    login_default_user,
 ):
     """Editing a server should refresh definition CIDs for subsequent pages."""
 
@@ -352,8 +327,6 @@ def test_edit_server_updates_definition_snapshots(
         db.session.commit()
 
         initial_snapshot_cid = store_server_definitions_cid()
-
-    login_default_user()
 
     updated_definition = (
         "def main(city: str) -> str:\n"

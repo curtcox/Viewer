@@ -13,7 +13,6 @@ pytestmark = pytest.mark.integration
 def test_routes_overview_lists_user_routes(
     client,
     integration_app,
-    login_default_user,
 ):
     """The overview should include built-in, alias, and server entries."""
 
@@ -36,8 +35,6 @@ def test_routes_overview_lists_user_routes(
             )
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/routes")
     assert response.status_code == 200

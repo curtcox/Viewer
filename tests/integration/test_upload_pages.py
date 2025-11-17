@@ -12,7 +12,6 @@ pytestmark = pytest.mark.integration
 def test_uploads_page_displays_saved_uploads(
     client,
     integration_app,
-    login_default_user,
 ):
     """The uploads list should show manual uploads created in the system."""
 
@@ -27,8 +26,6 @@ def test_uploads_page_displays_saved_uploads(
         db.session.add(upload)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/uploads")
     assert response.status_code == 200
 
@@ -40,11 +37,8 @@ def test_uploads_page_displays_saved_uploads(
 
 def test_upload_page_allows_user_to_choose_upload_method(
     client,
-    login_default_user,
 ):
     """The upload form should render with options for file, text, and URL inputs."""
-
-    login_default_user()
 
     response = client.get("/upload")
     assert response.status_code == 200
@@ -60,7 +54,6 @@ def test_upload_page_allows_user_to_choose_upload_method(
 def test_edit_cid_page_prefills_existing_content(
     client,
     integration_app,
-    login_default_user,
 ):
     """Editing an existing CID should show the stored text content."""
 
@@ -75,8 +68,6 @@ def test_edit_cid_page_prefills_existing_content(
         db.session.add(editable_cid)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get(f"/edit/{cid_value}")
     assert response.status_code == 200
 
@@ -89,7 +80,6 @@ def test_edit_cid_page_prefills_existing_content(
 def test_edit_cid_choices_page_prompts_for_selection(
     client,
     integration_app,
-    login_default_user,
 ):
     """When multiple CIDs match the prefix the choices page should render."""
 
@@ -114,8 +104,6 @@ def test_edit_cid_choices_page_prompts_for_selection(
         )
         db.session.commit()
 
-    login_default_user()
-
     response = client.get(f"/edit/{cid_prefix}")
     assert response.status_code == 200
 
@@ -128,7 +116,6 @@ def test_edit_cid_choices_page_prompts_for_selection(
 def test_upload_page_displays_templates_when_configured(
     client,
     integration_app,
-    login_default_user,
 ):
     """Upload page should display template buttons when upload templates are defined."""
     import json
@@ -159,8 +146,6 @@ def test_upload_page_displays_templates_when_configured(
         db.session.add(templates_var)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/upload")
     assert response.status_code == 200
 
@@ -175,7 +160,6 @@ def test_upload_page_displays_templates_when_configured(
 def test_upload_page_shows_template_status_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """Upload page should show a link to the templates configuration page."""
     import json
@@ -202,8 +186,6 @@ def test_upload_page_shows_template_status_link(
         db.session.add(templates_var)
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/upload")
     assert response.status_code == 200
 
@@ -214,11 +196,8 @@ def test_upload_page_shows_template_status_link(
 
 def test_upload_page_no_templates_shown_when_none_configured(
     client,
-    login_default_user,
 ):
     """Upload page should not show template section when no templates are configured."""
-
-    login_default_user()
 
     response = client.get("/upload")
     assert response.status_code == 200

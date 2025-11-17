@@ -101,12 +101,6 @@ def _resolve_export_section(section_name: str) -> Any:
     return section_reference
 
 
-def _login_default_user(client: FlaskClient) -> None:
-    """Attach the default user session to the provided test client."""
-    with client.session_transaction() as session:
-        session["_fresh"] = True
-
-
 def _create_isolated_site(label: str) -> tuple[Any, FlaskClient]:
     """Return a Flask app and client backed by an isolated database."""
     fd, db_path_str = tempfile.mkstemp(prefix=f"gauge-{label}-", suffix=".sqlite3")
@@ -122,7 +116,6 @@ def _create_isolated_site(label: str) -> tuple[Any, FlaskClient]:
     )
 
     client = app.test_client()
-    _login_default_user(client)
 
     _created_apps.append(app)
     _created_db_paths.append(db_path)

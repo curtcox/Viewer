@@ -189,7 +189,7 @@ class TestPublicRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('Workspace Search', page)
         self.assertIn('data-search-category="aliases"', page)
-        self.assertIn('Start typing to search your workspace.', page)
+        self.assertIn('Start typing to search the workspace.', page)
 
     def test_index_cross_reference_lists_entities_and_relationships(self):
         """Cross reference dashboard should include aliases, servers, CIDs, and references."""
@@ -521,7 +521,7 @@ def main(request):
         response = self.client.get('/')
         page = response.get_data(as_text=True)
 
-        self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
+        self.assertIn('No CIDs referenced by the workspace aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
             cross_reference = _build_cross_reference_data()
@@ -812,7 +812,7 @@ def main(request):
         response = self.client.get('/')
         page = response.get_data(as_text=True)
 
-        self.assertIn('No CIDs referenced by your aliases or servers yet.', page)
+        self.assertIn('No CIDs referenced by the workspace aliases or servers yet.', page)
 
         with self.app.test_request_context('/'):
             cross_reference = _build_cross_reference_data()

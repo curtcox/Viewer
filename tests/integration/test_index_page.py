@@ -14,7 +14,6 @@ pytestmark = pytest.mark.integration
 def test_index_page_displays_cross_reference_dashboard(
     client,
     integration_app,
-    login_default_user,
 ):
     """Authenticated users should see saved entities on the cross-reference dashboard."""
 
@@ -45,8 +44,6 @@ def test_index_page_displays_cross_reference_dashboard(
         db.session.add_all([cid_record, alias, server])
         db.session.commit()
 
-    login_default_user()
-
     response = client.get("/")
     assert response.status_code == 200
 
@@ -60,7 +57,6 @@ def test_index_page_displays_cross_reference_dashboard(
 def test_viewer_menu_lists_user_entities(
     client,
     integration_app,
-    login_default_user,
 ):
     """The unified Viewer menu should surface key workspace resources."""
 
@@ -89,8 +85,6 @@ def test_viewer_menu_lists_user_entities(
 
         db.session.add_all([alias, server, variable, secret])
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/")
     assert response.status_code == 200

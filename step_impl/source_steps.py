@@ -6,7 +6,7 @@ from flask.testing import FlaskClient
 from getgauge.python import before_scenario, before_suite, step
 
 from step_impl.artifacts import attach_response_snapshot
-from step_impl.shared_app import get_shared_app, get_shared_client, login_default_user
+from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
 
@@ -25,7 +25,6 @@ def reset_scenario_store() -> None:
 
 @step("When I request /source")
 def when_i_request_source() -> None:
-    login_default_user()
     client: FlaskClient = get_shared_client()
     response = client.get("/source")
     get_scenario_state()["response"] = response
@@ -34,7 +33,6 @@ def when_i_request_source() -> None:
 
 @step("When I request the page <path>")
 def when_i_request_the_page(path: str) -> None:
-    login_default_user()
     client: FlaskClient = get_shared_client()
     response = client.get(path)
     get_scenario_state()["response"] = response

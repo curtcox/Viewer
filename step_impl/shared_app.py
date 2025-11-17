@@ -44,16 +44,4 @@ def get_shared_client() -> FlaskClient:
     return client
 
 
-def login_default_user() -> None:
-    """Initialize the shared Flask client session.
-
-    Note: In single-user mode, no user ID is needed.
-    """
-
-    _, client = _initialise_app()
-
-    with client.session_transaction() as session:
-        session["_fresh"] = True
-
-
-__all__ = ["get_shared_app", "get_shared_client", "login_default_user"]
+__all__ = ["get_shared_app", "get_shared_client"]
