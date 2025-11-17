@@ -5,33 +5,35 @@ Test to validate that the model object serialization fix works correctly
 
 class MockVariable:
     """Mock Variable model object"""
-    def __init__(self, name, definition, user_id):
+
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Variable {self.name} by {self.user_id}>'
+        return f'<Variable {self.name}>'
+
 
 class MockSecret:
     """Mock Secret model object"""
-    def __init__(self, name, definition, user_id):
+
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Secret {self.name} by {self.user_id}>'
+        return f'<Secret {self.name}>'
+
 
 class MockServer:
     """Mock Server model object"""
-    def __init__(self, name, definition, user_id):
+
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Server {self.name} by {self.user_id}>'
+        return f'<Server {self.name}>'
 
 def serialize_model_objects(model_objects):
     """Convert SQLAlchemy model objects to serializable dictionaries"""
@@ -60,8 +62,8 @@ def test_serialize_model_objects():
 
     # Test with variables
     variables = [
-        MockVariable('test_var1', 'value1', 'user123'),
-        MockVariable('test_var2', 'value2', 'user123')
+        MockVariable('test_var1', 'value1'),
+        MockVariable('test_var2', 'value2')
     ]
 
     serialized_vars = serialize_model_objects(variables)
@@ -76,7 +78,7 @@ def test_serialize_model_objects():
 
     # Test with secrets
     secrets = [
-        MockSecret('test_secret1', 'secret_value1', 'user123')
+        MockSecret('test_secret1', 'secret_value1')
     ]
 
     serialized_secrets = serialize_model_objects(secrets)
@@ -90,7 +92,7 @@ def test_serialize_model_objects():
 
     # Test with servers
     servers = [
-        MockServer('echo1', 'return {"output": "hello"}', 'user123')
+        MockServer('echo1', 'return {"output": "hello"}')
     ]
 
     serialized_servers = serialize_model_objects(servers)
@@ -120,16 +122,16 @@ def test_fixed_build_request_args():
 
     # Mock the model objects that would be returned by list_variables(), list_secrets(), list_servers()
     mock_variables = [
-        MockVariable('test_var1', 'value1', 'user123'),
-        MockVariable('test_var2', 'value2', 'user123')
+        MockVariable('test_var1', 'value1'),
+        MockVariable('test_var2', 'value2')
     ]
 
     mock_secrets = [
-        MockSecret('test_secret1', 'secret_value1', 'user123')
+        MockSecret('test_secret1', 'secret_value1')
     ]
 
     mock_servers = [
-        MockServer('echo1', 'return {"output": "hello"}', 'user123')
+        MockServer('echo1', 'return {"output": "hello"}')
     ]
 
     # Simulate what the fixed build_request_args would produce
@@ -174,10 +176,10 @@ def test_echo1_output_comparison():
 
     # Before fix (model objects)
     mock_variables_before = [
-        MockVariable('test_var1', 'value1', 'user123')
+        MockVariable('test_var1', 'value1')
     ]
     mock_secrets_before = [
-        MockSecret('test_secret1', 'secret_value1', 'user123')
+        MockSecret('test_secret1', 'secret_value1')
     ]
 
     args_before = {

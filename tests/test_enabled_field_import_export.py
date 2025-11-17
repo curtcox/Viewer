@@ -10,7 +10,6 @@ operations to show enabled=True for all entities regardless of actual state.
 
 import json
 import unittest
-from contextlib import contextmanager
 
 from app import create_app
 from database import db
@@ -30,7 +29,6 @@ class TestEnabledFieldImportExport(unittest.TestCase):
             'SECRET_KEY': 'test-secret-key'
         })
         self.client = self.app.test_client()
-        self.user_id = 'test-user-123'
 
         with self.app.app_context():
             db.create_all()
@@ -40,12 +38,6 @@ class TestEnabledFieldImportExport(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
-
-    @contextmanager
-    def logged_in(self):
-        """Context manager for logged-in user state."""
-        # No longer needed - user authentication removed
-        yield
 
     def _create_test_entities(self, enabled_state):
         """Helper to create test entities with specified enabled state."""
@@ -84,24 +76,23 @@ class TestEnabledFieldImportExport(unittest.TestCase):
 
     def _export_entities(self):
         """Helper to export all entities."""
-        with self.logged_in():
-            response = self.client.post(
-                '/export',
-                data={
-                    'include_aliases': 'y',
-                    'include_disabled_aliases': 'y',
-                    'include_servers': 'y',
-                    'include_disabled_servers': 'y',
-                    'include_variables': 'y',
-                    'include_disabled_variables': 'y',
-                    'include_secrets': 'y',
-                    'include_disabled_secrets': 'y',
-                    'include_history': '',
-                    'include_cid_map': 'y',
-                    'secret_key': 'test-passphrase',
-                    'submit': True,
-                },
-            )
+        response = self.client.post(
+            '/export',
+            data={
+                'include_aliases': 'y',
+                'include_disabled_aliases': 'y',
+                'include_servers': 'y',
+                'include_disabled_servers': 'y',
+                'include_variables': 'y',
+                'include_disabled_variables': 'y',
+                'include_secrets': 'y',
+                'include_disabled_secrets': 'y',
+                'include_history': '',
+                'include_cid_map': 'y',
+                'secret_key': 'test-passphrase',
+                'submit': True,
+            },
+        )
         return response
 
     def _load_export_payload_from_response(self, response):

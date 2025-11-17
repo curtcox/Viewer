@@ -22,6 +22,7 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
+        ensure_css_alias()
 
     def tearDown(self):
         db.session.remove()
@@ -109,14 +110,9 @@ class TestCssAliasDefaults(unittest.TestCase):
         self.assertEqual(final.status_code, 200)
         self.assertIn(b'/* Custom styles for Viewer */', final.data)
 
-    def test_css_alias_falls_back_to_default_user_when_missing(self):
-        missing_user = 'missing-css-user'
-
+    def test_css_alias_missing_returns_not_found(self):
         def _maybe_ensure() -> bool:
             return False
-
-        with self.client.session_transaction() as session:
-            session['_user_id'] = missing_user
 
         # Delete the CSS alias to simulate it being missing
         alias = get_alias_by_name('CSS')
@@ -128,8 +124,7 @@ class TestCssAliasDefaults(unittest.TestCase):
             self.assertIsNone(get_alias_by_name('CSS'))
             response = self.client.get('/css/custom.css', follow_redirects=False)
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers['Location'], '/css/default')
+        self.assertEqual(response.status_code, 404)
         self.assertIsNone(get_alias_by_name('CSS'))
 
     def test_css_upload_templates_available(self):

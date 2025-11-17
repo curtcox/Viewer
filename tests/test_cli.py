@@ -71,7 +71,6 @@ class TestValidateCid(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -155,7 +154,6 @@ class TestIsValidBootCid(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -233,7 +231,6 @@ class TestListBootCids(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -321,7 +318,6 @@ class TestMakeHttpGetRequest(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -414,7 +410,6 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():

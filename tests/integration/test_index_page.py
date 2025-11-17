@@ -26,7 +26,6 @@ def test_index_page_displays_cross_reference_dashboard(
         )
         alias = Alias(
             name="sample-alias",
-            user_id="default-user",
             definition=format_primary_alias_line(
                 "literal",
                 None,
@@ -41,7 +40,6 @@ def test_index_page_displays_cross_reference_dashboard(
                 "    return \"Visit /aliases/sample-alias\"\n"
             ),
             definition_cid=f"/{cid_value}",
-            user_id="default-user",
         )
 
         db.session.add_all([cid_record, alias, server])
@@ -69,7 +67,6 @@ def test_viewer_menu_lists_user_entities(
     with integration_app.app_context():
         alias = Alias(
             name="menu-alias",
-            user_id="default-user",
             definition=format_primary_alias_line(
                 "literal",
                 None,
@@ -80,17 +77,14 @@ def test_viewer_menu_lists_user_entities(
         server = Server(
             name="menu-server",
             definition="def main(request):\n    return 'ok'\n",
-            user_id="default-user",
         )
         variable = Variable(
             name="menu-variable",
             definition="value = 'menu'",
-            user_id="default-user",
         )
         secret = Secret(
             name="menu-secret",
             definition="token=123",
-            user_id="default-user",
         )
 
         db.session.add_all([alias, server, variable, secret])

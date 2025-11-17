@@ -2,9 +2,6 @@
 from __future__ import annotations
 
 
-_resources_initialized = False
-
-
 def ensure_ai_stub() -> bool:
     """Ensure the default AI stub server exists."""
 
@@ -26,17 +23,10 @@ def ensure_css_alias() -> bool:
 
 
 def ensure_default_resources() -> None:
-    """Ensure default application resources (AI stub and CSS alias) exist.
+    """Ensure default application resources (AI stub and CSS alias) exist."""
 
-    This is called during application initialization to set up required resources.
-    """
-    # pylint: disable=global-statement
-    global _resources_initialized
-
-    if not _resources_initialized:
-        ensure_ai_stub()
-        ensure_css_alias()
-        _resources_initialized = True
+    ensure_ai_stub()
+    ensure_css_alias()
 
 
 __all__ = [

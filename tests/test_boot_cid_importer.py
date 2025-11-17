@@ -28,7 +28,6 @@ class TestBootCidImporter(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -330,7 +329,7 @@ class TestBootCidImporter(unittest.TestCase):
     def test_import_boot_cid_invalid_cid(self):
         """Test importing invalid boot CID fails with helpful message."""
         with self.app.app_context():
-            success, error = import_boot_cid(self.app, "invalid-cid", self.user_id)
+            success, error = import_boot_cid(self.app, "invalid-cid")
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("Invalid CID format", error)
@@ -339,7 +338,7 @@ class TestBootCidImporter(unittest.TestCase):
         """Test importing non-existent boot CID fails with helpful message."""
         with self.app.app_context():
             valid_cid = generate_cid(b"some content")
-            success, error = import_boot_cid(self.app, valid_cid, self.user_id)
+            success, error = import_boot_cid(self.app, valid_cid)
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("not found in database", error)

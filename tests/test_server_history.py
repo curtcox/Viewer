@@ -23,7 +23,6 @@ class TestServerHistory(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.user_id = "test_user_123"
         self.server_name = "test_server"
 
     @patch('routes.servers.get_uploads')

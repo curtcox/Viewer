@@ -31,7 +31,6 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         """Clean up test fixtures."""
@@ -293,7 +292,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             # because the actual app has real CID files in the default location
             # We're just verifying it doesn't crash when CID_DIRECTORY is not set
             try:
-                load_cids_from_directory(app, 'test-user')
+                load_cids_from_directory(app)
             except SystemExit:
                 # May exit if there are CID validation issues in the real directory
                 # but we're mainly testing that it uses the correct default path

@@ -26,7 +26,6 @@ class TestErrorPageSourceLinks(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after tests."""
@@ -49,8 +48,8 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                         # Create a realistic database error like the one in the stack trace
                         sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
                         sqlalchemy_error = OperationalError(
-                            "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition, alias.user_id AS alias_user_id, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias \nWHERE alias.user_id = ? ORDER BY alias.name",
-                            {'user_id': 'test_user_123'},
+                            "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias ORDER BY alias.name",
+                            {},
                             sqlite_error
                         )
                         mock_get_aliases.side_effect = sqlalchemy_error
@@ -111,7 +110,7 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
                 sqlalchemy_error = OperationalError(
                     "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition",
-                    {'user_id': 'test_user_123'},
+                    {},
                     sqlite_error
                 )
 

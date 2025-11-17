@@ -21,8 +21,6 @@ class TestDbAccessAliasIntegration(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = "test_user"
-
     def tearDown(self):
         """Clean up after tests."""
         db.session.remove()

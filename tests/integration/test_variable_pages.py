@@ -433,5 +433,5 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
     assert "Invalid JSON" in page
 
     with integration_app.app_context():
-        city = Variable.query.filter_by(user_id="default-user", name="city").one()
+        city = Variable.query.filter_by(name="city").one()
         assert city.definition == "Paris"

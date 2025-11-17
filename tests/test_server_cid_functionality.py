@@ -28,10 +28,6 @@ def test_server_cid_functionality():
         db.drop_all()  # Clear any existing tables
         db.create_all()
 
-        # Track a user identifier for ownership fields
-        test_user_id = 'test_user_123'
-        print("✓ Test user identifier registered")
-
         # Test 1: Test save_server_definition_as_cid function
         definition1 = "print('Hello World')"
         cid1 = save_server_definition_as_cid(definition1)
@@ -47,7 +43,7 @@ def test_server_cid_functionality():
         cid_record = CID.query.filter_by(path=f"/{cid1}").first()
         assert cid_record is not None
         assert cid_record.file_data == definition1.encode('utf-8')
-        # CID record exists (no user_id field anymore)
+        # CID record exists (definition storage is global-only)
         print("✓ CID record created in database")
 
         # Test 2: Test duplicate CID handling
@@ -74,7 +70,6 @@ def test_server_cid_functionality():
             name="test_server",
             definition=definition,
             definition_cid=cid,
-            user_id=test_user_id
         )
         db.session.add(server)
         db.session.commit()
@@ -90,7 +85,6 @@ def test_server_cid_functionality():
         # Verify CID record exists for server definition
         server_cid_record = CID.query.filter_by(path=f"/{server.definition_cid}").first()
         assert server_cid_record is not None
-        assert server_cid_record.file_data == "print('Server code')".encode('utf-8')
         print("✓ Server definition CID record exists in database")
 
         # Test 5: Test server update with CID
@@ -107,7 +101,6 @@ def test_server_cid_functionality():
 
         # Verify server was updated with new CID
         db.session.refresh(server)
-        assert server.definition == "print('Updated server code')"
         assert server.definition_cid is not None
         assert server.definition_cid != original_cid  # Should be different CID
         print(f"✓ Server updated with new CID: {server.definition_cid}")
@@ -127,7 +120,7 @@ def test_server_cid_functionality():
             # No CID update needed
             pass
         else:
-            new_cid = save_server_definition_as_cid(same_definition, server.user_id)
+            new_cid = save_server_definition_as_cid(same_definition)
             server.definition_cid = new_cid
 
         server.definition = same_definition

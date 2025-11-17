@@ -54,14 +54,6 @@ def app_factory(tmp_path) -> Callable[[], Flask]:
             db_path.unlink()
 
 
-def _login_default_user(client) -> None:
-    """Attach the default user to the provided test client session."""
-
-    with client.session_transaction() as session:
-        session["_user_id"] = "default-user"
-        session["_fresh"] = True
-
-
 def _load_section(payload: dict[str, Any], key: str):
     section_cid = payload.get(key)
     if section_cid is None:
@@ -101,7 +93,6 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
         db.session.commit()
 
     origin_client = origin_app.test_client()
-    _login_default_user(origin_client)
 
     export_response = origin_client.post(
         "/export",
@@ -128,7 +119,6 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
 
     destination_app = app_factory()
     destination_client = destination_app.test_client()
-    _login_default_user(destination_client)
 
     import_response = destination_client.post(
         "/import",

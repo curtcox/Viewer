@@ -318,7 +318,10 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         db.session.commit()
 
         # Query for enabled aliases
-        enabled_aliases = Alias.query.filter_by(enabled=True).all()
+        enabled_aliases = Alias.query.filter(
+            Alias.name.in_(['alias1', 'alias2', 'alias3']),
+            Alias.enabled.is_(True),
+        ).all()
         self.assertEqual(len(enabled_aliases), 2, "Should find 2 enabled aliases")
 
         enabled_names = {a.name for a in enabled_aliases}

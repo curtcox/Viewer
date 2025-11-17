@@ -181,7 +181,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify templates are accessible
         with self.app.app_context():
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
             assert templates_config is not None, "Templates config should be loaded"
 
             # Verify templates.source.json templates are present
@@ -226,7 +226,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify template definitions resolve correctly
         with self.app.app_context():
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
 
             # Get the AI alias template
             ai_alias_template = templates_config['aliases']['ai-shortcut']
@@ -287,7 +287,7 @@ class TestBootImageReferenceTemplates:
             assert templates_var.enabled is True
 
             # 4. Templates are accessible and complete
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
             assert templates_config is not None
 
             # Verify all template categories exist

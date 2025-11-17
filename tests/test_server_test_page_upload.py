@@ -22,12 +22,8 @@ class TestServerTestPageUpload(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        self.user_id = "user-1"
 
         self.client = self.app.test_client()
-        with self.client.session_transaction() as session:
-            session["_user_id"] = self.user_id
-            session["_fresh"] = True
 
     def tearDown(self):
         db.session.remove()
@@ -107,8 +103,8 @@ def helper():
         self.assertIn("@query_parameters(Query parameters):", content)
         self.assertIn("value=\"foo=bar\\npage=2\"", content)
 
-    def test_upload_without_workspace_server_returns_not_found(self):
-        """Requests from the default workspace return 404 when the server belongs to another user."""
+    def test_upload_without_workspace_server_returns_success(self):
+        """Single-user mode allows uploads regardless of historical workspace ownership."""
 
         server = self._create_server(
             "echo",
@@ -118,13 +114,14 @@ def main(message: str):
 """.strip(),
         )
 
-        anonymous_client = self.app.test_client()
-        response = anonymous_client.post(
+        response = self.client.post(
             f"/servers/{server.name}/upload-test-page",
             json={"values": {"message": "hi"}},
         )
 
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertIn("redirect_url", payload)
 
 
 if __name__ == "__main__":

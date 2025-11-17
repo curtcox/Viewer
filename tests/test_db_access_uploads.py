@@ -26,8 +26,6 @@ class TestDbAccessUploads(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'testuser'
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()

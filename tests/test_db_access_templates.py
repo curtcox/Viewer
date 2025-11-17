@@ -29,8 +29,6 @@ class TestDBAccessTemplates(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'testuser'
-
         # Sample valid templates structure
         self.valid_templates = {
             'aliases': {

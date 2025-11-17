@@ -90,7 +90,7 @@ class TestTemplateStatus(unittest.TestCase):
         db.session.add(var)
         db.session.commit()
 
-        label = generate_template_status_label(self.user_id)
+        label = generate_template_status_label()
 
         self.assertEqual(label, "3 templates")
 

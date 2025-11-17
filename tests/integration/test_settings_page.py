@@ -59,10 +59,10 @@ def test_settings_page_displays_resource_counts_and_links(
             "secret": count_secrets(),
         }
         examples = {
-            "alias": get_first_alias_name("default-user"),
-            "server": get_first_server_name("default-user"),
-            "variable": get_first_variable_name("default-user"),
-            "secret": get_first_secret_name("default-user"),
+            "alias": get_first_alias_name(),
+            "server": get_first_server_name(),
+            "variable": get_first_variable_name(),
+            "secret": get_first_secret_name(),
         }
 
     login_default_user()

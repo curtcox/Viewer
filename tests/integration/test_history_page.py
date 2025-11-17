@@ -23,13 +23,11 @@ def test_history_page_displays_recent_activity(
         now = datetime.now(timezone.utc)
         page_views = [
             PageView(
-                user_id="default-user",
                 path="/profile",
                 method="GET",
                 viewed_at=now - timedelta(minutes=5),
             ),
             PageView(
-                user_id="default-user",
                 path="/upload",
                 method="POST",
                 viewed_at=now - timedelta(minutes=1),

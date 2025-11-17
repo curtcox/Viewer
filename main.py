@@ -64,13 +64,18 @@ def handle_list_boot_cids() -> None:
 
         for cid_value, metadata in boot_cids:
             print(f"CID: {cid_value}")
-            print(f"  Size: {metadata['size']} bytes")
-            if metadata['uploaded_by']:
-                print(f"  Uploaded by: {metadata['uploaded_by']}")
-            if metadata['created_at']:
-                print(f"  Created: {metadata['created_at']}")
-            if metadata['sections']:
-                print(f"  Sections: {', '.join(metadata['sections'])}")
+            size = metadata.get('size')
+            if size is not None:
+                print(f"  Size: {size} bytes")
+            uploaded_by = metadata.get('uploaded_by')
+            if uploaded_by:
+                print(f"  Uploaded by: {uploaded_by}")
+            created_at = metadata.get('created_at')
+            if created_at:
+                print(f"  Created: {created_at}")
+            sections = metadata.get('sections')
+            if sections:
+                print(f"  Sections: {', '.join(sections)}")
             print()
 
         sys.exit(0)

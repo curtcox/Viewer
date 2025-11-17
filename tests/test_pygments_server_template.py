@@ -20,7 +20,6 @@ class TestPygmentsServerTemplate(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        self.user_id = "user-1"
 
         template_path = (
             Path(self.app.root_path)
@@ -35,9 +34,6 @@ class TestPygmentsServerTemplate(unittest.TestCase):
         db.session.commit()
 
         self.client = self.app.test_client()
-        with self.client.session_transaction() as session:
-            session["_user_id"] = self.user_id
-            session["_fresh"] = True
 
     def tearDown(self):
         db.session.remove()

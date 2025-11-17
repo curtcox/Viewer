@@ -5,23 +5,22 @@ Simple test to demonstrate the variables and secrets serialization issue
 
 class MockVariable:
     """Mock Variable model object"""
-    def __init__(self, name, definition, user_id):
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Variable {self.name} by {self.user_id}>'
+        return f'<Variable {self.name}>'
+
 
 class MockSecret:
     """Mock Secret model object"""
-    def __init__(self, name, definition, user_id):
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Secret {self.name} by {self.user_id}>'
+        return f'<Secret {self.name}>'
 
 def test_current_behavior():
     """Test what currently happens with variables and secrets"""
@@ -31,12 +30,12 @@ def test_current_behavior():
 
     # This mimics what the legacy list_variables()/list_secrets() helpers returned
     variables = [
-        MockVariable('test_var1', 'value1', 'user123'),
-        MockVariable('test_var2', 'value2', 'user123')
+        MockVariable('test_var1', 'value1'),
+        MockVariable('test_var2', 'value2')
     ]
 
     secrets = [
-        MockSecret('test_secret1', 'secret_value1', 'user123')
+        MockSecret('test_secret1', 'secret_value1')
     ]
 
     # This is what gets passed to the echo1 server

@@ -5,7 +5,7 @@ the database, including support for server, variable, and secret definitions.
 """
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import db_access
 
@@ -17,13 +17,12 @@ from cid_presenter import cid_path, format_cid
 # CID STORAGE HELPERS
 # ============================================================================
 
-def ensure_cid_exists(cid_value: str, content_bytes: bytes, user_id: Optional[str] = None) -> None:
+def ensure_cid_exists(cid_value: str, content_bytes: bytes) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
     Args:
         cid_value: CID string
         content_bytes: Content to store
-        user_id: User ID for ownership (optional, deprecated - no longer used)
     """
     cid_record_path = cid_path(cid_value)
     try:
@@ -55,12 +54,11 @@ def get_cid_content(path: str) -> Any:
         return None
 
 
-def store_cid_from_bytes(content_bytes: bytes, user_id: Optional[int] = None) -> str:
+def store_cid_from_bytes(content_bytes: bytes) -> str:
     """Store content in a CID record and return the CID.
 
     Args:
         content_bytes: Content to store
-        user_id: User ID for ownership (optional, deprecated - no longer used)
 
     Returns:
         CID string

@@ -155,7 +155,6 @@ def test_upload_page_displays_templates_when_configured(
         templates_var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id='default-user'
         )
         db.session.add(templates_var)
         db.session.commit()
@@ -199,7 +198,6 @@ def test_upload_page_shows_template_status_link(
         templates_var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id='default-user'
         )
         db.session.add(templates_var)
         db.session.commit()

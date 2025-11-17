@@ -28,7 +28,6 @@ def _create_alias_chain(app, base_name: str, redirect_count: int, final_target: 
                 Alias(
                     name=alias_name,
                     definition=f"{alias_name} -> {next_path}",
-                    user_id="default-user",
                 )
             )
             names.append(alias_name)
@@ -103,7 +102,6 @@ def test_route_details_for_server_execution(client, integration_app, login_defau
                     "def main():\n"
                     "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"
                 ),
-                user_id="default-user",
             )
         )
         db.session.commit()
@@ -169,7 +167,6 @@ def test_route_details_follow_alias_chain_to_server(
                     "def main():\n"
                     "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"
                 ),
-                user_id="default-user",
             )
         )
         db.session.commit()

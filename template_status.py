@@ -15,7 +15,6 @@ def generate_template_status_label(
     """Generate a human-readable status label for templates.
 
     Args:
-        user_id: User identifier
         entity_type: Optional entity type to show count for specific type only
                     (e.g., 'aliases', 'servers', 'variables', 'secrets')
                     If None, shows total count across all types
@@ -57,7 +56,6 @@ def get_template_link_info(
     """Get template status link information for rendering in templates.
 
     Args:
-        user_id: User identifier
         entity_type: Optional entity type filter
 
     Returns:

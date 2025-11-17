@@ -11,6 +11,7 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 from app import app, db
 from ai_defaults import ensure_ai_stub
 from db_access import get_alias_by_name, get_server_by_name
+from identity import ensure_default_resources
 from models import Alias, Server
 
 
@@ -19,10 +20,11 @@ class TestAiStubServer(unittest.TestCase):
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['WTF_CSRF_ENABLED'] = False
-        self.client = app.test_client()
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
+        ensure_default_resources()
+        self.client = app.test_client()
 
     def tearDown(self):
         db.session.remove()

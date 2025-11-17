@@ -189,7 +189,7 @@ return value["number"]
         self.assertEqual(result, 'cid-callable')
 
     def test_save_stores_content_directly(self):
-        """save() stores content without user_id."""
+        """save() stores content without requiring user context."""
         body = "return save(message)"
         argmap = {"message": "hello"}
 

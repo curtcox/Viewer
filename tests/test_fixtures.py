@@ -52,7 +52,6 @@ class TestDataFactory:
     def create_alias(
         name: str,
         target: str,
-        user_id: str,
         *,
         match_type: str = 'literal',
         pattern: str | None = None,
@@ -65,7 +64,6 @@ class TestDataFactory:
         Args:
             name: The alias name
             target: The target path
-            user_id: The user ID who owns the alias
             match_type: The match type ('literal', 'prefix', 'regex')
             pattern: Optional pattern override
             ignore_case: Whether to ignore case in matching
@@ -89,7 +87,6 @@ class TestDataFactory:
     @staticmethod
     def create_cid(
         content: bytes | str,
-        user_id: str,
         *,
         path: str | None = None,
         commit: bool = True,
@@ -99,7 +96,6 @@ class TestDataFactory:
 
         Args:
             content: The content to store (bytes or string)
-            user_id: The user ID who uploaded the CID
             path: Optional custom path (auto-generated if not provided)
             commit: Whether to commit to the database
 
@@ -127,7 +123,6 @@ class TestDataFactory:
     def create_server(
         name: str,
         definition: str,
-        user_id: str,
         *,
         definition_cid: str | None = None,
         commit: bool = True,
@@ -138,7 +133,6 @@ class TestDataFactory:
         Args:
             name: The server name
             definition: The server definition code
-            user_id: The user ID who owns the server
             definition_cid: Optional CID for the definition
             commit: Whether to commit to the database
 
@@ -159,7 +153,6 @@ class TestDataFactory:
     def create_variable(
         name: str,
         value: str,
-        user_id: str,
         *,
         commit: bool = True,
     ) -> Variable:
@@ -169,7 +162,6 @@ class TestDataFactory:
         Args:
             name: The variable name
             value: The variable value
-            user_id: The user ID who owns the variable
             commit: Whether to commit to the database
 
         Returns:
@@ -188,7 +180,6 @@ class TestDataFactory:
     def create_secret(
         name: str,
         encrypted_value: bytes,
-        user_id: str,
         *,
         commit: bool = True,
     ) -> Secret:
@@ -198,7 +189,6 @@ class TestDataFactory:
         Args:
             name: The secret name
             encrypted_value: The encrypted secret value
-            user_id: The user ID who owns the secret
             commit: Whether to commit to the database
 
         Returns:

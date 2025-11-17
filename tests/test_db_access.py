@@ -70,8 +70,6 @@ class TestDBAccess(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'user1'
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()

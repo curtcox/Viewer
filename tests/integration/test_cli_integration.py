@@ -13,7 +13,31 @@ from pathlib import Path
 from cid_utils import generate_cid
 
 
-class TestCliIntegration(unittest.TestCase):
+class CliTestCase(unittest.TestCase):
+    """Shared helpers for invoking the CLI via subprocess."""
+
+    CLI_ROOT = Path(__file__).parent.parent.parent
+
+    def run_cli(self, *args: str, timeout: int = 5):
+        return subprocess.run(
+            [sys.executable, 'main.py', *args],
+            cwd=self.CLI_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+
+    def assert_list_output(self, stdout: str) -> None:
+        lines = stdout.strip().splitlines()
+        self.assertTrue(lines, "List output should not be empty")
+        self.assertTrue(
+            'No valid boot CIDs' in stdout or stdout.count('CID: ') >= 1,
+            f"Expected boot CID summary, got:\n{stdout}",
+        )
+
+
+class TestCliIntegration(CliTestCase):
     """Integration tests for CLI functionality.
 
     Note: These tests run the CLI via subprocess, so they use the
@@ -22,14 +46,7 @@ class TestCliIntegration(unittest.TestCase):
 
     def test_help_flag(self):
         """Test --help flag shows help message."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '--help'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('--help')
 
         self.assertEqual(result.returncode, 0)
         self.assertIn('USAGE', result.stdout)
@@ -41,23 +58,11 @@ class TestCliIntegration(unittest.TestCase):
 
     def test_list_flag(self):
         """Test --list flag lists boot CIDs."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '--list'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('--list')
 
         # Should exit with 0
         self.assertEqual(result.returncode, 0)
-
-        # Should contain information about CIDs
-        # (may have CIDs from cids directory)
-        self.assertTrue(
-            'Found' in result.stdout or 'No valid boot CIDs' in result.stdout
-        )
+        self.assert_list_output(result.stdout)
 
     def test_invalid_cid_format(self):
         """Test providing an invalid CID format shows error."""
@@ -231,14 +236,7 @@ class TestCliIntegration(unittest.TestCase):
         if it errors out during CID import.
         """
         # First, get a valid boot CID from the --list command
-        list_result = subprocess.run(
-            [sys.executable, 'main.py', '--list'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        list_result = self.run_cli('--list')
 
         # Extract a CID from the output if available
         # Look for lines starting with "CID: "
@@ -252,14 +250,7 @@ class TestCliIntegration(unittest.TestCase):
         if not valid_cid:
             self.skipTest("No valid boot CID available in database")
 
-        result = subprocess.run(
-            [sys.executable, 'main.py', '/', valid_cid],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,  # Should exit quickly, not hang like a server
-            check=False,
-        )
+        result = self.run_cli('/', valid_cid, timeout=5)
 
         # The important thing is it completes within timeout (not start server)
         # Due to known bug with CSRF, it currently errors during CID import
@@ -272,14 +263,7 @@ class TestCliIntegration(unittest.TestCase):
 
     def test_url_with_invalid_cid_exits_without_server(self):
         """Test that providing both URL and invalid CID exits without starting server."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '/', 'AAAAAAAA'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('/', 'AAAAAAAA')
 
         # Should fail on invalid CID before attempting to start server
         self.assertNotEqual(result.returncode, 0)
@@ -292,7 +276,7 @@ class TestCliIntegration(unittest.TestCase):
         self.assertNotIn('Running on', result.stderr)
 
 
-class TestCliArgumentParsing(unittest.TestCase):
+class TestCliArgumentParsing(CliTestCase):
     """Tests for CLI argument parsing logic."""
 
     def test_help_long_form(self):
@@ -311,63 +295,32 @@ class TestCliArgumentParsing(unittest.TestCase):
 
     def test_help_short_form(self):
         """Test -h works."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '-h'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('-h')
 
         self.assertEqual(result.returncode, 0)
         self.assertIn('USAGE', result.stdout)
 
     def test_list_only(self):
         """Test --list flag works alone."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '--list'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('--list')
 
         self.assertEqual(result.returncode, 0)
-        # Should show either boot CIDs or message about none found
-        self.assertTrue(
-            'Found' in result.stdout or 'No valid boot CIDs' in result.stdout
-        )
+        self.assert_list_output(result.stdout)
 
 
-class TestCliUrlDetection(unittest.TestCase):
+class TestCliUrlDetection(CliTestCase):
     """Tests for URL vs CID detection logic."""
 
     def test_slash_is_url(self):
         """Test string starting with / is treated as URL."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', '/test'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('/test')
 
         # Should make HTTP request, not treat as CID
         self.assertIn('Status:', result.stdout)
 
     def test_http_is_url(self):
         """Test string starting with http:// is treated as URL."""
-        result = subprocess.run(
-            [sys.executable, 'main.py', 'http://localhost:5001/'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('http://localhost:5001/')
 
         # Should make HTTP request
         self.assertIn('Status:', result.stdout)
@@ -375,14 +328,7 @@ class TestCliUrlDetection(unittest.TestCase):
     def test_https_is_url(self):
         """Test string starting with https:// is treated as URL."""
         # Use localhost to avoid external network dependency
-        result = subprocess.run(
-            [sys.executable, 'main.py', 'https://localhost:9999/'],
-            cwd=Path(__file__).parent.parent.parent,
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
+        result = self.run_cli('https://localhost:9999/')
 
         # Should fail to connect (no server running) but be treated as URL
         # (not CID validation error)
@@ -391,7 +337,7 @@ class TestCliUrlDetection(unittest.TestCase):
         self.assertTrue('Error' in result.stderr or 'Status:' in result.stdout)
 
 
-class TestNonServerRunOptions(unittest.TestCase):
+class TestNonServerRunOptions(CliTestCase):
     """Tests for run options that exit without starting the Flask server.
 
     These tests verify that certain CLI options complete quickly and exit

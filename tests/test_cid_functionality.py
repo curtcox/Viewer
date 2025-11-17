@@ -5,7 +5,6 @@ import base64
 import hashlib
 import re
 import unittest
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app import app, db
@@ -42,11 +41,6 @@ class TestCIDFunctionality(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
-
-    def _create_test_user(self, user_id: str = 'test_user_123'):
-        """Helper method to provide a lightweight user-like object."""
-
-        return SimpleNamespace(id=user_id)
 
     def test_generate_cid_only_uses_file_data(self):
         """Test that CID generation only uses file data, not MIME type"""
@@ -150,7 +144,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_create_cid_record_with_all_fields(self):
         """Test creating CID record with all required fields"""
         with self.app.app_context():
-            self._create_test_user()
             file_content = b"Test file content for CID record"
             cid = generate_cid(file_content)
 
@@ -174,7 +167,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_with_extension(self, mock_make_response):
         """Test serving CID content with file extension for MIME type detection"""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"<html><body>Hello World</body></html>"
@@ -210,7 +202,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_without_extension(self, mock_make_response):
         """Test serving CID content without extension defaults to UTF-8 text when possible."""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"Binary data content"
@@ -242,7 +233,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_with_txt_extension(self, mock_make_response):
         """CID content requested with .txt extension should render as UTF-8 text when possible."""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 file_content = "Line one\nLine two".encode('utf-8')
                 cid = generate_cid(file_content)
@@ -268,7 +258,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_without_extension_plain_python_not_rendered(self, mock_make_response):
         """Plain source files without Markdown cues should not be rendered."""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 file_content = (
                     "if __name__ == '__main__':\n"
@@ -296,7 +285,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_without_extension_serves_raw_markdown(self, mock_make_response):
         """Markdown content without an extension should be served without rendering."""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 markdown_body = (
                     "# Sample Document\n\n"
@@ -326,12 +314,11 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
                 mock_response.headers.__setitem__.assert_any_call('Content-Length', len(markdown_body))
 
-    @patch('cid_utils._generate_qr_data_url')
+    @patch('content_serving.generate_qr_data_url')
     @patch('content_serving.make_response')
     def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response, mock_generate_qr_data_url):
         """Requests with a .qr extension should render a QR code landing page."""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 file_content = b"QR content placeholder"
                 cid = generate_cid(file_content)
@@ -398,7 +385,10 @@ class TestCIDFunctionality(unittest.TestCase):
                 call_log['colors'] = {'fill': fill_color, 'back': back_color}
                 return FakeImage()
 
-        fake_module = SimpleNamespace(QRCode=FakeQRCode)
+        class FakeModule:
+            QRCode = FakeQRCode
+
+        fake_module = FakeModule()
 
         target_url = 'https://256t.org/example'
 
@@ -426,7 +416,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 # Create test CID record
                 file_content = b"Test content for caching"
@@ -457,7 +446,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_etag_caching(self, mock_make_response):
         """Test ETag-based caching returns 304 when content hasn't changed"""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context(headers={'If-None-Match': '"test_etag"'}):
                 # Create test CID record
                 file_content = b"Cached content"
@@ -487,7 +475,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_cid_model_simplified_fields(self):
         """Test that CID model only has the required fields"""
         with self.app.app_context():
-            self._create_test_user()
             # Create a CID record
             file_content = b"Model test content"
             cid = generate_cid(file_content)
@@ -523,7 +510,6 @@ class TestCIDFunctionality(unittest.TestCase):
     def test_serve_cid_content_with_none_file_data_returns_none(self):
         """Test that serving CID content with None file_data returns None (fixed behavior)"""
         with self.app.app_context():
-            self._create_test_user()
             with self.app.test_request_context():
                 # Create a CID record with valid file_data first
                 cid_record = CID(

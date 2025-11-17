@@ -13,7 +13,6 @@ def secret_record_schema() -> Dict[str, Any]:
             "id",
             "name",
             "definition",
-            "user_id",
             "created_at",
             "updated_at",
             "enabled",
@@ -28,11 +27,6 @@ def secret_record_schema() -> Dict[str, Any]:
             "definition": {
                 "type": "string",
                 "description": "Secret definition value.",
-            },
-            "user_id": {
-                "type": "string",
-                "description": "Owner identifier",
-                "example": "default-user",
             },
             "created_at": {
                 "type": "string",

@@ -67,7 +67,6 @@ def test_interaction_endpoint_records_history(client, integration_app):
 
     with integration_app.app_context():
         history = get_recent_entity_interactions(
-            "default-user",
             payload["entity_type"],
             payload["entity_name"],
             limit=1,

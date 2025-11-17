@@ -17,7 +17,7 @@ def test_server_events_page_lists_recent_invocations(
     integration_app,
     login_default_user,
 ):
-    """The server events page should render recorded invocations for the user."""
+    """The server events page should render recorded invocations."""
 
     request_cid = "bafyrequestcid123"
     referer_url = "https://example.com/dashboard"
@@ -34,7 +34,6 @@ def test_server_events_page_lists_recent_invocations(
             ).encode("utf-8"),
         )
         invocation = ServerInvocation(
-            user_id="default-user",
             server_name="weather",
             result_cid="bafyresultcid456",
             servers_cid="bafyserverscid789",
