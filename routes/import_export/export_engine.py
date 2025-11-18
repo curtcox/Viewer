@@ -106,6 +106,8 @@ def build_export_payload(
         require_truthy=False,
     )
 
+    secret_key = (form.secret_key.data or '').strip()
+
     add_optional_section(
         sections,
         form.include_secrets.data,
@@ -113,7 +115,7 @@ def build_export_payload(
         partial(
             collect_secrets_section,
             form,
-            form.secret_key.data.strip(),
+            secret_key,
             form.include_disabled_secrets.data,
             form.include_template_secrets.data,
         ),
