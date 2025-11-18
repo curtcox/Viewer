@@ -334,12 +334,11 @@ class MermaidRenderer:
         self._session = requests.Session()
         self._cache: Dict[str, MermaidRenderLocation] = {}
 
-    def render_html(self, source: str, user_id: Optional[str] = None) -> str:
+    def render_html(self, source: str) -> str:
         """Render Mermaid diagram source to HTML figure element.
 
         Args:
             source: Mermaid diagram source code
-            user_id: Optional user ID for CID storage
 
         Returns:
             HTML figure element with the rendered diagram
@@ -365,7 +364,7 @@ class MermaidRenderer:
             if not svg_bytes:
                 raise MermaidRenderingError("Mermaid renderer returned no data")
 
-            location = self._store_svg(svg_bytes, user_id)
+            location = self._store_svg(svg_bytes)
             if location is None:
                 # Fall back to data URL
                 data_url = self._build_data_url(svg_bytes)
@@ -398,12 +397,11 @@ class MermaidRenderer:
         response.raise_for_status()
         return response.content
 
-    def _store_svg(self, svg_bytes: bytes, user_id: Optional[str]) -> Optional[MermaidRenderLocation]:
+    def _store_svg(self, svg_bytes: bytes) -> Optional[MermaidRenderLocation]:
         """Store SVG as a CID.
 
         Args:
             svg_bytes: SVG content
-            user_id: User ID for ownership
 
         Returns:
             Location object or None if storage fails
@@ -417,7 +415,7 @@ class MermaidRenderer:
                 return MermaidRenderLocation(is_cid=True, value=cid_value)
 
             # Create new CID record
-            ensure_cid_exists(cid_value, svg_bytes, user_id)
+            ensure_cid_exists(cid_value, svg_bytes)
             return MermaidRenderLocation(is_cid=True, value=cid_value)
         except (ValueError, OSError, AttributeError, SQLAlchemyError):
             # Fall back gracefully if CID storage fails (database or filesystem errors)

@@ -9,8 +9,7 @@ from typing import Iterable, List, Optional
 from flask import current_app, render_template, url_for
 
 from alias_definition import collect_alias_routes
-from db_access import get_user_aliases, get_user_servers
-from identity import current_user
+from db_access import get_aliases, get_servers
 
 from . import main_bp
 
@@ -104,9 +103,9 @@ def _builtin_routes(root: Path) -> Iterable[RouteEntry]:
 
 
 def _alias_routes() -> Iterable[RouteEntry]:
-    """Collect alias definitions for the current user."""
+    """Collect alias definitions."""
 
-    aliases = get_user_aliases(current_user.id)
+    aliases = get_aliases()
     entries: List[RouteEntry] = []
     for alias in aliases:
         routes = collect_alias_routes(alias)
@@ -142,9 +141,9 @@ def _alias_routes() -> Iterable[RouteEntry]:
 
 
 def _server_routes() -> Iterable[RouteEntry]:
-    """Collect server definitions for the current user."""
+    """Collect server definitions."""
 
-    servers = get_user_servers(current_user.id)
+    servers = get_servers()
     entries: List[RouteEntry] = []
     for server in servers:
         entries.append(

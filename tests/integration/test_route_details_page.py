@@ -28,7 +28,6 @@ def _create_alias_chain(app, base_name: str, redirect_count: int, final_target: 
                 Alias(
                     name=alias_name,
                     definition=f"{alias_name} -> {next_path}",
-                    user_id="default-user",
                 )
             )
             names.append(alias_name)
@@ -40,10 +39,8 @@ def _extract_request_paths(page: str) -> list[str]:
     return re.findall(r'data-request-path="([^"]+)"', page)
 
 
-def test_route_details_for_builtin_index(client, login_default_user):
+def test_route_details_for_builtin_index(client):
     """The route explorer should describe built-in Flask routes."""
-
-    login_default_user()
 
     response = client.get("/")
     assert response.status_code == 200
@@ -57,10 +54,8 @@ def test_route_details_for_builtin_index(client, login_default_user):
     assert 'badge text-bg-primary me-2">200' in page
 
 
-def test_route_details_for_alias_redirect(client, login_default_user):
+def test_route_details_for_alias_redirect(client):
     """Alias routes should surface their target path and redirect."""
-
-    login_default_user()
 
     alias_response = client.get("/css/darkmode", follow_redirects=False)
     assert alias_response.status_code == 302
@@ -92,7 +87,7 @@ def test_route_details_for_alias_redirect(client, login_default_user):
     )
 
 
-def test_route_details_for_server_execution(client, integration_app, login_default_user):
+def test_route_details_for_server_execution(client, integration_app):
     """Server-backed routes should report the server definition."""
 
     with integration_app.app_context():
@@ -103,12 +98,9 @@ def test_route_details_for_server_execution(client, integration_app, login_defau
                     "def main():\n"
                     "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"
                 ),
-                user_id="default-user",
             )
         )
         db.session.commit()
-
-    login_default_user()
 
     server_response = client.get("/demo", follow_redirects=False)
     assert server_response.status_code == 302
@@ -125,7 +117,7 @@ def test_route_details_for_server_execution(client, integration_app, login_defau
     assert "def main():" in page
 
 
-def test_route_details_for_direct_cid(client, integration_app, login_default_user):
+def test_route_details_for_direct_cid(client, integration_app):
     """CID paths should display CID helper markup."""
 
     cid_value = format_cid("abcdef123456")
@@ -135,12 +127,9 @@ def test_route_details_for_direct_cid(client, integration_app, login_default_use
             CID(
                 path=f"/{cid_value}",
                 file_data=b"hello world",
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.commit()
-
-    login_default_user()
 
     cid_response = client.get(f"/{cid_value}")
     assert cid_response.status_code == 200
@@ -157,7 +146,7 @@ def test_route_details_for_direct_cid(client, integration_app, login_default_use
 
 @pytest.mark.parametrize("redirect_count", [2, 3])
 def test_route_details_follow_alias_chain_to_server(
-    client, integration_app, login_default_user, redirect_count
+    client, integration_app, redirect_count
 ):
     server_name = f"chain-server-destination-{redirect_count}"
     base_name = f"chain-server-{redirect_count}"
@@ -170,7 +159,6 @@ def test_route_details_follow_alias_chain_to_server(
                     "def main():\n"
                     "    return {'output': 'demo output', 'content_type': 'text/plain'}\n"
                 ),
-                user_id="default-user",
             )
         )
         db.session.commit()
@@ -178,8 +166,6 @@ def test_route_details_follow_alias_chain_to_server(
     alias_names = _create_alias_chain(
         integration_app, base_name, redirect_count, final_target=f"/{server_name}"
     )
-
-    login_default_user()
 
     current_path = f"/{base_name}-1"
     visited_paths = [current_path]
@@ -247,7 +233,7 @@ def test_route_details_follow_alias_chain_to_server(
 
 @pytest.mark.parametrize("redirect_count", [4, 5])
 def test_route_details_follow_alias_chain_to_cid(
-    client, integration_app, login_default_user, redirect_count
+    client, integration_app, redirect_count
 ):
     cid_value = format_cid(f"cidchain{redirect_count}abcdef")
     base_name = f"chain-cid-{redirect_count}"
@@ -257,7 +243,6 @@ def test_route_details_follow_alias_chain_to_cid(
             CID(
                 path=f"/{cid_value}",
                 file_data=b"cid target",
-                uploaded_by_user_id="default-user",
             )
         )
         db.session.commit()
@@ -265,8 +250,6 @@ def test_route_details_follow_alias_chain_to_cid(
     alias_names = _create_alias_chain(
         integration_app, base_name, redirect_count, final_target=f"/{cid_value}"
     )
-
-    login_default_user()
 
     current_path = f"/{base_name}-1"
     visited_paths = [current_path]

@@ -15,43 +15,41 @@ class TestServerDefinitionsCID(unittest.TestCase):
         """Set up test fixtures"""
         # Reset cid_storage module-level variables BEFORE test to ensure clean state
         import cid_storage
-        cid_storage._get_user_servers = None
-        cid_storage._get_user_variables = None
-        cid_storage._get_user_secrets = None
+        cid_storage._get_servers = None
+        cid_storage._get_variables = None
+        cid_storage._get_secrets = None
         cid_storage._create_cid_record = None
         cid_storage._get_cid_by_path = None
 
         # Mock database and models
         self.mock_db = Mock()
-        self.mock_user = Mock()
-        self.mock_user.id = 'test_user_123'
 
         self.mock_server1 = Mock()
         self.mock_server1.name = 'hello_world'
         self.mock_server1.definition = 'print("Hello World")'
-        self.mock_server1.user_id = 'test_user_123'
+        self.mock_server1.enabled = True
 
         self.mock_server2 = Mock()
         self.mock_server2.name = 'api_server'
         self.mock_server2.definition = 'def handle_request():\n    return {"status": "ok"}'
-        self.mock_server2.user_id = 'test_user_123'
+        self.mock_server2.enabled = True
 
     def tearDown(self):
         """Clean up after tests"""
         # Reset cid_storage module-level variables to force fresh imports in next test
         import cid_storage
-        cid_storage._get_user_servers = None
-        cid_storage._get_user_variables = None
-        cid_storage._get_user_secrets = None
+        cid_storage._get_servers = None
+        cid_storage._get_variables = None
+        cid_storage._get_secrets = None
         cid_storage._create_cid_record = None
         cid_storage._get_cid_by_path = None
 
-    @patch('db_access.get_user_servers')
+    @patch('db_access.get_servers')
     def test_generate_all_server_definitions_json(self, mock_get_servers):
-        """Test generating JSON of all server definitions for a user"""
+        """Test generating JSON of all server definitions"""
         mock_get_servers.return_value = [self.mock_server1, self.mock_server2]
 
-        json_data = generate_all_server_definitions_json('test_user_123')
+        json_data = generate_all_server_definitions_json()
 
         # Parse the JSON to verify structure
         data = json.loads(json_data)
@@ -67,12 +65,12 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Should be valid JSON
         self.assertIsInstance(data, dict)
 
-    @patch('db_access.get_user_servers')
+    @patch('db_access.get_servers')
     def test_generate_all_server_definitions_json_empty(self, mock_get_servers):
-        """Test generating JSON when user has no servers"""
+        """Test generating JSON when there are no servers"""
         mock_get_servers.return_value = []
 
-        json_data = generate_all_server_definitions_json('empty_user_123')
+        json_data = generate_all_server_definitions_json()
         data = json.loads(json_data)
 
         # Should be empty dict
@@ -93,7 +91,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         mock_get_cid.return_value = None
         mock_create_cid.return_value = Mock()
 
-        cid_path = store_server_definitions_cid('test_user_123')
+        cid_path = store_server_definitions_cid()
 
         # Should return a CID path
         self.assertIsInstance(cid_path, str)
@@ -114,7 +112,7 @@ class TestServerDefinitionsCID(unittest.TestCase):
         # Mock CID query to return existing CID
         mock_get_cid.return_value = Mock()
 
-        cid_path = get_current_server_definitions_cid('test_user_123')
+        cid_path = get_current_server_definitions_cid()
         self.assertIsNotNone(cid_path)
         self.assertIsInstance(cid_path, str)
 
@@ -125,8 +123,8 @@ class TestServerDefinitionsCID(unittest.TestCase):
         mock_store_cid.return_value = 'bafybeihelloworld123456789012345678901234567890123456'
 
         # Should call store function to update CID
-        update_server_definitions_cid('test_user_123')
-        mock_store_cid.assert_called_once_with('test_user_123')
+        update_server_definitions_cid()
+        mock_store_cid.assert_called_once_with()
 
 
 if __name__ == '__main__':

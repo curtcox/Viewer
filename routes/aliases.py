@@ -26,15 +26,14 @@ from cid_presenter import extract_cid_from_path
 from db_access import (
     EntityInteractionRequest,
     get_alias_by_name,
-    get_user_aliases,
-    get_user_template_aliases,
-    get_user_variables,
+    get_aliases,
+    get_template_aliases,
+    get_variables,
     record_entity_interaction,
     save_entity,
 )
 from entity_references import extract_references_from_target
 from forms import AliasForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias
 from serialization import model_to_dict
@@ -69,9 +68,6 @@ class TargetPathMetadata:
 class AliasValidator:
     """Validates alias names against routes and existing aliases."""
 
-    def __init__(self, user_id: str):
-        self.user_id = user_id
-
     def validate_name(
         self, name: str, exclude_id: Optional[int] = None
     ) -> ValidationResult:
@@ -82,7 +78,7 @@ class AliasValidator:
         """
         if _alias_name_conflicts_with_routes(name):
             return False, f'Alias name "{name}" conflicts with an existing route.'
-        if _alias_with_name_exists(self.user_id, name, exclude_id):
+        if _alias_with_name_exists(name, exclude_id):
             return False, f'An alias named "{name}" already exists.'
         return True, None
 
@@ -94,9 +90,9 @@ def _alias_name_conflicts_with_routes(name: str) -> bool:
 
 
 def _alias_with_name_exists(
-    user_id: str, name: str, exclude_id: Optional[int] = None
+    name: str, exclude_id: Optional[int] = None
 ) -> bool:
-    existing = get_alias_by_name(user_id, name)
+    existing = get_alias_by_name(name)
     if not existing:
         return False
     if exclude_id is not None and getattr(existing, "id", None) == exclude_id:
@@ -315,12 +311,11 @@ def _serialize_definition_line(entry: DefinitionLineSummary) -> Dict[str, Any]:
     }
 
 
-def _build_alias_view_context(alias: Alias, user_id: str) -> Dict[str, Any]:
+def _build_alias_view_context(alias: Alias) -> Dict[str, Any]:
     """Build extra context for alias view page."""
     primary_route = get_primary_alias_route(alias)
     target_references = extract_references_from_target(
         primary_route.target_path if primary_route else None,
-        user_id,
     )
 
     definition_summary = summarize_definition_lines(
@@ -355,7 +350,7 @@ _alias_config = EntityRouteConfig(
     entity_type='alias',
     plural_name='aliases',
     get_by_name_func=get_alias_by_name,
-    get_user_entities_func=get_user_aliases,
+    get_entities_func=get_aliases,
     form_class=AliasForm,
     to_json_func=_alias_to_json,
     build_view_context=_build_alias_view_context,
@@ -391,13 +386,13 @@ def new_alias():
             'definition': alias.definition or '',
             'suggested_name': f"{alias.name}-copy" if alias.name else '',
         }
-        for alias in get_user_template_aliases(current_user.id)
+        for alias in get_template_aliases()
     ]
 
     if form.validate_on_submit():
         parsed = form.parsed_definition
         name = form.name.data
-        validator = AliasValidator(current_user.id)
+        validator = AliasValidator()
 
         is_valid, error_message = validator.validate_name(name)
         if not is_valid:
@@ -408,14 +403,12 @@ def new_alias():
 
             alias = Alias(
                 name=name,
-                user_id=current_user.id,
                 definition=definition_value,
                 enabled=bool(form.enabled.data),
             )
             _persist_alias(alias)
             record_entity_interaction(
                 EntityInteractionRequest(
-                    user_id=current_user.id,
                     entity_type='alias',
                     entity_name=alias.name,
                     action='save',
@@ -428,10 +421,10 @@ def new_alias():
 
     entity_name_hint = (form.name.data or '').strip()
     interaction_history = load_interaction_history(
-        current_user.id, 'alias', entity_name_hint
+        'alias', entity_name_hint
     )
 
-    template_link_info = get_template_link_info(current_user.id, 'aliases')
+    template_link_info = get_template_link_info('aliases')
 
     return render_template(
         'alias_form.html',
@@ -471,14 +464,12 @@ def _handle_save_as(
 
     alias_copy = Alias(
         name=new_name,
-        user_id=alias.user_id,
         definition=definition_value or None,
         enabled=bool(form.enabled.data),
     )
     _persist_alias(alias_copy)
     record_entity_interaction(
         EntityInteractionRequest(
-            user_id=alias.user_id,
             entity_type='alias',
             entity_name=alias_copy.name,
             action='save',
@@ -517,7 +508,6 @@ def _handle_rename(
     _persist_alias(alias)
     record_entity_interaction(
         EntityInteractionRequest(
-            user_id=alias.user_id,
             entity_type='alias',
             entity_name=alias.name,
             action='save',
@@ -532,13 +522,13 @@ def _handle_rename(
 @main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
 def edit_alias(alias_name: str):
     """Edit an existing alias."""
-    alias = get_alias_by_name(current_user.id, alias_name)
+    alias = get_alias_by_name(alias_name)
     if not alias:
         abort(404)
 
     form = AliasForm(obj=alias)
     change_message = (request.form.get('change_message') or '').strip()
-    interaction_history = load_interaction_history(current_user.id, 'alias', alias.name)
+    interaction_history = load_interaction_history('alias', alias.name)
 
     def render_edit_form() -> str:
         return render_template(
@@ -563,7 +553,7 @@ def edit_alias(alias_name: str):
         definition_text = form.definition.data or ""
 
         definition_value = _build_definition_value(definition_text, parsed, new_name)
-        validator = AliasValidator(current_user.id)
+        validator = AliasValidator()
 
         if save_action == SUBMIT_ACTION_SAVE_AS:
             redirect_url = _handle_save_as(
@@ -586,9 +576,6 @@ def edit_alias(alias_name: str):
 @main_bp.route('/aliases/match-preview', methods=['POST'])
 def alias_match_preview():
     """Return live matching results for the provided alias configuration."""
-
-    if not getattr(current_user, 'id', None):
-        abort(401)
 
     payload = request.get_json(silent=True) or {}
     alias_name = payload.get('name')
@@ -686,9 +673,6 @@ def alias_match_preview():
 def alias_definition_status():
     """Return the validation status for an alias definition."""
 
-    if not getattr(current_user, 'id', None):
-        abort(401)
-
     payload = request.get_json(silent=True) or {}
     raw_definition = payload.get('definition')
     alias_name = payload.get('name')
@@ -704,7 +688,7 @@ def alias_definition_status():
         alias_name = str(alias_name)
 
     try:
-        variables = get_user_variables(current_user.id)
+        variables = get_variables()
     except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive fallback when database fails
         variables = []
 

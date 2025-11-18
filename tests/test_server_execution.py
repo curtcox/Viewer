@@ -17,7 +17,6 @@ from server_execution import (
     _build_multi_parameter_error_page,
     _build_unsupported_signature_response,
     _clone_request_context_kwargs,
-    _current_user_id,
     _extract_request_body_values,
     _normalize_execution_result,
     _parse_function_details,
@@ -33,43 +32,6 @@ from server_execution import (
     model_as_dict,
     request_details,
 )
-
-
-class TestCurrentUserId(unittest.TestCase):
-    """Test _current_user_id function."""
-
-    def test_returns_id_attribute(self):
-        mock_user = types.SimpleNamespace(id="user-123")
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            result = _current_user_id()
-        assert result == "user-123"
-
-    def test_calls_id_if_callable(self):
-        mock_user = types.SimpleNamespace(id=lambda: "user-456")
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            result = _current_user_id()
-        assert result == "user-456"
-
-    def test_falls_back_to_get_id(self):
-        mock_user = types.SimpleNamespace(id=None, get_id=lambda: "user-789")
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            result = _current_user_id()
-        assert result == "user-789"
-
-    def test_returns_none_when_id_not_available(self):
-        mock_user = types.SimpleNamespace(id=None)
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            result = _current_user_id()
-        assert result is None
-
-    def test_handles_callable_id_with_type_error(self):
-        def bad_callable():
-            raise TypeError("bad call")
-
-        mock_user = types.SimpleNamespace(id=bad_callable, get_id=lambda: "fallback")
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            result = _current_user_id()
-        assert result == "fallback"
 
 
 class TestSplitPathSegments(unittest.TestCase):
@@ -492,15 +454,12 @@ class TestBuildRequestArgs(unittest.TestCase):
 
     def test_builds_request_args(self):
         app = Flask(__name__)
-        mock_user = types.SimpleNamespace(id="user-123")
 
-        # After decomposition, current_user is only in variable_resolution
-        with patch("server_execution.variable_resolution.current_user", mock_user):
-            with patch("server_execution.code_execution.get_user_variables", return_value=[]):
-                with patch("server_execution.code_execution.get_user_secrets", return_value=[]):
-                    with patch("server_execution.code_execution.get_user_servers", return_value=[]):
-                        with app.test_request_context("/test"):
-                            result = build_request_args()
+        with patch("server_execution.code_execution.get_variables", return_value=[]):
+            with patch("server_execution.code_execution.get_secrets", return_value=[]):
+                with patch("server_execution.code_execution.get_servers", return_value=[]):
+                    with app.test_request_context("/test"):
+                        result = build_request_args()
 
         assert "request" in result
         assert "context" in result

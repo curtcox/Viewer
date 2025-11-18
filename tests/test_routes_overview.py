@@ -28,16 +28,14 @@ class TestRoutesOverview(unittest.TestCase):
 
         db.create_all()
 
-        self.user_id = 'user-1'
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
 
-    def login_user(self):
+    def authenticate(self):
+        """Mark the test client session as authenticated in single-user mode."""
         with self.client.session_transaction() as session:
-            session['_user_id'] = self.user_id
             session['_fresh'] = True
 
     def test_requires_login(self):
@@ -51,16 +49,13 @@ class TestRoutesOverview(unittest.TestCase):
             '/target',
             alias_name='shared',
         )
-        alias = Alias(name='shared', user_id=self.user_id, definition=definition_text)
+        alias = Alias(name='shared', definition=definition_text)
         server = Server(
             name='shared',
             definition='def main(request):\n    return "ok"',
-            user_id=self.user_id,
         )
         db.session.add_all([alias, server])
         db.session.commit()
-
-        self.login_user()
 
         response = self.client.get('/routes')
         self.assertEqual(response.status_code, 200)
@@ -99,7 +94,7 @@ class TestRoutesOverview(unittest.TestCase):
         self.assertIn('route-not-found', page)
 
     def test_frontend_filtering_orders_exact_partial_and_not_found(self):
-        self.login_user()
+        self.authenticate()
 
         response = self.client.get('/routes')
         self.assertEqual(response.status_code, 200)

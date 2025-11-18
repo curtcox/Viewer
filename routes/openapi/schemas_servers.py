@@ -13,7 +13,6 @@ def server_record_schema() -> Dict[str, Any]:
             "id",
             "name",
             "definition",
-            "user_id",
             "created_at",
             "updated_at",
             "enabled",
@@ -32,11 +31,6 @@ def server_record_schema() -> Dict[str, Any]:
             "definition_cid": {
                 "type": ["string", "null"],
                 "description": "CID referencing the stored definition, when available.",
-            },
-            "user_id": {
-                "type": "string",
-                "description": "Owner identifier",
-                "example": "default-user",
             },
             "created_at": {
                 "type": "string",

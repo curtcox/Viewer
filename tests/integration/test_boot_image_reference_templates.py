@@ -13,7 +13,6 @@ from app import create_app, db
 from db_access import create_cid_record
 from db_access.cids import get_cid_by_path
 from generate_boot_image import BootImageGenerator
-from identity import ensure_default_user
 from models import Alias, Server, Variable
 from template_manager import get_templates_config
 
@@ -35,9 +34,6 @@ class TestBootImageReferenceTemplates:
 
         with self.app.app_context():
             db.create_all()
-            self.user = ensure_default_user()  # pylint: disable=attribute-defined-outside-init
-            self.user_id = self.user.id  # pylint: disable=attribute-defined-outside-init
-
         # Monkeypatch main.app so handle_boot_cid_import uses our test app
         original_app = main.app
         main.app = self.app
@@ -69,7 +65,7 @@ class TestBootImageReferenceTemplates:
                         continue
 
                     content = cid_file.read_bytes()
-                    create_cid_record(cid, content, self.user_id)
+                    create_cid_record(cid, content)
 
     def test_boot_image_loads_aliases(self, tmp_path):
         """Test that aliases from boot.source.json are loaded."""
@@ -98,7 +94,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify the alias was imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='ai', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='ai').first()
             assert alias is not None, "Alias 'ai' should be loaded from boot image"
             assert 'literal /ai -> /ai_stub' in alias.definition
             assert alias.enabled is True
@@ -126,7 +122,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify the server was imported
         with self.app.app_context():
-            server = Server.query.filter_by(name='ai_stub', user_id=self.user_id).first()
+            server = Server.query.filter_by(name='ai_stub').first()
             assert server is not None, "Server 'ai_stub' should be loaded from boot image"
             assert 'def main(' in server.definition
             assert server.enabled is True
@@ -156,8 +152,7 @@ class TestBootImageReferenceTemplates:
         # Verify the templates variable was imported
         with self.app.app_context():
             templates_var = Variable.query.filter_by(
-                name='templates',
-                user_id=self.user_id
+                name='templates'
             ).first()
             assert templates_var is not None, "Variable 'templates' should be loaded from boot image"
             assert templates_var.definition == templates_cid
@@ -186,7 +181,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify templates are accessible
         with self.app.app_context():
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
             assert templates_config is not None, "Templates config should be loaded"
 
             # Verify templates.source.json templates are present
@@ -231,7 +226,7 @@ class TestBootImageReferenceTemplates:
 
         # Verify template definitions resolve correctly
         with self.app.app_context():
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
 
             # Get the AI alias template
             ai_alias_template = templates_config['aliases']['ai-shortcut']
@@ -274,26 +269,25 @@ class TestBootImageReferenceTemplates:
         # Verify complete workflow
         with self.app.app_context():
             # 1. Alias is loaded
-            alias = Alias.query.filter_by(name='ai', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='ai').first()
             assert alias is not None
             assert alias.enabled is True
 
             # 2. Server is loaded
-            server = Server.query.filter_by(name='ai_stub', user_id=self.user_id).first()
+            server = Server.query.filter_by(name='ai_stub').first()
             assert server is not None
             assert server.enabled is True
 
             # 3. Templates variable is loaded with correct CID
             templates_var = Variable.query.filter_by(
-                name='templates',
-                user_id=self.user_id
+                name='templates'
             ).first()
             assert templates_var is not None
             assert templates_var.definition == templates_cid
             assert templates_var.enabled is True
 
             # 4. Templates are accessible and complete
-            templates_config = get_templates_config(self.user_id)
+            templates_config = get_templates_config()
             assert templates_config is not None
 
             # Verify all template categories exist

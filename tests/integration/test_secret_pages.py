@@ -19,13 +19,10 @@ from models import CID, Secret
 pytestmark = pytest.mark.integration
 
 
-def test_new_secret_form_renders_for_authenticated_user(
+def test_new_secret_form_renders_in_single_user_mode(
     client,
-    login_default_user,
 ):
-    """The new-secret form should render when the user is logged in."""
-
-    login_default_user()
+    """The new-secret form should render without explicit login helpers."""
 
     response = client.get("/secrets/new")
     assert response.status_code == 200
@@ -40,7 +37,6 @@ def test_new_secret_form_renders_for_authenticated_user(
 def test_new_secret_form_includes_templates(
     client,
     integration_app,
-    login_default_user,
 ):
     """Secrets flagged as templates should appear on the new form."""
 
@@ -62,13 +58,10 @@ def test_new_secret_form_includes_templates(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets/new")
     assert response.status_code == 200
@@ -81,7 +74,6 @@ def test_new_secret_form_includes_templates(
 def test_new_secret_form_includes_template_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """New secret form should display a link to /variables/templates with status."""
 
@@ -102,13 +94,10 @@ def test_new_secret_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets/new")
     assert response.status_code == 200
@@ -123,7 +112,6 @@ def test_new_secret_form_includes_template_link(
 def test_edit_secret_form_displays_existing_secret(
     client,
     integration_app,
-    login_default_user,
 ):
     """Editing a secret should show the saved metadata and preview."""
 
@@ -131,12 +119,9 @@ def test_edit_secret_form_displays_existing_secret(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets/production-api-key/edit")
     assert response.status_code == 200
@@ -152,7 +137,6 @@ def test_edit_secret_form_displays_existing_secret(
 def test_secret_detail_page_displays_secret_information(
     client,
     integration_app,
-    login_default_user,
 ):
     """Viewing a secret should show its metadata and controls."""
 
@@ -160,12 +144,9 @@ def test_secret_detail_page_displays_secret_information(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets/production-api-key")
     assert response.status_code == 200
@@ -178,10 +159,9 @@ def test_secret_detail_page_displays_secret_information(
     assert "Back to Secrets" in page
 
 
-def test_secrets_list_page_displays_user_secrets(
+def test_secrets_list_page_displays_saved_secrets(
     client,
     integration_app,
-    login_default_user,
 ):
     """The secrets overview should list saved secrets for the user."""
 
@@ -189,23 +169,19 @@ def test_secrets_list_page_displays_user_secrets(
         first_secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
         )
         second_secret = Secret(
             name="staging-api-key",
             definition="staging-secret-value",
-            user_id="default-user",
         )
         db.session.add_all([first_secret, second_secret])
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Secrets" in page
+    assert "Secrets" in page
     assert "production-api-key" in page
     assert "staging-api-key" in page
     assert "Create New Secret" in page
@@ -214,7 +190,6 @@ def test_secrets_list_page_displays_user_secrets(
 def test_secrets_page_includes_enabled_toggle(
     client,
     integration_app,
-    login_default_user,
 ):
     """Each secret card should display an enabled toggle."""
 
@@ -222,13 +197,10 @@ def test_secrets_page_includes_enabled_toggle(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(secret)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets")
     assert response.status_code == 200
@@ -244,7 +216,6 @@ def test_secrets_page_includes_enabled_toggle(
 def test_secret_enable_toggle_updates_state(
     client,
     integration_app,
-    login_default_user,
 ):
     """Submitting the toggle form should persist the secret's enabled flag."""
 
@@ -252,13 +223,10 @@ def test_secret_enable_toggle_updates_state(
         secret = Secret(
             name="production-api-key",
             definition="super-secret-value",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(secret)
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/secrets/production-api-key/enabled",
@@ -269,7 +237,6 @@ def test_secret_enable_toggle_updates_state(
 
     with integration_app.app_context():
         secret = Secret.query.filter_by(
-            user_id="default-user",
             name="production-api-key",
         ).one()
         assert secret.enabled is True
@@ -283,7 +250,6 @@ def test_secret_enable_toggle_updates_state(
 
     with integration_app.app_context():
         secret = Secret.query.filter_by(
-            user_id="default-user",
             name="production-api-key",
         ).one()
         assert secret.enabled is False
@@ -292,7 +258,6 @@ def test_secret_enable_toggle_updates_state(
 def test_edit_secret_updates_definition_snapshot(
     client,
     integration_app,
-    login_default_user,
 ):
     """Secret edits should update cached definition snapshots immediately."""
 
@@ -300,14 +265,11 @@ def test_edit_secret_updates_definition_snapshot(
         secret = Secret(
             name="api-token",
             definition="return 'old-secret'",
-            user_id="default-user",
         )
         db.session.add(secret)
         db.session.commit()
 
-        initial_snapshot_cid = store_secret_definitions_cid("default-user")
-
-    login_default_user()
+        initial_snapshot_cid = store_secret_definitions_cid()
 
     updated_definition = "return 'new-secret'"
 
@@ -327,13 +289,12 @@ def test_edit_secret_updates_definition_snapshot(
 
     with integration_app.app_context():
         updated_secret = Secret.query.filter_by(
-            user_id="default-user",
             name="service-token",
         ).first()
         assert updated_secret is not None
         assert updated_secret.definition == updated_definition
 
-        expected_snapshot_json = generate_all_secret_definitions_json("default-user")
+        expected_snapshot_json = generate_all_secret_definitions_json()
         expected_snapshot_cid = format_cid(
             generate_cid(expected_snapshot_json.encode("utf-8"))
         )
@@ -359,20 +320,17 @@ def test_edit_secret_updates_definition_snapshot(
 def test_bulk_secret_editor_prefills_existing_secrets(
     client,
     integration_app,
-    login_default_user,
 ):
     """The bulk editor should render the current secrets as JSON."""
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.add(
-            Secret(name="db_password", definition="hunter2", user_id="default-user")
+            Secret(name="db_password", definition="hunter2")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/secrets/_/edit")
     assert response.status_code == 200
@@ -386,20 +344,17 @@ def test_bulk_secret_editor_prefills_existing_secrets(
 def test_bulk_secret_editor_updates_and_deletes_secrets(
     client,
     integration_app,
-    login_default_user,
 ):
     """Saving from the bulk editor should upsert provided secrets and remove omissions."""
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.add(
-            Secret(name="db_password", definition="hunter2", user_id="default-user")
+            Secret(name="db_password", definition="hunter2")
         )
         db.session.commit()
-
-    login_default_user()
 
     payload = {"api_key": "rotate-me", "service_token": "abc123"}
     response = client.post(
@@ -415,12 +370,12 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
     assert response.headers["Location"].endswith("/secrets")
 
     with integration_app.app_context():
-        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        api_key = Secret.query.filter_by(name="api_key").one()
         service_token = Secret.query.filter_by(
-            user_id="default-user", name="service_token"
+            name="service_token"
         ).one()
         db_password = Secret.query.filter_by(
-            user_id="default-user", name="db_password"
+            name="db_password"
         ).first()
 
         assert api_key.definition == "rotate-me"
@@ -432,17 +387,14 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
 def test_bulk_secret_editor_invalid_json_displays_errors(
     client,
     integration_app,
-    login_default_user,
 ):
     """Invalid JSON submissions should be rejected and show an error message."""
 
     with integration_app.app_context():
         db.session.add(
-            Secret(name="api_key", definition="super-secret", user_id="default-user")
+            Secret(name="api_key", definition="super-secret")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/secrets/_/edit",
@@ -459,5 +411,5 @@ def test_bulk_secret_editor_invalid_json_displays_errors(
     assert "Invalid JSON" in page
 
     with integration_app.app_context():
-        api_key = Secret.query.filter_by(user_id="default-user", name="api_key").one()
+        api_key = Secret.query.filter_by(name="api_key").one()
         assert api_key.definition == "super-secret"

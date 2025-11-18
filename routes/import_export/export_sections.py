@@ -4,7 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from db_access import get_user_aliases, get_user_secrets, get_user_servers, get_user_variables
+from db_access import get_aliases, get_secrets, get_servers, get_variables
 from encryption import SECRET_ENCRYPTION_SCHEME, encrypt_secret_value
 from forms import ExportForm
 
@@ -34,11 +34,10 @@ def collect_project_files_section(
 
 def collect_alias_section(
     form: ExportForm,
-    user_id: str,
-    cid_writer: CidWriter,
+    cid_writer: CidWriter,  # Required for CID generation
 ) -> list[dict[str, Any]]:
     """Return alias export entries including CID references."""
-    aliases = list(get_user_aliases(user_id))
+    aliases = list(get_aliases())
     selected_names = selected_name_set(form.selected_aliases.data)
     if not selected_names and not getattr(form.selected_aliases, 'raw_data', None):
         selected_names = {
@@ -78,11 +77,10 @@ def collect_alias_section(
 
 def collect_server_section(
     form: ExportForm,
-    user_id: str,
-    cid_writer: CidWriter,
+    cid_writer: CidWriter,  # Required for CID generation
 ) -> list[dict[str, str]]:
     """Return server export entries including CID references."""
-    servers = list(get_user_servers(user_id))
+    servers = list(get_servers())
     selected_names = selected_name_set(form.selected_servers.data)
     if not selected_names and not getattr(form.selected_servers, 'raw_data', None):
         selected_names = {
@@ -120,9 +118,11 @@ def collect_server_section(
     return servers_payload
 
 
-def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, str]]:
-    """Return variable export entries for the user."""
-    variables = list(get_user_variables(user_id))
+def collect_variables_section(
+    form: ExportForm,
+) -> list[dict[str, str]]:
+    """Return variable export entries."""
+    variables = list(get_variables())
     selected_names = selected_name_set(form.selected_variables.data)
     if not selected_names and not getattr(form.selected_variables, 'raw_data', None):
         selected_names = {
@@ -159,13 +159,12 @@ def collect_variables_section(form: ExportForm, user_id: str) -> list[dict[str, 
 
 def collect_secrets_section(
     form: ExportForm,
-    user_id: str,
-    key: str,
-    include_disabled: bool,
-    include_templates: bool,
+    key: str = "",
+    include_disabled: bool = False,
+    include_templates: bool = False,
 ) -> dict[str, Any]:
     """Return encrypted secret entries using the provided key."""
-    secrets = list(get_user_secrets(user_id))
+    secrets = list(get_secrets())
     selected_names = selected_name_set(form.selected_secrets.data)
     if not selected_names and not getattr(form.selected_secrets, 'raw_data', None):
         selected_names = {

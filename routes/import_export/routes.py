@@ -6,9 +6,8 @@ from typing import Any
 
 from flask import jsonify, render_template, request, session
 
-from db_access import get_user_exports
+from db_access import get_exports
 from forms import ExportForm, ImportForm
-from identity import current_user
 from interaction_log import load_interaction_history
 
 from . import main_bp  # pylint: disable=no-name-in-module  # Lazy loaded via __getattr__
@@ -29,12 +28,12 @@ from .import_sources import load_import_payload, parse_import_payload
 def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
-    preview = build_export_preview(form, current_user.id)
-    recent_exports = get_user_exports(current_user.id, limit=100)
+    preview = build_export_preview(form)
+    recent_exports = get_exports(limit=100)
     if form.validate_on_submit():
         from db_access import record_export
-        export_result = build_export_payload(form, current_user.id)
-        record_export(current_user.id, export_result['cid_value'])
+        export_result = build_export_payload(form)
+        record_export(export_result['cid_value'])
         return render_template('export_result.html', **export_result)
 
     return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
@@ -44,11 +43,10 @@ def export_data():
 def export_size():
     """Return the size of the export JSON for the current selections."""
     form = ExportForm()
-    build_export_preview(form, current_user.id)
+    build_export_preview(form)
     if form.validate():
         export_result = build_export_payload(
             form,
-            current_user.id,
             store_content=False,
         )
         json_bytes = export_result['json_payload'].encode('utf-8')
@@ -105,7 +103,7 @@ def _handle_json_import():
         handle_import_source_files(context)
 
         from .import_engine import generate_snapshot_export
-        snapshot_export = generate_snapshot_export(context.user_id)
+        snapshot_export = generate_snapshot_export()
 
         response_data = {'ok': True}
         if context.errors:
@@ -133,7 +131,7 @@ def _handle_form_import():
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_import_form(snapshot_export: dict[str, Any] | None = None):
-        interactions = load_interaction_history(current_user.id, 'import', 'json')
+        interactions = load_interaction_history('import', 'json')
         snapshot_info = session.pop('import_snapshot_export', None) or snapshot_export
         imported_names = session.pop('import_summary_names', None)
         return render_template(

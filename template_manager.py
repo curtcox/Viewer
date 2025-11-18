@@ -30,11 +30,8 @@ VALID_ENTITY_TYPES = {
 }
 
 
-def get_templates_config(user_id: str) -> Optional[Dict[str, Any]]:
-    """Read and parse the templates configuration for a user.
-
-    Args:
-        user_id: User identifier
+def get_templates_config() -> Optional[Dict[str, Any]]:
+    """Read and parse the templates configuration.
 
     Returns:
         Parsed templates dictionary, or None if not found or invalid
@@ -43,11 +40,8 @@ def get_templates_config(user_id: str) -> Optional[Dict[str, Any]]:
     - Direct JSON: A JSON string with the templates structure
     - CID Reference: A CID string pointing to stored JSON
     """
-    if not user_id:
-        return None
-
     # Get the templates variable
-    templates_var = get_variable_by_name(user_id, 'templates')
+    templates_var = get_variable_by_name('templates')
     if not templates_var or not templates_var.definition:
         return None
 
@@ -75,10 +69,10 @@ def get_templates_config(user_id: str) -> Optional[Dict[str, Any]]:
             if isinstance(templates_dict, dict):
                 return templates_dict
     except (json.JSONDecodeError, ValueError, UnicodeDecodeError) as e:
-        logger.warning("Failed to parse CID templates for user %s: %s", user_id, e)
+        logger.warning("Failed to parse CID templates: %s", e)
         return None
 
-    logger.warning("Templates variable for user %s is not valid JSON or CID", user_id)
+    logger.warning("Templates variable is not valid JSON or CID")
     return None
 
 
@@ -127,11 +121,8 @@ def validate_templates_json(json_data: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
-def get_template_status(user_id: str) -> Dict[str, Any]:
-    """Get template status information for a user.
-
-    Args:
-        user_id: User identifier
+def get_template_status() -> Dict[str, Any]:
+    """Get template status information.
 
     Returns:
         Dictionary with status information:
@@ -140,7 +131,7 @@ def get_template_status(user_id: str) -> Dict[str, Any]:
         - count_total: int - total number of templates
         - count_by_type: dict - count of templates by entity type
     """
-    templates_config = get_templates_config(user_id)
+    templates_config = get_templates_config()
 
     if templates_config is None:
         return {
@@ -174,11 +165,10 @@ def get_template_status(user_id: str) -> Dict[str, Any]:
     }
 
 
-def get_templates_for_type(user_id: str, entity_type: str) -> List[Dict[str, Any]]:
+def get_templates_for_type(entity_type: str) -> List[Dict[str, Any]]:
     """Extract templates for a specific entity type.
 
     Args:
-        user_id: User identifier
         entity_type: Type of entity ('aliases', 'servers', 'variables', 'secrets')
 
     Returns:
@@ -189,7 +179,7 @@ def get_templates_for_type(user_id: str, entity_type: str) -> List[Dict[str, Any
         logger.warning("Invalid entity type requested: %s", entity_type)
         return []
 
-    templates_config = get_templates_config(user_id)
+    templates_config = get_templates_config()
     if not templates_config:
         return []
 
@@ -209,12 +199,11 @@ def get_templates_for_type(user_id: str, entity_type: str) -> List[Dict[str, Any
 
 
 def get_template_by_key(
-    user_id: str, entity_type: str, template_key: str
+    entity_type: str, template_key: str
 ) -> Optional[Dict[str, Any]]:
     """Get a specific template by its key.
 
     Args:
-        user_id: User identifier
         entity_type: Type of entity ('aliases', 'servers', 'variables', 'secrets')
         template_key: The key/identifier of the template
 
@@ -225,7 +214,7 @@ def get_template_by_key(
         logger.warning("Invalid entity type requested: %s", entity_type)
         return None
 
-    templates_config = get_templates_config(user_id)
+    templates_config = get_templates_config()
     if not templates_config:
         return None
 

@@ -15,7 +15,7 @@ from getgauge.python import after_scenario, before_scenario, step
 from app import create_app
 from cid_presenter import cid_path
 from database import db
-from identity import ensure_default_user
+from identity import ensure_default_resources
 from models import CID, Server
 from step_impl.artifacts import attach_response_snapshot
 
@@ -101,13 +101,6 @@ def _resolve_export_section(section_name: str) -> Any:
     return section_reference
 
 
-def _login_default_user(client: FlaskClient) -> None:
-    """Attach the default user session to the provided test client."""
-    with client.session_transaction() as session:
-        session["_user_id"] = "default-user"
-        session["_fresh"] = True
-
-
 def _create_isolated_site(label: str) -> tuple[Any, FlaskClient]:
     """Return a Flask app and client backed by an isolated database."""
     fd, db_path_str = tempfile.mkstemp(prefix=f"gauge-{label}-", suffix=".sqlite3")
@@ -123,7 +116,6 @@ def _create_isolated_site(label: str) -> tuple[Any, FlaskClient]:
     )
 
     client = app.test_client()
-    _login_default_user(client)
 
     _created_apps.append(app)
     _created_db_paths.append(db_path)
@@ -163,9 +155,9 @@ def given_origin_site_with_server(server_name: str, server_message: str) -> None
     )
 
     with origin_app.app_context():
-        user = ensure_default_user()
+        ensure_default_resources()
         db.session.add(
-            Server(name=server_name, definition=server_definition, user_id=user.id)
+            Server(name=server_name, definition=server_definition)
         )
         db.session.commit()
 
@@ -292,8 +284,7 @@ def then_destination_has_server(server_name: str) -> None:
     assert cid_text == server_definition, "CID map content did not match the server definition."
 
     with destination_app.app_context():
-        user = ensure_default_user()
-        imported_server = Server.query.filter_by(name=server_name, user_id=user.id).first()
+        imported_server = Server.query.filter_by(name=server_name).first()
         assert imported_server is not None, "Imported server was not found."
         assert (
             imported_server.definition == server_definition

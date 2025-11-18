@@ -12,7 +12,6 @@ class CID(db.Model):
     path = db.Column(db.String(255), unique=True, nullable=False, index=True)
     file_data = db.Column(db.LargeBinary, nullable=False)  # For actual file bytes
     file_size = db.Column(db.Integer, nullable=True)
-    uploaded_by_user_id = db.Column(db.String, nullable=True)  # Track uploader
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def __repr__(self) -> str:
@@ -20,7 +19,6 @@ class CID(db.Model):
 
 class PageView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, nullable=False)
     path = db.Column(db.String(255), nullable=False)
     method = db.Column(db.String(10), default='GET')
     user_agent = db.Column(db.String(500), nullable=True)
@@ -28,35 +26,28 @@ class PageView(db.Model):
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     def __repr__(self) -> str:
-        return f'<PageView {self.path} by {self.user_id} at {self.viewed_at}>'
+        return f'<PageView {self.path} at {self.viewed_at}>'
 
 class Server(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     definition = db.Column(db.Text, nullable=False)
     definition_cid = db.Column(db.String(255), nullable=True, index=True)  # Track CID of definition
-    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
 
-    # Unique constraint: each user can only have one server with a given name
-    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_server_name'),)
-
     def __repr__(self) -> str:
-        return f'<Server {self.name} by {self.user_id}>'
+        return f'<Server {self.name}>'
 
 
 class Alias(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     definition = db.Column(db.Text, nullable=True)
-    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
-
-    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_alias_name'),)
 
     def get_effective_pattern(self) -> str:
         route = get_primary_alias_route(self)
@@ -123,7 +114,6 @@ class EntityInteraction(db.Model):
     __tablename__ = 'entity_interactions'
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, nullable=False, index=True)
     entity_type = db.Column(db.String(50), nullable=False, index=True)
     entity_name = db.Column(db.String(255), nullable=False, index=True)
     action = db.Column(db.String(20), nullable=False)
@@ -142,37 +132,28 @@ class EntityInteraction(db.Model):
 
 class Variable(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     definition = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
 
-    # Unique constraint: each user can only have one variable with a given name
-    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_variable_name'),)
-
     def __repr__(self) -> str:
-        return f'<Variable {self.name} by {self.user_id}>'
+        return f'<Variable {self.name}>'
 
 class Secret(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
     definition = db.Column(db.Text, nullable=False)
-    user_id = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     enabled = db.Column(Boolean(), nullable=False, default=True, server_default='1')
 
-    # Unique constraint: each user can only have one secret with a given name
-    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='unique_user_secret_name'),)
-
     def __repr__(self) -> str:
-        return f'<Secret {self.name} by {self.user_id}>'
+        return f'<Secret {self.name}>'
 
 class ServerInvocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, nullable=False)
     server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
     result_cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the result produced
     servers_cid = db.Column(db.String(255), nullable=True)  # CID of current servers definitions
@@ -183,14 +164,13 @@ class ServerInvocation(db.Model):
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     def __repr__(self) -> str:
-        return f'<ServerInvocation {self.server_name} by {self.user_id} -> {self.result_cid}>'
+        return f'<ServerInvocation {self.server_name} -> {self.result_cid}>'
 
 
 class Export(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, nullable=False, index=True)
     cid = db.Column(db.String(255), nullable=False, index=True)  # CID of the export
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     def __repr__(self) -> str:
-        return f'<Export {self.cid} by {self.user_id} at {self.created_at}>'
+        return f'<Export {self.cid} at {self.created_at}>'

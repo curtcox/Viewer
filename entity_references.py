@@ -11,11 +11,11 @@ from cid_presenter import cid_path, format_cid
 from cid_utils import CID_PATH_CAPTURE_PATTERN, is_probable_cid_component
 from db_access import (
     get_alias_by_name,
+    get_aliases,
     get_cid_by_path,
     get_cids_by_paths,
     get_server_by_name,
-    get_user_aliases,
-    get_user_servers,
+    get_servers,
 )
 
 ReferenceMap = Dict[str, List[Dict[str, str]]]
@@ -142,7 +142,7 @@ def _discover_cid_references(text: str) -> List[Dict[str, str]]:
     return _dedupe(references, "cid")
 
 
-def extract_references_from_text(text: Optional[str], user_id: Optional[str] = None) -> ReferenceMap:
+def extract_references_from_text(text: Optional[str]) -> ReferenceMap:
     """Return aliases, servers, and CIDs referenced within text content."""
 
     if not text:
@@ -152,12 +152,9 @@ def extract_references_from_text(text: Optional[str], user_id: Optional[str] = N
 
     references = _empty_reference_map()
 
-    if user_id:
-        alias_names = [alias.name for alias in get_user_aliases(user_id)]
-        server_names = [server.name for server in get_user_servers(user_id)]
-    else:
-        alias_names = []
-        server_names = []
+    # No user scoping needed - get all aliases and servers
+    alias_names = [alias.name for alias in get_aliases()]
+    server_names = [server.name for server in get_servers()]
 
     if alias_names:
         references["aliases"] = _discover_alias_references(snippet, alias_names)
@@ -168,17 +165,17 @@ def extract_references_from_text(text: Optional[str], user_id: Optional[str] = N
     return references
 
 
-def extract_references_from_bytes(data: Optional[bytes], user_id: Optional[str] = None) -> ReferenceMap:
+def extract_references_from_bytes(data: Optional[bytes]) -> ReferenceMap:
     """Decode bytes content and extract entity references."""
 
     if not data:
         return _empty_reference_map()
 
     text = data.decode("utf-8", errors="ignore")
-    return extract_references_from_text(text, user_id=user_id)
+    return extract_references_from_text(text)
 
 
-def extract_references_from_target(target_path: Optional[str], user_id: Optional[str] = None) -> ReferenceMap:
+def extract_references_from_target(target_path: Optional[str]) -> ReferenceMap:
     """Extract references from a single target path, such as an alias destination."""
 
     references = _empty_reference_map()
@@ -186,21 +183,20 @@ def extract_references_from_target(target_path: Optional[str], user_id: Optional
     if not normalized_path:
         return references
 
-    if user_id:
-        alias_identifier = normalized_path.lstrip("/")
-        alias = get_alias_by_name(user_id, alias_identifier)
-        if not alias and alias_identifier.startswith("aliases/"):
-            _, alias_name = alias_identifier.split("/", 1)
-            if alias_name:
-                alias = get_alias_by_name(user_id, alias_name)
-        if alias:
-            references["aliases"].append(_build_alias_reference(alias.name))
+    alias_identifier = normalized_path.lstrip("/")
+    alias = get_alias_by_name(alias_identifier)
+    if not alias and alias_identifier.startswith("aliases/"):
+        _, alias_name = alias_identifier.split("/", 1)
+        if alias_name:
+            alias = get_alias_by_name(alias_name)
+    if alias:
+        references["aliases"].append(_build_alias_reference(alias.name))
 
-        server_name = _server_name_from_path(normalized_path)
-        if server_name:
-            server = get_server_by_name(user_id, server_name)
-            if server:
-                references["servers"].append(_build_server_reference(server.name))
+    server_name = _server_name_from_path(normalized_path)
+    if server_name:
+        server = get_server_by_name(server_name)
+        if server:
+            references["servers"].append(_build_server_reference(server.name))
 
     cid_reference = _cid_reference_from_path(normalized_path)
     if cid_reference:

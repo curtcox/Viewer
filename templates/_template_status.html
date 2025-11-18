@@ -1,6 +1,6 @@
-{% macro render_template_status(user_id, entity_type=None) %}
+{% macro render_template_status(entity_type) %}
     {# Get template status link information #}
-    {% set status_info = get_template_link_info(user_id, entity_type) %}
+    {% set status_info = get_template_link_info(entity_type) %}
 
     {# Render the template status link #}
     <div class="template-status-wrapper mb-3">

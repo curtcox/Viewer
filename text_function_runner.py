@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, 
 from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes
 from db_access import get_cid_by_path
-from identity import current_user
 
 
 def _coerce_to_bytes(value: Any) -> bytes:
@@ -18,38 +17,9 @@ def _coerce_to_bytes(value: Any) -> bytes:
     return str(value).encode("utf-8")
 
 
-def _get_current_user_id() -> str | None:
-    try:
-        user = current_user
-    except (RuntimeError, AttributeError):
-        # Handle missing request context or uninitialized user
-        return None
-
-    user_id = getattr(user, "id", None)
-    if callable(user_id):
-        try:
-            user_id = user_id()
-        except TypeError:
-            user_id = None
-
-    if not user_id:
-        getter = getattr(user, "get_id", None)
-        if callable(getter):
-            user_id = getter()
-
-    if user_id is None:
-        return None
-
-    return str(user_id)
-
-
 def _save_content(value: Any) -> str:
-    user_id = _get_current_user_id()
-    if not user_id:
-        raise RuntimeError("save() requires an authenticated user with an id")
-
     content = _coerce_to_bytes(value)
-    return store_cid_from_bytes(content, user_id)
+    return store_cid_from_bytes(content)
 
 
 def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict"):

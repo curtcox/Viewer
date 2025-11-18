@@ -10,7 +10,7 @@ from flask import url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from constants import TYPE_LABELS
-from db_access import get_cids_by_paths, get_user_aliases, get_user_servers
+from db_access import get_aliases, get_cids_by_paths, get_servers
 from models import CID
 from utils.dom_keys import _entity_key, _reference_key
 
@@ -236,12 +236,11 @@ def _register_cid_refs(
             state.register_reference('cid', cid_value, 'cid', target_cid)
 
 
-def _collect_alias_entries(user_id: str, state: CrossReferenceState) -> List[Dict[str, Any]]:
+def _collect_alias_entries(state: CrossReferenceState) -> List[Dict[str, Any]]:
     """
     Collect all alias entries and register their references.
 
     Args:
-        user_id: The user ID to collect aliases for
         state: The cross-reference state to update
 
     Returns:
@@ -249,7 +248,7 @@ def _collect_alias_entries(user_id: str, state: CrossReferenceState) -> List[Dic
     """
     get_primary_alias_route, extract_references_from_target, _, _ = _get_ref_dependencies()
 
-    aliases = get_user_aliases(user_id)
+    aliases = get_aliases()
     alias_entries: List[Dict[str, Any]] = []
 
     for alias in aliases:
@@ -265,18 +264,17 @@ def _collect_alias_entries(user_id: str, state: CrossReferenceState) -> List[Dic
             }
         )
 
-        refs = extract_references_from_target(target_path, user_id)
+        refs = extract_references_from_target(target_path)
         _register_alias_or_server_refs(state, 'alias', alias.name, refs)
 
     return alias_entries
 
 
-def _collect_server_entries(user_id: str, state: CrossReferenceState) -> List[Dict[str, Any]]:
+def _collect_server_entries(state: CrossReferenceState) -> List[Dict[str, Any]]:
     """
     Collect all server entries and register their references.
 
     Args:
-        user_id: The user ID to collect servers for
         state: The cross-reference state to update
 
     Returns:
@@ -284,7 +282,7 @@ def _collect_server_entries(user_id: str, state: CrossReferenceState) -> List[Di
     """
     _, _, extract_references_from_text, _ = _get_ref_dependencies()
 
-    servers = get_user_servers(user_id)
+    servers = get_servers()
     server_entries: List[Dict[str, Any]] = []
 
     for server in servers:
@@ -299,7 +297,7 @@ def _collect_server_entries(user_id: str, state: CrossReferenceState) -> List[Di
             }
         )
 
-        refs = extract_references_from_text(getattr(server, 'definition', ''), user_id)
+        refs = extract_references_from_text(getattr(server, 'definition', ''))
         _register_alias_or_server_refs(state, 'server', server.name, refs)
 
         if definition_cid:
@@ -310,7 +308,6 @@ def _collect_server_entries(user_id: str, state: CrossReferenceState) -> List[Di
 
 
 def _collect_cid_entries(
-    user_id: str,
     state: CrossReferenceState,
     alias_keys: Set[str],
     server_keys: Set[str],
@@ -319,7 +316,6 @@ def _collect_cid_entries(
     Collect all CID entries and register their references.
 
     Args:
-        user_id: The user ID to collect CIDs for
         state: The cross-reference state to update
         alias_keys: Set of alias entity keys
         server_keys: Set of server entity keys
@@ -361,7 +357,7 @@ def _collect_cid_entries(
         }
 
         if file_data:
-            refs = extract_references_from_bytes(file_data, user_id)
+            refs = extract_references_from_bytes(file_data)
             _register_cid_refs(state, cid_value, refs)
 
         cid_candidates.append(cid_entry)
@@ -468,31 +464,28 @@ def _assemble_response(
     }
 
 
-def build_cross_reference_data(user_id: str) -> Dict[str, Any]:
+def build_cross_reference_data() -> Dict[str, Any]:
     """
     Build cross-reference dashboard data showing relationships between entities.
 
     This function:
-    1. Collects all user aliases, servers, and referenced CIDs
+    1. Collects all aliases, servers, and referenced CIDs
     2. Extracts references between entities from their definitions
     3. Filters to show only CIDs with named entity relationships
     4. Returns structured data for template rendering with highlight metadata
-
-    Args:
-        user_id: The user ID to build cross-reference data for
 
     Returns:
         Dictionary with keys: 'aliases', 'servers', 'cids', 'references'
     """
     state = CrossReferenceState()
 
-    alias_entries = _collect_alias_entries(user_id, state)
-    server_entries = _collect_server_entries(user_id, state)
+    alias_entries = _collect_alias_entries(state)
+    server_entries = _collect_server_entries(state)
 
     alias_keys = {entry['entity_key'] for entry in alias_entries}
     server_keys = {entry['entity_key'] for entry in server_entries}
 
-    cid_entries = _collect_cid_entries(user_id, state, alias_keys, server_keys)
+    cid_entries = _collect_cid_entries(state, alias_keys, server_keys)
 
     all_entity_keys = alias_keys | server_keys | {entry['entity_key'] for entry in cid_entries}
 

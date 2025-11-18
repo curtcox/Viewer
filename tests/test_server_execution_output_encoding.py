@@ -45,9 +45,9 @@ mock_db_access.create_cid_record = lambda *a, **k: None
 mock_db_access.create_server_invocation = lambda *a, **k: types.SimpleNamespace(invoked_at=None, invocation_cid=None)
 mock_db_access.get_cid_by_path = lambda *a, **k: None
 mock_db_access.get_server_by_name = lambda *a, **k: None
-mock_db_access.get_user_secrets = lambda *a, **k: []
-mock_db_access.get_user_servers = lambda *a, **k: []
-mock_db_access.get_user_variables = lambda *a, **k: []
+mock_db_access.get_secrets = lambda *a, **k: []
+mock_db_access.get_servers = lambda *a, **k: []
+mock_db_access.get_variables = lambda *a, **k: []
 mock_db_access.save_entity = lambda *a, **k: None
 
 
@@ -146,16 +146,13 @@ class TestServerExecutionOutputEncoding(unittest.TestCase):
 class TestExecuteServerCodeSharedFlow(unittest.TestCase):
     def test_execute_functions_share_success_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
 
         calls = []
 
         def fake_runner(code, args):
             calls.append((code, args))
             return {"output": "hello", "content_type": "text/plain"}
-
-        # Use context managers for automatic cleanup
-        mock_user = types.SimpleNamespace(id="user-123")
 
         def mock_build_request_args():
             return {
@@ -178,8 +175,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(variable_resolution, 'current_user', mock_user), \
-             patch.object(code_execution, 'build_request_args', mock_build_request_args), \
+        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
              patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
              patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
              patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \
@@ -204,13 +200,10 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
     def test_execute_functions_share_error_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking, variable_resolution
+        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
 
         def failing_runner(code, args):
             raise ValueError("boom")
-
-        # Use context managers for automatic cleanup
-        mock_user = types.SimpleNamespace(id="user-123")
 
         def mock_build_request_args():
             return {
@@ -233,8 +226,7 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(variable_resolution, 'current_user', mock_user), \
-             patch.object(code_execution, 'build_request_args', mock_build_request_args), \
+        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
              patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
              patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
              patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \

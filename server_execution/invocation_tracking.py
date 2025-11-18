@@ -29,11 +29,11 @@ def request_details():
     }
 
 
-def create_server_invocation_record(user_id: str, server_name: str, result_cid: str) -> Optional[ServerInvocation]:
+def create_server_invocation_record(server_name: str, result_cid: str) -> Optional[ServerInvocation]:
     """Create a ServerInvocation record and persist related metadata."""
-    servers_cid = get_current_server_definitions_cid(user_id)
-    variables_cid = get_current_variable_definitions_cid(user_id)
-    secrets_cid = get_current_secret_definitions_cid(user_id)
+    servers_cid = get_current_server_definitions_cid()
+    variables_cid = get_current_variable_definitions_cid()
+    secrets_cid = get_current_secret_definitions_cid()
 
     try:
         req_json = json.dumps(request_details(), indent=2, sort_keys=True)
@@ -41,14 +41,13 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
         req_cid_value = format_cid(generate_cid(req_bytes))
         req_cid_path = cid_path(req_cid_value)
         if req_cid_path and not get_cid_by_path(req_cid_path):
-            create_cid_record(req_cid_value, req_bytes, user_id)
+            create_cid_record(req_cid_value, req_bytes)
         req_cid = req_cid_value if req_cid_path else None
     except (TypeError, ValueError, SQLAlchemyError, OSError):
         # Handle JSON serialization, CID generation, or database errors
         req_cid = None
 
     invocation = create_server_invocation(
-        user_id,
         server_name,
         result_cid,
         ServerInvocationInput(
@@ -61,7 +60,6 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
 
     try:
         inv_payload = {
-            "user_id": user_id,
             "server_name": server_name,
             "result_cid": result_cid,
             "servers_cid": servers_cid,
@@ -75,7 +73,7 @@ def create_server_invocation_record(user_id: str, server_name: str, result_cid: 
         inv_cid_value = format_cid(generate_cid(inv_bytes))
         inv_cid_path = cid_path(inv_cid_value)
         if inv_cid_path and not get_cid_by_path(inv_cid_path):
-            create_cid_record(inv_cid_value, inv_bytes, user_id)
+            create_cid_record(inv_cid_value, inv_bytes)
 
         invocation.invocation_cid = inv_cid_value if inv_cid_path else None
         save_entity(invocation)

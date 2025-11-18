@@ -27,14 +27,11 @@ def _get_ai_stub_definition() -> Optional[str]:
     return None
 
 
-def ensure_ai_stub_for_user(user_id: str) -> bool:
-    """Ensure the default AI stub server and alias exist for the given user.
+def ensure_ai_stub() -> bool:
+    """Ensure the default AI stub server and alias exist.
 
     Returns True when new resources were created, False otherwise.
     """
-
-    if not user_id:
-        return False
 
     # Import lazily to avoid circular dependencies during module import.
     from db_access import (  # pylint: disable=import-outside-toplevel
@@ -43,9 +40,9 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
         save_entity,
     )
 
-    alias = get_alias_by_name(user_id, AI_ALIAS_NAME)
+    alias = get_alias_by_name(AI_ALIAS_NAME)
 
-    if get_server_by_name(user_id, AI_ALIAS_NAME):
+    if get_server_by_name(AI_ALIAS_NAME):
         return False
 
     definition = _get_ai_stub_definition()
@@ -55,14 +52,14 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
     created = False
 
-    server = get_server_by_name(user_id, AI_SERVER_NAME)
+    server = get_server_by_name(AI_SERVER_NAME)
     if server:
         if server.definition != definition:
             server.definition = definition
             save_entity(server)
             created = True
     else:
-        server = Server(name=AI_SERVER_NAME, definition=definition, user_id=user_id)
+        server = Server(name=AI_SERVER_NAME, definition=definition)
         save_entity(server)
         created = True
 
@@ -85,7 +82,6 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
     alias = Alias(
         name=AI_ALIAS_NAME,
-        user_id=user_id,
         definition=primary_line,
     )
     save_entity(alias)
@@ -93,5 +89,5 @@ def ensure_ai_stub_for_user(user_id: str) -> bool:
 
 
 __all__ = [
-    "ensure_ai_stub_for_user",
+    "ensure_ai_stub",
 ]

@@ -3,11 +3,8 @@
 from typing import Any, Dict, List
 
 
-def get_user_template_uploads(user_id: str) -> List[Dict[str, Any]]:
+def get_template_uploads() -> List[Dict[str, Any]]:
     """Return template uploads from templates variable configuration.
-
-    Args:
-        user_id: User identifier
 
     Returns:
         List of dictionaries with upload template data.
@@ -15,7 +12,7 @@ def get_user_template_uploads(user_id: str) -> List[Dict[str, Any]]:
     """
     from template_manager import get_templates_for_type, ENTITY_TYPE_UPLOADS, resolve_cid_value
 
-    templates = get_templates_for_type(user_id, ENTITY_TYPE_UPLOADS)
+    templates = get_templates_for_type(ENTITY_TYPE_UPLOADS)
 
     # Convert template dicts to upload template format for the UI
     upload_templates = []

@@ -279,7 +279,7 @@
             const enabledCategories = getSelectedCategories();
 
             if (!query) {
-                clearResults('Start typing to search your workspace.');
+                clearResults('Start typing to search the workspace.');
                 return;
             }
 

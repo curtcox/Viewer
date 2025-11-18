@@ -9,16 +9,16 @@ from db_access.generic_crud import GenericEntityRepository
 _variable_repo = GenericEntityRepository(Variable)
 
 
-def get_user_variables(user_id: str) -> List[Variable]:
-    """Return all variables for a user ordered by name."""
-    return _variable_repo.get_all_for_user(user_id)
+def get_variables() -> List[Variable]:
+    """Return all variables ordered by name."""
+    return _variable_repo.get_all()
 
 
-def get_user_template_variables(user_id: str) -> List[Variable]:
+def get_template_variables() -> List[Variable]:
     """Return template variables from templates variable configuration."""
     from template_manager import get_templates_for_type, ENTITY_TYPE_VARIABLES, resolve_cid_value
 
-    templates = get_templates_for_type(user_id, ENTITY_TYPE_VARIABLES)
+    templates = get_templates_for_type(ENTITY_TYPE_VARIABLES)
 
     # Convert template dicts to Variable objects (read-only representations)
     variable_objects = []
@@ -30,7 +30,6 @@ def get_user_template_variables(user_id: str) -> List[Variable]:
         # Store the template key in a separate attribute for UI use
         variable.template_key = template.get('key', '')
         variable.name = template.get('name', template.get('key', ''))
-        variable.user_id = user_id
 
         # Try to get definition from various possible fields
         definition = template.get('definition')
@@ -45,21 +44,16 @@ def get_user_template_variables(user_id: str) -> List[Variable]:
     return sorted(variable_objects, key=lambda v: v.name if v.name else '')
 
 
-def get_variable_by_name(user_id: str, name: str) -> Optional[Variable]:
-    """Return a variable by name for a user."""
-    return _variable_repo.get_by_name(user_id, name)
+def get_variable_by_name(name: str) -> Optional[Variable]:
+    """Return a variable by name."""
+    return _variable_repo.get_by_name(name)
 
 
-def get_first_variable_name(user_id: str) -> Optional[str]:
-    """Return the first variable name for a user ordered alphabetically."""
-    return _variable_repo.get_first_name(user_id)
-
-
-def count_user_variables(user_id: str) -> int:
-    """Return the count of variables for a user."""
-    return _variable_repo.count_for_user(user_id)
+def get_first_variable_name() -> Optional[str]:
+    """Return the first variable name ordered alphabetically."""
+    return _variable_repo.get_first_name()
 
 
 def count_variables() -> int:
-    """Return the total count of variables."""
-    return _variable_repo.count_all()
+    """Return the count of variables."""
+    return _variable_repo.count()

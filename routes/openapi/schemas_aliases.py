@@ -12,7 +12,6 @@ def alias_record_schema() -> Dict[str, Any]:
         "required": [
             "id",
             "name",
-            "user_id",
             "enabled",
             "match_type",
             "match_pattern",
@@ -28,11 +27,6 @@ def alias_record_schema() -> Dict[str, Any]:
             "definition": {
                 "type": ["string", "null"],
                 "description": "Stored alias definition text.",
-            },
-            "user_id": {
-                "type": "string",
-                "description": "Owner identifier",
-                "example": "default-user",
             },
             "created_at": {
                 "type": "string",

@@ -15,7 +15,6 @@ pytestmark = pytest.mark.integration
 def test_history_page_displays_recent_activity(
     client,
     integration_app,
-    login_default_user,
 ):
     """The history page should render recorded page views for the user."""
 
@@ -23,13 +22,11 @@ def test_history_page_displays_recent_activity(
         now = datetime.now(timezone.utc)
         page_views = [
             PageView(
-                user_id="default-user",
                 path="/profile",
                 method="GET",
                 viewed_at=now - timedelta(minutes=5),
             ),
             PageView(
-                user_id="default-user",
                 path="/upload",
                 method="POST",
                 viewed_at=now - timedelta(minutes=1),
@@ -37,8 +34,6 @@ def test_history_page_displays_recent_activity(
         ]
         db.session.add_all(page_views)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/history")
     assert response.status_code == 200

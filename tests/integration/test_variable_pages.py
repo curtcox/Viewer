@@ -18,29 +18,25 @@ from models import CID, Variable
 pytestmark = pytest.mark.integration
 
 
-def test_variables_page_lists_user_variables(
+def test_variables_page_lists_saved_variables(
     client,
     integration_app,
-    login_default_user,
 ):
-    """The variables index page should list the user's variables."""
+    """The variables index page should list the saved variables."""
 
     with integration_app.app_context():
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert "My Variables" in page
+    assert "Variables" in page
     assert "API_URL" in page
     assert "https://example.com/api" in page
 
@@ -48,7 +44,6 @@ def test_variables_page_lists_user_variables(
 def test_variables_page_includes_enabled_toggle(
     client,
     integration_app,
-    login_default_user,
 ):
     """Each variable card should surface an enabled/disabled toggle."""
 
@@ -56,13 +51,10 @@ def test_variables_page_includes_enabled_toggle(
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables")
     assert response.status_code == 200
@@ -78,7 +70,6 @@ def test_variables_page_includes_enabled_toggle(
 def test_variable_enable_toggle_updates_state(
     client,
     integration_app,
-    login_default_user,
 ):
     """Posting the toggle form should persist variable enablement."""
 
@@ -86,13 +77,10 @@ def test_variable_enable_toggle_updates_state(
         variable = Variable(
             name="API_URL",
             definition="https://example.com/api",
-            user_id="default-user",
             enabled=False,
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/variables/API_URL/enabled",
@@ -102,7 +90,7 @@ def test_variable_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        variable = Variable.query.filter_by(name="API_URL").one()
         assert variable.enabled is True
 
     response = client.post(
@@ -113,14 +101,13 @@ def test_variable_enable_toggle_updates_state(
     assert response.status_code == 302
 
     with integration_app.app_context():
-        variable = Variable.query.filter_by(user_id="default-user", name="API_URL").one()
+        variable = Variable.query.filter_by(name="API_URL").one()
         assert variable.enabled is False
 
 
 def test_variable_detail_page_displays_variable_information(
     client,
     integration_app,
-    login_default_user,
 ):
     """The variable detail page should render the variable metadata."""
 
@@ -128,12 +115,9 @@ def test_variable_detail_page_displays_variable_information(
         variable = Variable(
             name="API_TOKEN",
             definition="super-secret-token",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/API_TOKEN")
     assert response.status_code == 200
@@ -144,13 +128,10 @@ def test_variable_detail_page_displays_variable_information(
     assert "Variable Information" in page
 
 
-def test_new_variable_form_renders_for_authenticated_user(
+def test_new_variable_form_renders_in_single_user_mode(
     client,
-    login_default_user,
 ):
-    """The new-variable form should render for logged-in users."""
-
-    login_default_user()
+    """The new-variable form should render without explicit login helpers."""
 
     response = client.get("/variables/new")
     assert response.status_code == 200
@@ -165,7 +146,6 @@ def test_new_variable_form_renders_for_authenticated_user(
 def test_new_variable_form_includes_templates(
     client,
     integration_app,
-    login_default_user,
 ):
     """Variables marked as templates should appear on the creation form."""
 
@@ -185,13 +165,10 @@ def test_new_variable_form_includes_templates(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/new")
     assert response.status_code == 200
@@ -204,7 +181,6 @@ def test_new_variable_form_includes_templates(
 def test_new_variable_form_includes_template_link(
     client,
     integration_app,
-    login_default_user,
 ):
     """New variable form should display a link to /variables/templates with status."""
 
@@ -231,13 +207,10 @@ def test_new_variable_form_includes_template_link(
 
         templates_var = Variable(
             name="templates",
-            user_id="default-user",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/new")
     assert response.status_code == 200
@@ -252,7 +225,6 @@ def test_new_variable_form_includes_template_link(
 def test_edit_variable_form_displays_existing_variable_details(
     client,
     integration_app,
-    login_default_user,
 ):
     """Editing a variable should prefill the form with its saved details."""
 
@@ -260,12 +232,9 @@ def test_edit_variable_form_displays_existing_variable_details(
         variable = Variable(
             name="API_TOKEN",
             definition="super-secret-token",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/API_TOKEN/edit")
     assert response.status_code == 200
@@ -279,7 +248,6 @@ def test_edit_variable_form_displays_existing_variable_details(
 def test_edit_variable_updates_definition_snapshot(
     client,
     integration_app,
-    login_default_user,
 ):
     """Variable edits should persist new definitions for subsequent page loads."""
 
@@ -287,14 +255,11 @@ def test_edit_variable_updates_definition_snapshot(
         variable = Variable(
             name="city",
             definition="return 'Paris'",
-            user_id="default-user",
         )
         db.session.add(variable)
         db.session.commit()
 
-        initial_snapshot_cid = store_variable_definitions_cid("default-user")
-
-    login_default_user()
+        initial_snapshot_cid = store_variable_definitions_cid()
 
     updated_definition = "return 'Berlin'"
 
@@ -314,13 +279,12 @@ def test_edit_variable_updates_definition_snapshot(
 
     with integration_app.app_context():
         updated_variable = Variable.query.filter_by(
-            user_id="default-user",
             name="region",
         ).first()
         assert updated_variable is not None
         assert updated_variable.definition == updated_definition
 
-        expected_snapshot_json = generate_all_variable_definitions_json("default-user")
+        expected_snapshot_json = generate_all_variable_definitions_json()
         expected_snapshot_cid = format_cid(
             generate_cid(expected_snapshot_json.encode("utf-8"))
         )
@@ -346,20 +310,17 @@ def test_edit_variable_updates_definition_snapshot(
 def test_bulk_variable_editor_prefills_existing_variables(
     client,
     integration_app,
-    login_default_user,
 ):
     """The bulk editor should render the current variables as JSON."""
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.add(
-            Variable(name="region", definition="Europe", user_id="default-user")
+            Variable(name="region", definition="Europe")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/variables/_/edit")
     assert response.status_code == 200
@@ -373,20 +334,17 @@ def test_bulk_variable_editor_prefills_existing_variables(
 def test_bulk_variable_editor_updates_and_deletes_variables(
     client,
     integration_app,
-    login_default_user,
 ):
     """Saving from the bulk editor should upsert provided variables and remove omissions."""
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.add(
-            Variable(name="country", definition="France", user_id="default-user")
+            Variable(name="country", definition="France")
         )
         db.session.commit()
-
-    login_default_user()
 
     payload = {"city": "Berlin", "timezone": "CET"}
     response = client.post(
@@ -402,9 +360,9 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
     assert response.headers["Location"].endswith("/variables")
 
     with integration_app.app_context():
-        city = Variable.query.filter_by(user_id="default-user", name="city").one()
-        timezone = Variable.query.filter_by(user_id="default-user", name="timezone").one()
-        country = Variable.query.filter_by(user_id="default-user", name="country").first()
+        city = Variable.query.filter_by(name="city").one()
+        timezone = Variable.query.filter_by(name="timezone").one()
+        country = Variable.query.filter_by(name="country").first()
 
         assert city.definition == "Berlin"
         assert timezone.definition == "CET"
@@ -415,17 +373,14 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
 def test_bulk_variable_editor_invalid_json_displays_errors(
     client,
     integration_app,
-    login_default_user,
 ):
     """Invalid JSON submissions should be rejected and show an error message."""
 
     with integration_app.app_context():
         db.session.add(
-            Variable(name="city", definition="Paris", user_id="default-user")
+            Variable(name="city", definition="Paris")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.post(
         "/variables/_/edit",
@@ -442,5 +397,5 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
     assert "Invalid JSON" in page
 
     with integration_app.app_context():
-        city = Variable.query.filter_by(user_id="default-user", name="city").one()
+        city = Variable.query.filter_by(name="city").one()
         assert city.definition == "Paris"

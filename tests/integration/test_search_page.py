@@ -15,17 +15,15 @@ _DEFAULT_CATEGORIES = (
 )
 
 
-def test_search_page_displays_filters_and_status(client, login_default_user):
+def test_search_page_displays_filters_and_status(client):
     """The search page should render with all filters enabled and helpful copy."""
-
-    login_default_user()
 
     response = client.get("/search")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
     assert "Workspace Search" in page
-    assert "Start typing to search your workspace." in page
+    assert "Start typing to search the workspace." in page
     assert "id=\"search-query\"" in page
     assert "id=\"search-endpoint\"" in page
 

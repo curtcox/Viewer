@@ -8,7 +8,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
-from db_access import get_cid_by_path, get_server_by_name, get_user_secrets, get_user_servers, get_user_variables
+from db_access import get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
 from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
@@ -19,7 +19,7 @@ from server_execution.request_parsing import (
     _resolve_function_parameters,
 )
 from server_execution.response_handling import _handle_successful_execution, _log_server_output
-from server_execution.variable_resolution import _current_user_id, _resolve_variable_values, _should_skip_variable_prefetch
+from server_execution.variable_resolution import _resolve_variable_values, _should_skip_variable_prefetch
 # pylint: enable=no-name-in-module
 from text_function_runner import run_text_function
 
@@ -146,8 +146,7 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
         return None
 
     server_name = segments[0]
-    user_id = _current_user_id()
-    server = get_server_by_name(user_id, server_name) if user_id else None
+    server = get_server_by_name(server_name)
     if server and not getattr(server, "enabled", True):
         server = None
     if server:
@@ -360,17 +359,13 @@ def model_as_dict(model_objects: Optional[Iterable[Any]]) -> Dict[str, Any]:
 
 
 def _load_user_context() -> Dict[str, Dict[str, Any]]:
-    user_id = _current_user_id()
-    if not user_id:
-        return {"variables": {}, "secrets": {}, "servers": {}}
-
-    variables = model_as_dict(get_user_variables(user_id))
+    variables = model_as_dict(get_variables())
     if _should_skip_variable_prefetch():
         variables = dict(variables)
     else:
         variables = _resolve_variable_values(variables)
-    secrets = model_as_dict(get_user_secrets(user_id))
-    servers = model_as_dict(get_user_servers(user_id))
+    secrets = model_as_dict(get_secrets())
+    servers = model_as_dict(get_servers())
     return {"variables": variables, "secrets": secrets, "servers": servers}
 
 

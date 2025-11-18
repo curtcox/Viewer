@@ -26,7 +26,6 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
         )
         alias = Alias(
             name="latest",
-            user_id="default-user",
             definition=definition_text,
         )
         server = Server(
@@ -36,7 +35,6 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
                 f"    return '{old_cid}'\n"
             ),
             definition_cid=old_cid,
-            user_id="default-user",
         )
         db.session.add_all([alias, server])
         db.session.commit()
@@ -44,8 +42,8 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
         with patch("cid_utils.save_server_definition_as_cid") as mock_save, patch(
             "cid_utils.store_server_definitions_cid"
         ) as mock_store:
-            mock_save.side_effect = lambda definition, user_id: f"{user_id}-integration-cid"
-            mock_store.side_effect = lambda user_id: f"bundle-{user_id}"
+            mock_save.side_effect = lambda definition: "test-integration-cid"
+            mock_store.side_effect = lambda: "bundle"
 
             result = update_cid_references(old_cid, new_cid)
 
@@ -63,10 +61,10 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
 
         assert new_cid in (refreshed_server.definition or "")
         assert old_cid not in (refreshed_server.definition or "")
-        assert refreshed_server.definition_cid == "default-user-integration-cid"
+        assert refreshed_server.definition_cid == "test-integration-cid"
 
         mock_save.assert_called_once()
-        mock_store.assert_called_once_with("default-user")
+        mock_store.assert_called_once()
 
 
 def test_update_alias_cid_reference_updates_existing_alias(integration_app):
@@ -83,7 +81,6 @@ def test_update_alias_cid_reference_updates_existing_alias(integration_app):
         )
         alias = Alias(
             name="integration-release",
-            user_id="default-user",
             definition=definition_text,
         )
         db.session.add(alias)
@@ -117,6 +114,5 @@ def test_update_alias_cid_reference_creates_alias_when_missing(integration_app):
 
         created = Alias.query.filter_by(name="integration-new").first()
         assert created is not None
-        assert created.user_id == "default-user"
         assert created.target_path == "/integration-fresh"
         assert created.definition.startswith("integration-new -> /integration-fresh")

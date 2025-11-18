@@ -37,14 +37,10 @@ def handle_boot_cid_import(boot_cid: str) -> None:
         SystemExit: If the import fails
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
-    from identity import ensure_default_user  # pylint: disable=import-outside-toplevel
 
     with app.app_context():
-        # Get the default user
-        default_user = ensure_default_user()
-
         # Perform the import
-        success, error = import_boot_cid(app, boot_cid, default_user.id)
+        success, error = import_boot_cid(app, boot_cid)
 
         if not success:
             print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)
@@ -68,13 +64,18 @@ def handle_list_boot_cids() -> None:
 
         for cid_value, metadata in boot_cids:
             print(f"CID: {cid_value}")
-            print(f"  Size: {metadata['size']} bytes")
-            if metadata['uploaded_by']:
-                print(f"  Uploaded by: {metadata['uploaded_by']}")
-            if metadata['created_at']:
-                print(f"  Created: {metadata['created_at']}")
-            if metadata['sections']:
-                print(f"  Sections: {', '.join(metadata['sections'])}")
+            size = metadata.get('size')
+            if size is not None:
+                print(f"  Size: {size} bytes")
+            uploaded_by = metadata.get('uploaded_by')
+            if uploaded_by:
+                print(f"  Uploaded by: {uploaded_by}")
+            created_at = metadata.get('created_at')
+            if created_at:
+                print(f"  Created: {created_at}")
+            sections = metadata.get('sections')
+            if sections:
+                print(f"  Sections: {', '.join(sections)}")
             print()
 
         sys.exit(0)

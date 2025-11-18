@@ -183,7 +183,6 @@ def prepare_server_import(
 
 
 def impl_import_aliases(
-    user_id: str,
     raw_aliases: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str], list[str]]:
@@ -201,7 +200,7 @@ def impl_import_aliases(
         prepared = prepare_alias_import(entry, reserved_routes, cid_map, errors)
         if prepared is None:
             continue
-        existing = get_alias_by_name(user_id, prepared.name)
+        existing = get_alias_by_name(prepared.name)
         if existing:
             existing.definition = prepared.definition
             existing.updated_at = datetime.now(timezone.utc)
@@ -210,7 +209,6 @@ def impl_import_aliases(
         else:
             alias = Alias(
                 name=prepared.name,
-                user_id=user_id,
                 definition=prepared.definition,
                 enabled=prepared.enabled,
             )
@@ -221,26 +219,23 @@ def impl_import_aliases(
 
 
 def import_aliases_with_names(
-    user_id: str,
     raw_aliases: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str], list[str]]:
     """Import aliases and return count, errors, and imported names."""
-    return impl_import_aliases(user_id, raw_aliases, cid_map)
+    return impl_import_aliases(raw_aliases, cid_map)
 
 
 def import_aliases(
-    user_id: str,
     raw_aliases: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str]]:
     """Import aliases and return count and errors (legacy interface)."""
-    count, errors, _names = impl_import_aliases(user_id, raw_aliases, cid_map)
+    count, errors, _names = impl_import_aliases(raw_aliases, cid_map)
     return count, errors
 
 
 def impl_import_servers(
-    user_id: str,
     raw_servers: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str], list[str]]:
@@ -257,8 +252,8 @@ def impl_import_servers(
         prepared = prepare_server_import(entry, cid_map, errors)
         if prepared is None:
             continue
-        definition_cid = save_server_definition_as_cid(prepared.definition, user_id)
-        existing = get_server_by_name(user_id, prepared.name)
+        definition_cid = save_server_definition_as_cid(prepared.definition)
+        existing = get_server_by_name(prepared.name)
         if existing:
             existing.definition = prepared.definition
             existing.definition_cid = definition_cid
@@ -269,7 +264,6 @@ def impl_import_servers(
             server = Server(
                 name=prepared.name,
                 definition=prepared.definition,
-                user_id=user_id,
                 definition_cid=definition_cid,
                 enabled=prepared.enabled,
             )
@@ -277,30 +271,28 @@ def impl_import_servers(
         imported += 1
         names.append(prepared.name)
     if imported:
-        update_server_definitions_cid_safe(user_id)
+        update_server_definitions_cid_safe()
     return imported, errors, names
 
 
 def import_servers_with_names(
-    user_id: str,
     raw_servers: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str], list[str]]:
     """Import servers and return count, errors, and imported names."""
-    return impl_import_servers(user_id, raw_servers, cid_map)
+    return impl_import_servers(raw_servers, cid_map)
 
 
 def import_servers(
-    user_id: str,
     raw_servers: Any,
     cid_map: dict[str, bytes] | None = None,
 ) -> tuple[int, list[str]]:
     """Import servers and return count and errors (legacy interface)."""
-    count, errors, _names = impl_import_servers(user_id, raw_servers, cid_map)
+    count, errors, _names = impl_import_servers(raw_servers, cid_map)
     return count, errors
 
 
-def impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[str], list[str]]:
+def impl_import_variables(raw_variables: Any) -> tuple[int, list[str], list[str]]:
     """Implementation of variable import with name tracking."""
     errors: list[str] = []
     imported = 0
@@ -319,7 +311,7 @@ def impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[s
             errors.append('Variable entry must include both name and definition.')
             continue
         enabled = coerce_enabled_flag(entry.get('enabled'))
-        existing = get_variable_by_name(user_id, name)
+        existing = get_variable_by_name(name)
         if existing:
             existing.definition = definition
             existing.updated_at = datetime.now(timezone.utc)
@@ -329,29 +321,28 @@ def impl_import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[s
             variable = Variable(
                 name=name,
                 definition=definition,
-                user_id=user_id,
                 enabled=enabled,
             )
             save_entity(variable)
         imported += 1
         names.append(name)
     if imported:
-        update_variable_definitions_cid_safe(user_id)
+        update_variable_definitions_cid_safe()
     return imported, errors, names
 
 
-def import_variables_with_names(user_id: str, raw_variables: Any) -> tuple[int, list[str], list[str]]:
+def import_variables_with_names(raw_variables: Any) -> tuple[int, list[str], list[str]]:
     """Import variables and return count, errors, and imported names."""
-    return impl_import_variables(user_id, raw_variables)
+    return impl_import_variables(raw_variables)
 
 
-def import_variables(user_id: str, raw_variables: Any) -> tuple[int, list[str]]:
+def import_variables(raw_variables: Any) -> tuple[int, list[str]]:
     """Import variables and return count and errors (legacy interface)."""
-    count, errors, _names = impl_import_variables(user_id, raw_variables)
+    count, errors, _names = impl_import_variables(raw_variables)
     return count, errors
 
 
-def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
+def impl_import_secrets(raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
     """Implementation of secret import with name tracking."""
 
     def _normalise_secret_items(value: Any) -> list[dict[str, Any]] | None:
@@ -383,7 +374,7 @@ def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, 
                 continue
             plaintext = decrypt_secret_value(ciphertext, key)
             enabled = coerce_enabled_flag(entry.get('enabled'))
-            existing = get_secret_by_name(user_id, name)
+            existing = get_secret_by_name(name)
             if existing:
                 existing.definition = plaintext
                 existing.updated_at = datetime.now(timezone.utc)
@@ -393,7 +384,6 @@ def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, 
                 secret = Secret(
                     name=name,
                     definition=plaintext,
-                    user_id=user_id,
                     enabled=enabled,
                 )
                 save_entity(secret)
@@ -402,16 +392,16 @@ def impl_import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, 
     except ValueError:
         return 0, ['Invalid decryption key for secrets.'], []
     if imported:
-        update_secret_definitions_cid_safe(user_id)
+        update_secret_definitions_cid_safe()
     return imported, errors, names
 
 
-def import_secrets_with_names(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
+def import_secrets_with_names(raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
     """Import secrets and return count, errors, and imported names."""
-    return impl_import_secrets(user_id, raw_secrets, key)
+    return impl_import_secrets(raw_secrets, key)
 
 
-def import_secrets(user_id: str, raw_secrets: Any, key: str) -> tuple[int, list[str]]:
+def import_secrets(raw_secrets: Any, key: str) -> tuple[int, list[str]]:
     """Import secrets and return count and errors (legacy interface)."""
-    count, errors, _names = impl_import_secrets(user_id, raw_secrets, key)
+    count, errors, _names = impl_import_secrets(raw_secrets, key)
     return count, errors

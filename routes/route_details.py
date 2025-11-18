@@ -13,7 +13,6 @@ from werkzeug.exceptions import MethodNotAllowed, NotFound
 from alias_routing import is_potential_alias_path, resolve_alias_target
 from cid_presenter import extract_cid_from_path, format_cid, render_cid_link
 from db_access import get_cid_by_path, get_server_by_name
-from identity import current_user
 from server_execution import (
     is_potential_server_path,
     is_potential_versioned_server_path,
@@ -289,7 +288,7 @@ def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteReso
         return None
 
     server_name = segments[0]
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server or not getattr(server, "enabled", True):
         return None
 
@@ -348,7 +347,7 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         return None
 
     server_name, partial = segments[0], segments[1]
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server or not getattr(server, "enabled", True):
         return None
 
@@ -359,7 +358,7 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
 
     matches = []
     if get_server_definition_history is not None:
-        history = get_server_definition_history(current_user.id, server_name)
+        history = get_server_definition_history(server_name)
         matches = [
             entry
             for entry in history

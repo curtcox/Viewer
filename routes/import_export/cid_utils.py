@@ -67,7 +67,6 @@ def format_size(num_bytes: int) -> str:
 class CidWriter:
     """Helper for writing CIDs during export operations."""
 
-    user_id: str
     include_optional: bool
     store_content: bool
     cid_map_entries: dict[str, str] = field(default_factory=dict)
@@ -81,7 +80,7 @@ class CidWriter:
     ) -> str:
         """Generate or store a CID for the given content."""
         if self.store_content:
-            cid_value = store_cid_from_bytes(content, self.user_id)
+            cid_value = store_cid_from_bytes(content)
         else:
             cid_value = format_cid(generate_cid(content))
 

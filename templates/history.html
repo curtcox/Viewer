@@ -9,7 +9,7 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2><i class="fas fa-history me-2"></i>Browse History</h2>
                 <div class="text-muted">
-                    <small>Tracking your navigation since you started using the platform</small>
+                    <small>Tracking workspace navigation across this application</small>
                 </div>
             </div>
 
@@ -161,7 +161,7 @@
                                             <a class="page-link" href="{{ url_for('main.history', page=page_views.prev_num) }}">Previous</a>
                                         </li>
                                     {% endif %}
-                                    
+
                                     {% for page_num in page_views.iter_pages() %}
                                         {% if page_num %}
                                             {% if page_num != page_views.page %}
@@ -179,7 +179,7 @@
                                             </li>
                                         {% endif %}
                                     {% endfor %}
-                                    
+
                                     {% if page_views.has_next %}
                                         <li class="page-item">
                                             <a class="page-link" href="{{ url_for('main.history', page=page_views.next_num) }}">Next</a>
@@ -188,12 +188,12 @@
                                 </ul>
                             </nav>
                             {% endif %}
-                            
+
                             {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-clock text-muted mb-3" style="font-size: 3rem;"></i>
                                 <h4>No History Yet</h4>
-                                <p class="text-muted">Your browsing history will appear here as you navigate the site.</p>
+                                <p class="text-muted">History entries will appear here as the workspace is used.</p>
                             </div>
                             {% endif %}
                         </div>

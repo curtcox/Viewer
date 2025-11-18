@@ -23,8 +23,7 @@ from db_access._common import (
     normalize_cid_value,
     save_entity,
 )
-from db_access.variables import get_user_variables
-from identity import ensure_default_user
+from db_access.variables import get_variables
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +32,16 @@ RESULT_KEY_CREATED = "created"
 RESULT_KEY_UPDATED = "updated"
 
 
-def get_user_aliases(user_id: str) -> List[Alias]:
-    """Return all aliases for a user ordered by name."""
-    return Alias.query.filter_by(user_id=user_id).order_by(Alias.name).all()
+def get_aliases() -> List[Alias]:
+    """Return all aliases ordered by name."""
+    return Alias.query.order_by(Alias.name).all()
 
 
-def get_user_template_aliases(user_id: str) -> List[Alias]:
+def get_template_aliases() -> List[Alias]:
     """Return template aliases from templates variable configuration."""
     from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES, resolve_cid_value
 
-    templates = get_templates_for_type(user_id, ENTITY_TYPE_ALIASES)
+    templates = get_templates_for_type(ENTITY_TYPE_ALIASES)
 
     # Convert template dicts to Alias objects (read-only representations)
     alias_objects = []
@@ -54,7 +53,6 @@ def get_user_template_aliases(user_id: str) -> List[Alias]:
         # Store the template key in a separate attribute for UI use
         alias.template_key = template.get('key', '')
         alias.name = template.get('name', template.get('key', ''))
-        alias.user_id = user_id
 
         # Try to get definition from various possible fields
         definition = template.get('definition')
@@ -71,16 +69,16 @@ def get_user_template_aliases(user_id: str) -> List[Alias]:
     return sorted(alias_objects, key=lambda a: a.name if a.name else '')
 
 
-def get_alias_by_name(user_id: str, name: str) -> Optional[Alias]:
-    """Return an alias by name for a user."""
-    return Alias.query.filter_by(user_id=user_id, name=name).first()
+def get_alias_by_name(name: str) -> Optional[Alias]:
+    """Return an alias by name."""
+    return Alias.query.filter_by(name=name).first()
 
 
-def get_first_alias_name(user_id: str) -> Optional[str]:
-    """Return the first alias name for a user ordered alphabetically."""
+def get_first_alias_name() -> Optional[str]:
+    """Return the first alias name ordered alphabetically."""
     # Prefer user-created aliases over the default AI helper when available.
     preferred = (
-        Alias.query.filter_by(user_id=user_id)
+        Alias.query
         .filter(Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME]))
         .order_by(Alias.name.asc())
         .first()
@@ -89,19 +87,19 @@ def get_first_alias_name(user_id: str) -> Optional[str]:
         return preferred.name
 
     fallback = (
-        Alias.query.filter_by(user_id=user_id)
+        Alias.query
         .order_by(Alias.name.asc())
         .first()
     )
     return fallback.name if fallback else None
 
 
-def _get_variable_map(user_id: str) -> Dict[str, str]:
+def _get_variable_map() -> Dict[str, str]:
     """Get enabled variables as a name->definition map."""
     try:
-        variables = get_user_variables(user_id)
+        variables = get_variables()
     except SQLAlchemyError as exc:
-        logger.warning("Failed to load variables for user %s: %s", user_id, exc)
+        logger.warning("Failed to load variables: %s", exc)
         return {}
 
     return {
@@ -111,7 +109,7 @@ def _get_variable_map(user_id: str) -> Dict[str, str]:
     }
 
 
-def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
+def get_alias_by_target_path(target_path: str) -> Optional[Alias]:
     """Return an alias that matches the target path."""
     normalized = (target_path or "").strip()
     if not normalized:
@@ -122,12 +120,12 @@ def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
     candidates.add(alternate)
 
     aliases = (
-        Alias.query.filter_by(user_id=user_id)
+        Alias.query
         .order_by(Alias.id.asc())
         .all()
     )
 
-    variable_map = _get_variable_map(user_id)
+    variable_map = _get_variable_map()
 
     for alias in aliases:
         for route in collect_alias_routes(alias, variables=variable_map):
@@ -142,9 +140,9 @@ def get_alias_by_target_path(user_id: str, target_path: str) -> Optional[Alias]:
     return None
 
 
-def count_user_aliases(user_id: str) -> int:
-    """Return the count of aliases for a user."""
-    return Alias.query.filter_by(user_id=user_id).count()
+def count_aliases() -> int:
+    """Return the count of aliases."""
+    return Alias.query.count()
 
 
 @dataclass
@@ -173,7 +171,6 @@ def _safe_parse_definition(
 
 def _create_new_alias(alias_name: str, cid: str) -> AliasUpdateResult:
     """Create a new alias pointing to the given CID."""
-    owner = ensure_default_user()
     primary_line = format_primary_alias_line(
         "literal",
         None,
@@ -182,7 +179,6 @@ def _create_new_alias(alias_name: str, cid: str) -> AliasUpdateResult:
     )
     alias = Alias(
         name=alias_name,
-        user_id=owner.id,
         definition=primary_line,
     )
 

@@ -10,7 +10,7 @@ os.environ['TESTING'] = 'True'
 
 from app import app
 from models import Variable, CID, db
-from db_access.uploads import get_user_template_uploads
+from db_access.uploads import get_template_uploads
 
 
 class TestDbAccessUploads(unittest.TestCase):
@@ -26,20 +26,18 @@ class TestDbAccessUploads(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'testuser'
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
 
-    def test_get_user_template_uploads_no_templates(self):
+    def test_get_template_uploads_no_templates(self):
         """Test getting upload templates when none exist."""
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 0)
 
-    def test_get_user_template_uploads_with_templates(self):
+    def test_get_template_uploads_with_templates(self):
         """Test getting upload templates with direct content."""
         templates_config = {
             'aliases': {},
@@ -61,12 +59,11 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 2)
 
@@ -82,7 +79,7 @@ class TestDbAccessUploads(unittest.TestCase):
         self.assertEqual(json_template['name'], 'JSON Sample')
         self.assertEqual(json_template['content'], '{"key": "value"}')
 
-    def test_get_user_template_uploads_with_cid_content(self):
+    def test_get_template_uploads_with_cid_content(self):
         """Test getting upload templates with CID-referenced content."""
         # Create CID record with content
         content_data = b'This is template content from CID'
@@ -90,7 +87,6 @@ class TestDbAccessUploads(unittest.TestCase):
             path='/UPLOADTEMPLATECID',
             file_data=content_data,
             file_size=len(content_data),
-            uploaded_by_user_id=self.user_id
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -111,19 +107,18 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['id'], 'cid_template')
         self.assertEqual(templates[0]['name'], 'CID Template')
         self.assertEqual(templates[0]['content'], 'This is template content from CID')
 
-    def test_get_user_template_uploads_sorted_by_name(self):
+    def test_get_template_uploads_sorted_by_name(self):
         """Test that upload templates are sorted by name."""
         templates_config = {
             'aliases': {},
@@ -149,19 +144,18 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 3)
         self.assertEqual(templates[0]['name'], 'Alpha Template')
         self.assertEqual(templates[1]['name'], 'Beta Template')
         self.assertEqual(templates[2]['name'], 'Zebra Template')
 
-    def test_get_user_template_uploads_empty_content(self):
+    def test_get_template_uploads_empty_content(self):
         """Test handling of templates with no content."""
         templates_config = {
             'aliases': {},
@@ -179,12 +173,11 @@ class TestDbAccessUploads(unittest.TestCase):
         var = Variable(
             name='templates',
             definition=json.dumps(templates_config),
-            user_id=self.user_id
         )
         db.session.add(var)
         db.session.commit()
 
-        templates = get_user_template_uploads(self.user_id)
+        templates = get_template_uploads()
 
         self.assertEqual(len(templates), 1)
         self.assertEqual(templates[0]['id'], 'empty')

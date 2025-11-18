@@ -14,7 +14,6 @@ from flask import Flask
 from app import create_app
 from cid_presenter import cid_path
 from database import db
-from identity import ensure_default_user
 from models import CID, Server
 
 pytestmark = pytest.mark.integration
@@ -42,8 +41,6 @@ def app_factory(tmp_path) -> Callable[[], Flask]:
 
         with app.app_context():
             db.create_all()
-            ensure_default_user()
-
         created_apps.append((app, db_path))
         return app
 
@@ -55,14 +52,6 @@ def app_factory(tmp_path) -> Callable[[], Flask]:
             db.drop_all()
         if db_path.exists():
             db_path.unlink()
-
-
-def _login_default_user(client) -> None:
-    """Attach the default user to the provided test client session."""
-
-    with client.session_transaction() as session:
-        session["_user_id"] = "default-user"
-        session["_fresh"] = True
 
 
 def _load_section(payload: dict[str, Any], key: str):
@@ -98,14 +87,12 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
     server_definition = 'return {"output": "Hello from origin", "content_type": "text/plain"}'
 
     with origin_app.app_context():
-        user = ensure_default_user()
         db.session.add(
-            Server(name=server_name, definition=server_definition, user_id=user.id)
+            Server(name=server_name, definition=server_definition)
         )
         db.session.commit()
 
     origin_client = origin_app.test_client()
-    _login_default_user(origin_client)
 
     export_response = origin_client.post(
         "/export",
@@ -132,7 +119,6 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
 
     destination_app = app_factory()
     destination_client = destination_app.test_client()
-    _login_default_user(destination_client)
 
     import_response = destination_client.post(
         "/import",
@@ -148,8 +134,7 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
     assert import_response.status_code == 302
 
     with destination_app.app_context():
-        user = ensure_default_user()
-        imported_server = Server.query.filter_by(name=server_name, user_id=user.id).first()
+        imported_server = Server.query.filter_by(name=server_name).first()
         assert imported_server is not None, "Server should exist after import."
         assert imported_server.definition == server_definition
 

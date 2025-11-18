@@ -5,33 +5,32 @@ Unit tests for the model_as_dict function
 
 class MockVariable:
     """Mock Variable model object"""
-    def __init__(self, name, definition, user_id):
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Variable {self.name} by {self.user_id}>'
+        return f'<Variable {self.name}>'
+
 
 class MockSecret:
     """Mock Secret model object"""
-    def __init__(self, name, definition, user_id):
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Secret {self.name} by {self.user_id}>'
+        return f'<Secret {self.name}>'
+
 
 class MockServer:
     """Mock Server model object"""
-    def __init__(self, name, definition, user_id):
+    def __init__(self, name, definition):
         self.name = name
         self.definition = definition
-        self.user_id = user_id
 
     def __repr__(self):
-        return f'<Server {self.name} by {self.user_id}>'
+        return f'<Server {self.name}>'
 
 class MockObjectWithoutNameDefinition:
     """Mock object that doesn't have name/definition attributes"""
@@ -84,7 +83,7 @@ def test_single_objects():
     print("=" * 60)
 
     # Test single variable
-    variables = [MockVariable('test_var', 'test_value', 'user123')]
+    variables = [MockVariable('test_var', 'test_value')]
     result = model_as_dict(variables)
     expected = {'test_var': 'test_value'}
     print(f"Single variable: {result}")
@@ -92,7 +91,7 @@ def test_single_objects():
     print("✓ Single variable works correctly")
 
     # Test single secret
-    secrets = [MockSecret('api_key', 'secret123', 'user123')]
+    secrets = [MockSecret('api_key', 'secret123')]
     result = model_as_dict(secrets)
     expected = {'api_key': 'secret123'}
     print(f"Single secret: {result}")
@@ -100,7 +99,7 @@ def test_single_objects():
     print("✓ Single secret works correctly")
 
     # Test single server
-    servers = [MockServer('echo1', 'return {"output": "hello"}', 'user123')]
+    servers = [MockServer('echo1', 'return {"output": "hello"}')]
     result = model_as_dict(servers)
     expected = {'echo1': 'return {"output": "hello"}'}
     print(f"Single server: {result}")
@@ -117,9 +116,9 @@ def test_multiple_objects():
 
     # Test multiple variables
     variables = [
-        MockVariable('var1', 'value1', 'user123'),
-        MockVariable('var2', 'value2', 'user123'),
-        MockVariable('var3', 'value3', 'user123')
+        MockVariable('var1', 'value1'),
+        MockVariable('var2', 'value2'),
+        MockVariable('var3', 'value3')
     ]
     result = model_as_dict(variables)
     expected = {'var1': 'value1', 'var2': 'value2', 'var3': 'value3'}
@@ -129,8 +128,8 @@ def test_multiple_objects():
 
     # Test multiple secrets
     secrets = [
-        MockSecret('secret1', 'value1', 'user123'),
-        MockSecret('secret2', 'value2', 'user123')
+        MockSecret('secret1', 'value1'),
+        MockSecret('secret2', 'value2')
     ]
     result = model_as_dict(secrets)
     expected = {'secret1': 'value1', 'secret2': 'value2'}
@@ -140,8 +139,8 @@ def test_multiple_objects():
 
     # Test multiple servers
     servers = [
-        MockServer('echo1', 'return {"output": "echo1"}', 'user123'),
-        MockServer('echo2', 'return {"output": "echo2"}', 'user123')
+        MockServer('echo1', 'return {"output": "echo1"}'),
+        MockServer('echo2', 'return {"output": "echo2"}')
     ]
     result = model_as_dict(servers)
     expected = {'echo1': 'return {"output": "echo1"}', 'echo2': 'return {"output": "echo2"}'}
@@ -159,15 +158,15 @@ def test_mixed_objects():
 
     # Mix of variables, secrets, and servers
     mixed_objects = [
-        MockVariable('my_var', 'var_value', 'user123'),
-        MockSecret('my_secret', 'secret_value', 'user123'),
-        MockServer('my_server', 'server_code', 'user123')
+        MockVariable('var_special', 'value_with_special_chars!@#'),
+        MockSecret('secret\u2603', 'value_with_unicode'),
+        MockServer('server-123', 'print("hello")')
     ]
     result = model_as_dict(mixed_objects)
     expected = {
-        'my_var': 'var_value',
-        'my_secret': 'secret_value',
-        'my_server': 'server_code'
+        'var_special': 'value_with_special_chars!@#',
+        'secret\u2603': 'value_with_unicode',
+        'server-123': 'print("hello")'
     }
     print(f"Mixed objects: {result}")
     assert result == expected, f"Expected {expected}, got {result}"
@@ -205,8 +204,8 @@ def test_edge_cases():
 
     # Test with duplicate names (later one should overwrite)
     duplicate_names = [
-        MockVariable('same_name', 'first_value', 'user123'),
-        MockVariable('same_name', 'second_value', 'user123')
+        MockVariable('same_name', 'first_value'),
+        MockVariable('same_name', 'second_value')
     ]
     result = model_as_dict(duplicate_names)
     expected = {'same_name': 'second_value'}  # Later one overwrites
@@ -216,8 +215,8 @@ def test_edge_cases():
 
     # Test with empty string values
     empty_values = [
-        MockVariable('empty_var', '', 'user123'),
-        MockSecret('empty_secret', '', 'user123')
+        MockVariable('empty_var', ''),
+        MockSecret('empty_secret', '')
     ]
     result = model_as_dict(empty_values)
     expected = {'empty_var': '', 'empty_secret': ''}
@@ -227,9 +226,9 @@ def test_edge_cases():
 
     # Test with special characters in names and values
     special_chars = [
-        MockVariable('var-with-dashes', 'value with spaces', 'user123'),
-        MockVariable('var_with_underscores', 'value\nwith\nnewlines', 'user123'),
-        MockSecret('secret.with.dots', 'value"with"quotes', 'user123')
+        MockVariable('var-with-dashes', 'value with spaces'),
+        MockVariable('var_with_underscores', 'value\nwith\nnewlines'),
+        MockSecret('secret.with.dots', 'value"with"quotes')
     ]
     result = model_as_dict(special_chars)
     expected = {
@@ -251,14 +250,14 @@ def test_echo1_integration():
 
     # Simulate what echo1 server would receive
     variables = [
-        MockVariable('test_var1', 'value1', 'user123'),
-        MockVariable('test_var2', 'value2', 'user123')
+        MockVariable('test_var1', 'value1'),
+        MockVariable('test_var2', 'value2')
     ]
     secrets = [
-        MockSecret('api_key', 'secret123', 'user123')
+        MockSecret('api_key', 'secret123')
     ]
     servers = [
-        MockServer('echo1', 'return {"output": str(args)}', 'user123')
+        MockServer('echo1', 'return {"output": str(args)}')
     ]
 
     # Build args like build_request_args would

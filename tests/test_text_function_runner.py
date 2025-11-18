@@ -161,7 +161,7 @@ return value["number"]
         result = self.run_text_function(body, argmap)
         self.assertEqual(result, 2)  # x * 2 = 1 * 2 = 2
 
-    def test_save_stores_message_bytes_with_user_id(self):
+    def test_save_stores_message_bytes(self):
         """Ensure save() stores content using store_cid_from_bytes."""
         body = (
             "message = 'text of message'\n"
@@ -171,83 +171,57 @@ return value["number"]
 
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-abc'
-            with patch(
-                'text_function_runner.current_user',
-                new=SimpleNamespace(id='user-123'),
-            ):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'text of message', 'user-123')
+        mock_store.assert_called_once_with(b'text of message')
         self.assertEqual(result, {'output': 'cid-abc'})
 
-    def test_save_uses_callable_id_attribute(self):
-        """save() should call an id attribute when it is callable."""
+    def test_save_stores_content(self):
+        """save() should store content using store_cid_from_bytes."""
         body = "return save(data)"
         argmap = {"data": "payload"}
 
-        class CallableIdUser:
-            def id(self):
-                return "callable-user"
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-callable'
-            with patch('text_function_runner.current_user', new=CallableIdUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'payload', 'callable-user')
+        mock_store.assert_called_once_with(b'payload')
         self.assertEqual(result, 'cid-callable')
 
-    def test_save_falls_back_to_get_id_when_id_call_fails(self):
-        """If the id attribute raises TypeError, fall back to get_id()."""
+    def test_save_stores_content_directly(self):
+        """save() stores content without requiring user context."""
         body = "return save(message)"
         argmap = {"message": "hello"}
 
-        class InconsistentUser:
-            def id(self, unexpected):  # pragma: no cover - exercised via TypeError
-                return "should-not-be-used"
-
-            def get_id(self):
-                return 77
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-77'
-            with patch('text_function_runner.current_user', new=InconsistentUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'hello', '77')
+        mock_store.assert_called_once_with(b'hello')
         self.assertEqual(result, 'cid-77')
 
-    def test_save_requires_user_identifier(self):
-        """save() should raise when no user identifier is available."""
+    def test_save_stores_content_successfully(self):
+        """save() stores content successfully without user identifier."""
         body = "return save(payload)"
-        argmap = {"payload": "ignored"}
-
-        class AnonymousUser:
-            def get_id(self):
-                return None
+        argmap = {"payload": "test content"}
 
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            with patch('text_function_runner.current_user', new=AnonymousUser()):
-                with self.assertRaises(RuntimeError):
-                    self.run_text_function(body, argmap)
+            mock_store.return_value = 'cid-test'
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_not_called()
+        mock_store.assert_called_once_with(b'test content')
+        self.assertEqual(result, 'cid-test')
 
     def test_save_coerces_non_text_values_to_bytes(self):
         """save() should coerce non-text values into UTF-8 bytes."""
         body = "return save(value)"
         argmap = {"value": 12345}
 
-        class NumericUser:
-            def __init__(self):
-                self.id = 'numeric-user'
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-numeric'
-            with patch('text_function_runner.current_user', new=NumericUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'12345', 'numeric-user')
+        mock_store.assert_called_once_with(b'12345')
         self.assertEqual(result, 'cid-numeric')
 
     def test_save_allows_preencoded_bytes(self):
@@ -256,16 +230,11 @@ return value["number"]
         payload = b'\xffbinary data'
         argmap = {"blob": payload}
 
-        class BinaryUser:
-            def __init__(self):
-                self.id = 'binary-user'
-
         with patch('text_function_runner.store_cid_from_bytes') as mock_store:
             mock_store.return_value = 'cid-bytes'
-            with patch('text_function_runner.current_user', new=BinaryUser()):
-                result = self.run_text_function(body, argmap)
+            result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(payload, 'binary-user')
+        mock_store.assert_called_once_with(payload)
         self.assertEqual(result, 'cid-bytes')
 
     def test_load_returns_text_content(self):

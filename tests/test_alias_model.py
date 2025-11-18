@@ -11,7 +11,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_target_path(), "/target")
 
@@ -20,7 +19,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="status",
             definition="status -> {status-page}",
-            user_id="user1",
         )
         alias._resolved_variables = {"status-page": "/beageghugragegar"}
 
@@ -31,7 +29,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="invalid definition",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_target_path(), "/test")
 
@@ -40,7 +37,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="",
             definition="invalid definition",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_target_path(), "/")
 
@@ -49,7 +45,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_type(), "literal")
 
@@ -58,7 +53,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test* -> /target [glob]",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_type(), "glob")
 
@@ -67,7 +61,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="invalid definition",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_type(), "literal")
 
@@ -76,7 +69,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_pattern(), "/test")
 
@@ -85,7 +77,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test* -> /target [glob]",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_pattern(), "/test*")
 
@@ -94,7 +85,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="invalid definition",
-            user_id="user1"
         )
         self.assertEqual(alias.get_primary_match_pattern(), "/test")
 
@@ -103,7 +93,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertFalse(alias.get_primary_ignore_case())
 
@@ -112,7 +101,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target [ignore-case]",
-            user_id="user1"
         )
         self.assertTrue(alias.get_primary_ignore_case())
 
@@ -121,7 +109,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="invalid definition",
-            user_id="user1"
         )
         self.assertFalse(alias.get_primary_ignore_case())
 
@@ -130,7 +117,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertEqual(alias.get_effective_pattern(), "/test")
 
@@ -139,7 +125,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="test",
             definition="test -> /target",
-            user_id="user1"
         )
         self.assertEqual(repr(alias), "<Alias test -> /target>")
 
@@ -153,7 +138,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="docs",
             definition=definition.strip(),
-            user_id="user1"
         )
 
         # Should extract the primary rule (first line)
@@ -168,7 +152,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="blog",
             definition=definition,
-            user_id="user1"
         )
 
         self.assertEqual(alias.get_primary_target_path(), "/posts")
@@ -182,7 +165,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="article",
             definition=definition,
-            user_id="user1"
         )
 
         self.assertEqual(alias.get_primary_target_path(), "/articles")
@@ -196,7 +178,6 @@ class TestAliasModel(unittest.TestCase):
         alias = Alias(
             name="user",
             definition=definition,
-            user_id="user1"
         )
 
         self.assertEqual(alias.get_primary_target_path(), "/user-profile/<id>/view")

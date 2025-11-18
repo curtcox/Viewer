@@ -52,7 +52,6 @@ class TestDataFactory:
     def create_alias(
         name: str,
         target: str,
-        user_id: str,
         *,
         match_type: str = 'literal',
         pattern: str | None = None,
@@ -65,7 +64,6 @@ class TestDataFactory:
         Args:
             name: The alias name
             target: The target path
-            user_id: The user ID who owns the alias
             match_type: The match type ('literal', 'prefix', 'regex')
             pattern: Optional pattern override
             ignore_case: Whether to ignore case in matching
@@ -79,7 +77,6 @@ class TestDataFactory:
         )
         alias = Alias(
             name=name,
-            user_id=user_id,
             definition=definition,
         )
         db.session.add(alias)
@@ -90,7 +87,6 @@ class TestDataFactory:
     @staticmethod
     def create_cid(
         content: bytes | str,
-        user_id: str,
         *,
         path: str | None = None,
         commit: bool = True,
@@ -100,7 +96,6 @@ class TestDataFactory:
 
         Args:
             content: The content to store (bytes or string)
-            user_id: The user ID who uploaded the CID
             path: Optional custom path (auto-generated if not provided)
             commit: Whether to commit to the database
 
@@ -117,7 +112,6 @@ class TestDataFactory:
         cid = CID(
             path=path,
             file_data=content,
-            uploaded_by_user_id=user_id,
             timestamp=datetime.now(timezone.utc),
         )
         db.session.add(cid)
@@ -129,7 +123,6 @@ class TestDataFactory:
     def create_server(
         name: str,
         definition: str,
-        user_id: str,
         *,
         definition_cid: str | None = None,
         commit: bool = True,
@@ -140,7 +133,6 @@ class TestDataFactory:
         Args:
             name: The server name
             definition: The server definition code
-            user_id: The user ID who owns the server
             definition_cid: Optional CID for the definition
             commit: Whether to commit to the database
 
@@ -150,7 +142,6 @@ class TestDataFactory:
         server = Server(
             name=name,
             definition=definition,
-            user_id=user_id,
             definition_cid=definition_cid,
         )
         db.session.add(server)
@@ -162,7 +153,6 @@ class TestDataFactory:
     def create_variable(
         name: str,
         value: str,
-        user_id: str,
         *,
         commit: bool = True,
     ) -> Variable:
@@ -172,7 +162,6 @@ class TestDataFactory:
         Args:
             name: The variable name
             value: The variable value
-            user_id: The user ID who owns the variable
             commit: Whether to commit to the database
 
         Returns:
@@ -180,8 +169,7 @@ class TestDataFactory:
         """
         variable = Variable(
             name=name,
-            value=value,
-            user_id=user_id,
+            definition=value,
         )
         db.session.add(variable)
         if commit:
@@ -192,7 +180,6 @@ class TestDataFactory:
     def create_secret(
         name: str,
         encrypted_value: bytes,
-        user_id: str,
         *,
         commit: bool = True,
     ) -> Secret:
@@ -202,7 +189,6 @@ class TestDataFactory:
         Args:
             name: The secret name
             encrypted_value: The encrypted secret value
-            user_id: The user ID who owns the secret
             commit: Whether to commit to the database
 
         Returns:
@@ -210,8 +196,7 @@ class TestDataFactory:
         """
         secret = Secret(
             name=name,
-            encrypted_value=encrypted_value,
-            user_id=user_id,
+            definition=encrypted_value.decode('utf-8') if isinstance(encrypted_value, bytes) else encrypted_value,
         )
         db.session.add(secret)
         if commit:

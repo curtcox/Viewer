@@ -3,7 +3,7 @@
 
 import re
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from app import create_app
 from database import db
@@ -225,17 +225,13 @@ class TestErrorPagesEndToEnd(unittest.TestCase):
         """Test error page display when user is authenticated."""
 
         with self.app.app_context():
-            # Track the authenticated user identifier
-            user_id = 'test-user-123'
+            pass
 
         with self.app.test_request_context('/test-auth-error'):
             try:
-                with patch('identity.current_user') as mock_user:
-                    mock_user.id = user_id
+                # Import something from aliases to get it in traceback
 
-                    # Import something from aliases to get it in traceback
-
-                    raise RuntimeError('Authenticated user error test')
+                raise RuntimeError('Authenticated user error test')
             except RuntimeError as exc:
                 from routes.core import internal_error
                 html_content, status_code = internal_error(exc)

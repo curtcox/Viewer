@@ -13,14 +13,14 @@ from alias_matching import PatternError, normalise_pattern
 
 # ===== Deferred imports =====
 
-_GetUserVariables = Callable[[str], Iterable[Any]]
+_GetVariables = Callable[[], Iterable[Any]]
 _import_state: dict[str, Any] = {"resolver": None, "unavailable": False}
 
 
-def _resolve_get_user_variables() -> Optional[_GetUserVariables]:
+def _resolve_get_variables() -> Optional[_GetVariables]:
     """Return the database helper, retrying if dependencies were mid-import."""
 
-    cached = cast(Optional[_GetUserVariables], _import_state["resolver"])
+    cached = cast(Optional[_GetVariables], _import_state["resolver"])
     if cached is not None:
         return cached
 
@@ -31,14 +31,14 @@ def _resolve_get_user_variables() -> Optional[_GetUserVariables]:
         # Import directly from the submodule to avoid circular imports through the
         # db_access package-level re-exports.
         from db_access.variables import (  # pylint: disable=import-outside-toplevel
-            get_user_variables as resolved,
+            get_variables as resolved,
         )
     except ModuleNotFoundError:  # pragma: no cover - optional dependency in some tests
         _import_state["unavailable"] = True
         return None
     except ImportError as error:  # pragma: no cover - circular import window
         logger.debug(
-            "Delaying get_user_variables import until dependencies are ready: %s",
+            "Delaying get_variables import until dependencies are ready: %s",
             error,
         )
         return None
@@ -223,30 +223,24 @@ class DatabaseStrategy(VariableResolutionStrategy):
     def try_resolve(
         self, alias: Any, provided: Optional[Mapping[str, Any]]
     ) -> Optional[dict[str, str]]:
-        user_id = getattr(alias, "user_id", None)
-        if not user_id:
-            return None
-
-        resolver = _resolve_get_user_variables()
+        resolver = _resolve_get_variables()
 
         if resolver is None:
             logger.debug(
-                "Skipping database variable resolution for user %s: variable helper unavailable",
-                user_id,
+                "Skipping database variable resolution: variable helper unavailable"
             )
             return None
 
         if not has_app_context():
             logger.debug(
-                "Skipping database variable resolution for user %s: no app context",
-                user_id,
+                "Skipping database variable resolution: no app context"
             )
             return None
 
         try:
-            variables = resolver(user_id)
+            variables = resolver()
         except SQLAlchemyError as e:
-            logger.warning("Failed to fetch user variables from database: %s", e)
+            logger.warning("Failed to fetch variables from database: %s", e)
             return None
 
         resolved = _normalize_variable_map(variables)

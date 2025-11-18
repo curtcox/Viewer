@@ -14,13 +14,7 @@ from reference_templates.servers import get_server_templates
 
 @pytest.fixture(autouse=True)
 def patch_execution_environment(monkeypatch):
-    from server_execution import code_execution, variable_resolution
-    import identity
-
-    # Mock user - only variable_resolution imports current_user after refactoring
-    mock_user = SimpleNamespace(id="user-123")
-    monkeypatch.setattr(identity, "current_user", mock_user)
-    monkeypatch.setattr(variable_resolution, "current_user", mock_user)
+    from server_execution import code_execution
 
     monkeypatch.setattr(
         code_execution,
@@ -226,7 +220,7 @@ def test_auto_main_uses_nested_server_response(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda user_id, name: servers.get(name),
+        servers.get,
     )
 
     with app.test_request_context("/outer/inner"):
@@ -258,7 +252,7 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda user_id, name: servers.get(name),
+        servers.get,
     )
 
     def fake_find_matching_alias(path):
@@ -291,7 +285,7 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda user_id, name: None,
+        lambda name: None,
     )
 
     monkeypatch.setattr(
@@ -331,7 +325,7 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda user_id, name: servers.get(name),
+        servers.get,
     )
 
     with app.test_request_context("/outer/inner?prefix=start"):
@@ -352,7 +346,7 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda user_id, name: None,
+        lambda name: None,
     )
 
     monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
@@ -477,7 +471,7 @@ def test_try_server_execution_handles_helper_routes(monkeypatch):
     monkeypatch.setattr(
         server_lookup,
         "get_server_by_name",
-        lambda user_id, name: server if name == "widget" else None,
+        lambda name: server if name == "widget" else None,
     )
 
     with app.test_request_context("/widget/helper?label=Value"):
@@ -499,7 +493,7 @@ def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
     monkeypatch.setattr(
         server_lookup,
         "get_server_by_name",
-        lambda user_id, name: server if name == "widget" else None,
+        lambda name: server if name == "widget" else None,
     )
 
     with app.test_request_context("/widget/unknown"):

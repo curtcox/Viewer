@@ -4,7 +4,6 @@ from __future__ import annotations
 import csv
 import io
 import xml.etree.ElementTree as ET
-from typing import Optional
 
 from flask import Flask
 from flask.testing import FlaskClient
@@ -13,7 +12,7 @@ from getgauge.python import before_scenario, before_suite, step
 from database import db
 from models import Server
 from step_impl.artifacts import attach_response_snapshot
-from step_impl.shared_app import get_shared_app, get_shared_client, login_default_user
+from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
 
@@ -32,17 +31,10 @@ def _require_client() -> FlaskClient:
     return get_shared_client()
 
 
-def _login_default_user() -> str:
-    """Attach the default user session to the Gauge test client."""
-
-    return login_default_user()
-
-
 def _perform_get_request(path: str) -> None:
     """Issue a GET request for the provided path and store the response."""
 
     client = _require_client()
-    _login_default_user()
     response = client.get(path)
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -50,24 +42,6 @@ def _perform_get_request(path: str) -> None:
 
 def _normalize_path(path: str) -> str:
     return path.strip().strip('"')
-
-
-def _set_session_user(user_id: Optional[str]) -> None:
-    client = _require_client()
-    with client.session_transaction() as session:
-        session.pop('_user_id', None)
-        session.pop('_fresh', None)
-        if user_id:
-            session['_user_id'] = user_id
-            session['_fresh'] = True
-
-
-def _perform_get_request_for_user(path: str, user_id: Optional[str]) -> None:
-    client = _require_client()
-    _set_session_user(user_id)
-    response = client.get(path)
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
 
 
 @before_scenario()
@@ -139,21 +113,12 @@ def when_i_request_profile_page() -> None:
     _perform_get_request("/profile")
 
 
-@step("When I request the page <path> as user <user_id>")
-def when_i_request_page_as_user(path: str, user_id: str) -> None:
-    """Request a page while impersonating a specific user."""
-
-    normalized_path = _normalize_path(path)
-    normalized_user = _normalize_path(user_id)
-    _perform_get_request_for_user(normalized_path, normalized_user)
-
-
 @step("When I request the page <path> without a user session")
 def when_i_request_page_without_user(path: str) -> None:
     """Request a page without an authenticated user session."""
 
     normalized_path = _normalize_path(path)
-    _perform_get_request_for_user(normalized_path, None)
+    _perform_get_request(normalized_path)
 
 
 @step("When I request the page /routes")
@@ -201,20 +166,19 @@ def when_i_request_new_server_page() -> None:
 @step("When I request the page /servers/new as user <alternate-user>")
 def blvplz(arg1: str) -> None:
     """Request the new server page as alternate-user."""
-    normalized_user = _normalize_path(arg1)
-    _perform_get_request_for_user("/servers/new", normalized_user)
+    _perform_get_request("/servers/new")
 
 
 @step("When I request the page /servers/new as user \"alternate-user\"")
 def when_i_request_servers_new_as_alternate_user() -> None:
     """Request the new server page as alternate-user."""
-    _perform_get_request_for_user("/servers/new", "alternate-user")
+    _perform_get_request("/servers/new")
 
 
 @step("When I request the page /servers/new without a user session")
 def when_i_request_servers_new_without_user() -> None:
     """Request the new server page without a user session."""
-    _perform_get_request_for_user("/servers/new", None)
+    _perform_get_request("/servers/new")
 
 
 @step("When I request the page /aliases/ai")
@@ -232,20 +196,19 @@ def when_i_request_aliases_index_page() -> None:
 @step("When I request the page /aliases/new as user <alternate-user>")
 def lzzcif(arg1: str) -> None:
     """Request the new alias page as alternate-user."""
-    normalized_user = _normalize_path(arg1)
-    _perform_get_request_for_user("/aliases/new", normalized_user)
+    _perform_get_request("/aliases/new")
 
 
 @step("When I request the page /aliases/new as user \"alternate-user\"")
 def when_i_request_aliases_new_as_alternate_user() -> None:
     """Request the new alias page as alternate-user."""
-    _perform_get_request_for_user("/aliases/new", "alternate-user")
+    _perform_get_request("/aliases/new")
 
 
 @step("When I request the page /aliases/new without a user session")
 def when_i_request_aliases_new_without_user() -> None:
     """Request the new alias page without a user session."""
-    _perform_get_request_for_user("/aliases/new", None)
+    _perform_get_request("/aliases/new")
 
 
 @step("When I request the resource <path>")
@@ -300,7 +263,6 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
     normalized_accept = _normalize_path(accept_header)
 
     client = _require_client()
-    _login_default_user()
     response = client.get(normalized_path, headers={"Accept": normalized_accept})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -310,7 +272,6 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
 def when_i_request_aliases_with_accept_text_plain() -> None:
     """Request aliases with Accept header text/plain."""
     client = _require_client()
-    _login_default_user()
     response = client.get("/aliases", headers={"Accept": "text/plain"})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -321,7 +282,6 @@ def when_i_request_server_detail_page(server_name: str) -> None:
     """Request the server detail page for the provided server name."""
 
     client = _require_client()
-    _login_default_user()
 
     server_name = server_name.strip().strip('"')
     response = client.get(f"/servers/{server_name}")
@@ -608,9 +568,8 @@ def then_page_should_contain_view_all_secrets() -> None:
 
 @step("Given there is a server named <server_name> returning <message>")
 def given_server_exists(server_name: str, message: str) -> None:
-    """Ensure a server with the provided name exists for the default user."""
+    """Ensure a server with the provided name exists in the workspace."""
 
-    user_id = _login_default_user()
     app = _require_app()
 
     server_name = server_name.strip().strip('"')
@@ -618,9 +577,9 @@ def given_server_exists(server_name: str, message: str) -> None:
     definition = f"def main(context):\n    return {message!r}\n"
 
     with app.app_context():
-        existing = Server.query.filter_by(user_id=user_id, name=server_name).first()
+        existing = Server.query.filter_by(name=server_name).first()
         if existing is None:
-            server = Server(name=server_name, definition=definition, user_id=user_id)
+            server = Server(name=server_name, definition=definition)
             db.session.add(server)
         else:
             existing.definition = definition

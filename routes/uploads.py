@@ -31,10 +31,10 @@ from db_access import (
     get_alias_by_name,
     get_alias_by_target_path,
     get_cid_by_path,
-    get_user_server_invocations,
-    get_user_template_uploads,
-    get_user_uploads,
-    get_user_variables,
+    get_server_invocations,
+    get_template_uploads,
+    get_uploads,
+    get_variables,
     get_variable_by_name,
     record_entity_interaction,
     save_entity,
@@ -43,7 +43,6 @@ from entity_references import (
     extract_references_from_bytes,
 )
 from forms import EditCidForm, FileUploadForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Alias, Variable
 from template_status import get_template_link_info
@@ -59,12 +58,11 @@ CONTENT_PREVIEW_LENGTH: int = 20
 _VARIABLE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
-def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str | None]:
+def _validate_alias_name(alias_name: str) -> tuple[str | None, str | None]:
     """Validate alias name and check for conflicts.
 
     Args:
         alias_name: Alias name to validate
-        user_id: User ID for conflict checking
 
     Returns:
         tuple: (validated_alias_name, error_message)
@@ -74,25 +72,24 @@ def _validate_alias_name(alias_name: str, user_id: str) -> tuple[str | None, str
     if not alias_name:
         return None, None
 
-    existing = get_alias_by_name(user_id, alias_name)
+    existing = get_alias_by_name(alias_name)
     if existing:
         return None, 'Alias with this name already exists.'
 
     return alias_name, None
 
 
-def _save_cid_content(text_content: str, user_id: str) -> str:
+def _save_cid_content(text_content: str) -> str:
     """Save content and return CID, flashing appropriate messages.
 
     Args:
         text_content: Text content to save
-        user_id: User ID for ownership
 
     Returns:
         str: CID value (formatted)
     """
     file_content = text_content.encode('utf-8')
-    return _store_or_find_content(file_content, user_id)
+    return _store_or_find_content(file_content)
 
 
 def _shorten_cid(cid: str | None, length: int = 6) -> str:
@@ -100,17 +97,16 @@ def _shorten_cid(cid: str | None, length: int = 6) -> str:
     return format_cid_short(cid, length)
 
 
-def _collect_variable_assignment(cid_value: str, user_id: str) -> tuple[list[Variable], Variable | None]:
+def _collect_variable_assignment(cid_value: str) -> tuple[list[Variable], Variable | None]:
     """Return the user's variables and the one currently pointing at ``cid_value``.
 
     Args:
         cid_value: CID to search for
-        user_id: User ID
 
     Returns:
         tuple: (list of all variables, assigned variable or None)
     """
-    variables = get_user_variables(user_id)
+    variables = get_variables()
     normalized = CidHelper.normalize(cid_value)
     if not normalized:
         return variables, None
@@ -142,7 +138,7 @@ def _render_upload_success(
     normalized = CidHelper.normalize(cid_value)
     record = CidHelper.get_record(cid_value)
     resolved_size = CidHelper.resolve_size(record, file_size if file_size is not None else 0)
-    variables, assigned_variable = _collect_variable_assignment(normalized, current_user.id)
+    variables, assigned_variable = _collect_variable_assignment(normalized)
 
     return render_template(
         'upload_success.html',
@@ -245,12 +241,11 @@ def _determine_filename(upload_type: str, original_filename: str | None, form: A
     return None
 
 
-def _store_or_find_content(file_content: bytes, user_id: str) -> str:
+def _store_or_find_content(file_content: bytes) -> str:
     """Store content or find existing CID.
 
     Args:
         file_content: Content bytes to store
-        user_id: User ID for ownership
 
     Returns:
         str: CID value (formatted)
@@ -265,7 +260,7 @@ def _store_or_find_content(file_content: bytes, user_id: str) -> str:
             'warning',
         )
     else:
-        create_cid_record(cid_value, file_content, user_id)
+        create_cid_record(cid_value, file_content)
         flash(
             Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
             'success',
@@ -274,18 +269,16 @@ def _store_or_find_content(file_content: bytes, user_id: str) -> str:
     return cid_value
 
 
-def _record_upload_interaction(form: Any, change_message: str, user_id: str) -> None:
+def _record_upload_interaction(form: Any, change_message: str) -> None:
     """Record interaction for text uploads.
 
     Args:
         form: Upload form instance
         change_message: User's change message
-        user_id: User ID
     """
     if form.upload_type.data == UploadType.TEXT.value:
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=user_id,
                 entity_type=EntityType.UPLOAD.value,
                 entity_name=UploadType.TEXT.value,
                 action=ActionType.SAVE.value,
@@ -313,10 +306,10 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
         return None  # Signal to render form
 
     # Generate CID and store/find
-    cid_value = _store_or_find_content(file_content, current_user.id)
+    cid_value = _store_or_find_content(file_content)
 
     # Record interaction
-    _record_upload_interaction(form, change_message, current_user.id)
+    _record_upload_interaction(form, change_message)
 
     # Determine metadata
     view_url_extension = _determine_view_extension(
@@ -342,9 +335,9 @@ def upload():
     change_message = (request.form.get('change_message') or '').strip()
 
     def _render_form():
-        interactions = load_interaction_history(current_user.id, EntityType.UPLOAD.value, UploadType.TEXT.value)
-        upload_templates = get_user_template_uploads(current_user.id)
-        template_link_info = get_template_link_info(current_user.id, 'uploads')
+        interactions = load_interaction_history(EntityType.UPLOAD.value, UploadType.TEXT.value)
+        upload_templates = get_template_uploads()
+        template_link_info = get_template_link_info('uploads')
         return render_template(
             'upload.html',
             form=form,
@@ -364,18 +357,18 @@ def upload():
 
 @main_bp.route('/uploads')
 def uploads():
-    """Display user's uploaded files."""
-    user_uploads = get_user_uploads(current_user.id)
+    """Display uploaded files."""
+    uploads_list = get_uploads()
 
-    _attach_creation_sources(user_uploads)
+    _attach_creation_sources(uploads_list)
 
-    user_uploads = [
+    uploads_list = [
         upload
-        for upload in user_uploads
+        for upload in uploads_list
         if getattr(upload, 'creation_method', EntityType.UPLOAD.value) != EntityType.SERVER_EVENT.value
     ]
 
-    for upload_record in user_uploads:
+    for upload_record in uploads_list:
         if upload_record.file_data:
             try:
                 content_text = upload_record.file_data.decode('utf-8', errors='replace')
@@ -387,15 +380,14 @@ def uploads():
 
         upload_record.referenced_entities = extract_references_from_bytes(
             getattr(upload_record, 'file_data', None),
-            current_user.id,
         )
 
-    total_storage = sum(upload.file_size or 0 for upload in user_uploads)
+    total_storage = sum(upload.file_size or 0 for upload in uploads_list)
 
     return render_template(
         'uploads.html',
-        uploads=user_uploads,
-        total_uploads=len(user_uploads),
+        uploads=uploads_list,
+        total_uploads=len(uploads_list),
         total_storage=total_storage,
     )
 
@@ -435,21 +427,20 @@ def edit_cid(cid_prefix):
 
     cid_record = matches[0]
     full_cid = format_cid(cid_record.path)
-    alias_for_cid = get_alias_by_target_path(current_user.id, cid_record.path)
+    alias_for_cid = get_alias_by_target_path(cid_record.path)
     form = EditCidForm()
     submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
 
-    interaction_history = load_interaction_history(current_user.id, EntityType.CID.value, full_cid)
+    interaction_history = load_interaction_history(EntityType.CID.value, full_cid)
     content_references = extract_references_from_bytes(
         getattr(cid_record, 'file_data', None),
-        current_user.id,
     )
 
     if form.validate_on_submit():
         alias_name_input = ''
         if not alias_for_cid:
             alias_name_input = form.alias_name.data or ''
-            validated_alias, error_message = _validate_alias_name(alias_name_input, current_user.id)
+            validated_alias, error_message = _validate_alias_name(alias_name_input)
             if alias_name_input and error_message:
                 form.alias_name.errors.append(error_message)
                 return render_template(
@@ -466,7 +457,7 @@ def edit_cid(cid_prefix):
 
         text_content = form.text_content.data or ''
         change_message = (request.form.get('change_message') or '').strip()
-        cid_value = _save_cid_content(text_content, current_user.id)
+        cid_value = _save_cid_content(text_content)
 
         new_target_path = cid_path(cid_value)
         if alias_for_cid:
@@ -500,14 +491,12 @@ def edit_cid(cid_prefix):
             )
             new_alias = Alias(
                 name=alias_name_input,
-                user_id=current_user.id,
                 definition=primary_line,
             )
             _persist_alias_from_upload(new_alias)
 
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=current_user.id,
                 entity_type=EntityType.CID.value,
                 entity_name=full_cid,
                 action=ActionType.SAVE.value,
@@ -587,7 +576,7 @@ def assign_cid_variable():
             assignment_variable_name=variable_name,
         )
 
-    existing_variable = get_variable_by_name(current_user.id, variable_name)
+    existing_variable = get_variable_by_name(variable_name)
     assignment_message = None
 
     if existing_variable:
@@ -603,7 +592,6 @@ def assign_cid_variable():
         new_variable = Variable(
             name=variable_name,
             definition=assignment_value,
-            user_id=current_user.id,
         )
         save_entity(new_variable)
         assignment_message = f'Created variable "{variable_name}" using this CID.'
@@ -611,10 +599,9 @@ def assign_cid_variable():
     if assignment_message:
         from .variables import update_variable_definitions_cid
 
-        update_variable_definitions_cid(current_user.id)
+        update_variable_definitions_cid()
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=current_user.id,
                 entity_type=EntityType.VARIABLE.value,
                 entity_name=variable_name,
                 action=ActionType.SAVE.value,
@@ -635,8 +622,8 @@ def assign_cid_variable():
 
 @main_bp.route('/server_events')
 def server_events():
-    """Display server invocation events for the current user."""
-    invocations = get_user_server_invocations(current_user.id)
+    """Display server invocation events."""
+    invocations = get_server_invocations()
 
     referer_by_request = _load_request_referers(invocations)
 
@@ -661,16 +648,16 @@ def screenshot_server_events_demo():
     abort(404)
 
 
-def _attach_creation_sources(user_uploads: list[Any]) -> None:
+def _attach_creation_sources(uploads_list: list[Any]) -> None:
     """Annotate uploads with information about how they were created.
 
     Args:
-        user_uploads: List of upload records to annotate
+        uploads_list: List of upload records to annotate
     """
-    if not user_uploads:
+    if not uploads_list:
         return
 
-    invocations = get_user_server_invocations(current_user.id)
+    invocations = get_server_invocations()
 
     invocation_by_cid = {}
     for invocation in invocations:
@@ -685,7 +672,7 @@ def _attach_creation_sources(user_uploads: list[Any]) -> None:
             if cid_key and cid_key not in invocation_by_cid:
                 invocation_by_cid[cid_key] = invocation
 
-    for upload_record in user_uploads:
+    for upload_record in uploads_list:
         upload_record.creation_method = EntityType.UPLOAD.value
         upload_record.server_invocation_link = None
         upload_record.server_invocation_server_name = None

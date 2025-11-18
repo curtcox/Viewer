@@ -115,7 +115,6 @@ class BulkEditorHandler(Generic[T]):
 
     def apply_changes(
         self,
-        user_id: str,
         desired_values: Dict[str, str],
         existing: List[T],
     ) -> None:
@@ -127,7 +126,6 @@ class BulkEditorHandler(Generic[T]):
         - Updating existing entities with changed definitions
 
         Args:
-            user_id: User identifier
             desired_values: Dict of name->definition for desired final state
             existing: Current list of entities
         """
@@ -149,7 +147,6 @@ class BulkEditorHandler(Generic[T]):
                 new_entity = self.entity_class(
                     name=name,
                     definition=definition,
-                    user_id=user_id,
                 )
                 save_entity(new_entity)
             elif current.definition != definition:

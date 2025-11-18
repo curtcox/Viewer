@@ -58,7 +58,6 @@ __all__ = [
 _LAZY_IMPORTS = {
     # External modules (backward compatibility)
     'run_text_function': ('text_function_runner', 'run_text_function'),
-    'current_user': ('identity', 'current_user'),
     'make_response': ('flask', 'make_response'),
     'redirect': ('flask', 'redirect'),
     'create_cid_record': ('db_access', 'create_cid_record'),
@@ -74,7 +73,6 @@ _LAZY_IMPORTS = {
     '_normalize_variable_path': ('server_execution.variable_resolution', '_normalize_variable_path'),
     '_should_skip_variable_prefetch': ('server_execution.variable_resolution', '_should_skip_variable_prefetch'),
     '_resolve_redirect_target': ('server_execution.variable_resolution', '_resolve_redirect_target'),
-    '_current_user_id': ('server_execution.variable_resolution', '_current_user_id'),
     '_fetch_variable_via_client': ('server_execution.variable_resolution', '_fetch_variable_via_client'),
     '_fetch_variable_content': ('server_execution.variable_resolution', '_fetch_variable_content'),
     '_resolve_variable_values': ('server_execution.variable_resolution', '_resolve_variable_values'),

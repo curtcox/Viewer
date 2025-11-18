@@ -133,29 +133,28 @@ try:
     from db_access import (
         create_cid_record,
         get_cid_by_path,
-        get_user_secrets,
-        get_user_servers,
-        get_user_variables,
+        get_secrets,
+        get_servers,
+        get_variables,
     )
 except (RuntimeError, ImportError):
     create_cid_record = None
     get_cid_by_path = None
-    get_user_servers = None
-    get_user_variables = None
-    get_user_secrets = None
+    get_servers = None
+    get_variables = None
+    get_secrets = None
 
 
 # Legacy pattern support for save_server_definition_as_cid
-def save_server_definition_as_cid(definition: str, user_id: int) -> str:
+def save_server_definition_as_cid(definition: str) -> str:
     """Save server definition as CID and return the CID string.
 
     DEPRECATED: Use store_cid_from_bytes or store_cid_from_json instead.
 
     Args:
         definition: Server definition string
-        user_id: User ID
 
     Returns:
         CID string
     """
-    return store_cid_from_bytes(definition.encode('utf-8'), user_id)
+    return store_cid_from_bytes(definition.encode('utf-8'))

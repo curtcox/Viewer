@@ -29,17 +29,11 @@ class TestMetaRoute(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _create_test_user(self, user_id: str = 'user-123'):
-        return user_id
-
-    def _create_cid(self, cid_value: str, content: bytes = b'test', user_id: str | None = None):
-        if user_id is None:
-            user_id = self._create_test_user()
+    def _create_cid(self, cid_value: str, content: bytes = b'test'):
         record = CID(
             path=f'/{cid_value}',
             file_data=content,
             file_size=len(content),
-            uploaded_by_user_id=user_id,
         )
         db.session.add(record)
         db.session.commit()
@@ -47,7 +41,6 @@ class TestMetaRoute(unittest.TestCase):
 
     def _create_alias(
         self,
-        user_id: str,
         name: str = 'docs',
         target: str = '/docs',
         match_type: str = 'literal',
@@ -68,23 +61,17 @@ class TestMetaRoute(unittest.TestCase):
         )
         alias = Alias(
             name=name,
-            user_id=user_id,
             definition=definition_text,
         )
         db.session.add(alias)
         db.session.commit()
         return alias
 
-    def _create_server(self, user_id: str, name: str = 'demo-server', definition: str = 'print("hi")'):
-        server = Server(name=name, definition=definition, user_id=user_id)
+    def _create_server(self, name: str = 'demo-server', definition: str = 'print("hi")'):
+        server = Server(name=name, definition=definition)
         db.session.add(server)
         db.session.commit()
         return server
-
-    def _login(self, user_id: str):
-        with self.client.session_transaction() as session:
-            session['_user_id'] = user_id
-            session['_fresh'] = True
 
     def test_meta_route_reports_route_information(self):
         with self.app.app_context():
@@ -118,20 +105,18 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_includes_server_event_links_for_cid(self):
         with self.app.app_context():
-            user_id = self._create_test_user()
-            self._create_cid('cid-result', b'result', user_id)
-            self._create_server(user_id, name='demo-server')
-            self._create_alias(user_id, name='docs', target='/docs')
+            self._create_cid('cid-result', b'result')
+            self._create_server(name='demo-server')
+            self._create_alias(name='docs', target='/docs')
             record = CID.query.filter_by(path='/cid-result').first()
             record.file_data = b'Check /docs /servers/demo-server /demo-server and /cid-inv'
             db.session.commit()
 
             related_cids = ['cid-inv', 'cid-request', 'cid-servers', 'cid-vars', 'cid-secrets']
             for cid in related_cids:
-                self._create_cid(cid, b'extra', user_id)
+                self._create_cid(cid, b'extra')
 
             invocation = ServerInvocation(
-                user_id=user_id,
                 server_name='demo-server',
                 result_cid='cid-result',
                 invocation_cid='cid-inv',
@@ -143,7 +128,6 @@ class TestMetaRoute(unittest.TestCase):
             db.session.add(invocation)
             db.session.commit()
 
-            self._login(user_id)
             response = self.client.get('/meta/cid-result')
             self.assertEqual(response.status_code, 200)
 
@@ -192,9 +176,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_alias_redirect_metadata(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_alias(user, name='shortcut', target='/servers#overview')
-            self._login(user)
+            self._create_alias(name='shortcut', target='/servers#overview')
 
             response = self.client.get('/meta/shortcut?source=meta')
             self.assertEqual(response.status_code, 200)
@@ -215,9 +197,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_server_execution_requirements(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_server(user, name='process-data')
-            self._login(user)
+            self._create_server(name='process-data')
 
             response = self.client.get('/meta/process-data')
             self.assertEqual(response.status_code, 200)
@@ -229,10 +209,8 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_aliases_targeting_path(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_alias(user, name='docs', target='/settings')
-            self._create_alias(user, name='settings-alias', target='/settings?from=alias')
-            self._login(user)
+            self._create_alias(name='docs', target='/settings')
+            self._create_alias(name='settings-alias', target='/settings?from=alias')
 
             response = self.client.get('/meta/settings')
             self.assertEqual(response.status_code, 200)
@@ -251,9 +229,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_handles_versioned_server_without_match(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_server(user, name='reporting')
-            self._login(user)
+            self._create_server(name='reporting')
 
             with patch('routes.servers.get_server_definition_history', return_value=[]):
                 response = self.client.get('/meta/reporting/unknown')
@@ -266,9 +242,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_handles_versioned_server_multiple_matches(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_server(user, name='analytics')
-            self._login(user)
+            self._create_server(name='analytics')
 
             history = [
                 {
@@ -299,9 +273,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_handles_versioned_server_single_match(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_server(user, name='pipeline')
-            self._login(user)
+            self._create_server(name='pipeline')
 
             history = [
                 {
@@ -332,9 +304,7 @@ class TestMetaRoute(unittest.TestCase):
  """
 
         with self.app.app_context():
-            user = self._create_test_user()
-            self._create_server(user, name='pipeline', definition=definition)
-            self._login(user)
+            self._create_server(name='pipeline', definition=definition)
 
             history = [
                 {
@@ -360,8 +330,6 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_redirect_metadata_for_trailing_slash(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._login(user)
 
             class FakeAdapter:
                 def match(self, path, method=None, return_rule=False):
@@ -378,9 +346,6 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_reports_method_not_allowed_metadata(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._login(user)
-
             response = self.client.get('/meta/variables/example/delete')
             self.assertEqual(response.status_code, 200)
 
@@ -393,9 +358,6 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_normalizes_blank_requested_path(self):
         with self.app.app_context():
-            user = self._create_test_user()
-            self._login(user)
-
             response = self.client.get('/meta')
             self.assertEqual(response.status_code, 200)
 

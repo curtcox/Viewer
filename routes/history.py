@@ -5,14 +5,13 @@ from typing import Dict, Iterable, List, Optional
 
 from flask import render_template, request
 
-from analytics import get_paginated_page_views, get_user_history_statistics
+from analytics import get_paginated_page_views, get_history_statistics
 from cid_presenter import cid_path, format_cid, render_cid_link
 from cid_utils import is_strict_cid_candidate, split_cid_path
 from db_access import (
     get_cids_by_paths,
-    get_user_server_invocations_by_result_cids,
+    get_server_invocations_by_result_cids,
 )
-from identity import current_user
 from models import ServerInvocation
 
 from . import main_bp
@@ -20,14 +19,14 @@ from . import main_bp
 
 @main_bp.route('/history')
 def history():
-    """Display user's page view history."""
+    """Display page view history."""
     page = request.args.get('page', 1, type=int)
     per_page = 50
 
-    page_views = get_paginated_page_views(current_user.id, page, per_page)
+    page_views = get_paginated_page_views(page, per_page)
     _attach_server_event_links(page_views)
     _attach_cid_links(page_views)
-    stats = get_user_history_statistics(current_user.id)
+    stats = get_history_statistics()
     stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
 
     return render_template('history.html', page_views=page_views, **stats)
@@ -239,8 +238,7 @@ def _attach_server_event_links(page_views: object) -> None:
     if not result_cids:
         return
 
-    invocations = get_user_server_invocations_by_result_cids(
-        current_user.id,
+    invocations = get_server_invocations_by_result_cids(
         result_cids,
     )
 

@@ -17,10 +17,6 @@ from db_access import (
     count_secrets,
     count_servers,
     count_unique_page_view_paths,
-    count_user_page_views,
-    count_user_secrets,
-    count_user_servers,
-    count_user_variables,
     count_variables,
     create_cid_record,
     create_server_invocation,
@@ -35,16 +31,15 @@ from db_access import (
     get_recent_cids,
     get_secret_by_name,
     get_server_by_name,
-    get_user_profile_data,
-    get_user_server_invocations,
-    get_user_server_invocations_by_result_cids,
-    get_user_server_invocations_by_server,
-    get_user_uploads,
+    get_server_invocations,
+    get_server_invocations_by_result_cids,
+    get_server_invocations_by_server,
+    get_uploads,
     get_variable_by_name,
-    paginate_user_page_views,
     EntityInteractionLookup,
     EntityInteractionRequest,
     ServerInvocationInput,
+    paginate_page_views,
     record_entity_interaction,
     save_entity,
     save_page_view,
@@ -75,42 +70,29 @@ class TestDBAccess(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
 
-        self.user_id = 'user1'
-
     def tearDown(self):
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
 
-    def test_get_user_profile_data(self):
-        data = get_user_profile_data(self.user_id)
-        self.assertEqual(data['payments'], [])
-        self.assertEqual(data['terms_history'], [])
-        self.assertFalse(data['needs_terms_acceptance'])
-        self.assertIsNone(data['current_terms_version'])
-
     def test_entity_helpers(self):
-        server = Server(name='srv', definition='print(1)', user_id=self.user_id)
-        variable = Variable(name='var', definition='1', user_id=self.user_id)
-        secret = Secret(name='sec', definition='x', user_id=self.user_id)
+        server = Server(name='srv', definition='print(1)')
+        variable = Variable(name='var', definition='1')
+        secret = Secret(name='sec', definition='x')
         db.session.add_all([server, variable, secret])
         db.session.commit()
 
-        self.assertIsNotNone(get_server_by_name(self.user_id, 'srv'))
-        self.assertIsNotNone(get_variable_by_name(self.user_id, 'var'))
-        self.assertIsNotNone(get_secret_by_name(self.user_id, 'sec'))
-        self.assertEqual(count_user_servers(self.user_id), 1)
-        self.assertEqual(count_user_variables(self.user_id), 1)
-        self.assertEqual(count_user_secrets(self.user_id), 1)
+        self.assertIsNotNone(get_server_by_name('srv'))
+        self.assertIsNotNone(get_variable_by_name('var'))
+        self.assertIsNotNone(get_secret_by_name('sec'))
         self.assertEqual(count_servers(), 1)
         self.assertEqual(count_variables(), 1)
         self.assertEqual(count_secrets(), 1)
 
     def test_server_invocation_and_cid_helpers(self):
-        create_cid_record('cid1', b'data', self.user_id)
+        create_cid_record('cid1', b'data')
         self.assertIsNotNone(get_cid_by_path('/cid1'))
         invocation = create_server_invocation(
-            self.user_id,
             'srv',
             'cid1',
             ServerInvocationInput(),
@@ -122,9 +104,9 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(find_cids_by_prefix(''), [])
         self.assertEqual(find_cids_by_prefix('/'), [])
 
-        create_cid_record('alpha.one', b'a', self.user_id)
-        create_cid_record('alpha.two', b'b', self.user_id)
-        create_cid_record('beta.one', b'c', self.user_id)
+        create_cid_record('alpha.one', b'a')
+        create_cid_record('alpha.two', b'b')
+        create_cid_record('beta.one', b'c')
 
         matches = find_cids_by_prefix('alpha')
         self.assertEqual([cid.path for cid in matches], ['/alpha.one', '/alpha.two'])
@@ -133,11 +115,11 @@ class TestDBAccess(unittest.TestCase):
         dotted_matches = find_cids_by_prefix('alpha.extra')
         self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
 
-    def test_get_user_uploads_returns_latest_first(self):
-        create_cid_record('first', b'1', self.user_id)
-        create_cid_record('second', b'2', self.user_id)
+    def test_get_uploads_returns_latest_first(self):
+        create_cid_record('first', b'1')
+        create_cid_record('second', b'2')
 
-        uploads = get_user_uploads(self.user_id)
+        uploads = get_uploads()
         self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
         self.assertEqual(uploads[0].file_size, len(b'2'))
 
@@ -151,7 +133,7 @@ class TestDBAccess(unittest.TestCase):
         from sqlalchemy.exc import IntegrityError
 
         # Create first CID
-        create_cid_record('test_cid', b'test data', self.user_id)
+        create_cid_record('test_cid', b'test data')
 
         # Verify it was created
         cid = get_cid_by_path('/test_cid')
@@ -159,33 +141,31 @@ class TestDBAccess(unittest.TestCase):
 
         # Attempt to create duplicate should raise IntegrityError
         with self.assertRaises(IntegrityError):
-            create_cid_record('test_cid', b'different data', self.user_id)
+            create_cid_record('test_cid', b'different data')
 
     def test_page_view_helpers(self):
         views = [
-            PageView(user_id=self.user_id, path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(user_id=self.user_id, path='/beta', method='POST', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(user_id=self.user_id, path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/beta', method='POST', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
         ]
         for view in views:
             save_page_view(view)
 
-        self.assertEqual(count_user_page_views(self.user_id), 3)
-        self.assertEqual(count_unique_page_view_paths(self.user_id), 2)
         self.assertEqual(count_page_views(), 3)
+        self.assertEqual(count_unique_page_view_paths(), 2)
 
-        popular = get_popular_page_paths(self.user_id, limit=1)
+        popular = get_popular_page_paths(limit=1)
         self.assertTrue(popular)
         self.assertEqual(popular[0].path, '/alpha')
 
-        pagination = paginate_user_page_views(self.user_id, page=1, per_page=2)
+        pagination = paginate_page_views(page=1, per_page=2)
         self.assertEqual(pagination.total, 3)
         self.assertEqual(len(pagination.items), 2)
 
     def test_server_invocation_helpers(self):
         now = datetime.now(timezone.utc)
         first = ServerInvocation(
-            user_id=self.user_id,
             server_name='demo',
             result_cid='cid-first',
             invocation_cid='invoke-1',
@@ -196,21 +176,20 @@ class TestDBAccess(unittest.TestCase):
         save_entity(first)
 
         second = ServerInvocation(
-            user_id=self.user_id,
             server_name='other',
             result_cid='cid-second',
         )
         second.invoked_at = now - timedelta(minutes=5)
         save_entity(second)
 
-        all_invocations = get_user_server_invocations(self.user_id)
+        all_invocations = get_server_invocations()
         self.assertEqual([invocation.server_name for invocation in all_invocations], ['demo', 'other'])
 
-        by_server = get_user_server_invocations_by_server(self.user_id, 'demo')
+        by_server = get_server_invocations_by_server('demo')
         self.assertEqual(len(by_server), 1)
         self.assertEqual(by_server[0].result_cid, 'cid-first')
 
-        by_result = get_user_server_invocations_by_result_cids(self.user_id, {'cid-first'})
+        by_result = get_server_invocations_by_result_cids({'cid-first'})
         self.assertEqual(len(by_result), 1)
         self.assertEqual(by_result[0].invocation_cid, 'invoke-1')
 
@@ -233,7 +212,6 @@ class TestDBAccess(unittest.TestCase):
         )
         alias = Alias(
             name='docs',
-            user_id=self.user_id,
             definition=definition_text,
         )
         server = Server(
@@ -243,7 +221,6 @@ class TestDBAccess(unittest.TestCase):
                 f"    return '{old_cid}'\n"
             ),
             definition_cid=old_cid,
-            user_id=self.user_id,
         )
         db.session.add_all([alias, server])
         db.session.commit()
@@ -251,8 +228,8 @@ class TestDBAccess(unittest.TestCase):
         with patch('cid_utils.save_server_definition_as_cid') as mock_save, patch(
             'cid_utils.store_server_definitions_cid'
         ) as mock_store:
-            mock_save.side_effect = lambda definition, user_id: f'{user_id}-cid'
-            mock_store.side_effect = lambda user_id: f'stored-{user_id}'
+            mock_save.side_effect = lambda definition: 'test-cid'
+            mock_store.side_effect = lambda: 'stored'
 
             result = update_cid_references(old_cid, new_cid)
 
@@ -271,10 +248,10 @@ class TestDBAccess(unittest.TestCase):
 
         self.assertIn(new_cid, server.definition)
         self.assertNotIn(old_cid, server.definition)
-        self.assertEqual(server.definition_cid, f'{self.user_id}-cid')
+        self.assertEqual(server.definition_cid, 'test-cid')
 
         mock_save.assert_called_once()
-        mock_store.assert_called_once_with(self.user_id)
+        mock_store.assert_called_once()
 
     def test_update_alias_cid_reference_updates_existing_alias(self):
         definition_text = format_primary_alias_line(
@@ -289,7 +266,6 @@ class TestDBAccess(unittest.TestCase):
         )
         alias = Alias(
             name='release',
-            user_id=self.user_id,
             definition=definition_text,
         )
         db.session.add(alias)
@@ -314,15 +290,14 @@ class TestDBAccess(unittest.TestCase):
 
         alias = Alias.query.filter_by(name='latest').first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.user_id, 'default-user')
         self.assertEqual(alias.target_path, '/freshcid')
         self.assertIn('/freshcid', alias.definition)
         self.assertEqual(alias.match_type, 'literal')
         self.assertEqual(alias.match_pattern, '/latest')
 
     def test_cid_lookup_helpers(self):
-        create_cid_record('gamma', b'g', self.user_id)
-        create_cid_record('delta', b'd', self.user_id)
+        create_cid_record('gamma', b'g')
+        create_cid_record('delta', b'd')
 
         paths = ['/gamma', '/delta']
         records = get_cids_by_paths(paths)
@@ -340,7 +315,6 @@ class TestDBAccess(unittest.TestCase):
         timestamp = datetime.now(timezone.utc)
         record_entity_interaction(
             EntityInteractionRequest(
-                user_id=self.user_id,
                 entity_type='server',
                 entity_name='demo',
                 action='save',
@@ -350,13 +324,12 @@ class TestDBAccess(unittest.TestCase):
             )
         )
 
-        interactions = get_entity_interactions(self.user_id, 'server', 'demo')
+        interactions = get_entity_interactions('server', 'demo')
         self.assertEqual(len(interactions), 1)
         self.assertEqual(interactions[0].message, 'Created demo')
 
         match = find_entity_interaction(
             EntityInteractionLookup(
-                user_id=self.user_id,
                 entity_type='server',
                 entity_name='demo',
                 action='save',

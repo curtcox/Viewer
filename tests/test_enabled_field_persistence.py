@@ -42,7 +42,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create disabled alias
         alias = Alias(
             name='test_alias',
-            user_id='user1',
             definition='test definition',
             enabled=False
         )
@@ -59,7 +58,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create enabled alias
         alias = Alias(
             name='test_alias',
-            user_id='user1',
             definition='test definition',
             enabled=True
         )
@@ -76,7 +74,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create alias without specifying enabled
         alias = Alias(
             name='test_alias',
-            user_id='user1',
             definition='test definition'
         )
         db.session.add(alias)
@@ -92,7 +89,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create disabled server
         server = Server(
             name='test_server',
-            user_id='user1',
             definition='test definition',
             enabled=False
         )
@@ -109,7 +105,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create enabled server
         server = Server(
             name='test_server',
-            user_id='user1',
             definition='test definition',
             enabled=True
         )
@@ -126,7 +121,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create server without specifying enabled
         server = Server(
             name='test_server',
-            user_id='user1',
             definition='test definition'
         )
         db.session.add(server)
@@ -142,7 +136,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create disabled variable
         variable = Variable(
             name='test_variable',
-            user_id='user1',
             definition='test definition',
             enabled=False
         )
@@ -159,7 +152,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create enabled variable
         variable = Variable(
             name='test_variable',
-            user_id='user1',
             definition='test definition',
             enabled=True
         )
@@ -176,7 +168,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create variable without specifying enabled
         variable = Variable(
             name='test_variable',
-            user_id='user1',
             definition='test definition'
         )
         db.session.add(variable)
@@ -192,7 +183,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create disabled secret
         secret = Secret(
             name='test_secret',
-            user_id='user1',
             definition='test definition',
             enabled=False
         )
@@ -209,7 +199,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create enabled secret
         secret = Secret(
             name='test_secret',
-            user_id='user1',
             definition='test definition',
             enabled=True
         )
@@ -226,7 +215,6 @@ class TestEnabledFieldPersistence(unittest.TestCase):
         # Create secret without specifying enabled
         secret = Secret(
             name='test_secret',
-            user_id='user1',
             definition='test definition'
         )
         db.session.add(secret)
@@ -240,17 +228,17 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_multiple_entities_mixed_enabled_states(self):
         """Test multiple entities with mixed enabled states."""
         # Create entities with different enabled states
-        alias_enabled = Alias(name='alias1', user_id='user1', definition='def1', enabled=True)
-        alias_disabled = Alias(name='alias2', user_id='user1', definition='def2', enabled=False)
+        alias_enabled = Alias(name='alias1', definition='def1', enabled=True)
+        alias_disabled = Alias(name='alias2', definition='def2', enabled=False)
 
-        server_enabled = Server(name='server1', user_id='user1', definition='def1', enabled=True)
-        server_disabled = Server(name='server2', user_id='user1', definition='def2', enabled=False)
+        server_enabled = Server(name='server1', definition='def1', enabled=True)
+        server_disabled = Server(name='server2', definition='def2', enabled=False)
 
-        variable_enabled = Variable(name='var1', user_id='user1', definition='def1', enabled=True)
-        variable_disabled = Variable(name='var2', user_id='user1', definition='def2', enabled=False)
+        variable_enabled = Variable(name='var1', definition='def1', enabled=True)
+        variable_disabled = Variable(name='var2', definition='def2', enabled=False)
 
-        secret_enabled = Secret(name='secret1', user_id='user1', definition='def1', enabled=True)
-        secret_disabled = Secret(name='secret2', user_id='user1', definition='def2', enabled=False)
+        secret_enabled = Secret(name='secret1', definition='def1', enabled=True)
+        secret_disabled = Secret(name='secret2', definition='def2', enabled=False)
 
         db.session.add_all([
             alias_enabled, alias_disabled,
@@ -275,7 +263,7 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_enabled_field_update_from_true_to_false(self):
         """Test updating enabled field from True to False."""
         # Create enabled alias
-        alias = Alias(name='test_alias', user_id='user1', definition='def', enabled=True)
+        alias = Alias(name='test_alias', definition='def', enabled=True)
         db.session.add(alias)
         db.session.commit()
 
@@ -290,7 +278,7 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_enabled_field_update_from_false_to_true(self):
         """Test updating enabled field from False to True."""
         # Create disabled alias
-        alias = Alias(name='test_alias', user_id='user1', definition='def', enabled=False)
+        alias = Alias(name='test_alias', definition='def', enabled=False)
         db.session.add(alias)
         db.session.commit()
 
@@ -305,9 +293,9 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_query_filter_by_enabled_false(self):
         """Test querying for disabled entities."""
         # Create mix of enabled and disabled entities
-        alias1 = Alias(name='alias1', user_id='user1', definition='def1', enabled=True)
-        alias2 = Alias(name='alias2', user_id='user1', definition='def2', enabled=False)
-        alias3 = Alias(name='alias3', user_id='user1', definition='def3', enabled=False)
+        alias1 = Alias(name='alias1', definition='def1', enabled=True)
+        alias2 = Alias(name='alias2', definition='def2', enabled=False)
+        alias3 = Alias(name='alias3', definition='def3', enabled=False)
 
         db.session.add_all([alias1, alias2, alias3])
         db.session.commit()
@@ -322,15 +310,18 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_query_filter_by_enabled_true(self):
         """Test querying for enabled entities."""
         # Create mix of enabled and disabled entities
-        alias1 = Alias(name='alias1', user_id='user1', definition='def1', enabled=True)
-        alias2 = Alias(name='alias2', user_id='user1', definition='def2', enabled=False)
-        alias3 = Alias(name='alias3', user_id='user1', definition='def3', enabled=True)
+        alias1 = Alias(name='alias1', definition='def1', enabled=True)
+        alias2 = Alias(name='alias2', definition='def2', enabled=False)
+        alias3 = Alias(name='alias3', definition='def3', enabled=True)
 
         db.session.add_all([alias1, alias2, alias3])
         db.session.commit()
 
-        # Query for enabled aliases for this specific user
-        enabled_aliases = Alias.query.filter_by(enabled=True, user_id='user1').all()
+        # Query for enabled aliases
+        enabled_aliases = Alias.query.filter(
+            Alias.name.in_(['alias1', 'alias2', 'alias3']),
+            Alias.enabled.is_(True),
+        ).all()
         self.assertEqual(len(enabled_aliases), 2, "Should find 2 enabled aliases")
 
         enabled_names = {a.name for a in enabled_aliases}
@@ -339,7 +330,7 @@ class TestEnabledFieldPersistence(unittest.TestCase):
     def test_raw_sql_query_for_disabled_entities(self):
         """Test that raw SQL queries also return correct enabled values."""
         # Create disabled alias
-        alias = Alias(name='test_alias', user_id='user1', definition='def', enabled=False)
+        alias = Alias(name='test_alias', definition='def', enabled=False)
         db.session.add(alias)
         db.session.commit()
 

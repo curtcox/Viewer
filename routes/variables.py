@@ -10,12 +10,11 @@ from cid_utils import (
     store_variable_definitions_cid,
 )
 from db_access import (
-    get_user_template_variables,
-    get_user_variables,
+    get_template_variables,
     get_variable_by_name,
+    get_variables,
 )
 from forms import BulkVariablesForm, VariableForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Variable
 from serialization import model_to_dict
@@ -31,13 +30,14 @@ from .meta import inspect_path_metadata
 _bulk_editor = create_variable_bulk_handler()
 
 
-def update_variable_definitions_cid(user_id):
+def update_variable_definitions_cid():
     """Update the variable definitions CID after variable changes."""
-    return store_variable_definitions_cid(user_id)
+    return store_variable_definitions_cid()
 
 
-def user_variables():
-    return get_user_variables(current_user.id)
+def list_variables():
+    """Return all stored variables."""
+    return get_variables()
 
 
 def _build_variables_editor_payload(variables_list: List[Variable]) -> str:
@@ -51,10 +51,10 @@ def _parse_variables_editor_payload(raw_payload: str) -> Tuple[Optional[Dict[str
 
 
 def _apply_variables_editor_changes(
-    user_id: str, desired_values: Dict[str, str], existing: List[Variable]
+    desired_values: Dict[str, str], existing: List[Variable]
 ) -> None:
-    """Persist the desired variables, replacing the user's current collection."""
-    _bulk_editor.apply_changes(user_id, desired_values, existing)
+    """Persist the desired variables, replacing the current collection."""
+    _bulk_editor.apply_changes(desired_values, existing)
 
 def _status_label(status: int) -> Optional[str]:
     try:
@@ -217,15 +217,15 @@ def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str
     return "Unknown resolution", []
 
 
-def _build_variables_list_context(variables_list: list, user_id: str) -> Dict[str, Any]:
+def _build_variables_list_context(variables_list: list) -> Dict[str, Any]:
     """Build extra context for variables list view."""
     context = {}
     if variables_list:
-        context['variable_definitions_cid'] = get_current_variable_definitions_cid(user_id)
+        context['variable_definitions_cid'] = get_current_variable_definitions_cid()
     return context
 
 
-def _build_variable_view_context(variable: Variable, user_id: str) -> Dict[str, Any]:
+def _build_variable_view_context(variable: Variable) -> Dict[str, Any]:
     """Build extra context for variable view page."""
     return {
         'matching_route': build_matching_route_info(variable.definition)
@@ -276,7 +276,7 @@ _variable_config = EntityRouteConfig(
     entity_type='variable',
     plural_name='variables',
     get_by_name_func=get_variable_by_name,
-    get_user_entities_func=get_user_variables,
+    get_entities_func=get_variables,
     form_class=VariableForm,
     update_cid_func=update_variable_definitions_cid,
     to_json_func=model_to_dict,
@@ -291,7 +291,7 @@ register_standard_crud_routes(main_bp, _variable_config)
 def bulk_edit_variables():
     """Edit all variables at once using a JSON payload."""
 
-    variables_list = user_variables()
+    variables_list = list_variables()
     form = BulkVariablesForm()
 
     if request.method == 'GET':
@@ -303,8 +303,8 @@ def bulk_edit_variables():
         if error:
             form.variables_json.errors.append(error)
         else:
-            _apply_variables_editor_changes(current_user.id, normalized, variables_list)
-            update_variable_definitions_cid(current_user.id)
+            _apply_variables_editor_changes(normalized, variables_list)
+            update_variable_definitions_cid()
             flash('Variables updated successfully!', 'success')
             return redirect(url_for('main.variables'))
 
@@ -334,14 +334,13 @@ def new_variable():
             'definition': variable.definition or '',
             'suggested_name': f"{variable.name}-copy" if variable.name else '',
         }
-        for variable in get_user_template_variables(current_user.id)
+        for variable in get_template_variables()
     ]
 
     if form.validate_on_submit():
         if create_entity(
             Variable,
             form,
-            current_user.id,
             'variable',
             change_message=change_message,
             content_text=definition_text,
@@ -349,9 +348,9 @@ def new_variable():
             return redirect(url_for('main.variables'))
 
     entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(current_user.id, 'variable', entity_name_hint)
+    interaction_history = load_interaction_history('variable', entity_name_hint)
 
-    template_link_info = get_template_link_info(current_user.id, 'variables')
+    template_link_info = get_template_link_info('variables')
 
     return render_template(
         'variable_form.html',
@@ -370,7 +369,7 @@ def new_variable():
 @main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
 def edit_variable(variable_name):
     """Edit a specific variable."""
-    variable = get_variable_by_name(current_user.id, variable_name)
+    variable = get_variable_by_name(variable_name)
     if not variable:
         abort(404)
 
@@ -379,7 +378,7 @@ def edit_variable(variable_name):
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or variable.definition or ''
 
-    interaction_history = load_interaction_history(current_user.id, 'variable', variable.name)
+    interaction_history = load_interaction_history('variable', variable.name)
 
     current_definition = form.definition.data
     if current_definition is None:
@@ -423,5 +422,5 @@ __all__ = [
     'edit_variable',
     'new_variable',
     'update_variable_definitions_cid',
-    'user_variables',
+    'list_variables',
 ]

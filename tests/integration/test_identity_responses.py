@@ -5,18 +5,19 @@ from typing import Optional
 
 from unittest.mock import patch
 
+import pytest
+
 from database import db
 from db_access import get_alias_by_name, get_server_by_name
-import identity
+from identity import ensure_default_resources
 
 
-def _set_user_session(client, user_id: Optional[str]) -> None:
-    with client.session_transaction() as session:
-        session.pop('_user_id', None)
-        session.pop('_fresh', None)
-        if user_id is not None:
-            session['_user_id'] = user_id
-            session['_fresh'] = True
+@pytest.fixture(autouse=True)
+def _ensure_default_resources(client):
+    """Ensure default global resources exist for every test."""
+
+    with client.application.app_context():
+        ensure_default_resources()
 
 
 def _collect_css_redirect_chain(client):
@@ -53,17 +54,15 @@ def test_alias_creation_redirects_consistently(client):
     assert response_default.status_code == 302
     assert response_default.headers['Location'] == '/aliases'
 
-    default_alias = get_alias_by_name('default-user', alias_name)
+    default_alias = get_alias_by_name(alias_name)
     assert default_alias is not None
 
-    _set_user_session(client, 'alternate-user')
-    response_alternate = client.post('/aliases/new', data=payload, follow_redirects=False)
-    assert response_alternate.status_code == response_default.status_code
-    assert response_alternate.headers['Location'] == response_default.headers['Location']
+    response_repeat = client.post('/aliases/new', data=payload, follow_redirects=False)
+    assert response_repeat.status_code == 200
 
-    alternate_alias = get_alias_by_name('alternate-user', alias_name)
-    assert alternate_alias is not None
-    assert alternate_alias.definition == default_alias.definition
+    repeat_alias = get_alias_by_name(alias_name)
+    assert repeat_alias is not None
+    assert repeat_alias.definition == default_alias.definition
 
 
 def test_server_creation_redirects_consistently(client):
@@ -80,38 +79,35 @@ def test_server_creation_redirects_consistently(client):
     assert response_default.status_code == 302
     assert response_default.headers['Location'] == '/servers'
 
-    default_server = get_server_by_name('default-user', server_name)
+    default_server = get_server_by_name(server_name)
     assert default_server is not None
 
-    _set_user_session(client, 'alternate-user')
-    response_alternate = client.post('/servers/new', data=payload, follow_redirects=False)
-    assert response_alternate.status_code == response_default.status_code
-    assert response_alternate.headers['Location'] == response_default.headers['Location']
+    response_repeat = client.post('/servers/new', data=payload, follow_redirects=False)
+    assert response_repeat.status_code == 200
 
-    alternate_server = get_server_by_name('alternate-user', server_name)
-    assert alternate_server is not None
-    assert alternate_server.definition == default_server.definition
+    repeat_server = get_server_by_name(server_name)
+    assert repeat_server is not None
+    assert repeat_server.definition == default_server.definition
 
 
 def test_css_alias_resolves_without_user_specific_alias(client):
-    missing_user = 'missing-css-user'
-
     default_response = client.get('/css/custom.css', follow_redirects=True)
     assert default_response.status_code == 200
 
-    original_ensure = identity.ensure_css_alias_for_user
+    def _maybe_ensure() -> bool:
+        return False
 
-    def _maybe_ensure(user_id: str) -> bool:
-        if user_id == missing_user:
-            return False
-        return original_ensure(user_id)
+    # Delete CSS alias to simulate it being missing
+    with client.application.app_context():
+        alias = get_alias_by_name('CSS')
+        if alias:
+            db.session.delete(alias)
+            db.session.commit()
 
-    _set_user_session(client, missing_user)
-    with patch('identity.ensure_css_alias_for_user', side_effect=_maybe_ensure):
-        missing_response = client.get('/css/custom.css', follow_redirects=True)
+    with patch('identity.ensure_css_alias', side_effect=_maybe_ensure):
+        missing_response = client.get('/css/custom.css', follow_redirects=False)
 
-    assert missing_response.status_code == default_response.status_code
-    assert missing_response.data == default_response.data
+    assert missing_response.status_code == 404
 
 
 def test_css_alias_redirect_chain_is_consistent_with_session(client):
@@ -120,14 +116,13 @@ def test_css_alias_redirect_chain_is_consistent_with_session(client):
     assert default_chain[-1][0] == 200
     assert default_chain[-1][1] is None
 
-    _set_user_session(client, 'alternate-user')
-    alternate_chain = _collect_css_redirect_chain(client)
-    assert alternate_chain == default_chain
+    repeat_chain = _collect_css_redirect_chain(client)
+    assert repeat_chain == default_chain
 
 
 def test_css_alias_outdated_definition_is_upgraded(client):
     with client.application.app_context():
-        alias = get_alias_by_name('default-user', 'CSS')
+        alias = get_alias_by_name('CSS')
         assert alias is not None
         alias.definition = 'css/custom.css -> /css/default\ncss/default -> /static/css/custom.css'
         db.session.add(alias)
@@ -137,11 +132,10 @@ def test_css_alias_outdated_definition_is_upgraded(client):
     assert response.status_code == 200
 
     with client.application.app_context():
-        refreshed = get_alias_by_name('default-user', 'CSS')
+        refreshed = get_alias_by_name('CSS')
         assert refreshed is not None
         assert 'css/lightmode ->' in refreshed.definition
         assert 'css/darkmode ->' in refreshed.definition
 
-    _set_user_session(client, 'alternate-user')
-    alternate_response = client.get('/css/custom.css', follow_redirects=True)
-    assert alternate_response.status_code == 200
+    repeat_response = client.get('/css/custom.css', follow_redirects=True)
+    assert repeat_response.status_code == 200

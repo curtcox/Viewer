@@ -36,19 +36,14 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         db.create_all()
 
-        # Track a default user identifier for ownership fields
-        self.test_user_id = 'test_user_123'
-
         # Create test secrets
         self.secret1 = Secret(
             name='test_secret1',
-            definition='secret_value1',
-            user_id=self.test_user_id
+            definition='secret_value1'
         )
         self.secret2 = Secret(
             name='test_secret2',
-            definition='secret_value2',
-            user_id=self.test_user_id
+            definition='secret_value2'
         )
         db.session.add(self.secret1)
         db.session.add(self.secret2)
@@ -64,7 +59,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
     def test_generate_all_secret_definitions_json_with_secrets(self):
         """Test JSON generation with existing secrets"""
-        json_content = generate_all_secret_definitions_json(self.test_user_id)
+        json_content = generate_all_secret_definitions_json()
 
         # Parse the JSON to verify structure
         data = json.loads(json_content)
@@ -85,10 +80,11 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
     def test_generate_all_secret_definitions_json_empty(self):
         """Test JSON generation with no secrets"""
-        # Create user with no secrets
-        empty_user_id = 'empty_user'
+        # Clear all secrets for this test
+        Secret.query.delete()
+        db.session.commit()
 
-        json_content = generate_all_secret_definitions_json(empty_user_id)
+        json_content = generate_all_secret_definitions_json()
         data = json.loads(json_content)
 
         # Should be empty dictionary
@@ -98,13 +94,13 @@ class TestSecretDefinitionsCID(unittest.TestCase):
     def test_generate_all_secret_definitions_json_sorted(self):
         """Test that secrets are sorted alphabetically in JSON"""
         # Add more secrets in non-alphabetical order
-        secret_z = Secret(name='z_secret', definition='z_value', user_id=self.test_user_id)
-        secret_a = Secret(name='a_secret', definition='a_value', user_id=self.test_user_id)
+        secret_z = Secret(name='z_secret', definition='z_value')
+        secret_a = Secret(name='a_secret', definition='a_value')
         db.session.add(secret_z)
         db.session.add(secret_a)
         db.session.commit()
 
-        json_content = generate_all_secret_definitions_json(self.test_user_id)
+        json_content = generate_all_secret_definitions_json()
         data = json.loads(json_content)
 
         # Keys should be in alphabetical order
@@ -113,7 +109,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
     def test_store_secret_definitions_cid(self):
         """Test storing secret definitions as CID"""
-        cid = store_secret_definitions_cid(self.test_user_id)
+        cid = store_secret_definitions_cid()
 
         # Should return a valid CID string
         self.assertIsInstance(cid, str)
@@ -122,20 +118,19 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         # CID record should exist in database
         cid_record = CID.query.filter_by(path=f"/{cid}").first()
         self.assertIsNotNone(cid_record)
-        self.assertEqual(cid_record.uploaded_by_user_id, self.test_user_id)
 
         # Verify the stored content matches expected JSON
-        expected_json = generate_all_secret_definitions_json(self.test_user_id)
+        expected_json = generate_all_secret_definitions_json()
         stored_content = cid_record.file_data.decode('utf-8')
         self.assertEqual(stored_content, expected_json)
 
     def test_store_secret_definitions_cid_deduplication(self):
         """Test that identical content doesn't create duplicate CIDs"""
         # Store CID first time
-        cid1 = store_secret_definitions_cid(self.test_user_id)
+        cid1 = store_secret_definitions_cid()
 
         # Store again with same content
-        cid2 = store_secret_definitions_cid(self.test_user_id)
+        cid2 = store_secret_definitions_cid()
 
         # Should return same CID
         self.assertEqual(cid1, cid2)
@@ -147,16 +142,16 @@ class TestSecretDefinitionsCID(unittest.TestCase):
     def test_get_current_secret_definitions_cid_existing(self):
         """Test getting CID when it already exists"""
         # First store a CID
-        original_cid = store_secret_definitions_cid(self.test_user_id)
+        original_cid = store_secret_definitions_cid()
 
         # Get current CID should return the same one
-        current_cid = get_current_secret_definitions_cid(self.test_user_id)
+        current_cid = get_current_secret_definitions_cid()
         self.assertEqual(current_cid, original_cid)
 
     def test_get_current_secret_definitions_cid_create_if_missing(self):
         """Test that CID is created if it doesn't exist"""
         # Get CID without storing first
-        cid = get_current_secret_definitions_cid(self.test_user_id)
+        cid = get_current_secret_definitions_cid()
 
         # Should return a valid CID
         self.assertIsInstance(cid, str)
@@ -169,15 +164,15 @@ class TestSecretDefinitionsCID(unittest.TestCase):
     def test_update_secret_definitions_cid(self):
         """Test updating CID after secret changes"""
         # Store initial CID
-        original_cid = store_secret_definitions_cid(self.test_user_id)
+        original_cid = store_secret_definitions_cid()
 
         # Add a new secret
-        new_secret = Secret(name='new_secret', definition='new_value', user_id=self.test_user_id)
+        new_secret = Secret(name='new_secret', definition='new_value')
         db.session.add(new_secret)
         db.session.commit()
 
         # Update CID
-        updated_cid = update_secret_definitions_cid(self.test_user_id)
+        updated_cid = update_secret_definitions_cid()
 
         # Should be different from original
         self.assertNotEqual(updated_cid, original_cid)
@@ -191,32 +186,30 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
     def test_cid_content_deterministic(self):
         """Test that same secret content produces same CID"""
-        # Create another user with identical secrets
-        user2_id = 'user2'
-
-        secret1_copy = Secret(name='test_secret1', definition='secret_value1', user_id=user2_id)
-        secret2_copy = Secret(name='test_secret2', definition='secret_value2', user_id=user2_id)
+        # Create additional secrets with same content
+        secret1_copy = Secret(name='test_secret1_copy', definition='secret_value1')
+        secret2_copy = Secret(name='test_secret2_copy', definition='secret_value2')
         db.session.add(secret1_copy)
         db.session.add(secret2_copy)
         db.session.commit()
 
-        # Both users should get same CID for identical content
-        cid1 = store_secret_definitions_cid(self.test_user_id)
-        cid2 = store_secret_definitions_cid(user2_id)
+        # Should get same CID for identical content
+        cid1 = store_secret_definitions_cid()
+        cid2 = store_secret_definitions_cid()
 
         self.assertEqual(cid1, cid2)
 
     def test_cid_uniqueness_per_content(self):
         """Test that different secret content produces different CIDs"""
         # Store CID for current secrets
-        cid1 = store_secret_definitions_cid(self.test_user_id)
+        cid1 = store_secret_definitions_cid()
 
         # Modify a secret
         self.secret1.definition = 'modified_secret_value1'
         db.session.commit()
 
         # Store CID again
-        cid2 = store_secret_definitions_cid(self.test_user_id)
+        cid2 = store_secret_definitions_cid()
 
         # Should be different CIDs
         self.assertNotEqual(cid1, cid2)

@@ -38,18 +38,15 @@ def _css_alias_needs_upgrade(definition: str | None) -> bool:
     return not has_light or not has_dark
 
 
-def ensure_css_alias_for_user(user_id: str) -> bool:
-    """Ensure the CSS alias exists for the supplied user."""
-
-    if not user_id:
-        return False
+def ensure_css_alias() -> bool:
+    """Ensure the CSS alias exists."""
 
     from db_access import (  # pylint: disable=import-outside-toplevel
         get_alias_by_name,
         save_entity,
     )
 
-    alias = get_alias_by_name(user_id, CSS_ALIAS_NAME)
+    alias = get_alias_by_name(CSS_ALIAS_NAME)
     if alias:
         needs_upgrade = _css_alias_needs_upgrade(getattr(alias, "definition", None))
         if alias.definition and alias.definition.strip() and not needs_upgrade:
@@ -58,12 +55,12 @@ def ensure_css_alias_for_user(user_id: str) -> bool:
         save_entity(alias)
         return True
 
-    alias = Alias(name=CSS_ALIAS_NAME, user_id=user_id, definition=_CSS_ALIAS_DEFINITION)
+    alias = Alias(name=CSS_ALIAS_NAME, definition=_CSS_ALIAS_DEFINITION)
     save_entity(alias)
     return True
 
 
 __all__ = [
     "CSS_ALIAS_NAME",
-    "ensure_css_alias_for_user",
+    "ensure_css_alias",
 ]

@@ -20,7 +20,7 @@ def _store_server(app, name: str, definition: str) -> None:
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
         db.session.add(
-            Server(name=name, definition=normalized, user_id="default-user")
+            Server(name=name, definition=normalized)
         )
         db.session.commit()
 
@@ -31,7 +31,7 @@ def _store_alias(app, name: str, definition: str) -> None:
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
         db.session.add(
-            Alias(name=name, definition=normalized, user_id="default-user")
+            Alias(name=name, definition=normalized)
         )
         db.session.commit()
 
@@ -56,7 +56,7 @@ def _resolve_cid_payload(app, location: str) -> str:
 
 
 def test_nested_server_chain_executes_in_order(
-    client, integration_app, login_default_user
+    client, integration_app
 ):
     """Multiple nested servers should resolve sequentially for auto-main input."""
 
@@ -87,8 +87,6 @@ def test_nested_server_chain_executes_in_order(
         """,
     )
 
-    login_default_user()
-
     response = client.get("/outer/middle/inner")
     assert response.status_code in {302, 303}
     assert response.headers["Location"]
@@ -98,7 +96,7 @@ def test_nested_server_chain_executes_in_order(
 
 
 def test_nested_alias_provides_remaining_parameter(
-    client, integration_app, login_default_user
+    client, integration_app
 ):
     """Alias targets should execute and feed their output into auto-main servers."""
 
@@ -128,8 +126,6 @@ def test_nested_alias_provides_remaining_parameter(
         """,
     )
 
-    login_default_user()
-
     response = client.get("/outer/alias-nest")
     assert response.status_code in {302, 303}
 
@@ -138,7 +134,7 @@ def test_nested_alias_provides_remaining_parameter(
 
 
 def test_nested_cid_contents_feed_server_input(
-    client, integration_app, login_default_user
+    client, integration_app
 ):
     """CID path segments should supply their decoded contents to auto-main servers."""
 
@@ -154,11 +150,9 @@ def test_nested_cid_contents_feed_server_input(
     cid_value = "bafytestcidvalue"
     with integration_app.app_context():
         db.session.add(
-            CID(path=f"/{cid_value}", file_data=b"cid-payload", uploaded_by_user_id="default-user")
+            CID(path=f"/{cid_value}", file_data=b"cid-payload")
         )
         db.session.commit()
-
-    login_default_user()
 
     response = client.get(f"/outer/{cid_value}")
     assert response.status_code in {302, 303}
@@ -168,7 +162,7 @@ def test_nested_cid_contents_feed_server_input(
 
 
 def test_query_and_nested_server_parameters_combine(
-    client, integration_app, login_default_user
+    client, integration_app
 ):
     """Auto-main should merge standard request parameters with nested server results."""
 
@@ -189,8 +183,6 @@ def test_query_and_nested_server_parameters_combine(
             return {"output": f"{prefix}:{payload}", "content_type": "text/plain"}
         """,
     )
-
-    login_default_user()
 
     response = client.get("/outer/inner?prefix=start")
     assert response.status_code in {302, 303}

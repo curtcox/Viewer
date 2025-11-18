@@ -28,7 +28,6 @@ class TestBootCidImporter(unittest.TestCase):
 
         with self.app.app_context():
             db.create_all()
-            self.user_id = 'test-user-123'
 
     def tearDown(self):
         with self.app.app_context():
@@ -49,11 +48,11 @@ class TestBootCidImporter(unittest.TestCase):
             # Create some CIDs
             content1 = b"test content 1"
             cid1 = generate_cid(content1)
-            create_cid_record(cid1, content1, self.user_id)
+            create_cid_record(cid1, content1)
 
             content2 = b"test content 2"
             cid2 = generate_cid(content2)
-            create_cid_record(cid2, content2, self.user_id)
+            create_cid_record(cid2, content2)
 
             paths = get_all_cid_paths_from_db()
             # Check that our CIDs are included (there may be others from cids directory)
@@ -100,7 +99,7 @@ class TestBootCidImporter(unittest.TestCase):
         with self.app.app_context():
             content1 = b"test content 1"
             cid1 = generate_cid(content1)
-            create_cid_record(cid1, content1, self.user_id)
+            create_cid_record(cid1, content1)
 
             required = {f'/{cid1}'}
             missing = find_missing_cids(required)
@@ -111,7 +110,7 @@ class TestBootCidImporter(unittest.TestCase):
         with self.app.app_context():
             content1 = b"test content 1"
             cid1 = generate_cid(content1)
-            create_cid_record(cid1, content1, self.user_id)
+            create_cid_record(cid1, content1)
 
             cid2 = generate_cid(b"missing content")
 
@@ -142,7 +141,7 @@ class TestBootCidImporter(unittest.TestCase):
         with self.app.app_context():
             content = b"not valid json {"
             cid = generate_cid(content)
-            create_cid_record(cid, content, self.user_id)
+            create_cid_record(cid, content)
 
             payload, error = load_and_validate_boot_cid(cid)
             self.assertIsNone(payload)
@@ -154,7 +153,7 @@ class TestBootCidImporter(unittest.TestCase):
         with self.app.app_context():
             content = b"\xff\xfe invalid utf-8"
             cid = generate_cid(content)
-            create_cid_record(cid, content, self.user_id)
+            create_cid_record(cid, content)
 
             payload, error = load_and_validate_boot_cid(cid)
             self.assertIsNone(payload)
@@ -166,7 +165,7 @@ class TestBootCidImporter(unittest.TestCase):
         with self.app.app_context():
             content = json.dumps(["not", "an", "object"]).encode('utf-8')
             cid = generate_cid(content)
-            create_cid_record(cid, content, self.user_id)
+            create_cid_record(cid, content)
 
             payload, error = load_and_validate_boot_cid(cid)
             self.assertIsNone(payload)
@@ -179,7 +178,7 @@ class TestBootCidImporter(unittest.TestCase):
             payload_data = {'version': 6, 'aliases': []}
             content = json.dumps(payload_data).encode('utf-8')
             cid = generate_cid(content)
-            create_cid_record(cid, content, self.user_id)
+            create_cid_record(cid, content)
 
             payload, error = load_and_validate_boot_cid(cid)
             self.assertIsNone(error)
@@ -199,7 +198,7 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             success, error = verify_boot_cid_dependencies(boot_cid)
             self.assertFalse(success)
@@ -223,7 +222,7 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             success, error = verify_boot_cid_dependencies(boot_cid)
             self.assertFalse(success)
@@ -238,7 +237,7 @@ class TestBootCidImporter(unittest.TestCase):
             # Create referenced CID
             ref_content = b"referenced content"
             ref_cid = generate_cid(ref_content)
-            create_cid_record(ref_cid, ref_content, self.user_id)
+            create_cid_record(ref_cid, ref_content)
 
             # Create boot CID that references the existing CID
             payload_data = {
@@ -247,7 +246,7 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             success, error = verify_boot_cid_dependencies(boot_cid)
             self.assertTrue(success)
@@ -265,7 +264,7 @@ class TestBootCidImporter(unittest.TestCase):
             ]
             aliases_content = json.dumps(aliases_data).encode('utf-8')
             aliases_cid = generate_cid(aliases_content)
-            create_cid_record(aliases_cid, aliases_content, self.user_id)
+            create_cid_record(aliases_cid, aliases_content)
 
             # Create server content
             servers_data = [
@@ -276,7 +275,7 @@ class TestBootCidImporter(unittest.TestCase):
             ]
             servers_content = json.dumps(servers_data).encode('utf-8')
             servers_cid = generate_cid(servers_content)
-            create_cid_record(servers_cid, servers_content, self.user_id)
+            create_cid_record(servers_cid, servers_content)
 
             # Create boot CID
             payload_data = {
@@ -286,25 +285,25 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             # Import the boot CID
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             if not success:
                 self.fail(f"Import failed: {error}")
             self.assertTrue(success)
             self.assertIsNone(error)
 
             # Verify the alias was imported
-            alias = Alias.query.filter_by(name='test-alias', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='test-alias').first()
             self.assertIsNotNone(alias)
 
             # Verify the server was imported
-            server = Server.query.filter_by(name='test-server', user_id=self.user_id).first()
+            server = Server.query.filter_by(name='test-server').first()
             self.assertIsNotNone(server)
 
             # Verify snapshot export was generated
-            snapshot_export = Export.query.filter_by(user_id=self.user_id).order_by(Export.created_at.desc()).first()
+            snapshot_export = Export.query.order_by(Export.created_at.desc()).first()
             self.assertIsNotNone(snapshot_export, 'Snapshot export should be created after boot CID import')
 
     def test_import_boot_cid_missing_dependency(self):
@@ -318,10 +317,10 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             # Import should fail
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("missing from the database", error)
@@ -330,7 +329,7 @@ class TestBootCidImporter(unittest.TestCase):
     def test_import_boot_cid_invalid_cid(self):
         """Test importing invalid boot CID fails with helpful message."""
         with self.app.app_context():
-            success, error = import_boot_cid(self.app, "invalid-cid", self.user_id)
+            success, error = import_boot_cid(self.app, "invalid-cid")
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("Invalid CID format", error)
@@ -339,7 +338,7 @@ class TestBootCidImporter(unittest.TestCase):
         """Test importing non-existent boot CID fails with helpful message."""
         with self.app.app_context():
             valid_cid = generate_cid(b"some content")
-            success, error = import_boot_cid(self.app, valid_cid, self.user_id)
+            success, error = import_boot_cid(self.app, valid_cid)
             self.assertFalse(success)
             self.assertIsNotNone(error)
             self.assertIn("not found in database", error)
@@ -368,17 +367,17 @@ class TestBootCidImporter(unittest.TestCase):
             }
             content = json.dumps(payload_data).encode('utf-8')
             boot_cid = generate_cid(content)
-            create_cid_record(boot_cid, content, self.user_id)
+            create_cid_record(boot_cid, content)
 
             # Import the boot CID (aliases CID is in cid_values, not in DB)
-            success, error = import_boot_cid(self.app, boot_cid, self.user_id)
+            success, error = import_boot_cid(self.app, boot_cid)
             if not success:
                 self.fail(f"Import failed: {error}")
             self.assertTrue(success)
             self.assertIsNone(error)
 
             # Verify the alias was imported
-            alias = Alias.query.filter_by(name='test-alias-2', user_id=self.user_id).first()
+            alias = Alias.query.filter_by(name='test-alias-2').first()
             self.assertIsNotNone(alias)
 
 

@@ -17,17 +17,16 @@ from cid_utils import (
 from db_access import (
     create_cid_record,
     get_cid_by_path,
+    get_secrets,
     get_server_by_name,
-    get_user_secrets,
-    get_user_server_invocations_by_server,
-    get_user_servers,
-    get_user_template_servers,
-    get_user_uploads,
-    get_user_variables,
+    get_server_invocations_by_server,
+    get_servers,
+    get_template_servers,
+    get_uploads,
+    get_variables,
 )
 from entity_references import extract_references_from_text
 from forms import ServerForm
-from identity import current_user
 from interaction_log import load_interaction_history
 from models import Server
 from serialization import model_to_dict
@@ -369,7 +368,7 @@ def validate_server_definition():
 def upload_server_test_page(server_name):
     """Persist a formdown page that mirrors the inline server test form."""
 
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server:
         abort(404)
 
@@ -416,7 +415,7 @@ def upload_server_test_page(server_name):
     record_path = cid_path(cid_value)
     existing = get_cid_by_path(record_path) if record_path else None
     if not existing:
-        create_cid_record(cid_value, content_bytes, current_user.id)
+        create_cid_record(cid_value, content_bytes)
 
     redirect_url = cid_path(cid_value, 'md.html')
     response = jsonify({'redirect_url': redirect_url, 'cid': cid_value})
@@ -464,17 +463,16 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
     }
 
 
-def get_server_definition_history(user_id: str, server_name: str) -> list[dict[str, Any]]:
+def get_server_definition_history(server_name: str) -> list[dict[str, Any]]:
     """Get historical server definitions for a specific server.
 
     Args:
-        user_id: User ID to get history for
         server_name: Name of the server
 
     Returns:
         list: History of server definitions, most recent first
     """
-    cids = get_user_uploads(user_id)
+    cids = get_uploads()
 
     history = []
 
@@ -494,25 +492,18 @@ def get_server_definition_history(user_id: str, server_name: str) -> list[dict[s
     return history
 
 
-def update_server_definitions_cid(user_id: str) -> str | None:
+def update_server_definitions_cid() -> str | None:
     """Update the server definitions CID after server changes.
-
-    Args:
-        user_id: User ID
 
     Returns:
         str: Updated CID value or None
     """
-    return store_server_definitions_cid(user_id)
+    return store_server_definitions_cid()
 
 
-def user_servers() -> list[Server]:
-    """Get all servers for the current user.
-
-    Returns:
-        list: User's server instances
-    """
-    return get_user_servers(current_user.id)
+def list_servers() -> list[Server]:
+    """Return all stored servers."""
+    return get_servers()
 
 
 def _build_reference_links(entity_type: str, names: list[str]) -> list[dict[str, str]]:
@@ -583,34 +574,30 @@ def _build_server_row(
     }
 
 
-def _get_known_entity_names(user_id: str) -> tuple[set[str], set[str]]:
+def _get_known_entity_names() -> tuple[set[str], set[str]]:
     """Get sets of known variable and secret names for the user.
-
-    Args:
-        user_id: User ID
 
     Returns:
         tuple: (known_variable_names, known_secret_names)
     """
     known_variable_names = {
         str(variable.name)
-        for variable in get_user_variables(user_id)
+        for variable in get_variables()
         if getattr(variable, 'name', None)
     }
     known_secret_names = {
         str(secret.name)
-        for secret in get_user_secrets(user_id)
+        for secret in get_secrets()
         if getattr(secret, 'name', None)
     }
     return known_variable_names, known_secret_names
 
 
-def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, Any]:
+def _build_servers_list_context(servers_list: list) -> dict[str, Any]:
     """Build extra context for servers list view.
 
     Args:
         servers_list: List of server entities
-        user_id: User ID
 
     Returns:
         Dictionary with server-specific list view context
@@ -619,10 +606,10 @@ def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, A
 
     if servers_list:
         context['server_definitions_cid'] = format_cid(
-            get_current_server_definitions_cid(user_id)
+            get_current_server_definitions_cid()
         )
 
-        known_variables, known_secrets = _get_known_entity_names(user_id)
+        known_variables, known_secrets = _get_known_entity_names()
 
         server_rows = []
         for server in servers_list:
@@ -633,18 +620,17 @@ def _build_servers_list_context(servers_list: list, user_id: str) -> dict[str, A
     return context
 
 
-def _build_server_view_context(server: Server, user_id: str) -> dict[str, Any]:
+def _build_server_view_context(server: Server) -> dict[str, Any]:
     """Build extra context for server detail view.
 
     Args:
         server: Server entity
-        user_id: User ID
 
     Returns:
         Dictionary with server-specific detail view context
     """
-    history = get_server_definition_history(user_id, server.name)
-    invocations = get_server_invocation_history(user_id, server.name)
+    history = get_server_definition_history(server.name)
+    invocations = get_server_invocation_history(server.name)
     test_config = _build_server_test_config(server.name, server.definition)
 
     highlighted_definition, syntax_css = _highlight_definition_content(
@@ -655,13 +641,11 @@ def _build_server_view_context(server: Server, user_id: str) -> dict[str, Any]:
 
     definition_references = extract_references_from_text(
         getattr(server, 'definition', ''),
-        user_id,
     )
 
     test_interactions = []
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
-            user_id,
             EntityType.SERVER_TEST.value,
             test_config.get('action'),
         )
@@ -684,7 +668,7 @@ _server_config = EntityRouteConfig(
     entity_type='server',
     plural_name='servers',
     get_by_name_func=get_server_by_name,
-    get_user_entities_func=get_user_servers,
+    get_entities_func=get_servers,
     form_class=ServerForm,
     update_cid_func=update_server_definitions_cid,
     to_json_func=model_to_dict,
@@ -709,21 +693,20 @@ def new_server():
     change_message = (request.form.get('change_message') or '').strip()
     definition_text = form.definition.data or ''
 
-    user_server_templates = [
+    saved_server_templates = [
         {
             'id': getattr(server, 'template_key', None) or (f'user-{server.id}' if server.id else None),
             'name': server.name,
             'definition': server.definition or '',
             'suggested_name': f"{server.name}-copy" if server.name else '',
         }
-        for server in get_user_template_servers(current_user.id)
+        for server in get_template_servers()
     ]
 
     if form.validate_on_submit():
         if create_entity(
             Server,
             form,
-            current_user.id,
             'server',
             change_message=change_message,
             content_text=definition_text,
@@ -731,15 +714,15 @@ def new_server():
             return redirect(url_for('main.servers'))
 
     entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(current_user.id, EntityType.SERVER.value, entity_name_hint)
+    interaction_history = load_interaction_history(EntityType.SERVER.value, entity_name_hint)
 
-    template_link_info = get_template_link_info(current_user.id, 'servers')
+    template_link_info = get_template_link_info('servers')
 
     return render_template(
         'server_form.html',
         form=form,
         title='Create New Server',
-        user_server_templates=user_server_templates,
+        saved_server_templates=saved_server_templates,
         server=None,
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
@@ -752,14 +735,14 @@ def new_server():
 @main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
 def edit_server(server_name):
     """Edit a specific server."""
-    server = get_server_by_name(current_user.id, server_name)
+    server = get_server_by_name(server_name)
     if not server:
         abort(404)
 
     form = ServerForm(obj=server)
 
-    history = get_server_definition_history(current_user.id, server_name)
-    invocations = get_server_invocation_history(current_user.id, server_name)
+    history = get_server_definition_history(server_name)
+    invocations = get_server_invocation_history(server_name)
     definition_text = form.definition.data if form.definition.data is not None else server.definition
     test_config = _build_server_test_config(server.name, definition_text)
 
@@ -772,11 +755,10 @@ def edit_server(server_name):
     change_message = (request.form.get('change_message') or '').strip()
     definition_text_current = form.definition.data or server.definition or ''
 
-    server_interactions = load_interaction_history(current_user.id, EntityType.SERVER.value, server.name)
+    server_interactions = load_interaction_history(EntityType.SERVER.value, server.name)
     test_interactions = []
     if test_config and test_config.get('action'):
         test_interactions = load_interaction_history(
-            current_user.id,
             EntityType.SERVER_TEST.value,
             test_config.get('action'),
         )
@@ -789,7 +771,6 @@ def edit_server(server_name):
             if create_entity(
                 Server,
                 form,
-                current_user.id,
                 'server',
                 change_message=change_message,
                 content_text=definition_text_current,
@@ -820,9 +801,9 @@ def edit_server(server_name):
     return render_template('server_form.html', **context)
 
 
-def get_server_invocation_history(user_id: str, server_name: str) -> list[Any]:
+def get_server_invocation_history(server_name: str) -> list[Any]:
     """Return invocation events for a specific server ordered from newest to oldest."""
-    invocations = get_user_server_invocations_by_server(user_id, server_name)
+    invocations = get_server_invocations_by_server(server_name)
 
     if not invocations:
         return []
@@ -848,7 +829,7 @@ __all__ = [
     'get_server_invocation_history',
     'new_server',
     'update_server_definitions_cid',
-    'user_servers',
+    'list_servers',
     'upload_server_test_page',
     'validate_server_definition',
 ]

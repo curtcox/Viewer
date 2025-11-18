@@ -10,13 +10,12 @@ from flask import jsonify, render_template, request, url_for
 from alias_definition import collect_alias_routes
 from cid_presenter import cid_path, format_cid
 from db_access import (
-    get_user_aliases,
-    get_user_secrets,
-    get_user_servers,
-    get_user_uploads,
-    get_user_variables,
+    get_aliases,
+    get_secrets,
+    get_servers,
+    get_uploads,
+    get_variables,
 )
-from identity import current_user
 
 from . import main_bp
 from .text_highlighter import TextHighlighter
@@ -77,7 +76,7 @@ def _normalize_path_for_lookup(value: str | None) -> set[str]:
     return {variant for variant in variants if variant}
 
 
-def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> AliasLookup:
+def _build_alias_lookup(aliases: list[Any]) -> AliasLookup:
     """Build a reverse index mapping target paths to aliases.
 
     Creates a lookup table where keys are normalized path variants and values
@@ -85,8 +84,7 @@ def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> Alias
     efficient "what aliases point to this path?" queries.
 
     Args:
-        user_id: User ID to filter aliases
-        aliases: Optional pre-fetched alias list (avoids DB query)
+        aliases: List of alias records
 
     Returns:
         Nested dict: {path_variant: {alias_name: alias_info}}
@@ -99,7 +97,7 @@ def _build_alias_lookup(user_id: str, aliases: list[Any] | None = None) -> Alias
         }
     """
     lookup: AliasLookup = {}
-    source = aliases if aliases is not None else get_user_aliases(user_id)
+    source = aliases
 
     for alias in source:
         name = getattr(alias, "name", "") or ""
@@ -180,13 +178,12 @@ def _parse_enabled(value: str | None) -> bool:
 
 
 def _alias_results(
-    user_id: str,
     query_lower: str,
     alias_lookup: AliasLookup | None = None,
     aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    source = aliases if aliases is not None else get_user_aliases(user_id)
+    source = aliases if aliases is not None else []
 
     for alias in source:
         name_text = getattr(alias, "name", "") or ""
@@ -233,13 +230,12 @@ def _alias_results(
 
 
 def _server_results(
-    user_id: str,
     query_lower: str,
     alias_lookup: AliasLookup | None = None,
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for server in get_user_servers(user_id):
+    for server in get_servers():
         name_text = getattr(server, "name", "") or ""
         definition = getattr(server, "definition", "") or ""
 
@@ -269,13 +265,12 @@ def _server_results(
 
 
 def _variable_results(
-    user_id: str,
     query_lower: str,
     alias_lookup: AliasLookup | None = None,
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for variable in get_user_variables(user_id):
+    for variable in get_variables():
         name_text = getattr(variable, "name", "") or ""
         definition = getattr(variable, "definition", "") or ""
 
@@ -305,13 +300,12 @@ def _variable_results(
 
 
 def _secret_results(
-    user_id: str,
     query_lower: str,
     alias_lookup: AliasLookup | None = None,
     _unused_aliases: list[Any] | None = None,
 ) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
-    for secret in get_user_secrets(user_id):
+    for secret in get_secrets():
         name_text = getattr(secret, "name", "") or ""
         definition = getattr(secret, "definition", "") or ""
 
@@ -341,7 +335,6 @@ def _secret_results(
 
 
 def _cid_results(
-    user_id: str,
     query_lower: str,
     alias_lookup: AliasLookup | None = None,
     _unused_aliases: list[Any] | None = None,
@@ -357,7 +350,7 @@ def _cid_results(
         return value
 
     uploads = sorted(
-        get_user_uploads(user_id),
+        get_uploads(),
         key=created_at_value,
         reverse=True,
     )[:MAX_UPLOAD_HISTORY]
@@ -465,7 +458,6 @@ def _empty_search_response(applied_filters: dict[str, bool]) -> dict[str, Any]:
 
 
 def _execute_search(
-    user_id: str,
     query_lower: str,
     applied_filters: dict[str, bool],
     alias_lookup: AliasLookup,
@@ -474,7 +466,6 @@ def _execute_search(
     """Execute search across all enabled categories.
 
     Args:
-        user_id: Current user ID
         query_lower: Lowercase search query
         applied_filters: Category filter configuration
         alias_lookup: Precomputed alias lookup table
@@ -491,7 +482,7 @@ def _execute_search(
         if include:
             collector = _COLLECTORS.get(key)
             if collector:
-                items = collector(user_id, query_lower, alias_lookup, alias_records)
+                items = collector(query_lower, alias_lookup, alias_records)
             else:
                 items = []
         else:
@@ -519,12 +510,11 @@ def search_results():
     if not query_lower:
         return jsonify(_empty_search_response(applied_filters))
 
-    user_id = current_user.id
-    alias_records = get_user_aliases(user_id)
-    alias_lookup = _build_alias_lookup(user_id, alias_records)
+    alias_records = get_aliases()
+    alias_lookup = _build_alias_lookup(alias_records)
 
     response_categories, total_count = _execute_search(
-        user_id, query_lower, applied_filters, alias_lookup, alias_records
+        query_lower, applied_filters, alias_lookup, alias_records
     )
 
     return jsonify(

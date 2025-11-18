@@ -64,7 +64,6 @@ def inspect_database():
                 print(f"  Filename: {cid.filename}")
                 print(f"  Size: {size_kb:.1f} KB")
                 print(f"  Created: {cid.created_at}")
-                print(f"  User: {cid.uploaded_by_user_id}")
                 print()
         else:
             print("No CID records found.")
@@ -90,7 +89,6 @@ def show_cid_details(cid_path: str | None = None):
             print("-" * 40)
             print(f"File Size: {cid.file_size} bytes")
             print(f"Created: {cid.created_at}")
-            print(f"Uploaded by: {cid.uploaded_by_user_id}")
             print(f"Has file data: {cid.file_data is not None}")
             if cid.file_data:
                 print(f"File data length: {len(cid.file_data)} bytes")

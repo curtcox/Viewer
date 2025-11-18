@@ -41,14 +41,13 @@ _LAZY_IMPORTS_INTERNAL = {
 
 # Database access functions for test mocking
 _LAZY_IMPORTS_DATABASE = {
-    'get_user_aliases': ('db_access', 'get_user_aliases'),
-    'get_user_servers': ('db_access', 'get_user_servers'),
-    'get_user_variables': ('db_access', 'get_user_variables'),
-    'get_user_secrets': ('db_access', 'get_user_secrets'),
-    'get_user_uploads': ('db_access', 'get_user_uploads'),
+    'get_aliases': ('db_access', 'get_aliases'),
+    'get_servers': ('db_access', 'get_servers'),
+    'get_secrets': ('db_access', 'get_secrets'),
+    'get_uploads': ('db_access', 'get_uploads'),
+    'get_variables': ('db_access', 'get_variables'),
     'store_cid_from_bytes': ('cid_utils', 'store_cid_from_bytes'),
     'cid_path': ('cid_presenter', 'cid_path'),
-    'current_user': ('identity', 'current_user'),
 }
 
 

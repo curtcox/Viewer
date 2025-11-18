@@ -9,9 +9,9 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 # pylint: disable=wrong-import-position
 # Rationale: Environment variables must be set before app initialization
 from app import app, db
-from ai_defaults import ensure_ai_stub_for_user
+from ai_defaults import ensure_ai_stub
 from db_access import get_alias_by_name, get_server_by_name
-from identity import ensure_default_user
+from identity import ensure_default_resources
 from models import Alias, Server
 
 
@@ -20,12 +20,11 @@ class TestAiStubServer(unittest.TestCase):
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['WTF_CSRF_ENABLED'] = False
-        self.client = app.test_client()
         self.app_context = app.app_context()
         self.app_context.push()
         db.create_all()
-
-        self.user = ensure_default_user()
+        ensure_default_resources()
+        self.client = app.test_client()
 
     def tearDown(self):
         db.session.remove()
@@ -33,45 +32,45 @@ class TestAiStubServer(unittest.TestCase):
         self.app_context.pop()
 
     def test_ai_stub_resources_created(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
-        server = get_server_by_name(self.user.id, 'ai_stub')
+        alias = get_alias_by_name('ai')
+        server = get_server_by_name('ai_stub')
         self.assertIsInstance(alias, Alias)
         self.assertIsInstance(server, Server)
 
     def test_ai_alias_created_when_missing(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         db.session.delete(alias)
         db.session.commit()
 
-        changed = ensure_ai_stub_for_user(self.user.id)
+        changed = ensure_ai_stub()
         self.assertTrue(changed)
 
-        recreated = get_alias_by_name(self.user.id, 'ai')
+        recreated = get_alias_by_name('ai')
         self.assertIsInstance(recreated, Alias)
         self.assertIn('ai -> /ai_stub', recreated.definition)
 
     def test_ai_alias_preserved_when_already_defined(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         alias.definition = 'ai -> /custom-target'
         db.session.add(alias)
         db.session.commit()
 
-        changed = ensure_ai_stub_for_user(self.user.id)
+        changed = ensure_ai_stub()
         self.assertFalse(changed)
 
-        refreshed = get_alias_by_name(self.user.id, 'ai')
+        refreshed = get_alias_by_name('ai')
         self.assertEqual(refreshed.definition.strip(), 'ai -> /custom-target')
 
     def test_ai_alias_definition_can_be_updated_by_user(self):
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         self.assertIsNotNone(alias)
         alias.definition = 'ai -> /custom-target'
         db.session.add(alias)
         db.session.commit()
 
-        fetched = get_alias_by_name(self.user.id, 'ai')
+        fetched = get_alias_by_name('ai')
         self.assertEqual(fetched.definition.strip(), 'ai -> /custom-target')
 
     def test_ai_stub_invocation_returns_expected_payload(self):
@@ -102,7 +101,7 @@ class TestAiStubServer(unittest.TestCase):
 
     def test_custom_ai_server_takes_precedence(self):
         # Remove the default alias so the custom server handles /ai directly
-        alias = get_alias_by_name(self.user.id, 'ai')
+        alias = get_alias_by_name('ai')
         if alias:
             db.session.delete(alias)
             db.session.commit()
@@ -120,7 +119,7 @@ def main():
         'content_type': 'application/json',
     }
 """
-        server = Server(name='ai', definition=custom_definition, user_id=self.user.id)
+        server = Server(name='ai', definition=custom_definition)
         db.session.add(server)
         db.session.commit()
 

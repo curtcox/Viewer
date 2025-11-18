@@ -12,11 +12,8 @@ pytestmark = pytest.mark.integration
 
 def test_source_browser_lists_directories(
     client,
-    login_default_user,
 ):
     """The source browser should render a directory listing for the project root."""
-
-    login_default_user()
 
     response = client.get("/source")
 
@@ -29,11 +26,8 @@ def test_source_browser_lists_directories(
 
 def test_source_browser_displays_file_content(
     client,
-    login_default_user,
 ):
     """Viewing an individual file should render its contents."""
-
-    login_default_user()
 
     response = client.get("/source/README.md")
 
@@ -46,11 +40,8 @@ def test_source_browser_displays_file_content(
 
 def test_source_browser_links_to_instance_overview(
     client,
-    login_default_user,
 ):
     """The source browser should link to the database instance overview."""
-
-    login_default_user()
 
     response = client.get("/source")
 
@@ -63,11 +54,8 @@ def test_source_browser_links_to_instance_overview(
 
 def test_source_browser_displays_running_commit_link(
     client,
-    login_default_user,
 ):
     """The source browser should display a link to the running commit."""
-
-    login_default_user()
 
     response = client.get("/source")
 
@@ -89,11 +77,8 @@ def test_source_browser_displays_running_commit_link(
 def test_source_instance_lists_tables(
     client,
     integration_app,
-    login_default_user,
 ):
     """The instance page should enumerate database tables and their columns."""
-
-    login_default_user()
 
     response = client.get("/source/instance")
 
@@ -107,15 +92,12 @@ def test_source_instance_lists_tables(
 def test_source_instance_table_view_displays_rows(
     client,
     integration_app,
-    login_default_user,
 ):
     """Viewing a specific table should render its rows in an HTML table."""
 
-    login_default_user()
-
     with integration_app.app_context():
         db.session.add(
-            Variable(name="example", definition="value", user_id="default-user")
+            Variable(name="example", definition="value")
         )
         db.session.commit()
 

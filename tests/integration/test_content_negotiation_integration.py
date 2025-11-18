@@ -11,39 +11,33 @@ import pytest
 
 from alias_definition import format_primary_alias_line
 from database import db
-from identity import ensure_default_user
 from models import Alias, Secret, Server, Variable
 
 
 @pytest.fixture()
 def sample_entities(client) -> Dict[str, str]:
     with client.application.app_context():
-        user = ensure_default_user()
         alias_definition = format_primary_alias_line(
             "literal", "/json-alias", "/json-target", alias_name="json-alias"
         )
         alias = Alias(
             name="json-alias",
             definition=alias_definition,
-            user_id=user.id,
             enabled=True,
         )
         server = Server(
             name="json-server",
             definition="def main(query):\n    return query",
-            user_id=user.id,
             enabled=True,
         )
         variable = Variable(
             name="json-variable",
             definition="value",
-            user_id=user.id,
             enabled=True,
         )
         secret = Secret(
             name="json-secret",
             definition="secret-value",
-            user_id=user.id,
             enabled=True,
         )
         db.session.add_all([alias, server, variable, secret])
@@ -57,8 +51,7 @@ def sample_entities(client) -> Dict[str, str]:
 
 
 @pytest.mark.integration
-def test_aliases_endpoint_supports_json_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_aliases_endpoint_supports_json_extension(client, sample_entities) -> None:
     response = client.get("/aliases.json")
 
     assert response.status_code == 200
@@ -74,8 +67,7 @@ def test_aliases_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
-def test_aliases_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_aliases_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get("/aliases.csv")
 
     assert response.status_code == 200
@@ -87,8 +79,7 @@ def test_aliases_endpoint_supports_csv_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_alias_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_alias_detail_endpoint_returns_record(client, sample_entities) -> None:
     response = client.get(f"/aliases/{sample_entities['alias']}.json")
 
     assert response.status_code == 200
@@ -100,8 +91,7 @@ def test_alias_detail_endpoint_returns_record(client, login_default_user, sample
 
 
 @pytest.mark.integration
-def test_alias_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_alias_detail_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get(f"/aliases/{sample_entities['alias']}.csv")
 
     assert response.status_code == 200
@@ -116,8 +106,7 @@ def test_alias_detail_endpoint_supports_csv_extension(client, login_default_user
 
 
 @pytest.mark.integration
-def test_aliases_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_aliases_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get("/aliases.xml")
 
     assert response.status_code == 200
@@ -130,8 +119,7 @@ def test_aliases_endpoint_supports_xml_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_alias_detail_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_alias_detail_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get(f"/aliases/{sample_entities['alias']}.xml")
 
     assert response.status_code == 200
@@ -143,8 +131,7 @@ def test_alias_detail_endpoint_supports_xml_extension(client, login_default_user
 
 
 @pytest.mark.integration
-def test_aliases_endpoint_honors_plain_text_accept_header(client, login_default_user) -> None:
-    login_default_user()
+def test_aliases_endpoint_honors_plain_text_accept_header(client) -> None:
     response = client.get("/aliases", headers={"Accept": "text/plain"})
 
     assert response.status_code == 200
@@ -154,8 +141,7 @@ def test_aliases_endpoint_honors_plain_text_accept_header(client, login_default_
 
 
 @pytest.mark.integration
-def test_interactions_endpoint_supports_xml_extension(client, login_default_user) -> None:
-    login_default_user()
+def test_interactions_endpoint_supports_xml_extension(client) -> None:
     payload = {
         "entity_type": "server",
         "entity_name": "example-server",
@@ -175,8 +161,7 @@ def test_interactions_endpoint_supports_xml_extension(client, login_default_user
 
 
 @pytest.mark.integration
-def test_servers_endpoint_supports_json_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_servers_endpoint_supports_json_extension(client, sample_entities) -> None:
     response = client.get("/servers.json")
 
     assert response.status_code == 200
@@ -188,8 +173,7 @@ def test_servers_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
-def test_servers_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_servers_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get("/servers.csv")
 
     assert response.status_code == 200
@@ -201,8 +185,7 @@ def test_servers_endpoint_supports_csv_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_server_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_server_detail_endpoint_returns_record(client, sample_entities) -> None:
     response = client.get(f"/servers/{sample_entities['server']}.json")
 
     assert response.status_code == 200
@@ -214,8 +197,7 @@ def test_server_detail_endpoint_returns_record(client, login_default_user, sampl
 
 
 @pytest.mark.integration
-def test_server_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_server_detail_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get(f"/servers/{sample_entities['server']}.csv")
 
     assert response.status_code == 200
@@ -230,8 +212,7 @@ def test_server_detail_endpoint_supports_csv_extension(client, login_default_use
 
 
 @pytest.mark.integration
-def test_servers_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_servers_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get("/servers.xml")
 
     assert response.status_code == 200
@@ -243,8 +224,7 @@ def test_servers_endpoint_supports_xml_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_server_detail_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_server_detail_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get(f"/servers/{sample_entities['server']}.xml")
 
     assert response.status_code == 200
@@ -257,8 +237,7 @@ def test_server_detail_endpoint_supports_xml_extension(client, login_default_use
 
 
 @pytest.mark.integration
-def test_variables_endpoint_supports_json_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variables_endpoint_supports_json_extension(client, sample_entities) -> None:
     response = client.get("/variables.json")
 
     assert response.status_code == 200
@@ -270,8 +249,7 @@ def test_variables_endpoint_supports_json_extension(client, login_default_user, 
 
 
 @pytest.mark.integration
-def test_variables_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variables_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get("/variables.csv")
 
     assert response.status_code == 200
@@ -283,8 +261,7 @@ def test_variables_endpoint_supports_csv_extension(client, login_default_user, s
 
 
 @pytest.mark.integration
-def test_variable_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variable_detail_endpoint_returns_record(client, sample_entities) -> None:
     response = client.get(f"/variables/{sample_entities['variable']}.json")
 
     assert response.status_code == 200
@@ -296,8 +273,7 @@ def test_variable_detail_endpoint_returns_record(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_variable_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variable_detail_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get(f"/variables/{sample_entities['variable']}.csv")
 
     assert response.status_code == 200
@@ -312,8 +288,7 @@ def test_variable_detail_endpoint_supports_csv_extension(client, login_default_u
 
 
 @pytest.mark.integration
-def test_variables_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variables_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get("/variables.xml")
 
     assert response.status_code == 200
@@ -325,8 +300,7 @@ def test_variables_endpoint_supports_xml_extension(client, login_default_user, s
 
 
 @pytest.mark.integration
-def test_variable_detail_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_variable_detail_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get(f"/variables/{sample_entities['variable']}.xml")
 
     assert response.status_code == 200
@@ -338,8 +312,7 @@ def test_variable_detail_endpoint_supports_xml_extension(client, login_default_u
 
 
 @pytest.mark.integration
-def test_secrets_endpoint_supports_json_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secrets_endpoint_supports_json_extension(client, sample_entities) -> None:
     response = client.get("/secrets.json")
 
     assert response.status_code == 200
@@ -351,8 +324,7 @@ def test_secrets_endpoint_supports_json_extension(client, login_default_user, sa
 
 
 @pytest.mark.integration
-def test_secrets_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secrets_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get("/secrets.csv")
 
     assert response.status_code == 200
@@ -364,8 +336,7 @@ def test_secrets_endpoint_supports_csv_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_secret_detail_endpoint_returns_record(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secret_detail_endpoint_returns_record(client, sample_entities) -> None:
     response = client.get(f"/secrets/{sample_entities['secret']}.json")
 
     assert response.status_code == 200
@@ -377,8 +348,7 @@ def test_secret_detail_endpoint_returns_record(client, login_default_user, sampl
 
 
 @pytest.mark.integration
-def test_secret_detail_endpoint_supports_csv_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secret_detail_endpoint_supports_csv_extension(client, sample_entities) -> None:
     response = client.get(f"/secrets/{sample_entities['secret']}.csv")
 
     assert response.status_code == 200
@@ -393,8 +363,7 @@ def test_secret_detail_endpoint_supports_csv_extension(client, login_default_use
 
 
 @pytest.mark.integration
-def test_secrets_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secrets_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get("/secrets.xml")
 
     assert response.status_code == 200
@@ -406,8 +375,7 @@ def test_secrets_endpoint_supports_xml_extension(client, login_default_user, sam
 
 
 @pytest.mark.integration
-def test_secret_detail_endpoint_supports_xml_extension(client, login_default_user, sample_entities) -> None:
-    login_default_user()
+def test_secret_detail_endpoint_supports_xml_extension(client, sample_entities) -> None:
     response = client.get(f"/secrets/{sample_entities['secret']}.xml")
 
     assert response.status_code == 200

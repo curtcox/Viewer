@@ -30,22 +30,12 @@ class BaseTestCase(unittest.TestCase):
         self.app_context.push()
 
         db.create_all()
-        self.test_user_id = 'test_user_123'
 
     def tearDown(self):
         """Clean up after test."""
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
-
-    def login_user(self, user_id=None):
-        """Helper to simulate user login."""
-        if user_id is None:
-            user_id = self.test_user_id
-
-        with self.client.session_transaction() as sess:
-            sess['_user_id'] = user_id
-            sess['_fresh'] = True
 
 
 class TestSearchHighlighting(BaseTestCase):
@@ -57,14 +47,11 @@ class TestSearchHighlighting(BaseTestCase):
         This test ensures the refactoring to TextHighlighter.highlight_full() works correctly.
         Previously used _highlight_full() which would cause NameError if not migrated.
         """
-        self.login_user()
-
         # Create a CID with searchable content
         # The content contains "searchable" which we'll search for
         cid_record = CID(
             path='/test-cid-path',
             file_data=b'searchable content here',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -129,13 +116,10 @@ class TestSearchHighlighting(BaseTestCase):
 
     def test_cid_name_highlighting_when_search_term_in_path(self):
         """CID name should be highlighted when search term appears in the path."""
-        self.login_user()
-
         # Create a CID where the path contains our search term
         cid_record = CID(
             path='/needle-in-path',
             file_data=b'some content',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()
@@ -188,33 +172,26 @@ class TestSearchHighlighting(BaseTestCase):
 
         Ensures TextHighlighter is used consistently across all result types.
         """
-        self.login_user()
-
         # Create test data for all categories
         alias = Alias(
             name='query-alias',
             definition='literal /servers/test-server',
-            user_id=self.test_user_id,
         )
         server = Server(
             name='query-server',
             definition='def main(): return "query"',
-            user_id=self.test_user_id,
         )
         variable = Variable(
             name='query-var',
             definition='query value',
-            user_id=self.test_user_id,
         )
         secret = Secret(
             name='query-secret',
             definition='query token',
-            user_id=self.test_user_id,
         )
         cid_record = CID(
             path='/query-cid',
             file_data=b'query content',
-            uploaded_by_user_id=self.test_user_id,
         )
 
         db.session.add_all([alias, server, variable, secret, cid_record])
@@ -251,13 +228,10 @@ class TestSearchHighlighting(BaseTestCase):
 
         Ensures TextHighlighter.highlight_full() uses proper escaping.
         """
-        self.login_user()
-
         # Create CID with special characters
         cid_record = CID(
             path='/test<script>alert("xss")</script>',
             file_data=b'content',
-            uploaded_by_user_id=self.test_user_id,
         )
         db.session.add(cid_record)
         db.session.commit()

@@ -15,9 +15,8 @@ pytestmark = pytest.mark.integration
 def test_server_events_page_lists_recent_invocations(
     client,
     integration_app,
-    login_default_user,
 ):
-    """The server events page should render recorded invocations for the user."""
+    """The server events page should render recorded invocations."""
 
     request_cid = "bafyrequestcid123"
     referer_url = "https://example.com/dashboard"
@@ -34,7 +33,6 @@ def test_server_events_page_lists_recent_invocations(
             ).encode("utf-8"),
         )
         invocation = ServerInvocation(
-            user_id="default-user",
             server_name="weather",
             result_cid="bafyresultcid456",
             servers_cid="bafyserverscid789",
@@ -45,8 +43,6 @@ def test_server_events_page_lists_recent_invocations(
         db.session.add(cid_record)
         db.session.add(invocation)
         db.session.commit()
-
-    login_default_user()
 
     response = client.get("/server_events")
     assert response.status_code == 200
