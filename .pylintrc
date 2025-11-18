@@ -58,7 +58,6 @@ disable=
     bad-plugin-value,             # E5110 - Plugin configuration issues (5 occurrences)
     unused-import,                # W0611 - Rare false positives (1 occurrence)
     undefined-all-variable,       # E0603 - Synthetic modules for linting stubs lack exports
-    unnecessary-lambda,           # W0108 - Lambda helpers commonly used for deferred calls
 
 [FORMAT]
 # Maximum line length

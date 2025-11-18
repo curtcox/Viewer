@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from functools import partial
 from typing import Any, Callable
 
 from cid_presenter import cid_path, format_cid
@@ -80,28 +81,28 @@ def build_export_payload(
         sections,
         True,
         'project_files',
-        lambda: collect_project_files_section(base_path, cid_writer),
+        partial(collect_project_files_section, base_path, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_aliases.data,
         'aliases',
-        lambda: collect_alias_section(form, cid_writer),
+        partial(collect_alias_section, form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_servers.data,
         'servers',
-        lambda: collect_server_section(form, cid_writer),
+        partial(collect_server_section, form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_variables.data,
         'variables',
-        lambda: collect_variables_section(form),
+        partial(collect_variables_section, form),
         require_truthy=False,
     )
 
@@ -109,7 +110,8 @@ def build_export_payload(
         sections,
         form.include_secrets.data,
         'secrets',
-        lambda: collect_secrets_section(
+        partial(
+            collect_secrets_section,
             form,
             form.secret_key.data.strip(),
             form.include_disabled_secrets.data,
@@ -122,14 +124,14 @@ def build_export_payload(
         sections,
         form.include_history.data,
         'change_history',
-        lambda: gather_change_history(),
+        gather_change_history,
     )
 
     add_optional_section(
         sections,
         form.include_source.data,
         'app_source',
-        lambda: collect_app_source_section(form, base_path, cid_writer),
+        partial(collect_app_source_section, form, base_path, cid_writer),
     )
 
     include_unreferenced_cids(form, cid_writer.cid_map_entries)

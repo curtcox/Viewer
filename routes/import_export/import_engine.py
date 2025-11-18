@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from functools import partial
 from typing import Any, Callable
 
 from flask import flash, redirect, session, url_for
@@ -129,41 +130,35 @@ def import_selected_sections(context: ImportContext) -> None:
         SectionImportPlan(
             include=context.form.include_aliases.data,
             section_key='aliases',
-            importer=lambda section: import_aliases_with_names(
-                section, context.cid_lookup
-            ),
+            importer=partial(import_aliases_with_names, cid_map=context.cid_lookup),
             singular_label='alias',
             plural_label='aliases',
         ),
         SectionImportPlan(
             include=context.form.include_servers.data,
             section_key='servers',
-            importer=lambda section: import_servers_with_names(
-                section, context.cid_lookup
-            ),
+            importer=partial(import_servers_with_names, cid_map=context.cid_lookup),
             singular_label='server',
             plural_label='servers',
         ),
         SectionImportPlan(
             include=context.form.include_variables.data,
             section_key='variables',
-            importer=lambda section: import_variables_with_names(section),
+            importer=import_variables_with_names,
             singular_label='variable',
             plural_label='variables',
         ),
         SectionImportPlan(
             include=context.form.include_secrets.data,
             section_key='secrets',
-            importer=lambda section: import_secrets_with_names(
-                section, context.secret_key
-            ),
+            importer=partial(import_secrets_with_names, key=context.secret_key),
             singular_label='secret',
             plural_label='secrets',
         ),
         SectionImportPlan(
             include=context.form.include_history.data,
             section_key='change_history',
-            importer=lambda section: import_change_history(section),
+            importer=import_change_history,
             singular_label='history event',
             plural_label='history events',
         ),

@@ -220,7 +220,7 @@ def test_auto_main_uses_nested_server_response(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda name: servers.get(name),
+        servers.get,
     )
 
     with app.test_request_context("/outer/inner"):
@@ -252,7 +252,7 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda name: servers.get(name),
+        servers.get,
     )
 
     def fake_find_matching_alias(path):
@@ -325,7 +325,7 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda name: servers.get(name),
+        servers.get,
     )
 
     with app.test_request_context("/outer/inner?prefix=start"):
