@@ -36,5 +36,3 @@ def client(integration_app):
     """Return a test client bound to the integration app."""
 
     return integration_app.test_client()
-
-

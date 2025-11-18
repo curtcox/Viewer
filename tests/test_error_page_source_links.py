@@ -41,31 +41,31 @@ class TestErrorPageSourceLinks(unittest.TestCase):
                 # Mock the get_aliases function to raise a database error similar to the real issue
                 with patch('db_access.get_aliases') as mock_get_aliases:
                     # Simulate the SQLAlchemy OperationalError that occurs in the real scenario
-                        import sqlite3
+                    import sqlite3
 
-                        from sqlalchemy.exc import OperationalError
+                    from sqlalchemy.exc import OperationalError
 
-                        # Create a realistic database error like the one in the stack trace
-                        sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
-                        sqlalchemy_error = OperationalError(
-                            "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias ORDER BY alias.name",
-                            {},
-                            sqlite_error
-                        )
-                        mock_get_aliases.side_effect = sqlalchemy_error
+                    # Create a realistic database error like the one in the stack trace
+                    sqlite_error = sqlite3.OperationalError("no such column: alias.definition")
+                    sqlalchemy_error = OperationalError(
+                        "SELECT alias.id AS alias_id, alias.name AS alias_name, alias.definition AS alias_definition, alias.created_at AS alias_created_at, alias.updated_at AS alias_updated_at \nFROM alias ORDER BY alias.name",
+                        {},
+                        sqlite_error
+                    )
+                    mock_get_aliases.side_effect = sqlalchemy_error
 
-                        # The aliases route is now factory-generated, access it through the app
-                        # Find the factory-generated aliases route
-                        aliases_func = None
-                        for rule in self.app.url_map.iter_rules():
-                            if rule.rule == '/aliases' and rule.endpoint == 'main.aliases':
-                                aliases_func = self.app.view_functions[rule.endpoint]
-                                break
+                    # The aliases route is now factory-generated, access it through the app
+                    # Find the factory-generated aliases route
+                    aliases_func = None
+                    for rule in self.app.url_map.iter_rules():
+                        if rule.rule == '/aliases' and rule.endpoint == 'main.aliases':
+                            aliases_func = self.app.view_functions[rule.endpoint]
+                            break
 
-                        self.assertIsNotNone(aliases_func, "aliases route should be registered")
+                    self.assertIsNotNone(aliases_func, "aliases route should be registered")
 
-                        # This should raise the error
-                        aliases_func()
+                    # This should raise the error
+                    aliases_func()
 
             except Exception as exc:
                 # Call the error handler directly

@@ -2,8 +2,8 @@
 # Disable parallel processing to avoid recursion errors in pylint plugins on Python 3.12
 jobs=1
 
-# Ignore server template files - they're executed with injected variables (request, context, load, etc.)
-ignore=reference_templates/servers/definitions
+# Ignore generated or template directories that shouldn't be linted
+ignore-paths=reference_templates/servers/definitions,venv,.venv,node_modules
 
 [MESSAGES CONTROL]
 # Disable messages that are false positives or design choices
@@ -57,6 +57,8 @@ disable=
     no-member,                    # E1101 - False positives from dynamic attributes (7 occurrences)
     bad-plugin-value,             # E5110 - Plugin configuration issues (5 occurrences)
     unused-import,                # W0611 - Rare false positives (1 occurrence)
+    undefined-all-variable,       # E0603 - Synthetic modules for linting stubs lack exports
+    unnecessary-lambda,           # W0108 - Lambda helpers commonly used for deferred calls
 
 [FORMAT]
 # Maximum line length
@@ -73,7 +75,7 @@ good-names=i,j,k,ex,Run,_,id,db,app
 
 [TYPECHECK]
 # Ignore missing members on these modules (Flask/SQLAlchemy generate them dynamically)
-ignored-modules=flask_sqlalchemy,flask_login,flask_wtf
+ignored-modules=flask_sqlalchemy,flask_login,flask_wtf,configuration
 ignored-classes=scoped_session,Query,SQLAlchemy
 
 # Members that are dynamically generated

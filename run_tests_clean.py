@@ -32,4 +32,3 @@ env["PYTHONPATH"] = os.pathsep.join([
 # Run pytest
 cmd = [str(venv_python), "-m", "pytest", "tests/", "-m", "not integration", "-v"]
 sys.exit(subprocess.call(cmd, cwd=str(root_dir), env=env))
-
