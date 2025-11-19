@@ -803,6 +803,12 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="Python Type Checker",
             report_link=None
         ),
+        "pydoclint": JobMetadata(
+            name="Pydoclint",
+            icon="📖",
+            check_type="Docstring Quality Checker",
+            report_link="pydoclint/index.html"
+        ),
         "radon": JobMetadata(
             name="Radon",
             icon="📊",
@@ -961,6 +967,7 @@ def build_site(
     vulture_artifacts: Path | None,
     python_smells_artifacts: Path | None,
     pylint_artifacts: Path | None,
+    pydoclint_artifacts: Path | None,
     shellcheck_artifacts: Path | None,
     hadolint_artifacts: Path | None,
     test_index_artifacts: Path | None,
@@ -978,6 +985,7 @@ def build_site(
     vulture_dir = output_dir / "vulture"
     python_smells_dir = output_dir / "python-smells"
     pylint_dir = output_dir / "pylint"
+    pydoclint_dir = output_dir / "pydoclint"
     shellcheck_dir = output_dir / "shellcheck"
     hadolint_dir = output_dir / "hadolint"
     test_index_dir = output_dir / "test-index"
@@ -990,6 +998,7 @@ def build_site(
     _copy_artifacts(vulture_artifacts, vulture_dir)
     _copy_artifacts(python_smells_artifacts, python_smells_dir)
     _copy_artifacts(pylint_artifacts, pylint_dir)
+    _copy_artifacts(pydoclint_artifacts, pydoclint_dir)
     _copy_artifacts(shellcheck_artifacts, shellcheck_dir)
     _copy_artifacts(hadolint_artifacts, hadolint_dir)
     _copy_artifacts(test_index_artifacts, test_index_dir)
@@ -1008,6 +1017,7 @@ def build_site(
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
     _build_linter_index(pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint"))
+    _build_linter_index(pydoclint_dir, "Pydoclint Report", "Pydoclint", job_statuses.get("pydoclint"))
     _build_linter_index(python_smells_dir, "Python Smells Report", "Python Smells", job_statuses.get("python-smells"))
     _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck", job_statuses.get("shellcheck"))
     _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
@@ -1067,6 +1077,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the Pylint report artifacts.",
     )
     parser.add_argument(
+        "--pydoclint-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing the Pydoclint report artifacts.",
+    )
+    parser.add_argument(
         "--shellcheck-artifacts",
         type=Path,
         default=None,
@@ -1117,6 +1133,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         vulture_artifacts=parsed.vulture_artifacts,
         python_smells_artifacts=parsed.python_smells_artifacts,
         pylint_artifacts=parsed.pylint_artifacts,
+        pydoclint_artifacts=parsed.pydoclint_artifacts,
         shellcheck_artifacts=parsed.shellcheck_artifacts,
         hadolint_artifacts=parsed.hadolint_artifacts,
         test_index_artifacts=parsed.test_index_artifacts,
