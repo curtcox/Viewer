@@ -442,6 +442,7 @@ def new_alias():
 def _handle_save_as(
     form: AliasForm,
     alias: Alias,
+    *,
     new_name: str,
     definition_value: Optional[str],
     change_message: str,
@@ -483,6 +484,7 @@ def _handle_save_as(
 def _handle_rename(
     form: AliasForm,
     alias: Alias,
+    *,
     new_name: str,
     definition_value: Optional[str],
     change_message: str,
@@ -555,14 +557,24 @@ def edit_alias(alias_name: str):
 
         if save_action == SUBMIT_ACTION_SAVE_AS:
             redirect_url = _handle_save_as(
-                form, alias, new_name, definition_value, change_message, validator
+                form,
+                alias,
+                new_name=new_name,
+                definition_value=definition_value,
+                change_message=change_message,
+                validator=validator,
             )
             if redirect_url:
                 return redirect(redirect_url)
             return render_edit_form()
 
         redirect_url = _handle_rename(
-            form, alias, new_name, definition_value, change_message, validator
+            form,
+            alias,
+            new_name=new_name,
+            definition_value=definition_value,
+            change_message=change_message,
+            validator=validator,
         )
         if redirect_url:
             return redirect(redirect_url)

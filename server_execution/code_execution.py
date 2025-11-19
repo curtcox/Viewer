@@ -249,6 +249,7 @@ def _build_function_invocation_snippet(function_name: str, code: str) -> str:
 
 def _handle_missing_parameters_for_main(
     function_name: str,
+    *,
     server_name: Optional[str],
     base_args: Dict[str, Any],
     details: FunctionDetails,
@@ -323,7 +324,13 @@ def _prepare_invocation(
 
         # For main(), try nested path injection
         working_args, working_resolved, missing, available, early_response = _handle_missing_parameters_for_main(
-            function_name, server_name, base_args, details, resolved, missing, available
+            function_name,
+            server_name=server_name,
+            base_args=base_args,
+            details=details,
+            resolved=resolved,
+            missing=missing,
+            available=available,
         )
 
         if early_response:

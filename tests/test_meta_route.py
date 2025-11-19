@@ -41,6 +41,7 @@ class TestMetaRoute(unittest.TestCase):
 
     def _create_alias(
         self,
+        *,
         name: str = 'docs',
         target: str = '/docs',
         match_type: str = 'literal',
