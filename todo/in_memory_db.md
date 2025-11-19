@@ -9,6 +9,92 @@ This document outlines a detailed plan for adding support for running the applic
 - Add a command line flag for running the app with an in-memory database
 - Be broken down into small, independently committable changes
 
+## Filesystem Access Constraints
+
+When running in in-memory database mode, the application has the following filesystem access restrictions:
+
+### Read Access
+- **`/cids` directory**: The in-memory database will have **read-only access** to all CID files stored in the `/cids` directory
+- This allows the application to retrieve existing content-addressed data without modification
+
+### No Other Filesystem Access
+- The in-memory database mode **cannot write** to the `/cids` directory or create new CID files on disk
+- **No access** to any other filesystem locations outside of `/cids`
+- All new CID records created during an in-memory session exist only in memory and are lost when the application terminates
+- Database file (`secureapp.db`) is never created or accessed in memory mode
+
+### Implications
+- **Testing**: Tests can read existing CID fixtures but cannot persist new CIDs to disk
+- **Development**: Useful for experimenting without leaving artifacts on disk
+- **Demo Mode**: Can showcase existing content without risk of modification
+- **Isolation**: Complete isolation from persistent storage except for read-only CID access
+
+### Implementation Notes
+- CID read operations will check the `/cids` directory on disk
+- CID write operations will store data only in the in-memory SQLite database
+- On shutdown, all in-memory data (including new CIDs) is discarded
+- Consider adding a warning on startup when running in memory mode
+
+---
+
+## Questions to Answer Before Implementation
+
+The following questions should be answered before executing this plan:
+
+### Architecture & Design
+
+1. **CID Storage Strategy**: Should new CIDs created in memory mode be stored in the in-memory SQLite DB, or should we maintain a separate in-memory dict/cache for CID binary data?
+
+2. **Hybrid Mode**: Should there be a hybrid mode where the database is in-memory but CIDs are still persisted to disk? Or is complete isolation preferred?
+
+3. **Pre-loading CIDs**: Should all existing CIDs from `/cids` be pre-loaded into memory on startup, or should they be loaded lazily on first access?
+
+4. **Memory Limits**: Should there be a configurable memory limit for the in-memory database? What happens when it's exceeded?
+
+### Testing Strategy
+
+5. **Test Data Fixtures**: Should we create a standard set of CID fixtures in `/cids` that tests can rely on? What data should they contain?
+
+6. **PostgreSQL Equivalence**: Should equivalence tests also run against PostgreSQL to catch SQLite-specific behavior differences?
+
+7. **Performance Benchmarks**: Should we add benchmarks comparing in-memory vs disk database performance?
+
+8. **Existing Test Migration**: Should all existing tests be migrated to use the new fixtures, or only new tests?
+
+### CLI & Configuration
+
+9. **Environment Variable Override**: Should `--in-memory-db` be overridable by `DATABASE_URL` environment variable, or should the flag take precedence?
+
+10. **Startup Warning**: What should the warning message say when starting in memory mode? Should it be suppressible?
+
+11. **Data Seeding**: Should there be an option to seed the in-memory database with sample data for development/demo purposes?
+
+### Operational Concerns
+
+12. **Logging**: Should in-memory mode have different logging behavior to clearly indicate data won't be persisted?
+
+13. **Graceful Shutdown**: Should the application warn about unsaved data on shutdown when in memory mode?
+
+14. **CI/CD Integration**: Should CI always use in-memory mode, or should some tests run against disk databases?
+
+### Compatibility
+
+15. **Existing Workflows**: Are there any existing scripts or workflows that depend on the database file existing on disk?
+
+16. **Plugin/Extension Support**: If the application has plugins, how should they handle in-memory mode?
+
+17. **Import/Export**: Should import/export functionality work in memory mode, or should it be disabled/modified?
+
+### Future Considerations
+
+18. **State Snapshots**: Should we support snapshotting in-memory state to disk for debugging purposes?
+
+19. **Hot Reload**: If running in memory mode during development, how should code hot-reloading affect the database state?
+
+20. **Multi-Process**: If the app runs multiple workers, how should in-memory mode handle this? (SQLite in-memory is not shared across processes)
+
+---
+
 ## Current State Analysis
 
 ### Existing Infrastructure
