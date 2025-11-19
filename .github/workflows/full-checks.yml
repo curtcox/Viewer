@@ -38,27 +38,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Run Pylint
         id: run_pylint
-        run: |
-          # Fix git ownership issue in container
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          mkdir -p pylint-report
-          STATUS=0
-          ./scripts/checks/run_pylint.sh > pylint-report/output.txt 2>&1 || STATUS=$?
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-
-          # Count files examined
-          FILE_COUNT=$(git ls-files '*.py' | wc -l)
-          echo "Files examined: $FILE_COUNT" > pylint-report/summary.txt
-          echo "Exit code: $STATUS" >> pylint-report/summary.txt
-
-          if [ $STATUS -eq 0 ]; then
-            echo "Status: ✓ All checks passed" >> pylint-report/summary.txt
-          else
-            echo "Status: ✗ Issues found" >> pylint-report/summary.txt
-          fi
-
-          exit $STATUS
+        run: ./scripts/ci/run_pylint_with_report.sh
       - name: Upload Pylint artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -92,12 +72,7 @@ jobs:
         run: ./scripts/checks/run_radon.sh --output-dir radon-report --summary-file radon-report/summary.md
       - name: Publish Radon summary
         if: always()
-        run: |
-          if [ -f radon-report/summary.md ]; then
-            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-              cat radon-report/summary.md >>"${GITHUB_STEP_SUMMARY}"
-            fi
-          fi
+        run: ./scripts/ci/publish_radon_summary.sh
       - name: Upload Radon artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -120,12 +95,7 @@ jobs:
         run: ./scripts/checks/run_vulture.sh --output-dir vulture-report --summary-file vulture-report/summary.md
       - name: Publish Vulture summary
         if: always()
-        run: |
-          if [ -f vulture-report/summary.md ]; then
-            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-              cat vulture-report/summary.md >>"${GITHUB_STEP_SUMMARY}"
-            fi
-          fi
+        run: ./scripts/ci/publish_vulture_summary.sh
       - name: Upload Vulture artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -143,24 +113,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install PyExamine
-        run: |
-          # Pin to specific commit to avoid supply-chain risks from main branch changes
-          # Commit 1c9360462281d897ab429878139e07ae3f98f104 (2025-01-27): README rename, stable state
-          git clone https://github.com/KarthikShivasankar/python_smells_detector.git /tmp/python_smells_detector
-          cd /tmp/python_smells_detector
-          git checkout 1c9360462281d897ab429878139e07ae3f98f104
-          cd -
-          python -m pip install --disable-pip-version-check -e /tmp/python_smells_detector
+        run: ./scripts/ci/install_pyexamine.sh
       - name: Generate Python Smells report
         run: ./scripts/checks/run_python_smells.sh --output-dir python-smells-report --summary-file python-smells-report/summary.md
       - name: Publish Python Smells summary
         if: always()
-        run: |
-          if [ -f python-smells-report/summary.md ]; then
-            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-              cat python-smells-report/summary.md >>"${GITHUB_STEP_SUMMARY}"
-            fi
-          fi
+        run: ./scripts/ci/publish_python_smells_summary.sh
       - name: Upload Python Smells artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -181,24 +139,7 @@ jobs:
           sudo apt-get install -y shellcheck
       - name: Run ShellCheck
         id: run_shellcheck
-        run: |
-          mkdir -p shellcheck-report
-          STATUS=0
-          ./scripts/checks/run_shellcheck.sh > shellcheck-report/output.txt 2>&1 || STATUS=$?
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-
-          # Count files examined
-          FILE_COUNT=$(git ls-files '*.sh' | wc -l)
-          echo "Files examined: $FILE_COUNT" > shellcheck-report/summary.txt
-          echo "Exit code: $STATUS" >> shellcheck-report/summary.txt
-
-          if [ $STATUS -eq 0 ]; then
-            echo "Status: ✓ All checks passed" >> shellcheck-report/summary.txt
-          else
-            echo "Status: ✗ Issues found" >> shellcheck-report/summary.txt
-          fi
-
-          exit $STATUS
+        run: ./scripts/ci/run_shellcheck_with_report.sh
       - name: Upload ShellCheck artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -214,44 +155,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install Hadolint
-        run: |
-          set -e
-          HADOLINT_VERSION=2.12.0
-          HADOLINT_URL="https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64"
-
-          echo "Downloading hadolint v${HADOLINT_VERSION}..."
-          if ! wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 3 -q "${HADOLINT_URL}" -O hadolint; then
-            echo "Error: Failed to download hadolint from ${HADOLINT_URL}" >&2
-            exit 1
-          fi
-
-          if [ ! -f hadolint ] || [ ! -s hadolint ]; then
-            echo "Error: Downloaded hadolint file is missing or empty" >&2
-            exit 1
-          fi
-
-          chmod +x hadolint
-          sudo mv hadolint /usr/local/bin/hadolint
-          echo "Hadolint installed successfully"
+        run: ./scripts/ci/install_hadolint.sh
       - name: Lint Dockerfile
         id: run_hadolint
-        run: |
-          mkdir -p hadolint-report
-          STATUS=0
-          ./scripts/checks/run_hadolint.sh > hadolint-report/output.txt 2>&1 || STATUS=$?
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-
-          # Report the specific file examined
-          echo "File examined: docker/ci/Dockerfile" > hadolint-report/summary.txt
-          echo "Exit code: $STATUS" >> hadolint-report/summary.txt
-
-          if [ $STATUS -eq 0 ]; then
-            echo "Status: ✓ All checks passed" >> hadolint-report/summary.txt
-          else
-            echo "Status: ✗ Issues found" >> hadolint-report/summary.txt
-          fi
-
-          exit $STATUS
+        run: ./scripts/ci/run_hadolint_with_report.sh
       - name: Upload Hadolint artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -318,36 +225,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Verify test index
         id: verify_test_index
-        run: |
-          # Fix git ownership issue in container
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          mkdir -p test-index-report
-          STATUS=0
-          ./scripts/checks/verify_test_index.sh > test-index-report/output.txt 2>&1 || STATUS=$?
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-
-          # Copy TEST_INDEX.md to the report
-          if [ -f TEST_INDEX.md ]; then
-            cp TEST_INDEX.md test-index-report/
-          fi
-
-          # Count tests in index
-          if [ -f TEST_INDEX.md ]; then
-            TEST_COUNT=$(grep -c "^\- \[" TEST_INDEX.md || echo "0")
-            echo "Tests indexed: $TEST_COUNT" > test-index-report/summary.txt
-          else
-            echo "Tests indexed: 0" > test-index-report/summary.txt
-          fi
-          echo "Exit code: $STATUS" >> test-index-report/summary.txt
-
-          if [ $STATUS -eq 0 ]; then
-            echo "Status: ✓ Index is valid" >> test-index-report/summary.txt
-          else
-            echo "Status: ✗ Index validation failed" >> test-index-report/summary.txt
-          fi
-
-          exit $STATUS
+        run: ./scripts/ci/verify_test_index_with_report.sh
       - name: Upload test index artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -372,23 +250,7 @@ jobs:
         run: python -m pip install -r requirements.txt
       - name: Check for dead fixtures
         id: run_dead_fixtures
-        run: |
-          mkdir -p dead-fixtures-report
-          STATUS=0
-          ./scripts/checks/run_dead_fixtures.sh > dead-fixtures-report/output.txt 2>&1 || STATUS=$?
-          echo "exit_code=$STATUS" >> "$GITHUB_OUTPUT"
-
-          # Create summary
-          echo "Dead Fixtures Check" > dead-fixtures-report/summary.txt
-          echo "Exit code: $STATUS" >> dead-fixtures-report/summary.txt
-
-          if [ $STATUS -eq 0 ]; then
-            echo "Status: ✓ No dead fixtures found" >> dead-fixtures-report/summary.txt
-          else
-            echo "Status: ✗ Dead fixtures detected" >> dead-fixtures-report/summary.txt
-          fi
-
-          exit $STATUS
+        run: ./scripts/ci/run_dead_fixtures_with_report.sh
       - name: Upload dead fixtures artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -567,79 +429,13 @@ jobs:
       - name: Download Chromium for pyppeteer
         run: pyppeteer-install
       - name: Verify Chromium installation
-        run: |
-          python3 scripts/verify-chromium.py
-
-          echo ""
-          echo "=== Listing pyppeteer directory ==="
-          ls -la ~/.local/share/pyppeteer/ || echo "pyppeteer directory not found"
-          ls -la ~/.local/share/pyppeteer/local-chromium/ || echo "chromium directory not found"
-
-          echo ""
-          echo "=== Environment info ==="
-          echo "HOME: $HOME"
-          echo "USER: $USER"
-          echo "PWD: $PWD"
+        run: ./scripts/ci/verify_chromium_installation.sh
       - name: Check shared library dependencies
-        run: |
-          echo "=== Finding Chromium binary ==="
-          CHROMIUM_PATH=$(python3 -c "from pyppeteer.chromium_downloader import chromium_executable; print(chromium_executable())")
-          echo "Chromium path: $CHROMIUM_PATH"
-
-          if [ -f "$CHROMIUM_PATH" ]; then
-              echo ""
-              echo "=== Checking for missing shared libraries ==="
-              LDD_OUTPUT=$(mktemp)
-              if ! ldd "$CHROMIUM_PATH" >"$LDD_OUTPUT"; then
-                  echo "✗ Failed to inspect shared library dependencies"
-                  cat "$LDD_OUTPUT"
-                  exit 1
-              fi
-
-              if grep -q "not found" "$LDD_OUTPUT"; then
-                  echo "✗ Missing shared libraries detected"
-                  grep "not found" "$LDD_OUTPUT"
-              else
-                  echo "✓ All shared libraries found"
-              fi
-
-              echo ""
-              echo "=== Listing all shared library dependencies (first 30 lines) ==="
-              head -30 "$LDD_OUTPUT"
-          else
-              echo "✗ Chromium binary not found at expected path"
-              exit 1
-          fi
+        run: ./scripts/ci/check_chromium_dependencies.sh
       - name: Check system resources
-        run: |
-          echo "=== /dev/shm status ==="
-          df -h /dev/shm || echo "/dev/shm not available"
-          ls -ld /dev/shm || echo "/dev/shm directory check failed"
-
-          echo ""
-          echo "=== Memory info ==="
-          free -h
-
-          echo ""
-          echo "=== Disk space ==="
-          df -h /tmp
+        run: ./scripts/ci/check_system_resources.sh
       - name: Test Chromium binary directly
-        run: |
-          echo "=== Running Chromium directly to capture crash output ==="
-          CHROMIUM_PATH=$(python3 -c "from pyppeteer.chromium_downloader import chromium_executable; print(chromium_executable())")
-
-          echo "Attempting to run: $CHROMIUM_PATH --version"
-          timeout 5s "$CHROMIUM_PATH" --version 2>&1 || echo "Exit code: $?"
-
-          echo ""
-          echo "=== Attempting to run Chromium with browser flags ==="
-          timeout 5s "$CHROMIUM_PATH" \
-            --headless \
-            --no-sandbox \
-            --disable-dev-shm-usage \
-            --disable-gpu \
-            --dump-dom \
-            data:text/html,test 2>&1 || echo "Exit code: $?"
+        run: ./scripts/ci/test_chromium_binary.sh
       - name: Test browser launch with pyppeteer
         run: python3 scripts/test-browser-launch.py
       - name: Run Gauge specs
@@ -699,29 +495,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Capture job statuses
-        run: |
-          cat > job-statuses.json << 'EOF'
-          {
-            "ruff": "${{ needs.ruff.result }}",
-            "pylint": "${{ needs.pylint.result }}",
-            "mypy": "${{ needs.mypy.result }}",
-            "radon": "${{ needs.radon.result }}",
-            "vulture": "${{ needs.vulture.result }}",
-            "python-smells": "${{ needs.python-smells.result }}",
-            "shellcheck": "${{ needs.shellcheck.result }}",
-            "hadolint": "${{ needs.hadolint.result }}",
-            "eslint": "${{ needs.eslint.result }}",
-            "stylelint": "${{ needs.stylelint.result }}",
-            "uncss": "${{ needs.uncss.result }}",
-            "test-index": "${{ needs.test-index.result }}",
-            "dead-fixtures": "${{ needs.dead-fixtures.result }}",
-            "unit-tests": "${{ needs.unit-tests.result }}",
-            "property-tests": "${{ needs.property-tests.result }}",
-            "integration-tests": "${{ needs.integration-tests.result }}",
-            "gauge-specs": "${{ needs.gauge-specs.result }}"
-          }
-          EOF
-          cat job-statuses.json
+        run: ./scripts/ci/capture_job_statuses.sh
       - name: Download unit test report
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -795,21 +569,7 @@ jobs:
           name: dead-fixtures-report
           path: site/dead-fixtures
       - name: Prepare site content
-        run: |
-          python scripts/build-report-site.py \
-            --unit-tests-artifacts site/unit-tests \
-            --gauge-artifacts site/gauge-specs \
-            --integration-artifacts site/integration-tests \
-            --property-artifacts site/property-tests \
-            --radon-artifacts site/radon \
-            --vulture-artifacts site/vulture \
-            --python-smells-artifacts site/python-smells \
-            --pylint-artifacts site/pylint \
-            --shellcheck-artifacts site/shellcheck \
-            --hadolint-artifacts site/hadolint \
-            --test-index-artifacts site/test-index \
-            --job-statuses job-statuses.json \
-            --output site
+        run: ./scripts/ci/prepare_report_site.sh
       - name: Upload artifact for GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
