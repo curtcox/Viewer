@@ -289,9 +289,6 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print('\nShutting down gracefully...')
             sys.exit(0)
-    except SystemExit:
-        # Re-raise SystemExit to allow normal exit behavior
-        raise  # pylint: disable=try-except-raise
     except Exception as e:  # pylint: disable=broad-except
         print("\nFatal error starting application:", file=sys.stderr)
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
