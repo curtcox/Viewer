@@ -51,7 +51,6 @@ disable=
 
     # Architecture - low priority to fix
     cyclic-import,                # R0401 - Handled with lazy imports (38 occurrences)
-    too-many-positional-arguments, # R0917 - Would require API changes (9 occurrences)
 
     # Minor issues
     no-member,                    # E1101 - False positives from dynamic attributes (7 occurrences)

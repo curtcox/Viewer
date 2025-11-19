@@ -259,7 +259,10 @@ def _resolve_flask_target(route: AliasRouteRule, path: str) -> str:
     try:
         url_map = _cached_flask_map(pattern)
         adapter = url_map.bind("", url_scheme="http")
-        _, values = adapter.match(path, method="GET")
+        match_result = list(adapter.match(path, method="GET"))
+        if len(match_result) != 2 or not isinstance(match_result[1], dict):
+            return target
+        values = match_result[1]
     except (NotFound, MethodNotAllowed):
         return target
     except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
