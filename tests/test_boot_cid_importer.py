@@ -380,6 +380,44 @@ class TestBootCidImporter(unittest.TestCase):
             alias = Alias.query.filter_by(name='test-alias-2').first()
             self.assertIsNotNone(alias)
 
+    def test_import_boot_cid_works_without_request_context(self):
+        """Test that boot CID import works without request context (no CSRF error)."""
+        with self.app.app_context():
+            # Create simple alias content
+            aliases_data = [
+                {
+                    'name': 'context-test-alias',
+                    'definition': '/context-test -> /target',
+                }
+            ]
+            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_cid = generate_cid(aliases_content)
+            create_cid_record(aliases_cid, aliases_content)
+
+            # Create boot CID
+            payload_data = {
+                'version': 6,
+                'aliases': aliases_cid,
+            }
+            content = json.dumps(payload_data).encode('utf-8')
+            boot_cid = generate_cid(content)
+            create_cid_record(boot_cid, content)
+
+            # Import should work even without request context
+            # (This would previously fail with "Working outside of request context")
+            success, error = import_boot_cid(self.app, boot_cid)
+            
+            if not success:
+                self.fail(f"Import failed: {error}")
+            
+            self.assertTrue(success)
+            self.assertIsNone(error)
+
+            # Verify the alias was imported
+            alias = Alias.query.filter_by(name='context-test-alias').first()
+            self.assertIsNotNone(alias)
+            self.assertEqual(alias.definition, '/context-test -> /target')
+
 
 if __name__ == '__main__':
     unittest.main()
