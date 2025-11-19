@@ -406,10 +406,10 @@ class TestBootCidImporter(unittest.TestCase):
             # Import should work even without request context
             # (This would previously fail with "Working outside of request context")
             success, error = import_boot_cid(self.app, boot_cid)
-            
+
             if not success:
                 self.fail(f"Import failed: {error}")
-            
+
             self.assertTrue(success)
             self.assertIsNone(error)
 
