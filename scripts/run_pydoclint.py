@@ -115,6 +115,27 @@ def _format_markdown_summary(issues: list[DocstringIssue]) -> str:
     return "\n".join(lines)
 
 
+def _format_text_summary(issues: list[DocstringIssue]) -> str:
+    """Generate a plain text summary of pydoclint findings."""
+    if not issues:
+        return "Pydoclint Report\nStatus: ✓ No docstring issues detected!"
+    
+    unique_files = len({issue.path for issue in issues})
+    categories = _categorize_issues(issues)
+    
+    lines = [
+        "Pydoclint Report",
+        f"Total issues: {len(issues)}",
+        f"Files with issues: {unique_files}",
+    ]
+    
+    for code in sorted(categories.keys()):
+        count = len(categories[code])
+        lines.append(f"{code}: {count} issue(s)")
+    
+    return "\n".join(lines)
+
+
 def _format_html_report(issues: list[DocstringIssue]) -> str:
     """Generate an HTML report of pydoclint findings."""
     
@@ -260,9 +281,11 @@ def run(argv: Sequence[str] | None = None) -> int:
     
     # Generate reports
     markdown = _format_markdown_summary(issues)
+    text_summary = _format_text_summary(issues)
     html = _format_html_report(issues)
     
     _write_file(output_dir / "summary.md", markdown)
+    _write_file(output_dir / "summary.txt", text_summary)
     _write_file(output_dir / "index.html", html)
     _write_file(output_dir / "output.txt", combined_output)
     
