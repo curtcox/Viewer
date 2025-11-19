@@ -38,15 +38,22 @@ def handle_boot_cid_import(boot_cid: str) -> None:
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
 
-    with app.app_context():
-        # Perform the import
-        success, error = import_boot_cid(app, boot_cid)
+    try:
+        with app.app_context():
+            # Perform the import
+            success, error = import_boot_cid(app, boot_cid)
 
-        if not success:
-            print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)
-            sys.exit(1)
+            if not success:
+                print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)
+                sys.exit(1)
 
-        print(f"Boot CID {boot_cid} imported successfully")
+            print(f"Boot CID {boot_cid} imported successfully")
+    except Exception as e:  # pylint: disable=broad-except
+        print("\nUnexpected error during boot CID import:", file=sys.stderr)
+        print(f"{type(e).__name__}: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
 
 
 def handle_list_boot_cids() -> None:
@@ -252,32 +259,42 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Handle boot CID import if specified
-    if cid:
-        handle_boot_cid_import(cid)
-
-    # Handle HTTP GET request if URL specified (without --show)
-    if url and not args.show:
-        handle_http_request(url)
-
-    # Handle --show flag (launch browser)
-    if args.show:
-        from cli import open_browser  # pylint: disable=import-outside-toplevel
-
-        # Determine the URL to open
-        if url:
-            browser_url = url if url.startswith('http') else f"http://localhost:{args.port}{url}"
-        else:
-            browser_url = f"http://localhost:{args.port}"
-
-        print(f"Opening browser to {browser_url}")
-        # Open browser in a separate thread to not block the app startup
-        import threading
-        threading.Timer(1.0, lambda: open_browser(browser_url)).start()
-
-    # Start the Flask app
     try:
-        app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
-    except KeyboardInterrupt:
-        print('\nShutting down gracefully...')
-        sys.exit(0)
+        # Handle boot CID import if specified
+        if cid:
+            handle_boot_cid_import(cid)
+
+        # Handle HTTP GET request if URL specified (without --show)
+        if url and not args.show:
+            handle_http_request(url)
+
+        # Handle --show flag (launch browser)
+        if args.show:
+            from cli import open_browser  # pylint: disable=import-outside-toplevel
+
+            # Determine the URL to open
+            if url:
+                browser_url = url if url.startswith('http') else f"http://localhost:{args.port}{url}"
+            else:
+                browser_url = f"http://localhost:{args.port}"
+
+            print(f"Opening browser to {browser_url}")
+            # Open browser in a separate thread to not block the app startup
+            import threading
+            threading.Timer(1.0, lambda: open_browser(browser_url)).start()
+
+        # Start the Flask app
+        try:
+            app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
+        except KeyboardInterrupt:
+            print('\nShutting down gracefully...')
+            sys.exit(0)
+    except SystemExit:
+        # Re-raise SystemExit to allow normal exit behavior
+        raise  # pylint: disable=try-except-raise
+    except Exception as e:  # pylint: disable=broad-except
+        print("\nFatal error starting application:", file=sys.stderr)
+        print(f"{type(e).__name__}: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.exit(1)
