@@ -37,61 +37,61 @@ When running in in-memory database mode, the application has the following files
 
 ---
 
-## Questions to Answer Before Implementation
+## Design Decisions
 
-The following questions should be answered before executing this plan:
+The following decisions have been made for this implementation:
 
 ### Architecture & Design
 
-1. **CID Storage Strategy**: Should new CIDs created in memory mode be stored in the in-memory SQLite DB, or should we maintain a separate in-memory dict/cache for CID binary data?
+1. **CID Storage Strategy**: Store new CIDs in the in-memory SQLite DB (same as all other data)
 
-2. **Hybrid Mode**: Should there be a hybrid mode where the database is in-memory but CIDs are still persisted to disk? Or is complete isolation preferred?
+2. **Hybrid Mode**: No hybrid mode - complete isolation preferred
 
-3. **Pre-loading CIDs**: Should all existing CIDs from `/cids` be pre-loaded into memory on startup, or should they be loaded lazily on first access?
+3. **Pre-loading CIDs**: Lazy loading - CIDs from `/cids` are loaded on first access
 
-4. **Memory Limits**: Should there be a configurable memory limit for the in-memory database? What happens when it's exceeded?
+4. **Memory Limits**: Yes - hardcoded limit in implementation, raise exception when exceeded
 
 ### Testing Strategy
 
-5. **Test Data Fixtures**: Should we create a standard set of CID fixtures in `/cids` that tests can rely on? What data should they contain?
+5. **Test Data Fixtures**: Everything in `/cids` can be used as fixtures; add more as needed
 
-6. **PostgreSQL Equivalence**: Should equivalence tests also run against PostgreSQL to catch SQLite-specific behavior differences?
+6. **PostgreSQL Equivalence**: No - equivalence tests only run against SQLite
 
-7. **Performance Benchmarks**: Should we add benchmarks comparing in-memory vs disk database performance?
+7. **Performance Benchmarks**: No benchmarks
 
-8. **Existing Test Migration**: Should all existing tests be migrated to use the new fixtures, or only new tests?
+8. **Existing Test Migration**: Migrate all existing tests to use in-memory fixtures, except tests specifically for persistence or SQLite-specific behavior
 
 ### CLI & Configuration
 
-9. **Environment Variable Override**: Should `--in-memory-db` be overridable by `DATABASE_URL` environment variable, or should the flag take precedence?
+9. **Environment Variable Override**: CLI flag `--in-memory-db` takes precedence over `DATABASE_URL`
 
-10. **Startup Warning**: What should the warning message say when starting in memory mode? Should it be suppressible?
+10. **Startup Warning**: Display "Using memory-only database" on startup
 
-11. **Data Seeding**: Should there be an option to seed the in-memory database with sample data for development/demo purposes?
+11. **Data Seeding**: No separate seeding option - read-only access to `/cids` serves this purpose
 
 ### Operational Concerns
 
-12. **Logging**: Should in-memory mode have different logging behavior to clearly indicate data won't be persisted?
+12. **Logging**: No special logging behavior for in-memory mode
 
-13. **Graceful Shutdown**: Should the application warn about unsaved data on shutdown when in memory mode?
+13. **Graceful Shutdown**: No shutdown warning about unsaved data
 
-14. **CI/CD Integration**: Should CI always use in-memory mode, or should some tests run against disk databases?
+14. **CI/CD Integration**: CI will use a mix of in-memory and disk database tests
 
 ### Compatibility
 
-15. **Existing Workflows**: Are there any existing scripts or workflows that depend on the database file existing on disk?
+15. **Existing Workflows**: Report any discovered dependencies on database file existing on disk
 
-16. **Plugin/Extension Support**: If the application has plugins, how should they handle in-memory mode?
+16. **Plugin/Extension Support**: In-memory mode should be transparent to plugins
 
-17. **Import/Export**: Should import/export functionality work in memory mode, or should it be disabled/modified?
+17. **Import/Export**: Import/export functionality should work normally in memory mode
 
 ### Future Considerations
 
-18. **State Snapshots**: Should we support snapshotting in-memory state to disk for debugging purposes?
+18. **State Snapshots**: Yes - support snapshotting in-memory state to disk for debugging
 
-19. **Hot Reload**: If running in memory mode during development, how should code hot-reloading affect the database state?
+19. **Hot Reload**: Same behavior as SQLite disk mode during hot reload
 
-20. **Multi-Process**: If the app runs multiple workers, how should in-memory mode handle this? (SQLite in-memory is not shared across processes)
+20. **Multi-Process**: Not applicable - application doesn't use multiple workers
 
 ---
 
@@ -129,16 +129,26 @@ Create a centralized database configuration module that handles different databa
 from enum import Enum
 from typing import Optional
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DatabaseMode(Enum):
     DISK = "disk"
     MEMORY = "memory"
+
+class MemoryLimitExceededError(Exception):
+    """Raised when the in-memory database exceeds its memory limit."""
+    pass
 
 class DatabaseConfig:
     """Centralized database configuration manager."""
 
     _instance: Optional['DatabaseConfig'] = None
     _mode: DatabaseMode = DatabaseMode.DISK
+
+    # Hardcoded memory limit for in-memory database (100 MB)
+    MEMORY_LIMIT_BYTES: int = 100 * 1024 * 1024
 
     @classmethod
     def get_instance(cls) -> 'DatabaseConfig':
@@ -149,6 +159,8 @@ class DatabaseConfig:
     @classmethod
     def set_mode(cls, mode: DatabaseMode) -> None:
         cls._mode = mode
+        if mode == DatabaseMode.MEMORY:
+            logger.warning("Using memory-only database")
 
     @classmethod
     def get_mode(cls) -> DatabaseMode:
@@ -165,6 +177,14 @@ class DatabaseConfig:
         return os.environ.get("DATABASE_URL", "sqlite:///secureapp.db")
 
     @classmethod
+    def check_memory_limit(cls, current_usage_bytes: int) -> None:
+        """Check if memory usage exceeds the limit. Raises MemoryLimitExceededError if exceeded."""
+        if cls._mode == DatabaseMode.MEMORY and current_usage_bytes > cls.MEMORY_LIMIT_BYTES:
+            raise MemoryLimitExceededError(
+                f"In-memory database exceeded limit: {current_usage_bytes} bytes > {cls.MEMORY_LIMIT_BYTES} bytes"
+            )
+
+    @classmethod
     def reset(cls) -> None:
         """Reset configuration to defaults (useful for testing)."""
         cls._mode = DatabaseMode.DISK
@@ -179,7 +199,7 @@ class DatabaseConfig:
 
 ```python
 import pytest
-from db_config import DatabaseConfig, DatabaseMode
+from db_config import DatabaseConfig, DatabaseMode, MemoryLimitExceededError
 
 class TestDatabaseConfig:
     def setup_method(self):
@@ -206,6 +226,27 @@ class TestDatabaseConfig:
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
         DatabaseConfig.reset()
         assert DatabaseConfig.get_mode() == DatabaseMode.DISK
+
+    def test_memory_limit_not_exceeded(self):
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        # Should not raise
+        DatabaseConfig.check_memory_limit(50 * 1024 * 1024)  # 50 MB
+
+    def test_memory_limit_exceeded_raises_error(self):
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        with pytest.raises(MemoryLimitExceededError):
+            DatabaseConfig.check_memory_limit(200 * 1024 * 1024)  # 200 MB
+
+    def test_memory_limit_not_checked_in_disk_mode(self):
+        DatabaseConfig.set_mode(DatabaseMode.DISK)
+        # Should not raise even with high value
+        DatabaseConfig.check_memory_limit(1000 * 1024 * 1024)  # 1 GB
+
+    def test_startup_warning_logged(self, caplog):
+        import logging
+        with caplog.at_level(logging.WARNING):
+            DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        assert "Using memory-only database" in caplog.text
 ```
 
 ---
@@ -1941,6 +1982,210 @@ class TestPropertyBasedEquivalence:
 
 ---
 
+### Phase 10: State Snapshots
+
+#### Commit 10.1: Add snapshot module for in-memory state
+**File**: `db_snapshot.py`
+
+```python
+# db_snapshot.py
+"""Snapshot and restore in-memory database state for debugging."""
+
+import json
+import os
+from datetime import datetime
+from typing import Optional
+from database import db
+from models import Server, Alias, Variable, Secret, CID, PageView
+from models import EntityInteraction, ServerInvocation, Export
+from db_config import DatabaseConfig, DatabaseMode
+
+class DatabaseSnapshot:
+    """Manages snapshots of in-memory database state."""
+
+    SNAPSHOT_DIR = "snapshots"
+
+    @classmethod
+    def create_snapshot(cls, name: Optional[str] = None) -> str:
+        """
+        Create a snapshot of the current in-memory database state.
+        Returns the path to the snapshot file.
+        """
+        if not DatabaseConfig.is_memory_mode():
+            raise RuntimeError("Snapshots are only supported in memory mode")
+
+        if name is None:
+            name = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+
+        os.makedirs(cls.SNAPSHOT_DIR, exist_ok=True)
+        snapshot_path = os.path.join(cls.SNAPSHOT_DIR, f"{name}.json")
+
+        snapshot_data = {
+            "created_at": datetime.utcnow().isoformat(),
+            "tables": {}
+        }
+
+        # Export each model's data
+        models = [
+            ("servers", Server),
+            ("aliases", Alias),
+            ("variables", Variable),
+            ("secrets", Secret),
+            ("page_views", PageView),
+            ("entity_interactions", EntityInteraction),
+            ("server_invocations", ServerInvocation),
+            ("exports", Export),
+        ]
+
+        for table_name, model in models:
+            records = []
+            for record in model.query.all():
+                record_dict = {
+                    c.name: getattr(record, c.name)
+                    for c in record.__table__.columns
+                    if c.name != 'id'
+                }
+                # Handle datetime serialization
+                for key, value in record_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        record_dict[key] = value.isoformat()
+                    elif isinstance(value, bytes):
+                        record_dict[key] = value.hex()
+                records.append(record_dict)
+            snapshot_data["tables"][table_name] = records
+
+        # Handle CIDs separately due to binary data
+        cid_records = []
+        for cid in CID.query.all():
+            cid_records.append({
+                "path": cid.path,
+                "file_data": cid.file_data.hex() if cid.file_data else None,
+                "file_size": cid.file_size,
+                "created_at": cid.created_at.isoformat() if cid.created_at else None
+            })
+        snapshot_data["tables"]["cids"] = cid_records
+
+        with open(snapshot_path, 'w') as f:
+            json.dump(snapshot_data, f, indent=2)
+
+        return snapshot_path
+
+    @classmethod
+    def list_snapshots(cls) -> list[str]:
+        """List all available snapshots."""
+        if not os.path.exists(cls.SNAPSHOT_DIR):
+            return []
+        return sorted([
+            f[:-5] for f in os.listdir(cls.SNAPSHOT_DIR)
+            if f.endswith('.json')
+        ])
+
+    @classmethod
+    def delete_snapshot(cls, name: str) -> bool:
+        """Delete a snapshot by name."""
+        snapshot_path = os.path.join(cls.SNAPSHOT_DIR, f"{name}.json")
+        if os.path.exists(snapshot_path):
+            os.remove(snapshot_path)
+            return True
+        return False
+```
+
+---
+
+#### Commit 10.2: Add tests for snapshot module
+**File**: `tests/test_db_snapshot.py`
+
+```python
+import pytest
+import os
+import json
+from db_snapshot import DatabaseSnapshot
+from db_config import DatabaseConfig, DatabaseMode
+from models import Server
+from database import db
+
+@pytest.mark.memory_db
+class TestDatabaseSnapshot:
+    def setup_method(self):
+        DatabaseConfig.reset()
+
+    def test_create_snapshot_requires_memory_mode(self, disk_db_app):
+        """Snapshot creation should fail in disk mode."""
+        with disk_db_app.app_context():
+            with pytest.raises(RuntimeError) as exc_info:
+                DatabaseSnapshot.create_snapshot()
+            assert "memory mode" in str(exc_info.value)
+
+    def test_create_snapshot_saves_data(self, memory_db_app, tmp_path):
+        """Snapshot should save current database state."""
+        DatabaseSnapshot.SNAPSHOT_DIR = str(tmp_path)
+
+        with memory_db_app.app_context():
+            # Add test data
+            server = Server(name="test-server", definition="test def")
+            db.session.add(server)
+            db.session.commit()
+
+            # Create snapshot
+            path = DatabaseSnapshot.create_snapshot("test_snap")
+
+            # Verify file exists
+            assert os.path.exists(path)
+
+            # Verify content
+            with open(path) as f:
+                data = json.load(f)
+
+            assert "servers" in data["tables"]
+            assert len(data["tables"]["servers"]) == 1
+            assert data["tables"]["servers"][0]["name"] == "test-server"
+
+    def test_list_snapshots(self, memory_db_app, tmp_path):
+        """Should list all available snapshots."""
+        DatabaseSnapshot.SNAPSHOT_DIR = str(tmp_path)
+
+        with memory_db_app.app_context():
+            DatabaseSnapshot.create_snapshot("snap1")
+            DatabaseSnapshot.create_snapshot("snap2")
+
+            snapshots = DatabaseSnapshot.list_snapshots()
+            assert "snap1" in snapshots
+            assert "snap2" in snapshots
+
+    def test_delete_snapshot(self, memory_db_app, tmp_path):
+        """Should delete snapshot by name."""
+        DatabaseSnapshot.SNAPSHOT_DIR = str(tmp_path)
+
+        with memory_db_app.app_context():
+            DatabaseSnapshot.create_snapshot("to_delete")
+            assert DatabaseSnapshot.delete_snapshot("to_delete")
+            assert "to_delete" not in DatabaseSnapshot.list_snapshots()
+```
+
+---
+
+#### Commit 10.3: Add CLI command for creating snapshots
+**File**: `cli_args.py` (update)
+
+Add snapshot-related arguments:
+
+```python
+parser.add_argument(
+    "--snapshot",
+    type=str,
+    metavar="NAME",
+    help="Create a snapshot of in-memory database state with given name"
+)
+
+parser.add_argument(
+    "--list-snapshots",
+    action="store_true",
+    help="List all available database snapshots"
+)
+```
+
+---
+
 ## Implementation Checklist
 
 ### Phase 1: Foundation and Configuration
@@ -2003,6 +2248,11 @@ class TestPropertyBasedEquivalence:
 ### Phase 9: Property-Based Equivalence Tests
 - [ ] 9.1: Add Hypothesis strategies for models
 - [ ] 9.2: Add property-based equivalence tests
+
+### Phase 10: State Snapshots
+- [ ] 10.1: Add snapshot module for in-memory state
+- [ ] 10.2: Add tests for snapshot module
+- [ ] 10.3: Add CLI command for creating snapshots
 
 ---
 
