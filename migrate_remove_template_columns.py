@@ -48,7 +48,8 @@ def query_template_entities():
         result = db.session.execute(
             text("SELECT id, name, definition, created_at FROM alias WHERE template = 1")
         )
-        for row in result:
+        rows = list(result)
+        for row in rows:
             templates['aliases'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -59,7 +60,7 @@ def query_template_entities():
                     'original_id': row.id
                 }
             }
-        print(f"  Found {result.rowcount or 0} template aliases")
+        print(f"  Found {len(rows)} template aliases")
     except Exception as e:
         print(f"  No template column in alias table (already migrated?) - {e}")
 
@@ -68,7 +69,8 @@ def query_template_entities():
         result = db.session.execute(
             text("SELECT id, name, definition, created_at FROM server WHERE template = 1")
         )
-        for row in result:
+        rows = list(result)
+        for row in rows:
             templates['servers'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -79,7 +81,7 @@ def query_template_entities():
                     'original_id': row.id
                 }
             }
-        print(f"  Found {result.rowcount or 0} template servers")
+        print(f"  Found {len(rows)} template servers")
     except Exception as e:
         print(f"  No template column in server table (already migrated?) - {e}")
 
@@ -88,7 +90,8 @@ def query_template_entities():
         result = db.session.execute(
             text("SELECT id, name, definition, created_at FROM variable WHERE template = 1")
         )
-        for row in result:
+        rows = list(result)
+        for row in rows:
             # Skip the templates variable itself
             if row.name == 'templates':
                 continue
@@ -102,7 +105,7 @@ def query_template_entities():
                     'original_id': row.id
                 }
             }
-        print(f"  Found {result.rowcount or 0} template variables")
+        print(f"  Found {len(rows)} template variables")
     except Exception as e:
         print(f"  No template column in variable table (already migrated?) - {e}")
 
@@ -111,7 +114,8 @@ def query_template_entities():
         result = db.session.execute(
             text("SELECT id, name, definition, created_at FROM secret WHERE template = 1")
         )
-        for row in result:
+        rows = list(result)
+        for row in rows:
             templates['secrets'][row.name] = {
                 'name': row.name,
                 'description': 'Migrated from database template',
@@ -122,7 +126,7 @@ def query_template_entities():
                     'original_id': row.id
                 }
             }
-        print(f"  Found {result.rowcount or 0} template secrets")
+        print(f"  Found {len(rows)} template secrets")
     except Exception as e:
         print(f"  No template column in secret table (already migrated?) - {e}")
 
@@ -181,7 +185,8 @@ def drop_template_columns():
             result = db.session.execute(
                 text(f"PRAGMA table_info({table})")
             )
-            columns = [row[1] for row in result]
+            rows = list(result)
+            columns = [row[1] for row in rows]
 
             if 'template' in columns:
                 # SQLite doesn't support DROP COLUMN directly in older versions

@@ -439,7 +439,6 @@ def new_alias():
     )
 
 
-# pylint: disable=too-many-positional-arguments  # Helper needs all params for alias handling
 def _handle_save_as(
     form: AliasForm,
     alias: Alias,
@@ -481,7 +480,6 @@ def _handle_save_as(
     return url_for('main.view_alias', alias_name=alias_copy.name)
 
 
-# pylint: disable=too-many-positional-arguments  # Helper needs all params for alias handling
 def _handle_rename(
     form: AliasForm,
     alias: Alias,

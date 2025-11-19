@@ -459,7 +459,7 @@ def and_clicking_it_should_populate_with_the_cid_content() -> None:
 # @step('Given there is an alias named <docs> pointing to /guides')
 # def ypefci(docs: str) -> None:
 #     """Specialised fixture for an alias pointing to /guides."""
-# 
+#
 #     given_alias_exists(docs, "/guides")
 
 
