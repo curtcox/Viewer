@@ -69,6 +69,7 @@ def _lookup_header_value(header_values: Dict[str, Any], param_name: str) -> Opti
 
 def _resolve_single_parameter(
     param_name: str,
+    *,
     query_values: Dict[str, Any],
     body_values: Dict[str, Any],
     header_values: Dict[str, Any],
@@ -130,12 +131,12 @@ def _resolve_function_parameters(
     for name in details.parameter_order:
         found, value = _resolve_single_parameter(
             name,
-            query_values,
-            body_values,
-            header_values,
-            base_args,
-            context_variables,
-            context_secrets,
+            query_values=query_values,
+            body_values=body_values,
+            header_values=header_values,
+            base_args=base_args,
+            context_variables=context_variables,
+            context_secrets=context_secrets,
         )
 
         if found:

@@ -28,7 +28,7 @@ def test_proxy_template_forwards_request(monkeypatch, proxy_template_code):
 
     captured = {}
 
-    def fake_request(method, url, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
         captured.update(
             {
                 "method": method,
@@ -95,7 +95,7 @@ def test_proxy_template_handles_root_paths(monkeypatch, proxy_template_code):
 
     captured = {}
 
-    def fake_request(method, url, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
         captured["url"] = url
         return SimpleNamespace(content=b"root", headers={"Content-Type": "text/plain"})
 
@@ -116,7 +116,7 @@ def test_proxy_template_handles_root_paths(monkeypatch, proxy_template_code):
 def test_proxy_template_uses_global_variable_configuration(monkeypatch, proxy_template_code):
     captured = {}
 
-    def fake_request(method, url, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
         captured.update({"method": method, "url": url})
         return SimpleNamespace(content=b"configured", headers={"Content-Type": "application/json"})
 
@@ -144,7 +144,7 @@ def test_proxy_template_uses_global_variable_configuration(monkeypatch, proxy_te
 def test_proxy_template_supports_server_specific_variable(monkeypatch, proxy_template_code):
     captured = {}
 
-    def fake_request(method, url, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
         captured["url"] = url
         return SimpleNamespace(content=b"specific", headers={"Content-Type": "text/plain"})
 

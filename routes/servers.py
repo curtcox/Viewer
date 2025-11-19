@@ -96,6 +96,7 @@ def enrich_invocation_with_links(invocation: Any) -> Any:
 
 def _prepare_server_form_context(
     form: Any,
+    *,
     title: str,
     server: Any,
     history: list[Any],

@@ -39,6 +39,7 @@ class TestAliasRouting(unittest.TestCase):
 
     def create_alias(
         self,
+        *,
         name='latest',
         target='/target',
         match_type='literal',
