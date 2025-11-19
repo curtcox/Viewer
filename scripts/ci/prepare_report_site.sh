@@ -10,6 +10,7 @@ python scripts/build-report-site.py \
   --vulture-artifacts site/vulture \
   --python-smells-artifacts site/python-smells \
   --pylint-artifacts site/pylint \
+  --pydoclint-artifacts site/pydoclint \
   --shellcheck-artifacts site/shellcheck \
   --hadolint-artifacts site/hadolint \
   --test-index-artifacts site/test-index \

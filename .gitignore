@@ -144,3 +144,4 @@ job-statuses.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+pydoclint-report/

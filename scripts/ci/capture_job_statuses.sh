@@ -6,6 +6,7 @@ cat > job-statuses.json << EOF
   "ruff": "${RUFF_STATUS}",
   "pylint": "${PYLINT_STATUS}",
   "mypy": "${MYPY_STATUS}",
+  "pydoclint": "${PYDOCLINT_STATUS}",
   "radon": "${RADON_STATUS}",
   "vulture": "${VULTURE_STATUS}",
   "python-smells": "${PYTHON_SMELLS_STATUS}",
