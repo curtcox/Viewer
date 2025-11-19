@@ -219,7 +219,7 @@ def then_submitting_form_creates_alias() -> None:
         assert created.target_path == "/guides", "Alias target path did not persist."
 
 
-@step('Given there is an alias named <alias_name> pointing to <target_path>')
+@step("Given there is an alias named <alias_name> pointing to <target_path>")
 def given_alias_exists(alias_name: str, target_path: str) -> None:
     """Persist an alias with the provided name and target path."""
 
@@ -241,6 +241,48 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
         db.session.commit()
 
     get_scenario_state()["alias_name"] = alias_name
+
+
+@step('Given there is an alias named "test-alias" pointing to /test-target')
+def given_test_alias_exists() -> None:
+    given_alias_exists("test-alias", "/test-target")
+
+
+@step('Given there is an alias named "nav-test" pointing to /guides')
+def given_nav_test_alias_exists() -> None:
+    given_alias_exists("nav-test", "/guides")
+
+
+@step('Given there is an alias named "def-test" pointing to /definition-target')
+def given_def_test_alias_exists() -> None:
+    given_alias_exists("def-test", "/definition-target")
+
+
+@step('Given there is an enabled alias named "active-alias" pointing to /active')
+def given_active_alias_exists() -> None:
+    with _app_context():
+        definition_text = format_primary_alias_line(
+            match_type="literal",
+            match_pattern=None,
+            target_path="/active",
+            alias_name="active-alias",
+        )
+        alias = Alias(
+            name="active-alias",
+            definition=definition_text,
+            enabled=True,
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+    get_scenario_state()["alias_name"] = "active-alias"
+
+
+@step('Given there is an alias named <docs> pointing to /guides')
+def ypefci(docs: str) -> None:
+    """Specialised fixture for an alias pointing to /guides."""
+
+    given_alias_exists(docs, "/guides")
 
 
 # ---------------------------------------------------------------------------
@@ -414,11 +456,11 @@ def and_clicking_it_should_populate_with_the_cid_content() -> None:
     )
 
 
-@step('Given there is an alias named <docs> pointing to /guides')
-def ypefci(docs: str) -> None:
-    """Specialised fixture for an alias pointing to /guides."""
-
-    given_alias_exists(docs, "/guides")
+# @step('Given there is an alias named <docs> pointing to /guides')
+# def ypefci(docs: str) -> None:
+#     """Specialised fixture for an alias pointing to /guides."""
+# 
+#     given_alias_exists(docs, "/guides")
 
 
 @step("When I visit <path>")

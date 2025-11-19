@@ -51,7 +51,7 @@ def reset_scenario_store() -> None:
 
 
 # Shared assertions
-@step("The response status should be 200")
+@step(["The response status should be 200", "the response status should be 200"])
 def the_response_status_should_be_200() -> None:
     """Validate that the captured response completed successfully."""
 
@@ -290,12 +290,13 @@ def when_i_request_server_detail_page(server_name: str) -> None:
 
 
 # Content verification steps
-@step("The page should contain <text>")
+@step(["The page should contain <text>", "the page should contain <text>"])
 def then_page_should_contain(text: str) -> None:
     """Verify the page contains the specified text."""
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
     body = response.get_data(as_text=True)
+    text = _normalize_path(text)
     assert text in body, f"Expected to find {text!r} in the response body."
 
 
