@@ -2,6 +2,7 @@ import argparse
 import signal
 import sys
 
+from db_config import DatabaseConfig, DatabaseMode
 from app import app
 
 
@@ -221,11 +222,20 @@ if __name__ == "__main__":
         help='Port to run the server on (default: 5001)',
     )
     parser.add_argument(
+        '--in-memory-db',
+        action='store_true',
+        help='Run the application with an in-memory database',
+    )
+    parser.add_argument(
         'positional',
         nargs='*',
         help='URL and/or CID arguments',
     )
     args = parser.parse_args()
+
+    # Configure database mode (must be done before app is accessed)
+    if args.in_memory_db:
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
 
     # Handle --help
     if args.help:

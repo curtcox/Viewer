@@ -24,6 +24,7 @@ from cid_presenter import (
     render_cid_link,
 )
 from database import db, init_db
+from db_config import DatabaseConfig
 from identity import ensure_default_resources
 from link_presenter import (
     alias_full_url,
@@ -112,7 +113,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     flask_app = Flask(__name__)
 
-    default_database_uri = os.environ.get("DATABASE_URL") or "sqlite:///secureapp.db"
+    # Use DatabaseConfig for URI (respects memory mode and CLI flags)
+    default_database_uri = DatabaseConfig.get_database_uri()
 
     flask_app.config.update(
         SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
