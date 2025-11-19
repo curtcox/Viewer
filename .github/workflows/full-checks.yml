@@ -495,6 +495,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Capture job statuses
+        env:
+          RUFF_STATUS: ${{ needs.ruff.result }}
+          PYLINT_STATUS: ${{ needs.pylint.result }}
+          MYPY_STATUS: ${{ needs.mypy.result }}
+          RADON_STATUS: ${{ needs.radon.result }}
+          VULTURE_STATUS: ${{ needs.vulture.result }}
+          PYTHON_SMELLS_STATUS: ${{ needs.python-smells.result }}
+          SHELLCHECK_STATUS: ${{ needs.shellcheck.result }}
+          HADOLINT_STATUS: ${{ needs.hadolint.result }}
+          ESLINT_STATUS: ${{ needs.eslint.result }}
+          STYLELINT_STATUS: ${{ needs.stylelint.result }}
+          UNCSS_STATUS: ${{ needs.uncss.result }}
+          TEST_INDEX_STATUS: ${{ needs.test-index.result }}
+          DEAD_FIXTURES_STATUS: ${{ needs.dead-fixtures.result }}
+          UNIT_TESTS_STATUS: ${{ needs.unit-tests.result }}
+          PROPERTY_TESTS_STATUS: ${{ needs.property-tests.result }}
+          INTEGRATION_TESTS_STATUS: ${{ needs.integration-tests.result }}
+          GAUGE_SPECS_STATUS: ${{ needs.gauge-specs.result }}
         run: ./scripts/ci/capture_job_statuses.sh
       - name: Download unit test report
         uses: actions/download-artifact@v4

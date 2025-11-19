@@ -133,6 +133,9 @@ dmypy.json
 *.swo
 *~
 
+# CI artifacts
+job-statuses.json
+
 # OS
 .DS_Store
 .DS_Store?

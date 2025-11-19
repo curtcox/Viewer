@@ -1,25 +1,25 @@
 #!/bin/bash
 set -e
 
-cat > job-statuses.json << 'EOF'
+cat > job-statuses.json << EOF
 {
-  "ruff": "${{ needs.ruff.result }}",
-  "pylint": "${{ needs.pylint.result }}",
-  "mypy": "${{ needs.mypy.result }}",
-  "radon": "${{ needs.radon.result }}",
-  "vulture": "${{ needs.vulture.result }}",
-  "python-smells": "${{ needs.python-smells.result }}",
-  "shellcheck": "${{ needs.shellcheck.result }}",
-  "hadolint": "${{ needs.hadolint.result }}",
-  "eslint": "${{ needs.eslint.result }}",
-  "stylelint": "${{ needs.stylelint.result }}",
-  "uncss": "${{ needs.uncss.result }}",
-  "test-index": "${{ needs.test-index.result }}",
-  "dead-fixtures": "${{ needs.dead-fixtures.result }}",
-  "unit-tests": "${{ needs.unit-tests.result }}",
-  "property-tests": "${{ needs.property-tests.result }}",
-  "integration-tests": "${{ needs.integration-tests.result }}",
-  "gauge-specs": "${{ needs.gauge-specs.result }}"
+  "ruff": "${RUFF_STATUS}",
+  "pylint": "${PYLINT_STATUS}",
+  "mypy": "${MYPY_STATUS}",
+  "radon": "${RADON_STATUS}",
+  "vulture": "${VULTURE_STATUS}",
+  "python-smells": "${PYTHON_SMELLS_STATUS}",
+  "shellcheck": "${SHELLCHECK_STATUS}",
+  "hadolint": "${HADOLINT_STATUS}",
+  "eslint": "${ESLINT_STATUS}",
+  "stylelint": "${STYLELINT_STATUS}",
+  "uncss": "${UNCSS_STATUS}",
+  "test-index": "${TEST_INDEX_STATUS}",
+  "dead-fixtures": "${DEAD_FIXTURES_STATUS}",
+  "unit-tests": "${UNIT_TESTS_STATUS}",
+  "property-tests": "${PROPERTY_TESTS_STATUS}",
+  "integration-tests": "${INTEGRATION_TESTS_STATUS}",
+  "gauge-specs": "${GAUGE_SPECS_STATUS}"
 }
 EOF
 cat job-statuses.json
