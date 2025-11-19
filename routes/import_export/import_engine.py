@@ -195,7 +195,8 @@ def handle_import_source_files(context: ImportContext) -> None:
 def generate_snapshot_export() -> dict[str, Any] | None:
     """Generate a snapshot export equivalent to the default export."""
     try:
-        form = ExportForm()
+        # Disable CSRF for programmatic export (may be called without request context)
+        form = ExportForm(meta={'csrf': False})
         form.snapshot.data = True
         form.include_aliases.data = True
         form.include_servers.data = True
