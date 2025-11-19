@@ -1,10 +1,13 @@
-"""Gauge step implementations for alias management scenarios."""
+"""Gauge step implementations for alias and upload management scenarios."""
 from __future__ import annotations
 
+import json
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Optional
+from uuid import uuid4
 
 from flask.testing import FlaskClient
 from getgauge.python import after_scenario, before_scenario, step
@@ -12,15 +15,14 @@ from getgauge.python import after_scenario, before_scenario, step
 from alias_definition import format_primary_alias_line
 from app import create_app
 from database import db
-from models import Alias
+from models import Alias, CID, Variable
 from step_impl.artifacts import attach_response_snapshot
+from step_impl.shared_state import clear_scenario_state, get_scenario_state
 
 _app = None
 _client: Optional[FlaskClient] = None
 _db_path: Optional[Path] = None
-_scenario_state: dict[str, Any] = {}
-
-
+_TEMPLATE_JSON_PATTERN = re.compile(r"const templates = (?P<json>\[.*?\]);", re.S)
 def _create_isolated_app() -> tuple[Any, FlaskClient, Path]:
     fd, path = tempfile.mkstemp(prefix="gauge-alias-", suffix=".sqlite3")
     os.close(fd)
@@ -49,6 +51,79 @@ def _app_context():
     return _app.app_context()
 
 
+def _get_response_body() -> str:
+    response = get_scenario_state().get("response")
+    assert response is not None, "No HTTP response is available. Navigate to a page first."
+    return response.get_data(as_text=True)
+
+
+def _normalize_quoted_text(value: str) -> str:
+    return value.strip().strip('"')
+
+
+def _slugify_label(label: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return slug or "template"
+
+
+def _save_upload_templates(uploads: dict[str, dict[str, str]]) -> None:
+    config = {
+        'aliases': {},
+        'servers': {},
+        'variables': {},
+        'secrets': {},
+        'uploads': uploads,
+    }
+    with _app_context():
+        Variable.query.filter_by(name='templates').delete()
+        var = Variable(name='templates', definition=json.dumps(config))
+        db.session.add(var)
+        db.session.commit()
+
+
+def _clear_upload_templates() -> None:
+    with _app_context():
+        Variable.query.filter_by(name='templates').delete()
+        db.session.commit()
+
+
+def _extract_upload_templates(body: str) -> list[dict[str, Any]]:
+    match = _TEMPLATE_JSON_PATTERN.search(body)
+    if not match:
+        return []
+    json_text = match.group('json').strip()
+    try:
+        return json.loads(json_text)
+    except json.JSONDecodeError:  # pragma: no cover - defensive guard
+        return []
+
+
+def _select_template_from_response(*, template_name: Optional[str] = None, template_id: Optional[str] = None) -> dict[str, Any]:
+    body = _get_response_body()
+    templates = _extract_upload_templates(body)
+    if not templates:
+        raise AssertionError("Upload templates payload is missing from the page response.")
+
+    for template in templates:
+        if template_name and template.get('name') == template_name:
+            get_scenario_state()['selected_upload_template'] = template
+            return template
+        if template_id and template.get('id') == template_id:
+            get_scenario_state()['selected_upload_template'] = template
+            return template
+
+    descriptor = template_name or template_id or 'template'
+    raise AssertionError(f"Could not find upload template '{descriptor}'.")
+
+
+def _extract_anchor_text(body: str, href: str) -> Optional[str]:
+    pattern = re.compile(rf"<a[^>]+href=\"{re.escape(href)}\"[^>]*>(.*?)</a>", re.S)
+    match = pattern.search(body)
+    if match:
+        return re.sub(r"\s+", " ", match.group(1)).strip()
+    return None
+
+
 @before_scenario()
 def setup_alias_scenario() -> None:
     """Spin up an isolated Flask app and client for each scenario."""
@@ -56,7 +131,7 @@ def setup_alias_scenario() -> None:
     # pylint: disable=global-statement
     # Gauge test framework requires global state to share context between steps
     global _app, _client, _db_path
-    _scenario_state.clear()
+    clear_scenario_state()
 
     # Clean up any lingering database file from a previous scenario first.
     if _db_path and _db_path.exists():
@@ -86,7 +161,7 @@ def teardown_alias_scenario() -> None:
         _db_path.unlink()
     _db_path = None
 
-    _scenario_state.clear()
+    clear_scenario_state()
 
 
 @step("Given I am signed in to the workspace")
@@ -104,7 +179,7 @@ def when_i_navigate_to_new_alias() -> None:
 
     client = _require_client()
     response = client.get("/aliases/new")
-    _scenario_state["response"] = response
+    get_scenario_state()["response"] = response
     attach_response_snapshot(response)
     assert response.status_code == 200, "Expected alias form to load successfully."
 
@@ -113,7 +188,7 @@ def when_i_navigate_to_new_alias() -> None:
 def then_alias_form_has_fields() -> None:
     """Verify the alias creation form renders the expected input fields."""
 
-    response = _scenario_state.get("response")
+    response = get_scenario_state().get("response")
     assert response is not None, "Alias form response is unavailable."
     body = response.get_data(as_text=True)
     assert "name=\"name\"" in body, "Alias name input field is missing."
@@ -165,7 +240,178 @@ def given_alias_exists(alias_name: str, target_path: str) -> None:
         db.session.add(alias)
         db.session.commit()
 
-    _scenario_state["alias_name"] = alias_name
+    get_scenario_state()["alias_name"] = alias_name
+
+
+# ---------------------------------------------------------------------------
+# Upload template helpers and Gauge steps
+# ---------------------------------------------------------------------------
+
+
+@step("And I have upload templates configured")
+def and_i_have_upload_templates_configured() -> None:
+    """Persist a default set of upload templates for testing."""
+
+    uploads = {
+        'hello_world': {
+            'name': 'Hello World',
+            'content': 'Hello, World!\n',
+        },
+        'json_example': {
+            'name': 'JSON Example',
+            'content': '{\n  "key": "value"\n}',
+        },
+    }
+    _save_upload_templates(uploads)
+    state = get_scenario_state()
+    state['upload_template_count'] = len(uploads)
+
+
+@step("And I have no upload templates configured")
+def and_i_have_no_upload_templates_configured() -> None:
+    """Remove all upload templates from the workspace."""
+
+    _clear_upload_templates()
+    get_scenario_state()['upload_template_count'] = 0
+
+
+@step("When I navigate to /upload")
+def when_i_navigate_to_upload() -> None:
+    """Load the upload page and capture the response for assertions."""
+
+    client = _require_client()
+    response = client.get("/upload")
+    scenario_state = get_scenario_state()
+    scenario_state["response"] = response
+    attach_response_snapshot(response)
+    assert response.status_code == 200, "Expected the upload page to load successfully."
+
+
+@step('Then I should see "Start from a Template" label')
+def then_i_should_see_start_from_template_label() -> None:
+    body = _get_response_body()
+    assert "Start from a Template" in body, "Upload template label is missing."
+
+
+@step("And I should see template selection buttons")
+def and_i_should_see_template_selection_buttons() -> None:
+    body = _get_response_body()
+    assert 'data-upload-template-id' in body, "Template selection buttons were not rendered."
+
+
+@step('Then I should see a link to "/variables/templates?type=uploads"')
+def then_i_should_see_template_status_link() -> None:
+    body = _get_response_body()
+    assert '/variables/templates?type=uploads' in body, "Template status link is missing."
+
+
+@step("And the link should show the template count")
+def and_the_link_should_show_the_template_count() -> None:
+    state = get_scenario_state()
+    expected = state.get('upload_template_count')
+    assert expected is not None, "Template count context is unavailable."
+
+    body = _get_response_body()
+    link_text = _extract_anchor_text(body, '/variables/templates?type=uploads')
+    assert link_text, "Template status link text is missing."
+    assert str(expected) in link_text, (
+        f"Expected link text to include count {expected}, but saw {link_text!r}."
+    )
+
+
+@step('Then I should not see "Start from a Template" buttons')
+def then_i_should_not_see_start_from_template_buttons() -> None:
+    body = _get_response_body()
+    assert 'data-upload-template-id' not in body, "Unexpected template buttons were rendered."
+
+
+@step('And I have an upload template named <template_name> with content <template_content>')
+def and_i_have_named_upload_template(template_name: str, template_content: str) -> None:
+    name = _normalize_quoted_text(template_name)
+    content = _normalize_quoted_text(template_content)
+    key = _slugify_label(name)
+
+    uploads = {
+        key: {
+            'name': name,
+            'content': content,
+        }
+    }
+    _save_upload_templates(uploads)
+    state = get_scenario_state()
+    state['upload_template_count'] = 1
+    state['last_upload_template_key'] = key
+    state['last_upload_template_name'] = name
+
+
+@step('And I click the <template_name> template button')
+def and_i_click_the_named_template_button(template_name: str) -> None:
+    name = _normalize_quoted_text(template_name)
+    _select_template_from_response(template_name=name)
+
+
+@step('Then the text content field should contain <expected_content>')
+def then_the_text_content_field_should_contain(expected_content: str) -> None:
+    expected = _normalize_quoted_text(expected_content)
+    selected = get_scenario_state().get('selected_upload_template')
+    assert selected is not None, "No template selection was recorded."
+    actual = selected.get('content', '')
+    assert actual == expected, f"Expected template content {expected!r} but found {actual!r}."
+
+
+@step('And I have a CID containing <cid_content>')
+def and_i_have_a_cid_containing(cid_content: str) -> None:
+    content = _normalize_quoted_text(cid_content).encode('utf-8')
+    cid_value = f"TEMPLATECID{uuid4().hex[:8].upper()}"
+
+    with _app_context():
+        record = CID(path=f'/{cid_value}', file_data=content, file_size=len(content))
+        db.session.add(record)
+        db.session.commit()
+
+    state = get_scenario_state()
+    state['last_cid_value'] = cid_value
+    state['last_cid_content'] = _normalize_quoted_text(cid_content)
+
+
+@step("And I have an upload template referencing that CID")
+def and_i_have_an_upload_template_referencing_that_cid() -> None:
+    state = get_scenario_state()
+    cid_value = state.get('last_cid_value')
+    assert cid_value, "CID context is missing. Define a CID before referencing it."
+
+    uploads = {
+        'cid-template': {
+            'name': 'CID Template',
+            'content_cid': cid_value,
+        }
+    }
+    _save_upload_templates(uploads)
+    state['upload_template_count'] = 1
+    state['cid_template_key'] = 'cid-template'
+
+
+@step("Then the template should be available for selection")
+def then_the_template_should_be_available_for_selection() -> None:
+    key = get_scenario_state().get('cid_template_key') or 'cid-template'
+    body = _get_response_body()
+    assert f'data-upload-template-id="{key}"' in body, "CID template button is missing."
+
+
+@step("And clicking it should populate with the CID content")
+def and_clicking_it_should_populate_with_the_cid_content() -> None:
+    state = get_scenario_state()
+    expected_content = state.get('last_cid_content')
+    assert expected_content is not None, (
+        "CID content context is missing. Define a CID before verifying template population."
+    )
+
+    key = state.get('cid_template_key') or 'cid-template'
+    selected = _select_template_from_response(template_id=key)
+    actual_content = selected.get('content', '')
+    assert actual_content == expected_content, (
+        f"Expected CID template content {expected_content!r} but found {actual_content!r}."
+    )
 
 
 @step('Given there is an alias named <docs> pointing to /guides')
@@ -181,8 +427,9 @@ def when_i_visit_path(path: str) -> None:
 
     client = _require_client()
     response = client.get(path)
-    _scenario_state["response"] = response
-    _scenario_state["last_path"] = path
+    scenario_state = get_scenario_state()
+    scenario_state["response"] = response
+    scenario_state["last_path"] = path
     attach_response_snapshot(response)
     assert response.status_code == 200, f"Expected GET {path} to succeed."
 
@@ -199,9 +446,9 @@ def then_update_alias_target() -> None:
     """Submit the edit form and verify the alias target is updated."""
 
     client = _require_client()
-    alias_name = _scenario_state.get("alias_name")
+    alias_name = get_scenario_state().get("alias_name")
     assert alias_name, "Alias name context is unavailable."
-    edit_path = _scenario_state.get("last_path")
+    edit_path = get_scenario_state().get("last_path")
     assert edit_path, "Edit path was not recorded."
 
     response = client.post(
@@ -275,4 +522,4 @@ def given_enabled_alias_exists(alias_name: str, target_path: str) -> None:
         db.session.add(alias)
         db.session.commit()
 
-    _scenario_state["alias_name"] = alias_name
+    get_scenario_state()["alias_name"] = alias_name
