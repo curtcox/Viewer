@@ -2,6 +2,88 @@
 from __future__ import annotations
 
 import importlib.metadata
+import os
+
+import pytest
+
+from app import create_app
+from database import db
+from db_config import DatabaseConfig, DatabaseMode
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "memory_db: mark test as using in-memory database")
+    config.addinivalue_line(
+        "markers", "db_equivalence: mark test as database equivalence test"
+    )
+
+
+@pytest.fixture()
+def memory_db_app():
+    """Flask app configured with in-memory database."""
+    DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "WTF_CSRF_ENABLED": False,
+        }
+    )
+
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
+
+    DatabaseConfig.reset()
+
+
+@pytest.fixture()
+def memory_client(memory_db_app):
+    """Test client bound to memory database app."""
+    return memory_db_app.test_client()
+
+
+@pytest.fixture()
+def disk_db_app(tmp_path):
+    """Flask app configured with disk-based SQLite database."""
+    db_path = tmp_path / "test.db"
+    db_uri = f"sqlite:///{db_path}"
+
+    DatabaseConfig.set_mode(DatabaseMode.DISK)
+    os.environ["DATABASE_URL"] = db_uri
+
+    app = create_app(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": db_uri,
+            "WTF_CSRF_ENABLED": False,
+        }
+    )
+
+    with app.app_context():
+        db.create_all()
+        yield app
+        db.session.remove()
+        db.drop_all()
+
+    # Cleanup
+    if db_path.exists():
+        db_path.unlink()
+    DatabaseConfig.reset()
+    if "DATABASE_URL" in os.environ:
+        del os.environ["DATABASE_URL"]
+
+
+@pytest.fixture()
+def disk_client(disk_db_app):
+    """Test client bound to disk database app."""
+    return disk_db_app.test_client()
+
+
+
 
 
 def patch_testmon_for_invalid_metadata():

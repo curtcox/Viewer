@@ -24,6 +24,7 @@ from cid_presenter import (
     render_cid_link,
 )
 from database import db, init_db
+from db_config import DatabaseConfig
 from identity import ensure_default_resources
 from link_presenter import (
     alias_full_url,
@@ -53,38 +54,71 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     logfire_reason: Optional[str] = None
     logfire_project_url: Optional[str] = None
 
-    if getenv("LOGFIRE_SEND_TO_LOGFIRE"):
+    testing_env = getenv("TESTING", "").lower() in {"1", "true", "yes"}
+    config_testing = bool(config_override and config_override.get("TESTING"))
+    testing_mode = testing_env or config_testing
 
-        logger.info("Logfire is enabled")
+    send_to_logfire = getenv("LOGFIRE_SEND_TO_LOGFIRE")
 
-        try:
-            logfire.configure(
-                code_source=logfire.CodeSource(
-                    repository='https://github.com/curtcox/Viewer',
-                    revision=getenv("REVISION"),
-                )
+    if send_to_logfire:
+        if testing_mode:
+            logger.debug(
+                "LOGFIRE_SEND_TO_LOGFIRE is set while TESTING is enabled; running Logfire setup"
             )
-        except LogfireConfigError as exc:
-            logfire_reason = str(exc)
-            logger.warning("Logfire configuration failed: %s", logfire_reason)
-        except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
-            # Logfire loads optional integrations dynamically; keep a broad guard so
-            # unexpected configuration/import failures do not crash application
-            # startup in environments where those dependencies are absent.
-            logfire_reason = f"Unexpected Logfire error: {exc}"
-            logger.exception("Unexpected Logfire configuration failure")
+
+        logfire_token = getenv("LOGFIRE_TOKEN")
+
+        if not logfire_token and not testing_mode:
+            logger.warning(
+                "LOGFIRE_SEND_TO_LOGFIRE is set but LOGFIRE_TOKEN is missing; disabling Logfire"
+            )
+            logfire_reason = "LOGFIRE_TOKEN not set"
         else:
-            instrumentation_steps = (
-                ("requests", logfire.instrument_requests),
-                ("aiohttp", logfire.instrument_aiohttp_client),
-                ("pydantic", logfire.instrument_pydantic),
-            )
+            if not logfire_token:
+                logger.debug(
+                    "LOGFIRE_TOKEN is not set but TESTING is enabled; running Logfire setup anyway"
+                )
+            logger.info("Logfire is enabled")
 
             instrumentation_errors: list[str] = []
 
-            for name, instrument in instrumentation_steps:
+            try:
+                logfire.configure(
+                    code_source=logfire.CodeSource(
+                        repository='https://github.com/curtcox/Viewer',
+                        revision=getenv("REVISION"),
+                    )
+                )
+            except LogfireConfigError as exc:
+                logfire_reason = str(exc)
+                logger.warning("Logfire configuration failed: %s", logfire_reason)
+            except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+                # Logfire loads optional integrations dynamically; keep a broad guard so
+                # unexpected configuration/import failures do not crash application
+                # startup in environments where those dependencies are absent.
+                logfire_reason = f"Unexpected Logfire error: {exc}"
+                logger.exception("Unexpected Logfire configuration failure")
+            else:
+                instrumentation_steps = (
+                    ("requests", logfire.instrument_requests),
+                    ("aiohttp", logfire.instrument_aiohttp_client),
+                    ("pydantic", logfire.instrument_pydantic),
+                )
+
                 try:
-                    instrument()
+                    for name, instrument in instrumentation_steps:
+                        try:
+                            instrument()
+                        except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+                            # Each instrumentation hook may import optional packages or
+                            # inspect environment state; we tolerate any failure here to
+                            # keep the application usable even when observability setup is
+                            # partially misconfigured.
+                            logger.warning(
+                                "Logfire %s instrumentation failed: %s", name, exc
+                            )
+                            instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
+                            break
                 except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
                     # Each instrumentation hook may import optional packages or
                     # inspect environment state; we tolerate any failure here to
@@ -94,16 +128,15 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                         "Logfire %s instrumentation failed: %s", name, exc
                     )
                     instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
-                    break
 
-            if instrumentation_errors:
-                logfire_available = False
-                logfire_reason = "; ".join(instrumentation_errors)
-            else:
-                logger.info("Logfire configured")
-                logfire_available = True
-                logfire_reason = None
-                logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
+                if instrumentation_errors:
+                    logfire_available = False
+                    logfire_reason = "; ".join(instrumentation_errors)
+                else:
+                    logger.info("Logfire configured")
+                    logfire_available = True
+                    logfire_reason = None
+                    logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
 
@@ -112,7 +145,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     flask_app = Flask(__name__)
 
-    default_database_uri = os.environ.get("DATABASE_URL") or "sqlite:///secureapp.db"
+    # Use DatabaseConfig for URI (respects memory mode and CLI flags)
+    default_database_uri = DatabaseConfig.get_database_uri()
 
     flask_app.config.update(
         SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
@@ -129,6 +163,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
     flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
+
+    cid_directory_overridden = bool(config_override and "CID_DIRECTORY" in config_override)
 
     if config_override:
         flask_app.config.update(config_override)
@@ -197,7 +233,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        load_cids_from_directory(flask_app)
+        if not testing_mode or cid_directory_overridden:
+            load_cids_from_directory(flask_app)
+
+        if not testing_mode:
+            ensure_default_resources()
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
@@ -211,8 +251,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL") if langsmith_enabled else None,
             "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
         }
-
-        ensure_default_resources()
 
     return flask_app
 
