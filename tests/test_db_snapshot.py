@@ -7,7 +7,7 @@ import os
 import pytest
 
 from database import db
-from db_config import DatabaseConfig, DatabaseMode
+from db_config import DatabaseConfig
 from db_snapshot import DatabaseSnapshot
 from models import Server
 
@@ -149,3 +149,41 @@ class TestDatabaseSnapshot:
 
             for table in expected_tables:
                 assert table in data["tables"], f"Missing table: {table}"
+
+    def test_dump_to_sqlite(self, memory_db_app, tmp_path):
+        """Test dumping in-memory DB to SQLite file."""
+        import sqlite3
+        snapshot_path = tmp_path / "snapshot.db"
+        
+        with memory_db_app.app_context():
+            # Create some data
+            server = Server(name="snapshot-test", definition="test-def")
+            db.session.add(server)
+            db.session.commit()
+            
+            # Dump to file
+            DatabaseSnapshot.dump_to_sqlite(snapshot_path)
+            
+        # Verify the file exists and contains data
+        assert snapshot_path.exists()
+        
+        # Open the snapshot as a SQLite DB and check data
+        conn = sqlite3.connect(str(snapshot_path))
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT name, definition FROM server WHERE name='snapshot-test'")
+        row = cursor.fetchone()
+        
+        assert row is not None
+        assert row[0] == "snapshot-test"
+        assert row[1] == "test-def"
+        
+        conn.close()
+
+    def test_dump_to_sqlite_requires_memory_mode(self, disk_db_app, tmp_path):
+        """Test that dumping raises error if not in memory mode."""
+        snapshot_path = tmp_path / "snapshot.db"
+        
+        with disk_db_app.app_context():
+            with pytest.raises(RuntimeError, match="Snapshots are only supported in memory mode"):
+                DatabaseSnapshot.dump_to_sqlite(snapshot_path)

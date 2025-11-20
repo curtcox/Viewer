@@ -4,9 +4,9 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
-from database import db
 from db_config import DatabaseConfig
 from models import (
     Alias,
@@ -134,3 +134,46 @@ class DatabaseSnapshot:
             info["tables"][table_name] = len(records)
 
         return info
+
+    @classmethod
+    def dump_to_sqlite(cls, target_path: str | Path) -> None:
+        """
+        Dump the current in-memory database to a SQLite file.
+
+        Args:
+            target_path: Path to the target SQLite file.
+        """
+        import sqlite3
+        from database import db
+
+        if not DatabaseConfig.is_memory_mode():
+            raise RuntimeError("Snapshots are only supported in memory mode")
+
+        target_path = Path(target_path)
+        if target_path.parent:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Get the raw connection from SQLAlchemy
+        with db.engine.connect() as connection:
+            raw_connection = connection.connection
+
+            # Handle SQLAlchemy/driver wrappers to get to the actual sqlite3 connection
+            if hasattr(raw_connection, "dbapi_connection"):
+                raw_connection = raw_connection.dbapi_connection
+
+            if not isinstance(raw_connection, sqlite3.Connection):
+                # Try one more level of unwrapping if needed (e.g. for some pool proxies)
+                if hasattr(raw_connection, "connection"):
+                     raw_connection = raw_connection.connection
+
+            if not isinstance(raw_connection, sqlite3.Connection):
+                raise RuntimeError(f"Could not get raw SQLite connection. Got {type(raw_connection)}")
+
+            # Open the target database
+            dest_conn = sqlite3.connect(str(target_path))
+
+            try:
+                with dest_conn:
+                    raw_connection.backup(dest_conn)
+            finally:
+                dest_conn.close()

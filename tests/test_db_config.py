@@ -2,7 +2,6 @@
 """Tests for the database configuration module."""
 
 import logging
-import os
 
 import pytest
 

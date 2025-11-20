@@ -6,7 +6,7 @@ import time
 import pytest
 
 from database import db
-from models import CID, Server
+from models import Server
 
 
 @pytest.mark.db_equivalence
@@ -181,11 +181,8 @@ class TestTimestampEquivalence:
                 results[name] = {"has_created_at": retrieved.created_at is not None}
 
         # Both should have timestamps
-        assert (
-            results["memory"]["has_created_at"]
-            == results["disk"]["has_created_at"]
-            == True
-        )
+        assert results["memory"]["has_created_at"]
+        assert results["disk"]["has_created_at"]
 
     def test_timestamp_ordering_equivalence(self, memory_db_app, disk_db_app):
         """Timestamp ordering is equivalent in both databases."""

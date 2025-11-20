@@ -4,7 +4,7 @@
 import pytest
 
 from database import db
-from models import Alias, CID, PageView, Server, Variable
+from models import Alias, CID, PageView, Server
 
 
 @pytest.mark.db_equivalence
@@ -217,10 +217,12 @@ class TestPageViewsModuleEquivalence:
         for name, app in [("memory", memory_db_app), ("disk", disk_db_app)]:
             with app.app_context():
                 view = save_page_view(
-                    path="/test",
-                    method="GET",
-                    user_agent="Test",
-                    ip_address="127.0.0.1",
+                    PageView(
+                        path="/test",
+                        method="GET",
+                        user_agent="Test",
+                        ip_address="127.0.0.1",
+                    )
                 )
                 results[name] = {"path": view.path, "method": view.method}
 
@@ -250,16 +252,22 @@ class TestInteractionsModuleEquivalence:
 
     def test_record_entity_interaction_equivalence(self, memory_db_app, disk_db_app):
         """record_entity_interaction() produces equivalent results."""
-        from db_access.interactions import record_entity_interaction
+        from db_access.interactions import (
+            EntityInteractionRequest,
+            record_entity_interaction,
+        )
 
         results = {}
         for name, app in [("memory", memory_db_app), ("disk", disk_db_app)]:
             with app.app_context():
                 interaction = record_entity_interaction(
-                    entity_type="Server",
-                    entity_name="test-server",
-                    action="create",
-                    message="Created server",
+                    EntityInteractionRequest(
+                        entity_type="Server",
+                        entity_name="test-server",
+                        action="create",
+                        message="Created server",
+                        content="definition",
+                    )
                 )
                 results[name] = {
                     "entity_type": interaction.entity_type,

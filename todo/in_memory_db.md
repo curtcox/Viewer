@@ -2165,24 +2165,33 @@ class TestDatabaseSnapshot:
 ---
 
 #### Commit 10.3: Add CLI command for creating snapshots
-**File**: `cli_args.py` (update)
+**Files**: `cli_args.py`, `main.py`, `db_snapshot.py`
 
-Add snapshot-related arguments:
+- `cli_args.parse_arguments()` now understands `--snapshot NAME` and
+  `--list-snapshots` so developers can interact with snapshots without touching
+  Python internals.
+- `main.py` handles both switches before the server boots:
+  - `--list-snapshots` enumerates the JSON files produced by
+    `DatabaseSnapshot.list_snapshots()` (with table counts and timestamps) and
+    exits immediately.
+  - `--snapshot NAME` asserts that `--in-memory-db` is active, opens an app
+    context, and calls `DatabaseSnapshot.create_snapshot(NAME)` before exiting so
+    data is captured deterministically.
+- We kept the existing `--dump-db-on-exit` hook so long-running sessions can
+  still emit SQLite backups automatically.
 
-```python
-parser.add_argument(
-    "--snapshot",
-    type=str,
-    metavar="NAME",
-    help="Create a snapshot of in-memory database state with given name"
-)
-
-parser.add_argument(
-    "--list-snapshots",
-    action="store_true",
-    help="List all available database snapshots"
-)
-```
+#### Progress – 2025-11-19
+- `tests/test_db_access_equivalence.py` now builds real `PageView` and
+  `EntityInteractionRequest` objects before calling `save_page_view` and
+  `record_entity_interaction`, ensuring the helpers exercise the same surface
+  area against both the memory and disk fixtures. This eliminated the lingering
+  argument mismatch failures in the equivalence suite.
+- `app.py` no longer calls `ensure_default_resources()` at the end of
+  `create_app()`, so the `ai_stub` fixture does not silently reseed itself after
+  the testing-mode guard has already skipped default provisioning.
+- `tests/test_db_edge_cases_equivalence.py` was tidied to avoid chained equality
+  comparisons so `ruff check` now passes cleanly along with
+  `python run_equivalence_tests.py` (45 selected tests, all green).
 
 ---
 
@@ -2231,8 +2240,12 @@ parser.add_argument(
 - [x] 5.5: Add timestamp equivalence tests
 
 ### Phase 6: API Route Equivalence Tests
-- [ ] 6.1: Add server routes equivalence tests
-- [ ] 6.2: Add alias routes equivalence tests
+The new `tests/test_routes_equivalence.py` suite drives the Flask blueprints via
+`memory_client` and `disk_client`, normalizing JSON payloads so `/servers` and
+`/aliases` list/toggle endpoints stay in lockstep across storage modes.
+
+- [x] 6.1: Add server routes equivalence tests
+- [x] 6.2: Add alias routes equivalence tests
 
 ### Phase 7: Run Script Integration
 - [x] 7.1: Update run script to support --in-memory-db flag
@@ -2240,19 +2253,23 @@ parser.add_argument(
 - [x] 7.3: Add documentation for in-memory database usage
 
 ### Phase 8: Test Migration and Cleanup
-- [ ] 8.1: Update existing tests to use memory_db fixture
+- [x] 8.1: Update existing tests to use memory_db fixture
 - [x] 8.2: Add pytest configuration for database tests
 - [x] 8.3: Create test runner for equivalence tests
-- [ ] 8.4: Update CI configuration for equivalence tests
+- [x] 8.4: Update CI configuration for equivalence tests
 
 ### Phase 9: Property-Based Equivalence Tests
-- [ ] 9.1: Add Hypothesis strategies for models
-- [ ] 9.2: Add property-based equivalence tests
+`tests/property/strategies.py` now exposes reusable Hypothesis strategies for server
+records and CID binary blobs, and `tests/property/test_db_equivalence_property.py`
+uses them to prove memory/disk round-trips remain equivalent.
+
+- [x] 9.1: Add Hypothesis strategies for models
+- [x] 9.2: Add property-based equivalence tests
 
 ### Phase 10: State Snapshots
 - [x] 10.1: Add snapshot module for in-memory state
 - [x] 10.2: Add tests for snapshot module
-- [ ] 10.3: Add CLI command for creating snapshots
+- [x] 10.3: Add CLI command for creating snapshots
 
 ---
 
@@ -2269,6 +2286,19 @@ python main.py --in-memory-db
 
 # With additional options
 python main.py --in-memory-db --port 8080 --debug
+```
+
+### Snapshotting In-Memory State
+
+```bash
+# List available snapshots without starting the server
+python main.py --list-snapshots
+
+# Create a named snapshot (requires in-memory mode)
+python main.py --in-memory-db --snapshot nightly-regression
+
+# Run interactively but dump the live DB to SQLite on exit
+python main.py --in-memory-db --dump-db-on-exit snapshots/latest.sqlite
 ```
 
 ### Running Tests

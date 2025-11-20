@@ -59,10 +59,14 @@ class TestServerEquivalence:
                 for s in servers:
                     db.session.add(Server(**s))
                 db.session.commit()
+                
+                # Filter out default 'ai_stub' server if present
+                query = Server.query.filter(Server.name != "ai_stub")
+                
                 results[name] = {
-                    "count": Server.query.count(),
-                    "enabled": Server.query.filter_by(enabled=True).count(),
-                    "names": [s.name for s in Server.query.order_by(Server.name).all()],
+                    "count": query.count(),
+                    "enabled": query.filter_by(enabled=True).count(),
+                    "names": [s.name for s in query.order_by(Server.name).all()],
                 }
 
         assert results["memory"] == results["disk"]
@@ -140,11 +144,13 @@ class TestAliasEquivalence:
                 for a in aliases:
                     db.session.add(Alias(**a))
                 db.session.commit()
-                results[name] = [a.name for a in Alias.query.order_by(Alias.name).all()]
+                
+                # Filter out default aliases 'ai' and 'CSS'
+                query = Alias.query.filter(Alias.name.notin_(["ai", "CSS"]))
+                results[name] = [a.name for a in query.order_by(Alias.name).all()]
 
         assert results["memory"] == results["disk"]
         assert results["memory"] == ["a-alias", "m-alias", "z-alias"]
-
 
 @pytest.mark.db_equivalence
 class TestVariableEquivalence:

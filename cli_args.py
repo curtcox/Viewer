@@ -17,6 +17,12 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--dump-db-on-exit",
+        type=str,
+        help="Dump the in-memory database to the specified file on exit",
+    )
+
+    parser.add_argument(
         "--port",
         type=int,
         default=5000,
@@ -34,6 +40,19 @@ def parse_arguments() -> argparse.Namespace:
         "--debug",
         action="store_true",
         help="Run in debug mode",
+    )
+
+    parser.add_argument(
+        "--snapshot",
+        type=str,
+        metavar="NAME",
+        help="Create an in-memory database snapshot with the provided name",
+    )
+
+    parser.add_argument(
+        "--list-snapshots",
+        action="store_true",
+        help="List available in-memory database snapshots and exit",
     )
 
     return parser.parse_args()

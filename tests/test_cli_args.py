@@ -4,10 +4,8 @@
 import sys
 from unittest.mock import patch
 
-import pytest
-
 from cli_args import configure_from_args, parse_arguments
-from db_config import DatabaseConfig, DatabaseMode
+from db_config import DatabaseConfig
 
 
 class TestParseArguments:
@@ -45,6 +43,23 @@ class TestParseArguments:
         with patch.object(sys, "argv", ["app.py", "--debug"]):
             args = parse_arguments()
             assert args.debug is True
+
+    def test_snapshot_arguments_defaults(self):
+        """Snapshot flags should default to None/False."""
+        with patch.object(sys, "argv", ["app.py"]):
+            args = parse_arguments()
+            assert args.snapshot is None
+            assert args.list_snapshots is False
+
+    def test_snapshot_arguments_values(self):
+        """Snapshot flags should capture provided values."""
+        with patch.object(sys, "argv", ["app.py", "--snapshot", "daily"]):
+            args = parse_arguments()
+            assert args.snapshot == "daily"
+
+        with patch.object(sys, "argv", ["app.py", "--list-snapshots"]):
+            args = parse_arguments()
+            assert args.list_snapshots is True
 
     def test_multiple_arguments(self):
         """Multiple arguments should all be parsed."""

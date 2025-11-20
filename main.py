@@ -89,6 +89,50 @@ def handle_list_boot_cids() -> None:
         sys.exit(0)
 
 
+def handle_list_snapshots_command() -> None:
+    """List available in-memory database snapshots and exit."""
+    from db_snapshot import DatabaseSnapshot  # pylint: disable=import-outside-toplevel
+
+    snapshots = DatabaseSnapshot.list_snapshots()
+    if not snapshots:
+        print("No database snapshots found.")
+        sys.exit(0)
+
+    print("Available database snapshots:\n")
+    for name in snapshots:
+        info = DatabaseSnapshot.get_snapshot_info(name) or {}
+        created_at = info.get("created_at", "unknown time")
+        print(f"- {name} (created {created_at})")
+        table_counts = info.get("tables") or {}
+        if table_counts:
+            summary = ", ".join(
+                f"{table}: {count}"
+                for table, count in sorted(table_counts.items())
+            )
+            print(f"    tables: {summary}")
+        print()
+
+    sys.exit(0)
+
+
+def handle_create_snapshot_command(name: str) -> None:
+    """Create an in-memory database snapshot and exit."""
+    if not DatabaseConfig.is_memory_mode():
+        print(
+            "Error: Snapshots require --in-memory-db to be enabled.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    from db_snapshot import DatabaseSnapshot  # pylint: disable=import-outside-toplevel
+
+    with app.app_context():
+        snapshot_path = DatabaseSnapshot.create_snapshot(name)
+
+    print(f"Snapshot stored at {snapshot_path}")
+    sys.exit(0)
+
+
 def handle_http_request(url: str) -> None:
     """Make an HTTP GET request and print the response.
 
@@ -227,6 +271,22 @@ if __name__ == "__main__":
         help='Run the application with an in-memory database',
     )
     parser.add_argument(
+        '--dump-db-on-exit',
+        type=str,
+        help='Dump the in-memory database to the specified file on exit',
+    )
+    parser.add_argument(
+        '--snapshot',
+        type=str,
+        metavar='NAME',
+        help='Create an in-memory database snapshot with the provided name',
+    )
+    parser.add_argument(
+        '--list-snapshots',
+        action='store_true',
+        help='List available in-memory database snapshots and exit',
+    )
+    parser.add_argument(
         'positional',
         nargs='*',
         help='URL and/or CID arguments',
@@ -242,6 +302,12 @@ if __name__ == "__main__":
         from cli import print_help  # pylint: disable=import-outside-toplevel
         print_help()
         sys.exit(0)
+
+    if args.list_snapshots:
+        handle_list_snapshots_command()
+
+    if args.snapshot:
+        handle_create_snapshot_command(args.snapshot)
 
     # Handle --list
     if args.list:
@@ -298,7 +364,20 @@ if __name__ == "__main__":
             app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
         except KeyboardInterrupt:
             print('\nShutting down gracefully...')
-            sys.exit(0)
+        finally:
+            if args.dump_db_on_exit and args.in_memory_db:
+                try:
+                    from db_snapshot import DatabaseSnapshot
+                    print(f"Dumping in-memory database to {args.dump_db_on_exit}...")
+                    with app.app_context():
+                        DatabaseSnapshot.dump_to_sqlite(args.dump_db_on_exit)
+                    print("Database dump completed.")
+                except Exception as e:
+                    print(f"Failed to dump database: {e}", file=sys.stderr)
+
+            if not args.dump_db_on_exit and args.in_memory_db:
+                print("Note: In-memory database lost on exit. Use --dump-db-on-exit to save.")
+
     except Exception as e:  # pylint: disable=broad-except
         print("\nFatal error starting application:", file=sys.stderr)
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
