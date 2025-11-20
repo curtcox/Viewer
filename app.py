@@ -58,20 +58,29 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     config_testing = bool(config_override and config_override.get("TESTING"))
     testing_mode = testing_env or config_testing
 
-    if testing_mode and getenv("LOGFIRE_SEND_TO_LOGFIRE"):
-        logger.warning("Logfire disabled during testing to avoid external calls")
-        logfire_reason = "disabled in testing"
-    elif getenv("LOGFIRE_SEND_TO_LOGFIRE"):
+    send_to_logfire = getenv("LOGFIRE_SEND_TO_LOGFIRE")
+
+    if send_to_logfire:
+        if testing_mode:
+            logger.debug(
+                "LOGFIRE_SEND_TO_LOGFIRE is set while TESTING is enabled; running Logfire setup"
+            )
 
         logfire_token = getenv("LOGFIRE_TOKEN")
 
-        if not logfire_token:
+        if not logfire_token and not testing_mode:
             logger.warning(
                 "LOGFIRE_SEND_TO_LOGFIRE is set but LOGFIRE_TOKEN is missing; disabling Logfire"
             )
             logfire_reason = "LOGFIRE_TOKEN not set"
         else:
+            if not logfire_token:
+                logger.debug(
+                    "LOGFIRE_TOKEN is not set but TESTING is enabled; running Logfire setup anyway"
+                )
             logger.info("Logfire is enabled")
+
+            instrumentation_errors: list[str] = []
 
             try:
                 logfire.configure(
@@ -95,8 +104,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                     ("aiohttp", logfire.instrument_aiohttp_client),
                     ("pydantic", logfire.instrument_pydantic),
                 )
-
-                instrumentation_errors: list[str] = []
 
                 try:
                     for name, instrument in instrumentation_steps:
@@ -122,14 +129,14 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                     )
                     instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
 
-            if instrumentation_errors:
-                logfire_available = False
-                logfire_reason = "; ".join(instrumentation_errors)
-            else:
-                logger.info("Logfire configured")
-                logfire_available = True
-                logfire_reason = None
-                logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
+                if instrumentation_errors:
+                    logfire_available = False
+                    logfire_reason = "; ".join(instrumentation_errors)
+                else:
+                    logger.info("Logfire configured")
+                    logfire_available = True
+                    logfire_reason = None
+                    logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
 
@@ -156,6 +163,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
     flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
+
+    cid_directory_overridden = bool(config_override and "CID_DIRECTORY" in config_override)
 
     if config_override:
         flask_app.config.update(config_override)
@@ -224,8 +233,10 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         db.create_all()
         logging.info("Database tables created")
 
-        if not testing_mode:
+        if not testing_mode or cid_directory_overridden:
             load_cids_from_directory(flask_app)
+
+        if not testing_mode:
             ensure_default_resources()
 
         # Set up observability status for template context
