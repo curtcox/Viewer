@@ -83,42 +83,7 @@ def disk_client(disk_db_app):
     return disk_db_app.test_client()
 
 
-@pytest.fixture(params=["memory", "disk"])
-def any_db_app(request, tmp_path):
-    """Parameterized fixture that provides both memory and disk database apps."""
-    if request.param == "memory":
-        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
-        db_uri = "sqlite:///:memory:"
-    else:
-        db_path = tmp_path / "test.db"
-        db_uri = f"sqlite:///{db_path}"
-        DatabaseConfig.set_mode(DatabaseMode.DISK)
-        os.environ["DATABASE_URL"] = db_uri
 
-    app = create_app(
-        {
-            "TESTING": True,
-            "SQLALCHEMY_DATABASE_URI": db_uri,
-            "WTF_CSRF_ENABLED": False,
-        }
-    )
-
-    with app.app_context():
-        db.create_all()
-        yield app, request.param
-        db.session.remove()
-        db.drop_all()
-
-    DatabaseConfig.reset()
-    if "DATABASE_URL" in os.environ:
-        del os.environ["DATABASE_URL"]
-
-
-@pytest.fixture()
-def any_client(any_db_app):
-    """Test client that works with any database type."""
-    app, db_type = any_db_app
-    return app.test_client(), db_type
 
 
 def patch_testmon_for_invalid_metadata():
