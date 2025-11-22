@@ -1,0 +1,63 @@
+{
+  "label": "GET /aliases.csv",
+  "captured_at": "2025-11-22T18:03:16Z",
+  "preview": "created_at,definition,enabled,id,ignore_case,match_pattern,match_type,name,target_path,updated_at\n2025-11-22T18:01:22.470829,\"css/custom.css -> /css/default\ncss/default -> /css/lightmode\ncss/lightmode -> /static/css/custom.css\ncss/darkmode -> /static/css/custom.css\",True,2,False,/css/custom.css,literal,CSS,/css/default,2025-11-22T18:01:22.470831\n2025-11-22T18:01:22.468994,ai -> /ai_stub,True,1,False,/ai,literal,ai,/ai_stub,2025-11-22T18:01:22.468996",
+  "request": {
+    "method": "GET",
+    "path": "/aliases.csv?",
+    "url": "http://localhost/aliases.csv",
+    "headers": [
+      {
+        "name": "User-Agent",
+        "value": "Werkzeug/3.1.3"
+      },
+      {
+        "name": "Host",
+        "value": "localhost"
+      },
+      {
+        "name": "Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlfQ.aSH65A.eUjMDRUnNIqQQcxxFkA0h12XKBo"
+      }
+    ],
+    "query": {},
+    "body": {
+      "encoding": "utf-8",
+      "text": ""
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "mimetype": "text/csv",
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "text/csv; charset=utf-8"
+      },
+      {
+        "name": "Content-Length",
+        "value": "457"
+      },
+      {
+        "name": "Vary",
+        "value": "Cookie"
+      },
+      {
+        "name": "Set-Cookie",
+        "value": "session=eyJfcGVybWFuZW50Ijp0cnVlfQ.aSH65A.eUjMDRUnNIqQQcxxFkA0h12XKBo; Expires=Tue, 23 Dec 2025 18:03:16 GMT; HttpOnly; Path=/"
+      }
+    ],
+    "body": {
+      "encoding": "utf-8",
+      "text": "created_at,definition,enabled,id,ignore_case,match_pattern,match_type,name,target_path,updated_at\r\n2025-11-22T18:01:22.470829,\"css/custom.css -> /css/default\ncss/default -> /css/lightmode\ncss/lightmode -> /static/css/custom.css\ncss/darkmode -> /static/css/custom.css\",True,2,False,/css/custom.css,literal,CSS,/css/default,2025-11-22T18:01:22.470831\r\n2025-11-22T18:01:22.468994,ai -> /ai_stub,True,1,False,/ai,literal,ai,/ai_stub,2025-11-22T18:01:22.468996\r\n"
+    }
+  },
+  "screenshot": {
+    "captured": true,
+    "placeholder": false,
+    "generated": "text-preview",
+    "details": [
+      "Response body is not HTML; browser screenshot skipped."
+    ]
+  }
+}
