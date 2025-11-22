@@ -91,7 +91,7 @@ class DatabaseSnapshot:
             )
         snapshot_data["tables"]["cids"] = cid_records
 
-        with open(snapshot_path, "w") as f:
+        with open(snapshot_path, "w", encoding="utf-8") as f:
             json.dump(snapshot_data, f, indent=2)
 
         return snapshot_path
@@ -121,7 +121,7 @@ class DatabaseSnapshot:
         if not os.path.exists(snapshot_path):
             return None
 
-        with open(snapshot_path, "r") as f:
+        with open(snapshot_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         info = {
@@ -164,7 +164,7 @@ class DatabaseSnapshot:
             if not isinstance(raw_connection, sqlite3.Connection):
                 # Try one more level of unwrapping if needed (e.g. for some pool proxies)
                 if hasattr(raw_connection, "connection"):
-                     raw_connection = raw_connection.connection
+                    raw_connection = raw_connection.connection
 
             if not isinstance(raw_connection, sqlite3.Connection):
                 raise RuntimeError(f"Could not get raw SQLite connection. Got {type(raw_connection)}")

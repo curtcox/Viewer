@@ -4,7 +4,6 @@
 # Default values
 IN_MEMORY=""
 PORT="5001"
-HOST="0.0.0.0"
 DEBUG=""
 BOOT_CID=""
 SHOW=""
@@ -21,7 +20,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --host)
-            HOST="$2"
+            # HOST parameter is accepted but not used (main.py handles host binding)
             shift 2
             ;;
         --debug)
@@ -63,4 +62,5 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Run the application
-python main.py $IN_MEMORY --port "$PORT" $DEBUG $BOOT_CID $SHOW "${POSITIONAL[@]}"
+# shellcheck disable=SC2086
+python main.py $IN_MEMORY --port "$PORT" $DEBUG "$BOOT_CID" $SHOW "${POSITIONAL[@]}"

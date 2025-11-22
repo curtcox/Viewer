@@ -73,6 +73,7 @@ def test_save_cid_content_delegates_to_store_or_find(mock_store: MagicMock) -> N
 @patch('routes.uploads.get_cid_by_path')
 @patch('routes.uploads.flash')
 def test_store_or_find_content_creates_new_content(*args: MagicMock) -> None:
+    """Test that _store_or_find_content creates new content when it doesn't exist."""
     (
         mock_flash,
         mock_get_cid,
@@ -82,7 +83,6 @@ def test_store_or_find_content_creates_new_content(*args: MagicMock) -> None:
         mock_cid_path,
         mock_render_cid_link,
     ) = args
-    """Test that _store_or_find_content creates new content when it doesn't exist."""
     # Set up mocks
     mock_generate_cid.return_value = 'raw-cid-string'
     mock_format_cid.return_value = 'formatted-cid-value'
@@ -116,6 +116,7 @@ def test_store_or_find_content_creates_new_content(*args: MagicMock) -> None:
 @patch('routes.uploads.get_cid_by_path')
 @patch('routes.uploads.flash')
 def test_store_or_find_content_finds_existing_content(*args: MagicMock) -> None:
+    """Test that _store_or_find_content finds existing content."""
     (
         mock_flash,
         mock_get_cid,
@@ -125,7 +126,6 @@ def test_store_or_find_content_finds_existing_content(*args: MagicMock) -> None:
         mock_cid_path,
         mock_render_cid_link,
     ) = args
-    """Test that _store_or_find_content finds existing content."""
     # Set up mocks
     mock_generate_cid.return_value = 'raw-cid-string'
     mock_format_cid.return_value = 'formatted-cid-value'

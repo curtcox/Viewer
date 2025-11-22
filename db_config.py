@@ -19,8 +19,6 @@ class DatabaseMode(Enum):
 class MemoryLimitExceededError(Exception):
     """Raised when the in-memory database exceeds its memory limit."""
 
-    pass
-
 
 class DatabaseConfig:
     """Centralized database configuration manager."""

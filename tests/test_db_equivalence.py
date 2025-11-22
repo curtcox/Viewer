@@ -59,10 +59,10 @@ class TestServerEquivalence:
                 for s in servers:
                     db.session.add(Server(**s))
                 db.session.commit()
-                
+
                 # Filter out default 'ai_stub' server if present
                 query = Server.query.filter(Server.name != "ai_stub")
-                
+
                 results[name] = {
                     "count": query.count(),
                     "enabled": query.filter_by(enabled=True).count(),
@@ -144,7 +144,7 @@ class TestAliasEquivalence:
                 for a in aliases:
                     db.session.add(Alias(**a))
                 db.session.commit()
-                
+
                 # Filter out default aliases 'ai' and 'CSS'
                 query = Alias.query.filter(Alias.name.notin_(["ai", "CSS"]))
                 results[name] = [a.name for a in query.order_by(Alias.name).all()]
@@ -319,7 +319,7 @@ class TestPageViewEquivalence:
                 db.session.commit()
 
                 counts = (
-                    db.session.query(PageView.path, func.count(PageView.id))
+                    db.session.query(PageView.path, func.count(PageView.id))  # pylint: disable=not-callable
                     .group_by(PageView.path)
                     .order_by(PageView.path)
                     .all()
