@@ -463,6 +463,15 @@ def and_clicking_it_should_populate_with_the_cid_content() -> None:
 #     given_alias_exists(docs, "/guides")
 
 
+@step('When I visit the alias detail page for <alias_name>')
+def when_i_visit_alias_detail_page(alias_name: str) -> None:
+    """Navigate to the alias detail page for the specified alias."""
+
+    alias_name = alias_name.strip().strip('"')
+    path = f"/aliases/{alias_name}"
+    when_i_visit_path(path)
+
+
 @step("When I visit <path>")
 def when_i_visit_path(path: str) -> None:
     """Perform a GET request against the provided path."""
@@ -531,15 +540,6 @@ def record_alias_path_coverage(alias_name: str) -> None:
     """Acknowledge alias detail path coverage for documentation purposes."""
 
     assert alias_name, "Alias name placeholder should not be empty."
-
-
-@step('When I visit the alias detail page for <alias_name>')
-def when_i_visit_alias_detail_page(alias_name: str) -> None:
-    """Navigate to the alias detail page for the specified alias."""
-
-    alias_name = alias_name.strip().strip('"')
-    path = f"/aliases/{alias_name}"
-    when_i_visit_path(path)
 
 
 @step('Given there is an enabled alias named <alias_name> pointing to <target_path>')
