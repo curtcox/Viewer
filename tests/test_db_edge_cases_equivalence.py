@@ -104,7 +104,8 @@ class TestNullHandlingEquivalence:
                 retrieved = Server.query.filter_by(name="null-test").first()
                 results[name] = retrieved.definition_cid
 
-        assert results["memory"] == results["disk"] is None
+        assert results["memory"] == results["disk"]
+        assert results["memory"] is None
 
     def test_empty_string_vs_null_equivalence(self, memory_db_app, disk_db_app):
         """Empty strings and NULL are handled equivalently."""

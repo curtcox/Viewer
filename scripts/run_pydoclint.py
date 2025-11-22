@@ -41,23 +41,23 @@ def _run_command(command: list[str]) -> tuple[str, str, int]:
 
 def _parse_pydoclint_output(output: str) -> list[DocstringIssue]:
     """Parse pydoclint output into structured issues.
-    
+
     Example format:
     file.py
         123: DOC101: Function `foo`: Docstring contains fewer arguments than in function signature.
     """
     issues: list[DocstringIssue] = []
     current_file = ""
-    
+
     for line in output.strip().split('\n'):
         if not line.strip():
             continue
-            
+
         # Check if this is a file path line (no leading spaces)
         if line and not line[0].isspace():
             current_file = line.strip()
             continue
-            
+
         # Parse issue line (has leading spaces)
         if ':' in line and current_file:
             try:
@@ -67,7 +67,7 @@ def _parse_pydoclint_output(output: str) -> list[DocstringIssue]:
                     line_num = int(parts[0].strip())
                     code = parts[1].strip()
                     message = parts[2].strip() if len(parts) > 2 else ""
-                    
+
                     issue = DocstringIssue(
                         path=current_file,
                         line=line_num,
@@ -77,7 +77,7 @@ def _parse_pydoclint_output(output: str) -> list[DocstringIssue]:
                     issues.append(issue)
             except (ValueError, IndexError):
                 continue
-    
+
     return issues
 
 
@@ -95,10 +95,10 @@ def _format_markdown_summary(issues: list[DocstringIssue]) -> str:
     """Generate a markdown summary of pydoclint findings."""
     if not issues:
         return "## Pydoclint Report\n\n✅ No docstring issues detected!"
-    
+
     unique_files = len({issue.path for issue in issues})
     categories = _categorize_issues(issues)
-    
+
     lines = [
         "## Pydoclint Report",
         "",
@@ -107,11 +107,11 @@ def _format_markdown_summary(issues: list[DocstringIssue]) -> str:
         "### Issues by type",
         "",
     ]
-    
+
     for code in sorted(categories.keys()):
         count = len(categories[code])
         lines.append(f"- `{code}`: {count} issue(s)")
-    
+
     return "\n".join(lines)
 
 
@@ -119,30 +119,30 @@ def _format_text_summary(issues: list[DocstringIssue]) -> str:
     """Generate a plain text summary of pydoclint findings."""
     if not issues:
         return "Pydoclint Report\nStatus: ✓ No docstring issues detected!"
-    
+
     unique_files = len({issue.path for issue in issues})
     categories = _categorize_issues(issues)
-    
+
     lines = [
         "Pydoclint Report",
         f"Total issues: {len(issues)}",
         f"Files with issues: {unique_files}",
     ]
-    
+
     for code in sorted(categories.keys()):
         count = len(categories[code])
         lines.append(f"{code}: {count} issue(s)")
-    
+
     return "\n".join(lines)
 
 
 def _format_html_report(issues: list[DocstringIssue]) -> str:
     """Generate an HTML report of pydoclint findings."""
-    
+
     def _render_rows() -> str:
         if not issues:
             return "      <tr><td colspan=\"4\">No docstring issues detected! 🎉</td></tr>"
-        
+
         rows: list[str] = []
         for issue in sorted(issues, key=lambda i: (i.path, i.line)):
             rows.append(
@@ -152,16 +152,16 @@ def _format_html_report(issues: list[DocstringIssue]) -> str:
                 f"<td>{escape(issue.message)}</td></tr>"
             )
         return "\n".join(rows)
-    
+
     categories = _categorize_issues(issues)
     unique_files = len({issue.path for issue in issues})
-    
+
     summary_text = (
         f"Found {len(issues)} docstring issue(s) across {unique_files} file(s)."
         if issues else
         "No docstring issues detected!"
     )
-    
+
     categories_rows = ""
     if categories:
         cat_rows = []
@@ -180,7 +180,7 @@ def _format_html_report(issues: list[DocstringIssue]) -> str:
       </tbody>
     </table>
   </section>"""
-    
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -248,24 +248,24 @@ def run(argv: Sequence[str] | None = None) -> int:
         default=["."],
         help="Paths to analyze. Defaults to current directory.",
     )
-    
+
     args = parser.parse_args(argv)
-    
+
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Build pydoclint command
     # Exclude common directories that shouldn't be checked
     exclude_pattern = r"\.git|\.tox|venv|env|\.venv|node_modules|__pycache__|\.pytest_cache|htmlcov|reports|site"
     command = ["pydoclint", "--quiet", "--exclude", exclude_pattern] + args.paths
-    
+
     # Run pydoclint
     output, stderr, exit_code = _run_command(command)
-    
+
     # pydoclint outputs to stderr, not stdout
     # Combine both for parsing, but check for real errors
     combined_output = output + stderr
-    
+
     # pydoclint exits with 0 for success, non-zero for issues found or errors
     # Check if it's a real error (not just findings)
     if exit_code != 0 and combined_output.strip():
@@ -275,25 +275,25 @@ def run(argv: Sequence[str] | None = None) -> int:
             if combined_output.strip():
                 error_msg = f"{error_msg}\nOutput: {combined_output.strip()}"
             raise PydoclintError(error_msg)
-    
+
     # Parse the pydoclint output (from combined stdout + stderr)
     issues = _parse_pydoclint_output(combined_output)
-    
+
     # Generate reports
     markdown = _format_markdown_summary(issues)
     text_summary = _format_text_summary(issues)
     html = _format_html_report(issues)
-    
+
     _write_file(output_dir / "summary.md", markdown)
     _write_file(output_dir / "summary.txt", text_summary)
     _write_file(output_dir / "index.html", html)
     _write_file(output_dir / "output.txt", combined_output)
-    
+
     if args.summary_file:
         _write_file(args.summary_file, markdown)
-    
+
     print(markdown)
-    
+
     # Report findings but don't fail the build
     if issues:
         print(
@@ -301,7 +301,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             f"Review the report for details.",
             file=sys.stderr,
         )
-    
+
     return 0
 
 

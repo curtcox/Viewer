@@ -44,7 +44,7 @@ class TestDatabaseSnapshot:
             assert os.path.exists(path)
 
             # Verify content
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
 
             assert "servers" in data["tables"]
@@ -132,7 +132,7 @@ class TestDatabaseSnapshot:
         with memory_db_app.app_context():
             DatabaseSnapshot.create_snapshot("all_tables")
 
-            with open(tmp_path / "all_tables.json") as f:
+            with open(tmp_path / "all_tables.json", encoding="utf-8") as f:
                 data = json.load(f)
 
             expected_tables = [
@@ -154,36 +154,36 @@ class TestDatabaseSnapshot:
         """Test dumping in-memory DB to SQLite file."""
         import sqlite3
         snapshot_path = tmp_path / "snapshot.db"
-        
+
         with memory_db_app.app_context():
             # Create some data
             server = Server(name="snapshot-test", definition="test-def")
             db.session.add(server)
             db.session.commit()
-            
+
             # Dump to file
             DatabaseSnapshot.dump_to_sqlite(snapshot_path)
-            
+
         # Verify the file exists and contains data
         assert snapshot_path.exists()
-        
+
         # Open the snapshot as a SQLite DB and check data
         conn = sqlite3.connect(str(snapshot_path))
         cursor = conn.cursor()
-        
+
         cursor.execute("SELECT name, definition FROM server WHERE name='snapshot-test'")
         row = cursor.fetchone()
-        
+
         assert row is not None
         assert row[0] == "snapshot-test"
         assert row[1] == "test-def"
-        
+
         conn.close()
 
     def test_dump_to_sqlite_requires_memory_mode(self, disk_db_app, tmp_path):
         """Test that dumping raises error if not in memory mode."""
         snapshot_path = tmp_path / "snapshot.db"
-        
+
         with disk_db_app.app_context():
             with pytest.raises(RuntimeError, match="Snapshots are only supported in memory mode"):
                 DatabaseSnapshot.dump_to_sqlite(snapshot_path)
