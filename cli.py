@@ -266,42 +266,69 @@ OPTIONS:
     --show              Launch the app and open it in the default web browser
     --boot-cid CID      Import a boot CID on startup (legacy, use positional CID instead)
     --port PORT         Port to run the server on (default: 5001)
+    --in-memory-db      Use an in-memory database instead of persistent SQLite
 
 ARGUMENTS:
     URL                 A URL to make a GET request to (must start with http://, https://, or /)
-                        When provided alone, returns the response and exits
+                        When provided alone, returns the response and exits (one-shot mode)
 
     CID                 A Content Identifier to use as a boot CID
                         When provided alone, imports the CID and starts the app
 
     URL and CID         When both provided, makes GET request and imports boot CID
 
+ONE-SHOT RUN MODE:
+    When a URL is provided without --show, the application runs in one-shot mode:
+    - The app initializes with the database and all CIDs loaded
+    - The URL request is processed through the same routing and handlers as HTTP
+    - The response (status code and content) is printed to standard output
+    - The application exits immediately after outputting the response
+    
+    This mode is useful for:
+    - Testing endpoints without running a full server
+    - Scripting and automation that needs app responses
+    - Verifying that CLI and HTTP responses are identical
+    - CI/CD pipelines that validate application behavior
+    
+    One-shot mode guarantees the same response you would get from:
+        curl http://localhost:5001/path
+    Instead you can simply run:
+        python main.py /path
+
 EXAMPLES:
-    # Launch the app normally
+    # Launch the app normally as a server
     python main.py
 
-    # Make a GET request and print the response
-    python main.py /dashboard
+    # ONE-SHOT: Get JSON response from /servers.json endpoint
+    python main.py /servers.json
+    
+    # ONE-SHOT: Get content for a specific CID
+    python main.py /bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi
+    
+    # ONE-SHOT: Test any endpoint without starting server
+    python main.py /aliases
+    python main.py /variables.json
+    
+    # ONE-SHOT with absolute URL (same as relative path)
     python main.py http://localhost:5001/servers
 
-    # Import a boot CID and start the app
+    # Import a boot CID and start the app as a server
     python main.py AAAABP7x8...
-
-    # Import boot CID and make GET request
-    python main.py http://localhost:5001/status AAAABP7x8...
 
     # List all valid boot CIDs
     python main.py --list
 
-    # Launch app and open browser
+    # Launch app as server and open browser
     python main.py --show
     python main.py --show http://localhost:5001/dashboard
 
 NOTES:
+    - One-shot mode uses Flask's test client internally for identical behavior
+    - Status codes >= 400 will cause one-shot mode to exit with code 1
     - Boot CIDs must be valid JSON objects stored in the database
     - CID files should be placed in the cids/ directory before starting
     - URLs can be absolute (http://...) or relative (/)
-    - Use Ctrl+C to stop the application
+    - Use Ctrl+C to stop the application when running as a server
 """
     print(help_text)
 
