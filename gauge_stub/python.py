@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from uuid import uuid4
 
 
@@ -120,11 +120,21 @@ def after_scenario() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     return decorator
 
 
-def step(pattern: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Register a Gauge step definition."""
+def step(pattern: Union[str, List[str]]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Register a Gauge step definition.
+    
+    Args:
+        pattern: A single pattern string or a list of pattern strings.
+                 When a list is provided, the same function is registered
+                 for each pattern in the list.
+    """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        return registry.add_step(pattern, func)
+        # Handle both single pattern and list of patterns
+        patterns = [pattern] if isinstance(pattern, str) else pattern
+        for p in patterns:
+            registry.add_step(p, func)
+        return func
 
     return decorator
 
