@@ -16,7 +16,7 @@ import pytest
 from app import create_app
 from cid_utils import generate_cid
 from db_access import create_cid_record
-from models import Server
+from models import Alias, Secret, Server, Variable
 
 pytestmark = pytest.mark.integration
 
@@ -53,7 +53,6 @@ class TestOneShotEquivalence:
     def _create_test_data(self):
         """Create test data for equivalence testing."""
         from database import db
-        from models import Alias, Variable, Secret
 
         # Create a test server
         test_server = Server(
