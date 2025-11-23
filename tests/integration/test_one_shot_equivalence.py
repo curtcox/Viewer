@@ -7,6 +7,7 @@ it responds with the same content as if the request came via HTTP to a running s
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -416,7 +417,6 @@ class TestOneShotEquivalence:
     def test_exit_code_success(self):
         """Test that exit code 0 for successful 2xx responses."""
         # Use environment variable to point CLI to the test database
-        import os
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
         
         env = os.environ.copy()
@@ -439,7 +439,6 @@ class TestOneShotEquivalence:
     def test_exit_code_error(self):
         """Test that exit code 1 for 4xx/5xx responses."""
         # Use environment variable to point CLI to the test database
-        import os
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
         
         env = os.environ.copy()
@@ -458,7 +457,6 @@ class TestOneShotEquivalence:
         # Should exit with 1 for error
         assert result.returncode == 1, f"Expected exit code 1, got {result.returncode}"
         assert 'Status: 404' in result.stdout
-
 
     def test_cid_text_format_equivalence(self):
         """Test that CID with .txt extension returns same text via HTTP and CLI."""
