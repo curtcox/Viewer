@@ -84,30 +84,11 @@ class TestOneShotEquivalence:
             extra_args: Additional CLI arguments
             
         Returns:
-            Tuple of (exit_code, stdout_text)
+            Tuple of (status_code, response_text) where status_code is parsed from CLI output
         """
         # Use environment variable to point CLI to the test database
         import os
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
-        
-        # Extract the database file path from the URI
-        if 'sqlite:///' in test_db_uri:
-            db_path = test_db_uri.replace('sqlite:///', '')
-        else:
-            # Fall back to in-memory if not a file-based SQLite
-            args = [sys.executable, 'main.py', '--in-memory-db', path]
-            if extra_args:
-                args.extend(extra_args)
-            
-            result = subprocess.run(
-                args,
-                cwd=self.CLI_ROOT,
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-            return self._parse_cli_output(result)
         
         # Set environment variable for the CLI to use the test database
         env = os.environ.copy()
@@ -136,20 +117,26 @@ class TestOneShotEquivalence:
             result: subprocess.CompletedProcess result
             
         Returns:
-            Tuple of (status_code, output_text)
+            Tuple of (status_code, output_text) where status_code is parsed from output
         """
         # Parse status code from output
         status_code = None
         lines = result.stdout.splitlines()
-        for line in lines:
+        
+        # Find and extract the status line
+        status_line_index = None
+        for i, line in enumerate(lines):
             if line.startswith('Status:'):
                 try:
                     status_code = int(line.split(':')[1].strip())
-                    # Remove status line from output
-                    lines.remove(line)
+                    status_line_index = i
                     break
                 except (ValueError, IndexError):
                     pass
+
+        # Remove status line from output if found
+        if status_line_index is not None:
+            lines = lines[:status_line_index] + lines[status_line_index + 1:]
 
         output = '\n'.join(lines)
         return status_code, output
@@ -205,7 +192,6 @@ class TestOneShotEquivalence:
         
         # Add the CID to the test database
         with self.app.app_context():
-            from db_access import create_cid_record
             create_cid_record(boot_cid, boot_cid_content)
 
         # Test getting the CID content
