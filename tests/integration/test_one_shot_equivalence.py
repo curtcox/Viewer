@@ -84,7 +84,7 @@ class TestOneShotEquivalence:
             definition='secret_value',
         )
         db.session.add(test_secret)
-        
+
         db.session.commit()
 
     def _get_http_response(self, path: str) -> tuple[int, str]:
