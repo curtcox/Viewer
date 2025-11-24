@@ -900,9 +900,9 @@ def _get_background_color(job_statuses: dict[str, str]) -> str:
     
     Returns:
         - Light green (#d4edda) if all jobs pass
-        - Yellow (#fff3cd) if there are any failing jobs
-        - Orange (#ffe0b2) if there are more than 2 failing jobs
-        - Red (#f8d7da) if there are more than 4 failing jobs
+        - Yellow (#fff3cd) if there are 1-2 failing jobs
+        - Orange (#ffe0b2) if there are 3-4 failing jobs
+        - Red (#f8d7da) if there are 5 or more failing jobs
     """
     failing_count = _count_failing_jobs(job_statuses)
     
