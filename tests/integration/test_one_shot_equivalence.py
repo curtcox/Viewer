@@ -62,7 +62,7 @@ class TestOneShotEquivalence:
             enabled=True,
         )
         db.session.add(test_server)
-        
+
         # Create test aliases
         test_alias = Alias(
             name='test_alias',
@@ -70,14 +70,14 @@ class TestOneShotEquivalence:
             enabled=True,
         )
         db.session.add(test_alias)
-        
+
         # Create test variables
         test_variable = Variable(
             name='test_variable',
             definition='test_value',
         )
         db.session.add(test_variable)
-        
+
         # Create test secrets
         test_secret = Secret(
             name='test_secret',
@@ -89,10 +89,10 @@ class TestOneShotEquivalence:
 
     def _get_http_response(self, path: str) -> tuple[int, str]:
         """Get response from HTTP endpoint using test client.
-        
+
         Args:
             path: URL path to request
-            
+
         Returns:
             Tuple of (status_code, response_text)
         """
@@ -102,22 +102,21 @@ class TestOneShotEquivalence:
 
     def _get_cli_response(self, path: str, extra_args: list[str] = None) -> tuple[int | None, str]:
         """Get response from CLI one-shot mode.
-        
+
         Args:
             path: URL path to request
             extra_args: Additional CLI arguments
-            
+
         Returns:
             Tuple of (status_code, response_text) where status_code is parsed from CLI output
         """
         # Use environment variable to point CLI to the test database
-        import os
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
-        
+
         # Set environment variable for the CLI to use the test database
         env = os.environ.copy()
         env['DATABASE_URL'] = test_db_uri
-        
+
         args = [sys.executable, 'main.py', path]
         if extra_args:
             args.extend(extra_args)
@@ -136,17 +135,17 @@ class TestOneShotEquivalence:
 
     def _parse_cli_output(self, result) -> tuple[int | None, str]:
         """Parse CLI subprocess result to extract status and output.
-        
+
         Args:
             result: subprocess.CompletedProcess result
-            
+
         Returns:
             Tuple of (status_code, output_text) where status_code is parsed from output
         """
         # Parse status code from output
         status_code = None
         lines = result.stdout.splitlines()
-        
+
         # Find and extract the status line
         status_line_index = None
         for i, line in enumerate(lines):
@@ -196,7 +195,7 @@ class TestOneShotEquivalence:
 
     def test_cid_from_boot_image_equivalence(self):
         """Test that a CID from boot image returns same content via HTTP and CLI.
-        
+
         This test verifies that when a CID is available in both contexts (test DB and cids directory),
         the response is identical.
         """
@@ -206,14 +205,14 @@ class TestOneShotEquivalence:
             pytest.skip("No default boot.cid file found")
 
         boot_cid = boot_cid_file.read_text(encoding='utf-8').strip()
-        
+
         # Load the boot CID into the test database so HTTP can access it
         boot_cid_content_file = self.CLI_ROOT / "cids" / boot_cid
         if not boot_cid_content_file.exists():
             pytest.skip(f"Boot CID content file not found: {boot_cid}")
-        
+
         boot_cid_content = boot_cid_content_file.read_bytes()
-        
+
         # Add the CID to the test database
         with self.app.app_context():
             create_cid_record(boot_cid, boot_cid_content)
@@ -250,7 +249,7 @@ class TestOneShotEquivalence:
         # Both should return HTML (basic check)
         assert 'html' in http_response.lower(), "HTTP response should be HTML"
         assert 'html' in cli_response.lower(), "CLI response should be HTML"
-        
+
         # Both should have similar structure (same title)
         assert '<title>' in http_response and '</title>' in http_response
         assert '<title>' in cli_response and '</title>' in cli_response
@@ -271,7 +270,7 @@ class TestOneShotEquivalence:
         """Test JSON endpoint with query parameters for equivalence."""
         # Query for our test server specifically
         path = '/servers.json?name=test_equivalence_server'
-        
+
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
 
@@ -283,15 +282,15 @@ class TestOneShotEquivalence:
             try:
                 http_data = json.loads(http_response)
                 cli_data = json.loads(cli_response)
-                
+
                 # Both should have filtered to just our test server (or similar results)
                 http_names = [s['name'] for s in http_data]
                 cli_names = [s['name'] for s in cli_data]
-                
+
                 # Our test server should be in both
                 assert 'test_equivalence_server' in http_names
                 assert 'test_equivalence_server' in cli_names
-                
+
             except json.JSONDecodeError:
                 assert http_response == cli_response, "Query param text responses differ"
 
@@ -389,9 +388,9 @@ class TestOneShotEquivalence:
     def test_invalid_cid_format_error(self):
         """Test that requesting invalid CID format returns same error."""
         path = '/invalid-cid-format-!!!'
-        
-        http_status, http_response = self._get_http_response(path)
-        cli_status, cli_response = self._get_cli_response(path)
+
+        http_status, _ = self._get_http_response(path)
+        cli_status, _ = self._get_cli_response(path)
 
         # Both should return 404 or similar error
         assert http_status == cli_status, f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
@@ -418,10 +417,10 @@ class TestOneShotEquivalence:
         """Test that exit code 0 for successful 2xx responses."""
         # Use environment variable to point CLI to the test database
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
-        
+
         env = os.environ.copy()
         env['DATABASE_URL'] = test_db_uri
-        
+
         result = subprocess.run(
             [sys.executable, 'main.py', '/'],
             cwd=self.CLI_ROOT,
@@ -440,10 +439,10 @@ class TestOneShotEquivalence:
         """Test that exit code 1 for 4xx/5xx responses."""
         # Use environment variable to point CLI to the test database
         test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
-        
+
         env = os.environ.copy()
         env['DATABASE_URL'] = test_db_uri
-        
+
         result = subprocess.run(
             [sys.executable, 'main.py', '/nonexistent-path-12345'],
             cwd=self.CLI_ROOT,
@@ -463,25 +462,25 @@ class TestOneShotEquivalence:
         # Create test content and CID
         test_content = b"This is test content for text format equivalence testing."
         test_cid = generate_cid(test_content)
-        
+
         # Store the CID content
         with self.app.app_context():
             create_cid_record(test_cid, test_content)
-        
+
         # Also store in cids directory for CLI access
         cid_file = self.CLI_ROOT / 'cids' / test_cid
         cid_file.write_bytes(test_content)
-        
+
         try:
             path = f'/{test_cid}.txt'
-            
+
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
-            
+
             # Both should succeed
             assert http_status == 200, f"HTTP failed with status {http_status}"
             assert cli_status == 200, f"CLI failed with status {cli_status}"
-            
+
             # Content should match
             assert http_response == cli_response, "Text content differs"
         finally:
@@ -494,25 +493,25 @@ class TestOneShotEquivalence:
         # Create test content with unicode
         test_content = "Hello 世界 🌍 Здравствуй мир".encode('utf-8')
         test_cid = generate_cid(test_content)
-        
+
         # Store the CID content
         with self.app.app_context():
             create_cid_record(test_cid, test_content)
-        
+
         # Also store in cids directory for CLI access
         cid_file = self.CLI_ROOT / 'cids' / test_cid
         cid_file.write_bytes(test_content)
-        
+
         try:
             path = f'/{test_cid}'
-            
+
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
-            
+
             # Both should succeed
             assert http_status == 200, f"HTTP failed with status {http_status}"
             assert cli_status == 200, f"CLI failed with status {cli_status}"
-            
+
             # Content should match
             assert http_response == cli_response, "Unicode content differs"
         finally:
@@ -526,25 +525,25 @@ class TestOneShotEquivalence:
         test_data = {"message": "test json", "value": 42}
         test_content = json.dumps(test_data).encode('utf-8')
         test_cid = generate_cid(test_content)
-        
+
         # Store the CID content
         with self.app.app_context():
             create_cid_record(test_cid, test_content)
-        
+
         # Also store in cids directory for CLI access
         cid_file = self.CLI_ROOT / 'cids' / test_cid
         cid_file.write_bytes(test_content)
-        
+
         try:
             path = f'/{test_cid}.json'
-            
+
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
-            
+
             # Both should succeed
             assert http_status == 200, f"HTTP failed with status {http_status}"
             assert cli_status == 200, f"CLI failed with status {cli_status}"
-            
+
             # Parse and compare JSON
             http_data = json.loads(http_response)
             cli_data = json.loads(cli_response)
@@ -566,29 +565,29 @@ class TestOneShotEquivalence:
             )
             db.session.add(disabled_server)
             db.session.commit()
-        
+
         # Test filtering for enabled servers only
         path = '/servers.json?enabled=true'
-        
+
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
-        
+
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
         assert cli_status == 200, f"CLI failed with status {cli_status}"
-        
+
         # Parse JSON
         http_data = json.loads(http_response)
         cli_data = json.loads(cli_response)
-        
+
         # Get server names
         http_names = [s['name'] for s in http_data]
         cli_names = [s['name'] for s in cli_data]
-        
+
         # Both should have the enabled server
         assert 'test_equivalence_server' in http_names
         assert 'test_equivalence_server' in cli_names
-        
+
         # Disabled server should not be in either (if filtering works)
         # Note: This may depend on how the filtering is implemented
 
@@ -629,6 +628,10 @@ class TestOneShotWithBootCID:
 
             try:
                 # Run one-shot mode with boot CID
+                # Remove TESTING env var so CIDs are loaded from directory
+                env = os.environ.copy()
+                env.pop('TESTING', None)
+
                 result = subprocess.run(
                     [sys.executable, 'main.py', '--in-memory-db', '/servers.json', boot_cid],
                     cwd=self.CLI_ROOT,
@@ -636,6 +639,7 @@ class TestOneShotWithBootCID:
                     text=True,
                     timeout=10,
                     check=False,
+                    env=env,
                 )
 
                 # Should succeed
@@ -645,7 +649,7 @@ class TestOneShotWithBootCID:
                 lines = result.stdout.splitlines()
                 json_start = next(i for i, line in enumerate(lines) if line.startswith('['))
                 json_text = '\n'.join(lines[json_start:])
-                
+
                 servers = json.loads(json_text)
 
                 # Should include the server from boot CID
