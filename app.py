@@ -46,6 +46,46 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 
 
+def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
+    """Set up Logfire instrumentation hooks.
+    
+    Returns:
+        List of error messages for failed instrumentation steps.
+    """
+    instrumentation_steps = (
+        ("requests", logfire.instrument_requests),
+        ("aiohttp", logfire.instrument_aiohttp_client),
+        ("pydantic", logfire.instrument_pydantic),
+    )
+
+    instrumentation_errors: list[str] = []
+    try:
+        for name, instrument in instrumentation_steps:
+            try:
+                instrument()
+            except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+                # Each instrumentation hook may import optional packages or
+                # inspect environment state; we tolerate any failure here to
+                # keep the application usable even when observability setup is
+                # partially misconfigured.
+                logger.warning(
+                    "Logfire %s instrumentation failed: %s", name, exc
+                )
+                instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
+                break
+    except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+        # Each instrumentation hook may import optional packages or
+        # inspect environment state; we tolerate any failure here to
+        # keep the application usable even when observability setup is
+        # partially misconfigured.
+        logger.warning(
+            "Logfire instrumentation failed: %s", exc
+        )
+        instrumentation_errors.append(f"instrumentation failed: {exc}")
+
+    return instrumentation_errors
+
+
 def create_app(config_override: Optional[dict] = None) -> Flask:
     """Application factory for creating configured Flask instances."""
     logger = logging.getLogger(__name__)
@@ -80,8 +120,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                 )
             logger.info("Logfire is enabled")
 
-            instrumentation_errors: list[str] = []
-
             try:
                 logfire.configure(
                     code_source=logfire.CodeSource(
@@ -99,35 +137,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                 logfire_reason = f"Unexpected Logfire error: {exc}"
                 logger.exception("Unexpected Logfire configuration failure")
             else:
-                instrumentation_steps = (
-                    ("requests", logfire.instrument_requests),
-                    ("aiohttp", logfire.instrument_aiohttp_client),
-                    ("pydantic", logfire.instrument_pydantic),
-                )
-
-                try:
-                    for name, instrument in instrumentation_steps:
-                        try:
-                            instrument()
-                        except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
-                            # Each instrumentation hook may import optional packages or
-                            # inspect environment state; we tolerate any failure here to
-                            # keep the application usable even when observability setup is
-                            # partially misconfigured.
-                            logger.warning(
-                                "Logfire %s instrumentation failed: %s", name, exc
-                            )
-                            instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
-                            break
-                except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
-                    # Each instrumentation hook may import optional packages or
-                    # inspect environment state; we tolerate any failure here to
-                    # keep the application usable even when observability setup is
-                    # partially misconfigured.
-                    logger.warning(
-                        "Logfire %s instrumentation failed: %s", name, exc
-                    )
-                    instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
+                instrumentation_errors = _setup_logfire_instrumentation(logger)
 
                 if instrumentation_errors:
                     logfire_available = False
