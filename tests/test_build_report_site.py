@@ -278,3 +278,81 @@ def test_build_linter_index_failure_with_summary_but_empty_output(tmp_path) -> N
     # Should not show the warning for missing artifacts (we have summary)
     assert "⚠ Check Failed" not in content
     assert "detailed results are not available" not in content
+
+
+def test_count_failing_jobs() -> None:
+    """Test that _count_failing_jobs correctly counts failures."""
+    # No failures
+    assert build_report._count_failing_jobs({"job1": "success", "job2": "success"}) == 0
+    # One failure
+    assert build_report._count_failing_jobs({"job1": "success", "job2": "failure"}) == 1
+    # Multiple failures
+    assert build_report._count_failing_jobs({"job1": "failure", "job2": "failure", "job3": "success"}) == 2
+    # Skipped jobs don't count as failures
+    assert build_report._count_failing_jobs({"job1": "skipped", "job2": "success"}) == 0
+    # Empty dict
+    assert build_report._count_failing_jobs({}) == 0
+
+
+def test_get_background_color_all_pass() -> None:
+    """Test that all passing jobs get light green background."""
+    job_statuses = {"job1": "success", "job2": "success", "job3": "success"}
+    assert build_report._get_background_color(job_statuses) == "#d4edda"
+
+
+def test_get_background_color_one_failure() -> None:
+    """Test that 1 failing job gets yellow background."""
+    job_statuses = {"job1": "success", "job2": "failure"}
+    assert build_report._get_background_color(job_statuses) == "#fff3cd"
+
+
+def test_get_background_color_two_failures() -> None:
+    """Test that 2 failing jobs get yellow background."""
+    job_statuses = {"job1": "failure", "job2": "failure", "job3": "success"}
+    assert build_report._get_background_color(job_statuses) == "#fff3cd"
+
+
+def test_get_background_color_three_failures() -> None:
+    """Test that 3 failing jobs get orange background."""
+    job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure", "job4": "success"}
+    assert build_report._get_background_color(job_statuses) == "#ffe0b2"
+
+
+def test_get_background_color_four_failures() -> None:
+    """Test that 4 failing jobs get orange background."""
+    job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure", "job4": "failure"}
+    assert build_report._get_background_color(job_statuses) == "#ffe0b2"
+
+
+def test_get_background_color_five_failures() -> None:
+    """Test that 5 failing jobs get red background."""
+    job_statuses = {
+        "job1": "failure",
+        "job2": "failure", 
+        "job3": "failure",
+        "job4": "failure",
+        "job5": "failure"
+    }
+    assert build_report._get_background_color(job_statuses) == "#f8d7da"
+
+
+def test_write_landing_page_applies_background_color(tmp_path) -> None:
+    """Test that the landing page includes the correct background color."""
+    # Test with all passing jobs
+    job_statuses = {"job1": "success", "job2": "success"}
+    build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
+    
+    index_path = tmp_path / "index.html"
+    content = index_path.read_text(encoding="utf-8")
+    
+    # Should have light green background
+    assert "background-color: #d4edda" in content
+    
+    # Test with some failures
+    job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure"}
+    build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
+    
+    content = index_path.read_text(encoding="utf-8")
+    
+    # Should have orange background (3 failures)
+    assert "background-color: #ffe0b2" in content
