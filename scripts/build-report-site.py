@@ -890,6 +890,32 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
     }
 
 
+def _count_failing_jobs(job_statuses: dict[str, str]) -> int:
+    """Count the number of failing jobs in the job statuses."""
+    return sum(1 for status in job_statuses.values() if status == "failure")
+
+
+def _get_background_color(job_statuses: dict[str, str]) -> str:
+    """Determine the background color based on the number of failing jobs.
+    
+    Returns:
+        - Light green (#d4edda) if all jobs pass
+        - Yellow (#fff3cd) if there are 1-2 failing jobs
+        - Orange (#ffe0b2) if there are 3-4 failing jobs
+        - Red (#f8d7da) if there are 5 or more failing jobs
+    """
+    failing_count = _count_failing_jobs(job_statuses)
+    
+    if failing_count == 0:
+        return "#d4edda"  # light green
+    elif failing_count <= 2:
+        return "#fff3cd"  # yellow
+    elif failing_count <= 4:
+        return "#ffe0b2"  # orange
+    else:
+        return "#f8d7da"  # red
+
+
 def _format_job_list(job_statuses: dict[str, str]) -> str:
     """Generate HTML for the job list with status indicators."""
     if not job_statuses:
@@ -944,6 +970,10 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None,
         job_statuses = {}
 
     job_list_html = _format_job_list(job_statuses)
+    background_color = _get_background_color(job_statuses)
+    
+    # Add background color to the CSS
+    css_with_bg = LANDING_CSS + f"\n    body {{ background-color: {background_color}; }}"
 
     body = f"""  <h1>SecureApp Test Reports</h1>
   <h2>CI Check Results</h2>
@@ -951,7 +981,7 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None,
 {notice_html}"""
 
     index_path.write_text(
-        _render_html_page("SecureApp Test Reports", body, LANDING_CSS),
+        _render_html_page("SecureApp Test Reports", body, css_with_bg),
         encoding="utf-8",
     )
 
