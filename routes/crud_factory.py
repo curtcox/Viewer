@@ -30,9 +30,9 @@ class EntityRouteConfig:
         entity_type: str,  # 'server', 'variable', 'secret', 'alias'
         plural_name: str,  # 'servers', 'variables', etc.
         get_by_name_func: Callable[[str], Any],
+        *,
         get_entities_func: Callable[[], list],
         form_class: Type,
-        *,
         # Optional customization
         param_name: Optional[str] = None,  # URL parameter name (default: {entity_type}_name)
         update_cid_func: Optional[Callable[[str], Any]] = None,

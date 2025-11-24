@@ -341,18 +341,23 @@ def test_write_landing_page_applies_background_color(tmp_path) -> None:
     # Test with all passing jobs
     job_statuses = {"job1": "success", "job2": "success"}
     build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
-    
+
+
     index_path = tmp_path / "index.html"
     content = index_path.read_text(encoding="utf-8")
-    
+
+
     # Should have light green background
     assert "background-color: #d4edda" in content
-    
+
+
     # Test with some failures
     job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure"}
     build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
-    
+
+
     content = index_path.read_text(encoding="utf-8")
-    
+
+
     # Should have orange background (3 failures)
     assert "background-color: #ffe0b2" in content

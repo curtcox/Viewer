@@ -905,15 +905,15 @@ def _get_background_color(job_statuses: dict[str, str]) -> str:
         - Red (#f8d7da) if there are 5 or more failing jobs
     """
     failing_count = _count_failing_jobs(job_statuses)
-    
+
+
     if failing_count == 0:
         return "#d4edda"  # light green
-    elif failing_count <= 2:
+    if failing_count <= 2:
         return "#fff3cd"  # yellow
-    elif failing_count <= 4:
+    if failing_count <= 4:
         return "#ffe0b2"  # orange
-    else:
-        return "#f8d7da"  # red
+    return "#f8d7da"  # red
 
 
 def _format_job_list(job_statuses: dict[str, str]) -> str:
@@ -971,7 +971,8 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None,
 
     job_list_html = _format_job_list(job_statuses)
     background_color = _get_background_color(job_statuses)
-    
+
+
     # Add background color to the CSS
     css_with_bg = LANDING_CSS + f"\n    body {{ background-color: {background_color}; }}"
 
