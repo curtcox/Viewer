@@ -31,14 +31,6 @@ def when_i_request_source() -> None:
     attach_response_snapshot(response)
 
 
-@step("When I request the page <path>")
-def when_i_request_the_page(path: str) -> None:
-    client: FlaskClient = get_shared_client()
-    response = client.get(path)
-    get_scenario_state()["response"] = response
-    attach_response_snapshot(response)
-
-
 @step("The response status should be <status_code>")
 def then_status_is(status_code: str) -> None:
     """Validate that the captured response returned the expected status code."""
@@ -73,11 +65,3 @@ def the_response_should_contain_source_browser() -> None:
     """Verify the source browser page renders the expected heading."""
 
     then_response_contains("Source Browser")
-
-
-@step("The page should contain <text>")
-def then_page_should_contain(text: str) -> None:
-    response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
-    body = response.get_data(as_text=True)
-    assert text in body, f"Expected to find {text!r} in the response body."
