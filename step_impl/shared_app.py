@@ -8,6 +8,7 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app
+from identity import ensure_default_resources
 
 _app: Optional[Flask] = None
 _client: Optional[FlaskClient] = None
@@ -22,6 +23,8 @@ def _initialise_app() -> Tuple[Flask, FlaskClient]:
 
     if _app is None or _client is None:
         app = create_app({"TESTING": True})
+        with app.app_context():
+            ensure_default_resources()
         client = app.test_client()
         _app = app
         _client = client
