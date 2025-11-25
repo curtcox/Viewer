@@ -51,7 +51,7 @@ def reset_scenario_store() -> None:
 
 
 # Shared assertions
-@step(["The response status should be 200", "the response status should be 200"])
+@step(["The response status should be 200", "the response status should be 200", "Then the response status should be 200"])
 def the_response_status_should_be_200() -> None:
     """Validate that the captured response completed successfully."""
 
@@ -163,14 +163,14 @@ def when_i_request_new_server_page() -> None:
     _perform_get_request("/servers/new")
 
 
-@step("When I request the page /servers/new as user <alternate-user>")
-def blvplz(arg1: str) -> None:
+@step("When I request the page /servers/new as user \"alternate-user\"")
+def when_i_request_servers_new_as_alternate_user() -> None:
     """Request the new server page as alternate-user."""
     _perform_get_request("/servers/new")
 
 
-@step("When I request the page /servers/new as user \"alternate-user\"")
-def when_i_request_servers_new_as_alternate_user() -> None:
+@step("When I request the page /servers/new as user <alternate-user>")
+def blvplz(arg1: str) -> None:
     """Request the new server page as alternate-user."""
     _perform_get_request("/servers/new")
 
@@ -193,14 +193,14 @@ def when_i_request_aliases_index_page() -> None:
     _perform_get_request("/aliases")
 
 
-@step("When I request the page /aliases/new as user <alternate-user>")
-def lzzcif(arg1: str) -> None:
+@step("When I request the page /aliases/new as user \"alternate-user\"")
+def when_i_request_aliases_new_as_alternate_user() -> None:
     """Request the new alias page as alternate-user."""
     _perform_get_request("/aliases/new")
 
 
-@step("When I request the page /aliases/new as user \"alternate-user\"")
-def when_i_request_aliases_new_as_alternate_user() -> None:
+@step("When I request the page /aliases/new as user <alternate-user>")
+def lzzcif(arg1: str) -> None:
     """Request the new alias page as alternate-user."""
     _perform_get_request("/aliases/new")
 
@@ -209,14 +209,6 @@ def when_i_request_aliases_new_as_alternate_user() -> None:
 def when_i_request_aliases_new_without_user() -> None:
     """Request the new alias page without a user session."""
     _perform_get_request("/aliases/new")
-
-
-@step("When I request the resource <path>")
-def when_i_request_resource(path: str) -> None:
-    """Request an arbitrary resource path."""
-
-    normalized_path = _normalize_path(path)
-    _perform_get_request(normalized_path)
 
 
 @step("When I request the resource /aliases.json")
@@ -277,6 +269,14 @@ def when_i_request_aliases_with_accept_text_plain() -> None:
     attach_response_snapshot(response)
 
 
+@step("When I request the resource <path>")
+def when_i_request_resource(path: str) -> None:
+    """Request an arbitrary resource path."""
+
+    normalized_path = _normalize_path(path)
+    _perform_get_request(normalized_path)
+
+
 @step("When I request the page /servers/<server_name>")
 def when_i_request_server_detail_page(server_name: str) -> None:
     """Request the server detail page for the provided server name."""
@@ -290,7 +290,7 @@ def when_i_request_server_detail_page(server_name: str) -> None:
 
 
 # Content verification steps
-@step(["The page should contain <text>", "the page should contain <text>"])
+@step(["The page should contain <text>", "the page should contain <text>", "And the page should contain <text>"])
 def then_page_should_contain(text: str) -> None:
     """Verify the page contains the specified text."""
     response = get_scenario_state().get("response")
