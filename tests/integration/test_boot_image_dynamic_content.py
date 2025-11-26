@@ -8,11 +8,9 @@ the expected content and functions correctly after import.
 from __future__ import annotations
 
 import json
-import shutil
 import sys
 from io import StringIO
-from pathlib import Path
-from typing import Any, Dict
+from typing import Dict
 
 import pytest
 
@@ -25,7 +23,6 @@ from models import Alias, Server, Variable
 from template_manager import (
     get_template_by_key,
     get_templates_config,
-    get_templates_for_type,
     resolve_cid_value,
 )
 
@@ -396,7 +393,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated boot.json
         boot_json_path = self.project_dir / "reference_templates" / "boot.json"
@@ -457,7 +454,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated boot.json
         boot_json_path = self.project_dir / "reference_templates" / "boot.json"
@@ -513,7 +510,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated boot.json
         boot_json_path = self.project_dir / "reference_templates" / "boot.json"
@@ -570,7 +567,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated templates.json
         templates_json_path = self.project_dir / "reference_templates" / "templates.json"
@@ -672,7 +669,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated templates.json
         templates_json_path = self.project_dir / "reference_templates" / "templates.json"
@@ -774,7 +771,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated templates.json
         templates_json_path = self.project_dir / "reference_templates" / "templates.json"
@@ -876,7 +873,7 @@ class TestBootImageDynamicContent:
 
         # Generate boot image
         generator = BootImageGenerator(self.project_dir)
-        result = generator.generate()
+        generator.generate()
 
         # Read generated templates.json
         templates_json_path = self.project_dir / "reference_templates" / "templates.json"
