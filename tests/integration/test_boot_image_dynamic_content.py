@@ -8,7 +8,6 @@ the expected content and functions correctly after import.
 from __future__ import annotations
 
 import json
-import sys
 from io import StringIO
 from typing import Dict
 
@@ -368,14 +367,10 @@ class TestBootImageDynamicContent:
                     create_cid_record(cid, content)
 
         # Import boot CID
+        from contextlib import redirect_stdout
         captured_output = StringIO()
-        old_stdout = sys.stdout
-        sys.stdout = captured_output
-
-        try:
+        with redirect_stdout(captured_output):
             main.handle_boot_cid_import(result['boot_cid'])
-        finally:
-            sys.stdout = old_stdout
 
         return result
 
