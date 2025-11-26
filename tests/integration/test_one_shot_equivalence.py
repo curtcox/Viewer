@@ -709,8 +709,11 @@ class TestOneShotEquivalence:
         # Verify filters are applied identically
         assert http_data['applied_filters'] == cli_data['applied_filters']
 
-        # Disabled categories should have 0 items
-        for category in ['variables', 'secrets', 'cids']:
+        # Disabled categories (derived from applied_filters) should have 0 items
+        disabled_categories = [
+            cat for cat, enabled in http_data['applied_filters'].items() if not enabled
+        ]
+        for category in disabled_categories:
             assert http_data['categories'][category]['count'] == 0, f"HTTP {category} should be 0"
             assert cli_data['categories'][category]['count'] == 0, f"CLI {category} should be 0"
 
