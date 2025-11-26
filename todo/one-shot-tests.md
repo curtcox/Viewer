@@ -33,6 +33,11 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 4. **Query Parameters and Filtering** - ✅ Implemented
    - Filtered server list (test_filtered_enabled_servers)
    - Query parameters in general (test_json_endpoint_with_query_params)
+   - Search page equivalence (test_search_page_equivalence)
+   - Search results empty query (test_search_results_empty_query_equivalence)
+   - Search results with query (test_search_results_with_query_equivalence)
+   - Search results with category filter (test_search_results_with_category_filter_equivalence)
+   - Search results multiple filters (test_search_results_multiple_filters_equivalence)
 
 5. **Error Handling** - ✅ Implemented
    - 404 consistency (test_404_equivalence)
@@ -55,15 +60,6 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
     - Root path equivalence (test_root_path_equivalence)
 
 ## Remaining Test Proposals
-
-### 4. Query Parameters and Filtering
-
-#### 4.2 Search Parameters
-**Test:** Verify search functionality works identically via HTTP and CLI
-- **Why:** Search is a key feature that needs consistency
-- **What to check:** Search results, pagination
-- **CLI command:** `python main.py "/search?q=test"`
-- **Status:** ⚠️ Not implemented - depends on whether search endpoint exists
 
 ### 5. Error Handling
 
@@ -158,11 +154,12 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 
 ## Implementation Status Summary
 
-**Implemented (18 tests):**
+**Implemented (23 tests):**
 - ✅ All entity endpoints (aliases, variables, servers, secrets)
 - ✅ Content negotiation (JSON, HTML, text formats)
 - ✅ CID content access (direct access, .json, .txt extensions)
 - ✅ Query parameters and filtering
+- ✅ Search endpoints (/search page, /search/results with query and filters)
 - ✅ Error handling (404, invalid CID format)
 - ✅ Boot CID integration (data availability)
 - ✅ OpenAPI specification endpoint
@@ -170,8 +167,7 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 - ✅ Unicode content handling
 - ✅ Root path access
 
-**Not Implemented (11 proposals):**
-- ⚠️ Search parameters (depends on search endpoint existence)
+**Not Implemented (10 proposals):**
 - ⚠️ Method not allowed (POST-only endpoints)
 - ⚠️ Boot CID override (complex scenario)
 - ⚠️ Health check endpoint (depends on endpoint existence)
@@ -209,7 +205,7 @@ For each test to pass:
 ## Open Questions and Missing Test Considerations
 
 ### Open Questions:
-1. **Search endpoint**: Does the application have a `/search` endpoint? If so, should it support one-shot mode?
+1. **Search endpoint**: ✅ Answered - Yes, the application has `/search` (HTML page) and `/search/results` (JSON API) endpoints. Both work in one-shot mode and tests have been implemented.
 2. **Health check endpoint**: Is there a health check endpoint (e.g., `/health`, `/status`) that should be tested?
 3. **POST-only endpoints**: Which endpoints are POST-only and should return appropriate errors in one-shot mode?
 4. **Caching behavior**: Are there any caching headers or behaviors that differ between HTTP and CLI?

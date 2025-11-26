@@ -591,6 +591,132 @@ class TestOneShotEquivalence:
         # Disabled server should not be in either (if filtering works)
         # Note: This may depend on how the filtering is implemented
 
+    def test_search_page_equivalence(self):
+        """Test that /search returns same HTML page via HTTP and CLI."""
+        http_status, http_response = self._get_http_response('/search')
+        cli_status, cli_response = self._get_cli_response('/search')
+
+        # Both should succeed
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        # Both should return HTML
+        assert 'html' in http_response.lower(), "HTTP response should be HTML"
+        assert 'html' in cli_response.lower(), "CLI response should be HTML"
+
+        # Both should contain search page elements
+        assert 'Workspace Search' in http_response, "HTTP missing search title"
+        assert 'Workspace Search' in cli_response, "CLI missing search title"
+        assert 'search-query' in http_response, "HTTP missing search input"
+        assert 'search-query' in cli_response, "CLI missing search input"
+
+    def test_search_results_empty_query_equivalence(self):
+        """Test that /search/results returns same JSON with empty query via HTTP and CLI."""
+        http_status, http_response = self._get_http_response('/search/results')
+        cli_status, cli_response = self._get_cli_response('/search/results')
+
+        # Both should succeed
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        # Parse JSON to compare content
+        http_data = json.loads(http_response)
+        cli_data = json.loads(cli_response)
+
+        # Both should return empty results structure
+        assert http_data['query'] == '', "HTTP should have empty query"
+        assert cli_data['query'] == '', "CLI should have empty query"
+        assert http_data['total_count'] == 0, "HTTP should have zero total count"
+        assert cli_data['total_count'] == 0, "CLI should have zero total count"
+
+        # Both should have same categories structure
+        assert set(http_data['categories'].keys()) == set(cli_data['categories'].keys())
+        assert set(http_data['applied_filters'].keys()) == set(cli_data['applied_filters'].keys())
+
+    def test_search_results_with_query_equivalence(self):
+        """Test that /search/results?q=test returns same JSON via HTTP and CLI."""
+        path = '/search/results?q=test'
+
+        http_status, http_response = self._get_http_response(path)
+        cli_status, cli_response = self._get_cli_response(path)
+
+        # Both should succeed
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        # Parse JSON to compare content
+        http_data = json.loads(http_response)
+        cli_data = json.loads(cli_response)
+
+        # Both should have the same query
+        assert http_data['query'] == 'test', "HTTP query mismatch"
+        assert cli_data['query'] == 'test', "CLI query mismatch"
+
+        # Both should have same result structure (ignoring specific counts which depend on data)
+        assert set(http_data['categories'].keys()) == set(cli_data['categories'].keys())
+        assert http_data['applied_filters'] == cli_data['applied_filters']
+
+        # Test server should be found in both since its name contains 'test'
+        http_servers = http_data['categories']['servers']['items']
+        cli_servers = cli_data['categories']['servers']['items']
+
+        http_server_names = [s['name'] for s in http_servers]
+        cli_server_names = [s['name'] for s in cli_servers]
+
+        assert 'test_equivalence_server' in http_server_names, "HTTP missing test server"
+        assert 'test_equivalence_server' in cli_server_names, "CLI missing test server"
+
+    def test_search_results_with_category_filter_equivalence(self):
+        """Test that /search/results with category filter works identically."""
+        # Disable servers category, search for 'test'
+        path = '/search/results?q=test&servers=false'
+
+        http_status, http_response = self._get_http_response(path)
+        cli_status, cli_response = self._get_cli_response(path)
+
+        # Both should succeed
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        # Parse JSON to compare content
+        http_data = json.loads(http_response)
+        cli_data = json.loads(cli_response)
+
+        # Both should have servers filter disabled
+        assert http_data['applied_filters']['servers'] is False, "HTTP servers filter should be false"
+        assert cli_data['applied_filters']['servers'] is False, "CLI servers filter should be false"
+
+        # Servers category should have 0 items since it's disabled
+        assert http_data['categories']['servers']['count'] == 0, "HTTP servers should have 0 items"
+        assert cli_data['categories']['servers']['count'] == 0, "CLI servers should have 0 items"
+
+    def test_search_results_multiple_filters_equivalence(self):
+        """Test that /search/results with multiple category filters works identically."""
+        # Enable only aliases and servers, search for 'test'
+        path = '/search/results?q=test&aliases=true&servers=true&variables=false&secrets=false&cids=false'
+
+        http_status, http_response = self._get_http_response(path)
+        cli_status, cli_response = self._get_cli_response(path)
+
+        # Both should succeed
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        # Parse JSON to compare content
+        http_data = json.loads(http_response)
+        cli_data = json.loads(cli_response)
+
+        # Verify filters are applied identically
+        assert http_data['applied_filters'] == cli_data['applied_filters']
+
+        # Disabled categories (derived from applied_filters) should have 0 items
+        disabled_categories = [
+            cat for cat, enabled in http_data['applied_filters'].items() if not enabled
+        ]
+        for category in disabled_categories:
+            assert http_data['categories'][category]['count'] == 0, f"HTTP {category} should be 0"
+            assert cli_data['categories'][category]['count'] == 0, f"CLI {category} should be 0"
+
 
 class TestOneShotWithBootCID:
     """Test one-shot mode with boot CID to verify data is loaded correctly."""
