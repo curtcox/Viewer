@@ -7,6 +7,7 @@ main_bp = Blueprint('main', __name__)
 # Rationale: Blueprint must be created before importing route modules that register with it
 # Import submodules to register routes with the blueprint.
 from . import aliases  # noqa: F401,E402
+from . import cid_editor  # noqa: F401,E402
 from . import core  # noqa: F401,E402
 from . import history  # noqa: F401,E402
 from . import import_export  # noqa: F401,E402

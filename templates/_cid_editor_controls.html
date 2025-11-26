@@ -1,0 +1,40 @@
+{#
+    CID Editor Controls Macro
+
+    Provides UI controls for converting between CID references and their contents
+    in editor text fields.
+
+    Usage:
+        {% from "_cid_editor_controls.html" import cid_editor_controls %}
+        {{ cid_editor_controls(form.definition.id) }}
+#}
+
+{% macro cid_editor_controls(field_id, helper_text='') %}
+<div class="cid-editor-controls d-flex align-items-center gap-2 mt-2" data-cid-editor-for="{{ field_id }}">
+    {# Expand CID to contents button - shown when content is a CID with known contents #}
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm d-none"
+            data-cid-expand
+            title="Replace CID with its contents">
+        <i class="fas fa-expand-alt me-1"></i>Expand CID
+    </button>
+
+    {# Compress content to CID button - shown when content is not a CID #}
+    <button type="button"
+            class="btn btn-outline-secondary btn-sm d-none"
+            data-cid-compress
+            title="Replace content with its CID">
+        <i class="fas fa-compress-alt me-1"></i>Convert to CID
+    </button>
+
+    {# CID popup with standard CID link UI #}
+    <span class="d-none" data-cid-popup></span>
+
+    {# Status message (e.g., "CID contents not found") #}
+    <span class="small text-muted d-none" data-cid-status></span>
+
+    {% if helper_text %}
+    <span class="small text-muted">{{ helper_text }}</span>
+    {% endif %}
+</div>
+{% endmacro %}

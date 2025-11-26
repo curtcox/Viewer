@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_ai_helpers.html" import ai_text_controls, ai_action_button %}
+{% from "_cid_editor_controls.html" import cid_editor_controls %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -132,6 +133,7 @@
                             {% else %}
                                 <div class="form-text">Define the alias on the first line using <code>pattern -> /target [options]</code>. Additional lines can capture nested shortcuts, documentation, or examples.</div>
                             {% endif %}
+                            {{ cid_editor_controls(form.definition.id) }}
                         </div>
 
                         {% if alias_templates|default([]) %}
@@ -249,6 +251,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ace-builds@1.32.6/src-min-noconflict/ace.js"></script>
     <script src="{{ url_for('static', filename='js/code_editor.js') }}"></script>
     <script src="{{ url_for('static', filename='js/rename_controls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/cid_editor_controls.js') }}"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
     var matcherContainer = document.querySelector('[data-alias-matcher]');
