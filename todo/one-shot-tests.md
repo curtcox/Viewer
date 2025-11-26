@@ -77,7 +77,14 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 - **Why:** Data precedence rules should be the same
 - **What to check:** Boot CID data takes precedence
 - **CLI command:** Test with conflicting boot CID
-- **Status:** ⚠️ Not implemented - complex scenario requiring conflicting data setup
+- **Status:** ✅ Implemented in `tests/integration/test_boot_cid_override.py`
+  - test_boot_cid_overrides_existing_server
+  - test_boot_cid_overrides_existing_alias
+  - test_boot_cid_overrides_existing_variable
+  - test_boot_cid_overrides_multiple_entity_types
+  - test_boot_cid_override_preserves_non_conflicting_entities
+  - test_boot_cid_override_updates_enabled_status
+  - test_cli_boot_cid_override_produces_same_result
 
 ### 7. Special Endpoints
 
@@ -154,7 +161,7 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 
 ## Implementation Status Summary
 
-**Implemented (23 tests):**
+**Implemented (30 tests):**
 - ✅ All entity endpoints (aliases, variables, servers, secrets)
 - ✅ Content negotiation (JSON, HTML, text formats)
 - ✅ CID content access (direct access, .json, .txt extensions)
@@ -162,14 +169,14 @@ The following tests have been implemented in `tests/integration/test_one_shot_eq
 - ✅ Search endpoints (/search page, /search/results with query and filters)
 - ✅ Error handling (404, invalid CID format)
 - ✅ Boot CID integration (data availability)
+- ✅ Boot CID override (7 tests covering server/alias/variable override, multi-entity, preserving non-conflicting, enabled status, CLI equivalence)
 - ✅ OpenAPI specification endpoint
 - ✅ Exit codes (success and error)
 - ✅ Unicode content handling
 - ✅ Root path access
 
-**Not Implemented (10 proposals):**
+**Not Implemented (9 proposals):**
 - ⚠️ Method not allowed (POST-only endpoints)
-- ⚠️ Boot CID override (complex scenario)
 - ⚠️ Health check endpoint (depends on endpoint existence)
 - ⚠️ Large response handling (requires large test content)
 - ⚠️ Binary content (requires binary test fixtures)
