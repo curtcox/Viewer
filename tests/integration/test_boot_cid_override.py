@@ -19,12 +19,11 @@ from pathlib import Path
 
 import pytest
 
-from app import create_app
+from app import create_app, db
 from boot_cid_importer import import_boot_cid
 from cid_utils import generate_cid
-from database import db
 from db_access import create_cid_record
-from models import Alias, Secret, Server, Variable
+from models import Alias, Server, Variable
 
 pytestmark = pytest.mark.integration
 
