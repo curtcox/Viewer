@@ -19,7 +19,7 @@
 * The response should contain status not_a_cid
 
 ## CID check API returns content_embedded for small CID
-* When I POST to /api/cid/check with JSON content "AAAABHRlc3Q"
+* When I POST to /api/cid/check with JSON content "AAAAAAAEdGVzdA"
 * The response status should be 200
 * The response should contain is_cid true
 * The response should contain status content_embedded
