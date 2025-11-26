@@ -789,7 +789,7 @@ def given_echo_server_available() -> None:
 @step("Given the shell server is available")
 def given_shell_server_available() -> None:
     """Ensure the shell server is available in the workspace."""
-    _create_server_from_definition_file("shell", "reference_templates/servers/definitions/auto_main_shell.py")
+    _create_server_from_definition_file("shell", "reference_templates/servers/definitions/shell.py")
 
 
 @step("When I request the resource /echo")

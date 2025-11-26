@@ -28,12 +28,12 @@
     },
     {
       "name": "markdown",
-      "definition_cid": "reference_templates/servers/definitions/auto_main_markdown.py",
+      "definition_cid": "reference_templates/servers/definitions/markdown.py",
       "enabled": true
     },
     {
       "name": "shell",
-      "definition_cid": "reference_templates/servers/definitions/auto_main_shell.py",
+      "definition_cid": "reference_templates/servers/definitions/shell.py",
       "enabled": true
     },
     {

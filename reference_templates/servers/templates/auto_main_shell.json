@@ -1,6 +1,0 @@
-{
-  "id": "auto-main-shell",
-  "name": "Automatic main() shell runner",
-  "description": "Execute shell commands through a minimal HTML form using automatic main() mapping.",
-  "definition_file": "definitions/auto_main_shell.py"
-}

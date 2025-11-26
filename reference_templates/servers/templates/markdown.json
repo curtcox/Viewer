@@ -1,0 +1,6 @@
+{
+  "id": "markdown",
+  "name": "Markdown renderer",
+  "description": "Accepts Markdown text and returns fully rendered HTML using Viewer features.",
+  "definition_file": "definitions/markdown.py"
+}

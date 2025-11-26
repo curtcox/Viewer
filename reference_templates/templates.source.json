@@ -18,14 +18,14 @@
       "definition_cid": "reference_templates/servers/definitions/auto_main.py"
     },
     "auto-main-markdown": {
-      "name": "Auto main markdown",
+      "name": "Markdown",
       "description": "Automatically render main() output as markdown",
-      "definition_cid": "reference_templates/servers/definitions/auto_main_markdown.py"
+      "definition_cid": "reference_templates/servers/definitions/markdown.py"
     },
     "auto-main-shell": {
-      "name": "Auto main shell",
+      "name": "Shell",
       "description": "Automatically execute shell command from main() and render output",
-      "definition_cid": "reference_templates/servers/definitions/auto_main_shell.py"
+      "definition_cid": "reference_templates/servers/definitions/shell.py"
     },
     "ai-stub": {
       "name": "AI Stub",

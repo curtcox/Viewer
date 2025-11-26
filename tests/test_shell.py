@@ -1,4 +1,4 @@
-"""Tests for auto_main_shell functionality."""
+"""Tests for shell server functionality."""
 # pylint: disable=no-name-in-module  # False positive: server_execution submodules available via lazy loading
 
 from pathlib import Path
@@ -7,7 +7,7 @@ import pytest
 
 import server_execution
 from app import app
-from reference_templates.servers.definitions import auto_main_shell
+from reference_templates.servers.definitions import shell as shell_server
 from text_function_runner import run_text_function
 
 
@@ -32,8 +32,8 @@ def patched_server_execution(monkeypatch):
     monkeypatch.setattr(code_execution, "_handle_successful_execution", fake_success)
 
 
-def test_auto_main_shell_main_executes_shell_command():
-    result = auto_main_shell.main(command="echo direct-shell-test")
+def test_shell_main_executes_shell_command():
+    result = shell_server.main(command="echo direct-shell-test")
 
     assert result["content_type"] == "text/html"
     assert "<pre>" in result["output"]
@@ -42,11 +42,11 @@ def test_auto_main_shell_main_executes_shell_command():
     assert "[exit 0]" in result["output"]
 
 
-def test_auto_main_shell_runs_through_text_function_runner():
+def test_shell_runs_through_text_function_runner():
     definition = """
-from reference_templates.servers.definitions import auto_main_shell
+from reference_templates.servers.definitions import shell as shell_server
 
-return auto_main_shell.main(command=command)
+return shell_server.main(command=command)
 """.strip()
 
     result = run_text_function(definition, {"command": "echo text-runner"})
@@ -57,8 +57,8 @@ return auto_main_shell.main(command=command)
     assert "[exit 0]" in result["output"]
 
 
-def test_auto_main_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/auto_main_shell.py").read_text(encoding='utf-8')
+def test_shell_executes_via_server_execution(patched_server_execution):
+    definition = Path("reference_templates/servers/definitions/shell.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/shell", json={"command": "echo server-execution"}):
         result = server_execution.execute_server_code_from_definition(
