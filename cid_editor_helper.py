@@ -17,6 +17,7 @@ from cid_core import (
     DIRECT_CONTENT_EMBED_LIMIT,
 )
 from cid_presenter import format_cid
+from cid_storage import store_cid_from_bytes
 import db_access
 
 
@@ -145,8 +146,6 @@ def store_content_as_cid(content: str) -> str:
     Returns:
         The CID value for the stored content
     """
-    from cid_storage import store_cid_from_bytes
-
     content_bytes = content.encode('utf-8')
     return store_cid_from_bytes(content_bytes)
 
