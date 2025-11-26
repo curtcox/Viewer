@@ -301,3 +301,128 @@ class TestBootImageReferenceTemplates:
             assert 'echo' in templates_config['servers']
             assert 'example-variable' in templates_config['variables']
             assert 'hello-world' in templates_config['uploads']
+
+    def test_minimal_boot_cid_loads_only_ai_stub(self, tmp_path):
+        """Test that minimal boot CID loads only the ai_stub server."""
+        # Generate boot image
+        project_dir = Path(__file__).parent.parent.parent
+        generator = BootImageGenerator(project_dir)
+        result = generator.generate()
+        minimal_boot_cid = result['minimal_boot_cid']
+
+        # Load all CIDs into database
+        self.load_cids_into_db(generator)
+
+        # Import boot CID
+        captured_output = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            main.handle_boot_cid_import(minimal_boot_cid)
+        finally:
+            sys.stdout = old_stdout
+
+        # Verify only the ai_stub server was imported
+        with self.app.app_context():
+            servers = Server.query.all()
+            server_names = [s.name for s in servers]
+            assert 'ai_stub' in server_names, "ai_stub should be loaded from minimal boot"
+            # Verify extra default servers are NOT loaded
+            assert 'echo' not in server_names, "echo should NOT be loaded from minimal boot"
+            assert 'shell' not in server_names, "shell should NOT be loaded from minimal boot"
+            assert 'glom' not in server_names, "glom should NOT be loaded from minimal boot"
+
+    def test_default_boot_cid_loads_all_servers(self, tmp_path):
+        """Test that default boot CID loads all servers."""
+        # Generate boot image
+        project_dir = Path(__file__).parent.parent.parent
+        generator = BootImageGenerator(project_dir)
+        result = generator.generate()
+        default_boot_cid = result['default_boot_cid']
+
+        # Load all CIDs into database
+        self.load_cids_into_db(generator)
+
+        # Import boot CID
+        captured_output = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            main.handle_boot_cid_import(default_boot_cid)
+        finally:
+            sys.stdout = old_stdout
+
+        # Verify all servers were imported
+        with self.app.app_context():
+            servers = Server.query.all()
+            server_names = [s.name for s in servers]
+            # Verify all default servers are loaded
+            assert 'ai_stub' in server_names, "ai_stub should be loaded from default boot"
+            assert 'echo' in server_names, "echo should be loaded from default boot"
+            assert 'shell' in server_names, "shell should be loaded from default boot"
+            assert 'glom' in server_names, "glom should be loaded from default boot"
+            assert 'markdown' in server_names, "markdown should be loaded from default boot"
+            assert 'jinja' in server_names, "jinja should be loaded from default boot"
+            assert 'proxy' in server_names, "proxy should be loaded from default boot"
+            assert 'pygments' in server_names, "pygments should be loaded from default boot"
+
+    def test_default_boot_cid_echo_server_works(self, tmp_path):
+        """Test that echo server works when booted from default CID."""
+        # Generate boot image
+        project_dir = Path(__file__).parent.parent.parent
+        generator = BootImageGenerator(project_dir)
+        result = generator.generate()
+        default_boot_cid = result['default_boot_cid']
+
+        # Load all CIDs into database
+        self.load_cids_into_db(generator)
+
+        # Import boot CID
+        captured_output = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            main.handle_boot_cid_import(default_boot_cid)
+        finally:
+            sys.stdout = old_stdout
+
+        # Verify echo server is available and works
+        with self.app.app_context():
+            server = Server.query.filter_by(name='echo').first()
+            assert server is not None, "echo server should be loaded from default boot"
+            assert server.enabled is True
+            # Verify the definition contains expected content
+            assert 'def main(' in server.definition or 'dict_to_html_ul' in server.definition
+
+    def test_default_boot_cid_shell_server_works(self, tmp_path):
+        """Test that shell server works when booted from default CID."""
+        # Generate boot image
+        project_dir = Path(__file__).parent.parent.parent
+        generator = BootImageGenerator(project_dir)
+        result = generator.generate()
+        default_boot_cid = result['default_boot_cid']
+
+        # Load all CIDs into database
+        self.load_cids_into_db(generator)
+
+        # Import boot CID
+        captured_output = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            main.handle_boot_cid_import(default_boot_cid)
+        finally:
+            sys.stdout = old_stdout
+
+        # Verify shell server is available and works
+        with self.app.app_context():
+            server = Server.query.filter_by(name='shell').first()
+            assert server is not None, "shell server should be loaded from default boot"
+            assert server.enabled is True
+            # Verify the definition contains expected content
+            assert 'def main(' in server.definition
+            assert 'subprocess' in server.definition or 'shell' in server.definition.lower()
