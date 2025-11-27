@@ -418,6 +418,59 @@ class TestBootCidImporter(unittest.TestCase):
             self.assertIsNotNone(alias)
             self.assertEqual(alias.definition, '/context-test -> /target')
 
+    def test_import_boot_cid_prints_differences_to_stdout(self):
+        """Test that boot CID import prints differences to stdout when DB has different data."""
+        import io
+        import sys
+        with self.app.app_context():
+            # Create existing alias in DB with different definition
+            existing_alias = Alias(
+                name='existing-alias',
+                definition='/existing-alias -> /old-target',
+                enabled=True,
+            )
+            db.session.add(existing_alias)
+            db.session.commit()
+
+            # Create alias content with different definition
+            aliases_data = [
+                {
+                    'name': 'existing-alias',
+                    'definition': '/existing-alias -> /new-target',
+                }
+            ]
+            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_cid = generate_cid(aliases_content)
+            create_cid_record(aliases_cid, aliases_content)
+
+            # Create boot CID
+            payload_data = {
+                'version': 6,
+                'aliases': aliases_cid,
+            }
+            content = json.dumps(payload_data).encode('utf-8')
+            boot_cid = generate_cid(content)
+            create_cid_record(boot_cid, content)
+
+            # Capture stdout
+            captured_output = io.StringIO()
+            old_stdout = sys.stdout
+            sys.stdout = captured_output
+
+            try:
+                success, error = import_boot_cid(self.app, boot_cid)
+            finally:
+                sys.stdout = old_stdout
+
+            # Verify success
+            self.assertTrue(success, f"Import failed: {error}")
+
+            # Verify warning was printed to stdout
+            output = captured_output.getvalue()
+            self.assertIn('WARNING', output)
+            self.assertIn('existing-alias', output)
+            self.assertIn('different', output.lower())
+
 
 if __name__ == '__main__':
     unittest.main()
