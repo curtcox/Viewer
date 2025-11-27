@@ -189,3 +189,154 @@ def test_query_and_nested_server_parameters_combine(
 
     payload = _resolve_cid_payload(integration_app, response.headers["Location"])
     assert payload == "start:value"
+
+
+# =============================================================================
+# Server Command Chaining Integration Tests
+# =============================================================================
+# These tests verify the command chaining functionality as described in the issue:
+# - /s/CID translates into s.main(contents(CID))
+# - /s2/s1 translates into s2.main(s1.main())
+# - /s2/s1/CID translates into s2.main(s1.main(contents(CID)))
+
+
+def test_chaining_server_with_cid_content(
+    client, integration_app
+):
+    """Integration test for /s/CID: s.main(contents(CID))."""
+
+    _store_server(
+        integration_app,
+        "processor",
+        """
+        def main(data):
+            return {"output": f"processed:{data}", "content_type": "text/plain"}
+        """,
+    )
+
+    cid_value = "bafyintegrationcid"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{cid_value}", file_data=b"raw-input")
+        )
+        db.session.commit()
+
+    response = client.get(f"/processor/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == "processed:raw-input"
+
+
+def test_chaining_two_servers(
+    client, integration_app
+):
+    """Integration test for /s2/s1: s2.main(s1.main())."""
+
+    _store_server(
+        integration_app,
+        "first",
+        """
+        def main():
+            return {"output": "first-output", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "second",
+        """
+        def main(data):
+            return {"output": f"second({data})", "content_type": "text/plain"}
+        """,
+    )
+
+    response = client.get("/second/first")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == "second(first-output)"
+
+
+def test_chaining_three_level_deep(
+    client, integration_app
+):
+    """Integration test for /s3/s2/s1/CID: s3.main(s2.main(s1.main(contents(CID))))."""
+
+    _store_server(
+        integration_app,
+        "level1",
+        """
+        def main(input_val):
+            return {"output": f"L1({input_val})", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "level2",
+        """
+        def main(input_val):
+            return {"output": f"L2({input_val})", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "level3",
+        """
+        def main(input_val):
+            return {"output": f"L3({input_val})", "content_type": "text/plain"}
+        """,
+    )
+
+    cid_value = "bafydeepchaining"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{cid_value}", file_data=b"base")
+        )
+        db.session.commit()
+
+    response = client.get(f"/level3/level2/level1/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == "L3(L2(L1(base)))"
+
+
+def test_chaining_server_with_alias_to_server(
+    client, integration_app
+):
+    """Integration test for /s2/alias: s2.main(alias->s1.main())."""
+
+    _store_server(
+        integration_app,
+        "target_srv",
+        """
+        def main():
+            return {"output": "via-alias", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "caller",
+        """
+        def main(data):
+            return {"output": f"caller({data})", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_alias(
+        integration_app,
+        "shortcut",
+        """
+        shortcut -> /target_srv
+        """,
+    )
+
+    response = client.get("/caller/shortcut")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == "caller(via-alias)"
