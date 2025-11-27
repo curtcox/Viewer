@@ -25,7 +25,6 @@ os.environ['TESTING'] = 'True'
 import server_execution
 from alias_definition import format_primary_alias_line
 from app import create_app
-from cid_core import is_literal_cid
 from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, generate_cid
 from database import db
 from db_access import get_cid_by_path

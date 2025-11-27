@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from app import create_app
 from database import db
 from db_access import get_cid_by_path
-from models import CID, Server
+from models import Server
 
 
 class TestServerExecutionRedirectResult(unittest.TestCase):
