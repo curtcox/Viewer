@@ -235,6 +235,14 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
         error_msg = '\n'.join(context.errors)
         return False, f"Boot CID import failed during CID map ingestion:\n{error_msg}"
 
+    # Check for differences between boot image and database before importing
+    from boot_image_diff import (  # pylint: disable=import-outside-toplevel
+        compare_boot_image_to_db,
+        print_boot_image_differences,
+    )
+    diff_result = compare_boot_image_to_db(payload, context.cid_lookup)
+    print_boot_image_differences(diff_result)
+
     # Import selected sections
     import_selected_sections(context)
 
