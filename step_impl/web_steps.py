@@ -758,3 +758,53 @@ def and_executing_on_the_destination_site_should_return(route_path: str, expecte
     """Verify executing the route returns the expected message."""
     from step_impl.import_export_steps import and_executing_destination_route_returns_message
     and_executing_destination_route_returns_message(route_path, expected_message)
+
+
+def _create_server_from_definition_file(server_name: str, definition_path: str) -> None:
+    """Create a server using a definition file from reference_templates."""
+    from pathlib import Path
+
+    app = _require_app()
+    base_dir = Path(__file__).parent.parent
+    definition_file = base_dir / definition_path
+    definition = definition_file.read_text(encoding='utf-8')
+
+    with app.app_context():
+        existing = Server.query.filter_by(name=server_name).first()
+        if existing is None:
+            server = Server(name=server_name, definition=definition, enabled=True)
+            db.session.add(server)
+        else:
+            existing.definition = definition
+            existing.enabled = True
+        db.session.commit()
+
+
+@step("Given the echo server is available")
+def given_echo_server_available() -> None:
+    """Ensure the echo server is available in the workspace."""
+    _create_server_from_definition_file("echo", "reference_templates/servers/definitions/echo.py")
+
+
+@step("Given the shell server is available")
+def given_shell_server_available() -> None:
+    """Ensure the shell server is available in the workspace."""
+    _create_server_from_definition_file("shell", "reference_templates/servers/definitions/shell.py")
+
+
+@step("When I request the resource /echo")
+def when_i_request_echo_resource() -> None:
+    """Request the echo resource."""
+    _perform_get_request("/echo")
+
+
+@step("When I request the resource /shell")
+def when_i_request_shell_resource() -> None:
+    """Request the shell resource."""
+    _perform_get_request("/shell")
+
+
+@step("The response content type should be text/html")
+def the_response_content_type_should_be_text_html() -> None:
+    """Validate that the response content type is text/html."""
+    the_response_content_type_should_be("text/html")

@@ -1,4 +1,4 @@
-"""Tests for auto_main_markdown functionality."""
+"""Tests for markdown server functionality."""
 # pylint: disable=no-name-in-module  # False positive: server_execution submodules available via lazy loading
 
 from pathlib import Path
@@ -9,29 +9,29 @@ import pytest
 import server_execution
 from app import app
 from cid_utils import MermaidRenderLocation, _render_markdown_document
-from reference_templates.servers.definitions import auto_main_markdown
+from reference_templates.servers.definitions import markdown as markdown_server
 from text_function_runner import run_text_function
 
 
-def test_auto_main_markdown_main_normalizes_input(monkeypatch):
+def test_markdown_main_normalizes_input(monkeypatch):
     captured = {}
 
     def fake_renderer(text):
         captured["text"] = text
         return "<html></html>"
 
-    monkeypatch.setattr(auto_main_markdown, "_render_markdown_document", fake_renderer)
+    monkeypatch.setattr(markdown_server, "_render_markdown_document", fake_renderer)
 
-    result = auto_main_markdown.main(markdown="## Heading")
+    result = markdown_server.main(markdown="## Heading")
 
     assert result["content_type"] == "text/html"
     assert result["output"] == "<html></html>"
     assert captured["text"] == "## Heading\n"
 
 
-def test_auto_main_markdown_supports_mermaid_and_formdown():
+def test_markdown_supports_mermaid_and_formdown():
     svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
-    markdown = """
+    markdown_text = """
     # Release planning
 
     ```mermaid
@@ -52,7 +52,7 @@ def test_auto_main_markdown_supports_mermaid_and_formdown():
             return_value=MermaidRenderLocation(is_cid=True, value="diagramcid123"),
         ),
     ):
-        result = auto_main_markdown.main(markdown=markdown)
+        result = markdown_server.main(markdown=markdown_text)
 
     assert result["content_type"] == "text/html"
     assert "mermaid-diagram" in result["output"]
@@ -82,11 +82,11 @@ def patched_server_execution(monkeypatch):
     monkeypatch.setattr(code_execution, "_handle_successful_execution", fake_success)
 
 
-def test_auto_main_markdown_runs_through_text_function_runner():
+def test_markdown_runs_through_text_function_runner():
     definition = """
-from reference_templates.servers.definitions import auto_main_markdown
+from reference_templates.servers.definitions import markdown as markdown_server
 
-return auto_main_markdown.main(markdown=markdown)
+return markdown_server.main(markdown=markdown)
 """.strip()
 
     result = run_text_function(definition, {"markdown": "Hello from text runner"})
@@ -96,8 +96,8 @@ return auto_main_markdown.main(markdown=markdown)
     assert "<main class=\"markdown-body\"" in result["output"]
 
 
-def test_auto_main_markdown_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/auto_main_markdown.py").read_text(encoding='utf-8')
+def test_markdown_executes_via_server_execution(patched_server_execution):
+    definition = Path("reference_templates/servers/definitions/markdown.py").read_text(encoding='utf-8')
 
     with app.test_request_context("/markdown", json={"markdown": "Hello from server execution"}):
         result = server_execution.execute_server_code_from_definition(
@@ -110,27 +110,27 @@ def test_auto_main_markdown_executes_via_server_execution(patched_server_executi
     assert "<main class=\"markdown-body\"" in result["output"]
 
 
-def test_auto_main_markdown_matches_markdown_showcase_template():
+def test_markdown_matches_markdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     markdown_sample = (
         repo_root / "reference_templates" / "uploads" / "contents" / "markdown_showcase.md"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(markdown_sample)
-    rendered = auto_main_markdown.main(markdown=markdown_sample)
+    rendered = markdown_server.main(markdown=markdown_sample)
 
     assert rendered["content_type"] == "text/html"
     assert rendered["output"] == expected_html
 
 
-def test_auto_main_markdown_matches_formdown_showcase_template():
+def test_markdown_matches_formdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     formdown_sample = (
         repo_root / "reference_templates" / "uploads" / "contents" / "formdown_showcase.formdown"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(formdown_sample)
-    rendered = auto_main_markdown.main(markdown=formdown_sample)
+    rendered = markdown_server.main(markdown=formdown_sample)
 
     assert rendered["content_type"] == "text/html"
     assert rendered["output"] == expected_html

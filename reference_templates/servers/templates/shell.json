@@ -1,0 +1,6 @@
+{
+  "id": "shell",
+  "name": "Shell runner",
+  "description": "Execute shell commands through a minimal HTML form.",
+  "definition_file": "definitions/shell.py"
+}

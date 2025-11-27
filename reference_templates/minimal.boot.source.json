@@ -6,21 +6,21 @@
   "aliases": [
     {
       "name": "ai",
-      "definition_cid": "AAAAAAAXbGl0ZXJhbCAvYWkgLT4gL2FpX3N0dWI",
+      "definition_cid": "reference_templates/aliases/ai.txt",
       "enabled": true
     }
   ],
   "servers": [
     {
       "name": "ai_stub",
-      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "definition_cid": "reference_templates/servers/definitions/ai_stub.py",
       "enabled": true
     }
   ],
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABLpLqFHsf3YY4YNyC-GOkj_H5n0SbhjabnPa2hgdNnFnqPA6DiWLZDTPloZcfuCrMBgDnD480QET02K7_OCag3bkg",
+      "definition": "GENERATED:templates.json",
       "enabled": true
     }
   ]

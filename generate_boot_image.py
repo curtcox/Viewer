@@ -6,8 +6,9 @@ This script:
 2. Generates CIDs for all referenced files
 3. Stores CIDs in /cids directory
 4. Converts templates.source.json to templates.json (filenames -> CIDs)
-5. Converts boot.source.json to boot.json (filenames -> CIDs + templates variable)
-6. Ensures all generated CIDs are stored in /cids
+5. Converts minimal.boot.source.json to minimal.boot.json (filenames -> CIDs)
+6. Converts default.boot.source.json to default.boot.json (filenames -> CIDs)
+7. Ensures all generated CIDs are stored in /cids
 """
 
 import json
@@ -175,20 +176,25 @@ class BootImageGenerator:
 
         return templates_cid
 
-    def generate_boot_json(self, templates_cid: str) -> str:
-        """Generate boot.json from boot.source.json.
+    def generate_boot_json(self, templates_cid: str, source_name: str = "boot") -> str:
+        """Generate boot.json from a boot.source.json file.
 
         Args:
             templates_cid: CID of the templates.json file
+            source_name: Name prefix for source/output files (e.g., "boot", "minimal", "default")
 
         Returns:
             CID of the generated boot.json
         """
-        print("\nStep 2: Processing boot.source.json")
+        source_filename = f"{source_name}.boot.source.json" if source_name != "boot" else "boot.source.json"
+        target_filename = f"{source_name}.boot.json" if source_name != "boot" else "boot.json"
+        cid_filename = f"{source_name}.boot.cid" if source_name != "boot" else "boot.cid"
+
+        print(f"\nStep 2: Processing {source_filename}")
         print("=" * 60)
 
         # Read boot.source.json
-        source_path = self.reference_templates_dir / "boot.source.json"
+        source_path = self.reference_templates_dir / source_filename
         with open(source_path, 'r', encoding='utf-8') as f:
             source_data = json.load(f)
 
@@ -208,7 +214,7 @@ class BootImageGenerator:
                     var['definition'] = templates_cid
 
         # Write boot.json
-        target_path = self.reference_templates_dir / "boot.json"
+        target_path = self.reference_templates_dir / target_filename
         with open(target_path, 'w', encoding='utf-8') as f:
             json.dump(boot_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
@@ -221,10 +227,10 @@ class BootImageGenerator:
         cid_file_path = self.cids_dir / boot_cid
         with open(cid_file_path, 'wb') as f:
             f.write(boot_json_content)
-        print(f"Stored boot.json -> {boot_cid}")
+        print(f"Stored {target_filename} -> {boot_cid}")
 
         # Save boot CID to boot.cid file
-        boot_cid_file = self.reference_templates_dir / "boot.cid"
+        boot_cid_file = self.reference_templates_dir / cid_filename
         with open(boot_cid_file, 'w', encoding='utf-8') as f:
             f.write(boot_cid)
         print(f"Saved boot CID to: {boot_cid_file}")
@@ -235,7 +241,7 @@ class BootImageGenerator:
         """Generate the complete boot image.
 
         Returns:
-            Dictionary with 'templates_cid' and 'boot_cid' keys
+            Dictionary with 'templates_cid', 'minimal_boot_cid', and 'default_boot_cid' keys
         """
         print("Generating Boot Image")
         print("=" * 60)
@@ -246,22 +252,34 @@ class BootImageGenerator:
         # Generate templates.json and get its CID
         templates_cid = self.generate_templates_json()
 
-        # Generate boot.json using the templates CID
-        boot_cid = self.generate_boot_json(templates_cid)
+        # Generate minimal.boot.json using the templates CID
+        minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal")
+
+        # Generate default.boot.json using the templates CID
+        default_boot_cid = self.generate_boot_json(templates_cid, "default")
+
+        # Also generate legacy boot.json for backwards compatibility
+        # This is a copy of minimal.boot.json
+        boot_cid = self.generate_boot_json(templates_cid, "boot")
 
         # Summary
         print("\n" + "=" * 60)
         print("Boot Image Generation Complete")
         print("=" * 60)
-        print(f"Templates CID: {templates_cid}")
-        print(f"Boot CID:      {boot_cid}")
+        print(f"Templates CID:     {templates_cid}")
+        print(f"Minimal Boot CID:  {minimal_boot_cid}")
+        print(f"Default Boot CID:  {default_boot_cid}")
+        print(f"Boot CID (legacy): {boot_cid}")
         print(f"\nTotal files processed: {len(self.processed_files)}")
-        print("\nTo boot with this image, run:")
-        print(f"  python main.py --boot-cid {boot_cid}")
+        print("\nTo boot with these images, run:")
+        print(f"  python main.py --boot-cid {minimal_boot_cid}  # Minimal boot (ai_stub only)")
+        print(f"  python main.py --boot-cid {default_boot_cid}  # Default boot (all servers)")
 
         return {
             'templates_cid': templates_cid,
-            'boot_cid': boot_cid
+            'boot_cid': boot_cid,
+            'minimal_boot_cid': minimal_boot_cid,
+            'default_boot_cid': default_boot_cid
         }
 
 
