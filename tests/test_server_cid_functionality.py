@@ -6,7 +6,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
+from cid_core import is_literal_cid
 from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, save_server_definition_as_cid
+from db_access import get_cid_by_path
 from models import CID, Server
 
 
@@ -39,20 +41,20 @@ def test_server_cid_functionality():
         assert CID_MIN_LENGTH <= len(cid1) <= CID_LENGTH
         print(f"✓ CID generated: {cid1}")
 
-        # Verify CID record was created in database
-        cid_record = CID.query.filter_by(path=f"/{cid1}").first()
+        # Verify CID resolves correctly (via DB for hash-based or literal extraction)
+        cid_record = get_cid_by_path(f"/{cid1}")
         assert cid_record is not None
         assert cid_record.file_data == definition1.encode('utf-8')
-        # CID record exists (definition storage is global-only)
-        print("✓ CID record created in database")
+        print("✓ CID resolves correctly")
 
         # Test 2: Test duplicate CID handling
         cid2 = save_server_definition_as_cid(definition1)
         assert cid1 == cid2  # Should return same CID for same content
 
-        # Should still only have one CID record
-        cid_count = CID.query.filter_by(path=f"/{cid1}").count()
-        assert cid_count == 1
+        # For literal CIDs, no DB record should exist; for hash-based, only one
+        if not is_literal_cid(cid1):
+            cid_count = CID.query.filter_by(path=f"/{cid1}").count()
+            assert cid_count == 1
         print("✓ Duplicate CID handling works correctly")
 
         # Test 3: Test different content generates different CID
@@ -82,10 +84,10 @@ def test_server_cid_functionality():
         assert CID_MIN_LENGTH <= len(server.definition_cid) <= CID_LENGTH
         print(f"✓ Server created with CID: {server.definition_cid}")
 
-        # Verify CID record exists for server definition
-        server_cid_record = CID.query.filter_by(path=f"/{server.definition_cid}").first()
+        # Verify CID resolves correctly for server definition
+        server_cid_record = get_cid_by_path(f"/{server.definition_cid}")
         assert server_cid_record is not None
-        print("✓ Server definition CID record exists in database")
+        print("✓ Server definition CID resolves correctly")
 
         # Test 5: Test server update with CID
         original_cid = server.definition_cid
@@ -105,11 +107,11 @@ def test_server_cid_functionality():
         assert server.definition_cid != original_cid  # Should be different CID
         print(f"✓ Server updated with new CID: {server.definition_cid}")
 
-        # Verify new CID record exists
-        updated_cid_record = CID.query.filter_by(path=f"/{server.definition_cid}").first()
+        # Verify new CID resolves correctly
+        updated_cid_record = get_cid_by_path(f"/{server.definition_cid}")
         assert updated_cid_record is not None
         assert updated_cid_record.file_data == "print('Updated server code')".encode('utf-8')
-        print("✓ Updated server definition CID record exists in database")
+        print("✓ Updated server definition CID resolves correctly")
 
         # Test 6: Test server update with same definition (should keep same CID)
         current_cid = server.definition_cid

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 
 from app import create_app
 from database import db
-from models import CID, Server
+from db_access import get_cid_by_path
+from models import Server
 
 
 class TestServerExecutionRedirectResult(unittest.TestCase):
@@ -63,7 +64,7 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
         self.assertTrue(final_path.endswith(".html"))
 
         cid_value = final_path.lstrip("/").split(".", 1)[0]
-        cid_record = CID.query.filter_by(path=f"/{cid_value}").first()
+        cid_record = get_cid_by_path(f"/{cid_value}")
         self.assertIsNotNone(cid_record)
 
         direct_response = self.client.get(final_path)

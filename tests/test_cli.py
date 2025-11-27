@@ -90,10 +90,11 @@ class TestValidateCid(unittest.TestCase):
             self.assertIsNone(error_msg)
 
     def test_valid_cid_not_found(self):
-        """Test valid CID format but not in database."""
+        """Test valid CID format but not in database (for hash-based CIDs)."""
         with self.app.app_context():
-            # Generate a CID but don't store it
-            content = b"non-existent content"
+            # Generate a CID with content > 64 bytes so it requires DB storage
+            # (literal CIDs <= 64 bytes are always resolvable without DB)
+            content = b"x" * 100  # 100 bytes - requires hash-based storage
             cid_value = generate_cid(content)
 
             is_valid, error_type, error_msg = validate_cid(cid_value)

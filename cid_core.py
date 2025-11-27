@@ -421,3 +421,69 @@ def generate_cid(file_data: bytes) -> str:
         raise ValueError("SHA-512 digest must encode to 86 characters")
 
     return f"{length_part}{digest_part}"
+
+
+def is_literal_cid(cid: str) -> bool:
+    """Check if a CID contains literal (directly embedded) content.
+
+    A CID is literal if its content length is <= DIRECT_CONTENT_EMBED_LIMIT (64 bytes),
+    meaning the content is embedded directly in the CID rather than being a hash.
+
+    Args:
+        cid: CID string to check (may include leading slash)
+
+    Returns:
+        True if the CID contains literal content, False otherwise
+
+    Example:
+        >>> is_literal_cid("AAAAAAAA")  # Empty content
+        True
+        >>> is_literal_cid("AAAABWhlbGxv")  # "hello" embedded
+        True
+        >>> is_literal_cid("/AAAABWhlbGxv")  # Works with leading slash
+        True
+    """
+    normalized = normalize_component(cid)
+    if not normalized:
+        return False
+
+    try:
+        content_length, _ = parse_cid_components(normalized)
+        return content_length <= DIRECT_CONTENT_EMBED_LIMIT
+    except ValueError:
+        return False
+
+
+def extract_literal_content(cid: str) -> Optional[bytes]:
+    """Extract the literal content from a CID if it contains embedded content.
+
+    This function extracts content directly from CIDs that have content
+    <= DIRECT_CONTENT_EMBED_LIMIT (64 bytes). For hash-based CIDs,
+    returns None since the content cannot be derived from the hash.
+
+    Args:
+        cid: CID string (may include leading slash)
+
+    Returns:
+        The literal content bytes if the CID contains embedded content,
+        None if the CID is hash-based or invalid
+
+    Example:
+        >>> extract_literal_content("AAAAAAAA")
+        b''
+        >>> extract_literal_content("AAAABWhlbGxv")
+        b'hello'
+        >>> extract_literal_content("/AAAABWhlbGxv")  # Works with leading slash
+        b'hello'
+    """
+    normalized = normalize_component(cid)
+    if not normalized:
+        return None
+
+    try:
+        content_length, payload = parse_cid_components(normalized)
+        if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
+            return payload
+        return None
+    except ValueError:
+        return None

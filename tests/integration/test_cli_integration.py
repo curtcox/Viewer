@@ -83,9 +83,9 @@ class TestCliIntegration(CliTestCase):
         self.assertIn('invalid character', result.stderr.lower())
 
     def test_valid_cid_not_found(self):
-        """Test providing a valid CID format that doesn't exist."""
-        # Generate a CID but don't store it
-        non_existent_cid = generate_cid(b'this cid was never stored')
+        """Test providing a valid CID format that doesn't exist (hash-based)."""
+        # Generate a hash-based CID (content > 64 bytes) that requires DB storage
+        non_existent_cid = generate_cid(b'x' * 100)
 
         result = subprocess.run(
             [sys.executable, 'main.py', non_existent_cid],

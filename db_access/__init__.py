@@ -19,6 +19,7 @@ if TYPE_CHECKING:  # pragma: no cover
         DEFAULT_CSS_ALIAS_NAME,
         EntityInteractionLookup,
         EntityInteractionRequest,
+        LiteralCIDRecord,
         MAX_MESSAGE_LENGTH,
         ServerInvocationInput,
         count_cids,

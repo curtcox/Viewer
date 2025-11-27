@@ -127,9 +127,10 @@ class TestBootCidImporter(unittest.TestCase):
             self.assertIn("Invalid CID format", error)
 
     def test_load_and_validate_boot_cid_not_found(self):
-        """Test loading boot CID that doesn't exist in database."""
+        """Test loading boot CID that doesn't exist in database (hash-based)."""
         with self.app.app_context():
-            valid_cid = generate_cid(b"some content")
+            # Use content > 64 bytes to create a hash-based CID that requires DB storage
+            valid_cid = generate_cid(b"x" * 100)
             payload, error = load_and_validate_boot_cid(valid_cid)
             self.assertIsNone(payload)
             self.assertIsNotNone(error)
@@ -337,7 +338,8 @@ class TestBootCidImporter(unittest.TestCase):
     def test_import_boot_cid_not_found(self):
         """Test importing non-existent boot CID fails with helpful message."""
         with self.app.app_context():
-            valid_cid = generate_cid(b"some content")
+            # Use content > 64 bytes to create a hash-based CID that requires DB storage
+            valid_cid = generate_cid(b"x" * 100)
             success, error = import_boot_cid(self.app, valid_cid)
             self.assertFalse(success)
             self.assertIsNotNone(error)

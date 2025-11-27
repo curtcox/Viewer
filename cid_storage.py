@@ -9,7 +9,7 @@ from typing import Any
 
 import db_access
 
-from cid_core import generate_cid
+from cid_core import generate_cid, is_literal_cid
 from cid_presenter import cid_path, format_cid
 
 
@@ -20,10 +20,17 @@ from cid_presenter import cid_path, format_cid
 def ensure_cid_exists(cid_value: str, content_bytes: bytes) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
+    Note: Literal CIDs (content <= 64 bytes) are NOT stored in the database
+    because their content is already embedded in the CID itself.
+
     Args:
         cid_value: CID string
         content_bytes: Content to store
     """
+    # Don't store literal CIDs - their content is embedded in the CID itself
+    if is_literal_cid(cid_value):
+        return
+
     cid_record_path = cid_path(cid_value)
     try:
         content = db_access.get_cid_by_path(cid_record_path) if cid_record_path else None

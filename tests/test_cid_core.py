@@ -251,5 +251,91 @@ class TestGenerateCID(unittest.TestCase):
         self.assertEqual(len(payload), 64)  # SHA-512 digest
 
 
+class TestIsLiteralCID(unittest.TestCase):
+    """Tests for is_literal_cid function."""
+
+    def test_empty_cid_is_literal(self):
+        """Test that empty content CID is literal."""
+        from cid_core import is_literal_cid
+        cid = generate_cid(b"")
+        self.assertTrue(is_literal_cid(cid))
+
+    def test_small_content_is_literal(self):
+        """Test that small content (<=64 bytes) is literal."""
+        from cid_core import is_literal_cid
+        cid = generate_cid(b"hello")
+        self.assertTrue(is_literal_cid(cid))
+
+    def test_boundary_content_is_literal(self):
+        """Test that content exactly at 64 bytes is literal."""
+        from cid_core import is_literal_cid
+        cid = generate_cid(b"x" * DIRECT_CONTENT_EMBED_LIMIT)
+        self.assertTrue(is_literal_cid(cid))
+
+    def test_large_content_is_not_literal(self):
+        """Test that content > 64 bytes is not literal."""
+        from cid_core import is_literal_cid
+        cid = generate_cid(b"x" * (DIRECT_CONTENT_EMBED_LIMIT + 1))
+        self.assertFalse(is_literal_cid(cid))
+
+    def test_works_with_leading_slash(self):
+        """Test that function works with leading slash."""
+        from cid_core import is_literal_cid
+        cid = generate_cid(b"hello")
+        self.assertTrue(is_literal_cid(f"/{cid}"))
+
+    def test_invalid_cid_returns_false(self):
+        """Test that invalid CID returns False."""
+        from cid_core import is_literal_cid
+        self.assertFalse(is_literal_cid("invalid"))
+        self.assertFalse(is_literal_cid(""))
+        self.assertFalse(is_literal_cid(None))
+
+
+class TestExtractLiteralContent(unittest.TestCase):
+    """Tests for extract_literal_content function."""
+
+    def test_extract_empty_content(self):
+        """Test extracting empty content."""
+        from cid_core import extract_literal_content
+        cid = generate_cid(b"")
+        self.assertEqual(extract_literal_content(cid), b"")
+
+    def test_extract_small_content(self):
+        """Test extracting small content."""
+        from cid_core import extract_literal_content
+        content = b"hello world"
+        cid = generate_cid(content)
+        self.assertEqual(extract_literal_content(cid), content)
+
+    def test_extract_boundary_content(self):
+        """Test extracting content at 64-byte boundary."""
+        from cid_core import extract_literal_content
+        content = b"x" * DIRECT_CONTENT_EMBED_LIMIT
+        cid = generate_cid(content)
+        self.assertEqual(extract_literal_content(cid), content)
+
+    def test_hash_based_cid_returns_none(self):
+        """Test that hash-based CID returns None."""
+        from cid_core import extract_literal_content
+        content = b"x" * (DIRECT_CONTENT_EMBED_LIMIT + 1)
+        cid = generate_cid(content)
+        self.assertIsNone(extract_literal_content(cid))
+
+    def test_works_with_leading_slash(self):
+        """Test that function works with leading slash."""
+        from cid_core import extract_literal_content
+        content = b"hello"
+        cid = generate_cid(content)
+        self.assertEqual(extract_literal_content(f"/{cid}"), content)
+
+    def test_invalid_cid_returns_none(self):
+        """Test that invalid CID returns None."""
+        from cid_core import extract_literal_content
+        self.assertIsNone(extract_literal_content("invalid"))
+        self.assertIsNone(extract_literal_content(""))
+        self.assertIsNone(extract_literal_content(None))
+
+
 if __name__ == "__main__":
     unittest.main()
