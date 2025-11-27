@@ -8,6 +8,8 @@ from urllib.parse import urlsplit
 
 from getgauge.python import step
 
+from cid_presenter import format_cid
+from cid_utils import generate_cid
 from database import db
 from models import CID, Server
 from step_impl.shared_app import get_shared_app, get_shared_client
@@ -29,9 +31,6 @@ def _store_server(name: str, definition: str) -> None:
 
 def _store_cid(content: bytes) -> str:
     """Store content as a CID and return the CID value."""
-    from cid_utils import generate_cid
-    from cid_presenter import format_cid
-
     app = get_shared_app()
     cid_value = format_cid(generate_cid(content))
 
