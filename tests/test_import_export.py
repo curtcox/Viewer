@@ -96,7 +96,8 @@ class TestImportExportRoutes(unittest.TestCase):
                 content_bytes = entry.encode('utf-8')
         else:
             with self.app.app_context():
-                record = CID.query.filter_by(path=f'/{section_cid}').first()
+                from db_access import get_cid_by_path
+                record = get_cid_by_path(f'/{section_cid}')
                 self.assertIsNotNone(
                     record,
                     f'CID "{section_cid}" for section "{key}" missing from cid_values and storage',
@@ -835,12 +836,13 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertNotIn('cid_values', payload)
 
         with self.app.app_context():
-            runtime_record = CID.query.filter_by(path=f"/{payload['runtime']}").first()
+            from db_access import get_cid_by_path
+            runtime_record = get_cid_by_path(f"/{payload['runtime']}")
             self.assertIsNotNone(runtime_record)
             assert runtime_record is not None
             self.assertIsNotNone(runtime_record.file_data)
 
-            server_record = CID.query.filter_by(path=f'/{server_definition_cid}').first()
+            server_record = get_cid_by_path(f'/{server_definition_cid}')
             self.assertIsNotNone(server_record)
             assert server_record is not None
             self.assertIsNotNone(server_record.file_data)
@@ -929,7 +931,8 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assert_flash_present('No server data found in import file.', response.data)
 
     def test_import_reports_missing_cid_content(self):
-        server_definition = 'print("hello")'
+        # Use a definition > 64 bytes to create a hash-based CID that requires storage
+        server_definition = 'print("hello, world! this is a long definition that exceeds 64 bytes")'
         server_cid = format_cid(generate_cid(server_definition.encode('utf-8')))
         payload = json.dumps({
             'servers': [{'name': 'server-c', 'definition_cid': server_cid}],
@@ -1068,8 +1071,9 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assert_flash_present('Source file "app.py" differs from the export.', response.data)
 
     def test_import_rejects_mismatched_cid_map_entry(self):
-        server_definition = 'print("hello")'
-        mismatched_cid = format_cid(generate_cid(b'other'))
+        # Use content > 64 bytes to ensure mismatched CID requires proper validation
+        server_definition = 'print("hello, world! this is a long definition that exceeds 64 bytes to ensure hash-based CID")'
+        mismatched_cid = format_cid(generate_cid(b'other mismatched content that is definitely longer than 64 bytes for sure'))
         payload = json.dumps({
             'servers': [{'name': 'server-c', 'definition_cid': mismatched_cid}],
             'cid_values': {

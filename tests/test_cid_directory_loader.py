@@ -154,8 +154,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
     def test_already_existing_cid_is_skipped(self):
         """Test that already-existing CIDs are skipped without error."""
         with self.app.app_context():
-            # Create a CID file
-            content = b"test content for existing"
+            # Create a CID file with content > 64 bytes to ensure hash-based storage
+            content = b"test content for existing - this content needs to be longer than 64 bytes to force database storage"
             cid_value = generate_cid(content)
             cid_file = self.cid_dir / cid_value
             cid_file.write_bytes(content)
@@ -178,14 +178,14 @@ class TestCidDirectoryLoader(unittest.TestCase):
     def test_existing_cid_with_different_content_causes_exit(self):
         """Test that existing CID with different content causes SystemExit."""
         with self.app.app_context():
-            # Create correct file content and its CID
-            correct_content = b"correct file content"
+            # Create correct file content and its CID (must be > 64 bytes for DB storage)
+            correct_content = b"correct file content - this needs to be longer than 64 bytes to force database storage of the CID"
             cid_value = generate_cid(correct_content)
 
             # Manually insert the CID into database with WRONG content
             # This simulates database corruption
             from db_access import create_cid_record
-            wrong_content = b"corrupted database content"
+            wrong_content = b"corrupted database content - also needs to be longer than 64 bytes to ensure it gets stored in the database"
             create_cid_record(cid_value, wrong_content)
 
             # Create a file with correct content that matches its CID filename

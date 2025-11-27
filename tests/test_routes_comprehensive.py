@@ -25,8 +25,10 @@ os.environ['TESTING'] = 'True'
 import server_execution
 from alias_definition import format_primary_alias_line
 from app import create_app
+from cid_core import is_literal_cid
 from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, generate_cid
 from database import db
+from db_access import get_cid_by_path
 from models import (
     CID,
     Alias,
@@ -971,10 +973,10 @@ class TestFileUploadRoutes(BaseTestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        # The user's upload must be stored in the database so it can be referenced later.
+        # The user's upload must be resolvable (via DB for hash-based or literal extraction)
         # Query by the specific CID that should have been generated from the test data
         expected_cid = generate_cid(test_data)
-        cid_record = CID.query.filter_by(path=f'/{expected_cid}').first()
+        cid_record = get_cid_by_path(f'/{expected_cid}')
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
 
@@ -1287,7 +1289,7 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         new_cid = generate_cid(updated_text.encode('utf-8'))
-        record = CID.query.filter_by(path=f'/{new_cid}').first()
+        record = get_cid_by_path(f'/{new_cid}')
         self.assertIsNotNone(record)
         self.assertEqual(record.file_data, updated_text.encode('utf-8'))
 

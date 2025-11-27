@@ -24,6 +24,7 @@ from .aliases import (
     update_alias_cid_reference,
 )
 from .cids import (
+    LiteralCIDRecord,
     count_cids,
     create_cid_record,
     find_cids_by_prefix,
@@ -124,6 +125,7 @@ EXPORTS: Dict[str, Any] = {
     "get_first_secret_name": get_first_secret_name,
     "count_secrets": count_secrets,
     # CIDs
+    "LiteralCIDRecord": LiteralCIDRecord,
     "get_cid_by_path": get_cid_by_path,
     "find_cids_by_prefix": find_cids_by_prefix,
     "create_cid_record": create_cid_record,

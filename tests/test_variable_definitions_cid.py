@@ -6,11 +6,13 @@ import tempfile
 import unittest
 
 from app import create_app, db
+from cid_core import is_literal_cid
 from cid_utils import (
     generate_all_variable_definitions_json,
     get_current_variable_definitions_cid,
     store_variable_definitions_cid,
 )
+from db_access import get_cid_by_path
 from models import CID, Variable
 from routes.variables import update_variable_definitions_cid
 
@@ -115,11 +117,11 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         self.assertIsInstance(cid, str)
         self.assertTrue(len(cid) > 0)
 
-        # CID record should exist in database
-        cid_record = CID.query.filter_by(path=f"/{cid}").first()
+        # CID should resolve correctly (via DB for hash-based or literal extraction)
+        cid_record = get_cid_by_path(f"/{cid}")
         self.assertIsNotNone(cid_record)
 
-        # Verify the stored content matches expected JSON
+        # Verify the stored/embedded content matches expected JSON
         expected_json = generate_all_variable_definitions_json()
         stored_content = cid_record.file_data.decode('utf-8')
         self.assertEqual(stored_content, expected_json)
@@ -135,9 +137,10 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         # Should return same CID
         self.assertEqual(cid1, cid2)
 
-        # Should only have one CID record
-        cid_records = CID.query.filter_by(path=f"/{cid1}").all()
-        self.assertEqual(len(cid_records), 1)
+        # For literal CIDs, no DB record should exist; for hash-based, only one
+        if not is_literal_cid(cid1):
+            cid_records = CID.query.filter_by(path=f"/{cid1}").all()
+            self.assertEqual(len(cid_records), 1)
 
     def test_get_current_variable_definitions_cid_existing(self):
         """Test getting CID when it already exists"""
@@ -157,8 +160,8 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         self.assertIsInstance(cid, str)
         self.assertTrue(len(cid) > 0)
 
-        # CID should exist in database
-        cid_record = CID.query.filter_by(path=f"/{cid}").first()
+        # CID should resolve correctly
+        cid_record = get_cid_by_path(f"/{cid}")
         self.assertIsNotNone(cid_record)
 
     def test_update_variable_definitions_cid(self):
@@ -177,8 +180,8 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         # Should be different from original
         self.assertNotEqual(updated_cid, original_cid)
 
-        # New CID should contain the new variable
-        cid_record = CID.query.filter_by(path=f"/{updated_cid}").first()
+        # New CID should resolve correctly and contain the new variable
+        cid_record = get_cid_by_path(f"/{updated_cid}")
         stored_content = cid_record.file_data.decode('utf-8')
         data = json.loads(stored_content)
         self.assertIn('new_var', data)

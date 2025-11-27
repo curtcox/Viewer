@@ -1,5 +1,6 @@
 """CID management operations."""
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Dict, Iterable, List, Optional
 
@@ -10,6 +11,22 @@ from db_access._common import save_entity, normalize_cid_value
 
 SaveServerDefinition = Callable[[str, int], str]
 StoreServerDefinitions = Callable[[int], str]
+
+
+@dataclass
+class LiteralCIDRecord:
+    """Virtual CID record for content embedded directly in a literal CID.
+
+    This class provides an interface compatible with the CID model
+    for content that doesn't need to be stored in the database.
+    """
+    path: str
+    file_data: bytes
+    file_size: int
+    created_at: datetime
+
+    def __repr__(self) -> str:
+        return f'<LiteralCID {self.path}>'
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
@@ -26,8 +43,55 @@ def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitio
     return save_server_definition_as_cid, store_server_definitions_cid
 
 
-def get_cid_by_path(path: str) -> Optional[CID]:
-    """Return a CID record by its path."""
+def _try_resolve_literal_cid(path: str) -> Optional[LiteralCIDRecord]:
+    """Try to resolve a literal CID path to a virtual record.
+
+    For CIDs containing literal (embedded) content, this function creates
+    a virtual record without database access.
+
+    Args:
+        path: CID path (e.g., "/AAAABWhlbGxv")
+
+    Returns:
+        LiteralCIDRecord if path is a valid literal CID, None otherwise
+    """
+    try:
+        from cid_core import extract_literal_content  # pylint: disable=import-outside-toplevel
+    except (ImportError, ModuleNotFoundError):
+        return None
+
+    content = extract_literal_content(path)
+    if content is None:
+        return None
+
+    return LiteralCIDRecord(
+        path=path if path.startswith('/') else f"/{path}",
+        file_data=content,
+        file_size=len(content),
+        created_at=datetime.fromtimestamp(0, timezone.utc),  # Epoch time for immutable content
+    )
+
+
+def get_cid_by_path(path: str) -> Optional[CID | LiteralCIDRecord]:
+    """Return a CID record by its path.
+
+    For literal CIDs (content <= 64 bytes embedded in the CID itself),
+    returns a virtual LiteralCIDRecord without database access.
+
+    For hash-based CIDs, queries the database for the stored record.
+
+    Args:
+        path: CID path (e.g., "/AAAABWhlbGxv")
+
+    Returns:
+        CID model instance, LiteralCIDRecord for literal content, or None
+    """
+    # Try to resolve as literal CID first (no DB access needed)
+    literal_record = _try_resolve_literal_cid(path)
+    if literal_record is not None:
+        return literal_record
+
+    # Fall back to database lookup for hash-based CIDs
     return CID.query.filter_by(path=path).first()
 
 
