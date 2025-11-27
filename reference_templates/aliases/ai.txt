@@ -1,1 +1,1 @@
-literal /ai -> /ai_stub
+ai -> /ai_stub

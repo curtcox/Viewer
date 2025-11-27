@@ -107,7 +107,6 @@ This file uses the import/export format (see `/docs/import-export-json-format.md
 ```json
 {
   "version": 6,
-  "generated_at": "2025-11-14T00:00:00.000000+00:00",
   "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [

@@ -1,12 +1,11 @@
 {
   "version": 6,
-  "generated_at": "2025-11-14T00:00:00.000000+00:00",
   "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [
     {
       "name": "ai",
-      "definition_cid": "AAAAAAAXbGl0ZXJhbCAvYWkgLT4gL2FpX3N0dWI",
+      "definition_cid": "AAAAAAAOYWkgLT4gL2FpX3N0dWI",
       "enabled": true
     }
   ],
@@ -85,7 +84,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABLpLqFHsf3YY4YNyC-GOkj_H5n0SbhjabnPa2hgdNnFnqPA6DiWLZDTPloZcfuCrMBgDnD480QET02K7_OCag3bkg",
+      "definition": "AAAAABLdR3Z0U8_h6PwZ_QARAGXVqAADKveVbXJGO876tWxLkCM3OBcPaXPrj6pVxf7tEpzPlqwlRueFxcXiy3t-7Ikq6Q",
       "enabled": true
     }
   ]

@@ -26,6 +26,7 @@ from cid_utils import generate_cid
 from encryption import SECRET_ENCRYPTION_SCHEME, decrypt_secret_value, encrypt_secret_value
 from forms import ExportForm, ImportForm
 from models import CID, Alias, EntityInteraction, Export, Secret, Server, Variable
+from routes.import_export.import_engine import generate_snapshot_export
 
 
 class TestImportExportRoutes(unittest.TestCase):
@@ -328,9 +329,6 @@ class TestImportExportRoutes(unittest.TestCase):
         cid_value = export_record.path.lstrip('/')
 
         self.assertEqual(payload['version'], 6)
-
-        generated_at_value = self._load_section(payload, 'generated_at')
-        self.assertIsInstance(generated_at_value, str)
 
         project_files = self._load_section(payload, 'project_files')
         self.assertIsInstance(project_files, dict)
@@ -1883,7 +1881,6 @@ class TestImportExportRoutes(unittest.TestCase):
             snapshot_payload = json.loads(bytes(cid_record.file_data).decode('utf-8'))
             self.assertIn('aliases', snapshot_payload)
             self.assertIn('version', snapshot_payload)
-            self.assertIn('generated_at', snapshot_payload)
 
     def test_import_displays_snapshot_info_on_page(self):
         """Test that the import page displays snapshot export info after import."""
@@ -1930,7 +1927,6 @@ class TestImportExportRoutes(unittest.TestCase):
         self.assertTrue(data.get('ok'))
         self.assertIn('snapshot', data)
         self.assertIn('cid', data['snapshot'])
-        self.assertIn('generated_at', data['snapshot'])
 
         # Verify snapshot export was created
         with self.app.app_context():
@@ -1982,6 +1978,24 @@ class TestImportExportRoutes(unittest.TestCase):
             self.assertNotIn('app_source', snapshot_payload)
             # Should contain CID map
             self.assertIn('cid_values', snapshot_payload)
+
+    def test_snapshot_exports_from_same_state_have_identical_cids(self):
+        """Snapshot exports generated from identical state should share the same CID."""
+        with self.app.app_context():
+            alias = Alias(name='consistent-alias', definition='echo consistent', enabled=True)
+            server = Server(name='consistent-server', definition='print("ok")', enabled=True)
+            variable = Variable(name='consistent-var', definition='value', enabled=True)
+            db.session.add_all([alias, server, variable])
+            db.session.commit()
+
+            # Generate two snapshot exports without changing state
+            first_snapshot = generate_snapshot_export()
+            second_snapshot = generate_snapshot_export()
+
+            self.assertIsNotNone(first_snapshot)
+            self.assertIsNotNone(second_snapshot)
+            assert first_snapshot is not None and second_snapshot is not None
+            self.assertEqual(first_snapshot['cid_value'], second_snapshot['cid_value'])
 
 
 if __name__ == '__main__':

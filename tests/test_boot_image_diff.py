@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from app import create_app, db
 from boot_image_diff import (
+    BootEntityDifference,
     BootImageDiffResult,
     compare_boot_image_to_db,
     print_boot_image_differences,
@@ -14,6 +15,12 @@ from boot_image_diff import (
 from cid_utils import generate_cid
 from db_access import create_cid_record, save_entity
 from models import Alias, Secret, Server, Variable
+
+
+def _difference_names(entries):
+    """Return the list of entry names for convenience in assertions."""
+
+    return [entry.name for entry in entries]
 
 
 class TestBootImageDiff(unittest.TestCase):
@@ -57,6 +64,71 @@ class TestBootImageDiff(unittest.TestCase):
             self.assertFalse(result.has_differences)
             self.assertEqual(result.aliases_different, [])
 
+    def test_compare_alias_definition_cid_only_matches(self):
+        """Boot entries that only provide matching definition_cid are ignored."""
+        with self.app.app_context():
+            definition = '/test-alias -> /target'
+            alias = Alias(name='test-alias', definition=definition, enabled=True)
+            save_entity(alias)
+
+            matching_cid = generate_cid(definition.encode('utf-8'))
+            payload = {
+                'version': 6,
+                'aliases': [
+                    {'name': 'test-alias', 'definition_cid': matching_cid, 'enabled': True}
+                ],
+            }
+
+            result = compare_boot_image_to_db(payload, {})
+
+            self.assertFalse(result.has_differences)
+            self.assertEqual(result.aliases_different, [])
+
+    def test_compare_server_definition_cid_only_matches(self):
+        """Servers using matching definition_cid should not be flagged."""
+        with self.app.app_context():
+            definition = 'SERVER DEF'
+            matching_cid = generate_cid(definition.encode('utf-8'))
+            server = Server(
+                name='ai_stub',
+                definition=definition,
+                definition_cid=matching_cid,
+                enabled=True,
+            )
+            save_entity(server)
+
+            payload = {
+                'version': 6,
+                'servers': [
+                    {'name': 'ai_stub', 'definition_cid': matching_cid, 'enabled': True}
+                ],
+            }
+
+            result = compare_boot_image_to_db(payload, {})
+
+            self.assertFalse(result.has_differences)
+            self.assertEqual(result.servers_different, [])
+
+    def test_compare_variable_definition_cid_only_matches(self):
+        """Variables using matching definition_cid should not be flagged."""
+        with self.app.app_context():
+            definition = 'value'
+            variable = Variable(name='config', definition=definition, enabled=True)
+            save_entity(variable)
+            matching_cid = generate_cid(definition.encode('utf-8'))
+
+            payload = {
+                'version': 6,
+                'variables': [
+                    {'name': 'config', 'definition_cid': matching_cid, 'enabled': True}
+                ],
+            }
+
+            result = compare_boot_image_to_db(payload, {})
+
+            self.assertFalse(result.has_differences)
+            self.assertEqual(result.variables_different, [])
+
     def test_compare_alias_different_definition(self):
         """Test that different alias definitions are detected."""
         with self.app.app_context():
@@ -84,7 +156,14 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-alias', result.aliases_different)
+            names = _difference_names(result.aliases_different)
+            self.assertIn('test-alias', names)
+
+            diff = result.aliases_different[0]
+            expected_boot_cid = generate_cid('/test-alias -> /new-target'.encode('utf-8'))
+            expected_db_cid = generate_cid('/test-alias -> /old-target'.encode('utf-8'))
+            self.assertEqual(diff.boot_cid, expected_boot_cid)
+            self.assertEqual(diff.db_cid, expected_db_cid)
 
     def test_compare_alias_same_definition(self):
         """Test that identical alias definitions are not reported."""
@@ -142,7 +221,14 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-server', result.servers_different)
+            names = _difference_names(result.servers_different)
+            self.assertIn('test-server', names)
+
+            diff = result.servers_different[0]
+            expected_boot_cid = generate_cid('echo "new"'.encode('utf-8'))
+            expected_db_cid = generate_cid('echo "old"'.encode('utf-8'))
+            self.assertEqual(diff.boot_cid, expected_boot_cid)
+            self.assertEqual(diff.db_cid, expected_db_cid)
 
     def test_compare_variable_different_definition(self):
         """Test that different variable definitions are detected."""
@@ -171,7 +257,14 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-var', result.variables_different)
+            names = _difference_names(result.variables_different)
+            self.assertIn('test-var', names)
+
+            diff = result.variables_different[0]
+            expected_boot_cid = generate_cid('new-value'.encode('utf-8'))
+            expected_db_cid = generate_cid('old-value'.encode('utf-8'))
+            self.assertEqual(diff.boot_cid, expected_boot_cid)
+            self.assertEqual(diff.db_cid, expected_db_cid)
 
     def test_compare_secret_different_enabled(self):
         """Test that different secret enabled flags are detected."""
@@ -200,7 +293,8 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-secret', result.secrets_different)
+            names = _difference_names(result.secrets_different)
+            self.assertIn('test-secret', names)
 
     def test_compare_multiple_entity_types(self):
         """Test that differences in multiple entity types are detected."""
@@ -244,8 +338,10 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-alias', result.aliases_different)
-            self.assertIn('test-server', result.servers_different)
+            alias_names = _difference_names(result.aliases_different)
+            server_names = _difference_names(result.servers_different)
+            self.assertIn('test-alias', alias_names)
+            self.assertIn('test-server', server_names)
 
     def test_compare_enabled_flag_difference(self):
         """Test that enabled flag differences are detected for aliases."""
@@ -274,7 +370,8 @@ class TestBootImageDiff(unittest.TestCase):
             result = compare_boot_image_to_db(payload, {})
 
             self.assertTrue(result.has_differences)
-            self.assertIn('test-alias', result.aliases_different)
+            alias_names = _difference_names(result.aliases_different)
+            self.assertIn('test-alias', alias_names)
 
 
 class TestPrintBootImageDifferences(unittest.TestCase):
@@ -293,7 +390,10 @@ class TestPrintBootImageDifferences(unittest.TestCase):
     def test_print_alias_differences(self):
         """Test that alias differences are printed."""
         result = BootImageDiffResult(
-            aliases_different=['alias-a', 'alias-b'],
+            aliases_different=[
+                BootEntityDifference('alias-a', boot_cid='BOOT_ALIAS_A', db_cid='DB_ALIAS_A'),
+                BootEntityDifference('alias-b', boot_cid='BOOT_ALIAS_B', db_cid='DB_ALIAS_B'),
+            ],
         )
 
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -304,11 +404,15 @@ class TestPrintBootImageDifferences(unittest.TestCase):
         self.assertIn('Aliases', output)
         self.assertIn('alias-a', output)
         self.assertIn('alias-b', output)
+        self.assertIn('boot CID: BOOT_ALIAS_A', output)
+        self.assertIn('db CID:   DB_ALIAS_A', output)
 
     def test_print_server_differences(self):
         """Test that server differences are printed."""
         result = BootImageDiffResult(
-            servers_different=['server-x'],
+            servers_different=[
+                BootEntityDifference('server-x', boot_cid='BOOT_SERVER', db_cid='DB_SERVER')
+            ],
         )
 
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -318,11 +422,17 @@ class TestPrintBootImageDifferences(unittest.TestCase):
         self.assertIn('WARNING', output)
         self.assertIn('Servers', output)
         self.assertIn('server-x', output)
+        self.assertIn('boot CID: BOOT_SERVER', output)
+        self.assertIn('db CID:   DB_SERVER', output)
 
     def test_print_variable_differences(self):
         """Test that variable differences are printed."""
         result = BootImageDiffResult(
-            variables_different=['var1', 'var2', 'var3'],
+            variables_different=[
+                BootEntityDifference('var1', boot_cid='B1', db_cid='D1'),
+                BootEntityDifference('var2', boot_cid='B2', db_cid='D2'),
+                BootEntityDifference('var3', boot_cid='B3', db_cid='D3'),
+            ],
         )
 
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -334,11 +444,13 @@ class TestPrintBootImageDifferences(unittest.TestCase):
         self.assertIn('var1', output)
         self.assertIn('var2', output)
         self.assertIn('var3', output)
+        self.assertIn('boot CID: B1', output)
+        self.assertIn('db CID:   D1', output)
 
     def test_print_secret_differences(self):
         """Test that secret differences are printed."""
         result = BootImageDiffResult(
-            secrets_different=['secret1'],
+            secrets_different=[BootEntityDifference('secret1')],
         )
 
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -348,14 +460,16 @@ class TestPrintBootImageDifferences(unittest.TestCase):
         self.assertIn('WARNING', output)
         self.assertIn('Secrets', output)
         self.assertIn('secret1', output)
+        self.assertIn('boot CID: unknown', output)
+        self.assertIn('db CID:   unknown', output)
 
     def test_print_all_differences(self):
         """Test that all types of differences are printed."""
         result = BootImageDiffResult(
-            aliases_different=['alias1'],
-            servers_different=['server1'],
-            variables_different=['var1'],
-            secrets_different=['secret1'],
+            aliases_different=[BootEntityDifference('alias1', 'A_BOOT', 'A_DB')],
+            servers_different=[BootEntityDifference('server1', 'S_BOOT', 'S_DB')],
+            variables_different=[BootEntityDifference('var1', 'V_BOOT', 'V_DB')],
+            secrets_different=[BootEntityDifference('secret1')],
         )
 
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
@@ -379,22 +493,22 @@ class TestBootImageDiffResult(unittest.TestCase):
 
     def test_has_differences_true_with_aliases(self):
         """Test has_differences is True with alias differences."""
-        result = BootImageDiffResult(aliases_different=['a'])
+        result = BootImageDiffResult(aliases_different=[BootEntityDifference('a')])
         self.assertTrue(result.has_differences)
 
     def test_has_differences_true_with_servers(self):
         """Test has_differences is True with server differences."""
-        result = BootImageDiffResult(servers_different=['s'])
+        result = BootImageDiffResult(servers_different=[BootEntityDifference('s')])
         self.assertTrue(result.has_differences)
 
     def test_has_differences_true_with_variables(self):
         """Test has_differences is True with variable differences."""
-        result = BootImageDiffResult(variables_different=['v'])
+        result = BootImageDiffResult(variables_different=[BootEntityDifference('v')])
         self.assertTrue(result.has_differences)
 
     def test_has_differences_true_with_secrets(self):
         """Test has_differences is True with secret differences."""
-        result = BootImageDiffResult(secrets_different=['s'])
+        result = BootImageDiffResult(secrets_different=[BootEntityDifference('s')])
         self.assertTrue(result.has_differences)
 
 

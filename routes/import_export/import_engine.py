@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from functools import partial
 from typing import Any, Callable
 
@@ -210,7 +209,6 @@ def generate_snapshot_export() -> dict[str, Any] | None:
         build_export_preview(form)
         export_result = build_export_payload(form, store_content=True)
         record_export(export_result['cid_value'])
-        export_result['generated_at'] = datetime.now(timezone.utc).isoformat()
         return export_result
     except RuntimeError as exc:
         import logging  # pylint: disable=import-outside-toplevel  # Lazy import for error path
@@ -240,7 +238,6 @@ def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> A
     if snapshot_export:
         session['import_snapshot_export'] = {
             'cid': snapshot_export['cid_value'],
-            'generated_at': snapshot_export['generated_at'],
         }
     if any(context.imported_names.values()):
         session['import_summary_names'] = context.imported_names

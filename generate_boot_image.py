@@ -252,14 +252,8 @@ class BootImageGenerator:
         # Generate templates.json and get its CID
         templates_cid = self.generate_templates_json()
 
-        # Generate minimal.boot.json using the templates CID
         minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal")
-
-        # Generate default.boot.json using the templates CID
         default_boot_cid = self.generate_boot_json(templates_cid, "default")
-
-        # Also generate legacy boot.json for backwards compatibility
-        # This is a copy of minimal.boot.json
         boot_cid = self.generate_boot_json(templates_cid, "boot")
 
         # Summary

@@ -76,7 +76,6 @@ class TestBootImageGenerator:
         # Create boot.source.json
         boot_source = {
             "version": 6,
-            "generated_at": "2025-11-14T00:00:00.000000+00:00",
             "runtime": '{"python": {"version": "3.11.0", "implementation": "CPython"}}',
             "project_files": "{}",
             "aliases": [

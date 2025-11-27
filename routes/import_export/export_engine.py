@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from functools import partial
 from typing import Any, Callable
 
@@ -68,7 +67,6 @@ def build_export_payload(
     """Return rendered export payload data for the user's selected collections."""
     payload: dict[str, Any] = {'version': 6}
     sections: dict[str, Any] = {
-        'generated_at': datetime.now(timezone.utc).isoformat(),
         'runtime': build_runtime_section(),
     }
     base_path = app_root_path()

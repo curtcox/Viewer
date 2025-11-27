@@ -117,7 +117,6 @@ def _handle_json_import():
         if snapshot_export:
             response_data['snapshot'] = {
                 'cid': snapshot_export['cid_value'],
-                'generated_at': snapshot_export['generated_at'],
             }
 
         return jsonify(response_data), 200

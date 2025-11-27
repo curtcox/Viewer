@@ -218,7 +218,6 @@
             <div class="alert alert-info mt-3" role="alert">
                 <i class="fas fa-info-circle me-2"></i>
                 Snapshot export created: <a href="/{{ snapshot_export['cid'] }}.json" class="alert-link" target="_blank">/{{ snapshot_export['cid'] }}.json</a>
-                <span class="ms-2 text-muted">at {{ snapshot_export['generated_at'] }}</span>
             </div>
             {% endif %}
 
@@ -252,7 +251,6 @@
                 <p class="mb-2">A snapshot export equivalent to the default export has been generated and stored.</p>
                 <hr>
                 <p class="mb-1"><strong>CID:</strong> <code>{{ snapshot_export.cid }}</code></p>
-                <p class="mb-0"><strong>Generated At:</strong> {{ snapshot_export.generated_at }}</p>
             </div>
             {% endif %}
         </div>

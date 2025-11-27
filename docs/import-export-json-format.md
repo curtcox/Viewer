@@ -20,7 +20,6 @@ The import/export system enables operators to:
 ```json
 {
   "version": 6,
-  "generated_at": "bafybeicid...",
   "runtime": "bafybeicid...",
   "project_files": "bafybeicid...",
   "aliases": "bafybeicid...",
@@ -28,11 +27,7 @@ The import/export system enables operators to:
   "variables": "bafybeicid...",
   "secrets": "bafybeicid...",
   "change_history": "bafybeicid...",
-  "app_source": "bafybeicid...",
-  "cid_values": {
-    "bafybeicid...": "content here",
-    "bafybeicid...": "more content"
-  }
+  "app_source": "bafybeicid..."
 }
 ```
 
@@ -41,7 +36,6 @@ The import/export system enables operators to:
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `version` | integer | **Yes** | Format version number (currently `6`) |
-| `generated_at` | string (CID) | **Yes** | CID reference to ISO 8601 timestamp string |
 | `runtime` | string (CID) | **Yes** | CID reference to runtime environment information |
 | `project_files` | string (CID) | **Yes** | CID reference to project metadata files |
 | `aliases` | string (CID) | No | CID reference to aliases list (included if aliases exported) |
@@ -118,14 +112,6 @@ When importing, CID content is resolved in this order:
 **Resolution Logic**: [routes/import_export/cid_utils.py:156-174](../routes/import_export/cid_utils.py#L156-L174)
 
 ## Section Formats
-
-### Generated At Section
-
-```json
-"2025-01-14T10:30:00.123456+00:00"
-```
-
-Plain ISO 8601 timestamp string indicating when the export was created.
 
 ### Runtime Section
 
@@ -448,8 +434,7 @@ Content-Type: application/json
     "servers": ["server-1"]
   },
   "snapshot": {
-    "cid": "bafybeicid...",
-    "generated_at": "2025-01-14T10:30:00+00:00"
+    "cid": "bafybeicid..."
   }
 }
 ```
@@ -577,7 +562,6 @@ Share specific configurations without secrets:
 ```json
 {
   "version": 6,
-  "generated_at": "bafybeicid...",
   "runtime": "bafybeicid...",
   "project_files": "bafybeicid...",
   "aliases": "bafybeicid...",
