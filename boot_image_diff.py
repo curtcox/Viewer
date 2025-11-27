@@ -7,7 +7,6 @@ and prints warnings for any differences found.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -18,28 +17,6 @@ from db_access import (
     get_secret_by_name,
 )
 from routes.import_export.cid_utils import load_export_section, coerce_enabled_flag
-
-
-@dataclass
-class EntityDifference:
-    """Represents a difference between boot image and DB for an entity."""
-
-    entity_type: str
-    name: str
-    boot_definition: str
-    db_definition: str
-    boot_enabled: bool
-    db_enabled: bool
-
-    @property
-    def has_definition_difference(self) -> bool:
-        """Return True if the definitions differ."""
-        return self.boot_definition != self.db_definition
-
-    @property
-    def has_enabled_difference(self) -> bool:
-        """Return True if the enabled flags differ."""
-        return self.boot_enabled != self.db_enabled
 
 
 @dataclass
@@ -63,7 +40,7 @@ class BootImageDiffResult:
         )
 
 
-def _compare_alias(entry: dict[str, Any], cid_map: dict[str, bytes]) -> str | None:
+def _compare_alias(entry: dict[str, Any]) -> str | None:
     """Compare a single alias entry from boot image with DB.
 
     Returns the alias name if there's a difference, None otherwise.
@@ -97,7 +74,7 @@ def _compare_alias(entry: dict[str, Any], cid_map: dict[str, bytes]) -> str | No
     return None
 
 
-def _compare_server(entry: dict[str, Any], cid_map: dict[str, bytes]) -> str | None:
+def _compare_server(entry: dict[str, Any]) -> str | None:
     """Compare a single server entry from boot image with DB.
 
     Returns the server name if there's a difference, None otherwise.
@@ -165,13 +142,11 @@ def _compare_variable(entry: dict[str, Any]) -> str | None:
     return None
 
 
-def _compare_secret(entry: dict[str, Any], key: str = '') -> str | None:
+def _compare_secret(entry: dict[str, Any]) -> str | None:
     """Compare a single secret entry from boot image with DB.
 
-    Note: We only check if the secret exists and is different based on name,
-    since we cannot decrypt the secret value from the boot image without the key.
-    For secrets, we check if the DB has a different definition (when key is available)
-    or just check for existence.
+    Note: We only compare enabled flags for secrets since we cannot decrypt
+    the secret value from the boot image without the encryption key.
 
     Returns the secret name if there's a difference, None otherwise.
     """
@@ -191,15 +166,10 @@ def _compare_secret(entry: dict[str, Any], key: str = '') -> str | None:
 
     db_enabled = db_secret.enabled
 
-    # For secrets, we can compare enabled flags
-    # We cannot easily compare definitions without decryption key
-    # So we'll just note if the enabled status differs
+    # For secrets, we can only compare enabled flags since values are encrypted
     if boot_enabled != db_enabled:
         return name
 
-    # If we have a ciphertext in boot image and key, we could potentially
-    # decrypt and compare, but for simplicity we'll skip deep comparison
-    # and just rely on enabled flag comparison for secrets
     return None
 
 
@@ -239,7 +209,7 @@ def compare_boot_image_to_db(
         if not fatal and isinstance(aliases_section, list):
             for entry in aliases_section:
                 if isinstance(entry, dict):
-                    diff_name = _compare_alias(entry, cid_lookup)
+                    diff_name = _compare_alias(entry)
                     if diff_name:
                         result.aliases_different.append(diff_name)
 
@@ -252,7 +222,7 @@ def compare_boot_image_to_db(
         if not fatal and isinstance(servers_section, list):
             for entry in servers_section:
                 if isinstance(entry, dict):
-                    diff_name = _compare_server(entry, cid_lookup)
+                    diff_name = _compare_server(entry)
                     if diff_name:
                         result.servers_different.append(diff_name)
 
@@ -325,7 +295,6 @@ def print_boot_image_differences(result: BootImageDiffResult) -> None:
 
 
 __all__ = [
-    'EntityDifference',
     'BootImageDiffResult',
     'compare_boot_image_to_db',
     'print_boot_image_differences',
