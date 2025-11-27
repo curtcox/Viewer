@@ -343,34 +343,35 @@ class TestBootImageDiff(unittest.TestCase):
             self.assertIn('test-alias', alias_names)
             self.assertIn('test-server', server_names)
 
-    def test_compare_enabled_flag_difference(self):
-        """Test that enabled flag differences are detected for aliases."""
-        with self.app.app_context():
-            # Create existing alias in DB with enabled=True
-            alias = Alias(
-                name='test-alias',
-                definition='/test-alias -> /target',
-                enabled=True,
-            )
-            save_entity(alias)
+        def test_compare_enabled_flag_difference(self):
+            """Test that enabled flag differences are detected for aliases."""
+            with self.app.app_context():
+                # Create existing alias in DB with enabled=True
+                alias = Alias(
+                    name='test-alias',
+                    definition='/test-alias -> /target',
+                    enabled=True,
+                )
+                save_entity(alias)
 
-            # Create aliases section content with same definition but enabled=False
-            aliases_data = [
-                {'name': 'test-alias', 'definition': '/test-alias -> /target', 'enabled': False}
-            ]
-            aliases_content = json.dumps(aliases_data).encode('utf-8')
-            aliases_cid = generate_cid(aliases_content)
-            create_cid_record(aliases_cid, aliases_content)
+                # Create aliases section content with same definition but enabled=False
+                aliases_data = [
+                    {'name': 'test-alias', 'definition': '/test-alias -> /target', 'enabled': False}
+                ]
+                aliases_content = json.dumps(aliases_data).encode('utf-8')
+                aliases_cid = generate_cid(aliases_content)
+                create_cid_record(aliases_cid, aliases_content)
 
-            payload = {
-                'version': 6,
-                'aliases': aliases_cid,
-            }
+                payload = {
+                    'version': 6,
+                    'aliases': aliases_cid,
+                }
 
-            result = compare_boot_image_to_db(payload, {})
+                result = compare_boot_image_to_db(payload, {})
 
-            self.assertTrue(result.has_differences)
-            self.assertIn('test-alias', result.aliases_different)
+                self.assertTrue(result.has_differences)
+                alias_names = _difference_names(result.aliases_different)
+                self.assertIn('test-alias', alias_names)
 
 
 class TestPrintBootImageDifferences(unittest.TestCase):

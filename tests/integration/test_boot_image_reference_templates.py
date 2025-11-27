@@ -96,7 +96,7 @@ class TestBootImageReferenceTemplates:
         with self.app.app_context():
             alias = Alias.query.filter_by(name='ai').first()
             assert alias is not None, "Alias 'ai' should be loaded from boot image"
-            assert 'literal /ai -> /ai_stub' in alias.definition
+            assert 'ai -> /ai_stub' in alias.definition
             assert alias.enabled is True
 
     def test_boot_image_loads_servers(self, tmp_path):
