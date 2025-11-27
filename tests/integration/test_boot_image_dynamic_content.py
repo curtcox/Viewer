@@ -72,7 +72,7 @@ class TestBootImageDynamicContent:
         (ref_templates / "uploads" / "contents").mkdir(parents=True)
         (self.project_dir / "cids").mkdir()
 
-        # Create base boot.source.json
+        # Create base boot source files (minimal, default, and legacy boot)
         boot_source = {
             "version": 6,
             "generated_at": "2025-11-14T00:00:00.000000+00:00",
@@ -88,9 +88,10 @@ class TestBootImageDynamicContent:
                 }
             ]
         }
-        (ref_templates / "boot.source.json").write_text(
-            json.dumps(boot_source, indent=2)
-        )
+        boot_source_json = json.dumps(boot_source, indent=2)
+        (ref_templates / "boot.source.json").write_text(boot_source_json)
+        (ref_templates / "minimal.boot.source.json").write_text(boot_source_json)
+        (ref_templates / "default.boot.source.json").write_text(boot_source_json)
 
         # Create base templates.source.json
         templates_source = {
@@ -104,20 +105,8 @@ class TestBootImageDynamicContent:
             json.dumps(templates_source, indent=2)
         )
 
-    def _add_alias_to_boot_source(
-        self,
-        name: str,
-        definition_content: str
-    ) -> str:
-        """Add an alias to boot.source.json.
-
-        Args:
-            name: Alias name
-            definition_content: Content for the alias definition file
-
-        Returns:
-            The relative path to the definition file
-        """
+    def _add_alias_to_boot_source(self, name: str, definition_content: str) -> str:
+        """Add an alias to boot.source.json."""
         ref_templates = self.project_dir / "reference_templates"
 
         # Create alias definition file
@@ -374,9 +363,7 @@ class TestBootImageDynamicContent:
 
         return result
 
-    # ==========================================================================
-    # Tests for Adding Aliases to boot.source.json
-    # ==========================================================================
+    # --- Tests for Adding Aliases to boot.source.json ---
 
     def test_added_alias_is_in_boot_image(self):
         """Test that an alias added to boot.source.json is in the generated boot image."""
@@ -435,9 +422,7 @@ class TestBootImageDynamicContent:
             assert "literal /func-alias -> /func-target" in alias.definition
             assert alias.target_path == "/func-target"
 
-    # ==========================================================================
-    # Tests for Adding Servers to boot.source.json
-    # ==========================================================================
+    # --- Tests for Adding Servers to boot.source.json ---
 
     def test_added_server_is_in_boot_image(self):
         """Test that a server added to boot.source.json is in the generated boot image."""
@@ -494,9 +479,7 @@ class TestBootImageDynamicContent:
             assert "def main(context):" in server.definition
             assert "Functional server output" in server.definition
 
-    # ==========================================================================
-    # Tests for Adding Variables to boot.source.json
-    # ==========================================================================
+    # --- Tests for Adding Variables to boot.source.json ---
 
     def test_added_variable_is_in_boot_image(self):
         """Test that a variable added to boot.source.json is in the generated boot image."""
@@ -546,9 +529,7 @@ class TestBootImageDynamicContent:
             assert var is not None
             assert var.definition == "functional-value-456"
 
-    # ==========================================================================
-    # Tests for Adding Alias Templates to templates.source.json
-    # ==========================================================================
+    # --- Tests for Adding Alias Templates to templates.source.json ---
 
     def test_added_alias_template_is_in_boot_image(self):
         """Test that an alias template added to templates.source.json is in the boot image."""
@@ -648,9 +629,7 @@ class TestBootImageDynamicContent:
             assert created_alias is not None
             assert created_alias.target_path == "/working-result"
 
-    # ==========================================================================
-    # Tests for Adding Server Templates to templates.source.json
-    # ==========================================================================
+    # --- Tests for Adding Server Templates to templates.source.json ---
 
     def test_added_server_template_is_in_boot_image(self):
         """Test that a server template added to templates.source.json is in the boot image."""
@@ -750,9 +729,7 @@ class TestBootImageDynamicContent:
             assert created_server is not None
             assert "Working server output" in created_server.definition
 
-    # ==========================================================================
-    # Tests for Adding Variable Templates to templates.source.json
-    # ==========================================================================
+    # --- Tests for Adding Variable Templates to templates.source.json ---
 
     def test_added_variable_template_is_in_boot_image(self):
         """Test that a variable template added to templates.source.json is in the boot image."""
@@ -852,9 +829,7 @@ class TestBootImageDynamicContent:
             assert created_var is not None
             assert created_var.definition == "working-variable-content"
 
-    # ==========================================================================
-    # Tests for Adding Upload Templates to templates.source.json
-    # ==========================================================================
+    # --- Tests for Adding Upload Templates to templates.source.json ---
 
     def test_added_upload_template_is_in_boot_image(self):
         """Test that an upload template added to templates.source.json is in the boot image."""
@@ -942,9 +917,7 @@ class TestBootImageDynamicContent:
             assert content is not None
             assert expected_content in content
 
-    # ==========================================================================
-    # Combined Test - All Types Together
-    # ==========================================================================
+    # --- Combined Test - All Types Together ---
 
     def test_complete_workflow_with_all_types(self):
         """Test a complete workflow adding all types of content at once."""
