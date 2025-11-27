@@ -284,6 +284,33 @@ def _normalise_secret_items(value: Any) -> list[dict[str, Any]] | None:
     return None
 
 
+def _process_section_entries(
+    section_data: Any,
+    compare_func: Any,
+) -> list[BootEntityDifference]:
+    """Process section entries and return differences.
+
+    Args:
+        section_data: The section data (list or dict with items)
+        compare_func: Function to compare individual entries
+
+    Returns:
+        List of entity differences found
+    """
+    differences = []
+    if not isinstance(section_data, list):
+        return differences
+
+    for entry in section_data:
+        if not isinstance(entry, dict):
+            continue
+        diff = compare_func(entry)
+        if diff:
+            differences.append(diff)
+
+    return differences
+
+
 def compare_boot_image_to_db(
     payload: dict[str, Any],
     cid_lookup: dict[str, bytes],
@@ -305,12 +332,10 @@ def compare_boot_image_to_db(
             payload, 'aliases', cid_lookup
         )
         result.errors.extend(load_errors)
-        if not fatal and isinstance(aliases_section, list):
-            for entry in aliases_section:
-                if isinstance(entry, dict):
-                    diff = _compare_alias(entry)
-                    if diff:
-                        result.aliases_different.append(diff)
+        if not fatal:
+            result.aliases_different = _process_section_entries(
+                aliases_section, _compare_alias
+            )
 
     # Compare servers
     if 'servers' in payload:
@@ -318,12 +343,10 @@ def compare_boot_image_to_db(
             payload, 'servers', cid_lookup
         )
         result.errors.extend(load_errors)
-        if not fatal and isinstance(servers_section, list):
-            for entry in servers_section:
-                if isinstance(entry, dict):
-                    diff = _compare_server(entry)
-                    if diff:
-                        result.servers_different.append(diff)
+        if not fatal:
+            result.servers_different = _process_section_entries(
+                servers_section, _compare_server
+            )
 
     # Compare variables
     if 'variables' in payload:
@@ -331,12 +354,10 @@ def compare_boot_image_to_db(
             payload, 'variables', cid_lookup
         )
         result.errors.extend(load_errors)
-        if not fatal and isinstance(variables_section, list):
-            for entry in variables_section:
-                if isinstance(entry, dict):
-                    diff = _compare_variable(entry)
-                    if diff:
-                        result.variables_different.append(diff)
+        if not fatal:
+            result.variables_different = _process_section_entries(
+                variables_section, _compare_variable
+            )
 
     # Compare secrets
     if 'secrets' in payload:
@@ -346,12 +367,9 @@ def compare_boot_image_to_db(
         result.errors.extend(load_errors)
         if not fatal:
             secrets_items = _normalise_secret_items(secrets_section)
-            if secrets_items:
-                for entry in secrets_items:
-                    if isinstance(entry, dict):
-                        diff = _compare_secret(entry)
-                        if diff:
-                            result.secrets_different.append(diff)
+            result.secrets_different = _process_section_entries(
+                secrets_items, _compare_secret
+            )
 
     return result
 

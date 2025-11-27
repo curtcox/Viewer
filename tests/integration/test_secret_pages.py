@@ -14,6 +14,7 @@ from cid_utils import (
     store_secret_definitions_cid,
 )
 from database import db
+from db_access import get_cid_by_path
 from models import CID, Secret
 
 pytestmark = pytest.mark.integration
@@ -301,9 +302,7 @@ def test_edit_secret_updates_definition_snapshot(
 
         assert expected_snapshot_cid != initial_snapshot_cid
 
-        snapshot_record = CID.query.filter_by(
-            path=f"/{expected_snapshot_cid}",
-        ).first()
+        snapshot_record = get_cid_by_path(f"/{expected_snapshot_cid}")
         assert snapshot_record is not None
         assert snapshot_record.file_data.decode("utf-8") == expected_snapshot_json
 

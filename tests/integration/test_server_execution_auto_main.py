@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 import pytest
 
 from database import db
+from db_access import get_cid_by_path
 from models import Alias, CID, Server
 
 
@@ -47,7 +48,7 @@ def _resolve_cid_payload(app, location: str) -> str:
     with app.app_context():
         record = None
         for candidate in candidates:
-            record = CID.query.filter_by(path=candidate).first()
+            record = get_cid_by_path(candidate)
             if record is not None:
                 break
 
