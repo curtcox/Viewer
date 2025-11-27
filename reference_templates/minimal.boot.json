@@ -6,7 +6,7 @@
   "aliases": [
     {
       "name": "ai",
-      "definition_cid": "AAAAAAAXbGl0ZXJhbCAvYWkgLT4gL2FpX3N0dWI",
+      "definition_cid": "AAAAAAAPL2FpIC0-IC9haV9zdHVi",
       "enabled": true
     }
   ],
@@ -20,7 +20,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABLpLqFHsf3YY4YNyC-GOkj_H5n0SbhjabnPa2hgdNnFnqPA6DiWLZDTPloZcfuCrMBgDnD480QET02K7_OCag3bkg",
+      "definition": "AAAAABLeXMG5jGTbXKNNHca_zZiFj7qjfRqeqd3T54Wyd4dxB8KnVqLpEe3MbMN7BHQmAYPh8FD79eK7KHyKKOdH8EZwUA",
       "enabled": true
     }
   ]
