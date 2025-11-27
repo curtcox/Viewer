@@ -546,3 +546,245 @@ def test_server_template_sources_retain_ruff_controls():
         assert any(line.lstrip().startswith("# ruff") for line in content.splitlines()), (
             f"Expected {definition_path.name} to keep ruff control comments"
         )
+
+
+# =============================================================================
+# Server Command Chaining Tests
+# =============================================================================
+# These tests verify the command chaining functionality as described in the issue:
+# - /s/CID translates into s.main(contents(CID))
+# - /s2/s1 translates into s2.main(s1.main())
+# - /s2/s1/CID translates into s2.main(s1.main(contents(CID)))
+
+
+def test_server_chaining_s_cid(monkeypatch):
+    """Test /s/CID pattern: s.main(contents(CID))."""
+    server_definition = """
+def main(input_data):
+    return {"output": f"processed:{input_data}", "content_type": "text/plain"}
+"""
+
+    cid_value = "bafytestcid123"
+    cid_bytes = b"cid-content"
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        lambda name: SimpleNamespace(definition=server_definition, enabled=True) if name == "s" else None,
+    )
+
+    monkeypatch.setattr(
+        code_execution,
+        "get_cid_by_path",
+        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+    )
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    with app.test_request_context(f"/s/{cid_value}"):
+        result = server_execution.execute_server_code_from_definition(
+            server_definition, "s"
+        )
+
+    assert result["output"] == "processed:cid-content"
+    assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_s2_s1(monkeypatch):
+    """Test /s2/s1 pattern: s2.main(s1.main())."""
+    s1_definition = """
+def main():
+    return {"output": "s1-output", "content_type": "text/plain"}
+"""
+
+    s2_definition = """
+def main(input_data):
+    return {"output": f"s2({input_data})", "content_type": "text/plain"}
+"""
+
+    servers = {
+        "s1": SimpleNamespace(definition=s1_definition, enabled=True),
+        "s2": SimpleNamespace(definition=s2_definition, enabled=True),
+    }
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        servers.get,
+    )
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+    monkeypatch.setattr(code_execution, "get_cid_by_path", lambda path: None)
+
+    with app.test_request_context("/s2/s1"):
+        result = server_execution.execute_server_code_from_definition(
+            s2_definition, "s2"
+        )
+
+    assert result["output"] == "s2(s1-output)"
+    assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_s2_s1_cid(monkeypatch):
+    """Test /s2/s1/CID pattern: s2.main(s1.main(contents(CID)))."""
+    s1_definition = """
+def main(input_data):
+    return {"output": f"s1({input_data})", "content_type": "text/plain"}
+"""
+
+    s2_definition = """
+def main(input_data):
+    return {"output": f"s2({input_data})", "content_type": "text/plain"}
+"""
+
+    cid_value = "bafychaintest"
+    cid_bytes = b"initial-value"
+
+    servers = {
+        "s1": SimpleNamespace(definition=s1_definition, enabled=True),
+        "s2": SimpleNamespace(definition=s2_definition, enabled=True),
+    }
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        servers.get,
+    )
+
+    monkeypatch.setattr(
+        code_execution,
+        "get_cid_by_path",
+        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+    )
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    with app.test_request_context(f"/s2/s1/{cid_value}"):
+        result = server_execution.execute_server_code_from_definition(
+            s2_definition, "s2"
+        )
+
+    assert result["output"] == "s2(s1(initial-value))"
+    assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_three_servers(monkeypatch):
+    """Test /s3/s2/s1 pattern: s3.main(s2.main(s1.main()))."""
+    s1_definition = """
+def main():
+    return {"output": "s1", "content_type": "text/plain"}
+"""
+
+    s2_definition = """
+def main(input_data):
+    return {"output": f"s2({input_data})", "content_type": "text/plain"}
+"""
+
+    s3_definition = """
+def main(input_data):
+    return {"output": f"s3({input_data})", "content_type": "text/plain"}
+"""
+
+    servers = {
+        "s1": SimpleNamespace(definition=s1_definition, enabled=True),
+        "s2": SimpleNamespace(definition=s2_definition, enabled=True),
+        "s3": SimpleNamespace(definition=s3_definition, enabled=True),
+    }
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        servers.get,
+    )
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+    monkeypatch.setattr(code_execution, "get_cid_by_path", lambda path: None)
+
+    with app.test_request_context("/s3/s2/s1"):
+        result = server_execution.execute_server_code_from_definition(
+            s3_definition, "s3"
+        )
+
+    assert result["output"] == "s3(s2(s1))"
+    assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_disabled_server_not_executed(monkeypatch):
+    """Test that disabled servers in a chain are skipped."""
+    s1_definition = """
+def main():
+    return {"output": "s1-should-not-run", "content_type": "text/plain"}
+"""
+
+    s2_definition = """
+def main(input_data):
+    return {"output": f"s2({input_data})", "content_type": "text/plain"}
+"""
+
+    servers = {
+        "s1": SimpleNamespace(definition=s1_definition, enabled=False),  # Disabled
+        "s2": SimpleNamespace(definition=s2_definition, enabled=True),
+    }
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        servers.get,
+    )
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+    monkeypatch.setattr(code_execution, "get_cid_by_path", lambda path: None)
+
+    with app.test_request_context("/s2/s1"):
+        result = server_execution.execute_server_code_from_definition(
+            s2_definition, "s2"
+        )
+
+    # Should return 400 error because s1 is disabled and can't resolve the parameter
+    assert result.status_code == 400
+
+
+def test_server_chaining_via_alias(monkeypatch):
+    """Test /s2/alias pattern where alias points to /s1."""
+    s1_definition = """
+def main():
+    return {"output": "s1-via-alias", "content_type": "text/plain"}
+"""
+
+    s2_definition = """
+def main(input_data):
+    return {"output": f"s2({input_data})", "content_type": "text/plain"}
+"""
+
+    servers = {
+        "s1": SimpleNamespace(definition=s1_definition, enabled=True),
+        "s2": SimpleNamespace(definition=s2_definition, enabled=True),
+    }
+
+    from server_execution import code_execution
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        servers.get,
+    )
+
+    def fake_find_matching_alias(path):
+        if path == "/my-alias":
+            return SimpleNamespace(route=SimpleNamespace(target_path="/s1"))
+        return None
+
+    monkeypatch.setattr(code_execution, "find_matching_alias", fake_find_matching_alias)
+    monkeypatch.setattr(code_execution, "get_cid_by_path", lambda path: None)
+
+    with app.test_request_context("/s2/my-alias"):
+        result = server_execution.execute_server_code_from_definition(
+            s2_definition, "s2"
+        )
+
+    assert result["output"] == "s2(s1-via-alias)"
+    assert result["content_type"] == "text/plain"
