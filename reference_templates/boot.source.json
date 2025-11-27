@@ -84,7 +84,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABLdR3Z0U8_h6PwZ_QARAGXVqAADKveVbXJGO876tWxLkCM3OBcPaXPrj6pVxf7tEpzPlqwlRueFxcXiy3t-7Ikq6Q",
+      "definition": "GENERATED:templates.json",
       "enabled": true
     }
   ]
