@@ -1861,6 +1861,51 @@ class TestVariableRoutes(BaseTestCase):
         self.assertIn('/profile', page)
         self.assertIn('Status:', page)
 
+    def test_variable_view_shows_cid_link_for_cid_value(self):
+        """Variable detail view should render CID link when definition is a CID."""
+
+        cid_value = generate_cid(b'test content for variable')
+        variable = Variable(
+            name='cid-variable',
+            definition=cid_value,
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        self.authenticate()
+        response = self.client.get('/variables/cid-variable')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        # Check for the CID link markup
+        self.assertIn('cid-display', page)
+        self.assertIn('cid-link', page)
+        # CID label format is #{first 9 chars}...
+        expected_label = f'#{cid_value[:9]}...'
+        self.assertIn(expected_label, page)
+
+    def test_variable_view_shows_plain_text_for_non_cid_value(self):
+        """Variable detail view should render plain text when definition is not a CID."""
+
+        variable = Variable(
+            name='text-variable',
+            definition='just some regular text',
+        )
+        db.session.add(variable)
+        db.session.commit()
+
+        self.authenticate()
+        response = self.client.get('/variables/text-variable')
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        # Check for plain text display (pre tag)
+        self.assertIn('<pre id="variable-definition"', page)
+        self.assertIn('just some regular text', page)
+        # Should NOT have CID link markup
+        self.assertNotIn('cid-display', page)
+        self.assertNotIn('cid-link', page)
+
     def test_variable_edit_shows_404_matching_route(self):
         """Variable edit form should surface missing route diagnostics."""
 
