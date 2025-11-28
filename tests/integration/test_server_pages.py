@@ -14,7 +14,7 @@ from cid_utils import (
 )
 from database import db
 from db_access import get_cid_by_path
-from models import CID, Secret, Server, Variable
+from models import Secret, Server, Variable
 
 pytestmark = pytest.mark.integration
 
