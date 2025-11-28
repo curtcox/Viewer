@@ -34,7 +34,14 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    {% set definition_cid = extract_cid_from_path(variable.definition) %}
+                    {% if definition_cid %}
+                    <div id="variable-definition" class="border rounded p-3 bg-light">
+                        {{ render_cid_link(definition_cid) }}
+                    </div>
+                    {% else %}
                     <pre id="variable-definition" class="border rounded p-3 bg-light" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ variable.definition }}</pre>
+                    {% endif %}
                 </div>
                 <div class="card-footer text-muted">
                     <div class="row">
