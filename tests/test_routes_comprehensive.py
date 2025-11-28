@@ -1880,7 +1880,9 @@ class TestVariableRoutes(BaseTestCase):
         # Check for the CID link markup
         self.assertIn('cid-display', page)
         self.assertIn('cid-link', page)
-        self.assertIn(cid_value[:9], page)  # CID label shows first 9 chars
+        # CID label format is #{first 9 chars}...
+        expected_label = f'#{cid_value[:9]}...'
+        self.assertIn(expected_label, page)
 
     def test_variable_view_shows_plain_text_for_non_cid_value(self):
         """Variable detail view should render plain text when definition is not a CID."""
