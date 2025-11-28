@@ -13,7 +13,8 @@ from cid_utils import (
     store_server_definitions_cid,
 )
 from database import db
-from models import CID, Secret, Server, Variable
+from db_access import get_cid_by_path
+from models import Secret, Server, Variable
 
 pytestmark = pytest.mark.integration
 
@@ -359,9 +360,7 @@ def test_edit_server_updates_definition_snapshots(
         )
         assert updated_server.definition_cid == expected_definition_cid
 
-        definition_record = CID.query.filter_by(
-            path=f"/{expected_definition_cid}",
-        ).first()
+        definition_record = get_cid_by_path(f"/{expected_definition_cid}")
         assert definition_record is not None
         assert definition_record.file_data.decode("utf-8") == updated_definition
 
@@ -372,9 +371,7 @@ def test_edit_server_updates_definition_snapshots(
 
         assert expected_snapshot_cid != initial_snapshot_cid
 
-        snapshot_record = CID.query.filter_by(
-            path=f"/{expected_snapshot_cid}",
-        ).first()
+        snapshot_record = get_cid_by_path(f"/{expected_snapshot_cid}")
         assert snapshot_record is not None
         assert snapshot_record.file_data.decode("utf-8") == expected_snapshot_json
 
