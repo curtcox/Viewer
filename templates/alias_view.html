@@ -3,27 +3,60 @@
 {% block title %}Alias: {{ alias.name }}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
-            {% set alias_target_cid = extract_cid_from_path(alias.target_path) %}
-            {% set alias_target_link = render_url_link(alias.target_path, code=True) %}
-            {% set alias_public_link = render_alias_link(alias.name, base_url=request.url_root, code=True) %}
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-link me-2"></i>{{ alias.name }}</h2>
-                <div class="btn-group">
-                    <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Aliases
-                    </a>
-                    <a href="{{ url_for('main.edit_alias', alias_name=alias.name) }}" class="btn btn-primary">
-                        <i class="fas fa-edit me-1"></i>Edit Alias
-                    </a>
-                </div>
-            </div>
+{% set alias_target_cid = extract_cid_from_path(alias.target_path) %}
+{% set alias_target_link = render_url_link(alias.target_path, code=True) %}
+{% set alias_public_link = render_alias_link(alias.name, base_url=request.url_root, code=True) %}
+{% set refs = target_references or {} %}
+{% set has_refs = refs.aliases or refs.servers or refs.cids %}
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <h2 class="mb-0"><i class="fas fa-link me-2"></i>{{ alias.name }}</h2>
+        <div class="btn-group flex-wrap">
+            <a href="{{ url_for('main.aliases') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Aliases
+            </a>
+            <a href="{{ url_for('main.edit_alias', alias_name=alias.name) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i>Edit Alias
+            </a>
+        </div>
+    </div>
 
-            <div class="card mb-4">
-                <div class="card-header">
+    <ul class="nav nav-tabs" id="alias-view-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="alias-view-details-tab" data-bs-toggle="tab" data-bs-target="#alias-view-details" type="button" role="tab" aria-controls="alias-view-details" aria-selected="true">
+                <i class="fas fa-info-circle me-1"></i>Details
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="alias-view-definition-tab" data-bs-toggle="tab" data-bs-target="#alias-view-definition" type="button" role="tab" aria-controls="alias-view-definition" aria-selected="false">
+                <i class="fas fa-code me-1"></i>Definition
+            </button>
+        </li>
+        {% if has_refs %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="alias-view-references-tab" data-bs-toggle="tab" data-bs-target="#alias-view-references" type="button" role="tab" aria-controls="alias-view-references" aria-selected="false">
+                <i class="fas fa-project-diagram me-1"></i>References
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="alias-view-how-tab" data-bs-toggle="tab" data-bs-target="#alias-view-how" type="button" role="tab" aria-controls="alias-view-how" aria-selected="false">
+                <i class="fas fa-question-circle me-1"></i>How it Works
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content py-4" id="alias-view-tabs-content">
+        <div class="tab-pane fade show active" id="alias-view-details" role="tabpanel" aria-labelledby="alias-view-details-tab">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="card-title mb-0">Alias Details</h5>
+                    <form method="POST" action="{{ url_for('main.delete_alias', alias_name=alias.name) }}"
+                          onsubmit="return confirm('Are you sure you want to delete alias {{ alias.name }}?')" class="d-inline">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </form>
                 </div>
                 <div class="card-body">
                     <dl class="row mb-0">
@@ -82,8 +115,10 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card mb-4">
+        <div class="tab-pane fade" id="alias-view-definition" role="tabpanel" aria-labelledby="alias-view-definition-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Alias Definition</h5>
                 </div>
@@ -157,17 +192,18 @@
                     {% include "_alias_definition_help.html" %}
                 </div>
             </div>
+        </div>
 
-            {% set refs = target_references or {} %}
-            {% if refs.aliases or refs.servers or refs.cids %}
-            <div class="card mb-4">
+        {% if has_refs %}
+        <div class="tab-pane fade" id="alias-view-references" role="tabpanel" aria-labelledby="alias-view-references-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">Referenced Targets</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row gy-3">
+                    <div class="row gy-4">
                         {% if refs.servers %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">Servers</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.servers %}
@@ -181,7 +217,7 @@
                         </div>
                         {% endif %}
                         {% if refs.cids %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">CIDs</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.cids %}
@@ -191,7 +227,7 @@
                         </div>
                         {% endif %}
                         {% if refs.aliases %}
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <h6 class="text-uppercase text-muted small mb-2">Aliases</h6>
                             <ul class="list-unstyled mb-0">
                                 {% for ref in refs.aliases %}
@@ -207,9 +243,11 @@
                     </div>
                 </div>
             </div>
-            {% endif %}
+        </div>
+        {% endif %}
 
-            <div class="card">
+        <div class="tab-pane fade" id="alias-view-how" role="tabpanel" aria-labelledby="alias-view-how-tab">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="card-title mb-0">How it Works</h5>
                 </div>
