@@ -19,6 +19,7 @@ from interaction_log import load_interaction_history
 from models import Variable
 from serialization import model_to_dict
 from template_status import get_template_link_info
+from ui_status import get_ui_suggestions_info
 
 from . import main_bp
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
@@ -227,8 +228,12 @@ def _build_variables_list_context(variables_list: list) -> Dict[str, Any]:
 
 def _build_variable_view_context(variable: Variable) -> Dict[str, Any]:
     """Build extra context for variable view page."""
+    # Get UI suggestions for this variable
+    ui_suggestions = get_ui_suggestions_info('variables', variable.name)
+
     return {
-        'matching_route': build_matching_route_info(variable.definition)
+        'matching_route': build_matching_route_info(variable.definition),
+        'ui_suggestions': ui_suggestions,
     }
 
 

@@ -33,6 +33,7 @@ from serialization import model_to_dict
 from server_execution import analyze_server_definition, describe_main_function_parameters
 from syntax_highlighting import highlight_source
 from template_status import get_template_link_info
+from ui_status import get_ui_suggestions_info
 
 from . import main_bp
 from .core import derive_name_from_path
@@ -651,6 +652,9 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
             test_config.get('action'),
         )
 
+    # Get UI suggestions for this server
+    ui_suggestions = get_ui_suggestions_info('servers', server.name)
+
     return {
         'definition_history': history,
         'server_invocations': invocations,
@@ -660,6 +664,7 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
         'highlighted_definition': highlighted_definition,
         'syntax_css': syntax_css,
         'definition_references': definition_references,
+        'ui_suggestions': ui_suggestions,
     }
 
 

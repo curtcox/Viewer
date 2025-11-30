@@ -86,6 +86,11 @@
       "name": "templates",
       "definition": "GENERATED:templates.json",
       "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "GENERATED:uis.json",
+      "enabled": true
     }
   ]
 }
