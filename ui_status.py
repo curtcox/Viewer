@@ -15,6 +15,23 @@ from ui_manager import (
 )
 
 
+def _format_ui_count_label(count: int) -> str:
+    """Format a count into a human-readable label.
+
+    Args:
+        count: Number of UIs
+
+    Returns:
+        Human-readable label like "No additional UIs", "1 additional UI",
+        or "3 additional UIs"
+    """
+    if count == 0:
+        return "No additional UIs"
+    if count == 1:
+        return "1 additional UI"
+    return f"{count} additional UIs"
+
+
 def get_ui_suggestions_info(
     entity_type: str,
     entity_name: str,
@@ -40,20 +57,12 @@ def get_ui_suggestions_info(
     # URL to configure UIs
     config_url = '/variables/uis'
 
-    if has_uis:
-        if count == 1:
-            label = "1 additional UI"
-        else:
-            label = f"{count} additional UIs"
-    else:
-        label = "No additional UIs"
-
     return {
         'has_uis': has_uis,
         'count': count,
         'uis': uis,
         'config_url': config_url,
-        'label': label,
+        'label': _format_ui_count_label(count),
     }
 
 
@@ -74,9 +83,4 @@ def generate_ui_suggestions_label(
         - "No additional UIs" - When no UIs are defined
     """
     count = get_ui_count_for_entity(entity_type, entity_name)
-
-    if count == 0:
-        return "No additional UIs"
-    if count == 1:
-        return "1 additional UI"
-    return f"{count} additional UIs"
+    return _format_ui_count_label(count)

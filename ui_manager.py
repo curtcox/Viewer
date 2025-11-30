@@ -27,7 +27,7 @@ The 'uis' variable should contain JSON with the following structure:
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from db_access.variables import get_variable_by_name
 from db_access.cids import get_cid_by_path
@@ -92,7 +92,7 @@ def get_uis_config() -> Optional[Dict[str, Any]]:
     return None
 
 
-def validate_uis_json(json_data: str) -> tuple[bool, Optional[str]]:
+def validate_uis_json(json_data: str) -> Tuple[bool, Optional[str]]:
     """Validate UIs JSON structure.
 
     Args:

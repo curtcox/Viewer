@@ -13,7 +13,7 @@ This script:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
 from cid_core import generate_cid
 
@@ -217,7 +217,7 @@ class BootImageGenerator:
         return uis_cid
 
     def generate_boot_json(self, templates_cid: str, source_name: str = "boot",
-                          uis_cid: str = None) -> str:
+                          uis_cid: Optional[str] = None) -> str:
         """Generate boot.json from a boot.source.json file.
 
         Args:
