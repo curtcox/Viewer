@@ -4,14 +4,11 @@ This module provides functions to generate UI suggestion links and
 information for displaying in the view pages of aliases, servers, and variables.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from ui_manager import (
     get_uis_for_entity,
     get_ui_count_for_entity,
-    ENTITY_TYPE_ALIASES,
-    ENTITY_TYPE_SERVERS,
-    ENTITY_TYPE_VARIABLES,
 )
 
 
