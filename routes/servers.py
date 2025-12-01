@@ -30,7 +30,11 @@ from forms import ServerForm
 from interaction_log import load_interaction_history
 from models import Server
 from serialization import model_to_dict
-from server_execution import analyze_server_definition, describe_main_function_parameters
+from server_execution import (
+    analyze_server_definition,
+    describe_main_function_parameters,
+    detect_server_language,
+)
 from syntax_highlighting import highlight_source
 from template_status import get_template_link_info
 from ui_status import get_ui_suggestions_info
@@ -139,6 +143,8 @@ def _prepare_server_form_context(
         'server_test_interactions': test_interactions,
         'syntax_css': syntax_css,
     }
+    definition_text = form.definition.data if form.definition.data is not None else getattr(server, 'definition', '')
+    context['implementation_language'] = detect_server_language(definition_text)
     if server_test_upload_url:
         context['server_test_upload_url'] = server_test_upload_url
     return context
@@ -326,19 +332,21 @@ def _highlight_definition_content(
     highlighted_definition = None
     syntax_css = None
 
-    if definition:
-        highlighted_definition, syntax_css = highlight_source(
-            definition,
-            filename=f"{server_name}.py",
-            fallback_lexer='python',
+    def _highlight_text(text: str | None) -> tuple[str | None, str | None]:
+        language = detect_server_language(text or "")
+        extension = "sh" if language == "bash" else "py"
+        fallback = "bash" if language == "bash" else "python"
+        return highlight_source(
+            text,
+            filename=f"{server_name}.{extension}",
+            fallback_lexer=fallback,
         )
 
+    if definition:
+        highlighted_definition, syntax_css = _highlight_text(definition)
+
     for entry in history or []:
-        highlighted, css = highlight_source(
-            entry.get('definition'),
-            filename=f"{server_name}.py",
-            fallback_lexer='python',
-        )
+        highlighted, css = _highlight_text(entry.get('definition'))
         entry['highlighted_definition'] = highlighted
         if not syntax_css and css:
             syntax_css = css
@@ -665,6 +673,7 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
         'syntax_css': syntax_css,
         'definition_references': definition_references,
         'ui_suggestions': ui_suggestions,
+        'implementation_language': detect_server_language(server.definition),
     }
 
 
@@ -735,6 +744,7 @@ def new_server():
         ai_entity_name_field=form.name.id,
         server_test_interactions=[],
         template_link_info=template_link_info,
+        implementation_language=detect_server_language(definition_text),
     )
 
 

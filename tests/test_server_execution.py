@@ -1,6 +1,7 @@
 """Comprehensive unit tests for server_execution.py functions."""
 
 import json
+import subprocess
 import types
 import unittest
 from unittest.mock import patch
@@ -27,11 +28,13 @@ from server_execution import (
     build_request_args,
     describe_function_parameters,
     describe_main_function_parameters,
+    detect_server_language,
     is_potential_server_path,
     is_potential_versioned_server_path,
     model_as_dict,
     request_details,
 )
+from server_execution.code_execution import _run_bash_script
 
 
 class TestSplitPathSegments(unittest.TestCase):
@@ -238,6 +241,17 @@ def main(*args):
         assert result["has_main"] is True
         assert result["auto_main"] is False
         assert len(result["auto_main_errors"]) > 0
+
+    def test_detects_language_for_python_and_bash(self):
+        assert detect_server_language("def main():\n    return 'ok'\n") == "python"
+        assert (
+            detect_server_language("#!/usr/bin/env bash\necho 'ok'\n")
+            == "bash"
+        )
+
+    def test_analyze_reports_language(self):
+        result = analyze_server_definition("#!/bin/bash\necho hi\n")
+        assert result["language"] == "bash"
 
 
 class TestExtractRequestBodyValues(unittest.TestCase):
@@ -619,6 +633,26 @@ class TestMissingParameterError(unittest.TestCase):
         error = MissingParameterError(["param1", "param2"], {})
         assert "param1" in str(error)
         assert "param2" in str(error)
+
+
+def test_run_bash_script_times_out(monkeypatch):
+    removed_paths: list[str] = []
+
+    def fake_run(cmd, input=None, capture_output=None, check=None, timeout=None):  # noqa: A002  # pylint: disable=redefined-builtin
+        raise subprocess.TimeoutExpired(cmd, timeout)
+
+    monkeypatch.setattr("server_execution.code_execution.subprocess.run", fake_run)
+    monkeypatch.setattr("server_execution.code_execution.os.remove", lambda path: removed_paths.append(path))
+    monkeypatch.setattr("server_execution.code_execution.build_request_args", lambda: {})
+
+    app = Flask(__name__)
+    with app.test_request_context("/bash-server"):
+        stdout, status_code, stderr = _run_bash_script("#!/usr/bin/env bash\n", "bash-server")
+
+    assert status_code == 504
+    assert b"timed out" in stdout
+    assert stderr == b""
+    assert removed_paths
 
 
 if __name__ == "__main__":

@@ -116,6 +116,17 @@
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <div class="d-flex align-items-center gap-2 text-muted">
+                                <i class="fas fa-code"></i>
+                                <span>
+                                    Implementation Language:
+                                    <span class="badge text-bg-info">{{ implementation_language|capitalize }}</span>
+                                </span>
+                            </div>
+                            <div class="form-text">Detected automatically from the current definition.</div>
+                        </div>
+
                         {% if server_templates is defined and server_templates %}
                         <div class="col-12">
                             <label class="form-label" for="server-template-select">Start from a Template</label>

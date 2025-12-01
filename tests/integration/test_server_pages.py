@@ -46,6 +46,36 @@ def test_servers_page_lists_saved_servers(
     assert "View Full Definition" in page
 
 
+def test_server_pages_show_implementation_language(
+    client,
+    integration_app,
+):
+    """View and edit pages should surface detected implementation language."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="script-server",
+            definition=(
+                "#!/usr/bin/env bash\n"
+                "echo 'hello'\n"
+            ),
+        )
+        db.session.add(server)
+        db.session.commit()
+
+    view_response = client.get("/servers/script-server")
+    assert view_response.status_code == 200
+    view_page = view_response.get_data(as_text=True)
+    assert "Implementation Language" in view_page
+    assert "Bash" in view_page
+
+    edit_response = client.get("/servers/script-server/edit")
+    assert edit_response.status_code == 200
+    edit_page = edit_response.get_data(as_text=True)
+    assert "Implementation Language" in edit_page
+    assert "Bash" in edit_page
+
+
 def test_servers_page_includes_enabled_toggle(
     client,
     integration_app,
