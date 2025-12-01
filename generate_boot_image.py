@@ -13,7 +13,7 @@ This script:
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
 from cid_core import generate_cid
 
@@ -176,12 +176,54 @@ class BootImageGenerator:
 
         return templates_cid
 
-    def generate_boot_json(self, templates_cid: str, source_name: str = "boot") -> str:
+    def generate_uis_json(self) -> str:
+        """Generate uis.json from uis.source.json.
+
+        Returns:
+            CID of the generated uis.json
+        """
+        print("\nProcessing uis.source.json")
+        print("=" * 60)
+
+        # Read uis.source.json
+        source_path = self.reference_templates_dir / "uis.source.json"
+        with open(source_path, 'r', encoding='utf-8') as f:
+            source_data = json.load(f)
+
+        # Process all referenced files (if any)
+        print("\nProcessing referenced files...")
+        self.process_referenced_files(source_data)
+
+        # Replace filenames with CIDs
+        print("\nReplacing filenames with CIDs...")
+        uis_data = self.replace_filenames_with_cids(source_data)
+
+        # Write uis.json
+        target_path = self.reference_templates_dir / "uis.json"
+        with open(target_path, 'w', encoding='utf-8') as f:
+            json.dump(uis_data, f, indent=2)
+        print(f"\nGenerated: {target_path}")
+
+        # Generate CID for uis.json
+        uis_json_content = json.dumps(uis_data, indent=2).encode('utf-8')
+        uis_cid = generate_cid(uis_json_content)
+
+        # Store uis.json CID
+        cid_file_path = self.cids_dir / uis_cid
+        with open(cid_file_path, 'wb') as f:
+            f.write(uis_json_content)
+        print(f"Stored uis.json -> {uis_cid}")
+
+        return uis_cid
+
+    def generate_boot_json(self, templates_cid: str, source_name: str = "boot",
+                          uis_cid: Optional[str] = None) -> str:
         """Generate boot.json from a boot.source.json file.
 
         Args:
             templates_cid: CID of the templates.json file
             source_name: Name prefix for source/output files (e.g., "boot", "minimal", "default")
+            uis_cid: CID of the uis.json file (optional)
 
         Returns:
             CID of the generated boot.json
@@ -212,6 +254,10 @@ class BootImageGenerator:
             for var in boot_data['variables']:
                 if var.get('name') == 'templates' and var.get('definition') == 'GENERATED:templates.json':
                     var['definition'] = templates_cid
+                # Replace GENERATED:uis.json marker with actual UIs CID
+                if uis_cid and var.get('name') == 'uis' and var.get('definition') == 'GENERATED:uis.json':
+                    print(f"Replacing uis variable with CID: {uis_cid}")
+                    var['definition'] = uis_cid
 
         # Write boot.json
         target_path = self.reference_templates_dir / target_filename
@@ -241,7 +287,7 @@ class BootImageGenerator:
         """Generate the complete boot image.
 
         Returns:
-            Dictionary with 'templates_cid', 'minimal_boot_cid', and 'default_boot_cid' keys
+            Dictionary with 'templates_cid', 'uis_cid', 'minimal_boot_cid', and 'default_boot_cid' keys
         """
         print("Generating Boot Image")
         print("=" * 60)
@@ -252,15 +298,19 @@ class BootImageGenerator:
         # Generate templates.json and get its CID
         templates_cid = self.generate_templates_json()
 
-        minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal")
-        default_boot_cid = self.generate_boot_json(templates_cid, "default")
-        boot_cid = self.generate_boot_json(templates_cid, "boot")
+        # Generate uis.json and get its CID
+        uis_cid = self.generate_uis_json()
+
+        minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal", uis_cid)
+        default_boot_cid = self.generate_boot_json(templates_cid, "default", uis_cid)
+        boot_cid = self.generate_boot_json(templates_cid, "boot", uis_cid)
 
         # Summary
         print("\n" + "=" * 60)
         print("Boot Image Generation Complete")
         print("=" * 60)
         print(f"Templates CID:     {templates_cid}")
+        print(f"UIs CID:           {uis_cid}")
         print(f"Minimal Boot CID:  {minimal_boot_cid}")
         print(f"Default Boot CID:  {default_boot_cid}")
         print(f"Boot CID (legacy): {boot_cid}")
@@ -271,6 +321,7 @@ class BootImageGenerator:
 
         return {
             'templates_cid': templates_cid,
+            'uis_cid': uis_cid,
             'boot_cid': boot_cid,
             'minimal_boot_cid': minimal_boot_cid,
             'default_boot_cid': default_boot_cid

@@ -73,6 +73,15 @@ class TestBootImageGenerator:
         templates_source_file = ref_templates / "templates.source.json"
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
+        # Create uis.source.json
+        uis_source = {
+            "aliases": {},
+            "servers": {},
+            "variables": {}
+        }
+        uis_source_file = ref_templates / "uis.source.json"
+        uis_source_file.write_text(json.dumps(uis_source, indent=2))
+
         # Create boot.source.json
         boot_source = {
             "version": 6,
@@ -96,6 +105,11 @@ class TestBootImageGenerator:
                 {
                     "name": "templates",
                     "definition": "GENERATED:templates.json",
+                    "enabled": True
+                },
+                {
+                    "name": "uis",
+                    "definition": "GENERATED:uis.json",
                     "enabled": True
                 }
             ]

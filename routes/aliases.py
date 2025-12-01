@@ -21,6 +21,7 @@ from alias_definition import (
     replace_primary_definition_line,
     summarize_definition_lines,
 )
+from ui_status import get_ui_suggestions_info
 from alias_matching import evaluate_test_strings, matches_path
 from cid_presenter import extract_cid_from_path
 from db_access import (
@@ -326,9 +327,13 @@ def _build_alias_view_context(alias: Alias) -> Dict[str, Any]:
         _serialize_definition_line(entry) for entry in definition_summary
     ]
 
+    # Get UI suggestions for this alias
+    ui_suggestions = get_ui_suggestions_info('aliases', alias.name)
+
     return {
         'target_references': target_references,
         'alias_definition_lines': definition_lines,
+        'ui_suggestions': ui_suggestions,
     }
 
 

@@ -1,0 +1,43 @@
+{# UI Suggestions partial template.
+   Include this in entity view pages to show custom UI suggestions.
+   Requires 'ui_suggestions' context variable from ui_status.get_ui_suggestions_info()
+#}
+
+{% if ui_suggestions is defined and ui_suggestions %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-window-restore me-2"></i>Additional UIs
+        </h5>
+        <a href="{{ ui_suggestions.config_url }}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-cog me-1"></i>Configure
+        </a>
+    </div>
+    <div class="card-body">
+        {% if ui_suggestions.has_uis %}
+        <p class="text-muted mb-3">
+            {{ ui_suggestions.label }} available for this item.
+        </p>
+        <div class="list-group">
+            {% for ui in ui_suggestions.uis %}
+            <a href="{{ ui.path }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-external-link-alt me-2 text-primary"></i>
+                    {{ ui.name }}
+                </span>
+                <code class="small text-muted">{{ ui.path }}</code>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">
+            {{ ui_suggestions.label }}.
+            <a href="{{ ui_suggestions.config_url }}" class="text-decoration-none">
+                Configure custom UIs
+            </a>
+            by setting the <code>uis</code> variable.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
