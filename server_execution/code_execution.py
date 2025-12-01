@@ -288,19 +288,19 @@ def _inject_optional_parameter_from_path(
     if not server_name or not details.parameter_order:
         return None, None
 
-    remainder_segments = _remaining_path_segments(server_name)
-    if not remainder_segments:
-        return None, None
-
-    nested_path = "/" + "/".join(remainder_segments)
-    nested_value = _evaluate_nested_path_to_value(nested_path)
-    if isinstance(nested_value, Response):
-        return None, nested_value
-    if nested_value is None:
-        return None, None
-
     for name in details.parameter_order:
         if name not in resolved:
+            remainder_segments = _remaining_path_segments(server_name)
+            if not remainder_segments:
+                return None, None
+
+            nested_path = "/" + "/".join(remainder_segments)
+            nested_value = _evaluate_nested_path_to_value(nested_path)
+            if isinstance(nested_value, Response):
+                return None, nested_value
+            if nested_value is None:
+                return None, None
+
             return {name: nested_value}, None
 
     return None, None

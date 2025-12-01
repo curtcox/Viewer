@@ -330,10 +330,29 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
 
     with app.test_request_context("/outer/inner?prefix=start"):
         result = server_execution.execute_server_code_from_definition(
-            outer_definition, "outer"
-        )
+        outer_definition, "outer"
+    )
 
     assert result["output"] == "start:value"
+
+
+def test_auto_main_skips_chained_evaluation_when_all_parameters_resolved(monkeypatch):
+    definition = """
+ def main(message):
+     return {"output": message, "content_type": "text/plain"}
+ """
+
+    from server_execution import code_execution
+
+    def fail_if_called(_path):
+        raise AssertionError("Nested path should not be evaluated when parameters are resolved")
+
+    monkeypatch.setattr(code_execution, "_evaluate_nested_path_to_value", fail_if_called)
+
+    with app.test_request_context("/outer/inner?message=explicit"):
+        result = server_execution.execute_server_code_from_definition(definition, "outer")
+
+    assert result["output"] == "explicit"
 
 
 def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
