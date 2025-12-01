@@ -202,6 +202,11 @@ class TestBootImageReferenceTemplates:
 
             assert 'hello-world' in templates_config['uploads']
             assert templates_config['uploads']['hello-world']['name'] == 'Hello World HTML page'
+            assert 'embedded-cid-execution' in templates_config['uploads']
+            assert (
+                templates_config['uploads']['embedded-cid-execution']['name']
+                == 'Embedded CID execution guide'
+            )
 
     def test_boot_image_template_definitions_resolve(self, tmp_path):
         """Test that template definitions are properly resolved from CIDs."""

@@ -84,7 +84,12 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABLdR3Z0U8_h6PwZ_QARAGXVqAADKveVbXJGO876tWxLkCM3OBcPaXPrj6pVxf7tEpzPlqwlRueFxcXiy3t-7Ikq6Q",
+      "definition": "AAAAABQH5rhp1eKNIb7SW4wxO25d3gp1o5mtrq_wKGrxytxlFWLVrNSsknUFnPItKM0aM8sOlf9ryNggETgJgKbAfraw-Q",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
       "enabled": true
     }
   ]

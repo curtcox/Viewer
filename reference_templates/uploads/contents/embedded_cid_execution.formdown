@@ -1,0 +1,43 @@
+# Embedded CID Path Execution
+
+This page demonstrates how to treat literal CIDs as executable URL path elements whenever they are **not** the last segment. The platform will infer the language from the CID content (or a suffix such as `.sh` or `.jq`) and execute it as if it were a named server, piping the path segment on the right into the CID and passing the result left.
+
+## Command palette
+
+Each row shows the literal CID for the command payload and how to embed it between other path elements.
+
+| Tool | Literal CID payload | Example embedded path |
+| ---- | ------------------- | --------------------- |
+| `ls -lah` | `AAAAAAARIyEvYmluL3NoCmxzIC1sYWg` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/reference_templates/uploads/contents/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh` |
+| `grep -n --color=never ''` | `AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw` | `/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/reference_templates/uploads` |
+| `sed -n '1,20p'` | `AAAAAAAYIyEvYmluL3NoCnNlZCAtbiAnMSwyMHAn` | `/cids/AAAAAAAYIyEvYmluL3NoCnNlZCAtbiAnMSwyMHAn.sh/logs/app.log/AAAAAAATIyEvYmluL3NoCnRhaWwgLW4gNQ.sh` |
+| `awk '{print NF}'` | `AAAAAAAaIyEvYmluL3NoCmF3ayAne3ByaW50IE5GfSc` | `/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://example.com/metrics.txt/AAAAAAAaIyEvYmluL3NoCmF3ayAne3ByaW50IE5GfSc.sh` |
+| `curl -sS` | `AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT` | `/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq/items` |
+| `head -n 5` | `AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ` | `/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/notes.md/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh` |
+| `tail -n 5` | `AAAAAAATIyEvYmluL3NoCnRhaWwgLW4gNQ` | `/AAAAAAAYIyEvYmluL3NoCnNlZCAtbiAnMSwyMHAn.sh/logs/app.log/AAAAAAATIyEvYmluL3NoCnRhaWwgLW4gNQ.sh` |
+| `jq -r .` | `AAAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg` | `/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq/"items"` |
+
+## Inline form examples
+
+Use the forms below as ready-made actions that rely on the embedded CID servers above.
+
+```formdown
+@form[id="cid-pipeline" action="/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh"]
+
+@target_path(Target path to inspect): [text placeholder="/workspace" help="Provided to the right of the grep CID."]
+@pattern(Grep pattern): [text placeholder="TODO" help="Used as input to the grep CID."]
+@head_lines(Head line count): [number min=1 max=50 value=5 help="Left-most CID consumes the filtered content."]
+
+@submit_preview: [submit label="Run ls → grep → head"]
+@reset_preview: [reset label="Reset"]
+```
+
+```formdown
+@form[id="curl-jq" action="/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq"]
+
+@jq_filter(jq filter): [text placeholder=".items[] | {id, name}" help="Passed as the path segment to the jq CID."]
+@submit_curl: [submit label="Fetch then filter"]
+@reset_curl: [reset label="Clear"]
+```
+
+By placing these literal CIDs between path segments you can chain Unix-style utilities, whether you need quick previews with `head` and `tail` or structured filtering with `jq`. When a CID is the final path element it will not execute, letting you link directly to its source instead.
