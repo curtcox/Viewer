@@ -788,3 +788,39 @@ def main(input_data):
 
     assert result["output"] == "s2(s1-via-alias)"
     assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_optional_parameter_uses_nested_path(monkeypatch):
+    """Optional parameters should still consume chained path input."""
+
+    server_definition = """
+def main(optional_value=""):
+    return {"output": f"optional:{optional_value}", "content_type": "text/plain"}
+"""
+
+    cid_value = "bafyoptionalvalue"
+    cid_bytes = b"from-cid"
+
+    from server_execution import code_execution
+
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        lambda name: SimpleNamespace(definition=server_definition, enabled=True)
+        if name == "opt"
+        else None,
+    )
+    monkeypatch.setattr(
+        code_execution,
+        "get_cid_by_path",
+        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+    )
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    with app.test_request_context(f"/opt/{cid_value}"):
+        result = server_execution.execute_server_code_from_definition(
+            server_definition, "opt"
+        )
+
+    assert result["output"] == "optional:from-cid"
+    assert result["content_type"] == "text/plain"

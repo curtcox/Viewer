@@ -270,6 +270,42 @@ def _inject_nested_parameter_value(
     return {missing[0]: nested_value}
 
 
+def _inject_optional_parameter_from_path(
+    server_name: Optional[str],
+    details: FunctionDetails,
+    resolved: Dict[str, Any],
+) -> tuple[Optional[Dict[str, Any]], Optional[Response]]:
+    """Provide chained input for optional parameters when present.
+
+    Optional parameters with defaults aren't marked as "missing" during
+    resolution, but server chaining should still use any remaining path
+    segment as input when no value was supplied explicitly. This helper
+    mirrors the nested-path lookup used for required parameters and returns
+    either a mapping for the first unresolved parameter or an early
+    Response.
+    """
+
+    if not server_name or not details.parameter_order:
+        return None, None
+
+    remainder_segments = _remaining_path_segments(server_name)
+    if not remainder_segments:
+        return None, None
+
+    nested_path = "/" + "/".join(remainder_segments)
+    nested_value = _evaluate_nested_path_to_value(nested_path)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is None:
+        return None, None
+
+    for name in details.parameter_order:
+        if name not in resolved:
+            return {name: nested_value}, None
+
+    return None, None
+
+
 def _resolve_chained_input_for_server(
     server_name: str,
 ) -> tuple[Optional[str], Optional[Response]]:
@@ -456,6 +492,19 @@ def _prepare_invocation(
             return _build_missing_parameter_response(
                 function_name, MissingParameterError(missing, available)
             )
+
+    if function_name == "main":
+        optional_injection, early_response = _inject_optional_parameter_from_path(
+            server_name,
+            details,
+            working_resolved,
+        )
+
+        if early_response:
+            return early_response
+
+        if optional_injection:
+            working_resolved.update(optional_injection)
 
     # Build final code with function invocation
     new_args = dict(working_args)

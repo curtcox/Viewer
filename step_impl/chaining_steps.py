@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import textwrap
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit
 
@@ -149,4 +150,58 @@ def and_cid_content_should_be(expected_content: str) -> None:
     assert content is not None, f"Could not resolve CID content for {location}"
     assert content == expected_content, (
         f"Expected CID content '{expected_content}' but got '{content}'"
+    )
+
+
+@step('Given the default server "<server_name>" is available')
+def given_default_server_available(server_name: str) -> None:
+    """Load a default server definition from reference templates."""
+
+    definition_path = (
+        Path("reference_templates") / "servers" / "definitions" / f"{server_name}.py"
+    )
+    assert definition_path.exists(), f"Default server {server_name} not found"
+
+    _store_server(server_name, definition_path.read_text(encoding="utf-8"))
+
+
+@step('And a wrapping server named "<server_name>" that wraps payload with "<prefix>"')
+def and_wrapping_server(server_name: str, prefix: str) -> None:
+    """Create a wrapper server that prefixes chained payloads."""
+
+    definition = f'''
+def main(payload):
+    return {{"output": f"{prefix}{{payload}}", "content_type": "text/plain"}}
+'''
+    _store_server(server_name, definition)
+
+
+@step('When I request the resource /<path_prefix>/{stored CID}')
+def when_request_resource_with_cid(path_prefix: str) -> None:
+    """Request a chained resource using the stored CID."""
+
+    state = get_scenario_state()
+    cid_value = state.get("last_cid")
+    assert cid_value, "No CID stored. Call 'And a CID containing' first."
+
+    normalized = path_prefix.strip("/")
+    request_path = f"/{normalized}/{cid_value}"
+
+    client = get_shared_client()
+    response = client.get(request_path)
+    state["response"] = response
+
+
+@step('Then the CID content should contain "<expected_content>"')
+def then_cid_content_contains(expected_content: str) -> None:
+    """Assert the CID content includes the expected substring."""
+
+    state = get_scenario_state()
+    location = state.get("redirect_location")
+    assert location, "No redirect location recorded."
+
+    content = _resolve_cid_content(location)
+    assert content is not None, f"Could not resolve CID content for {location}"
+    assert expected_content in content, (
+        f"Expected CID content to include '{expected_content}' but got '{content}'"
     )
