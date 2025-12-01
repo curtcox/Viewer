@@ -13,6 +13,7 @@ from server_execution.code_execution import (
     execute_server_function,
     execute_server_function_from_definition,
 )
+from server_execution.language_detection import detect_server_language
 # pylint: enable=no-name-in-module
 
 
@@ -115,6 +116,9 @@ def try_server_execution(path: str) -> Optional[Response]:
 
     function_name = parts[1]
     if not function_name.isidentifier():
+        return execute_server_code(server, server_name)
+
+    if detect_server_language(getattr(server, "definition", "")) != "python":
         return execute_server_code(server, server_name)
 
     result = execute_server_function(server, server_name, function_name)

@@ -439,3 +439,30 @@ cat
 
     payload = json.loads(response.get_data(as_text=True))
     assert payload.get("input") == "inner"
+
+
+def test_bash_server_chains_with_identifier_paths(client, integration_app):
+    """Identifier-only path segments should still allow chaining into bash servers."""
+
+    _store_server(
+        integration_app,
+        "pythoninner",
+        """
+        def main():
+            return {"output": "inner", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "bashouter",
+        """#!/usr/bin/env bash
+cat
+""",
+    )
+
+    response = client.get("/bashouter/pythoninner")
+    assert response.status_code == 200
+
+    payload = json.loads(response.get_data(as_text=True))
+    assert payload.get("input") == "inner"

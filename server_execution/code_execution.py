@@ -549,7 +549,10 @@ def _run_bash_script(
             input=stdin_payload,
             capture_output=True,
             check=False,
+            timeout=30,
         )
+    except subprocess.TimeoutExpired:
+        return b"Script execution timed out", 504, b""
     finally:
         try:
             os.remove(script_path)
