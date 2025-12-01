@@ -27,6 +27,13 @@
 * And I click the "Hello World" template button
 * Then the text content field should contain "Hello, World!"
 
+## Embedded CID execution guide is listed
+* Given I am signed in to the workspace
+* And I have upload templates configured
+* When I navigate to /upload
+* Then I should see a template named "Embedded CID execution guide"
+* And its description should mention "CID path elements"
+
 ## Upload templates support CID references
 * Given I am signed in to the workspace
 * And I have a CID containing "Template content from CID"

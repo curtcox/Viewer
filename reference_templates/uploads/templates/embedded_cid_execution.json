@@ -1,0 +1,7 @@
+{
+  "id": "embedded-cid-execution",
+  "name": "Embedded CID execution guide",
+  "description": "Demonstrates chaining embedded CID path elements for Unix-style tools.",
+  "content_file": "contents/embedded_cid_execution.formdown",
+  "suggested_filename": "embedded-cid-execution.formdown"
+}
