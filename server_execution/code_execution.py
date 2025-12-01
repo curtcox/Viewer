@@ -1,5 +1,9 @@
-"""Core Python code execution and server invocation logic."""
+"""Core Python and Bash code execution and server invocation logic."""
 
+import json
+import os
+import subprocess
+import tempfile
 import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -8,17 +12,19 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
-from db_access import get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
+from cid_utils import generate_cid
+from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
 from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
+from server_execution.language_detection import detect_server_language
 from server_execution.invocation_tracking import request_details
 from server_execution.request_parsing import (
     _build_missing_parameter_response,
     _build_multi_parameter_error_page,
     _resolve_function_parameters,
 )
-from server_execution.response_handling import _handle_successful_execution, _log_server_output
+from server_execution.response_handling import _encode_output, _handle_successful_execution, _log_server_output
 from server_execution.variable_resolution import _resolve_variable_values, _should_skip_variable_prefetch
 # pylint: enable=no-name-in-module
 from text_function_runner import run_text_function
@@ -62,7 +68,7 @@ def _auto_main_accepts_additional_path(server: Any) -> bool:
     return bool(details.parameter_order)
 
 
-def _clone_request_context_kwargs(path: str) -> Dict[str, Any]:
+def _clone_request_context_kwargs(path: str, data_override: bytes | None = None) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"path": path}
     if has_request_context():
         kwargs["method"] = request.method
@@ -80,20 +86,42 @@ def _clone_request_context_kwargs(path: str) -> Dict[str, Any]:
     else:
         kwargs["method"] = "GET"
         kwargs["query_string"] = ""
+
+    if data_override is not None:
+        kwargs["data"] = data_override
+        kwargs.pop("json", None)
+
     return kwargs
 
 
-def _execute_nested_server_to_value(
-    server: Any, server_name: str, path: str
+def _resolve_chained_input_from_path(
+    path: str, visited: Set[str]
+) -> tuple[Optional[str], Optional[Response]]:
+    segments = _split_path_segments(path)
+    if len(segments) <= 1:
+        return None, None
+
+    nested_path = "/" + "/".join(segments[1:])
+    nested_value = _evaluate_nested_path_to_value(nested_path, visited)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is None:
+        return None, None
+    return str(nested_value), None
+
+
+def _execute_python_code_to_value(
+    code: str, server_name: str, path: str, *, chained_input: Optional[str]
 ) -> Any:
     if not has_app_context():
         return None
 
-    kwargs = _clone_request_context_kwargs(path)
+    input_bytes = _encode_output(chained_input) if chained_input is not None else None
+    kwargs = _clone_request_context_kwargs(path, data_override=input_bytes)
     with current_app.test_request_context(**kwargs):
         args = build_request_args()
         prepared = _prepare_invocation(
-            server.definition,
+            code,
             args,
             function_name="main",
             allow_fallback=True,
@@ -115,13 +143,50 @@ def _execute_nested_server_to_value(
             return _handle_execution_exception(exc, code_to_run, args_to_use, server_name)
 
         output, _ = _normalize_execution_result(result)
-        from server_execution.response_handling import _encode_output  # pylint: disable=no-name-in-module
         output_bytes = _encode_output(output)
         try:
             return output_bytes.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
             # Handle decoding errors by using replacement characters
             return output_bytes.decode("utf-8", errors="replace")
+
+
+def _execute_bash_code_to_value(
+    code: str, server_name: str, chained_input: Optional[str]
+) -> Any:
+    stdout, status_code, stderr = _run_bash_script(
+        code, server_name, chained_input=chained_input
+    )
+    combined_output = stdout or b""
+    if status_code >= 400 and stderr:
+        combined_output = (
+            combined_output + (b"" if combined_output.endswith(b"\n") or not combined_output else b"\n") + stderr
+        )
+    _log_server_output(
+        "execute_bash_code", "", combined_output, "text/plain"
+    )
+
+    if status_code >= 400:
+        return Response(combined_output, status=status_code, mimetype="text/plain")
+
+    try:
+        return combined_output.decode("utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        return combined_output.decode("utf-8", errors="replace")
+
+
+def _execute_nested_server_to_value(
+    server: Any, server_name: str, path: str, visited: Set[str]
+) -> Any:
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
+
+    language = detect_server_language(getattr(server, "definition", ""))
+    if language == "bash":
+        return _execute_bash_code_to_value(server.definition, server_name, chained_input)
+
+    return _execute_python_code_to_value(server.definition, server_name, path, chained_input=chained_input)
 
 
 def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None) -> Any:
@@ -150,7 +215,7 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
     if server and not getattr(server, "enabled", True):
         server = None
     if server:
-        return _execute_nested_server_to_value(server, server_name, normalized)
+        return _execute_nested_server_to_value(server, server_name, normalized, visited)
 
     alias_match = find_matching_alias(normalized)
     if alias_match and getattr(alias_match, "route", None):
@@ -203,6 +268,57 @@ def _inject_nested_parameter_value(
     if nested_value is None:
         return None
     return {missing[0]: nested_value}
+
+
+def _resolve_chained_input_for_server(
+    server_name: str,
+) -> tuple[Optional[str], Optional[Response]]:
+    remainder_segments = _remaining_path_segments(server_name)
+    if not remainder_segments:
+        return None, None
+
+    nested_path = "/" + "/".join(remainder_segments)
+    nested_value = _evaluate_nested_path_to_value(nested_path)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is None:
+        return None, None
+    return str(nested_value), None
+
+
+def _execute_bash_server_response(
+    code: str,
+    server_name: str,
+    debug_prefix: str,
+    *,
+    chained_input: Optional[str],
+) -> Response:
+    stdout, status_code, stderr = _run_bash_script(
+        code, server_name, chained_input=chained_input
+    )
+
+    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    if status_code >= 400 and stderr:
+        output_bytes = output_bytes + (
+            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
+        ) + stderr
+
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+
+    cid_value = format_cid(generate_cid(output_bytes))
+    cid_record_path = cid_path(cid_value)
+    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+    if not existing and cid_record_path:
+        create_cid_record(cid_value, output_bytes)
+
+    if has_app_context():
+        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
+            create_server_invocation_record,
+        )
+
+        create_server_invocation_record(server_name, cid_value)
+
+    return Response(output_bytes, status=status_code, mimetype="text/plain")
 
 
 def _build_unsupported_signature_response(
@@ -384,6 +500,66 @@ def build_request_args() -> Dict[str, Any]:
     }
 
 
+def _map_exit_code_to_status(exit_code: int) -> int:
+    if exit_code == 0:
+        return 200
+    if exit_code < 100 or exit_code > 599:
+        return 500
+    return exit_code
+
+
+def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
+    payload: Dict[str, Any] = build_request_args()
+
+    try:
+        body_data = request.get_data()
+    except RuntimeError:
+        body_data = b""
+
+    input_value: Optional[str] = None
+    if body_data:
+        try:
+            decoded_body = body_data.decode("utf-8")
+        except UnicodeDecodeError:
+            decoded_body = body_data.decode("utf-8", errors="replace")
+        payload["body"] = decoded_body
+        input_value = decoded_body
+
+    if chained_input is not None:
+        input_value = chained_input
+
+    if input_value is not None:
+        payload["input"] = input_value
+
+    return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+
+def _run_bash_script(
+    code: str, server_name: str, *, chained_input: Optional[str] = None
+) -> tuple[bytes, int, bytes]:
+    stdin_payload = _build_bash_stdin_payload(chained_input)
+
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".sh") as script_file:
+        script_file.write(code)
+        script_path = script_file.name
+
+    try:
+        result = subprocess.run(
+            ["bash", script_path],
+            input=stdin_payload,
+            capture_output=True,
+            check=False,
+        )
+    finally:
+        try:
+            os.remove(script_path)
+        except OSError:
+            pass
+
+    status_code = _map_exit_code_to_status(result.returncode)
+    return result.stdout or b"", status_code, result.stderr or b""
+
+
 def _execute_server_code_common(
     code: str,
     server_name: str,
@@ -393,6 +569,20 @@ def _execute_server_code_common(
     function_name: Optional[str] = "main",
     allow_fallback: bool = True,
 ) -> Optional[Response]:
+    language = detect_server_language(code)
+
+    if language == "bash":
+        chained_input, early_response = _resolve_chained_input_for_server(server_name)
+        if early_response:
+            return early_response
+
+        return _execute_bash_server_response(
+            code,
+            server_name,
+            debug_prefix,
+            chained_input=chained_input,
+        )
+
     args = build_request_args()
 
     prepared = _prepare_invocation(
@@ -456,6 +646,8 @@ def execute_server_code_from_definition(definition_text: str, server_name: str) 
 @logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function(server: Any, server_name: str, function_name: str) -> Optional[Response]:
     """Execute a named helper function within a server definition."""
+    if detect_server_language(getattr(server, "definition", "")) != "python":
+        return None
 
     return _execute_server_code_common(
         server.definition,
@@ -472,6 +664,8 @@ def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ) -> Optional[Response]:
     """Execute a helper function from a supplied historical definition."""
+    if detect_server_language(definition_text) != "python":
+        return None
 
     return _execute_server_code_common(
         definition_text,

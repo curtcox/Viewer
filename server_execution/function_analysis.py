@@ -147,7 +147,12 @@ def analyze_server_definition(code: str) -> Dict[str, Any]:
         "parameters": [],
         "has_main": False,
         "mode": "query",
+        "language": "python",
     }
+
+    from server_execution.language_detection import detect_server_language  # Local import to avoid cycles
+
+    result["language"] = detect_server_language(code)
 
     try:
         ast.parse(code or "", mode="exec")

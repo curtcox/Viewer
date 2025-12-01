@@ -27,6 +27,7 @@ from server_execution import (
     build_request_args,
     describe_function_parameters,
     describe_main_function_parameters,
+    detect_server_language,
     is_potential_server_path,
     is_potential_versioned_server_path,
     model_as_dict,
@@ -238,6 +239,17 @@ def main(*args):
         assert result["has_main"] is True
         assert result["auto_main"] is False
         assert len(result["auto_main_errors"]) > 0
+
+    def test_detects_language_for_python_and_bash(self):
+        assert detect_server_language("def main():\n    return 'ok'\n") == "python"
+        assert (
+            detect_server_language("#!/usr/bin/env bash\necho 'ok'\n")
+            == "bash"
+        )
+
+    def test_analyze_reports_language(self):
+        result = analyze_server_definition("#!/bin/bash\necho hi\n")
+        assert result["language"] == "bash"
 
 
 class TestExtractRequestBodyValues(unittest.TestCase):

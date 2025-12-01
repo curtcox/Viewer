@@ -19,6 +19,7 @@ from server_execution.function_analysis import (
     describe_function_parameters,
     describe_main_function_parameters,
 )
+from server_execution.language_detection import detect_server_language
 from server_execution.invocation_tracking import create_server_invocation_record
 from server_execution.server_lookup import (
     is_potential_server_path,
@@ -38,6 +39,7 @@ __all__ = [
     "analyze_server_definition",
     "describe_function_parameters",
     "describe_main_function_parameters",
+    "detect_server_language",
     # Execution
     "build_request_args",
     "execute_server_code",
@@ -83,6 +85,9 @@ _LAZY_IMPORTS = {
     'MissingParameterError': ('server_execution.function_analysis', 'MissingParameterError'),
     '_parse_function_details': ('server_execution.function_analysis', '_parse_function_details'),
     '_analyze_server_definition_for_function': ('server_execution.function_analysis', '_analyze_server_definition_for_function'),
+
+    # Language detection
+    'detect_server_language': ('server_execution.language_detection', 'detect_server_language'),
 
     # Request parsing
     '_extract_request_body_values': ('server_execution.request_parsing', '_extract_request_body_values'),

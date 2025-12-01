@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import textwrap
 from urllib.parse import urlsplit
 
@@ -341,3 +342,100 @@ def test_chaining_server_with_alias_to_server(
 
     payload = _resolve_cid_payload(integration_app, response.headers["Location"])
     assert payload == "caller(via-alias)"
+
+
+def test_bash_server_respects_exit_code_and_input(client, integration_app):
+    """Bash servers should stream stdin JSON and map exit codes to HTTP codes."""
+
+    _store_server(
+        integration_app,
+        "bash-echo",
+        """#!/usr/bin/env bash
+cat
+exit 201
+""",
+    )
+
+    response = client.post("/bash-echo", data="body-text")
+
+    assert response.status_code == 201
+    payload = json.loads(response.get_data(as_text=True))
+    assert payload["input"] == "body-text"
+
+
+def test_bash_exit_code_outside_range_maps_to_500(client, integration_app):
+    """Exit codes outside HTTP range should be normalised."""
+
+    _store_server(
+        integration_app,
+        "bash-error",
+        """#!/bin/bash
+echo "oops"
+exit 42
+""",
+    )
+
+    response = client.get("/bash-error")
+    assert response.status_code == 500
+    assert "oops" in response.get_data(as_text=True)
+
+
+def test_chaining_across_bash_and_python_servers(client, integration_app):
+    """Bash and Python servers should participate in the same pipeline."""
+
+    _store_server(
+        integration_app,
+        "bash-leaf",
+        """#!/usr/bin/env bash
+printf "leaf"
+""",
+    )
+
+    _store_server(
+        integration_app,
+        "python-middle",
+        """
+        def main(payload):
+            return {"output": f"{payload}-py", "content_type": "text/plain"}
+        """,
+    )
+
+    _store_server(
+        integration_app,
+        "bash-outer",
+        """#!/usr/bin/env bash
+cat
+""",
+    )
+
+    response = client.get("/bash-outer/python-middle/bash-leaf")
+    assert response.status_code == 200
+
+    payload = json.loads(response.get_data(as_text=True))
+    assert payload["input"] == "leaf-py"
+
+
+def test_bash_servers_chain_directly(client, integration_app):
+    """Nested bash servers should still feed stdout into upstream stdin."""
+
+    _store_server(
+        integration_app,
+        "bash-inner",
+        """#!/usr/bin/env bash
+printf "inner"
+""",
+    )
+
+    _store_server(
+        integration_app,
+        "bash-outer",
+        """#!/usr/bin/env bash
+cat
+""",
+    )
+
+    response = client.get("/bash-outer/bash-inner")
+    assert response.status_code == 200
+
+    payload = json.loads(response.get_data(as_text=True))
+    assert payload.get("input") == "inner"
