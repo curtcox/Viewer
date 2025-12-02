@@ -432,7 +432,26 @@ def _resolve_chained_input_for_server(
         return None, None
 
     nested_path = "/" + "/".join(remainder_segments)
-    nested_value = _evaluate_nested_path_to_value(nested_path)
+    visited: Set[str] = set()
+    if len(remainder_segments) == 1:
+        literal_definition, language_override, normalized_cid = _load_server_literal(
+            remainder_segments[0]
+        )
+        if literal_definition is not None:
+            literal_name = normalized_cid or remainder_segments[0]
+            literal_value = _execute_literal_definition_to_value(
+                literal_definition,
+                literal_name,
+                nested_path,
+                visited,
+                language_override=language_override,
+            )
+            if isinstance(literal_value, Response):
+                return None, literal_value
+            if literal_value is not None:
+                return str(literal_value), None
+
+    nested_value = _evaluate_nested_path_to_value(nested_path, visited)
     if isinstance(nested_value, Response):
         return None, nested_value
     if nested_value is None:

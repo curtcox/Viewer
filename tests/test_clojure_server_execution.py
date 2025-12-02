@@ -135,6 +135,22 @@ def test_clojure_literal_chains_into_clojure_literal(clojure_environment):
     assert response.get_data(as_text=True).strip() == "clj:clj:from-clojure"
 
 
+def test_clojure_server_consumes_single_segment_cid_input(clojure_environment):
+    clojure_cid = "clj-consume"
+    bash_cid = "bash-yield"
+
+    _store_clojure_server(clojure_environment.cid_registry, f"{clojure_cid}.clj")
+    clojure_environment.cid_registry[f"/{bash_cid}"] = b"echo chained-bash"
+
+    with app.test_request_context(f"/{clojure_cid}.clj/{bash_cid}.sh"):
+        response = server_execution.try_server_execution(
+            f"/{clojure_cid}.clj/{bash_cid}.sh"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "clj:bash:chained-bash"
+
+
 def test_named_clojure_server_receives_python_input(clojure_environment):
     clojure_environment.servers["clj-server"] = SimpleNamespace(
         name="clj-server", definition="(defn main [payload])"
