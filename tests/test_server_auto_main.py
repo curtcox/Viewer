@@ -355,6 +355,26 @@ def test_auto_main_skips_chained_evaluation_when_all_parameters_resolved(monkeyp
     assert result["output"] == "explicit"
 
 
+def test_chained_cid_allows_extension(monkeypatch):
+    cid_value = "bafyextcid"
+    payload = b"extended"
+
+    from server_execution import code_execution
+
+    monkeypatch.setattr(code_execution, "get_server_by_name", lambda name: None)
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    def fake_get_cid_by_path(path):
+        assert path == f"/{cid_value}"
+        return SimpleNamespace(file_data=payload)
+
+    monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
+
+    result = code_execution._evaluate_nested_path_to_value(f"/{cid_value}.txt")
+
+    assert result == payload.decode("utf-8")
+
+
 def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
     outer_definition = """
  def main(first, second):

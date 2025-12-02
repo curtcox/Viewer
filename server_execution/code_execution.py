@@ -12,6 +12,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
+from cid_core import split_cid_path
 from cid_utils import generate_cid
 from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
@@ -224,7 +225,10 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             return _evaluate_nested_path_to_value(target, visited)
 
     if len(segments) == 1:
-        normalized_cid = format_cid(segments[0])
+        cid_components = split_cid_path(segments[0]) or split_cid_path(
+            f"/{segments[0]}"
+        )
+        normalized_cid = format_cid((cid_components or (None,))[0] or segments[0])
         cid_record_path = cid_path(normalized_cid)
         if cid_record_path:
             cid_record = get_cid_by_path(cid_record_path)

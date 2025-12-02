@@ -529,6 +529,45 @@ def test_default_markdown_renders_showcase_via_cid(client, integration_app):
     assert "Need a quick start? Duplicate this file" in payload
 
 
+def test_default_markdown_renders_showcase_via_cid_with_extension(
+    client, integration_app
+):
+    """Markdown server should resolve CID payloads even when an extension is present."""
+
+    markdown_definition = Path(
+        "reference_templates/servers/definitions/markdown.py"
+    ).read_text(encoding="utf-8")
+    markdown_sample = Path(
+        "reference_templates/uploads/contents/markdown_showcase.md"
+    ).read_text(encoding="utf-8")
+    expected_html = _render_markdown_document(markdown_sample)
+
+    _store_server(integration_app, "markdown", markdown_definition)
+
+    cid_value = "bafymarkdownshowcaseext"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{cid_value}", file_data=markdown_sample.encode("utf-8"))
+        )
+        db.session.commit()
+
+    response = client.get(f"/markdown/{cid_value}.txt")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == expected_html
+    assert "<h1>Markdown Showcase</h1>" in payload
+    assert "Use Markdown to quickly share runbooks" in payload
+    assert "language-python" in payload and "Rendered at" in payload
+    assert "admonition note" in payload and "Reusable components" in payload
+    assert "<table>" in payload and "<td>Headings</td>" in payload
+    assert "<dl>" in payload and "Details stay aligned" in payload
+    assert "Flow diagram placeholder" in payload
+    assert "mermaid-diagram" in payload
+    assert "feature-request" in payload
+    assert "Need a quick start? Duplicate this file" in payload
+
+
 def test_default_markdown_output_chains_left(client, integration_app):
     """Markdown output should feed into the next server on the left."""
 
