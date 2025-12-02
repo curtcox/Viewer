@@ -14,6 +14,67 @@ Both servers should be mounted in the default boot template and support server c
 - Datasette GitHub: https://github.com/simonw/datasette
 - SQLite-Utils: https://sqlite-utils.datasette.io/en/stable/
 
+---
+
+## Prompt for AI Agents
+
+When implementing the datasette and sqlite-utils servers, follow these steps:
+
+### Implementation Order
+
+1. **Dependencies First**: Add `datasette>=1.0` and `sqlite-utils>=3.36` to `requirements.txt` before any code changes.
+
+2. **Server Definitions**: Create both server definition files in `reference_templates/servers/definitions/`:
+   - `datasette.py` - Use proxy pattern (recommended) to run datasette subprocess
+   - `sqlite_utils.py` - Use subprocess pattern similar to existing shell.py server
+
+3. **Boot Template Integration**: Add both servers to `reference_templates/default.boot.source.json` and regenerate boot image.
+
+4. **Testing Strategy**: Implement tests in this order:
+   - Unit tests first (test server logic in isolation)
+   - Integration tests second (test full request/response cycle)
+   - Gauge specs last (test end-to-end behavior)
+
+### Key Implementation Details
+
+**For datasette.py:**
+- Accept `database` parameter for chained input (binary SQLite data)
+- Use proxy pattern: spawn datasette subprocess on available port
+- Handle temp file creation/cleanup for chained database content
+- Return HTML with iframe or redirect to datasette UI
+- Clean up subprocess on request completion
+
+**For sqlite_utils.py:**
+- Accept `command` parameter for CLI operations
+- Accept `database` parameter for chained input
+- Show HTML form when no command provided
+- Execute sqlite-utils CLI via subprocess
+- Support output formats: json, csv, tsv, table
+- Sanitize command input to prevent injection
+
+**Chaining Support:**
+- Both servers receive database content via `database` parameter
+- Write binary content to temp file with `.db` suffix
+- Use temp file path for datasette/sqlite-utils operations
+- Clean up temp files after use
+
+### Security Checklist
+
+- [ ] Validate database file paths (no directory traversal)
+- [ ] Sanitize sqlite-utils command input (prevent injection)
+- [ ] Limit database file size from chained input (suggest 100MB max)
+- [ ] Set timeout for subprocess operations (prevent hanging)
+- [ ] Use read-only database access where possible
+
+### Testing Requirements
+
+Each server needs:
+- 5+ unit tests covering: default DB, custom DB path, chained input, error handling
+- 3+ integration tests covering: app DB usage, CID input, server chaining
+- 2+ gauge specs covering: basic usage and chaining scenarios
+
+---
+
 ## Requirements
 
 ### Datasette Server
