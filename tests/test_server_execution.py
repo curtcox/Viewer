@@ -248,6 +248,10 @@ def main(*args):
             detect_server_language("#!/usr/bin/env bash\necho 'ok'\n")
             == "bash"
         )
+        assert (
+            detect_server_language("#!/usr/bin/env bb\n(println \"ok\")\n")
+            == "clojure"
+        )
 
     def test_analyze_reports_language(self):
         result = analyze_server_definition("#!/bin/bash\necho hi\n")
