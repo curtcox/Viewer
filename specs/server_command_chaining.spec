@@ -138,3 +138,45 @@ server as input to another. The chaining patterns are:
 * Given a clojure CID literal server stored without an extension that emits "clj-noext"
 * When I request the resource /{clojure CID}/tail
 * Then the response should contain "clj-noext"
+
+## ClojureScript CID literal output chains into python CID literal
+* Given a clojurescript CID literal server that emits "cljs->python"
+* And a python CID literal server that prefixes its payload with "py:"
+* When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/final
+* Then the response should redirect to a CID
+* And the CID content should be "py:cljs->python"
+
+## ClojureScript CID literal output chains into bash CID literal
+* Given a clojurescript CID literal server that emits "cljs->bash"
+* And a bash CID literal server that prefixes its payload with "bash:"
+* When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/result
+* Then the response should contain "bash:cljs->bash"
+
+## ClojureScript CID literal output chains into clojurescript CID literal
+* Given a clojurescript CID literal server that emits "cljs-right"
+* And a clojurescript CID literal server that prefixes its payload with "cljs:"
+* When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs
+* Then the response should contain "cljs:cljs-right"
+
+## Python CID literal output chains into clojurescript CID literal
+* Given a python CID literal server that returns "py->cljs"
+* And a clojurescript CID literal server that prefixes its payload with "cljs:"
+* When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py
+* Then the response should contain "cljs:py->cljs"
+
+## Bash CID literal output chains into clojurescript CID literal
+* Given a bash CID literal server that echoes "bash->cljs"
+* And a clojurescript CID literal server that prefixes its payload with "cljs:"
+* When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh
+* Then the response should contain "cljs:bash->cljs"
+
+## Named clojurescript server receives chained python input
+* Given a server named "cljs-chain" defined in /servers that prefixes its payload with "cljs:"
+* And a python CID literal server that returns "named->cljs"
+* When I request the resource /cljs-chain/{python server CID}.py/output
+* Then the response should contain "cljs:named->cljs"
+
+## ClojureScript CID literal with no extension executes
+* Given a clojurescript CID literal server stored without an extension that emits "cljs-noext"
+* When I request the resource /{clojurescript CID}/tail
+* Then the response should contain "cljs-noext"

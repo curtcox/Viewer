@@ -252,6 +252,12 @@ def main(*args):
             detect_server_language("#!/usr/bin/env bb\n(println \"ok\")\n")
             == "clojure"
         )
+        assert (
+            detect_server_language(
+                "(ns cljs.demo (:require [cljs.core :as c]))\n(defn main [] (println \"hi\"))"
+            )
+            == "clojurescript"
+        )
 
     def test_analyze_reports_language(self):
         result = analyze_server_definition("#!/bin/bash\necho hi\n")
