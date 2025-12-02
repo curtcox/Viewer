@@ -330,10 +330,49 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
 
     with app.test_request_context("/outer/inner?prefix=start"):
         result = server_execution.execute_server_code_from_definition(
-            outer_definition, "outer"
-        )
+        outer_definition, "outer"
+    )
 
     assert result["output"] == "start:value"
+
+
+def test_auto_main_skips_chained_evaluation_when_all_parameters_resolved(monkeypatch):
+    definition = """
+ def main(message):
+     return {"output": message, "content_type": "text/plain"}
+ """
+
+    from server_execution import code_execution
+
+    def fail_if_called(_path):
+        raise AssertionError("Nested path should not be evaluated when parameters are resolved")
+
+    monkeypatch.setattr(code_execution, "_evaluate_nested_path_to_value", fail_if_called)
+
+    with app.test_request_context("/outer/inner?message=explicit"):
+        result = server_execution.execute_server_code_from_definition(definition, "outer")
+
+    assert result["output"] == "explicit"
+
+
+def test_chained_cid_allows_extension(monkeypatch):
+    cid_value = "bafyextcid"
+    payload = b"extended"
+
+    from server_execution import code_execution
+
+    monkeypatch.setattr(code_execution, "get_server_by_name", lambda name: None)
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    def fake_get_cid_by_path(path):
+        assert path == f"/{cid_value}"
+        return SimpleNamespace(file_data=payload)
+
+    monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
+
+    result = code_execution._evaluate_nested_path_to_value(f"/{cid_value}.txt")
+
+    assert result == payload.decode("utf-8")
 
 
 def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
@@ -787,4 +826,40 @@ def main(input_data):
         )
 
     assert result["output"] == "s2(s1-via-alias)"
+    assert result["content_type"] == "text/plain"
+
+
+def test_server_chaining_optional_parameter_uses_nested_path(monkeypatch):
+    """Optional parameters should still consume chained path input."""
+
+    server_definition = """
+def main(optional_value=""):
+    return {"output": f"optional:{optional_value}", "content_type": "text/plain"}
+"""
+
+    cid_value = "bafyoptionalvalue"
+    cid_bytes = b"from-cid"
+
+    from server_execution import code_execution
+
+    monkeypatch.setattr(
+        code_execution,
+        "get_server_by_name",
+        lambda name: SimpleNamespace(definition=server_definition, enabled=True)
+        if name == "opt"
+        else None,
+    )
+    monkeypatch.setattr(
+        code_execution,
+        "get_cid_by_path",
+        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+    )
+    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
+
+    with app.test_request_context(f"/opt/{cid_value}"):
+        result = server_execution.execute_server_code_from_definition(
+            server_definition, "opt"
+        )
+
+    assert result["output"] == "optional:from-cid"
     assert result["content_type"] == "text/plain"

@@ -9,7 +9,7 @@ from pathlib import Path
 # Get the venv python path
 venv_python = Path(__file__).parent / "venv" / "bin" / "python"
 if not venv_python.exists():
-    venv_python = sys.executable
+    venv_python = Path(sys.executable)
 
 # Build minimal clean environment
 root_dir = Path(__file__).parent

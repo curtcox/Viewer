@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import textwrap
+from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
 
 from database import db
+from cid_utils import _render_markdown_document
 from db_access import get_cid_by_path
 from models import Alias, CID, Server
 
@@ -466,3 +468,234 @@ cat
 
     payload = json.loads(response.get_data(as_text=True))
     assert payload.get("input") == "inner"
+
+
+def test_default_markdown_consumes_cid_path_segment(client, integration_app):
+    """Markdown server should render CID content supplied via chained path."""
+
+    markdown_definition = Path(
+        "reference_templates/servers/definitions/markdown.py"
+    ).read_text(encoding="utf-8")
+    _store_server(integration_app, "markdown", markdown_definition)
+
+    cid_value = "bafydefaultmarkdown"
+    markdown_text = b"## Path Heading"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=markdown_text))
+        db.session.commit()
+
+    response = client.get(f"/markdown/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert "Path Heading" in payload
+    assert "markdown-body" in payload
+
+
+def test_default_markdown_renders_showcase_via_cid(client, integration_app):
+    """The markdown server should render the showcase markdown file from a CID."""
+
+    markdown_definition = Path(
+        "reference_templates/servers/definitions/markdown.py"
+    ).read_text(encoding="utf-8")
+    markdown_sample = Path(
+        "reference_templates/uploads/contents/markdown_showcase.md"
+    ).read_text(encoding="utf-8")
+    expected_html = _render_markdown_document(markdown_sample)
+
+    _store_server(integration_app, "markdown", markdown_definition)
+
+    cid_value = "bafymarkdownshowcase"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{cid_value}", file_data=markdown_sample.encode("utf-8"))
+        )
+        db.session.commit()
+
+    response = client.get(f"/markdown/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == expected_html
+    assert "<h1>Markdown Showcase</h1>" in payload
+    assert "Use Markdown to quickly share runbooks" in payload
+    assert "language-python" in payload and "Rendered at" in payload
+    assert "admonition note" in payload and "Reusable components" in payload
+    assert "<table>" in payload and "<td>Headings</td>" in payload
+    assert "<dl>" in payload and "Details stay aligned" in payload
+    assert "Flow diagram placeholder" in payload
+    assert "mermaid-diagram" in payload
+    assert "feature-request" in payload
+    assert "Need a quick start? Duplicate this file" in payload
+
+
+def test_default_markdown_renders_showcase_via_cid_with_extension(
+    client, integration_app
+):
+    """Markdown server should resolve CID payloads even when an extension is present."""
+
+    markdown_definition = Path(
+        "reference_templates/servers/definitions/markdown.py"
+    ).read_text(encoding="utf-8")
+    markdown_sample = Path(
+        "reference_templates/uploads/contents/markdown_showcase.md"
+    ).read_text(encoding="utf-8")
+    expected_html = _render_markdown_document(markdown_sample)
+
+    _store_server(integration_app, "markdown", markdown_definition)
+
+    cid_value = "bafymarkdownshowcaseext"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{cid_value}", file_data=markdown_sample.encode("utf-8"))
+        )
+        db.session.commit()
+
+    response = client.get(f"/markdown/{cid_value}.txt")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == expected_html
+    assert "<h1>Markdown Showcase</h1>" in payload
+    assert "Use Markdown to quickly share runbooks" in payload
+    assert "language-python" in payload and "Rendered at" in payload
+    assert "admonition note" in payload and "Reusable components" in payload
+    assert "<table>" in payload and "<td>Headings</td>" in payload
+    assert "<dl>" in payload and "Details stay aligned" in payload
+    assert "Flow diagram placeholder" in payload
+    assert "mermaid-diagram" in payload
+    assert "feature-request" in payload
+    assert "Need a quick start? Duplicate this file" in payload
+
+
+def test_default_markdown_output_chains_left(client, integration_app):
+    """Markdown output should feed into the next server on the left."""
+
+    markdown_definition = Path(
+        "reference_templates/servers/definitions/markdown.py"
+    ).read_text(encoding="utf-8")
+    _store_server(integration_app, "markdown", markdown_definition)
+
+    _store_server(
+        integration_app,
+        "consumer",
+        """
+        def main(payload):
+            return {"output": f"wrapped::{payload}", "content_type": "text/plain"}
+        """,
+    )
+
+    cid_value = "bafydefaultmarkdownchain"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"# Outer Chain"))
+        db.session.commit()
+
+    response = client.get(f"/consumer/markdown/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.startswith("wrapped::")
+    assert "Outer Chain" in payload
+
+
+def test_default_shell_consumes_cid_path_segment(client, integration_app):
+    """Shell server should receive input from chained CID content."""
+
+    shell_definition = Path("reference_templates/servers/definitions/shell.py").read_text(
+        encoding="utf-8"
+    )
+    _store_server(integration_app, "shell", shell_definition)
+
+    cid_value = "bafydefaultshell"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"echo chained"))
+        db.session.commit()
+
+    response = client.get(f"/shell/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert "echo chained" in payload
+    assert "exit" in payload
+
+
+def test_default_shell_output_chains_left(client, integration_app):
+    """Shell output should feed into the next chained server."""
+
+    shell_definition = Path("reference_templates/servers/definitions/shell.py").read_text(
+        encoding="utf-8"
+    )
+    _store_server(integration_app, "shell", shell_definition)
+
+    _store_server(
+        integration_app,
+        "collector",
+        """
+        def main(payload):
+            return {"output": f"collected>>{payload}", "content_type": "text/plain"}
+        """,
+    )
+
+    cid_value = "bafydefaultshellchain"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"echo chain"))
+        db.session.commit()
+
+    response = client.get(f"/collector/shell/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.startswith("collected>>")
+    assert "echo chain" in payload
+
+
+def test_default_ai_stub_consumes_cid_path_segment(client, integration_app):
+    """ai_stub should treat chained CID content as request_text input."""
+
+    ai_stub_definition = Path(
+        "reference_templates/servers/definitions/ai_stub.py"
+    ).read_text(encoding="utf-8")
+    _store_server(integration_app, "ai_stub", ai_stub_definition)
+
+    cid_value = "bafydefaultaistub"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"do something"))
+        db.session.commit()
+
+    response = client.get(f"/ai_stub/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    parsed = json.loads(payload)
+    assert parsed["updated_text"].endswith("do something")
+    assert "message" in parsed
+
+
+def test_default_ai_stub_output_chains_left(client, integration_app):
+    """ai_stub output should flow into the next chained server."""
+
+    ai_stub_definition = Path(
+        "reference_templates/servers/definitions/ai_stub.py"
+    ).read_text(encoding="utf-8")
+    _store_server(integration_app, "ai_stub", ai_stub_definition)
+
+    _store_server(
+        integration_app,
+        "wrapper",
+        """
+        def main(payload):
+            return {"output": f"[[{payload}]]", "content_type": "text/plain"}
+        """,
+    )
+
+    cid_value = "bafydefaultaistubchain"
+    with integration_app.app_context():
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"adjust text"))
+        db.session.commit()
+
+    response = client.get(f"/wrapper/ai_stub/{cid_value}")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.startswith("[[") and payload.endswith("]]")
+    assert "adjust text" in payload

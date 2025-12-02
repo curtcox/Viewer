@@ -12,6 +12,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
+from cid_core import split_cid_path
 from cid_utils import generate_cid
 from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
@@ -224,7 +225,10 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             return _evaluate_nested_path_to_value(target, visited)
 
     if len(segments) == 1:
-        normalized_cid = format_cid(segments[0])
+        cid_components = split_cid_path(segments[0]) or split_cid_path(
+            f"/{segments[0]}"
+        )
+        normalized_cid = format_cid((cid_components or (None,))[0] or segments[0])
         cid_record_path = cid_path(normalized_cid)
         if cid_record_path:
             cid_record = get_cid_by_path(cid_record_path)
@@ -268,6 +272,42 @@ def _inject_nested_parameter_value(
     if nested_value is None:
         return None
     return {missing[0]: nested_value}
+
+
+def _inject_optional_parameter_from_path(
+    server_name: Optional[str],
+    details: FunctionDetails,
+    resolved: Dict[str, Any],
+) -> tuple[Optional[Dict[str, Any]], Optional[Response]]:
+    """Provide chained input for optional parameters when present.
+
+    Optional parameters with defaults aren't marked as "missing" during
+    resolution, but server chaining should still use any remaining path
+    segment as input when no value was supplied explicitly. This helper
+    mirrors the nested-path lookup used for required parameters and returns
+    either a mapping for the first unresolved parameter or an early
+    Response.
+    """
+
+    if not server_name or not details.parameter_order:
+        return None, None
+
+    for name in details.parameter_order:
+        if name not in resolved:
+            remainder_segments = _remaining_path_segments(server_name)
+            if not remainder_segments:
+                return None, None
+
+            nested_path = "/" + "/".join(remainder_segments)
+            nested_value = _evaluate_nested_path_to_value(nested_path)
+            if isinstance(nested_value, Response):
+                return None, nested_value
+            if nested_value is None:
+                return None, None
+
+            return {name: nested_value}, None
+
+    return None, None
 
 
 def _resolve_chained_input_for_server(
@@ -456,6 +496,19 @@ def _prepare_invocation(
             return _build_missing_parameter_response(
                 function_name, MissingParameterError(missing, available)
             )
+
+    if function_name == "main":
+        optional_injection, early_response = _inject_optional_parameter_from_path(
+            server_name,
+            details,
+            working_resolved,
+        )
+
+        if early_response:
+            return early_response
+
+        if optional_injection:
+            working_resolved.update(optional_injection)
 
     # Build final code with function invocation
     new_args = dict(working_args)
