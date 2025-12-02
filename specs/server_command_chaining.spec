@@ -78,3 +78,27 @@ server as input to another. The chaining patterns are:
 * Then the response should redirect to a CID
 * And the CID content should contain "ai::"
 * And the CID content should contain "Gauge wrapper"
+
+## CID literal executes python content
+* Given a CID containing python server code that returns "literal-python"
+* When I request the resource /{stored CID}.py/next
+* Then the response should redirect to a CID
+* And the CID content should be "literal-python"
+
+## CID literal executes bash content
+* Given a CID containing bash server code that echoes "literal-bash"
+* When I request the resource /{stored CID}.sh/more
+* Then the response should contain "literal-bash"
+
+## Python CID literal output chains into bash CID literal
+* Given a python CID literal server that returns "py-literal"
+* And a bash CID literal server that prefixes input with "bash:"
+* When I request the resource /{bash server CID}.sh/{python server CID}.py/final
+* Then the response should contain "bash:py-literal"
+
+## Bash CID literal output chains into python CID literal
+* Given a bash CID literal server that echoes "bash-into-python"
+* And a python CID literal server that wraps its payload with "py::"
+* When I request the resource /{python server CID}.py/{bash server CID}.sh/finish
+* Then the response should redirect to a CID
+* And the CID content should be "py::bash-into-python"

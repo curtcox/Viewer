@@ -1,5 +1,6 @@
 """Server resolution and versioned execution logic."""
 
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, Iterable, Optional
 
 from flask import Response, jsonify, render_template
@@ -8,6 +9,8 @@ from db_access import get_server_by_name
 # pylint: disable=no-name-in-module  # False positive: submodules exist
 from server_execution.code_execution import (
     _auto_main_accepts_additional_path,
+    _execute_server_code_common,
+    _load_server_literal,
     execute_server_code,
     execute_server_code_from_definition,
     execute_server_function,
@@ -105,26 +108,79 @@ def try_server_execution(path: str) -> Optional[Response]:
     server = get_server_by_name(server_name)
     if server and not getattr(server, "enabled", True):
         server = None
-    if not server:
+    literal_definition = None
+    literal_language = None
+    if not server and len(parts) > 1:
+        literal_definition, literal_language, _ = _load_server_literal(server_name)
+
+    if not server and literal_definition is None:
         return None
 
-    if len(parts) == 1:
-        return execute_server_code(server, server_name)
+    if server:
+        if len(parts) == 1:
+            return execute_server_code(server, server_name)
 
+        if len(parts) > 2:
+            return execute_server_code(server, server_name)
+
+        function_name = parts[1]
+        if not function_name.isidentifier():
+            return execute_server_code(server, server_name)
+
+        if detect_server_language(getattr(server, "definition", "")) != "python":
+            return execute_server_code(server, server_name)
+
+        result = execute_server_function(server, server_name, function_name)
+        if result is None:
+            if _auto_main_accepts_additional_path(server):
+                return execute_server_code(server, server_name)
+            return None
+
+        return result
+
+    literal_server_name = server_name
+    definition_text = literal_definition or ""
     if len(parts) > 2:
-        return execute_server_code(server, server_name)
+        return _execute_server_code_common(
+            definition_text,
+            literal_server_name,
+            "execute_literal_server",
+            "",
+            allow_fallback=True,
+            language_override=literal_language,
+        )
 
     function_name = parts[1]
-    if not function_name.isidentifier():
-        return execute_server_code(server, server_name)
+    if literal_language != "python" or not function_name.isidentifier():
+        return _execute_server_code_common(
+            definition_text,
+            literal_server_name,
+            "execute_literal_server",
+            "",
+            allow_fallback=True,
+            language_override=literal_language,
+        )
 
-    if detect_server_language(getattr(server, "definition", "")) != "python":
-        return execute_server_code(server, server_name)
-
-    result = execute_server_function(server, server_name, function_name)
+    result = _execute_server_code_common(
+        definition_text,
+        literal_server_name,
+        "execute_literal_server_function",
+        f" for {function_name}",
+        function_name=function_name,
+        allow_fallback=False,
+        language_override=literal_language,
+    )
     if result is None:
-        if _auto_main_accepts_additional_path(server):
-            return execute_server_code(server, server_name)
+        placeholder_server = SimpleNamespace(definition=definition_text)
+        if _auto_main_accepts_additional_path(placeholder_server):
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
         return None
 
     return result
