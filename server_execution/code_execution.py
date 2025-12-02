@@ -69,6 +69,16 @@ def _auto_main_accepts_additional_path(server: Any) -> bool:
     return bool(details.parameter_order)
 
 
+def _language_from_extension(extension: Optional[str], definition: str) -> str:
+    """Return execution language based on explicit extension or code content."""
+
+    if extension and extension.lower() == "sh":
+        return "bash"
+    if extension and extension.lower() == "py":
+        return "python"
+    return detect_server_language(definition)
+
+
 def _clone_request_context_kwargs(path: str, data_override: bytes | None = None) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"path": path}
     if has_request_context():
@@ -177,17 +187,69 @@ def _execute_bash_code_to_value(
 
 
 def _execute_nested_server_to_value(
-    server: Any, server_name: str, path: str, visited: Set[str]
+    server: Any,
+    server_name: str,
+    path: str,
+    visited: Set[str],
+    *,
+    language_override: Optional[str] = None,
 ) -> Any:
     chained_input, early_response = _resolve_chained_input_from_path(path, visited)
     if early_response:
         return early_response
 
-    language = detect_server_language(getattr(server, "definition", ""))
+    language = language_override or detect_server_language(getattr(server, "definition", ""))
     if language == "bash":
         return _execute_bash_code_to_value(server.definition, server_name, chained_input)
 
     return _execute_python_code_to_value(server.definition, server_name, path, chained_input=chained_input)
+
+
+def _execute_literal_definition_to_value(
+    definition_text: str,
+    server_name: str,
+    path: str,
+    visited: Set[str],
+    *,
+    language_override: Optional[str],
+) -> Any:
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
+
+    language = language_override or detect_server_language(definition_text)
+    if language == "bash":
+        return _execute_bash_code_to_value(definition_text, server_name, chained_input)
+
+    return _execute_python_code_to_value(
+        definition_text, server_name, path, chained_input=chained_input
+    )
+
+
+def _load_server_literal(segment: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """Return (definition, language, normalized_cid) for CID path segments."""
+
+    cid_components = split_cid_path(segment) or split_cid_path(f"/{segment}")
+    if not cid_components:
+        return None, None, None
+
+    cid_value, extension = cid_components
+    normalized_cid = format_cid(cid_value)
+    cid_record_path = cid_path(normalized_cid)
+    if not cid_record_path:
+        return None, None, None
+
+    cid_record = get_cid_by_path(cid_record_path)
+    if not cid_record or getattr(cid_record, "file_data", None) is None:
+        return None, None, None
+
+    try:
+        definition_text = cid_record.file_data.decode("utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        definition_text = cid_record.file_data.decode("utf-8", errors="replace")
+
+    language_override = _language_from_extension(extension, definition_text)
+    return definition_text, language_override, normalized_cid
 
 
 def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None) -> Any:
@@ -217,6 +279,20 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
         server = None
     if server:
         return _execute_nested_server_to_value(server, server_name, normalized, visited)
+
+    if len(segments) > 1:
+        literal_definition, language_override, normalized_cid = _load_server_literal(
+            segments[0]
+        )
+        if literal_definition is not None:
+            literal_name = segments[0]
+            return _execute_literal_definition_to_value(
+                literal_definition,
+                literal_name,
+                normalized,
+                visited,
+                language_override=language_override,
+            )
 
     alias_match = find_matching_alias(normalized)
     if alias_match and getattr(alias_match, "route", None):
@@ -624,8 +700,9 @@ def _execute_server_code_common(
     *,
     function_name: Optional[str] = "main",
     allow_fallback: bool = True,
+    language_override: Optional[str] = None,
 ) -> Optional[Response]:
-    language = detect_server_language(code)
+    language = language_override or detect_server_language(code)
 
     if language == "bash":
         chained_input, early_response = _resolve_chained_input_for_server(server_name)

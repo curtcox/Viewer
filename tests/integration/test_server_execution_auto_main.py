@@ -699,3 +699,135 @@ def test_default_ai_stub_output_chains_left(client, integration_app):
     payload = _resolve_cid_payload(integration_app, response.headers["Location"])
     assert payload.startswith("[[") and payload.endswith("]]")
     assert "adjust text" in payload
+
+
+def test_literal_python_cid_executes_as_server(client, integration_app):
+    """Non-terminal CID path segments should execute python definitions."""
+
+    python_cid = "literalpythonint"
+    with integration_app.app_context():
+        db.session.add(
+            CID(
+                path=f"/{python_cid}",
+                file_data=textwrap.dedent(
+                    """
+                    def main():
+                        return {"output": "integration-python", "content_type": "text/plain"}
+                    """
+                ).encode("utf-8"),
+            )
+        )
+        db.session.commit()
+
+    response = client.get(f"/{python_cid}.py/trailing-segment")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload == "integration-python"
+
+
+def test_literal_bash_cid_executes_as_server(client, integration_app):
+    """Bash CID literals should run when used in non-terminal path positions."""
+
+    bash_cid = "literalbashint"
+    with integration_app.app_context():
+        db.session.add(
+            CID(path=f"/{bash_cid}", file_data=b"echo integration-bash")
+        )
+        db.session.commit()
+
+    response = client.get(f"/{bash_cid}.sh/extra")
+    assert response.status_code == 200
+    assert response.get_data(as_text=True).strip() == "integration-bash"
+
+
+def test_literal_python_receives_path_parameter(client, integration_app):
+    """Python literal CID should receive parameters from chained path literals."""
+
+    python_cid = "literalpyparam"
+    bash_cid = "literalbashparam"
+    with integration_app.app_context():
+        db.session.add_all(
+            [
+                CID(
+                    path=f"/{python_cid}",
+                    file_data=textwrap.dedent(
+                        """
+                        def main(name):
+                            return {"output": f"param::{name}", "content_type": "text/plain"}
+                        """
+                    ).encode("utf-8"),
+                ),
+                CID(path=f"/{bash_cid}", file_data=b"echo morgan"),
+            ]
+        )
+        db.session.commit()
+
+    response = client.get(f"/{python_cid}.py/{bash_cid}.sh/next")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.strip() == "param::morgan"
+
+
+def test_literal_python_chains_into_bash(client, integration_app):
+    """Python literal output should feed into bash literal input."""
+
+    bash_cid = "literalbashchain"
+    python_cid = "literalpychain"
+    with integration_app.app_context():
+        db.session.add_all(
+            [
+                CID(
+                    path=f"/{bash_cid}",
+                    file_data=textwrap.dedent(
+                        """
+                        python -c 'import json,sys; data=json.load(sys.stdin); print(f"bash:{data.get(\"input\",\"\")}" )'
+                        """
+                    ).encode("utf-8"),
+                ),
+                CID(
+                    path=f"/{python_cid}",
+                    file_data=textwrap.dedent(
+                        """
+                        def main():
+                            return {"output": "py-chain", "content_type": "text/plain"}
+                        """
+                    ).encode("utf-8"),
+                ),
+            ]
+        )
+        db.session.commit()
+
+    response = client.get(f"/{bash_cid}.sh/{python_cid}.py/final")
+    assert response.status_code == 200
+    assert response.get_data(as_text=True).strip() == "bash:py-chain"
+
+
+def test_literal_bash_chains_into_python(client, integration_app):
+    """Bash literal output should supply input for python literal servers."""
+
+    bash_cid = "literalbashpayload"
+    python_cid = "literalpypayload"
+    with integration_app.app_context():
+        db.session.add_all(
+            [
+                CID(path=f"/{bash_cid}", file_data=b"echo bash-into-python"),
+                CID(
+                    path=f"/{python_cid}",
+                    file_data=textwrap.dedent(
+                        """
+                        def main(payload):
+                            return {"output": f"py::{payload}", "content_type": "text/plain"}
+                        """
+                    ).encode("utf-8"),
+                ),
+            ]
+        )
+        db.session.commit()
+
+    response = client.get(f"/{python_cid}.py/{bash_cid}.sh/next")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.strip() == "py::bash-into-python"
