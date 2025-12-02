@@ -873,14 +873,6 @@ def _select_clojurescript_command() -> Optional[list[str]]:
     if runner:
         return [runner]
 
-    runner = shutil.which("bb")
-    if runner:
-        return [runner]
-
-    runner = shutil.which("clojure")
-    if runner:
-        return [runner, "-M"]
-
     return None
 
 
