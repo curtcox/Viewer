@@ -4,7 +4,9 @@ from types import SimpleNamespace
 import pytest
 from flask import Response
 
+import db_access
 import server_execution
+from server_execution import invocation_tracking
 from app import app
 from server_execution import code_execution, server_lookup
 
@@ -24,6 +26,11 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(code_execution, "get_servers", lambda: list(servers.values()))
     monkeypatch.setattr(code_execution, "get_secrets", lambda: [])
     monkeypatch.setattr(code_execution, "get_variables", lambda: [])
+    monkeypatch.setattr(db_access, "get_secrets", lambda: [])
+    monkeypatch.setattr(db_access, "get_variables", lambda: [])
+    monkeypatch.setattr(
+        invocation_tracking, "create_server_invocation_record", lambda *_, **__: None
+    )
     monkeypatch.setattr(code_execution, "create_cid_record", lambda *args, **kwargs: None)
 
     def fake_get_cid_by_path(path):
@@ -35,6 +42,8 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
     monkeypatch.setattr(server_lookup, "get_server_by_name", lambda name: servers.get(name))
     monkeypatch.setattr(code_execution, "get_server_by_name", lambda name: servers.get(name))
+    monkeypatch.setattr(db_access, "get_server_by_name", lambda name: servers.get(name))
+    monkeypatch.setattr(db_access, "get_servers", lambda: list(servers.values()))
 
     def simple_success(output, content_type, server_name):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
