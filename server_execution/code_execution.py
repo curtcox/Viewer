@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import textwrap
@@ -76,6 +77,8 @@ def _language_from_extension(extension: Optional[str], definition: str) -> str:
         return "bash"
     if extension and extension.lower() == "py":
         return "python"
+    if extension and extension.lower() == "clj":
+        return "clojure"
     return detect_server_language(definition)
 
 
@@ -186,6 +189,33 @@ def _execute_bash_code_to_value(
         return combined_output.decode("utf-8", errors="replace")
 
 
+def _execute_clojure_code_to_value(
+    code: str, server_name: str, chained_input: Optional[str]
+) -> Any:
+    stdout, status_code, stderr = _run_clojure_script(
+        code, server_name, chained_input=chained_input
+    )
+    combined_output = stdout or b""
+    if status_code >= 400 and stderr:
+        combined_output = (
+            combined_output
+            + (b"" if combined_output.endswith(b"\n") or not combined_output else b"\n")
+            + stderr
+        )
+
+    _log_server_output(
+        "execute_clojure_code", "", combined_output, "text/plain"
+    )
+
+    if status_code >= 400:
+        return Response(combined_output, status=status_code, mimetype="text/plain")
+
+    try:
+        return combined_output.decode("utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        return combined_output.decode("utf-8", errors="replace")
+
+
 def _execute_nested_server_to_value(
     server: Any,
     server_name: str,
@@ -201,6 +231,10 @@ def _execute_nested_server_to_value(
     language = language_override or detect_server_language(getattr(server, "definition", ""))
     if language == "bash":
         return _execute_bash_code_to_value(server.definition, server_name, chained_input)
+    if language == "clojure":
+        return _execute_clojure_code_to_value(
+            server.definition, server_name, chained_input
+        )
 
     return _execute_python_code_to_value(server.definition, server_name, path, chained_input=chained_input)
 
@@ -220,6 +254,10 @@ def _execute_literal_definition_to_value(
     language = language_override or detect_server_language(definition_text)
     if language == "bash":
         return _execute_bash_code_to_value(definition_text, server_name, chained_input)
+    if language == "clojure":
+        return _execute_clojure_code_to_value(
+            definition_text, server_name, chained_input
+        )
 
     return _execute_python_code_to_value(
         definition_text, server_name, path, chained_input=chained_input
@@ -410,6 +448,41 @@ def _execute_bash_server_response(
     chained_input: Optional[str],
 ) -> Response:
     stdout, status_code, stderr = _run_bash_script(
+        code, server_name, chained_input=chained_input
+    )
+
+    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    if status_code >= 400 and stderr:
+        output_bytes = output_bytes + (
+            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
+        ) + stderr
+
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+
+    cid_value = format_cid(generate_cid(output_bytes))
+    cid_record_path = cid_path(cid_value)
+    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+    if not existing and cid_record_path:
+        create_cid_record(cid_value, output_bytes)
+
+    if has_app_context():
+        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
+            create_server_invocation_record,
+        )
+
+        create_server_invocation_record(server_name, cid_value)
+
+    return Response(output_bytes, status=status_code, mimetype="text/plain")
+
+
+def _execute_clojure_server_response(
+    code: str,
+    server_name: str,
+    debug_prefix: str,
+    *,
+    chained_input: Optional[str],
+) -> Response:
+    stdout, status_code, stderr = _run_clojure_script(
         code, server_name, chained_input=chained_input
     )
 
@@ -692,6 +765,60 @@ def _run_bash_script(
     return result.stdout or b"", status_code, result.stderr or b""
 
 
+def _select_clojure_command() -> Optional[list[str]]:
+    runner = shutil.which("bb")
+    if runner:
+        return [runner]
+
+    runner = shutil.which("clojure")
+    if runner:
+        return [runner, "-M"]
+
+    return None
+
+
+def _run_clojure_script(
+    code: str, server_name: str, *, chained_input: Optional[str] = None
+) -> tuple[bytes, int, bytes]:
+    stdin_payload = _build_bash_stdin_payload(chained_input)
+    runner = _select_clojure_command()
+    if not runner:
+        return (
+            b"Clojure runtime is not available for this server",
+            500,
+            b"clojure executable not found",
+        )
+
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".clj") as script_file:
+        script_file.write(code)
+        script_path = script_file.name
+
+    try:
+        result = subprocess.run(
+            [*runner, script_path],
+            input=stdin_payload,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return b"Script execution timed out", 504, b""
+    except FileNotFoundError:
+        return (
+            b"Clojure runtime is not available for this server",
+            500,
+            b"clojure executable not found",
+        )
+    finally:
+        try:
+            os.remove(script_path)
+        except OSError:
+            pass
+
+    status_code = _map_exit_code_to_status(result.returncode)
+    return result.stdout or b"", status_code, result.stderr or b""
+
+
 def _execute_server_code_common(
     code: str,
     server_name: str,
@@ -710,6 +837,18 @@ def _execute_server_code_common(
             return early_response
 
         return _execute_bash_server_response(
+            code,
+            server_name,
+            debug_prefix,
+            chained_input=chained_input,
+        )
+
+    if language == "clojure":
+        chained_input, early_response = _resolve_chained_input_for_server(server_name)
+        if early_response:
+            return early_response
+
+        return _execute_clojure_server_response(
             code,
             server_name,
             debug_prefix,

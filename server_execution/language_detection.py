@@ -22,6 +22,8 @@ def detect_server_language(definition: str | None) -> str:
             return "python"
         if "bash" in first_line or first_line.endswith("/sh") or "/sh " in first_line:
             return "bash"
+        if "clojure" in first_line or "bb" in first_line or "babashka" in first_line:
+            return "clojure"
 
     python_markers = (
         r"^\s*def\s+\w+\s*\(",
@@ -30,6 +32,14 @@ def detect_server_language(definition: str | None) -> str:
     )
     if any(re.search(pattern, text, re.MULTILINE) for pattern in python_markers):
         return "python"
+
+    clojure_markers = (
+        r"\(ns\b",
+        r"\(defn\s+main",
+        r"\(println\b",
+    )
+    if any(re.search(pattern, text, re.MULTILINE) for pattern in clojure_markers):
+        return "clojure"
 
     bash_markers = (
         r"^\s*set\s+-[a-zA-Z]*[EeUuOoFfPp][a-zA-Z]*",

@@ -102,3 +102,39 @@ server as input to another. The chaining patterns are:
 * When I request the resource /{python server CID}.py/{bash server CID}.sh/finish
 * Then the response should redirect to a CID
 * And the CID content should be "py::bash-into-python"
+
+## Clojure CID literal output chains into python CID literal
+* Given a clojure CID literal server that emits "clj->python"
+* And a python CID literal server that prefixes its payload with "py:"
+* When I request the resource /{python server CID}.py/{clojure server CID}.clj/final
+* Then the response should redirect to a CID
+* And the CID content should be "py:clj->python"
+
+## Clojure CID literal output chains into bash CID literal
+* Given a clojure CID literal server that emits "clj->bash"
+* And a bash CID literal server that prefixes its payload with "bash:"
+* When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/result
+* Then the response should contain "bash:clj->bash"
+
+## Bash CID literal output chains into clojure CID literal
+* Given a bash CID literal server that echoes "bash->clj"
+* And a clojure CID literal server that prefixes its payload with "clj:"
+* When I request the resource /{clojure server CID}.clj/{bash server CID}.sh
+* Then the response should contain "clj:bash->clj"
+
+## Python CID literal output chains into clojure CID literal
+* Given a python CID literal server that returns "py->clj"
+* And a clojure CID literal server that prefixes its payload with "clj:"
+* When I request the resource /{clojure server CID}.clj/{python server CID}.py
+* Then the response should contain "clj:py->clj"
+
+## Clojure CID literal output chains into clojure CID literal
+* Given a clojure CID literal server that emits "clj-right"
+* And a clojure CID literal server that prefixes its payload with "clj:"
+* When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj
+* Then the response should contain "clj:clj-right"
+
+## Clojure CID literal with no extension executes
+* Given a clojure CID literal server stored without an extension that emits "clj-noext"
+* When I request the resource /{clojure CID}/tail
+* Then the response should contain "clj-noext"
