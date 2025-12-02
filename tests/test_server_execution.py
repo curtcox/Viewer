@@ -652,8 +652,15 @@ def test_run_bash_script_times_out(monkeypatch):
         raise subprocess.TimeoutExpired(cmd, timeout)
 
     monkeypatch.setattr("server_execution.code_execution.subprocess.run", fake_run)
-    monkeypatch.setattr("server_execution.code_execution.os.remove", lambda path: removed_paths.append(path))
-    monkeypatch.setattr("server_execution.code_execution.build_request_args", lambda: {})
+    monkeypatch.setattr(
+        "server_execution.code_execution.os.remove",
+        removed_paths.append,
+    )
+
+    def empty_request_args():
+        return {}
+
+    monkeypatch.setattr("server_execution.code_execution.build_request_args", empty_request_args)
 
     app = Flask(__name__)
     with app.test_request_context("/bash-server"):

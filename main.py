@@ -30,6 +30,11 @@ def get_app(config_override: Mapping[str, Any] | None = None):
     return _get_app_cached(_config_items(config_override))
 
 
+# Expose a module-level application instance for code paths that expect it to be present
+# (e.g., integration tests that monkeypatch main.app).
+app = get_app()
+
+
 def signal_handler(_sig, _frame):
     print('\nShutting down gracefully...')
     sys.exit(0)
@@ -63,12 +68,12 @@ def handle_boot_cid_import(boot_cid: str) -> None:
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
 
-    app = get_app()
+    app_instance = globals().get("app") or get_app()
 
     try:
-        with app.app_context():
+        with app_instance.app_context():
             # Perform the import
-            success, error = import_boot_cid(app, boot_cid)
+            success, error = import_boot_cid(app_instance, boot_cid)
 
             if not success:
                 print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)

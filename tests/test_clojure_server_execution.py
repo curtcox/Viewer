@@ -6,9 +6,8 @@ from flask import Response
 
 import db_access
 import server_execution
-from server_execution import invocation_tracking
 from app import app
-from server_execution import code_execution, server_lookup
+from server_execution import code_execution, invocation_tracking, server_lookup
 
 
 @pytest.fixture(autouse=True)
@@ -17,21 +16,33 @@ def clojure_environment(monkeypatch):
     servers: dict[str, SimpleNamespace] = {}
     clojure_runs: list[dict[str, str | None]] = []
 
-    monkeypatch.setattr(
-        code_execution,
-        "_load_user_context",
-        lambda: {"variables": {}, "secrets": {}, "servers": {}},
-    )
-    monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
-    monkeypatch.setattr(code_execution, "get_servers", lambda: list(servers.values()))
-    monkeypatch.setattr(code_execution, "get_secrets", lambda: [])
-    monkeypatch.setattr(code_execution, "get_variables", lambda: [])
-    monkeypatch.setattr(db_access, "get_secrets", lambda: [])
-    monkeypatch.setattr(db_access, "get_variables", lambda: [])
-    monkeypatch.setattr(
-        invocation_tracking, "create_server_invocation_record", lambda *_, **__: None
-    )
-    monkeypatch.setattr(code_execution, "create_cid_record", lambda *args, **kwargs: None)
+    def return_empty_context():
+        return {"variables": {}, "secrets": {}, "servers": {}}
+
+    def return_none(*_, **__):
+        return None
+
+    def return_empty_list(*_, **__):
+        return []
+
+    def return_servers():
+        return list(servers.values())
+
+    def noop_record(*_, **__):
+        return None
+
+    def noop_create_cid(*_, **__):
+        return None
+
+    monkeypatch.setattr(code_execution, "_load_user_context", return_empty_context)
+    monkeypatch.setattr(code_execution, "find_matching_alias", return_none)
+    monkeypatch.setattr(code_execution, "get_servers", return_servers)
+    monkeypatch.setattr(code_execution, "get_secrets", return_empty_list)
+    monkeypatch.setattr(code_execution, "get_variables", return_empty_list)
+    monkeypatch.setattr(db_access, "get_secrets", return_empty_list)
+    monkeypatch.setattr(db_access, "get_variables", return_empty_list)
+    monkeypatch.setattr(invocation_tracking, "create_server_invocation_record", noop_record)
+    monkeypatch.setattr(code_execution, "create_cid_record", noop_create_cid)
 
     def fake_get_cid_by_path(path):
         payload = cid_registry.get(path)
@@ -40,10 +51,10 @@ def clojure_environment(monkeypatch):
         return SimpleNamespace(file_data=payload)
 
     monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
-    monkeypatch.setattr(server_lookup, "get_server_by_name", lambda name: servers.get(name))
-    monkeypatch.setattr(code_execution, "get_server_by_name", lambda name: servers.get(name))
-    monkeypatch.setattr(db_access, "get_server_by_name", lambda name: servers.get(name))
-    monkeypatch.setattr(db_access, "get_servers", lambda: list(servers.values()))
+    monkeypatch.setattr(server_lookup, "get_server_by_name", servers.get)
+    monkeypatch.setattr(code_execution, "get_server_by_name", servers.get)
+    monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
+    monkeypatch.setattr(db_access, "get_servers", return_servers)
 
     def simple_success(output, content_type, server_name):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
