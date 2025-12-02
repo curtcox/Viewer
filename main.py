@@ -30,9 +30,10 @@ def get_app(config_override: Mapping[str, Any] | None = None):
     return _get_app_cached(_config_items(config_override))
 
 
-# Expose a module-level application instance for code paths that expect it to be present
-# (e.g., integration tests that monkeypatch main.app).
-app = get_app()
+# Expose a module-level application reference for code paths that monkeypatch main.app.
+# It is intentionally not initialized eagerly so CLI-only flows can opt out by setting
+# VIEWER_SKIP_MODULE_APP before requesting an application instance.
+app = None
 
 
 def signal_handler(_sig, _frame):
