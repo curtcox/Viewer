@@ -741,6 +741,35 @@ def test_literal_bash_cid_executes_as_server(client, integration_app):
     assert response.get_data(as_text=True).strip() == "integration-bash"
 
 
+def test_literal_python_receives_path_parameter(client, integration_app):
+    """Python literal CID should receive parameters from chained path literals."""
+
+    python_cid = "literalpyparam"
+    bash_cid = "literalbashparam"
+    with integration_app.app_context():
+        db.session.add_all(
+            [
+                CID(
+                    path=f"/{python_cid}",
+                    file_data=textwrap.dedent(
+                        """
+                        def main(name):
+                            return {"output": f"param::{name}", "content_type": "text/plain"}
+                        """
+                    ).encode("utf-8"),
+                ),
+                CID(path=f"/{bash_cid}", file_data=b"echo morgan"),
+            ]
+        )
+        db.session.commit()
+
+    response = client.get(f"/{python_cid}.py/{bash_cid}.sh/next")
+    assert response.status_code in {302, 303}
+
+    payload = _resolve_cid_payload(integration_app, response.headers["Location"])
+    assert payload.strip() == "param::morgan"
+
+
 def test_literal_python_chains_into_bash(client, integration_app):
     """Python literal output should feed into bash literal input."""
 

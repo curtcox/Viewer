@@ -115,3 +115,22 @@ def main(payload):
 
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "python:bash-to-python"
+
+
+def test_python_literal_receives_path_parameter_from_chained_literal(cid_registry):
+    python_cid = "paramliteral"
+    bash_cid = "paramvalue"
+
+    cid_registry[f"/{python_cid}"] = b"""\
+def main(name):
+    return {"output": f"param:{name}", "content_type": "text/plain"}
+"""
+    cid_registry[f"/{bash_cid}"] = b"echo alex"
+
+    with app.test_request_context(f"/{python_cid}.py/{bash_cid}.sh/final"):
+        response = server_execution.try_server_execution(
+            f"/{python_cid}.py/{bash_cid}.sh/final"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "param:alex"

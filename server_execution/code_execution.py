@@ -285,7 +285,7 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             segments[0]
         )
         if literal_definition is not None:
-            literal_name = normalized_cid or segments[0]
+            literal_name = segments[0]
             return _execute_literal_definition_to_value(
                 literal_definition,
                 literal_name,
