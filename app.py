@@ -239,15 +239,20 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     force_custom_error_handling()
 
+    skip_db_setup = bool(flask_app.config.get("SKIP_DB_SETUP"))
+
     with flask_app.app_context():
-        db.create_all()
-        logging.info("Database tables created")
+        if skip_db_setup:
+            logging.info("Skipping database setup due to SKIP_DB_SETUP flag")
+        else:
+            db.create_all()
+            logging.info("Database tables created")
 
-        if not testing_mode or cid_directory_overridden:
-            load_cids_from_directory(flask_app)
+            if not testing_mode or cid_directory_overridden:
+                load_cids_from_directory(flask_app)
 
-        if not testing_mode:
-            ensure_default_resources()
+            if not testing_mode:
+                ensure_default_resources()
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
@@ -265,5 +270,8 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     return flask_app
 
 
-# Maintain module-level application for backwards compatibility
-app = create_app()
+# Maintain module-level application for backwards compatibility unless explicitly disabled
+if getenv("VIEWER_SKIP_MODULE_APP", "").lower() not in {"1", "true", "yes"}:
+    app = create_app()
+else:  # pragma: no cover - used for CLI shortcuts that construct their own app instances
+    app = None

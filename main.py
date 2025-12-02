@@ -1,9 +1,33 @@
 import argparse
+import os
 import signal
 import sys
+from functools import lru_cache
+from typing import Any, Mapping
 
 from db_config import DatabaseConfig, DatabaseMode
-from app import app
+
+
+@lru_cache(maxsize=4)
+def _get_app_cached(config_items: tuple[tuple[str, Any], ...] | None):
+    """Return a cached Flask application instance for the given config items."""
+    from app import create_app  # pylint: disable=import-outside-toplevel
+
+    config_override = dict(config_items) if config_items else None
+    return create_app(config_override)
+
+
+def _config_items(config_override: Mapping[str, Any] | None) -> tuple[tuple[str, Any], ...] | None:
+    if not config_override:
+        return None
+    # Sort keys for deterministic cache keys
+    return tuple(sorted(config_override.items()))
+
+
+def get_app(config_override: Mapping[str, Any] | None = None):
+    """Retrieve (and cache) a Flask app instance for the provided configuration."""
+
+    return _get_app_cached(_config_items(config_override))
 
 
 def signal_handler(_sig, _frame):
@@ -39,6 +63,8 @@ def handle_boot_cid_import(boot_cid: str) -> None:
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
 
+    app = get_app()
+
     try:
         with app.app_context():
             # Perform the import
@@ -60,10 +86,70 @@ def handle_boot_cid_import(boot_cid: str) -> None:
 def handle_list_boot_cids() -> None:
     """List all valid boot CIDs and exit."""
     from cli import list_boot_cids  # pylint: disable=import-outside-toplevel
+    from sqlalchemy.exc import OperationalError
+    import sqlite3
+    import json
+    from datetime import datetime
 
-    with app.app_context():
-        boot_cids = list_boot_cids()
+    def _list_boot_cids_from_sqlite(db_path: str) -> list[tuple[str, dict]]:
+        conn = sqlite3.connect(db_path, timeout=1)
+        conn.row_factory = sqlite3.Row
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT path, file_data, file_size, created_at FROM cid")
+            records = cursor.fetchall()
+        except sqlite3.Error:
+            return []
+        finally:
+            conn.close()
 
+        boot_cids: list[tuple[str, dict]] = []
+        for record in records:
+            cid_value = (record["path"] or "").lstrip("/")
+            if not cid_value:
+                continue
+
+            file_data = record["file_data"]
+            if file_data is None:
+                continue
+
+            try:
+                content = file_data.decode("utf-8") if isinstance(file_data, (bytes, bytearray)) else str(file_data)
+                payload = json.loads(content)
+            except Exception:
+                continue
+
+            if not isinstance(payload, dict):
+                continue
+
+            sections = [
+                section
+                for section in ['aliases', 'servers', 'variables', 'secrets', 'change_history']
+                if section in payload
+            ]
+
+            created_at = record["created_at"]
+            try:
+                created_at_value = datetime.fromisoformat(created_at) if isinstance(created_at, str) else created_at
+            except Exception:
+                created_at_value = None
+
+            metadata = {
+                'size': record["file_size"],
+                'created_at': created_at_value,
+                'sections': sections,
+            }
+
+            boot_cids.append((cid_value, metadata))
+
+        sentinel_date = datetime(1970, 1, 1)
+        boot_cids.sort(
+            key=lambda x: x[1]['created_at'] if x[1]['created_at'] is not None else sentinel_date,
+            reverse=True,
+        )
+        return boot_cids
+
+    def _render_boot_cids(boot_cids: list[tuple[str, dict]]) -> None:
         if not boot_cids:
             print("No valid boot CIDs found in the database.")
             sys.exit(0)
@@ -87,6 +173,31 @@ def handle_list_boot_cids() -> None:
             print()
 
         sys.exit(0)
+
+    config_override = {"TESTING": True, "SKIP_DB_SETUP": True}
+
+    # Use a lightweight app configuration to avoid unnecessary startup work for CLI-only invocation
+    os.environ.setdefault("VIEWER_SKIP_MODULE_APP", "1")
+    db_uri = DatabaseConfig.get_database_uri()
+    if db_uri.startswith("sqlite:///"):
+        sqlite_db_path = db_uri.replace("sqlite:///", "", 1)
+        try:
+            boot_cids = _list_boot_cids_from_sqlite(sqlite_db_path)
+            _render_boot_cids(boot_cids)
+        except sqlite3.Error:
+            pass
+    fast_cli_app = get_app(config_override)
+
+    with fast_cli_app.app_context():
+        try:
+            boot_cids = list_boot_cids()
+        except OperationalError:
+            # Lazily create tables if they were skipped but are required for listing
+            from database import db  # pylint: disable=import-outside-toplevel
+
+            db.create_all()
+            boot_cids = list_boot_cids()
+        _render_boot_cids(boot_cids)
 
 
 def handle_list_snapshots_command() -> None:
@@ -126,6 +237,8 @@ def handle_create_snapshot_command(name: str) -> None:
 
     from db_snapshot import DatabaseSnapshot  # pylint: disable=import-outside-toplevel
 
+    app = get_app()
+
     with app.app_context():
         snapshot_path = DatabaseSnapshot.create_snapshot(name)
 
@@ -143,6 +256,8 @@ def handle_http_request(url: str) -> None:
         SystemExit: Always exits after handling the request
     """
     from cli import make_http_get_request  # pylint: disable=import-outside-toplevel
+
+    app = get_app()
 
     with app.app_context():
         success, response_text, status_code = make_http_get_request(app, url)
@@ -184,6 +299,8 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
 
     url = None
     cid = None
+
+    app = get_app()
 
     for arg in positional_args:
         # Check if it's clearly a URL (starts with /, http://, or https://)
@@ -360,6 +477,7 @@ if __name__ == "__main__":
             threading.Timer(1.0, lambda: open_browser(browser_url)).start()
 
         # Start the Flask app
+        app = get_app()
         try:
             app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
         except KeyboardInterrupt:
