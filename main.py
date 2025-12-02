@@ -30,6 +30,12 @@ def get_app(config_override: Mapping[str, Any] | None = None):
     return _get_app_cached(_config_items(config_override))
 
 
+# Expose a module-level application reference for code paths that monkeypatch main.app.
+# It is intentionally not initialized eagerly so CLI-only flows can opt out by setting
+# VIEWER_SKIP_MODULE_APP before requesting an application instance.
+app = None
+
+
 def signal_handler(_sig, _frame):
     print('\nShutting down gracefully...')
     sys.exit(0)
@@ -63,12 +69,12 @@ def handle_boot_cid_import(boot_cid: str) -> None:
     """
     from boot_cid_importer import import_boot_cid  # pylint: disable=import-outside-toplevel
 
-    app = get_app()
+    app_instance = globals().get("app") or get_app()
 
     try:
-        with app.app_context():
+        with app_instance.app_context():
             # Perform the import
-            success, error = import_boot_cid(app, boot_cid)
+            success, error = import_boot_cid(app_instance, boot_cid)
 
             if not success:
                 print(f"\nBoot CID import failed:\n{error}", file=sys.stderr)

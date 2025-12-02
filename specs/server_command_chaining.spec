@@ -31,7 +31,7 @@ server as input to another. The chaining patterns are:
 ## Default markdown server consumes chained CID input
 * Given the default server "markdown" is available
 * And a CID containing "# Gauge Markdown"
-* When I request the resource /markdown/{stored CID}
+* When I request the resource /markdown/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "Gauge Markdown"
 * And the CID content should contain "markdown-body"
@@ -40,7 +40,7 @@ server as input to another. The chaining patterns are:
 * Given the default server "markdown" is available
 * And a wrapping server named "md-wrapper" that wraps payload with "md::"
 * And a CID containing "# Wrapped Markdown"
-* When I request the resource /md-wrapper/markdown/{stored CID}
+* When I request the resource /md-wrapper/markdown/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "md::"
 * And the CID content should contain "Wrapped Markdown"
@@ -48,7 +48,7 @@ server as input to another. The chaining patterns are:
 ## Default shell server consumes chained CID input
 * Given the default server "shell" is available
 * And a CID containing "echo gauge shell"
-* When I request the resource /shell/{stored CID}
+* When I request the resource /shell/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "echo gauge shell"
 * And the CID content should contain "exit"
@@ -57,7 +57,7 @@ server as input to another. The chaining patterns are:
 * Given the default server "shell" is available
 * And a wrapping server named "shell-wrapper" that wraps payload with "sh::"
 * And a CID containing "echo wrapped shell"
-* When I request the resource /shell-wrapper/shell/{stored CID}
+* When I request the resource /shell-wrapper/shell/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "sh::"
 * And the CID content should contain "echo wrapped shell"
@@ -65,7 +65,7 @@ server as input to another. The chaining patterns are:
 ## Default ai_stub server consumes chained CID input
 * Given the default server "ai_stub" is available
 * And a CID containing "Gauge adjustment"
-* When I request the resource /ai_stub/{stored CID}
+* When I request the resource /ai_stub/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "Gauge adjustment"
 * And the CID content should contain "message"
@@ -74,109 +74,109 @@ server as input to another. The chaining patterns are:
 * Given the default server "ai_stub" is available
 * And a wrapping server named "ai-wrapper" that wraps payload with "ai::"
 * And a CID containing "Gauge wrapper"
-* When I request the resource /ai-wrapper/ai_stub/{stored CID}
+* When I request the resource /ai-wrapper/ai_stub/\{stored CID\}
 * Then the response should redirect to a CID
 * And the CID content should contain "ai::"
 * And the CID content should contain "Gauge wrapper"
 
 ## CID literal executes python content
 * Given a CID containing python server code that returns "literal-python"
-* When I request the resource /{stored CID}.py/next
+* When I request the resource /\{stored CID\}.py/next
 * Then the response should redirect to a CID
 * And the CID content should be "literal-python"
 
 ## CID literal executes bash content
 * Given a CID containing bash server code that echoes "literal-bash"
-* When I request the resource /{stored CID}.sh/more
+* When I request the resource /\{stored CID\}.sh/more
 * Then the response should contain "literal-bash"
 
 ## Python CID literal output chains into bash CID literal
 * Given a python CID literal server that returns "py-literal"
 * And a bash CID literal server that prefixes input with "bash:"
-* When I request the resource /{bash server CID}.sh/{python server CID}.py/final
+* When I request the resource /\{bash server CID\}.sh/\{python server CID\}.py/final
 * Then the response should contain "bash:py-literal"
 
 ## Bash CID literal output chains into python CID literal
 * Given a bash CID literal server that echoes "bash-into-python"
 * And a python CID literal server that wraps its payload with "py::"
-* When I request the resource /{python server CID}.py/{bash server CID}.sh/finish
+* When I request the resource /\{python server CID\}.py/\{bash server CID\}.sh/finish
 * Then the response should redirect to a CID
 * And the CID content should be "py::bash-into-python"
 
 ## Clojure CID literal output chains into python CID literal
 * Given a clojure CID literal server that emits "clj->python"
 * And a python CID literal server that prefixes its payload with "py:"
-* When I request the resource /{python server CID}.py/{clojure server CID}.clj/final
+* When I request the resource /\{python server CID\}.py/\{clojure server CID\}.clj/final
 * Then the response should redirect to a CID
 * And the CID content should be "py:clj->python"
 
 ## Clojure CID literal output chains into bash CID literal
 * Given a clojure CID literal server that emits "clj->bash"
 * And a bash CID literal server that prefixes its payload with "bash:"
-* When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/result
+* When I request the resource /\{bash server CID\}.sh/\{clojure server CID\}.clj/result
 * Then the response should contain "bash:clj->bash"
 
 ## Bash CID literal output chains into clojure CID literal
 * Given a bash CID literal server that echoes "bash->clj"
 * And a clojure CID literal server that prefixes its payload with "clj:"
-* When I request the resource /{clojure server CID}.clj/{bash server CID}.sh
+* When I request the resource /\{clojure server CID\}.clj/\{bash server CID\}.sh
 * Then the response should contain "clj:bash->clj"
 
 ## Python CID literal output chains into clojure CID literal
 * Given a python CID literal server that returns "py->clj"
 * And a clojure CID literal server that prefixes its payload with "clj:"
-* When I request the resource /{clojure server CID}.clj/{python server CID}.py
+* When I request the resource /\{clojure server CID\}.clj/\{python server CID\}.py
 * Then the response should contain "clj:py->clj"
 
 ## Clojure CID literal output chains into clojure CID literal
 * Given a clojure CID literal server that emits "clj-right"
 * And a clojure CID literal server that prefixes its payload with "clj:"
-* When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj
+* When I request the resource /\{left clojure server CID\}.clj/\{right clojure server CID\}.clj
 * Then the response should contain "clj:clj-right"
 
 ## Clojure CID literal with no extension executes
 * Given a clojure CID literal server stored without an extension that emits "clj-noext"
-* When I request the resource /{clojure CID}/tail
+* When I request the resource /\{clojure CID\}/tail
 * Then the response should contain "clj-noext"
 
 ## ClojureScript CID literal output chains into python CID literal
 * Given a clojurescript CID literal server that emits "cljs->python"
 * And a python CID literal server that prefixes its payload with "py:"
-* When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/final
+* When I request the resource /\{python server CID\}.py/\{clojurescript server CID\}.cljs/final
 * Then the response should redirect to a CID
 * And the CID content should be "py:cljs->python"
 
 ## ClojureScript CID literal output chains into bash CID literal
 * Given a clojurescript CID literal server that emits "cljs->bash"
 * And a bash CID literal server that prefixes its payload with "bash:"
-* When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/result
+* When I request the resource /\{bash server CID\}.sh/\{clojurescript server CID\}.cljs/result
 * Then the response should contain "bash:cljs->bash"
 
 ## ClojureScript CID literal output chains into clojurescript CID literal
 * Given a clojurescript CID literal server that emits "cljs-right"
 * And a clojurescript CID literal server that prefixes its payload with "cljs:"
-* When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs
+* When I request the resource /\{left clojurescript server CID\}.cljs/\{right clojurescript server CID\}.cljs
 * Then the response should contain "cljs:cljs-right"
 
 ## Python CID literal output chains into clojurescript CID literal
 * Given a python CID literal server that returns "py->cljs"
 * And a clojurescript CID literal server that prefixes its payload with "cljs:"
-* When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py
+* When I request the resource /\{clojurescript server CID\}.cljs/\{python server CID\}.py
 * Then the response should contain "cljs:py->cljs"
 
 ## Bash CID literal output chains into clojurescript CID literal
 * Given a bash CID literal server that echoes "bash->cljs"
 * And a clojurescript CID literal server that prefixes its payload with "cljs:"
-* When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh
+* When I request the resource /\{clojurescript server CID\}.cljs/\{bash server CID\}.sh
 * Then the response should contain "cljs:bash->cljs"
 
 ## Named clojurescript server receives chained python input
 * Given a server named "cljs-chain" defined in /servers that prefixes its payload with "cljs:"
 * And a python CID literal server that returns "named->cljs"
-* When I request the resource /cljs-chain/{python server CID}.py/output
+* When I request the resource /cljs-chain/\{python server CID\}.py/output
 * Then the response should contain "cljs:named->cljs"
 
 ## ClojureScript CID literal with no extension executes
 * Given a clojurescript CID literal server stored without an extension that emits "cljs-noext"
-* When I request the resource /{clojurescript CID}/tail
+* When I request the resource /\{clojurescript CID\}/tail
 * Then the response should contain "cljs-noext"

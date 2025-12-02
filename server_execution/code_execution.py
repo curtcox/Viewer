@@ -1,5 +1,7 @@
 """Core Python and Bash code execution and server invocation logic."""
 
+# pylint: disable=too-many-lines
+
 import json
 import os
 import shutil

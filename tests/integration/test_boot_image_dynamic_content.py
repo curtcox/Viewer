@@ -104,6 +104,10 @@ class TestBootImageDynamicContent:
             json.dumps(templates_source, indent=2)
         )
 
+        # Create base uis.source.json so UI content generation succeeds
+        uis_source = {"aliases": {}, "servers": {}, "variables": {}}
+        (ref_templates / "uis.source.json").write_text(json.dumps(uis_source, indent=2))
+
     def _add_alias_to_boot_source(self, name: str, definition_content: str) -> str:
         """Add an alias to boot.source.json."""
         ref_templates = self.project_dir / "reference_templates"
