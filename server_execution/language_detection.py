@@ -22,18 +22,12 @@ def detect_server_language(definition: str | None) -> str:
             return "python"
         if "bash" in first_line or first_line.endswith("/sh") or "/sh " in first_line:
             return "bash"
+        if "deno" in first_line or "ts-node" in first_line or "typescript" in first_line:
+            return "typescript"
         if "clojurescript" in first_line or "nbb" in first_line:
             return "clojurescript"
         if "clojure" in first_line or "bb" in first_line or "babashka" in first_line:
             return "clojure"
-
-    python_markers = (
-        r"^\s*def\s+\w+\s*\(",
-        r"^\s*import\s+\w+",
-        r"^\s*from\s+\w+\s+import",
-    )
-    if any(re.search(pattern, text, re.MULTILINE) for pattern in python_markers):
-        return "python"
 
     clojurescript_markers = (
         r"\bcljs\.core\b",
@@ -46,6 +40,27 @@ def detect_server_language(definition: str | None) -> str:
         for pattern in clojurescript_markers
     ):
         return "clojurescript"
+
+    typescript_markers = (
+        r"\bDeno\.",
+        r"\bfrom\s+\"https?://deno\.land",
+        r"\bexport\s+async\s+function\s+main\b",
+        r"\bexport\s+function\s+main\b",
+        r"\basync\s+function\s+main\b",
+    )
+    if any(
+        re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        for pattern in typescript_markers
+    ):
+        return "typescript"
+
+    python_markers = (
+        r"^\s*def\s+\w+\s*\(",
+        r"^\s*import\s+\w+",
+        r"^\s*from\s+\w+\s+import",
+    )
+    if any(re.search(pattern, text, re.MULTILINE) for pattern in python_markers):
+        return "python"
 
     clojure_markers = (
         r"\(ns\b",

@@ -180,3 +180,50 @@ server as input to another. The chaining patterns are:
 * Given a clojurescript CID literal server stored without an extension that emits "cljs-noext"
 * When I request the resource /\{clojurescript CID\}/tail
 * Then the response should contain "cljs-noext"
+
+## TypeScript CID literal output chains into python CID literal
+* Given a TypeScript CID literal server that emits "ts->python"
+* And a python CID literal server that prefixes its payload with "py:"
+* When I request the resource /\{python server CID\}.py/\{typescript server CID\}.ts/final
+* Then the response should redirect to a CID
+* And the CID content should be "py:ts->python"
+
+## TypeScript CID literal output chains into bash CID literal
+* Given a TypeScript CID literal server that emits "ts->bash"
+* And a bash CID literal server that prefixes its payload with "bash:"
+* When I request the resource /\{bash server CID\}.sh/\{typescript server CID\}.ts/result
+* Then the response should contain "bash:ts->bash"
+
+## TypeScript CID literal output chains into TypeScript CID literal
+* Given a TypeScript CID literal server that emits "ts-right"
+* And a TypeScript CID literal server that prefixes its payload with "ts:"
+* When I request the resource /\{left typescript server CID\}.ts/\{right typescript server CID\}.ts
+* Then the response should contain "ts:ts-right"
+
+## Python CID literal output chains into TypeScript CID literal
+* Given a python CID literal server that returns "py->ts"
+* And a TypeScript CID literal server that prefixes its payload with "ts:"
+* When I request the resource /\{typescript server CID\}.ts/\{python server CID\}.py
+* Then the response should contain "ts:py->ts"
+
+## Bash CID literal output chains into TypeScript CID literal
+* Given a bash CID literal server that echoes "bash->ts"
+* And a TypeScript CID literal server that prefixes its payload with "ts:"
+* When I request the resource /\{typescript server CID\}.ts/\{bash server CID\}.sh
+* Then the response should contain "ts:bash->ts"
+
+## Named TypeScript server receives chained python input
+* Given a server named "ts-chain" defined in /servers that prefixes its payload with "ts:"
+* And a python CID literal server that returns "named->ts"
+* When I request the resource /ts-chain/\{python server CID\}.py/output
+* Then the response should contain "ts:named->ts"
+
+## TypeScript CID literal with no extension executes
+* Given a TypeScript CID literal server stored without an extension that emits "ts-noext"
+* When I request the resource /\{typescript CID\}/tail
+* Then the response should contain "ts-noext"
+
+## TypeScript CID literal with .ts extension executes
+* Given a TypeScript CID literal server stored with a .ts extension that emits "ts-ext"
+* When I request the resource /\{typescript CID\}.ts/tail
+* Then the response should contain "ts-ext"
