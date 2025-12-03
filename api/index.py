@@ -12,7 +12,7 @@ parent_dir = str(Path(__file__).parent.parent)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-from app import create_app
+from app import create_app  # noqa: E402
 
 # Create Flask application instance
 app = create_app()
