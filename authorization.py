@@ -6,7 +6,7 @@ in the application. All requests are processed through the authorize_request
 function which can allow or reject requests based on request information.
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 from flask import Request
 
 

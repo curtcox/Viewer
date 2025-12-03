@@ -1,8 +1,6 @@
 """Unit tests for authorization module."""
 
 import pytest
-from flask import Flask
-from werkzeug.test import Client
 
 from authorization import AuthorizationResult, authorize_request
 

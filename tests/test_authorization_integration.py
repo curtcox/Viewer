@@ -1,7 +1,6 @@
 """Integration tests for authorization with Flask app."""
 
 import json
-import pytest
 from unittest.mock import patch
 
 from authorization import AuthorizationResult
