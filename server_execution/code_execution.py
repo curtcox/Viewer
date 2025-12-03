@@ -83,6 +83,8 @@ def _language_from_extension(extension: Optional[str], definition: str) -> str:
         return "clojure"
     if extension and extension.lower() == "cljs":
         return "clojurescript"
+    if extension and extension.lower() == "ts":
+        return "typescript"
     return detect_server_language(definition)
 
 
@@ -247,6 +249,33 @@ def _execute_clojurescript_code_to_value(
         return combined_output.decode("utf-8", errors="replace")
 
 
+def _execute_typescript_code_to_value(
+    code: str, server_name: str, chained_input: Optional[str]
+) -> Any:
+    stdout, status_code, stderr = _run_typescript_script(
+        code, server_name, chained_input=chained_input
+    )
+    combined_output = stdout or b""
+    if status_code >= 400 and stderr:
+        combined_output = (
+            combined_output
+            + (b"" if combined_output.endswith(b"\n") or not combined_output else b"\n")
+            + stderr
+        )
+
+    _log_server_output(
+        "execute_typescript_code", "", combined_output, "text/plain"
+    )
+
+    if status_code >= 400:
+        return Response(combined_output, status=status_code, mimetype="text/plain")
+
+    try:
+        return combined_output.decode("utf-8")
+    except (UnicodeDecodeError, AttributeError):
+        return combined_output.decode("utf-8", errors="replace")
+
+
 def _execute_nested_server_to_value(
     server: Any,
     server_name: str,
@@ -268,6 +297,10 @@ def _execute_nested_server_to_value(
         )
     if language == "clojurescript":
         return _execute_clojurescript_code_to_value(
+            server.definition, server_name, chained_input
+        )
+    if language == "typescript":
+        return _execute_typescript_code_to_value(
             server.definition, server_name, chained_input
         )
 
@@ -295,6 +328,10 @@ def _execute_literal_definition_to_value(
         )
     if language == "clojurescript":
         return _execute_clojurescript_code_to_value(
+            definition_text, server_name, chained_input
+        )
+    if language == "typescript":
+        return _execute_typescript_code_to_value(
             definition_text, server_name, chained_input
         )
 
@@ -603,6 +640,41 @@ def _execute_clojurescript_server_response(
     return Response(output_bytes, status=status_code, mimetype="text/plain")
 
 
+def _execute_typescript_server_response(
+    code: str,
+    server_name: str,
+    debug_prefix: str,
+    *,
+    chained_input: Optional[str],
+) -> Response:
+    stdout, status_code, stderr = _run_typescript_script(
+        code, server_name, chained_input=chained_input
+    )
+
+    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    if status_code >= 400 and stderr:
+        output_bytes = output_bytes + (
+            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
+        ) + stderr
+
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+
+    cid_value = format_cid(generate_cid(output_bytes))
+    cid_record_path = cid_path(cid_value)
+    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+    if not existing and cid_record_path:
+        create_cid_record(cid_value, output_bytes)
+
+    if has_app_context():
+        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
+            create_server_invocation_record,
+        )
+
+        create_server_invocation_record(server_name, cid_value)
+
+    return Response(output_bytes, status=status_code, mimetype="text/plain")
+
+
 def _build_unsupported_signature_response(
     function_name: str, details: FunctionDetails
 ):
@@ -878,6 +950,14 @@ def _select_clojurescript_command() -> Optional[list[str]]:
     return None
 
 
+def _select_typescript_command() -> Optional[list[str]]:
+    runner = shutil.which("deno")
+    if runner:
+        return [runner, "run", "--quiet"]
+
+    return None
+
+
 def _run_clojure_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
@@ -962,6 +1042,48 @@ def _run_clojurescript_script(
     return result.stdout or b"", status_code, result.stderr or b""
 
 
+def _run_typescript_script(
+    code: str, server_name: str, *, chained_input: Optional[str] = None
+) -> tuple[bytes, int, bytes]:
+    stdin_payload = _build_bash_stdin_payload(chained_input)
+    runner = _select_typescript_command()
+    if not runner:
+        return (
+            b"Deno runtime is not available for this server",
+            500,
+            b"deno executable not found",
+        )
+
+    with tempfile.NamedTemporaryFile("w", delete=False, suffix=".ts") as script_file:
+        script_file.write(code)
+        script_path = script_file.name
+
+    try:
+        result = subprocess.run(
+            [*runner, script_path],
+            input=stdin_payload,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return b"Script execution timed out", 504, b""
+    except FileNotFoundError:
+        return (
+            b"Deno runtime is not available for this server",
+            500,
+            b"deno executable not found",
+        )
+    finally:
+        try:
+            os.remove(script_path)
+        except OSError:
+            pass
+
+    status_code = _map_exit_code_to_status(result.returncode)
+    return result.stdout or b"", status_code, result.stderr or b""
+
+
 def _execute_server_code_common(
     code: str,
     server_name: str,
@@ -1004,6 +1126,18 @@ def _execute_server_code_common(
             return early_response
 
         return _execute_clojurescript_server_response(
+            code,
+            server_name,
+            debug_prefix,
+            chained_input=chained_input,
+        )
+
+    if language == "typescript":
+        chained_input, early_response = _resolve_chained_input_for_server(server_name)
+        if early_response:
+            return early_response
+
+        return _execute_typescript_server_response(
             code,
             server_name,
             debug_prefix,

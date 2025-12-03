@@ -258,6 +258,12 @@ def main(*args):
             )
             == "clojurescript"
         )
+        assert (
+            detect_server_language(
+                "#!/usr/bin/env -S deno run --quiet\nexport async function main() {}"
+            )
+            == "typescript"
+        )
 
     def test_analyze_reports_language(self):
         result = analyze_server_definition("#!/bin/bash\necho hi\n")
