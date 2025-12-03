@@ -62,6 +62,43 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form class="row gy-3 gx-3 align-items-end" method="get" action="{{ url_for('main.history') }}">
+                        <div class="col-md-5">
+                            <label for="history-start" class="form-label mb-1">Start time</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="history-start"
+                                name="start"
+                                placeholder="YYYY/MM/DD HH:MM:SS"
+                                value="{{ start_value }}"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="col-md-5">
+                            <label for="history-end" class="form-label mb-1">End time</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="history-end"
+                                name="end"
+                                placeholder="YYYY/MM/DD HH:MM:SS"
+                                value="{{ end_value }}"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="col-md-2 text-md-end">
+                            <div class="d-grid">
+                                <button class="btn btn-primary" type="submit">Update range</button>
+                            </div>
+                            <p class="text-muted small mb-0 mt-2">Times are UTC. Leave blank for an unbounded range.</p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="row">
                 <!-- Main History -->
                 <div class="col-lg-8">
@@ -158,7 +195,7 @@
                                 <ul class="pagination justify-content-center">
                                     {% if page_views.has_prev %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.prev_num) }}">Previous</a>
+                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.prev_num, **history_filters) }}">Previous</a>
                                         </li>
                                     {% endif %}
 
@@ -166,7 +203,7 @@
                                         {% if page_num %}
                                             {% if page_num != page_views.page %}
                                                 <li class="page-item">
-                                                    <a class="page-link" href="{{ url_for('main.history', page=page_num) }}">{{ page_num }}</a>
+                                                    <a class="page-link" href="{{ url_for('main.history', page=page_num, **history_filters) }}">{{ page_num }}</a>
                                                 </li>
                                             {% else %}
                                                 <li class="page-item active">
@@ -182,7 +219,7 @@
 
                                     {% if page_views.has_next %}
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.next_num) }}">Next</a>
+                                            <a class="page-link" href="{{ url_for('main.history', page=page_views.next_num, **history_filters) }}">Next</a>
                                         </li>
                                     {% endif %}
                                 </ul>

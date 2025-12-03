@@ -48,6 +48,7 @@ from db_access import (
 )
 from models import (
     Alias,
+    CID,
     PageView,
     Secret,
     Server,
@@ -144,10 +145,29 @@ class TestDBAccess(unittest.TestCase):
             create_cid_record('test_cid', b'different data')
 
     def test_page_view_helpers(self):
+        base_time = datetime.now(timezone.utc)
         views = [
-            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(path='/beta', method='POST', user_agent='Agent', ip_address='127.0.0.1'),
-            PageView(path='/alpha', method='GET', user_agent='Agent', ip_address='127.0.0.1'),
+            PageView(
+                path='/alpha',
+                method='GET',
+                user_agent='Agent',
+                ip_address='127.0.0.1',
+                viewed_at=base_time - timedelta(minutes=5),
+            ),
+            PageView(
+                path='/beta',
+                method='POST',
+                user_agent='Agent',
+                ip_address='127.0.0.1',
+                viewed_at=base_time - timedelta(seconds=30),
+            ),
+            PageView(
+                path='/alpha',
+                method='GET',
+                user_agent='Agent',
+                ip_address='127.0.0.1',
+                viewed_at=base_time - timedelta(seconds=10),
+            ),
         ]
         for view in views:
             save_page_view(view)
@@ -162,6 +182,20 @@ class TestDBAccess(unittest.TestCase):
         pagination = paginate_page_views(page=1, per_page=2)
         self.assertEqual(pagination.total, 3)
         self.assertEqual(len(pagination.items), 2)
+
+        cutoff = base_time - timedelta(minutes=1)
+        filtered_count = count_page_views(start=cutoff)
+        self.assertEqual(filtered_count, 2)
+
+        filtered_unique = count_unique_page_view_paths(start=cutoff)
+        self.assertEqual(filtered_unique, 2)
+
+        filtered_popular = get_popular_page_paths(start=cutoff, end=base_time)
+        self.assertTrue(filtered_popular)
+
+        filtered_page = paginate_page_views(page=1, per_page=5, start=cutoff, end=base_time)
+        self.assertEqual(filtered_page.page, 1)
+        self.assertEqual(filtered_page.total, 2)
 
     def test_server_invocation_helpers(self):
         now = datetime.now(timezone.utc)
@@ -296,6 +330,9 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(alias.match_pattern, '/latest')
 
     def test_cid_lookup_helpers(self):
+        CID.query.delete()
+        db.session.commit()
+
         create_cid_record('gamma', b'g')
         create_cid_record('delta', b'd')
 

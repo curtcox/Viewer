@@ -1,7 +1,10 @@
 """Context processors for injecting variables into all templates."""
 
+from datetime import datetime, timezone
+
 from flask import current_app, has_request_context, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
+from history_filters import format_history_timestamp
 
 from db_access import (
     get_aliases,
@@ -49,7 +52,13 @@ def inject_meta_inspector_link():
         requested_path = ".html"
 
     meta_url = url_for("main.meta_route", requested_path=requested_path)
-    return {"meta_inspector_url": meta_url}
+    loaded_at = datetime.now(timezone.utc)
+    history_since_url = url_for("main.history", start=format_history_timestamp(loaded_at))
+
+    return {
+        "meta_inspector_url": meta_url,
+        "history_since_url": history_since_url,
+    }
 
 
 def inject_viewer_navigation():
