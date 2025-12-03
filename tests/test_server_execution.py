@@ -265,6 +265,16 @@ def main(*args):
             == "typescript"
         )
 
+    def test_typescript_imports_do_not_match_python(self):
+        deno_script = (
+            "import { serve } from \"https://deno.land/std/http/server.ts\"\n"
+            "export async function main() {\n"
+            "  await serve(() => new Response('ok'));\n"
+            "}"
+        )
+
+        assert detect_server_language(deno_script) == "typescript"
+
     def test_analyze_reports_language(self):
         result = analyze_server_definition("#!/bin/bash\necho hi\n")
         assert result["language"] == "bash"

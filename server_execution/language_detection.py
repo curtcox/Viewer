@@ -29,14 +29,6 @@ def detect_server_language(definition: str | None) -> str:
         if "clojure" in first_line or "bb" in first_line or "babashka" in first_line:
             return "clojure"
 
-    python_markers = (
-        r"^\s*def\s+\w+\s*\(",
-        r"^\s*import\s+\w+",
-        r"^\s*from\s+\w+\s+import",
-    )
-    if any(re.search(pattern, text, re.MULTILINE) for pattern in python_markers):
-        return "python"
-
     clojurescript_markers = (
         r"\bcljs\.core\b",
         r"\(ns\s+[\w\.\-]*cljs",
@@ -61,6 +53,14 @@ def detect_server_language(definition: str | None) -> str:
         for pattern in typescript_markers
     ):
         return "typescript"
+
+    python_markers = (
+        r"^\s*def\s+\w+\s*\(",
+        r"^\s*import\s+\w+",
+        r"^\s*from\s+\w+\s+import",
+    )
+    if any(re.search(pattern, text, re.MULTILINE) for pattern in python_markers):
+        return "python"
 
     clojure_markers = (
         r"\(ns\b",
