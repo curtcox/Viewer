@@ -62,7 +62,10 @@ def create_authorization_error_response(result: AuthorizationResult) -> Response
             )
     
     # This shouldn't happen, but return an error if called with allowed=True
-    raise ValueError("create_authorization_error_response called with allowed=True")
+    raise ValueError(
+        "create_authorization_error_response should only be called when "
+        "authorization is denied (allowed=False)"
+    )
 
 
 __all__ = ['create_authorization_error_response']

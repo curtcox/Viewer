@@ -42,8 +42,8 @@ class AuthorizationResult:
                 raise ValueError("status_code is required when allowed is False")
             if message is None:
                 raise ValueError("message is required when allowed is False")
-            if status_code not in (401, 403, 404):
-                raise ValueError(f"status_code must be 401, 403, or 404, got {status_code}")
+            if status_code not in (401, 403):
+                raise ValueError(f"status_code must be 401 or 403, got {status_code}")
 
 
 def authorize_request(request: Request) -> AuthorizationResult:

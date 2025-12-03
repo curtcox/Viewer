@@ -143,5 +143,5 @@ class TestCreateAuthorizationErrorResponse:
         """Test that calling with allowed=True raises ValueError."""
         with memory_db_app.test_request_context('/test'):
             result = AuthorizationResult(allowed=True)
-            with pytest.raises(ValueError, match="allowed=True"):
+            with pytest.raises(ValueError, match="allowed=False"):
                 create_authorization_error_response(result)
