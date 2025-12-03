@@ -11,6 +11,7 @@ implementations.
 # package import. The modules only provide side effects for registration, so we
 # silence unused-import checks.
 from . import alias_steps  # noqa: F401
+from . import authorization_steps  # noqa: F401
 from . import import_export_steps  # noqa: F401
 from . import source_steps  # noqa: F401
 from . import web_steps  # noqa: F401
