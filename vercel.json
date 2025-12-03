@@ -13,7 +13,6 @@
     }
   ],
   "env": {
-    "FLASK_APP": "app.py",
     "DATABASE_URL": "@database_url",
     "SESSION_SECRET": "@session_secret"
   }
