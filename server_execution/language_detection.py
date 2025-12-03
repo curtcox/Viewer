@@ -2,6 +2,54 @@
 
 import re
 
+COMMON_SHELL_TOKENS = {
+    # Frequently used Unix utilities
+    "awk",
+    "cat",
+    "cd",
+    "chmod",
+    "chown",
+    "cp",
+    "curl",
+    "cut",
+    "diff",
+    "echo",
+    "env",
+    "find",
+    "grep",
+    "gunzip",
+    "gzip",
+    "head",
+    "ls",
+    "mkdir",
+    "mv",
+    "pwd",
+    "rm",
+    "rsync",
+    "scp",
+    "sed",
+    "sort",
+    "sudo",
+    "tail",
+    "tar",
+    "touch",
+    "tr",
+    "uniq",
+    "wc",
+    "wget",
+    "xargs",
+    # Punctuation and operators common in shell pipelines
+    "|",
+    "||",
+    "&&",
+    ">",
+    ">>",
+    "<",
+    ";",
+    "$",
+    "$(",
+}
+
 
 def detect_server_language(definition: str | None) -> str:
     """Return the probable implementation language for a server definition.
@@ -79,6 +127,12 @@ def detect_server_language(definition: str | None) -> str:
     )
     if any(re.search(pattern, text, re.MULTILINE) for pattern in bash_markers):
         return "bash"
+
+    tokens = re.findall(r"[A-Za-z0-9_./-]+|\$\(|\|\||&&|>>|[|><;$(){}\[\]]", text)
+    if tokens:
+        shell_token_count = sum(1 for token in tokens if token.lower() in COMMON_SHELL_TOKENS)
+        if shell_token_count >= len(tokens) / 2:
+            return "bash"
 
     return "python"
 

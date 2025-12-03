@@ -124,7 +124,10 @@
                                     <span class="badge text-bg-info">{{ implementation_language|capitalize }}</span>
                                 </span>
                             </div>
-                            <div class="form-text">Detected automatically from the current definition.</div>
+                            <div class="form-text">
+                                <a href="/source/server_execution/language_detection.py">Detected automatically</a>
+                                from the current definition.
+                            </div>
                         </div>
 
                         {% if server_templates is defined and server_templates %}
