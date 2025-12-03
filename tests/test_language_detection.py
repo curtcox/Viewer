@@ -45,6 +45,11 @@ LANGUAGE_CASES = [
         expected="bash",
     ),
     LanguageCase(
+        name="python_print_not_treated_as_shell",
+        definition="print('hello world')",
+        expected="python",
+    ),
+    LanguageCase(
         name="plain_text_falls_back_to_python",
         definition="This is plain text with nothing special.",
         expected="python",
