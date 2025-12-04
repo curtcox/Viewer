@@ -1,6 +1,7 @@
 """Server invocation tracking."""
 
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Union
 
 from sqlalchemy import or_
@@ -77,10 +78,21 @@ def create_server_invocation(
     return invocation
 
 
-def get_server_invocations() -> List[ServerInvocation]:
+def get_server_invocations(
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> List[ServerInvocation]:
     """Return invocation events ordered from newest to oldest."""
+
+    query = ServerInvocation.query
+
+    if start:
+        query = query.filter(ServerInvocation.invoked_at >= start)
+    if end:
+        query = query.filter(ServerInvocation.invoked_at <= end)
+
     return (
-        ServerInvocation.query
+        query
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )

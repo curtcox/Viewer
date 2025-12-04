@@ -131,6 +131,11 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(stats["popular_paths"][0].path, "/a")
         self.assertEqual(stats["popular_paths"][0].count, 2)
 
+        filtered_stats = get_history_statistics(start=now + timedelta(minutes=1, seconds=30))
+        self.assertEqual(filtered_stats["total_views"], 1)
+        self.assertEqual(filtered_stats["unique_paths"], 1)
+        self.assertEqual(filtered_stats["popular_paths"][0].path, "/b")
+
     def test_get_paginated_page_views_orders_recent_first(self):
         base_time = datetime(2024, 1, 1, tzinfo=timezone.utc)
         for offset, path in enumerate(["/first", "/second", "/third"], start=1):
@@ -146,6 +151,15 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(page.total, 3)
         self.assertEqual(len(page.items), 2)
         self.assertEqual([item.path for item in page.items], ["/third", "/second"])
+
+        filtered_page = get_paginated_page_views(
+            page=1,
+            per_page=5,
+            start=base_time + timedelta(hours=2, minutes=30),
+            end=base_time + timedelta(hours=3, minutes=30),
+        )
+        self.assertEqual(filtered_page.total, 1)
+        self.assertEqual([item.path for item in filtered_page.items], ["/third"])
 
 
 if __name__ == "__main__":

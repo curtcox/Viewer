@@ -160,6 +160,16 @@ body {
     border-radius: 0.375rem;
 }
 
+.timestamp-valid {
+    background-color: #f0fff4;
+    border-color: #a8e6a1;
+}
+
+.timestamp-invalid {
+    background-color: #fff5f5;
+    border-color: #f5c2c7;
+}
+
 /* Table styles */
 .table {
     border-radius: 0.375rem;

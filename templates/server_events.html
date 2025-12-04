@@ -31,6 +31,43 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form class="row gy-3 gx-3 align-items-end" method="get" action="{{ url_for('main.server_events') }}">
+                        <div class="col-md-5">
+                            <label for="server-events-start" class="form-label mb-1">Start time</label>
+                            <input
+                                type="text"
+                                class="form-control {% if start_value and start_valid %}timestamp-valid{% elif start_value %}timestamp-invalid{% endif %}"
+                                id="server-events-start"
+                                name="start"
+                                placeholder="YYYY/MM/DD HH:MM:SS"
+                                value="{{ start_value }}"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="col-md-5">
+                            <label for="server-events-end" class="form-label mb-1">End time</label>
+                            <input
+                                type="text"
+                                class="form-control {% if end_value and end_valid %}timestamp-valid{% elif end_value %}timestamp-invalid{% endif %}"
+                                id="server-events-end"
+                                name="end"
+                                placeholder="YYYY/MM/DD HH:MM:SS"
+                                value="{{ end_value }}"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="col-md-2 text-md-end">
+                            <div class="d-grid">
+                                <button class="btn btn-primary" type="submit">Update range</button>
+                            </div>
+                            <p class="text-muted small mb-0 mt-2">Times are UTC. Leave blank for an unbounded range.</p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             {% if events %}
             <div class="card">
                 <div class="card-header">

@@ -13,6 +13,7 @@ from db_access import (
     get_server_invocations_by_result_cids,
 )
 from models import ServerInvocation
+from history_filters import parse_date_range
 
 from . import main_bp
 
@@ -23,13 +24,32 @@ def history():
     page = request.args.get('page', 1, type=int)
     per_page = 50
 
-    page_views = get_paginated_page_views(page, per_page)
+    date_range = parse_date_range(
+        request.args.get('start', '', type=str),
+        request.args.get('end', '', type=str),
+    )
+
+    page_views = get_paginated_page_views(
+        page,
+        per_page,
+        start=date_range.start_at,
+        end=date_range.end_at,
+    )
     _attach_server_event_links(page_views)
     _attach_cid_links(page_views)
-    stats = get_history_statistics()
+    stats = get_history_statistics(start=date_range.start_at, end=date_range.end_at)
     stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
 
-    return render_template('history.html', page_views=page_views, **stats)
+    return render_template(
+        'history.html',
+        page_views=page_views,
+        start_value=date_range.start_value,
+        end_value=date_range.end_value,
+        start_valid=date_range.start_valid,
+        end_valid=date_range.end_valid,
+        history_filters=date_range.filters,
+        **stats,
+    )
 
 
 def _extract_result_cid(path: str) -> str | None:

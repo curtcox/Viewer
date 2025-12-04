@@ -1,5 +1,6 @@
 """Analytics and page view tracking helpers for the Flask app."""
 
+from datetime import datetime
 from typing import Any, Dict
 
 from flask import Response, request, session
@@ -62,16 +63,19 @@ def track_page_view(response: Response) -> Response:
     return response
 
 
-def get_history_statistics() -> Dict[str, Any]:
+def get_history_statistics(
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> Dict[str, Any]:
     """Calculate history statistics."""
     # Get total views count
-    total_views = count_page_views()
+    total_views = count_page_views(start=start, end=end)
 
     # Get unique paths count
-    unique_paths = count_unique_page_view_paths()
+    unique_paths = count_unique_page_view_paths(start=start, end=end)
 
     # Get most visited paths
-    popular_paths = get_popular_page_paths()
+    popular_paths = get_popular_page_paths(start=start, end=end)
 
     return {
         'total_views': total_views,
@@ -80,9 +84,14 @@ def get_history_statistics() -> Dict[str, Any]:
     }
 
 
-def get_paginated_page_views(page: int, per_page: int = 50) -> Pagination:
+def get_paginated_page_views(
+    page: int,
+    per_page: int = 50,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> Pagination:
     """Get paginated page views."""
-    return paginate_page_views(page, per_page=per_page)
+    return paginate_page_views(page, per_page=per_page, start=start, end=end)
 
 
 __all__ = [

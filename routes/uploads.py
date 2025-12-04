@@ -44,6 +44,7 @@ from entity_references import (
 )
 from forms import EditCidForm, FileUploadForm
 from interaction_log import load_interaction_history
+from history_filters import parse_date_range
 from models import Alias, Variable
 from template_status import get_template_link_info
 
@@ -623,7 +624,16 @@ def assign_cid_variable():
 @main_bp.route('/server_events')
 def server_events():
     """Display server invocation events."""
-    invocations = get_server_invocations()
+
+    date_range = parse_date_range(
+        request.args.get('start', '', type=str),
+        request.args.get('end', '', type=str),
+    )
+
+    invocations = get_server_invocations(
+        start=date_range.start_at,
+        end=date_range.end_at,
+    )
 
     referer_by_request = _load_request_referers(invocations)
 
@@ -640,6 +650,11 @@ def server_events():
         'server_events.html',
         events=invocations,
         total_events=len(invocations),
+        start_value=date_range.start_value,
+        end_value=date_range.end_value,
+        start_valid=date_range.start_valid,
+        end_valid=date_range.end_valid,
+        event_filters=date_range.filters,
     )
 
 

@@ -268,15 +268,36 @@
                 </ul>
 
                 <ul class="navbar-nav align-items-center">
-                    <li class="nav-item">
+                    <li class="nav-item dropdown">
                         <a
-                            class="nav-link text-light"
-                            href="{{ meta_inspector_url }}"
-                            title="View metadata for this page"
-                            aria-label="View metadata for this page"
+                            class="nav-link text-light dropdown-toggle d-flex align-items-center"
+                            href="#"
+                            id="pageInfoMenu"
+                            role="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false"
+                            title="Page information and logs"
+                            aria-label="Page information and logs"
                         >
                             <i class="fas fa-circle-info"></i>
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="pageInfoMenu">
+                            <li>
+                                <a class="dropdown-item" href="{{ meta_inspector_url }}">
+                                    About this page
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ history_since_url }}">
+                                    History
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ server_events_since_url }}">
+                                    Server Events
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>

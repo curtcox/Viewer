@@ -12,6 +12,7 @@ from html import unescape
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import quote_plus
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -28,6 +29,7 @@ from app import create_app
 from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, generate_cid
 from database import db
 from db_access import get_cid_by_path
+from history_filters import format_history_timestamp
 from models import (
     CID,
     Alias,
@@ -152,6 +154,7 @@ class TestContextProcessors(BaseTestCase):
             context = inject_meta_inspector_link()
 
         self.assertEqual(context["meta_inspector_url"], "/meta/servers/example.html")
+        self.assertIn("/history?start=", context["history_since_url"])
 
 
 class TestPublicRoutes(BaseTestCase):
@@ -895,6 +898,11 @@ class TestAuthenticatedRoutes(BaseTestCase):
         page = response.get_data(as_text=True)
         self.assertIn('href="/meta/profile.html"', page)
         self.assertIn('fa-circle-info', page)
+        self.assertIn('About this page', page)
+        self.assertIn('History', page)
+        self.assertIn('Server Events', page)
+        self.assertIn('/history?start=', page)
+        self.assertIn('/server_events?start=', page)
 
     def test_content_route_returns_not_found(self):
         """Legacy /content endpoint should be unavailable."""
@@ -1452,6 +1460,26 @@ class TestHistoryRoutes(BaseTestCase):
 
         response = self.client.get('/history?page=2')
         self.assertEqual(response.status_code, 200)
+
+    def test_history_page_supports_time_filters(self):
+        """The history page should filter results using start and end timestamps."""
+
+        now = datetime.now(timezone.utc)
+        earlier = PageView(path='/before-filter', method='GET', viewed_at=now - timedelta(hours=1))
+        recent = PageView(path='/after-filter', method='POST', viewed_at=now - timedelta(minutes=5))
+        db.session.add_all([earlier, recent])
+        db.session.commit()
+
+        start = format_history_timestamp(now - timedelta(minutes=30))
+        end = format_history_timestamp(now + timedelta(minutes=30))
+        response = self.client.get(f"/history?start={quote_plus(start)}&end={quote_plus(end)}")
+        self.assertEqual(response.status_code, 200)
+
+        page = response.get_data(as_text=True)
+        self.assertIn('/after-filter', page)
+        self.assertNotIn('/before-filter', page)
+        self.assertIn(f'value=\"{start}\"', page)
+        self.assertIn(f'value=\"{end}\"', page)
 
 
 class TestServerRoutes(BaseTestCase):
