@@ -34,14 +34,14 @@
                         <span class="badge bg-light text-dark border">{{ item.action_display }}</span>
                         {% if item.timestamp_url %}
                         <small class="text-muted">
-                            <a href="{{ url_for('main.history', start=item.timestamp_url, end=item.timestamp_url) }}" 
+                            <a href="{{ url_for('main.history', start=item.timestamp_url, end=item.timestamp_url_end) }}" 
                                class="text-decoration-none text-muted" 
                                title="View history at this time"
                                onclick="event.stopPropagation()">
                                 {{ item.timestamp }}
                             </a>
                             <span class="mx-1">|</span>
-                            <a href="{{ url_for('main.server_events', start=item.timestamp_url, end=item.timestamp_url) }}" 
+                            <a href="{{ url_for('main.server_events', start=item.timestamp_url, end=item.timestamp_url_end) }}" 
                                class="text-decoration-none text-muted" 
                                title="View server events at this time"
                                onclick="event.stopPropagation()">

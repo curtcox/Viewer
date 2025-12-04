@@ -108,9 +108,10 @@ class TestEntityInteractions(unittest.TestCase):
         self.assertIn('interactions', data)
         self.assertGreaterEqual(len(data['interactions']), 1)
         
-        # Check that each interaction has timestamp_url field
+        # Check that each interaction has timestamp_url and timestamp_url_end fields
         for interaction in data['interactions']:
             self.assertIn('timestamp_url', interaction)
+            self.assertIn('timestamp_url_end', interaction)
             # If timestamp_url is not empty, it should be in the correct format
             if interaction['timestamp_url']:
                 # Format should be YYYY/MM/DD HH:MM:SS
@@ -119,6 +120,20 @@ class TestEntityInteractions(unittest.TestCase):
                 self.assertIsNotNone(
                     re.match(pattern, interaction['timestamp_url']),
                     f"timestamp_url '{interaction['timestamp_url']}' does not match expected format"
+                )
+                self.assertIsNotNone(
+                    re.match(pattern, interaction['timestamp_url_end']),
+                    f"timestamp_url_end '{interaction['timestamp_url_end']}' does not match expected format"
+                )
+                # Verify that timestamp_url_end is one second after timestamp_url
+                from history_filters import parse_history_timestamp
+                start_dt = parse_history_timestamp(interaction['timestamp_url'])
+                end_dt = parse_history_timestamp(interaction['timestamp_url_end'])
+                self.assertIsNotNone(start_dt)
+                self.assertIsNotNone(end_dt)
+                diff = (end_dt - start_dt).total_seconds()
+                self.assertEqual(diff, 1.0, 
+                    f"timestamp_url_end should be 1 second after timestamp_url, but difference is {diff} seconds"
                 )
 
 
