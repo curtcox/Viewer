@@ -82,6 +82,45 @@ class TestEntityInteractions(unittest.TestCase):
         with self.assertRaises(AttributeError):
             record_entity_interaction(cast(EntityInteractionRequest, object()))
 
+    def test_interaction_history_includes_timestamp_url(self):
+        """Verify that interaction history includes timestamp_url for URL generation."""
+        record_entity_interaction(
+            EntityInteractionRequest(
+                entity_type='server',
+                entity_name='example',
+                action='save',
+                message='initial setup',
+                content='print("hello world")',
+            )
+        )
+
+        payload = {
+            'entity_type': 'server',
+            'entity_name': 'example',
+            'action': 'save',
+            'message': 'update',
+            'content': 'print("updated")',
+        }
+
+        response = self.client.post('/api/interactions', json=payload)
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIn('interactions', data)
+        self.assertGreaterEqual(len(data['interactions']), 1)
+        
+        # Check that each interaction has timestamp_url field
+        for interaction in data['interactions']:
+            self.assertIn('timestamp_url', interaction)
+            # If timestamp_url is not empty, it should be in the correct format
+            if interaction['timestamp_url']:
+                # Format should be YYYY/MM/DD HH:MM:SS
+                import re
+                pattern = r'^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$'
+                self.assertIsNotNone(
+                    re.match(pattern, interaction['timestamp_url']),
+                    f"timestamp_url '{interaction['timestamp_url']}' does not match expected format"
+                )
+
 
 if __name__ == '__main__':
     unittest.main()
