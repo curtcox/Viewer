@@ -14,6 +14,23 @@ from models import ServerInvocation
 
 def request_details():
     """Collect request details for server execution context."""
+    try:
+        json_body = request.get_json(silent=True)
+    except (UnicodeDecodeError, ValueError):
+        json_body = None
+
+    try:
+        raw_body = request.get_data(cache=True)
+    except Exception:  # pragma: no cover - defensive fallback for unexpected request failures
+        raw_body = b""
+
+    body_text: Optional[str] = None
+    if raw_body:
+        try:
+            body_text = raw_body.decode("utf-8")
+        except UnicodeDecodeError:
+            body_text = raw_body.decode("utf-8", errors="replace")
+
     return {
         "path": request.path,
         "query_string": request.query_string.decode("utf-8"),
@@ -26,6 +43,8 @@ def request_details():
         "scheme": request.scheme,
         "host": request.host,
         "method": request.method,
+        "json": json_body,
+        "body": body_text,
     }
 
 
