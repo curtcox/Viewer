@@ -478,6 +478,8 @@ class TestRequestDetails(unittest.TestCase):
         with app.test_request_context(
             "/test?key=value",
             method="POST",
+            data=json.dumps({"request_text": "Update"}),
+            content_type="application/json",
             headers={"User-Agent": "TestAgent", "Cookie": "session=xyz"},
         ):
             result = request_details()
@@ -487,6 +489,8 @@ class TestRequestDetails(unittest.TestCase):
         assert result["method"] == "POST"
         assert "User-Agent" in result["headers"]
         assert "Cookie" not in result["headers"]
+        assert result["json"] == {"request_text": "Update"}
+        assert "Update" in (result["body"] or "")
 
 
 class TestBuildRequestArgs(unittest.TestCase):

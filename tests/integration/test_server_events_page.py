@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from ai_defaults import ensure_ai_stub
 from cid_presenter import cid_path
 from database import db
 from models import CID, ServerInvocation
@@ -82,3 +83,43 @@ def test_server_events_page_filters_by_time(
     assert "old" not in page
     assert start_param in page
     assert "timestamp-valid" in page
+
+
+def test_ai_request_details_capture_json_body(client, integration_app):
+    """AI invocations should record the JSON payload in request details."""
+
+    payload = {
+        "request_text": "Expand the example",
+        "original_text": "Existing server definition",
+        "target_label": "server definition",
+        "context_data": {"form": "server_form"},
+        "form_summary": {"definition": "Existing server definition"},
+    }
+
+    with integration_app.app_context():
+        ensure_ai_stub()
+        ServerInvocation.query.delete()
+        CID.query.delete()
+        db.session.commit()
+
+    response = client.post("/ai", json=payload, follow_redirects=True)
+    assert response.status_code == 200
+
+    with integration_app.app_context():
+        invocation = (
+            ServerInvocation.query.filter_by(server_name="ai_stub")
+            .order_by(ServerInvocation.invoked_at.desc())
+            .first()
+        )
+
+        assert invocation is not None
+        assert invocation.request_details_cid is not None
+
+        request_cid_path = cid_path(invocation.request_details_cid)
+        cid_record = CID.query.filter_by(path=request_cid_path).first()
+        assert cid_record is not None
+
+        request_data = json.loads(cid_record.file_data.decode("utf-8"))
+
+        assert request_data.get("json") == payload
+        assert "request_text" in request_data.get("body", "")
