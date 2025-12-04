@@ -29,10 +29,18 @@ def summarise_interaction(interaction: EntityInteraction) -> Dict[str, Any]:
     if created_at is None:
         timestamp_display = ''
         timestamp_iso = ''
+        timestamp_url = ''
+        timestamp_url_end = ''
     else:
         aware = created_at if created_at.tzinfo else created_at.replace(tzinfo=timezone.utc)
         timestamp_iso = aware.astimezone(timezone.utc).isoformat()
         timestamp_display = aware.strftime('%Y-%m-%d %H:%M UTC')
+        # Format for URL parameters in /history and /server_events
+        from datetime import timedelta
+        from history_filters import format_history_timestamp
+        timestamp_url = format_history_timestamp(aware)
+        # End timestamp is one second after start to include the entire second in the range
+        timestamp_url_end = format_history_timestamp(aware + timedelta(seconds=1))
 
     action = (interaction.action or '').lower() or 'save'
     if action == 'ai':
@@ -48,6 +56,8 @@ def summarise_interaction(interaction: EntityInteraction) -> Dict[str, Any]:
         'action_display': action_display,
         'timestamp': timestamp_display,
         'timestamp_iso': timestamp_iso,
+        'timestamp_url': timestamp_url,
+        'timestamp_url_end': timestamp_url_end,
         'message': message,
         'preview': preview,
         'content': interaction.content or '',
