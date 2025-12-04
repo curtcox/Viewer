@@ -13,7 +13,7 @@ from db_access import (
     get_server_invocations_by_result_cids,
 )
 from models import ServerInvocation
-from history_filters import format_history_timestamp, parse_history_timestamp
+from history_filters import parse_date_range
 
 from . import main_bp
 
@@ -24,43 +24,30 @@ def history():
     page = request.args.get('page', 1, type=int)
     per_page = 50
 
-    start_raw = request.args.get('start', '', type=str)
-    end_raw = request.args.get('end', '', type=str)
+    date_range = parse_date_range(
+        request.args.get('start', '', type=str),
+        request.args.get('end', '', type=str),
+    )
 
-    start_at = parse_history_timestamp(start_raw)
-    end_at = parse_history_timestamp(end_raw)
-
-    start_value = start_raw.strip()
-    end_value = end_raw.strip()
-
-    if start_at:
-        start_value = format_history_timestamp(start_at)
-    else:
-        start_at = None
-
-    if end_at:
-        end_value = format_history_timestamp(end_at)
-    else:
-        end_at = None
-
-    page_views = get_paginated_page_views(page, per_page, start=start_at, end=end_at)
+    page_views = get_paginated_page_views(
+        page,
+        per_page,
+        start=date_range.start_at,
+        end=date_range.end_at,
+    )
     _attach_server_event_links(page_views)
     _attach_cid_links(page_views)
-    stats = get_history_statistics(start=start_at, end=end_at)
+    stats = get_history_statistics(start=date_range.start_at, end=date_range.end_at)
     stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
-
-    history_filters = {}
-    if start_at:
-        history_filters['start'] = start_value
-    if end_at:
-        history_filters['end'] = end_value
 
     return render_template(
         'history.html',
         page_views=page_views,
-        start_value=start_value,
-        end_value=end_value,
-        history_filters=history_filters,
+        start_value=date_range.start_value,
+        end_value=date_range.end_value,
+        start_valid=date_range.start_valid,
+        end_valid=date_range.end_valid,
+        history_filters=date_range.filters,
         **stats,
     )
 

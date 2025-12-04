@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -53,3 +54,31 @@ def test_server_events_page_lists_recent_invocations(
     assert "1" in page
     assert "weather" in page
     assert referer_url in page
+
+
+def test_server_events_page_filters_by_time(
+    client,
+    integration_app,
+):
+    """The server events page should respect time range filters."""
+
+    with integration_app.app_context():
+        now = datetime(2025, 2, 28, 15, 35, 36, tzinfo=timezone.utc)
+        recent = ServerInvocation(server_name="recent", result_cid="recent-cid")
+        recent.invoked_at = now
+        old = ServerInvocation(server_name="old", result_cid="old-cid")
+        old.invoked_at = now - timedelta(hours=5)
+
+        db.session.add_all([recent, old])
+        db.session.commit()
+
+    start_param = now.strftime("%Y/%m/%d %H:%M:%S")
+    response = client.get(f"/server_events?start={start_param.replace(' ', '%20')}")
+
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "recent" in page
+    assert "old" not in page
+    assert start_param in page
+    assert "timestamp-valid" in page

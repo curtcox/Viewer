@@ -899,8 +899,10 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertIn('href="/meta/profile.html"', page)
         self.assertIn('fa-circle-info', page)
         self.assertIn('About this page', page)
-        self.assertIn('Logs for this page', page)
+        self.assertIn('History', page)
+        self.assertIn('Server Events', page)
         self.assertIn('/history?start=', page)
+        self.assertIn('/server_events?start=', page)
 
     def test_content_route_returns_not_found(self):
         """Legacy /content endpoint should be unavailable."""

@@ -219,6 +219,9 @@ class TestDBAccess(unittest.TestCase):
         all_invocations = get_server_invocations()
         self.assertEqual([invocation.server_name for invocation in all_invocations], ['demo', 'other'])
 
+        recent_only = get_server_invocations(start=now - timedelta(minutes=2))
+        self.assertEqual([invocation.server_name for invocation in recent_only], ['demo'])
+
         by_server = get_server_invocations_by_server('demo')
         self.assertEqual(len(by_server), 1)
         self.assertEqual(by_server[0].result_cid, 'cid-first')

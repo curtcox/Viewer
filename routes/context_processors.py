@@ -53,11 +53,14 @@ def inject_meta_inspector_link():
 
     meta_url = url_for("main.meta_route", requested_path=requested_path)
     loaded_at = datetime.now(timezone.utc)
-    history_since_url = url_for("main.history", start=format_history_timestamp(loaded_at))
+    timestamp_param = format_history_timestamp(loaded_at)
+    history_since_url = url_for("main.history", start=timestamp_param)
+    server_events_since_url = url_for("main.server_events", start=timestamp_param)
 
     return {
         "meta_inspector_url": meta_url,
         "history_since_url": history_since_url,
+        "server_events_since_url": server_events_since_url,
     }
 
 
