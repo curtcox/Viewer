@@ -45,6 +45,22 @@ def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
     return result, "text/html"
 
 
+def _extract_chained_output(value: Any) -> Any:
+    if isinstance(value, dict) and "output" in value:
+        return value.get("output")
+
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError):
+            return value
+
+        if isinstance(parsed, dict) and "output" in parsed:
+            return parsed.get("output")
+
+    return value
+
+
 def _split_path_segments(path: Optional[str]) -> List[str]:
     if not path:
         return []
@@ -127,7 +143,7 @@ def _resolve_chained_input_from_path(
         return None, nested_value
     if nested_value is None:
         return None, None
-    return str(nested_value), None
+    return str(_extract_chained_output(nested_value)), None
 
 
 def _execute_python_code_to_value(
@@ -461,7 +477,7 @@ def _inject_nested_parameter_value(
         return nested_value
     if nested_value is None:
         return None
-    return {missing[0]: nested_value}
+    return {missing[0]: _extract_chained_output(nested_value)}
 
 
 def _inject_optional_parameter_from_path(
@@ -495,7 +511,7 @@ def _inject_optional_parameter_from_path(
             if nested_value is None:
                 return None, None
 
-            return {name: nested_value}, None
+            return {name: _extract_chained_output(nested_value)}, None
 
     return None, None
 
@@ -532,7 +548,7 @@ def _resolve_chained_input_for_server(
         return None, nested_value
     if nested_value is None:
         return None, None
-    return str(nested_value), None
+    return str(_extract_chained_output(nested_value)), None
 
 
 def _execute_bash_server_response(

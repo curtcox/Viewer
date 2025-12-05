@@ -18,6 +18,7 @@ from server_execution import (
     _build_multi_parameter_error_page,
     _build_unsupported_signature_response,
     _clone_request_context_kwargs,
+    _extract_chained_output,
     _extract_request_body_values,
     _normalize_execution_result,
     _parse_function_details,
@@ -80,6 +81,20 @@ class TestNormalizeExecutionResult(unittest.TestCase):
         output, content_type = _normalize_execution_result(result)
         assert output == "plain text"
         assert content_type == "text/html"
+
+
+class TestExtractChainedOutput(unittest.TestCase):
+    """Test _extract_chained_output helper."""
+
+    def test_extracts_from_dict(self):
+        assert _extract_chained_output({"output": "value", "content_type": "text/plain"}) == "value"
+
+    def test_extracts_from_json_string(self):
+        payload = json.dumps({"output": "json-value", "content_type": "text/plain"})
+        assert _extract_chained_output(payload) == "json-value"
+
+    def test_passthrough_for_non_json_string(self):
+        assert _extract_chained_output("raw-text") == "raw-text"
 
 
 class TestParseFunctionDetails(unittest.TestCase):
