@@ -526,6 +526,16 @@ def _resolve_chained_input_for_server(
     nested_path = "/" + "/".join(remainder_segments)
     visited: Set[str] = set()
     if len(remainder_segments) == 1:
+        cid_components = split_cid_path(remainder_segments[0]) or split_cid_path(
+            f"/{remainder_segments[0]}"
+        )
+        if cid_components:
+            nested_value = _evaluate_nested_path_to_value(nested_path, visited)
+            if isinstance(nested_value, Response):
+                return None, nested_value
+            if nested_value is not None:
+                return str(_extract_chained_output(nested_value)), None
+
         literal_definition, language_override, normalized_cid = _load_server_literal(
             remainder_segments[0]
         )
@@ -892,6 +902,9 @@ def _map_exit_code_to_status(exit_code: int) -> int:
 
 
 def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
+    if chained_input is not None:
+        return _encode_output(chained_input)
+
     payload: Dict[str, Any] = build_request_args()
 
     try:
@@ -907,9 +920,6 @@ def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
             decoded_body = body_data.decode("utf-8", errors="replace")
         payload["body"] = decoded_body
         input_value = decoded_body
-
-    if chained_input is not None:
-        input_value = chained_input
 
     if input_value is not None:
         payload["input"] = input_value

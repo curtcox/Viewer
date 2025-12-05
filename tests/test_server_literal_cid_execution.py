@@ -81,7 +81,7 @@ def test_chaining_python_output_to_bash_literal(cid_registry):
 
     cid_registry[f"/{bash_cid}"] = textwrap.dedent(
         """
-        python -c 'import json,sys; data=json.load(sys.stdin); print(f"bash:{data.get(\"input\",\"\")}" )'
+        python -c 'import sys; data=sys.stdin.read(); print(f"bash:{data.strip()}")'
         """
     ).encode("utf-8")
     cid_registry[f"/{python_cid}"] = b"""\
@@ -134,3 +134,39 @@ def main(name):
 
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "param:alex"
+
+
+def test_literal_chain_streams_nested_output_to_leftmost_server(cid_registry):
+    """Chained literal CIDs should stream only output into the left server."""
+
+    grep_cid = "AAAAAAAJZ3JlcCBzaG9l"
+    echo_cid = "AAAAAAAdZWNobyAiMSBmdW4gXG4yIHNob2VcbjMgdHJlZSI"
+    empty_cid = "AAAAAAAA"
+
+    cid_registry[f"/{grep_cid}"] = b"#!/bin/bash\ngrep shoe"
+    cid_registry[f"/{echo_cid}"] = b"#!/bin/bash\nprintf '1 fun \n2 shoe\n3 tree\n'"
+    cid_registry[f"/{empty_cid}"] = b""
+
+    with app.test_request_context(f"/{grep_cid}/{echo_cid}/{empty_cid}"):
+        response = server_execution.try_server_execution(
+            f"/{grep_cid}/{echo_cid}/{empty_cid}"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "2 shoe"
+
+
+def test_literal_chain_ignores_mime_wrapper_between_servers(cid_registry):
+    """Ensure literal servers forward only the nested output value when chaining."""
+
+    grep_cid = "AAAAAAAJZ3JlcCBzaG9l"
+    payload_cid = "AAAAAAAicmVkYmlyZApibGFja2JpcmQKZnJlZGJpcmQKZ3Vtc2hvZQ"
+
+    cid_registry[f"/{grep_cid}"] = b"#!/bin/bash\ngrep shoe"
+    cid_registry[f"/{payload_cid}"] = b"redbird\nblackbird\fredbird\ngumshoe"
+
+    with app.test_request_context(f"/{grep_cid}/{payload_cid}"):
+        response = server_execution.try_server_execution(f"/{grep_cid}/{payload_cid}")
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "gumshoe"
