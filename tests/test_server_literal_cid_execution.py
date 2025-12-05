@@ -1,11 +1,11 @@
 """Behavior for executing server literals defined by CID path segments."""
 
-from types import SimpleNamespace
 import textwrap
 
 import pytest
 from flask import Response
 
+from cid_core import generate_cid
 import server_execution
 from app import app
 from server_execution import code_execution, server_lookup
@@ -22,6 +22,7 @@ def patch_server_literal_environment(monkeypatch):
     monkeypatch.setattr(code_execution, "get_secrets", lambda: [])
     monkeypatch.setattr(code_execution, "get_variables", lambda: [])
     monkeypatch.setattr(code_execution, "create_cid_record", lambda *args, **kwargs: None)
+    monkeypatch.setattr(code_execution, "get_cid_by_path", lambda path: None)
     monkeypatch.setattr(server_lookup, "get_server_by_name", lambda name: None)
 
     from server_execution import invocation_tracking
@@ -33,29 +34,12 @@ def patch_server_literal_environment(monkeypatch):
 
     monkeypatch.setattr(code_execution, "_handle_successful_execution", simple_success)
 
-
-
-def _install_cid_literals(monkeypatch, contents: dict[str, bytes]) -> None:
-    """Patch CID lookup to return the provided literal contents."""
-
-    def fake_get_cid_by_path(path):
-        payload = contents.get(path)
-        if payload is None:
-            return None
-        return SimpleNamespace(file_data=payload)
-
-    monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
-
-
 def test_try_server_execution_runs_python_literal(monkeypatch):
-    python_cid = "pycid123"
-    _install_cid_literals(
-        monkeypatch,
-        {f"/{python_cid}": b"""\
+    python_literal = """\
 def main():
-    return {"output": "python-literal", "content_type": "text/plain"}
-"""},
-    )
+    return {'output':'python-literal'}
+"""
+    python_cid = generate_cid(python_literal.encode("utf-8"))
 
     with app.test_request_context(f"/{python_cid}.py/trailing-segment"):
         response = server_execution.try_server_execution(
@@ -67,8 +51,8 @@ def main():
 
 
 def test_try_server_execution_runs_bash_literal(monkeypatch):
-    bash_cid = "bashcid1"
-    _install_cid_literals(monkeypatch, {f"/{bash_cid}": b"echo bash-literal"})
+    bash_literal = "#!/bin/bash\necho bash-literal\n"
+    bash_cid = generate_cid(bash_literal.encode("utf-8"))
 
     with app.test_request_context(f"/{bash_cid}.sh/extra"):
         response = server_execution.try_server_execution(f"/{bash_cid}.sh/extra")
@@ -78,23 +62,14 @@ def test_try_server_execution_runs_bash_literal(monkeypatch):
 
 
 def test_chaining_python_output_to_bash_literal(monkeypatch):
-    bash_cid = "bashchain"
-    python_cid = "pychain"
+    bash_literal = "#!/bin/bash\nread data\necho bash:$data\n"
+    bash_cid = generate_cid(bash_literal.encode("utf-8"))
 
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{bash_cid}": textwrap.dedent(
-                """
-                python -c 'import sys; data=sys.stdin.read(); print(f"bash:{data.strip()}")'
-                """
-            ).encode("utf-8"),
-            f"/{python_cid}": b"""\
+    python_literal = """\
 def main():
-    return {"output": "python-output", "content_type": "text/plain"}
-""",
-        },
-    )
+    return {'output': 'python-output'}
+"""
+    python_cid = generate_cid(python_literal.encode("utf-8"))
 
     with app.test_request_context(f"/{bash_cid}.sh/{python_cid}.py/next"):
         response = server_execution.try_server_execution(
@@ -106,19 +81,14 @@ def main():
 
 
 def test_chaining_bash_output_to_python_literal(monkeypatch):
-    bash_cid = "bashpayload"
-    python_cid = "pypayload"
+    bash_literal = "#!/bin/bash\necho bash-to-python\n"
+    bash_cid = generate_cid(bash_literal.encode("utf-8"))
 
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{bash_cid}": b"echo bash-to-python",
-            f"/{python_cid}": b"""\
+    python_literal = """\
 def main(payload):
-    return {"output": f"python:{payload}", "content_type": "text/plain"}
-""",
-        },
-    )
+    return {'output': f'python:{payload}'}
+"""
+    python_cid = generate_cid(python_literal.encode("utf-8"))
 
     with app.test_request_context(f"/{python_cid}.py/{bash_cid}.sh/final"):
         response = server_execution.try_server_execution(
@@ -130,19 +100,13 @@ def main(payload):
 
 
 def test_python_literal_receives_path_parameter_from_chained_literal(monkeypatch):
-    python_cid = "paramliteral"
-    bash_cid = "paramvalue"
-
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{python_cid}": b"""\
+    python_literal = """\
 def main(name):
-    return {"output": f"param:{name}", "content_type": "text/plain"}
-""",
-            f"/{bash_cid}": b"echo alex",
-        },
-    )
+    return {'output': f'param:{name}'}
+"""
+    python_cid = generate_cid(python_literal.encode("utf-8"))
+
+    bash_cid = generate_cid(b"#!/bin/bash\necho alex\n")
 
     with app.test_request_context(f"/{python_cid}.py/{bash_cid}.sh/final"):
         response = server_execution.try_server_execution(
@@ -160,15 +124,6 @@ def test_literal_chain_streams_nested_output_to_leftmost_server(monkeypatch):
     echo_cid = "AAAAAAAdZWNobyAiMSBmdW4gXG4yIHNob2VcbjMgdHJlZSI"
     empty_cid = "AAAAAAAA"
 
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{grep_cid}": b"#!/bin/bash\ngrep shoe",
-            f"/{echo_cid}": b"#!/bin/bash\nprintf '1 fun \n2 shoe\n3 tree\n'",
-            f"/{empty_cid}": b"",
-        },
-    )
-
     with app.test_request_context(f"/{grep_cid}/{echo_cid}/{empty_cid}"):
         response = server_execution.try_server_execution(
             f"/{grep_cid}/{echo_cid}/{empty_cid}"
@@ -184,14 +139,6 @@ def test_literal_chain_ignores_mime_wrapper_between_servers(monkeypatch):
     grep_cid = "AAAAAAAJZ3JlcCBzaG9l"
     payload_cid = "AAAAAAAicmVkYmlyZApibGFja2JpcmQKZnJlZGJpcmQKZ3Vtc2hvZQ"
 
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{grep_cid}": b"#!/bin/bash\ngrep shoe",
-            f"/{payload_cid}": b"redbird\nblackbird\fredbird\ngumshoe",
-        },
-    )
-
     with app.test_request_context(f"/{grep_cid}/{payload_cid}"):
         response = server_execution.try_server_execution(f"/{grep_cid}/{payload_cid}")
 
@@ -205,15 +152,6 @@ def test_chained_literal_cids_return_grep_match(monkeypatch):
     grep_shoe = "AAAAAAAJZ3JlcCBzaG9l"
     echo_numbers = "AAAAAAAdZWNobyAiMSBmdW4gXG4yIHNob2VcbjMgdHJlZSI"
     empty_literal = "AAAAAAAA"
-
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{grep_shoe}": b"#!/bin/bash\ngrep shoe",
-            f"/{echo_numbers}": b"#!/bin/bash\nprintf '1 fun \n2 shoe\n3 tree'",
-            f"/{empty_literal}": b"",
-        },
-    )
 
     with app.test_request_context(f"/{grep_shoe}/{echo_numbers}/{empty_literal}"):
         response = server_execution.try_server_execution(
@@ -229,14 +167,6 @@ def test_literal_cids_default_to_literal_when_not_last(monkeypatch):
 
     grep_shoe = "AAAAAAAJZ3JlcCBzaG9l"
     payload_cid = "AAAAAAAicmVkYmlyZApibGFja2JpcmQKZnJlZGJpcmQKZ3Vtc2hvZQ"
-
-    _install_cid_literals(
-        monkeypatch,
-        {
-            f"/{grep_shoe}": b"#!/bin/bash\ngrep shoe",
-            f"/{payload_cid}": b"redbird\nblackbird\fredbird\ngumshoe",
-        },
-    )
 
     with app.test_request_context(f"/{grep_shoe}/{payload_cid}"):
         response = server_execution.try_server_execution(f"/{grep_shoe}/{payload_cid}")

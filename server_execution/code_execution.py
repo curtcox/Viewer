@@ -15,7 +15,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
-from cid_core import split_cid_path
+from cid_core import extract_literal_content, split_cid_path
 from cid_utils import generate_cid
 from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
@@ -53,6 +53,12 @@ def _extract_chained_output(value: Any) -> Any:
         try:
             parsed = json.loads(value)
         except (TypeError, ValueError):
+            if "\\n" in value:
+                try:
+                    return value.encode("utf-8").decode("unicode_escape")
+                except (UnicodeDecodeError, AttributeError):
+                    return value
+
             return value
 
         if isinstance(parsed, dict) and "output" in parsed:
@@ -365,6 +371,17 @@ def _load_server_literal(segment: str) -> tuple[Optional[str], Optional[str], Op
 
     cid_value, extension = cid_components
     normalized_cid = format_cid(cid_value)
+
+    literal_bytes = extract_literal_content(normalized_cid)
+    if literal_bytes is not None:
+        try:
+            definition_text = literal_bytes.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            definition_text = literal_bytes.decode("utf-8", errors="replace")
+
+        language_override = _language_from_extension(extension, definition_text)
+        return definition_text, language_override, normalized_cid
+
     cid_record_path = cid_path(normalized_cid)
     if not cid_record_path:
         return None, None, None
@@ -435,6 +452,15 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             f"/{segments[0]}"
         )
         normalized_cid = format_cid((cid_components or (None,))[0] or segments[0])
+
+        literal_bytes = extract_literal_content(normalized_cid)
+        if literal_bytes is not None:
+            try:
+                return literal_bytes.decode("utf-8")
+            except (UnicodeDecodeError, AttributeError):
+                # Handle decoding errors by using replacement characters
+                return literal_bytes.decode("utf-8", errors="replace")
+
         cid_record_path = cid_path(normalized_cid)
         if cid_record_path:
             cid_record = get_cid_by_path(cid_record_path)
