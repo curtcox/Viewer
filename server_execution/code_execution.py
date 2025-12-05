@@ -46,6 +46,18 @@ def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
 
 
 def _extract_chained_output(value: Any) -> Any:
+    """Extract the chained server output from dictionaries or JSON strings.
+
+    Args:
+        value: A raw execution result that may be a dict with an ``output`` key,
+            a JSON-encoded string of such a dict, or any other type.
+
+    Returns:
+        The unwrapped ``output`` value when present; otherwise the original
+        input. Non-dictionary strings are returned as-is unless they contain
+        escaped newlines that can be decoded. Errors during JSON parsing or
+        unicode unescaping fall back to returning the original value.
+    """
     if isinstance(value, dict) and "output" in value:
         return value.get("output")
 
