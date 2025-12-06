@@ -8,19 +8,62 @@
 (function(ace, initialUrl) {
     'use strict';
 
-    // Initialize Ace editor
-    const editor = ace.edit("url-editor");
-    editor.setTheme("ace/theme/textmate");
-    editor.session.setMode("ace/mode/text");
-    editor.setOptions({
-        fontSize: "14px",
-        showPrintMargin: false,
-        highlightActiveLine: true,
-        wrap: true
-    });
+    let editor;
     
-    // Set initial content
-    editor.setValue(initialUrl, -1);
+    // Try to initialize Ace editor, fall back to textarea if not available
+    if (typeof ace !== 'undefined' && ace.edit) {
+        try {
+            editor = ace.edit("url-editor");
+            editor.setTheme("ace/theme/textmate");
+            editor.session.setMode("ace/mode/text");
+            editor.setOptions({
+                fontSize: "14px",
+                showPrintMargin: false,
+                highlightActiveLine: true,
+                wrap: true
+            });
+            // Set initial content
+            editor.setValue(initialUrl, -1);
+        } catch (e) {
+            console.error("Failed to initialize Ace editor:", e);
+            editor = createFallbackEditor(initialUrl);
+        }
+    } else {
+        console.warn("Ace editor not available, using fallback textarea");
+        editor = createFallbackEditor(initialUrl);
+    }
+    
+    /**
+     * Create a fallback textarea-based editor when Ace is not available
+     */
+    function createFallbackEditor(content) {
+        const editorDiv = document.getElementById("url-editor");
+        editorDiv.innerHTML = '';
+        
+        const textarea = document.createElement('textarea');
+        textarea.style.width = '100%';
+        textarea.style.height = '100%';
+        textarea.style.padding = '10px';
+        textarea.style.fontFamily = 'monospace';
+        textarea.style.fontSize = '14px';
+        textarea.style.border = 'none';
+        textarea.style.resize = 'none';
+        textarea.value = content;
+        editorDiv.appendChild(textarea);
+        
+        // Create Ace-compatible wrapper
+        return {
+            getValue: () => textarea.value,
+            setValue: (value) => { textarea.value = value; },
+            session: {
+                on: (event, callback) => {
+                    if (event === 'change') {
+                        textarea.addEventListener('input', callback);
+                    }
+                }
+            }
+        };
+    }
     
     // URL Editor Core Logic
     class URLEditorApp {
