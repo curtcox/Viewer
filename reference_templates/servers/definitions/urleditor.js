@@ -39,17 +39,37 @@
     function createFallbackEditor(content) {
         const editorDiv = document.getElementById("url-editor");
         editorDiv.innerHTML = '';
+        editorDiv.style.backgroundColor = '#ffffff';
+        editorDiv.style.display = 'block';
         
         const textarea = document.createElement('textarea');
+        textarea.id = 'url-editor-textarea';
+        textarea.className = 'url-editor-textarea';
+        textarea.setAttribute('placeholder', 'Enter URL path elements (one per line or separated by /)');
+        textarea.setAttribute('aria-label', 'URL Editor');
+        
+        // Aggressive inline styling to ensure visibility
         textarea.style.width = '100%';
         textarea.style.height = '100%';
-        textarea.style.padding = '10px';
-        textarea.style.fontFamily = 'monospace';
-        textarea.style.fontSize = '14px';
-        textarea.style.border = 'none';
+        textarea.style.minHeight = '350px';
+        textarea.style.padding = '12px';
+        textarea.style.fontFamily = '"Courier New", Courier, monospace';
+        textarea.style.fontSize = '16px';
+        textarea.style.lineHeight = '1.6';
+        textarea.style.border = '2px solid #ced4da';
+        textarea.style.borderRadius = '4px';
         textarea.style.resize = 'none';
+        textarea.style.backgroundColor = '#ffffff';
+        textarea.style.color = '#212529';
+        textarea.style.display = 'block';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.outline = 'none';
         textarea.value = content;
+        
         editorDiv.appendChild(textarea);
+        
+        // Force focus to make it visible
+        setTimeout(() => textarea.focus(), 100);
         
         // Create Ace-compatible wrapper
         return {
