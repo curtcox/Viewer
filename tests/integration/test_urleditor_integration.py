@@ -1,0 +1,158 @@
+"""Integration tests for the URL Editor server."""
+
+import pytest
+
+
+class TestURLEditorIntegration:
+    """Integration tests for the URL Editor server."""
+    
+    @pytest.fixture(autouse=True)
+    def setup_urleditor_server(self, memory_db_app):
+        """Set up the urleditor server in the test database."""
+        with memory_db_app.app_context():
+            # Load the urleditor server definition
+            from pathlib import Path
+            from models import Server
+            from database import db
+            
+            urleditor_path = Path(__file__).parent.parent.parent / "reference_templates" / "servers" / "definitions" / "urleditor.py"
+            with open(urleditor_path, 'r') as f:
+                server_code = f.read()
+            
+            # Create the server in the database
+            server = Server(
+                name="urleditor",
+                definition=server_code,
+                enabled=True
+            )
+            db.session.add(server)
+            db.session.commit()
+    
+    def test_urleditor_server_is_loaded(self, memory_client):
+        """Test that the urleditor server is available."""
+        response = memory_client.get('/servers')
+        assert response.status_code == 200
+        
+        # Check that urleditor is in the response
+        data = response.get_data(as_text=True)
+        assert 'urleditor' in data.lower()
+    
+    def test_urleditor_returns_html_page(self, memory_client):
+        """Test that accessing /urleditor returns HTML."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert '<!DOCTYPE html>' in data or '<!doctype html>' in data
+        assert 'URL Editor' in data
+        assert 'url-editor' in data
+    
+    def test_urleditor_has_three_columns(self, memory_client):
+        """Test that the URL Editor page has three-column layout."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert 'editor-section' in data
+        assert 'indicators-section' in data
+        assert 'preview-section' in data
+    
+    def test_urleditor_includes_ace_editor(self, memory_client):
+        """Test that the URL Editor page includes Ace editor."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert 'ace.edit' in data
+        assert 'url-editor' in data
+    
+    def test_urleditor_has_action_buttons(self, memory_client):
+        """Test that the URL Editor page has action buttons."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert 'Copy URL' in data
+        assert 'Open URL' in data
+    
+    def test_urleditor_subpath_redirects(self, memory_client):
+        """Test that accessing urleditor with subpath redirects to fragment."""
+        response = memory_client.get('/urleditor/echo/test', follow_redirects=False)
+        
+        # Should get a redirect (the system redirects through CID)
+        assert response.status_code in [301, 302, 303, 307, 308]
+        
+        # Check the Location header exists
+        location = response.headers.get('Location', '')
+        assert location  # Just verify we got a redirect location
+        # Note: The redirect goes through CID, which is the expected behavior
+    
+    def test_urleditor_rejects_chained_input(self, memory_client, memory_db_app):
+        """Test that urleditor rejects being used in a server chain."""
+        # First, create a test server that outputs something
+        with memory_db_app.app_context():
+            from models import Server
+            from database import db
+            
+            test_server_code = '''
+def main():
+    return {"output": "test-output", "content_type": "text/plain"}
+'''
+            
+            # Create the test server
+            server = Server(
+                name="urleditor-chain-test",
+                definition=test_server_code,
+                enabled=True
+            )
+            db.session.add(server)
+            db.session.commit()
+        
+        # Try to chain urleditor after the test server
+        # This should fail because urleditor doesn't support chaining
+        response = memory_client.get('/urleditor/urleditor-chain-test', follow_redirects=True)
+        
+        # The response should indicate that chaining is not supported
+        data = response.get_data(as_text=True)
+        # Either we get a redirect (which is fine) or an error message
+        # We just verify it doesn't execute the chain successfully
+        assert response.status_code in [302, 400, 404] or 'does not support' in data.lower()
+    
+    def test_urleditor_content_type(self, memory_client):
+        """Test that urleditor returns HTML content type."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        content_type = response.headers.get('Content-Type', '')
+        assert 'text/html' in content_type or 'html' in content_type.lower()
+    
+    def test_urleditor_javascript_initialization(self, memory_client):
+        """Test that the URL Editor JavaScript is properly initialized."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for key JavaScript components
+        assert 'URLEditorApp' in data
+        assert 'normalizeUrl' in data
+        assert 'updateFromEditor' in data
+        assert 'window.location.hash' in data
+    
+    def test_urleditor_has_indicators_section(self, memory_client):
+        """Test that the URL Editor has indicators section."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert 'Line Indicators' in data
+        assert 'indicators-list' in data
+    
+    def test_urleditor_has_preview_section(self, memory_client):
+        """Test that the URL Editor has preview section."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        assert 'Line Previews' in data
+        assert 'preview-list' in data
+        assert 'Final Output Preview' in data

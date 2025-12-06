@@ -1,0 +1,552 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""URL Editor server for interactively building and testing chained server URLs."""
+
+import html
+import json
+from typing import Any, Dict, Optional
+from urllib.parse import quote, unquote
+
+
+def _parse_url_from_input(url_input: str) -> str:
+    """Parse and normalize a URL from user input.
+    
+    Args:
+        url_input: Raw URL string from fragment or subpath
+        
+    Returns:
+        Normalized URL string
+    """
+    if not url_input:
+        return ""
+    
+    # Remove leading/trailing whitespace
+    url = url_input.strip()
+    
+    # Ensure it starts with /
+    if url and not url.startswith("/"):
+        url = "/" + url
+    
+    return url
+
+
+def _should_redirect(request_path: str) -> tuple[bool, Optional[str]]:
+    """Check if the request should redirect from subpath to fragment format.
+    
+    Args:
+        request_path: The request path after /urleditor
+        
+    Returns:
+        Tuple of (should_redirect, redirect_url)
+    """
+    # If there's a subpath, redirect to fragment format
+    if request_path and request_path != "/":
+        # Extract the URL to edit from the subpath
+        url_to_edit = request_path
+        # Redirect to fragment format
+        redirect_url = f"/urleditor#{url_to_edit}"
+        return True, redirect_url
+    
+    return False, None
+
+
+def _get_html_page(initial_url: str = "") -> str:
+    """Generate the HTML page for the URL editor.
+    
+    Args:
+        initial_url: Initial URL to populate the editor with
+        
+    Returns:
+        HTML string
+    """
+    # CID URLs for external resources (these will need to be generated)
+    # For now, using placeholder comments to indicate where CIDs should go
+    ace_editor_js_cid = "PLACEHOLDER_ACE_EDITOR_CID"  # Ace editor main JS
+    ace_mode_text_cid = "PLACEHOLDER_ACE_MODE_TEXT_CID"  # Ace text mode
+    urleditor_css_cid = "PLACEHOLDER_URLEDITOR_CSS_CID"  # Custom CSS
+    urleditor_js_cid = "PLACEHOLDER_URLEDITOR_JS_CID"  # Custom JS
+    
+    escaped_url = html.escape(initial_url)
+    escaped_url_json = json.dumps(initial_url)
+    
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Editor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Inline styles for now - will be moved to CID */
+        body {{
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }}
+        
+        .editor-container {{
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 1rem;
+        }}
+        
+        .header {{
+            margin-bottom: 1rem;
+        }}
+        
+        .main-content {{
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            flex: 1;
+            overflow: hidden;
+        }}
+        
+        .editor-section, .indicators-section, .preview-section {{
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }}
+        
+        .section-title {{
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }}
+        
+        .editor-wrapper {{
+            flex: 1;
+            border: 1px solid #dee2e6;
+            position: relative;
+            overflow: hidden;
+        }}
+        
+        #url-editor {{
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }}
+        
+        .indicators-list {{
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem;
+        }}
+        
+        .indicator-row {{
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.25rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }}
+        
+        .indicator-row:last-child {{
+            border-bottom: none;
+        }}
+        
+        .indicator {{
+            text-align: center;
+            padding: 0.25rem;
+            border-radius: 3px;
+        }}
+        
+        .indicator.valid {{
+            background: #d4edda;
+            color: #155724;
+        }}
+        
+        .indicator.invalid {{
+            background: #f8d7da;
+            color: #721c24;
+        }}
+        
+        .indicator.unknown {{
+            background: #e2e3e5;
+            color: #383d41;
+        }}
+        
+        .preview-list {{
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem;
+        }}
+        
+        .preview-row {{
+            padding: 0.5rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.85rem;
+        }}
+        
+        .preview-row:last-child {{
+            border-bottom: none;
+        }}
+        
+        .preview-output {{
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }}
+        
+        .final-preview {{
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            background: #f8f9fa;
+        }}
+        
+        .actions {{
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }}
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <div class="header">
+            <h2>URL Editor</h2>
+            <p class="text-muted">Build and test chained server URLs interactively</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-title">URL Editor</div>
+                <div class="editor-wrapper">
+                    <div id="url-editor">{escaped_url}</div>
+                </div>
+                <div class="actions">
+                    <button id="copy-url-btn" class="btn btn-primary">
+                        <i class="fas fa-copy"></i> Copy URL
+                    </button>
+                    <button id="open-url-btn" class="btn btn-success">
+                        <i class="fas fa-external-link-alt"></i> Open URL
+                    </button>
+                </div>
+            </div>
+            
+            <div class="indicators-section">
+                <div class="section-title">Line Indicators</div>
+                <div class="indicators-list" id="indicators-list">
+                    <div class="text-muted text-center">Edit URL to see indicators</div>
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <div class="section-title">Line Previews</div>
+                <div class="preview-list" id="preview-list">
+                    <div class="text-muted text-center">Edit URL to see previews</div>
+                </div>
+                <div class="final-preview">
+                    <strong>Final Output Preview:</strong>
+                    <div id="final-output" class="preview-output mt-2">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"></script>
+    <script>
+        // Initialize Ace editor
+        const editor = ace.edit("url-editor");
+        editor.setTheme("ace/theme/textmate");
+        editor.session.setMode("ace/mode/text");
+        editor.setOptions({{
+            fontSize: "14px",
+            showPrintMargin: false,
+            highlightActiveLine: true,
+            wrap: true
+        }});
+        
+        // Set initial content
+        const initialUrl = {escaped_url_json};
+        editor.setValue(initialUrl, -1);
+        
+        // URL Editor Core Logic
+        class URLEditorApp {{
+            constructor() {{
+                this.editor = editor;
+                this.currentUrl = "";
+                this.setupEventListeners();
+                this.updateFromEditor();
+            }}
+            
+            setupEventListeners() {{
+                // Update on editor change
+                this.editor.session.on('change', () => {{
+                    this.updateFromEditor();
+                }});
+                
+                // Copy URL button
+                document.getElementById('copy-url-btn').addEventListener('click', () => {{
+                    this.copyCurrentUrl();
+                }});
+                
+                // Open URL button
+                document.getElementById('open-url-btn').addEventListener('click', () => {{
+                    this.openCurrentUrl();
+                }});
+                
+                // Listen to hash changes
+                window.addEventListener('hashchange', () => {{
+                    this.loadFromHash();
+                }});
+            }}
+            
+            updateFromEditor() {{
+                const editorContent = this.editor.getValue();
+                this.currentUrl = this.normalizeUrl(editorContent);
+                this.updateHash();
+                this.updateUI();
+            }}
+            
+            normalizeUrl(content) {{
+                // Convert newlines to slashes
+                let url = content.replace(/\\r\\n|\\n|\\r/g, '/');
+                
+                // Handle CID literal conversion (lines starting with #)
+                const lines = content.split(/\\r\\n|\\n|\\r/);
+                const segments = [];
+                
+                for (let line of lines) {{
+                    line = line.trim();
+                    if (!line) continue;
+                    
+                    if (line.startsWith('#')) {{
+                        // Convert text to CID literal
+                        // For now, just use the text as-is
+                        // In production, this would convert to actual CID format
+                        const cidText = line.substring(1).trim();
+                        const cidPath = this.textToCidLiteral(cidText);
+                        segments.push(cidPath);
+                    }} else {{
+                        segments.push(line);
+                    }}
+                }}
+                
+                url = '/' + segments.join('/');
+                
+                // Clean up multiple slashes
+                url = url.replace(/\\/+/g, '/');
+                
+                return url;
+            }}
+            
+            textToCidLiteral(text) {{
+                // Convert text to CID literal format
+                // This is a simplified version - actual implementation would use proper CID encoding
+                const base64like = btoa(text).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');
+                return `AAAAAAA${{base64like.substring(0, 20)}}`;
+            }}
+            
+            updateHash() {{
+                // Update URL hash without triggering hashchange
+                const newHash = '#' + this.currentUrl;
+                if (window.location.hash !== newHash) {{
+                    history.replaceState(null, null, newHash);
+                }}
+            }}
+            
+            loadFromHash() {{
+                const hash = window.location.hash;
+                if (hash && hash.length > 1) {{
+                    const url = hash.substring(1); // Remove #
+                    this.editor.setValue(url, -1);
+                }}
+            }}
+            
+            updateUI() {{
+                this.updateIndicators();
+                this.updatePreviews();
+            }}
+            
+            updateIndicators() {{
+                const lines = this.parseUrlLines();
+                const indicatorsList = document.getElementById('indicators-list');
+                
+                if (lines.length === 0) {{
+                    indicatorsList.innerHTML = '<div class="text-muted text-center">Edit URL to see indicators</div>';
+                    return;
+                }}
+                
+                let html = '';
+                for (const line of lines) {{
+                    html += this.renderIndicatorRow(line);
+                }}
+                indicatorsList.innerHTML = html;
+            }}
+            
+            updatePreviews() {{
+                const lines = this.parseUrlLines();
+                const previewList = document.getElementById('preview-list');
+                
+                if (lines.length === 0) {{
+                    previewList.innerHTML = '<div class="text-muted text-center">Edit URL to see previews</div>';
+                    document.getElementById('final-output').textContent = '-';
+                    return;
+                }}
+                
+                let html = '';
+                for (const line of lines) {{
+                    html += this.renderPreviewRow(line);
+                }}
+                previewList.innerHTML = html;
+                
+                // Update final output (placeholder)
+                document.getElementById('final-output').textContent = 'Final output would be shown here';
+            }}
+            
+            parseUrlLines() {{
+                const editorContent = this.editor.getValue();
+                const lines = editorContent.split(/\\r\\n|\\n|\\r/).filter(l => l.trim());
+                
+                return lines.map(line => ({{
+                    text: line.trim(),
+                    isValidSegment: this.isValidPathSegment(line.trim()),
+                    isServer: this.isKnownServer(line.trim()),
+                    isValidCid: this.isValidCid(line.trim()),
+                    supportsChaining: this.supportsChaining(line.trim()),
+                    language: this.getLanguage(line.trim())
+                }}));
+            }}
+            
+            isValidPathSegment(text) {{
+                // Simple validation - non-empty and URL-safe
+                return text.length > 0 && !/[\\s<>"]/.test(text);
+            }}
+            
+            isKnownServer(text) {{
+                // Placeholder - would check against known servers
+                const knownServers = ['echo', 'markdown', 'shell', 'ai_stub', 'jinja', 'glom'];
+                const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
+                return knownServers.includes(cleaned);
+            }}
+            
+            isValidCid(text) {{
+                // Check if text starts with # or looks like a CID
+                return text.startsWith('#') || /^AAAAAAA[A-Za-z0-9_-]+$/.test(text);
+            }}
+            
+            supportsChaining(text) {{
+                // Placeholder - would check server capabilities
+                const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
+                return this.isKnownServer(cleaned);
+            }}
+            
+            getLanguage(text) {{
+                // Placeholder - would detect language
+                const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
+                if (this.isKnownServer(cleaned)) {{
+                    return 'python';
+                }}
+                return '-';
+            }}
+            
+            renderIndicatorRow(line) {{
+                const indicators = [
+                    {{ label: 'Valid', value: line.isValidSegment }},
+                    {{ label: 'Server', value: line.isServer }},
+                    {{ label: 'CID', value: line.isValidCid }},
+                    {{ label: 'Chain', value: line.supportsChaining }},
+                    {{ label: line.language, value: line.language !== '-' }}
+                ];
+                
+                let html = '<div class="indicator-row">';
+                for (const ind of indicators) {{
+                    const cssClass = ind.value === true ? 'valid' : (ind.value === false ? 'invalid' : 'unknown');
+                    const icon = ind.value === true ? '✓' : (ind.value === false ? '✗' : '-');
+                    html += `<div class="indicator ${{cssClass}}" title="${{ind.label}}">${{ind.label}}: ${{icon}}</div>`;
+                }}
+                html += '</div>';
+                return html;
+            }}
+            
+            renderPreviewRow(line) {{
+                return `
+                    <div class="preview-row">
+                        <div><strong>${{line.text}}</strong></div>
+                        <div class="preview-output">Size: - | Type: - | Preview: -</div>
+                        <a href="#" class="btn btn-sm btn-link">View</a>
+                    </div>
+                `;
+            }}
+            
+            copyCurrentUrl() {{
+                const url = this.currentUrl || '/';
+                navigator.clipboard.writeText(url).then(() => {{
+                    alert('URL copied to clipboard!');
+                }});
+            }}
+            
+            openCurrentUrl() {{
+                const url = this.currentUrl || '/';
+                window.open(url, '_blank');
+            }}
+        }}
+        
+        // Initialize the app
+        const app = new URLEditorApp();
+        
+        // Load initial URL from hash if present
+        if (window.location.hash) {{
+            app.loadFromHash();
+        }}
+    </script>
+</body>
+</html>
+"""
+
+
+def main(*, request=None, context=None):
+    """Entry point for the URL editor server.
+    
+    This server provides an interactive URL editor page for building and testing
+    chained server URLs. It stores state in the browser URL fragment.
+    
+    Args:
+        request: Flask request object (provided by runtime)
+        context: Additional context (provided by runtime)
+        
+    Returns:
+        dict with 'output' and optional 'content_type' or 'redirect'
+    """
+    # Get the request path
+    request_path = getattr(request, "path", "/urleditor") if request else "/urleditor"
+    
+    # Extract the path after /urleditor
+    if request_path.startswith("/urleditor"):
+        subpath = request_path[len("/urleditor"):]
+    else:
+        subpath = ""
+    
+    # Check if we should redirect from subpath to fragment format
+    should_redirect, redirect_url = _should_redirect(subpath)
+    if should_redirect:
+        return {
+            "redirect": redirect_url,
+            "status": 302
+        }
+    
+    # Get initial URL from fragment (if any)
+    # Note: Fragments are not sent to server, so we'll just serve the page
+    # and let JavaScript handle the fragment
+    initial_url = ""
+    
+    # Generate and return the HTML page
+    html_content = _get_html_page(initial_url)
+    
+    return {
+        "output": html_content,
+        "content_type": "text/html"
+    }

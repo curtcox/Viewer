@@ -79,6 +79,11 @@
       "name": "pygments",
       "definition_cid": "AAAAABBOxpLN-_aHVVceeSifIr5QTlhLjUh4KBd_xYYSW6z5h3H0AZNJG-30fyWmgmSmufMm2Fmh8c5PeUGsF4Pv0zwzjg",
       "enabled": true
+    },
+    {
+      "name": "urleditor",
+      "definition_cid": "AAAAABU6xa9O9Aa-DDgVPndS-IamyPGZv_DfjPvH0eAHzQn5WmTLFIHmCxbEhlXsCkoXgdy4h_MpohJdMTfX8DKIQQ0C9A",
+      "enabled": true
     }
   ],
   "variables": [
