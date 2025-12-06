@@ -133,7 +133,7 @@
             indicatorsList.innerHTML = html;
         }
         
-        updatePreviews() {
+        async updatePreviews() {
             const lines = this.parseUrlLines();
             const previewList = document.getElementById('preview-list');
             
@@ -143,14 +143,20 @@
                 return;
             }
             
+            // Build preview rows with async loading
             let html = '';
-            for (const line of lines) {
-                html += this.renderPreviewRow(line);
+            for (let i = 0; i < lines.length; i++) {
+                html += this.renderPreviewRow(lines[i], i);
             }
             previewList.innerHTML = html;
             
-            // Update final output (placeholder)
-            document.getElementById('final-output').textContent = 'Final output would be shown here';
+            // Fetch preview data for each line asynchronously
+            for (let i = 0; i < lines.length; i++) {
+                this.fetchPreviewData(lines, i);
+            }
+            
+            // Update final output with full URL
+            this.fetchFinalOutput();
         }
         
         parseUrlLines() {
@@ -226,15 +232,82 @@
             return html;
         }
         
-        renderPreviewRow(line) {
+        renderPreviewRow(line, index) {
             const escapedText = this.escapeHtml(line.text);
             return `
-                <div class="preview-row">
+                <div class="preview-row" data-index="${index}">
                     <div><strong>${escapedText}</strong></div>
-                    <div class="preview-output">Size: - | Type: - | Preview: -</div>
-                    <a href="#" class="btn btn-sm btn-link">View</a>
+                    <div class="preview-output" id="preview-${index}">
+                        <span class="text-muted">Loading...</span>
+                    </div>
+                    <a href="#" class="btn btn-sm btn-link preview-link" id="link-${index}">View</a>
                 </div>
             `;
+        }
+        
+        async fetchPreviewData(lines, index) {
+            try {
+                // Build URL up to and including this line
+                const urlSegments = lines.slice(0, index + 1).map(l => l.text);
+                const url = '/' + urlSegments.join('/');
+                
+                // Make HEAD request to get size and content-type without downloading full content
+                const response = await fetch(url, { method: 'HEAD' });
+                const contentType = response.headers.get('content-type') || 'unknown';
+                const contentLength = response.headers.get('content-length') || '?';
+                
+                // Now fetch a small portion to get preview text
+                const previewResponse = await fetch(url);
+                const text = await previewResponse.text();
+                const preview = text.substring(0, 20);
+                
+                // Update the preview element
+                const previewElement = document.getElementById(`preview-${index}`);
+                if (previewElement) {
+                    previewElement.innerHTML = `
+                        Size: ${contentLength} | Type: ${contentType} | 
+                        Preview: <code>${this.escapeHtml(preview)}${text.length > 20 ? '...' : ''}</code>
+                    `;
+                }
+                
+                // Update the link to point to this URL
+                const linkElement = document.getElementById(`link-${index}`);
+                if (linkElement) {
+                    linkElement.href = url;
+                    linkElement.onclick = (e) => {
+                        e.preventDefault();
+                        window.open(url, '_blank');
+                    };
+                }
+            } catch (error) {
+                const previewElement = document.getElementById(`preview-${index}`);
+                if (previewElement) {
+                    previewElement.innerHTML = `<span class="text-danger">Error: ${this.escapeHtml(error.message)}</span>`;
+                }
+            }
+        }
+        
+        async fetchFinalOutput() {
+            try {
+                const url = this.currentUrl || '/';
+                if (url === '/') {
+                    document.getElementById('final-output').textContent = '-';
+                    return;
+                }
+                
+                const response = await fetch(url);
+                const text = await response.text();
+                const preview = text.substring(0, 100);
+                
+                document.getElementById('final-output').innerHTML = `
+                    <code>${this.escapeHtml(preview)}${text.length > 100 ? '...' : ''}</code>
+                    <div class="mt-2"><small class="text-muted">Full length: ${text.length} characters</small></div>
+                `;
+            } catch (error) {
+                document.getElementById('final-output').innerHTML = `
+                    <span class="text-danger">Error: ${this.escapeHtml(error.message)}</span>
+                `;
+            }
         }
         
         copyCurrentUrl() {
