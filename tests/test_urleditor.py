@@ -1,13 +1,11 @@
 """Tests for the urleditor server."""
 
-import pytest
 from unittest.mock import Mock
 
 
 # Import the server module by loading it as text and executing it
 def load_urleditor_module():
     """Load the urleditor server module."""
-    import sys
     from pathlib import Path
     
     # Read the urleditor.py file
