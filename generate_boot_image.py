@@ -107,6 +107,57 @@ class BootImageGenerator:
             for i, item in enumerate(data):
                 self.process_referenced_files(item, f"{parent_path}[{i}]")
 
+    def process_server_definition_file(self, server_def_path: str) -> Optional[str]:
+        """Process a server definition Python file to replace embedded filenames with CIDs.
+        
+        Args:
+            server_def_path: Path to the server definition file (e.g., "reference_templates/servers/definitions/urleditor.py")
+            
+        Returns:
+            CID of the processed server definition, or None if no changes needed
+        """
+        import re
+        
+        file_path = self.base_dir / server_def_path
+        if not file_path.exists():
+            return None
+        
+        # Read the server definition file
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Look for _load_resource_file calls with filename arguments
+        # Pattern: _load_resource_file("filename.ext")
+        pattern = r'_load_resource_file\(["\']([^"\']+)["\']\)'
+        matches = re.findall(pattern, content)
+        
+        if not matches:
+            # No embedded filenames found, return None to use original file
+            return None
+        
+        # Process each referenced file
+        modified_content = content
+        server_dir = file_path.parent
+        
+        for filename in matches:
+            resource_path = server_dir / filename
+            if not resource_path.exists():
+                print(f"  WARNING: Referenced file not found: {filename} in {server_def_path}")
+                continue
+            
+            # Generate CID for the referenced file
+            relative_resource_path = str(resource_path.relative_to(self.base_dir))
+            resource_cid = self.generate_and_store_cid(resource_path, relative_resource_path)
+            
+            # Replace the filename with CID in the content
+            # Replace _load_resource_file("filename") with direct content loading via CID
+            # For now, we'll keep the filename but document it should be replaced
+            print(f"    Found reference to {filename} -> {resource_cid}")
+        
+        # For now, return None - in production, we'd return a modified CID
+        # The current implementation keeps filenames during development
+        return None
+
     def replace_filenames_with_cids(self, data: Any) -> Any:
         """Recursively replace filenames with CIDs in JSON data.
 
@@ -127,6 +178,21 @@ class BootImageGenerator:
                         else:
                             print(f"  WARNING: No CID found for {value}")
                             result[key] = value
+                    else:
+                        result[key] = value
+                elif key == 'definition_cid':
+                    # Special handling for server definitions - check for embedded files
+                    if isinstance(value, str) and value.endswith('.py'):
+                        # Process the server definition to find embedded file references
+                        modified_cid = self.process_server_definition_file(value)
+                        if modified_cid:
+                            result[key] = modified_cid
+                        else:
+                            # No changes needed, generate CID for original file
+                            if value in self.file_to_cid:
+                                result[key] = self.file_to_cid[value]
+                            else:
+                                result[key] = value
                     else:
                         result[key] = value
                 else:
