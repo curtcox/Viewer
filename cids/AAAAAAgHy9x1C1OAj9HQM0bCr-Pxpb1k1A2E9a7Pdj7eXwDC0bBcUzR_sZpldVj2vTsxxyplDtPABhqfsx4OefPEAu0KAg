@@ -1,0 +1,132 @@
+/* URL Editor Styles */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.editor-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1rem;
+}
+
+.header {
+    margin-bottom: 1rem;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+.editor-section, .indicators-section, .preview-section {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.section-title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.editor-wrapper {
+    flex: 1;
+    border: 1px solid #dee2e6;
+    position: relative;
+    overflow: hidden;
+}
+
+#url-editor {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+.indicators-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+}
+
+.indicator-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+}
+
+.indicator-row:last-child {
+    border-bottom: none;
+}
+
+.indicator {
+    text-align: center;
+    padding: 0.25rem;
+    border-radius: 3px;
+}
+
+.indicator.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.indicator.invalid {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.indicator.unknown {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.preview-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+}
+
+.preview-row {
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+}
+
+.preview-row:last-child {
+    border-bottom: none;
+}
+
+.preview-output {
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.final-preview {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}

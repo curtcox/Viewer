@@ -1,0 +1,18 @@
+{
+  "name": "urleditor-tests",
+  "version": "1.0.0",
+  "description": "Unit tests for URL Editor JavaScript",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/*.test.js"],
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov"]
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

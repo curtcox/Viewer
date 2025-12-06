@@ -79,6 +79,11 @@
       "name": "pygments",
       "definition_cid": "reference_templates/servers/definitions/pygments.py",
       "enabled": true
+    },
+    {
+      "name": "urleditor",
+      "definition_cid": "reference_templates/servers/definitions/urleditor.py",
+      "enabled": true
     }
   ],
   "variables": [

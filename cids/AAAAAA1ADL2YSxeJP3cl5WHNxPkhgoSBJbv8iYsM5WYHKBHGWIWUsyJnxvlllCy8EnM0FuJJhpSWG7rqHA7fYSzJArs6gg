@@ -82,19 +82,19 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "reference_templates/servers/definitions/urleditor.py",
+      "definition_cid": "AAAAABVt51C8YsaPYwd0AqB1UCBn4KbFq5hzRfvItdcK-8lu6qKOkduEQsELSBSR12J1MkkjKMyQsTZ5SUbN6yG2skTYKg",
       "enabled": true
     }
   ],
   "variables": [
     {
       "name": "templates",
-      "definition": "GENERATED:templates.json",
+      "definition": "AAAAABQH5rhp1eKNIb7SW4wxO25d3gp1o5mtrq_wKGrxytxlFWLVrNSsknUFnPItKM0aM8sOlf9ryNggETgJgKbAfraw-Q",
       "enabled": true
     },
     {
       "name": "uis",
-      "definition": "GENERATED:uis.json",
+      "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
       "enabled": true
     }
   ]
