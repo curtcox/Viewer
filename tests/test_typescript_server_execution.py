@@ -1,3 +1,4 @@
+import json
 import textwrap
 from types import SimpleNamespace
 
@@ -265,6 +266,39 @@ def test_named_typescript_server_receives_python_input(typescript_environment):
         typescript_environment.typescript_runs[-1]["chained_input"]
         == "python->ts"
     )
+
+
+def test_python_literal_extracts_output_from_typescript_json(
+    typescript_environment, monkeypatch
+):
+    ts_cid = "ts-json"
+    python_cid = "py-target"
+
+    def fake_run_typescript(code, server_name, chained_input=None):  # pylint: disable=unused-argument
+        payload = json.dumps(
+            {"output": "ts-json-output", "content_type": "application/json"}
+        ).encode("utf-8")
+        return payload, 200, b""
+
+    monkeypatch.setattr(code_execution, "_run_typescript_script", fake_run_typescript)
+
+    _store_typescript_server(typescript_environment.cid_registry, f"{ts_cid}.ts")
+    _store_python_server(
+        typescript_environment.cid_registry,
+        python_cid,
+        """
+        def main(payload):
+            return {"output": f"py::{payload}", "content_type": "text/plain"}
+        """,
+    )
+
+    with app.test_request_context(f"/{python_cid}.py/{ts_cid}.ts/final"):
+        response = server_execution.try_server_execution(
+            f"/{python_cid}.py/{ts_cid}.ts/final"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "py::ts-json-output"
 
 
 def test_typescript_literal_without_extension_executes(typescript_environment):

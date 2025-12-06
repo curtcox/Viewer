@@ -110,6 +110,7 @@ _LAZY_IMPORTS = {
 
     # Code execution
     '_normalize_execution_result': ('server_execution.code_execution', '_normalize_execution_result'),
+    '_extract_chained_output': ('server_execution.code_execution', '_extract_chained_output'),
     '_split_path_segments': ('server_execution.code_execution', '_split_path_segments'),
     '_remaining_path_segments': ('server_execution.code_execution', '_remaining_path_segments'),
     '_auto_main_accepts_additional_path': ('server_execution.code_execution', '_auto_main_accepts_additional_path'),

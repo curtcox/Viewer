@@ -4,17 +4,21 @@ from types import SimpleNamespace
 import pytest
 from flask import Response
 
+from cid_core import generate_cid
 import db_access
 import server_execution
 from app import app
 from server_execution import code_execution, invocation_tracking, server_lookup
 
 
+_CID_PAYLOADS: dict[str, bytes] = {}
+
+
 @pytest.fixture(autouse=True)
 def clojure_environment(monkeypatch):
-    cid_registry: dict[str, bytes] = {}
     servers: dict[str, SimpleNamespace] = {}
     clojure_runs: list[dict[str, str | None]] = []
+    _CID_PAYLOADS.clear()
 
     def return_empty_context():
         return {"variables": {}, "secrets": {}, "servers": {}}
@@ -43,18 +47,20 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(db_access, "get_variables", return_empty_list)
     monkeypatch.setattr(invocation_tracking, "create_server_invocation_record", noop_record)
     monkeypatch.setattr(code_execution, "create_cid_record", noop_create_cid)
+    monkeypatch.setattr(server_lookup, "get_server_by_name", servers.get)
+    monkeypatch.setattr(code_execution, "get_server_by_name", servers.get)
+    monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
+    monkeypatch.setattr(db_access, "get_servers", return_servers)
 
     def fake_get_cid_by_path(path):
-        payload = cid_registry.get(path)
+        normalized = path if path.startswith("/") else f"/{path}"
+        payload = _CID_PAYLOADS.get(normalized)
         if payload is None:
             return None
         return SimpleNamespace(file_data=payload)
 
     monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
-    monkeypatch.setattr(server_lookup, "get_server_by_name", servers.get)
-    monkeypatch.setattr(code_execution, "get_server_by_name", servers.get)
-    monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
-    monkeypatch.setattr(db_access, "get_servers", return_servers)
+    monkeypatch.setattr(db_access, "get_cid_by_path", fake_get_cid_by_path)
 
     def simple_success(output, content_type, server_name):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
@@ -84,35 +90,34 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(code_execution, "_run_clojure_script", fake_run_clojure)
     monkeypatch.setattr(code_execution, "_run_bash_script", fake_run_bash)
 
-    return SimpleNamespace(
-        cid_registry=cid_registry, servers=servers, clojure_runs=clojure_runs
-    )
+    return SimpleNamespace(servers=servers, clojure_runs=clojure_runs)
 
 
-def _store_python_server(cid_registry: dict[str, bytes], name: str, body: str):
-    cid_registry[f"/{name}"] = textwrap.dedent(body).encode("utf-8")
+def _literal_cid(source: str) -> str:
+    normalized = textwrap.dedent(source)
+    payload = normalized.encode("utf-8")
+    cid_value = generate_cid(payload)
+    _CID_PAYLOADS[f"/{cid_value}"] = payload
+    return cid_value
 
 
-def _store_clojure_server(cid_registry: dict[str, bytes], name: str, body: str = "(defn main [])"):
-    normalized = name.lstrip("/")
-    if normalized.endswith(".clj"):
-        normalized = normalized.rsplit(".", 1)[0]
-    cid_registry[f"/{normalized}"] = body.encode("utf-8")
+def _python_literal(body: str) -> str:
+    return _literal_cid(body)
+
+
+def _clojure_literal(body: str = "(defn main [])") -> str:
+    return _literal_cid(body)
+
+
+def _bash_literal(body: str) -> str:
+    return _literal_cid(body)
 
 
 def test_clojure_literal_chains_into_python_literal(clojure_environment):
-    python_cid = "py-clj-left"
-    clojure_cid = "clj-source"
-
-    _store_python_server(
-        clojure_environment.cid_registry,
-        python_cid,
-        """
-        def main(payload):
-            return {"output": f"py:{payload}", "content_type": "text/plain"}
-        """,
+    python_cid = _python_literal(
+        "def main(payload):\n return {'output':'py:'+payload}"
     )
-    _store_clojure_server(clojure_environment.cid_registry, f"{clojure_cid}.clj")
+    clojure_cid = _clojure_literal()
 
     with app.test_request_context(f"/{python_cid}.py/{clojure_cid}.clj/result"):
         response = server_execution.try_server_execution(
@@ -124,11 +129,8 @@ def test_clojure_literal_chains_into_python_literal(clojure_environment):
 
 
 def test_clojure_literal_chains_into_bash_literal(clojure_environment):
-    bash_cid = "bash-left"
-    clojure_cid = "clj-right"
-
-    clojure_environment.cid_registry[f"/{bash_cid}"] = b"echo placeholder"
-    _store_clojure_server(clojure_environment.cid_registry, f"{clojure_cid}.clj")
+    bash_cid = _bash_literal("#!/bin/bash\necho placeholder\n")
+    clojure_cid = _clojure_literal()
 
     with app.test_request_context(f"/{bash_cid}.sh/{clojure_cid}.clj/final"):
         response = server_execution.try_server_execution(
@@ -140,11 +142,8 @@ def test_clojure_literal_chains_into_bash_literal(clojure_environment):
 
 
 def test_clojure_literal_chains_into_clojure_literal(clojure_environment):
-    left_cid = "clj-left"
-    right_cid = "clj-right"
-
-    _store_clojure_server(clojure_environment.cid_registry, f"{left_cid}.clj")
-    _store_clojure_server(clojure_environment.cid_registry, f"{right_cid}.clj")
+    left_cid = _clojure_literal("(defn main [] (println \"left\"))")
+    right_cid = _clojure_literal("(defn main [] (println \"right\"))")
 
     with app.test_request_context(f"/{left_cid}.clj/{right_cid}.clj/final"):
         response = server_execution.try_server_execution(
@@ -156,11 +155,8 @@ def test_clojure_literal_chains_into_clojure_literal(clojure_environment):
 
 
 def test_clojure_server_consumes_single_segment_cid_input(clojure_environment):
-    clojure_cid = "clj-consume"
-    bash_cid = "bash-yield"
-
-    _store_clojure_server(clojure_environment.cid_registry, f"{clojure_cid}.clj")
-    clojure_environment.cid_registry[f"/{bash_cid}"] = b"echo chained-bash"
+    clojure_cid = _clojure_literal()
+    bash_cid = _bash_literal("#!/bin/bash\necho chained-bash\n")
 
     with app.test_request_context(f"/{clojure_cid}.clj/{bash_cid}.sh"):
         response = server_execution.try_server_execution(
@@ -172,19 +168,10 @@ def test_clojure_server_consumes_single_segment_cid_input(clojure_environment):
 
 
 def test_clojure_server_consumes_single_segment_python_input(clojure_environment):
-    clojure_cid = "clj-consume"
-    python_cid = "py-yield"
-
-    _store_clojure_server(clojure_environment.cid_registry, f"{clojure_cid}.clj")
-    _store_python_server(
-        clojure_environment.cid_registry,
-        python_cid,
-        """
-        def main():
-            return {"output": "python-into-clj", "content_type": "text/plain"}
-        """,
+    clojure_cid = _clojure_literal()
+    python_cid = _python_literal(
+        "def main():\n return {'output':'python-into-clj'}"
     )
-
     with app.test_request_context(f"/{clojure_cid}.clj/{python_cid}.py"):
         response = server_execution.try_server_execution(
             f"/{clojure_cid}.clj/{python_cid}.py"
@@ -195,19 +182,44 @@ def test_clojure_server_consumes_single_segment_python_input(clojure_environment
     assert clojure_environment.clojure_runs[-1]["chained_input"] == "python-into-clj"
 
 
+def test_clojure_server_does_not_execute_terminal_literal_without_extension(clojure_environment):
+    """Single-segment literals lacking an extension should remain raw."""
+
+    clojure_cid = _clojure_literal()
+    literal_payload = _literal_cid("raw-literal")
+
+    with app.test_request_context(f"/{clojure_cid}.clj/{literal_payload}"):
+        response = server_execution.try_server_execution(
+            f"/{clojure_cid}.clj/{literal_payload}"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "clj:raw-literal"
+    assert clojure_environment.clojure_runs[-1]["chained_input"] == "raw-literal"
+
+
+def test_clojure_server_executes_terminal_literal_with_clj_extension(clojure_environment):
+    """Single-segment literals should execute when extension matches a language."""
+
+    clojure_cid = _clojure_literal()
+    literal_payload = _clojure_literal("(defn main [] (println \"from-literal\"))")
+
+    with app.test_request_context(f"/{clojure_cid}.clj/{literal_payload}.clj"):
+        response = server_execution.try_server_execution(
+            f"/{clojure_cid}.clj/{literal_payload}.clj"
+        )
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "clj:clj:from-clojure"
+    assert clojure_environment.clojure_runs[-1]["chained_input"] == "clj:from-clojure"
+
+
 def test_named_clojure_server_receives_python_input(clojure_environment):
     clojure_environment.servers["clj-server"] = SimpleNamespace(
         name="clj-server", definition="(defn main [payload])"
     )
-    python_cid = "py-input"
-
-    _store_python_server(
-        clojure_environment.cid_registry,
-        python_cid,
-        """
-        def main():
-            return {"output": "python->clj", "content_type": "text/plain"}
-        """,
+    python_cid = _python_literal(
+        "def main():\n return {'output':'python->clj'}"
     )
 
     with app.test_request_context(f"/clj-server/{python_cid}.py/final"):
@@ -218,12 +230,25 @@ def test_named_clojure_server_receives_python_input(clojure_environment):
     assert clojure_environment.clojure_runs[-1]["chained_input"] == "python->clj"
 
 
-def test_clojure_server_receives_bash_input(clojure_environment):
-    clj_cid = "clj-target"
-    bash_cid = "bash-source"
+def test_named_clojure_server_executes_terminal_python_literal(clojure_environment):
+    clojure_environment.servers["clj-server"] = SimpleNamespace(
+        name="clj-server", definition="(defn main [payload])"
+    )
+    python_cid = _python_literal(
+        "def main():\n return {'output':'terminal-python'}"
+    )
 
-    _store_clojure_server(clojure_environment.cid_registry, f"{clj_cid}.clj")
-    clojure_environment.cid_registry[f"/{bash_cid}"] = b"echo bash-into-clj"
+    with app.test_request_context(f"/clj-server/{python_cid}.py"):
+        response = server_execution.try_server_execution(f"/clj-server/{python_cid}.py")
+
+    assert isinstance(response, Response)
+    assert response.get_data(as_text=True).strip() == "clj:terminal-python"
+    assert clojure_environment.clojure_runs[-1]["chained_input"] == "terminal-python"
+
+
+def test_clojure_server_receives_bash_input(clojure_environment):
+    clj_cid = _clojure_literal()
+    bash_cid = _bash_literal("#!/bin/bash\necho bash-into-clj\n")
 
     with app.test_request_context(f"/{clj_cid}.clj/{bash_cid}.sh/run"):
         response = server_execution.try_server_execution(
@@ -235,11 +260,8 @@ def test_clojure_server_receives_bash_input(clojure_environment):
 
 
 def test_clojure_server_receives_clojure_input(clojure_environment):
-    left_cid = "clj-left"
-    right_cid = "clj-right"
-
-    _store_clojure_server(clojure_environment.cid_registry, f"{left_cid}.clj")
-    _store_clojure_server(clojure_environment.cid_registry, f"{right_cid}.clj")
+    left_cid = _clojure_literal("(defn main [] (println \"left\"))")
+    right_cid = _clojure_literal("(defn main [] (println \"right\"))")
 
     with app.test_request_context(f"/{left_cid}.clj/{right_cid}.clj/run"):
         response = server_execution.try_server_execution(
@@ -251,12 +273,7 @@ def test_clojure_server_receives_clojure_input(clojure_environment):
 
 
 def test_clojure_literal_without_extension_executes(clojure_environment):
-    clojure_cid = "rawclj"
-    _store_clojure_server(
-        clojure_environment.cid_registry,
-        clojure_cid,
-        "(defn main [] (println \"noext\"))",
-    )
+    clojure_cid = _clojure_literal('(defn main [] (println "noext"))')
 
     with app.test_request_context(f"/{clojure_cid}/next"):
         response = server_execution.try_server_execution(f"/{clojure_cid}/next")
@@ -266,12 +283,7 @@ def test_clojure_literal_without_extension_executes(clojure_environment):
 
 
 def test_clojure_literal_with_extension_executes(clojure_environment):
-    clojure_cid = "extclj"
-    _store_clojure_server(
-        clojure_environment.cid_registry,
-        f"{clojure_cid}.clj",
-        "(defn main [] (println \"ext\"))",
-    )
+    clojure_cid = _clojure_literal('(defn main [] (println "ext"))')
 
     with app.test_request_context(f"/{clojure_cid}.clj/final"):
         response = server_execution.try_server_execution(

@@ -59,6 +59,16 @@ def _resolve_cid_payload(app, location: str) -> str:
         return record.file_data.decode("utf-8")
 
 
+def _extract_response_body(app, response) -> str:
+    """Return the response payload, following CID redirects when necessary."""
+
+    if response.status_code in {302, 303}:
+        location = response.headers.get("Location")
+        assert location, "Redirect response missing Location header"
+        return _resolve_cid_payload(app, location)
+    return response.get_data(as_text=True)
+
+
 def test_nested_server_chain_executes_in_order(
     client, integration_app
 ):
@@ -411,10 +421,10 @@ cat
     )
 
     response = client.get("/bash-outer/python-middle/bash-leaf")
-    assert response.status_code == 200
+    assert response.status_code in {200, 302, 303}
 
-    payload = json.loads(response.get_data(as_text=True))
-    assert payload["input"] == "leaf-py"
+    body = _extract_response_body(integration_app, response)
+    assert body.strip() == "leaf-py"
 
 
 def test_bash_servers_chain_directly(client, integration_app):
@@ -437,10 +447,10 @@ cat
     )
 
     response = client.get("/bash-outer/bash-inner")
-    assert response.status_code == 200
+    assert response.status_code in {200, 302, 303}
 
-    payload = json.loads(response.get_data(as_text=True))
-    assert payload.get("input") == "inner"
+    body = _extract_response_body(integration_app, response)
+    assert body.strip() == "inner"
 
 
 def test_bash_server_chains_with_identifier_paths(client, integration_app):
@@ -464,10 +474,10 @@ cat
     )
 
     response = client.get("/bashouter/pythoninner")
-    assert response.status_code == 200
+    assert response.status_code in {200, 302, 303}
 
-    payload = json.loads(response.get_data(as_text=True))
-    assert payload.get("input") == "inner"
+    body = _extract_response_body(integration_app, response)
+    assert body.strip() == "inner"
 
 
 def test_default_markdown_consumes_cid_path_segment(client, integration_app):
@@ -738,7 +748,7 @@ def test_literal_bash_cid_executes_as_server(client, integration_app):
 
     response = client.get(f"/{bash_cid}.sh/extra")
     assert response.status_code == 200
-    assert response.get_data(as_text=True).strip() == "integration-bash"
+    assert _extract_response_body(integration_app, response).strip() == "integration-bash"
 
 
 def test_literal_python_receives_path_parameter(client, integration_app):
@@ -782,7 +792,7 @@ def test_literal_python_chains_into_bash(client, integration_app):
                     path=f"/{bash_cid}",
                     file_data=textwrap.dedent(
                         """
-                        python -c 'import json,sys; data=json.load(sys.stdin); print(f"bash:{data.get(\"input\",\"\")}" )'
+                        python -c 'import json,sys; data=json.load(sys.stdin); print(f"bash:{data.get(\\'input\\', \\'\\')})'
                         """
                     ).encode("utf-8"),
                 ),
@@ -801,7 +811,7 @@ def test_literal_python_chains_into_bash(client, integration_app):
 
     response = client.get(f"/{bash_cid}.sh/{python_cid}.py/final")
     assert response.status_code == 200
-    assert response.get_data(as_text=True).strip() == "bash:py-chain"
+    assert _extract_response_body(integration_app, response).strip() == "bash:py-chain"
 
 
 def test_literal_bash_chains_into_python(client, integration_app):

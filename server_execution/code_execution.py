@@ -15,7 +15,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
-from cid_core import split_cid_path
+from cid_core import extract_literal_content, split_cid_path
 from cid_utils import generate_cid
 from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
@@ -35,6 +35,7 @@ from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
+_SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
 
 
 def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
@@ -43,6 +44,40 @@ def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
     if isinstance(result, tuple) and len(result) == 2:
         return result[0], result[1]
     return result, "text/html"
+
+
+def _extract_chained_output(value: Any) -> Any:
+    """Extract the chained server output from dictionaries or JSON strings.
+
+    Args:
+        value: A raw execution result that may be a dict with an ``output`` key,
+            a JSON-encoded string of such a dict, or any other type.
+
+    Returns:
+        The unwrapped ``output`` value when present; otherwise the original
+        input. Non-dictionary strings are returned as-is unless they contain
+        escaped newlines that can be decoded. Errors during JSON parsing or
+        unicode unescaping fall back to returning the original value.
+    """
+    if isinstance(value, dict) and "output" in value:
+        return value.get("output")
+
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (TypeError, ValueError):
+            if "\\n" in value:
+                try:
+                    return value.encode("utf-8").decode("unicode_escape")
+                except (UnicodeDecodeError, AttributeError):
+                    return value
+
+            return value
+
+        if isinstance(parsed, dict) and "output" in parsed:
+            return parsed.get("output")
+
+    return value
 
 
 def _split_path_segments(path: Optional[str]) -> List[str]:
@@ -88,6 +123,10 @@ def _language_from_extension(extension: Optional[str], definition: str) -> str:
     return detect_server_language(definition)
 
 
+def _is_supported_literal_extension(extension: Optional[str]) -> bool:
+    return bool(extension and extension.lower() in _SUPPORTED_LITERAL_EXTENSIONS)
+
+
 def _clone_request_context_kwargs(path: str, data_override: bytes | None = None) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"path": path}
     if has_request_context():
@@ -127,7 +166,7 @@ def _resolve_chained_input_from_path(
         return None, nested_value
     if nested_value is None:
         return None, None
-    return str(nested_value), None
+    return str(_extract_chained_output(nested_value)), None
 
 
 def _execute_python_code_to_value(
@@ -349,6 +388,17 @@ def _load_server_literal(segment: str) -> tuple[Optional[str], Optional[str], Op
 
     cid_value, extension = cid_components
     normalized_cid = format_cid(cid_value)
+
+    literal_bytes = extract_literal_content(normalized_cid)
+    if literal_bytes is not None:
+        try:
+            definition_text = literal_bytes.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            definition_text = literal_bytes.decode("utf-8", errors="replace")
+
+        language_override = _language_from_extension(extension, definition_text)
+        return definition_text, language_override, normalized_cid
+
     cid_record_path = cid_path(normalized_cid)
     if not cid_record_path:
         return None, None, None
@@ -419,6 +469,15 @@ def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None
             f"/{segments[0]}"
         )
         normalized_cid = format_cid((cid_components or (None,))[0] or segments[0])
+
+        literal_bytes = extract_literal_content(normalized_cid)
+        if literal_bytes is not None:
+            try:
+                return literal_bytes.decode("utf-8")
+            except (UnicodeDecodeError, AttributeError):
+                # Handle decoding errors by using replacement characters
+                return literal_bytes.decode("utf-8", errors="replace")
+
         cid_record_path = cid_path(normalized_cid)
         if cid_record_path:
             cid_record = get_cid_by_path(cid_record_path)
@@ -461,7 +520,7 @@ def _inject_nested_parameter_value(
         return nested_value
     if nested_value is None:
         return None
-    return {missing[0]: nested_value}
+    return {missing[0]: _extract_chained_output(nested_value)}
 
 
 def _inject_optional_parameter_from_path(
@@ -495,7 +554,7 @@ def _inject_optional_parameter_from_path(
             if nested_value is None:
                 return None, None
 
-            return {name: nested_value}, None
+            return {name: _extract_chained_output(nested_value)}, None
 
     return None, None
 
@@ -509,12 +568,19 @@ def _resolve_chained_input_for_server(
 
     nested_path = "/" + "/".join(remainder_segments)
     visited: Set[str] = set()
-    if len(remainder_segments) == 1:
+    first_segment = remainder_segments[0]
+    cid_components = split_cid_path(first_segment) or split_cid_path(f"/{first_segment}")
+    extension = (cid_components or (None, None))[1]
+    executes_as_terminal_literal = (
+        len(remainder_segments) == 1 and _is_supported_literal_extension(extension)
+    )
+
+    if executes_as_terminal_literal:
         literal_definition, language_override, normalized_cid = _load_server_literal(
-            remainder_segments[0]
+            first_segment
         )
         if literal_definition is not None:
-            literal_name = normalized_cid or remainder_segments[0]
+            literal_name = normalized_cid or first_segment
             literal_value = _execute_literal_definition_to_value(
                 literal_definition,
                 literal_name,
@@ -532,7 +598,7 @@ def _resolve_chained_input_for_server(
         return None, nested_value
     if nested_value is None:
         return None, None
-    return str(nested_value), None
+    return str(_extract_chained_output(nested_value)), None
 
 
 def _execute_bash_server_response(
@@ -876,6 +942,9 @@ def _map_exit_code_to_status(exit_code: int) -> int:
 
 
 def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
+    if chained_input is not None:
+        return _encode_output(chained_input)
+
     payload: Dict[str, Any] = build_request_args()
 
     try:
@@ -891,9 +960,6 @@ def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
             decoded_body = body_data.decode("utf-8", errors="replace")
         payload["body"] = decoded_body
         input_value = decoded_body
-
-    if chained_input is not None:
-        input_value = chained_input
 
     if input_value is not None:
         payload["input"] = input_value
