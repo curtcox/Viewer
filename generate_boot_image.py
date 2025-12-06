@@ -136,7 +136,6 @@ class BootImageGenerator:
             return None
         
         # Process each referenced file
-        modified_content = content
         server_dir = file_path.parent
         
         for filename in matches:
