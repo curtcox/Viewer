@@ -35,6 +35,7 @@ from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
+_SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
 
 
 def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
@@ -120,6 +121,10 @@ def _language_from_extension(extension: Optional[str], definition: str) -> str:
     if extension and extension.lower() == "ts":
         return "typescript"
     return detect_server_language(definition)
+
+
+def _is_supported_literal_extension(extension: Optional[str]) -> bool:
+    return bool(extension and extension.lower() in _SUPPORTED_LITERAL_EXTENSIONS)
 
 
 def _clone_request_context_kwargs(path: str, data_override: bytes | None = None) -> Dict[str, Any]:
@@ -563,22 +568,19 @@ def _resolve_chained_input_for_server(
 
     nested_path = "/" + "/".join(remainder_segments)
     visited: Set[str] = set()
-    if len(remainder_segments) == 1:
-        cid_components = split_cid_path(remainder_segments[0]) or split_cid_path(
-            f"/{remainder_segments[0]}"
-        )
-        if cid_components:
-            nested_value = _evaluate_nested_path_to_value(nested_path, visited)
-            if isinstance(nested_value, Response):
-                return None, nested_value
-            if nested_value is not None:
-                return str(_extract_chained_output(nested_value)), None
+    first_segment = remainder_segments[0]
+    cid_components = split_cid_path(first_segment) or split_cid_path(f"/{first_segment}")
+    extension = (cid_components or (None, None))[1]
+    executes_as_terminal_literal = (
+        len(remainder_segments) == 1 and _is_supported_literal_extension(extension)
+    )
 
+    if executes_as_terminal_literal:
         literal_definition, language_override, normalized_cid = _load_server_literal(
-            remainder_segments[0]
+            first_segment
         )
         if literal_definition is not None:
-            literal_name = normalized_cid or remainder_segments[0]
+            literal_name = normalized_cid or first_segment
             literal_value = _execute_literal_definition_to_value(
                 literal_definition,
                 literal_name,

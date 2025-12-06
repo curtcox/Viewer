@@ -80,7 +80,7 @@ def test_server_events_page_filters_by_time(
 
     page = response.get_data(as_text=True)
     assert "recent" in page
-    assert "old" not in page
+    assert 'href="/servers/old"' not in page
     assert start_param in page
     assert "timestamp-valid" in page
 

@@ -52,7 +52,7 @@ def inject_meta_inspector_link():
         requested_path = ".html"
 
     meta_url = url_for("main.meta_route", requested_path=requested_path)
-    loaded_at = datetime.now(timezone.utc)
+    loaded_at = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     timestamp_param = format_history_timestamp(loaded_at)
     history_since_url = url_for("main.history", start=timestamp_param)
     server_events_since_url = url_for("main.server_events", start=timestamp_param)
