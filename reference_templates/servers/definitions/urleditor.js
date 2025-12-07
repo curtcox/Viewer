@@ -116,14 +116,14 @@
             });
         }
         
-        updateFromEditor() {
+        async updateFromEditor() {
             const editorContent = this.editor.getValue();
-            this.currentUrl = this.normalizeUrl(editorContent);
+            this.currentUrl = await this.normalizeUrl(editorContent);
             this.updateHash();
             this.updateUI();
         }
         
-        normalizeUrl(content) {
+        async normalizeUrl(content) {
             // Handle CID literal conversion (lines starting with #)
             // Split into lines directly without redundant replacement
             const lines = content.split(/\r\n|\n|\r/);
@@ -135,11 +135,14 @@
                 
                 if (line.startsWith('#')) {
                     // Convert text to CID literal
-                    // For now, just use the text as-is
-                    // In production, this would convert to actual CID format
                     const cidText = line.substring(1).trim();
-                    const cidPath = this.textToCidLiteral(cidText);
-                    segments.push(cidPath);
+                    const cidPath = await this.textToCidLiteral(cidText);
+                    if (cidPath) {
+                        segments.push(cidPath);
+                    } else {
+                        // If CID generation failed, keep original text for debugging
+                        segments.push(line);
+                    }
                 } else {
                     segments.push(line);
                 }
@@ -152,11 +155,32 @@
             return url.replace(/\/+/g, '/');
         }
         
-        textToCidLiteral(text) {
-            // Convert text to CID literal format
-            // This is a simplified version - actual implementation would use proper CID encoding
-            const base64like = btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            return `AAAAAAA${base64like.substring(0, 20)}`;
+        async textToCidLiteral(text) {
+            // Generate a real CID from the text content
+            // This calls the /api/cid/generate endpoint to create and store the CID
+            try {
+                const response = await fetch('/api/cid/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: text,
+                        store: true  // Store the CID so it can be resolved later
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error(`Error generating CID: ${response.status} ${response.statusText}`);
+                    return null;
+                }
+                
+                const data = await response.json();
+                return data.cid_value;
+            } catch (error) {
+                console.error('Error generating CID from text:', error);
+                return null;
+            }
         }
         
         updateHash() {
@@ -180,14 +204,26 @@
         }
         
         updateIndicators() {
-            const lines = this.parseUrlLines();
+            // Parse segments from the current normalized URL
+            const urlSegments = this.currentUrl ? this.currentUrl.split('/').filter(s => s) : [];
             const indicatorsList = document.getElementById('indicators-list');
             
-            if (lines.length === 0) {
+            if (urlSegments.length === 0) {
                 indicatorsList.innerHTML = '<div class="text-muted text-center">Edit URL to see indicators</div>';
                 document.getElementById('final-output').textContent = '-';
                 return;
             }
+            
+            // Create line objects from URL segments
+            const lines = urlSegments.map(segment => ({
+                text: segment,
+                isValidSegment: this.isValidPathSegment(segment),
+                // These will be updated asynchronously via fetchMetadata
+                isServer: null,
+                isValidCid: null,
+                supportsChaining: null,
+                language: null
+            }));
             
             let html = '';
             for (let i = 0; i < lines.length; i++) {
@@ -226,21 +262,6 @@
             });
         }
         
-        parseUrlLines() {
-            const editorContent = this.editor.getValue();
-            const lines = editorContent.split(/\r\n|\n|\r/).filter(l => l.trim());
-            
-            return lines.map(line => ({
-                text: line.trim(),
-                isValidSegment: this.isValidPathSegment(line.trim()),
-                // These will be updated asynchronously via fetchMetadata
-                isServer: null,
-                isValidCid: null,
-                supportsChaining: null,
-                language: null
-            }));
-        }
-        
         isValidPathSegment(text) {
             // Simple validation - non-empty and URL-safe
             return text.length > 0 && !/[\s<>"]/.test(text);
@@ -257,6 +278,52 @@
                 return await response.json();
             } catch (error) {
                 console.error('Error fetching metadata for', segment, error);
+                return null;
+            }
+        }
+        
+        detectLanguageFromContent(content) {
+            // Detect programming language from content
+            if (!content) return null;
+            
+            // Check for shebang line
+            const lines = content.split('\n');
+            const firstLine = lines[0]?.trim() || '';
+            
+            if (firstLine.startsWith('#!')) {
+                if (firstLine.includes('bash') || firstLine.includes('sh')) {
+                    return 'bash';
+                } else if (firstLine.includes('python')) {
+                    return 'python';
+                } else if (firstLine.includes('node')) {
+                    return 'javascript';
+                }
+            }
+            
+            // Check for Python patterns
+            if (content.includes('def main(') || content.includes('def main():')) {
+                return 'python';
+            }
+            
+            // Check for bash patterns
+            if (content.includes('#!/bin/bash') || content.includes('#!/bin/sh')) {
+                return 'bash';
+            }
+            
+            // Default to unknown
+            return null;
+        }
+        
+        async fetchCidContent(cid) {
+            // Fetch CID content to analyze it
+            try {
+                const response = await fetch(`/${cid}`);
+                if (!response.ok) {
+                    return null;
+                }
+                return await response.text();
+            } catch (error) {
+                console.error('Error fetching CID content:', error);
                 return null;
             }
         }
@@ -396,6 +463,22 @@
                     if (res.server) {
                         language = res.server.language || 'python';
                         supportsChaining = res.server.supports_chaining === true;
+                        isServer = true;  // CID with server definition is also a server
+                    } else {
+                        // Try to detect language from CID content
+                        const content = await this.fetchCidContent(segment);
+                        if (content) {
+                            const detectedLang = this.detectLanguageFromContent(content);
+                            if (detectedLang) {
+                                language = detectedLang;
+                                // If we detected a language, assume it's a server
+                                isServer = true;
+                                // Assume bash and python servers support chaining
+                                if (detectedLang === 'bash' || detectedLang === 'python') {
+                                    supportsChaining = true;
+                                }
+                            }
+                        }
                     }
                 }
             }
