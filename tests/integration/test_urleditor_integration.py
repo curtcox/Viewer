@@ -48,14 +48,15 @@ class TestURLEditorIntegration:
         assert 'url-editor' in data
     
     def test_urleditor_has_three_columns(self, memory_client):
-        """Test that the URL Editor page has three-column layout."""
+        """Test that the URL Editor page has main sections."""
         response = memory_client.get('/urleditor', follow_redirects=True)
         assert response.status_code == 200
         
         data = response.get_data(as_text=True)
         assert 'editor-section' in data
         assert 'indicators-section' in data
-        assert 'preview-section' in data
+        # preview-section has been removed; now using final-preview-section
+        assert 'final-preview-section' in data
     
     def test_urleditor_includes_ace_editor(self, memory_client):
         """Test that the URL Editor page includes Ace editor."""
@@ -148,11 +149,14 @@ def main():
         assert 'indicators-list' in data
     
     def test_urleditor_has_preview_section(self, memory_client):
-        """Test that the URL Editor has preview section."""
+        """Test that the URL Editor has Final Output Preview section."""
         response = memory_client.get('/urleditor', follow_redirects=True)
         assert response.status_code == 200
         
         data = response.get_data(as_text=True)
-        assert 'Line Previews' in data
-        assert 'preview-list' in data
+        # Line Previews section has been removed and merged into Line Indicators
+        assert 'Line Previews' not in data
+        assert 'preview-list' not in data
+        # Final Output Preview should still exist at the bottom
         assert 'Final Output Preview' in data
+        assert 'final-output' in data

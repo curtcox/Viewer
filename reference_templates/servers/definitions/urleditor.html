@@ -11,17 +11,12 @@
 <body>
     <div class="editor-container">
         <div class="header">
-            <h2>URL Editor</h2>
-            <p class="text-muted">Build and test chained server URLs interactively</p>
-        </div>
-        
-        <div class="main-content">
-            <div class="editor-section">
-                <div class="section-title">URL Editor</div>
-                <div class="editor-wrapper">
-                    <div id="url-editor">{{ESCAPED_URL}}</div>
+            <div class="header-content">
+                <div class="header-text">
+                    <h2>URL Editor</h2>
+                    <p class="text-muted">Build and test chained server URLs interactively</p>
                 </div>
-                <div class="actions">
+                <div class="header-actions">
                     <button id="copy-url-btn" class="btn btn-primary">
                         <i class="fas fa-copy"></i> Copy URL
                     </button>
@@ -30,24 +25,28 @@
                     </button>
                 </div>
             </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="editor-section">
+                <div class="section-title">URL Editor</div>
+                <div class="editor-wrapper">
+                    <div id="url-editor">{{ESCAPED_URL}}</div>
+                </div>
+            </div>
             
             <div class="indicators-section">
-                <div class="section-title">Line Indicators</div>
+                <div class="section-title" id="section-title-text">Line Indicators</div>
                 <div class="indicators-list" id="indicators-list">
                     <div class="text-muted text-center">Edit URL to see indicators</div>
                 </div>
             </div>
-            
-            <div class="preview-section">
-                <div class="section-title">Line Previews</div>
-                <div class="preview-list" id="preview-list">
-                    <div class="text-muted text-center">Edit URL to see previews</div>
-                </div>
-                <div class="final-preview">
-                    <strong>Final Output Preview:</strong>
-                    <div id="final-output" class="preview-output mt-2">-</div>
-                </div>
-            </div>
+        </div>
+        
+        <div class="final-preview-section">
+            <div class="section-title">Final Output Preview</div>
+            <div id="final-output" class="preview-output">-</div>
+        </div>
         </div>
     </div>
     

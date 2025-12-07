@@ -177,7 +177,6 @@
         
         updateUI() {
             this.updateIndicators();
-            this.updatePreviews();
         }
         
         updateIndicators() {
@@ -186,32 +185,18 @@
             
             if (lines.length === 0) {
                 indicatorsList.innerHTML = '<div class="text-muted text-center">Edit URL to see indicators</div>';
-                return;
-            }
-            
-            let html = '';
-            for (const line of lines) {
-                html += this.renderIndicatorRow(line);
-            }
-            indicatorsList.innerHTML = html;
-        }
-        
-        async updatePreviews() {
-            const lines = this.parseUrlLines();
-            const previewList = document.getElementById('preview-list');
-            
-            if (lines.length === 0) {
-                previewList.innerHTML = '<div class="text-muted text-center">Edit URL to see previews</div>';
                 document.getElementById('final-output').textContent = '-';
                 return;
             }
             
-            // Build preview rows with async loading
             let html = '';
             for (let i = 0; i < lines.length; i++) {
-                html += this.renderPreviewRow(lines[i], i);
+                html += this.renderIndicatorRow(lines[i], i);
             }
-            previewList.innerHTML = html;
+            indicatorsList.innerHTML = html;
+            
+            // Setup hover listeners for indicators
+            this.setupHoverListeners();
             
             // Fetch preview data for each line asynchronously
             for (let i = 0; i < lines.length; i++) {
@@ -220,6 +205,25 @@
             
             // Update final output with full URL
             this.fetchFinalOutput();
+        }
+        
+        setupHoverListeners() {
+            const indicators = document.querySelectorAll('.indicator');
+            const sectionTitle = document.getElementById('section-title-text');
+            const originalTitle = 'Line Indicators';
+            
+            indicators.forEach(indicator => {
+                indicator.addEventListener('mouseenter', (e) => {
+                    const detail = e.target.getAttribute('data-detail');
+                    if (detail) {
+                        sectionTitle.textContent = detail;
+                    }
+                });
+                
+                indicator.addEventListener('mouseleave', () => {
+                    sectionTitle.textContent = originalTitle;
+                });
+            });
         }
         
         parseUrlLines() {
@@ -275,37 +279,32 @@
             return div.innerHTML;
         }
         
-        renderIndicatorRow(line) {
+        renderIndicatorRow(line, index) {
             const indicators = [
-                { label: 'Valid', value: line.isValidSegment },
-                { label: 'Server', value: line.isServer },
-                { label: 'CID', value: line.isValidCid },
-                { label: 'Chain', value: line.supportsChaining },
-                { label: this.escapeHtml(line.language), value: line.language !== '-' }
+                { label: 'Valid', value: line.isValidSegment, detail: `Valid: ${line.isValidSegment ? 'Yes' : 'No'}` },
+                { label: 'Server', value: line.isServer, detail: `Server: ${line.isServer ? 'Yes' : 'No'}` },
+                { label: 'CID', value: line.isValidCid, detail: `CID: ${line.isValidCid ? 'Yes' : 'No'}` },
+                { label: 'Chain', value: line.supportsChaining, detail: `Chain: ${line.supportsChaining ? 'Yes' : 'No'}` },
+                { label: this.escapeHtml(line.language), value: line.language !== '-', detail: `Language: ${this.escapeHtml(line.language)}` }
             ];
             
-            let html = '<div class="indicator-row">';
+            let html = '<div class="indicator-row" data-index="' + index + '">';
+            
+            // Render indicator icons without labels
             for (const ind of indicators) {
                 const cssClass = ind.value === true ? 'valid' : (ind.value === false ? 'invalid' : 'unknown');
                 const icon = ind.value === true ? '✓' : (ind.value === false ? '✗' : '-');
-                const escapedLabel = this.escapeHtml(ind.label);
-                html += `<div class="indicator ${this.escapeHtml(cssClass)}" title="${escapedLabel}">${escapedLabel}: ${icon}</div>`;
+                html += `<div class="indicator ${this.escapeHtml(cssClass)}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
             }
+            
+            // Add Size, Type, View, Preview columns
+            html += `<div class="indicator-info" id="size-${index}">-</div>`;
+            html += `<div class="indicator-info" id="type-${index}">-</div>`;
+            html += `<div class="indicator-link"><a href="#" class="btn btn-sm btn-link" id="link-${index}">View</a></div>`;
+            html += `<div class="indicator-preview" id="preview-${index}">-</div>`;
+            
             html += '</div>';
             return html;
-        }
-        
-        renderPreviewRow(line, index) {
-            const escapedText = this.escapeHtml(line.text);
-            return `
-                <div class="preview-row" data-index="${index}">
-                    <div><strong>${escapedText}</strong></div>
-                    <div class="preview-output" id="preview-${index}">
-                        <span class="text-muted">Loading...</span>
-                    </div>
-                    <a href="#" class="btn btn-sm btn-link preview-link" id="link-${index}">View</a>
-                </div>
-            `;
         }
         
         async fetchPreviewData(lines, index) {
@@ -322,15 +321,32 @@
                 // Now fetch a small portion to get preview text
                 const previewResponse = await fetch(url);
                 const text = await previewResponse.text();
-                const preview = text.substring(0, 20);
+                // Use a longer preview length to fill available space on the line
+                const PREVIEW_LENGTH = 200;
+                const preview = text.substring(0, PREVIEW_LENGTH);
                 
-                // Update the preview element
+                // Update Size column
+                const sizeElement = document.getElementById(`size-${index}`);
+                if (sizeElement) {
+                    sizeElement.textContent = contentLength;
+                    sizeElement.title = `Size: ${contentLength} bytes`;
+                }
+                
+                // Update Type column
+                const typeElement = document.getElementById(`type-${index}`);
+                if (typeElement) {
+                    // Safely extract the short type name from content-type
+                    const typeParts = contentType.split(';')[0].split('/');
+                    const shortType = typeParts.length > 1 ? typeParts.pop() : contentType;
+                    typeElement.textContent = shortType;
+                    typeElement.title = `Content-Type: ${contentType}`;
+                }
+                
+                // Update Preview column
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.innerHTML = `
-                        Size: ${contentLength} | Type: ${contentType} | 
-                        Preview: <code>${this.escapeHtml(preview)}${text.length > 20 ? '...' : ''}</code>
-                    `;
+                    previewElement.textContent = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
+                    previewElement.title = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
                 }
                 
                 // Update the link to point to this URL
@@ -343,9 +359,19 @@
                     };
                 }
             } catch (error) {
+                const sizeElement = document.getElementById(`size-${index}`);
+                if (sizeElement) {
+                    sizeElement.textContent = 'Error';
+                    sizeElement.title = error.message;
+                }
+                const typeElement = document.getElementById(`type-${index}`);
+                if (typeElement) {
+                    typeElement.textContent = 'Error';
+                }
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.innerHTML = `<span class="text-danger">Error: ${this.escapeHtml(error.message)}</span>`;
+                    previewElement.textContent = 'Error loading';
+                    previewElement.title = error.message;
                 }
             }
         }
