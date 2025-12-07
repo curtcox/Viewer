@@ -19,13 +19,13 @@ body {
 
 .main-content {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr 2fr;
     gap: 1rem;
     flex: 1;
     overflow: hidden;
 }
 
-.editor-section, .indicators-section, .preview-section {
+.editor-section, .indicators-section {
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -85,11 +85,12 @@ body {
 
 .indicator-row {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: 30px 30px 30px 30px 30px 80px 120px 60px 1fr;
     gap: 0.25rem;
     padding: 0.5rem;
     border-bottom: 1px solid #eee;
     font-size: 0.85rem;
+    align-items: center;
 }
 
 .indicator-row:last-child {
@@ -100,6 +101,7 @@ body {
     text-align: center;
     padding: 0.25rem;
     border-radius: 3px;
+    cursor: help;
 }
 
 .indicator.valid {
@@ -117,34 +119,42 @@ body {
     color: #383d41;
 }
 
-.preview-list {
-    flex: 1;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    padding: 0.5rem;
-}
-
-.preview-row {
-    padding: 0.5rem;
-    border-bottom: 1px solid #eee;
+.indicator-info {
+    padding: 0.25rem;
     font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.preview-row:last-child {
-    border-bottom: none;
+.indicator-preview {
+    padding: 0.25rem;
+    font-family: monospace;
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.indicator-link {
+    text-align: center;
 }
 
 .preview-output {
     font-family: monospace;
     white-space: pre-wrap;
     word-break: break-all;
-}
-
-.final-preview {
-    margin-top: 1rem;
     padding: 1rem;
     border: 1px solid #dee2e6;
-    background: #f8f9fa;
+    background: #ffffff;
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+.final-preview-section {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .actions {
