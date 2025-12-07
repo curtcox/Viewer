@@ -321,7 +321,8 @@
                 // Now fetch a small portion to get preview text
                 const previewResponse = await fetch(url);
                 const text = await previewResponse.text();
-                const PREVIEW_LENGTH = 50;
+                // Use a longer preview length to fill available space on the line
+                const PREVIEW_LENGTH = 200;
                 const preview = text.substring(0, PREVIEW_LENGTH);
                 
                 // Update Size column

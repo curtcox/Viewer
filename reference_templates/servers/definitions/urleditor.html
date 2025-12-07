@@ -11,8 +11,20 @@
 <body>
     <div class="editor-container">
         <div class="header">
-            <h2>URL Editor</h2>
-            <p class="text-muted">Build and test chained server URLs interactively</p>
+            <div class="header-content">
+                <div class="header-text">
+                    <h2>URL Editor</h2>
+                    <p class="text-muted">Build and test chained server URLs interactively</p>
+                </div>
+                <div class="header-actions">
+                    <button id="copy-url-btn" class="btn btn-primary">
+                        <i class="fas fa-copy"></i> Copy URL
+                    </button>
+                    <button id="open-url-btn" class="btn btn-success">
+                        <i class="fas fa-external-link-alt"></i> Open URL
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div class="main-content">
@@ -20,14 +32,6 @@
                 <div class="section-title">URL Editor</div>
                 <div class="editor-wrapper">
                     <div id="url-editor">{{ESCAPED_URL}}</div>
-                </div>
-                <div class="actions">
-                    <button id="copy-url-btn" class="btn btn-primary">
-                        <i class="fas fa-copy"></i> Copy URL
-                    </button>
-                    <button id="open-url-btn" class="btn btn-success">
-                        <i class="fas fa-external-link-alt"></i> Open URL
-                    </button>
                 </div>
             </div>
             

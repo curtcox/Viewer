@@ -17,6 +17,22 @@ body {
     margin-bottom: 1rem;
 }
 
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.header-text {
+    flex: 1;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .main-content {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -85,7 +101,7 @@ body {
 
 .indicator-row {
     display: grid;
-    grid-template-columns: 30px 30px 30px 30px 30px minmax(60px, 80px) minmax(80px, 120px) 60px 1fr;
+    grid-template-columns: 30px 30px 30px 30px 30px 60px 80px 50px 1fr;
     gap: 0.25rem;
     padding: 0.5rem;
     border-bottom: 1px solid #eee;
@@ -157,8 +173,4 @@ body {
     flex-direction: column;
 }
 
-.actions {
-    margin-top: 1rem;
-    display: flex;
-    gap: 0.5rem;
-}
+
