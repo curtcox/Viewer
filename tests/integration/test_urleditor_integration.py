@@ -160,3 +160,24 @@ def main():
         # Final Output Preview should still exist at the bottom
         assert 'Final Output Preview' in data
         assert 'final-output' in data
+    
+    def test_urleditor_uses_meta_endpoint(self, memory_client):
+        """Test that the URL Editor JavaScript uses the /meta endpoint."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for the new fetchMetadata function that queries /meta
+        assert 'fetchMetadata' in data
+        assert '/meta/' in data
+        assert 'updateIndicatorsFromMetadata' in data
+    
+    def test_urleditor_verbose_hover_text(self, memory_client):
+        """Test that the URL Editor has verbose hover text for indicators."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for verbose hover text descriptions
+        assert 'this is a valid URL path segment' in data or 'valid URL path segment' in data
+        assert 'can accept chained input' in data or 'chaining' in data.lower()
