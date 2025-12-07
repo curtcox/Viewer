@@ -321,7 +321,8 @@
                 // Now fetch a small portion to get preview text
                 const previewResponse = await fetch(url);
                 const text = await previewResponse.text();
-                const preview = text.substring(0, 50);
+                const PREVIEW_LENGTH = 50;
+                const preview = text.substring(0, PREVIEW_LENGTH);
                 
                 // Update Size column
                 const sizeElement = document.getElementById(`size-${index}`);
@@ -333,7 +334,9 @@
                 // Update Type column
                 const typeElement = document.getElementById(`type-${index}`);
                 if (typeElement) {
-                    const shortType = contentType.split(';')[0].split('/').pop();
+                    // Safely extract the short type name from content-type
+                    const typeParts = contentType.split(';')[0].split('/');
+                    const shortType = typeParts.length > 1 ? typeParts.pop() : contentType;
                     typeElement.textContent = shortType;
                     typeElement.title = `Content-Type: ${contentType}`;
                 }
@@ -341,8 +344,8 @@
                 // Update Preview column
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.textContent = preview + (text.length > 50 ? '...' : '');
-                    previewElement.title = preview + (text.length > 50 ? '...' : '');
+                    previewElement.textContent = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
+                    previewElement.title = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
                 }
                 
                 // Update the link to point to this URL
