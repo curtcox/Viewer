@@ -155,10 +155,51 @@
             return url.replace(/\/+/g, '/');
         }
         
+        toBase64Url(buffer) {
+            // Convert buffer to base64url format (RFC 4648)
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+        
+        encodeLength(length) {
+            // Encode length as 6-byte big-endian integer
+            const bytes = new Uint8Array(6);
+            for (let i = 5; i >= 0; i--) {
+                bytes[i] = length & 0xff;
+                length = length >>> 8;
+            }
+            return this.toBase64Url(bytes.buffer);
+        }
+        
+        async computeCid(content) {
+            // Compute CID from content using the 256t.org algorithm
+            const encoder = new TextEncoder();
+            const contentBytes = encoder.encode(content);
+            const length = contentBytes.length;
+            
+            const prefix = this.encodeLength(length);
+            let suffix;
+            
+            if (length <= 64) {
+                // For small content, embed directly
+                suffix = this.toBase64Url(contentBytes.buffer);
+            } else {
+                // For larger content, use SHA-512 hash
+                const hashBuffer = await crypto.subtle.digest('SHA-512', contentBytes);
+                suffix = this.toBase64Url(hashBuffer);
+            }
+            
+            return prefix + suffix;
+        }
+        
         async textToCidLiteral(text) {
-            // Generate a real CID from the text content
-            // This calls the /api/cid/generate endpoint to create and store the CID
+            // Generate a real CID from the text content using 256t.org algorithm
             try {
+                const cid = await this.computeCid(text);
+                
+                // Store the CID in the backend so it can be resolved later
                 const response = await fetch('/api/cid/generate', {
                     method: 'POST',
                     headers: {
@@ -166,17 +207,23 @@
                     },
                     body: JSON.stringify({
                         content: text,
-                        store: true  // Store the CID so it can be resolved later
+                        store: true
                     })
                 });
                 
                 if (!response.ok) {
-                    console.error(`Error generating CID: ${response.status} ${response.statusText}`);
-                    return null;
+                    console.error(`Error storing CID: ${response.status} ${response.statusText}`);
+                    // Return the computed CID even if storage fails
+                    return cid;
                 }
                 
+                // Verify the backend computed the same CID
                 const data = await response.json();
-                return data.cid_value;
+                if (data.cid_value !== cid) {
+                    console.warn(`CID mismatch: computed ${cid}, backend returned ${data.cid_value}`);
+                }
+                
+                return cid;
             } catch (error) {
                 console.error('Error generating CID from text:', error);
                 return null;
@@ -278,52 +325,6 @@
                 return await response.json();
             } catch (error) {
                 console.error('Error fetching metadata for', segment, error);
-                return null;
-            }
-        }
-        
-        detectLanguageFromContent(content) {
-            // Detect programming language from content
-            if (!content) return null;
-            
-            // Check for shebang line
-            const lines = content.split('\n');
-            const firstLine = lines[0]?.trim() || '';
-            
-            if (firstLine.startsWith('#!')) {
-                if (firstLine.includes('bash') || firstLine.includes('sh')) {
-                    return 'bash';
-                } else if (firstLine.includes('python')) {
-                    return 'python';
-                } else if (firstLine.includes('node')) {
-                    return 'javascript';
-                }
-            }
-            
-            // Check for Python patterns
-            if (content.includes('def main(') || content.includes('def main():')) {
-                return 'python';
-            }
-            
-            // Check for bash patterns
-            if (content.includes('#!/bin/bash') || content.includes('#!/bin/sh')) {
-                return 'bash';
-            }
-            
-            // Default to unknown
-            return null;
-        }
-        
-        async fetchCidContent(cid) {
-            // Fetch CID content to analyze it
-            try {
-                const response = await fetch(`/${cid}`);
-                if (!response.ok) {
-                    return null;
-                }
-                return await response.text();
-            } catch (error) {
-                console.error('Error fetching CID content:', error);
                 return null;
             }
         }
@@ -440,7 +441,7 @@
         }
         
         async updateIndicatorsFromMetadata(index, segment, metadata, isLastSegment) {
-            // Determine indicator states based on metadata
+            // Determine indicator states based on metadata from /meta endpoint
             let isServer = false;
             let isValidCid = false;
             let supportsChaining = false;
@@ -449,37 +450,24 @@
             if (metadata && metadata.resolution) {
                 const res = metadata.resolution;
                 
-                // Check if it's a server
+                // Check if it's a server (named server)
                 if (res.type === 'server_execution' || res.type === 'server_function_execution') {
                     isServer = res.available === true;
                     supportsChaining = res.supports_chaining === true;
-                    language = res.language || 'python';
+                    language = res.language || '-';
                 }
                 
                 // Check if it's a CID
                 if (res.type === 'cid') {
                     isValidCid = true;
-                    // If CID has server info, use it
+                    // If CID has server info (CID contains a server definition), use it
                     if (res.server) {
-                        language = res.server.language || 'python';
+                        language = res.server.language || '-';
                         supportsChaining = res.server.supports_chaining === true;
                         isServer = true;  // CID with server definition is also a server
-                    } else {
-                        // Try to detect language from CID content
-                        const content = await this.fetchCidContent(segment);
-                        if (content) {
-                            const detectedLang = this.detectLanguageFromContent(content);
-                            if (detectedLang) {
-                                language = detectedLang;
-                                // If we detected a language, assume it's a server
-                                isServer = true;
-                                // Assume bash and python servers support chaining
-                                if (detectedLang === 'bash' || detectedLang === 'python') {
-                                    supportsChaining = true;
-                                }
-                            }
-                        }
                     }
+                    // Otherwise, language and server status remain at defaults
+                    // The /meta endpoint should provide all necessary information
                 }
             }
             
