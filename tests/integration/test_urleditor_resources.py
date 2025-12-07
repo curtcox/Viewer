@@ -79,7 +79,8 @@ class TestURLEditorResources:
         assert 'editor-wrapper' in html_content
         assert 'url-editor' in html_content
         assert 'indicators-list' in html_content
-        assert 'preview-list' in html_content
+        # Note: preview-list was removed, replaced with final-preview-section
+        assert 'final-preview-section' in html_content
         assert 'final-output' in html_content
         
         # Check for buttons
