@@ -99,6 +99,23 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         ]),
     }
 
+    # Check if this CID is associated with any server definitions
+    from db_access import get_servers
+    servers = get_servers()
+    server_info = None
+    for server in servers:
+        if server.definition_cid == cid_value:
+            server_info = {
+                "name": server.name,
+                "enabled": server.enabled,
+                "supports_chaining": True,  # Python servers typically support chaining
+                "language": "python",  # Most server definitions are Python
+            }
+            break
+    
+    if server_info:
+        metadata["resolution"]["server"] = server_info
+
     server_events = server_events_for_cid(cid_value)
     if server_events:
         metadata["server_events"] = server_events

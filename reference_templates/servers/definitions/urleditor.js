@@ -233,10 +233,11 @@
             return lines.map(line => ({
                 text: line.trim(),
                 isValidSegment: this.isValidPathSegment(line.trim()),
-                isServer: this.isKnownServer(line.trim()),
-                isValidCid: this.isValidCid(line.trim()),
-                supportsChaining: this.supportsChaining(line.trim()),
-                language: this.getLanguage(line.trim())
+                // These will be updated asynchronously via fetchMetadata
+                isServer: null,
+                isValidCid: null,
+                supportsChaining: null,
+                language: null
             }));
         }
         
@@ -245,31 +246,18 @@
             return text.length > 0 && !/[\s<>"]/.test(text);
         }
         
-        isKnownServer(text) {
-            // Placeholder - would check against known servers
-            const knownServers = ['echo', 'markdown', 'shell', 'ai_stub', 'jinja', 'glom'];
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            return knownServers.includes(cleaned);
-        }
-        
-        isValidCid(text) {
-            // Check if text starts with # or looks like a CID
-            return text.startsWith('#') || /^AAAAAAA[A-Za-z0-9_-]+$/.test(text);
-        }
-        
-        supportsChaining(text) {
-            // Placeholder - would check server capabilities
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            return this.isKnownServer(cleaned);
-        }
-        
-        getLanguage(text) {
-            // Placeholder - would detect language
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            if (this.isKnownServer(cleaned)) {
-                return 'python';
+        async fetchMetadata(segment) {
+            // Fetch metadata from /meta/{segment} endpoint
+            try {
+                const response = await fetch(`/meta/${encodeURIComponent(segment)}`);
+                if (!response.ok) {
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching metadata for', segment, error);
+                return null;
             }
-            return '-';
         }
         
         escapeHtml(text) {
@@ -281,11 +269,11 @@
         
         renderIndicatorRow(line, index) {
             const indicators = [
-                { label: 'Valid', value: line.isValidSegment, detail: `Valid: ${line.isValidSegment ? 'Yes' : 'No'}` },
-                { label: 'Server', value: line.isServer, detail: `Server: ${line.isServer ? 'Yes' : 'No'}` },
-                { label: 'CID', value: line.isValidCid, detail: `CID: ${line.isValidCid ? 'Yes' : 'No'}` },
-                { label: 'Chain', value: line.supportsChaining, detail: `Chain: ${line.supportsChaining ? 'Yes' : 'No'}` },
-                { label: this.escapeHtml(line.language), value: line.language !== '-', detail: `Language: ${this.escapeHtml(line.language)}` }
+                { label: 'Valid', value: line.isValidSegment, detail: `Valid path segment: ${line.isValidSegment ? 'Yes - this is a valid URL path segment' : 'No - contains invalid characters'}`, id: `valid-${index}` },
+                { label: 'Server', value: line.isServer, detail: `Server: Loading metadata...`, id: `server-${index}` },
+                { label: 'CID', value: line.isValidCid, detail: `CID: Loading metadata...`, id: `cid-${index}` },
+                { label: 'Chain', value: line.supportsChaining, detail: `Chaining: Loading metadata...`, id: `chain-${index}` },
+                { label: line.language || '-', value: line.language !== '-' && line.language !== null, detail: `Language: Loading metadata...`, id: `lang-${index}` }
             ];
             
             let html = '<div class="indicator-row" data-index="' + index + '">';
@@ -294,7 +282,7 @@
             for (const ind of indicators) {
                 const cssClass = ind.value === true ? 'valid' : (ind.value === false ? 'invalid' : 'unknown');
                 const icon = ind.value === true ? '✓' : (ind.value === false ? '✗' : '-');
-                html += `<div class="indicator ${this.escapeHtml(cssClass)}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
+                html += `<div class="indicator ${this.escapeHtml(cssClass)}" id="${ind.id}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
             }
             
             // Add Size, Type, View, Preview columns
@@ -309,6 +297,13 @@
         
         async fetchPreviewData(lines, index) {
             try {
+                // Fetch metadata for this segment first
+                const segment = lines[index].text;
+                const metadata = await this.fetchMetadata(segment);
+                
+                // Update indicators based on metadata
+                await this.updateIndicatorsFromMetadata(index, segment, metadata, index === lines.length - 1);
+                
                 // Build URL up to and including this line
                 const urlSegments = lines.slice(0, index + 1).map(l => l.text);
                 const url = '/' + urlSegments.join('/');
@@ -373,6 +368,122 @@
                     previewElement.textContent = 'Error loading';
                     previewElement.title = error.message;
                 }
+            }
+        }
+        
+        async updateIndicatorsFromMetadata(index, segment, metadata, isLastSegment) {
+            // Determine indicator states based on metadata
+            let isServer = false;
+            let isValidCid = false;
+            let supportsChaining = false;
+            let language = '-';
+            
+            if (metadata && metadata.resolution) {
+                const res = metadata.resolution;
+                
+                // Check if it's a server
+                if (res.type === 'server_execution' || res.type === 'server_function_execution') {
+                    isServer = res.available === true;
+                    supportsChaining = res.supports_chaining === true;
+                    language = res.language || 'python';
+                }
+                
+                // Check if it's a CID
+                if (res.type === 'cid') {
+                    isValidCid = true;
+                    // If CID has server info, use it
+                    if (res.server) {
+                        language = res.server.language || 'python';
+                        supportsChaining = res.server.supports_chaining === true;
+                    }
+                }
+            }
+            
+            // Update Server indicator
+            // Green if valid server, red if not a server (unless last segment = gray)
+            const serverElement = document.getElementById(`server-${index}`);
+            if (serverElement) {
+                let cssClass, icon, detail;
+                if (isServer) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'Server: Yes - this segment specifies a valid server that can execute code';
+                } else if (isLastSegment) {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Server: Unknown - this is the last segment, server validation not required';
+                } else {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'Server: No - this segment does not specify a valid server';
+                }
+                serverElement.className = `indicator ${cssClass}`;
+                serverElement.textContent = icon;
+                serverElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update CID indicator
+            // Gray if not a CID, green if valid CID with content, red if invalid/unavailable
+            const cidElement = document.getElementById(`cid-${index}`);
+            if (cidElement) {
+                let cssClass, icon, detail;
+                if (isValidCid) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'CID: Yes - this is a valid Content Identifier with available content';
+                } else if (/^AAAAAAA[A-Za-z0-9_-]+$/.test(segment) || segment.startsWith('#')) {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'CID: Invalid - this looks like a CID but the content is not available';
+                } else {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'CID: No - this segment is not a Content Identifier';
+                }
+                cidElement.className = `indicator ${cssClass}`;
+                cidElement.textContent = icon;
+                cidElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update Chain indicator
+            // Green if supports chaining, gray if last segment, red otherwise
+            const chainElement = document.getElementById(`chain-${index}`);
+            if (chainElement) {
+                let cssClass, icon, detail;
+                if (supportsChaining) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'Chaining: Yes - this server can accept chained input from previous segments';
+                } else if (isLastSegment) {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Chaining: N/A - this is the last segment, chaining capability not required';
+                } else {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'Chaining: No - this segment cannot accept chained input';
+                }
+                chainElement.className = `indicator ${cssClass}`;
+                chainElement.textContent = icon;
+                chainElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update Language indicator
+            const langElement = document.getElementById(`lang-${index}`);
+            if (langElement) {
+                let cssClass, icon, detail;
+                if (language && language !== '-') {
+                    cssClass = 'valid';
+                    icon = language;
+                    detail = `Language: ${language} - implementation language of this server`;
+                } else {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Language: Unknown - language information not available';
+                }
+                langElement.className = `indicator ${cssClass}`;
+                langElement.textContent = icon;
+                langElement.setAttribute('data-detail', detail);
             }
         }
         
