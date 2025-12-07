@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from flask import url_for
 
 from cid_presenter import cid_path, format_cid
-from db_access import find_server_invocations_by_cid, get_cid_by_path
+from db_access import find_server_invocations_by_cid, get_cid_by_path, get_servers
 from entity_references import extract_references_from_bytes
 
 from .meta_path_utils import dedupe_links, split_extension
@@ -100,11 +100,12 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
     }
 
     # Check if this CID is associated with any server definitions
-    from db_access import get_servers
     servers = get_servers()
     server_info = None
     for server in servers:
         if server.definition_cid == cid_value:
+            # TODO: Detect language and chaining support dynamically from server definition
+            # For now, assume Python and chaining support as that's the common case
             server_info = {
                 "name": server.name,
                 "enabled": server.enabled,

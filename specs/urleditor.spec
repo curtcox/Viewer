@@ -134,3 +134,17 @@ chained server URLs. It stores state in the browser URL fragment.
 * Then the text "#ls" should be converted to a CID format
 * And the indicator should show it is a CID literal
 * And the URL fragment should contain the CID literal
+
+## URL Editor uses /meta endpoint for segment information
+* Given the default boot image is loaded
+* When I request the resource /urleditor
+* Then the response should contain "fetchMetadata"
+* And the response should contain "/meta/"
+* And the response should contain "updateIndicatorsFromMetadata"
+
+## URL Editor has verbose hover text for indicators
+* Given the default boot image is loaded
+* When I request the resource /urleditor
+* Then the response should contain "valid URL path segment"
+* And the response should contain "can accept chained input"
+* And the response should contain "Content Identifier"

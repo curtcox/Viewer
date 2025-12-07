@@ -251,6 +251,7 @@
             try {
                 const response = await fetch(`/meta/${encodeURIComponent(segment)}`);
                 if (!response.ok) {
+                    console.error(`Error fetching metadata for "${segment}": ${response.status} ${response.statusText}`);
                     return null;
                 }
                 return await response.json();
