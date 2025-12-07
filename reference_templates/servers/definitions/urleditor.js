@@ -175,6 +175,8 @@
         
         async computeCid(content) {
             // Compute CID from content using the 256t.org algorithm
+            // See: https://github.com/curtcox/256t.org for specification
+            // Format: <6-byte length prefix><content or SHA-512 hash> encoded as base64url
             const encoder = new TextEncoder();
             const contentBytes = encoder.encode(content);
             const length = contentBytes.length;
@@ -183,10 +185,13 @@
             let suffix;
             
             if (length <= 64) {
-                // For small content, embed directly
+                // For small content (<= 64 bytes), embed directly
                 suffix = this.toBase64Url(contentBytes.buffer);
             } else {
-                // For larger content, use SHA-512 hash
+                // For larger content (> 64 bytes), use SHA-512 hash
+                if (!crypto.subtle) {
+                    throw new Error('crypto.subtle not available - requires HTTPS or localhost');
+                }
                 const hashBuffer = await crypto.subtle.digest('SHA-512', contentBytes);
                 suffix = this.toBase64Url(hashBuffer);
             }
@@ -196,6 +201,7 @@
         
         async textToCidLiteral(text) {
             // Generate a real CID from the text content using 256t.org algorithm
+            // and store it in the backend for later resolution
             try {
                 const cid = await this.computeCid(text);
                 
@@ -213,7 +219,9 @@
                 
                 if (!response.ok) {
                     console.error(`Error storing CID: ${response.status} ${response.statusText}`);
-                    // Return the computed CID even if storage fails
+                    // Note: Returning computed CID even though storage failed
+                    // This may cause issues if the CID is later accessed before manual storage
+                    console.warn('CID will not be resolvable until content is uploaded manually');
                     return cid;
                 }
                 
@@ -221,6 +229,8 @@
                 const data = await response.json();
                 if (data.cid_value !== cid) {
                     console.warn(`CID mismatch: computed ${cid}, backend returned ${data.cid_value}`);
+                    // Use backend's CID as it's the authoritative source
+                    return data.cid_value;
                 }
                 
                 return cid;
