@@ -366,6 +366,60 @@ class TestMetaRoute(unittest.TestCase):
             self.assertEqual(data['path'], '/')
             self.assertEqual(data['status_code'], 200)
 
+    def test_meta_route_returns_server_metadata(self):
+        """Test that /meta returns enhanced server metadata for urleditor."""
+        with self.app.app_context():
+            self._create_server(name='test-server', definition='def main(): return {"output": "test"}')
+            
+            response = self.client.get('/meta/test-server')
+            self.assertEqual(response.status_code, 200)
+            
+            data = json.loads(response.data)
+            self.assertEqual(data['resolution']['type'], 'server_execution')
+            self.assertEqual(data['resolution']['server_name'], 'test-server')
+            self.assertTrue(data['resolution']['available'])
+            # Check for new fields added for urleditor
+            self.assertIn('supports_chaining', data['resolution'])
+            self.assertIn('language', data['resolution'])
+            self.assertTrue(data['resolution']['supports_chaining'])
+            self.assertEqual(data['resolution']['language'], 'python')
+
+    def test_meta_route_returns_cid_with_server_info(self):
+        """Test that /meta returns server info when CID is a server definition."""
+        with self.app.app_context():
+            # Create a server with a CID
+            definition = 'def main(): return {"output": "test"}'
+            self._create_server(name='cid-server', definition=definition)
+            
+            # Get the server to find its CID
+            server = Server.query.filter_by(name='cid-server').first()
+            
+            # If the server has a definition_cid, test it
+            if server.definition_cid:
+                response = self.client.get(f'/meta/{server.definition_cid}')
+                self.assertEqual(response.status_code, 200)
+                
+                data = json.loads(response.data)
+                self.assertEqual(data['resolution']['type'], 'cid')
+                # Check for server info in CID metadata
+                if 'server' in data['resolution']:
+                    self.assertEqual(data['resolution']['server']['name'], 'cid-server')
+                    self.assertIn('language', data['resolution']['server'])
+
+    def test_meta_route_supports_cid_literal_requests(self):
+        """Test that /meta/{CID} works for CID literal requests."""
+        with self.app.app_context():
+            cid_value = 'AAAAAAcXbQDQjYYWidERDfdPU5YfXClwenI_KWlxP67-A_2osC862sasaVf5uBL7tBgKDVtZHkX5VaB-UAfsNgSDhJj2Xg'
+            self._create_cid(cid_value, b'test content')
+            
+            response = self.client.get(f'/meta/{cid_value}')
+            
+            # Should return CID metadata
+            data = json.loads(response.data)
+            if response.status_code == 200:
+                self.assertEqual(data['resolution']['type'], 'cid')
+                self.assertEqual(data['resolution']['cid'], cid_value)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -41,6 +41,15 @@ def resolve_server_path(path: str) -> Optional[Dict[str, Any]]:
     if not server:
         return None
 
+    # Add server metadata for urleditor
+    # TODO: Detect language and chaining support dynamically from server definition
+    # For now, assume Python and chaining support as that's the common case
+    payload["resolution"].update({
+        "enabled": server.enabled,
+        "supports_chaining": True,  # Python servers typically support chaining
+        "language": "python",  # Most server definitions are Python
+    })
+
     if function_name:
         from server_execution import describe_function_parameters
 

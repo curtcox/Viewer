@@ -160,3 +160,57 @@ def main():
         # Final Output Preview should still exist at the bottom
         assert 'Final Output Preview' in data
         assert 'final-output' in data
+    
+    def test_urleditor_uses_meta_endpoint(self, memory_client):
+        """Test that the URL Editor JavaScript uses the /meta endpoint."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for the new fetchMetadata function that queries /meta
+        assert 'fetchMetadata' in data
+        assert '/meta/' in data
+        assert 'updateIndicatorsFromMetadata' in data
+    
+    def test_urleditor_verbose_hover_text(self, memory_client):
+        """Test that the URL Editor has verbose hover text for indicators."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for verbose hover text descriptions
+        assert 'this is a valid URL path segment' in data or 'valid URL path segment' in data
+        assert 'can accept chained input' in data or 'chaining' in data.lower()
+    
+    def test_urleditor_view_links_cumulative_paths(self, memory_client):
+        """Test that View links show cumulative paths from current line to end."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check that the JavaScript builds cumulative paths correctly
+        # The View link should use lines.slice(index) to get segments from current to end
+        assert 'lines.slice(index)' in data or 'slice(index)' in data
+        assert 'urlSegments.join' in data
+    
+    def test_urleditor_input_preview_functionality(self, memory_client):
+        """Test that the Input Preview column fetches input from next segments."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check that input preview logic fetches from next segments
+        assert 'index < lines.length - 1' in data or 'next segment' in data.lower()
+        assert 'lines.slice(index + 1)' in data or 'slice(index + 1)' in data
+        # Preview element should be updated
+        assert 'preview-' in data
+    
+    def test_urleditor_view_link_structure(self, memory_client):
+        """Test that View links have correct HTML structure."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for link element creation with proper ID pattern
+        assert 'link-' in data
+        assert 'linkElement.href' in data or 'href' in data

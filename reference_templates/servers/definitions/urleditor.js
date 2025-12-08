@@ -116,14 +116,14 @@
             });
         }
         
-        updateFromEditor() {
+        async updateFromEditor() {
             const editorContent = this.editor.getValue();
-            this.currentUrl = this.normalizeUrl(editorContent);
+            this.currentUrl = await this.normalizeUrl(editorContent);
             this.updateHash();
             this.updateUI();
         }
         
-        normalizeUrl(content) {
+        async normalizeUrl(content) {
             // Handle CID literal conversion (lines starting with #)
             // Split into lines directly without redundant replacement
             const lines = content.split(/\r\n|\n|\r/);
@@ -135,11 +135,14 @@
                 
                 if (line.startsWith('#')) {
                     // Convert text to CID literal
-                    // For now, just use the text as-is
-                    // In production, this would convert to actual CID format
                     const cidText = line.substring(1).trim();
-                    const cidPath = this.textToCidLiteral(cidText);
-                    segments.push(cidPath);
+                    const cidPath = await this.textToCidLiteral(cidText);
+                    if (cidPath) {
+                        segments.push(cidPath);
+                    } else {
+                        // If CID generation failed, keep original text for debugging
+                        segments.push(line);
+                    }
                 } else {
                     segments.push(line);
                 }
@@ -152,11 +155,89 @@
             return url.replace(/\/+/g, '/');
         }
         
-        textToCidLiteral(text) {
-            // Convert text to CID literal format
-            // This is a simplified version - actual implementation would use proper CID encoding
-            const base64like = btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-            return `AAAAAAA${base64like.substring(0, 20)}`;
+        toBase64Url(buffer) {
+            // Convert buffer to base64url format (RFC 4648)
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(buffer)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+        
+        encodeLength(length) {
+            // Encode length as 6-byte big-endian integer
+            const bytes = new Uint8Array(6);
+            for (let i = 5; i >= 0; i--) {
+                bytes[i] = length & 0xff;
+                length = length >>> 8;
+            }
+            return this.toBase64Url(bytes.buffer);
+        }
+        
+        async computeCid(content) {
+            // Compute CID from content using the 256t.org algorithm
+            // See: https://github.com/curtcox/256t.org for specification
+            // Format: <6-byte length prefix><content or SHA-512 hash> encoded as base64url
+            const encoder = new TextEncoder();
+            const contentBytes = encoder.encode(content);
+            const length = contentBytes.length;
+            
+            const prefix = this.encodeLength(length);
+            let suffix;
+            
+            if (length <= 64) {
+                // For small content (<= 64 bytes), embed directly
+                suffix = this.toBase64Url(contentBytes.buffer);
+            } else {
+                // For larger content (> 64 bytes), use SHA-512 hash
+                if (!crypto.subtle) {
+                    throw new Error('crypto.subtle not available - requires HTTPS or localhost');
+                }
+                const hashBuffer = await crypto.subtle.digest('SHA-512', contentBytes);
+                suffix = this.toBase64Url(hashBuffer);
+            }
+            
+            return prefix + suffix;
+        }
+        
+        async textToCidLiteral(text) {
+            // Generate a real CID from the text content using 256t.org algorithm
+            // and store it in the backend for later resolution
+            try {
+                const cid = await this.computeCid(text);
+                
+                // Store the CID in the backend so it can be resolved later
+                const response = await fetch('/api/cid/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: text,
+                        store: true
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.error(`Error storing CID: ${response.status} ${response.statusText}`);
+                    // Note: Returning computed CID even though storage failed
+                    // This may cause issues if the CID is later accessed before manual storage
+                    console.warn('CID will not be resolvable until content is uploaded manually');
+                    return cid;
+                }
+                
+                // Verify the backend computed the same CID
+                const data = await response.json();
+                if (data.cid_value !== cid) {
+                    console.warn(`CID mismatch: computed ${cid}, backend returned ${data.cid_value}`);
+                    // Use backend's CID as it's the authoritative source
+                    return data.cid_value;
+                }
+                
+                return cid;
+            } catch (error) {
+                console.error('Error generating CID from text:', error);
+                return null;
+            }
         }
         
         updateHash() {
@@ -180,14 +261,26 @@
         }
         
         updateIndicators() {
-            const lines = this.parseUrlLines();
+            // Parse segments from the current normalized URL
+            const urlSegments = this.currentUrl ? this.currentUrl.split('/').filter(s => s) : [];
             const indicatorsList = document.getElementById('indicators-list');
             
-            if (lines.length === 0) {
+            if (urlSegments.length === 0) {
                 indicatorsList.innerHTML = '<div class="text-muted text-center">Edit URL to see indicators</div>';
                 document.getElementById('final-output').textContent = '-';
                 return;
             }
+            
+            // Create line objects from URL segments
+            const lines = urlSegments.map(segment => ({
+                text: segment,
+                isValidSegment: this.isValidPathSegment(segment),
+                // These will be updated asynchronously via fetchMetadata
+                isServer: null,
+                isValidCid: null,
+                supportsChaining: null,
+                language: null
+            }));
             
             let html = '';
             for (let i = 0; i < lines.length; i++) {
@@ -226,50 +319,24 @@
             });
         }
         
-        parseUrlLines() {
-            const editorContent = this.editor.getValue();
-            const lines = editorContent.split(/\r\n|\n|\r/).filter(l => l.trim());
-            
-            return lines.map(line => ({
-                text: line.trim(),
-                isValidSegment: this.isValidPathSegment(line.trim()),
-                isServer: this.isKnownServer(line.trim()),
-                isValidCid: this.isValidCid(line.trim()),
-                supportsChaining: this.supportsChaining(line.trim()),
-                language: this.getLanguage(line.trim())
-            }));
-        }
-        
         isValidPathSegment(text) {
             // Simple validation - non-empty and URL-safe
             return text.length > 0 && !/[\s<>"]/.test(text);
         }
         
-        isKnownServer(text) {
-            // Placeholder - would check against known servers
-            const knownServers = ['echo', 'markdown', 'shell', 'ai_stub', 'jinja', 'glom'];
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            return knownServers.includes(cleaned);
-        }
-        
-        isValidCid(text) {
-            // Check if text starts with # or looks like a CID
-            return text.startsWith('#') || /^AAAAAAA[A-Za-z0-9_-]+$/.test(text);
-        }
-        
-        supportsChaining(text) {
-            // Placeholder - would check server capabilities
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            return this.isKnownServer(cleaned);
-        }
-        
-        getLanguage(text) {
-            // Placeholder - would detect language
-            const cleaned = text.replace(/^#+/, '').replace(/^[/]+/, '');
-            if (this.isKnownServer(cleaned)) {
-                return 'python';
+        async fetchMetadata(segment) {
+            // Fetch metadata from /meta/{segment} endpoint
+            try {
+                const response = await fetch(`/meta/${encodeURIComponent(segment)}`);
+                if (!response.ok) {
+                    console.error(`Error fetching metadata for "${segment}": ${response.status} ${response.statusText}`);
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching metadata for', segment, error);
+                return null;
             }
-            return '-';
         }
         
         escapeHtml(text) {
@@ -281,11 +348,11 @@
         
         renderIndicatorRow(line, index) {
             const indicators = [
-                { label: 'Valid', value: line.isValidSegment, detail: `Valid: ${line.isValidSegment ? 'Yes' : 'No'}` },
-                { label: 'Server', value: line.isServer, detail: `Server: ${line.isServer ? 'Yes' : 'No'}` },
-                { label: 'CID', value: line.isValidCid, detail: `CID: ${line.isValidCid ? 'Yes' : 'No'}` },
-                { label: 'Chain', value: line.supportsChaining, detail: `Chain: ${line.supportsChaining ? 'Yes' : 'No'}` },
-                { label: this.escapeHtml(line.language), value: line.language !== '-', detail: `Language: ${this.escapeHtml(line.language)}` }
+                { label: 'Valid', value: line.isValidSegment, detail: `Valid path segment: ${line.isValidSegment ? 'Yes - this is a valid URL path segment' : 'No - contains invalid characters'}`, id: `valid-${index}` },
+                { label: 'Server', value: line.isServer, detail: `Server: Loading metadata...`, id: `server-${index}` },
+                { label: 'CID', value: line.isValidCid, detail: `CID: Loading metadata...`, id: `cid-${index}` },
+                { label: 'Chain', value: line.supportsChaining, detail: `Chaining: Loading metadata...`, id: `chain-${index}` },
+                { label: line.language || '-', value: line.language !== '-' && line.language !== null, detail: `Language: Loading metadata...`, id: `lang-${index}` }
             ];
             
             let html = '<div class="indicator-row" data-index="' + index + '">';
@@ -294,7 +361,7 @@
             for (const ind of indicators) {
                 const cssClass = ind.value === true ? 'valid' : (ind.value === false ? 'invalid' : 'unknown');
                 const icon = ind.value === true ? '✓' : (ind.value === false ? '✗' : '-');
-                html += `<div class="indicator ${this.escapeHtml(cssClass)}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
+                html += `<div class="indicator ${this.escapeHtml(cssClass)}" id="${ind.id}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
             }
             
             // Add Size, Type, View, Preview columns
@@ -309,8 +376,15 @@
         
         async fetchPreviewData(lines, index) {
             try {
-                // Build URL up to and including this line
-                const urlSegments = lines.slice(0, index + 1).map(l => l.text);
+                // Fetch metadata for this segment first
+                const segment = lines[index].text;
+                const metadata = await this.fetchMetadata(segment);
+                
+                // Update indicators based on metadata
+                await this.updateIndicatorsFromMetadata(index, segment, metadata, index === lines.length - 1);
+                
+                // Build URL from current line to end (cumulative path with remaining segments)
+                const urlSegments = lines.slice(index).map(l => l.text);
                 const url = '/' + urlSegments.join('/');
                 
                 // Make HEAD request to get size and content-type without downloading full content
@@ -318,12 +392,24 @@
                 const contentType = response.headers.get('content-type') || 'unknown';
                 const contentLength = response.headers.get('content-length') || '?';
                 
-                // Now fetch a small portion to get preview text
-                const previewResponse = await fetch(url);
-                const text = await previewResponse.text();
-                // Use a longer preview length to fill available space on the line
-                const PREVIEW_LENGTH = 200;
-                const preview = text.substring(0, PREVIEW_LENGTH);
+                // Fetch input preview - the input this segment receives is the output of the next segment
+                let inputPreview = '';
+                if (index < lines.length - 1) {
+                    // Build URL for the next segment onwards to get what input this segment receives
+                    const nextSegments = lines.slice(index + 1).map(l => l.text);
+                    const nextUrl = '/' + nextSegments.join('/');
+                    try {
+                        const inputResponse = await fetch(nextUrl);
+                        const inputText = await inputResponse.text();
+                        const PREVIEW_LENGTH = 200;
+                        inputPreview = inputText.substring(0, PREVIEW_LENGTH);
+                        if (inputText.length > PREVIEW_LENGTH) {
+                            inputPreview += '...';
+                        }
+                    } catch (error) {
+                        inputPreview = 'Error loading input';
+                    }
+                }
                 
                 // Update Size column
                 const sizeElement = document.getElementById(`size-${index}`);
@@ -342,11 +428,11 @@
                     typeElement.title = `Content-Type: ${contentType}`;
                 }
                 
-                // Update Preview column
+                // Update Preview column - show the input this segment receives
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.textContent = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
-                    previewElement.title = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
+                    previewElement.textContent = inputPreview;
+                    previewElement.title = inputPreview;
                 }
                 
                 // Update the link to point to this URL
@@ -373,6 +459,125 @@
                     previewElement.textContent = 'Error loading';
                     previewElement.title = error.message;
                 }
+            }
+        }
+        
+        async updateIndicatorsFromMetadata(index, segment, metadata, isLastSegment) {
+            // Determine indicator states based on metadata from /meta endpoint
+            let isServer = false;
+            let isValidCid = false;
+            let supportsChaining = false;
+            let language = '-';
+            
+            if (metadata && metadata.resolution) {
+                const res = metadata.resolution;
+                
+                // Check if it's a server (named server)
+                if (res.type === 'server_execution' || res.type === 'server_function_execution') {
+                    isServer = res.available === true;
+                    supportsChaining = res.supports_chaining === true;
+                    language = res.language || '-';
+                }
+                
+                // Check if it's a CID
+                if (res.type === 'cid') {
+                    isValidCid = true;
+                    // If CID has server info (CID contains a server definition), use it
+                    if (res.server) {
+                        language = res.server.language || '-';
+                        supportsChaining = res.server.supports_chaining === true;
+                        isServer = true;  // CID with server definition is also a server
+                    }
+                    // Otherwise, language and server status remain at defaults
+                    // The /meta endpoint should provide all necessary information
+                }
+            }
+            
+            // Update Server indicator
+            // Green if valid server, red if not a server (unless last segment = gray)
+            const serverElement = document.getElementById(`server-${index}`);
+            if (serverElement) {
+                let cssClass, icon, detail;
+                if (isServer) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'Server: Yes - this segment specifies a valid server that can execute code';
+                } else if (isLastSegment) {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Server: Unknown - this is the last segment, server validation not required';
+                } else {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'Server: No - this segment does not specify a valid server';
+                }
+                serverElement.className = `indicator ${cssClass}`;
+                serverElement.textContent = icon;
+                serverElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update CID indicator
+            // Gray if not a CID, green if valid CID with content, red if invalid/unavailable
+            const cidElement = document.getElementById(`cid-${index}`);
+            if (cidElement) {
+                let cssClass, icon, detail;
+                if (isValidCid) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'CID: Yes - this is a valid Content Identifier with available content';
+                } else if (/^AAAAAAA[A-Za-z0-9_-]+$/.test(segment) || segment.startsWith('#')) {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'CID: Invalid - this looks like a CID but the content is not available';
+                } else {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'CID: No - this segment is not a Content Identifier';
+                }
+                cidElement.className = `indicator ${cssClass}`;
+                cidElement.textContent = icon;
+                cidElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update Chain indicator
+            // Green if supports chaining, gray if last segment, red otherwise
+            const chainElement = document.getElementById(`chain-${index}`);
+            if (chainElement) {
+                let cssClass, icon, detail;
+                if (supportsChaining) {
+                    cssClass = 'valid';
+                    icon = '✓';
+                    detail = 'Chaining: Yes - this server can accept chained input from previous segments';
+                } else if (isLastSegment) {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Chaining: N/A - this is the last segment, chaining capability not required';
+                } else {
+                    cssClass = 'invalid';
+                    icon = '✗';
+                    detail = 'Chaining: No - this segment cannot accept chained input';
+                }
+                chainElement.className = `indicator ${cssClass}`;
+                chainElement.textContent = icon;
+                chainElement.setAttribute('data-detail', detail);
+            }
+            
+            // Update Language indicator
+            const langElement = document.getElementById(`lang-${index}`);
+            if (langElement) {
+                let cssClass, icon, detail;
+                if (language && language !== '-') {
+                    cssClass = 'valid';
+                    icon = language;
+                    detail = `Language: ${language} - implementation language of this server`;
+                } else {
+                    cssClass = 'unknown';
+                    icon = '-';
+                    detail = 'Language: Unknown - language information not available';
+                }
+                langElement.className = `indicator ${cssClass}`;
+                langElement.textContent = icon;
+                langElement.setAttribute('data-detail', detail);
             }
         }
         
