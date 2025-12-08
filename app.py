@@ -205,18 +205,18 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     # Register application components
     flask_app.before_request(make_session_permanent)
-    
+
     # Add authorization check for all requests
     @flask_app.before_request
     def check_authorization():
         """Check authorization for each request."""
         from flask import request as flask_request
-        
+
         result = authorize_request(flask_request)
         if not result.allowed:
             return create_authorization_error_response(result)
         return None
-    
+
     flask_app.after_request(track_page_view)
 
     flask_app.register_blueprint(main_bp)

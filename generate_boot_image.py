@@ -112,50 +112,85 @@ class BootImageGenerator:
         
         Args:
             server_def_path: Path to the server definition file (e.g., "reference_templates/servers/definitions/urleditor.py")
-            
+
         Returns:
             CID of the processed server definition, or None if no changes needed
         """
         import re
-        
+
         file_path = self.base_dir / server_def_path
         if not file_path.exists():
             return None
-        
+
         # Read the server definition file
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         # Look for _load_resource_file calls with filename arguments
         # Pattern: _load_resource_file("filename.ext")
         pattern = r'_load_resource_file\(["\']([^"\']+)["\']\)'
         matches = re.findall(pattern, content)
-        
+
         if not matches:
             # No embedded filenames found, return None to use original file
             return None
-        
+
         # Process each referenced file
         server_dir = file_path.parent
-        
+
         for filename in matches:
             resource_path = server_dir / filename
             if not resource_path.exists():
                 print(f"  WARNING: Referenced file not found: {filename} in {server_def_path}")
                 continue
-            
+
             # Generate CID for the referenced file
             relative_resource_path = str(resource_path.relative_to(self.base_dir))
             resource_cid = self.generate_and_store_cid(resource_path, relative_resource_path)
-            
+
             # Replace the filename with CID in the content
             # Replace _load_resource_file("filename") with direct content loading via CID
             # For now, we'll keep the filename but document it should be replaced
             print(f"    Found reference to {filename} -> {resource_cid}")
-        
+
         # For now, return None - in production, we'd return a modified CID
         # The current implementation keeps filenames during development
         return None
+
+    def _process_dict_value(self, key: str, value: Any) -> Any:
+        """Process a single dictionary value during CID replacement.
+
+        Args:
+            key: The dictionary key
+            value: The dictionary value
+
+        Returns:
+            The processed value (possibly replaced with a CID)
+        """
+        # Handle CID or file keys
+        if key.endswith('_cid') or key.endswith('_file'):
+            if isinstance(value, str) and value.startswith('reference_templates/'):
+                if value in self.file_to_cid:
+                    return self.file_to_cid[value]
+                print(f"  WARNING: No CID found for {value}")
+                return value
+            return value
+
+        # Special handling for server definitions
+        if key == 'definition_cid':
+            if isinstance(value, str) and value.endswith('.py'):
+                # pylint: disable=assignment-from-none
+                modified_cid = self.process_server_definition_file(value)
+                if modified_cid:
+                    return modified_cid
+                # No changes needed, generate CID for original file
+                if value in self.file_to_cid:
+                    return self.file_to_cid[value]
+                return value
+            return value
+
+        # Recursively process nested structures
+        return self.replace_filenames_with_cids(value)
 
     def replace_filenames_with_cids(self, data: Any) -> Any:
         """Recursively replace filenames with CIDs in JSON data.
@@ -169,33 +204,7 @@ class BootImageGenerator:
         if isinstance(data, dict):
             result = {}
             for key, value in data.items():
-                if key.endswith('_cid') or key.endswith('_file'):
-                    # Replace filename with CID
-                    if isinstance(value, str) and value.startswith('reference_templates/'):
-                        if value in self.file_to_cid:
-                            result[key] = self.file_to_cid[value]
-                        else:
-                            print(f"  WARNING: No CID found for {value}")
-                            result[key] = value
-                    else:
-                        result[key] = value
-                elif key == 'definition_cid':
-                    # Special handling for server definitions - check for embedded files
-                    if isinstance(value, str) and value.endswith('.py'):
-                        # Process the server definition to find embedded file references
-                        modified_cid = self.process_server_definition_file(value)
-                        if modified_cid:
-                            result[key] = modified_cid
-                        else:
-                            # No changes needed, generate CID for original file
-                            if value in self.file_to_cid:
-                                result[key] = self.file_to_cid[value]
-                            else:
-                                result[key] = value
-                    else:
-                        result[key] = value
-                else:
-                    result[key] = self.replace_filenames_with_cids(value)
+                result[key] = self._process_dict_value(key, value)
             return result
         if isinstance(data, list):
             return [self.replace_filenames_with_cids(item) for item in data]

@@ -18,7 +18,7 @@ class AuthorizationResult:
         status_code: HTTP status code if rejected (e.g., 401, 403).
         message: Human-readable message explaining the rejection.
     """
-    
+
     def __init__(
         self,
         allowed: bool,
@@ -26,7 +26,7 @@ class AuthorizationResult:
         message: Optional[str] = None
     ):
         """Initialize an authorization result.
-        
+
         Args:
             allowed: Whether the request is allowed.
             status_code: HTTP status code for rejection (required if allowed is False).
@@ -35,7 +35,7 @@ class AuthorizationResult:
         self.allowed = allowed
         self.status_code = status_code
         self.message = message
-        
+
         # Validate that rejected requests have status and message
         if not allowed:
             if status_code is None:
