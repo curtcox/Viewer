@@ -301,7 +301,7 @@
         }
         
         setupHoverListeners() {
-            const indicators = document.querySelectorAll('.indicator');
+            const indicators = document.querySelectorAll('.indicator, .indicator-status');
             const sectionTitle = document.getElementById('section-title-text');
             const originalTitle = 'Line Indicators';
             
@@ -346,6 +346,35 @@
             return div.innerHTML;
         }
         
+        updateStatusIndicator(index, status, message) {
+            // Update the status indicator for a specific row
+            // status can be: 'pending', 'valid' (success), or 'invalid' (failure)
+            const statusElement = document.getElementById(`status-${index}`);
+            if (statusElement) {
+                // Remove all status classes
+                statusElement.classList.remove('pending', 'valid', 'invalid', 'unknown');
+                
+                // Add the new status class
+                statusElement.classList.add(status);
+                
+                // Set icon based on status
+                let icon;
+                if (status === 'pending') {
+                    icon = '⏳';
+                } else if (status === 'valid') {
+                    icon = '✓';
+                } else if (status === 'invalid') {
+                    icon = '✗';
+                } else {
+                    icon = '-';
+                }
+                
+                statusElement.textContent = icon;
+                statusElement.setAttribute('data-detail', message);
+                statusElement.title = message;
+            }
+        }
+        
         renderIndicatorRow(line, index) {
             const indicators = [
                 { label: 'Valid', value: line.isValidSegment, detail: `Valid path segment: ${line.isValidSegment ? 'Yes - this is a valid URL path segment' : 'No - contains invalid characters'}`, id: `valid-${index}` },
@@ -364,6 +393,9 @@
                 html += `<div class="indicator ${this.escapeHtml(cssClass)}" id="${ind.id}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
             }
             
+            // Add Status column - starts as pending
+            html += `<div class="indicator-status unknown" id="status-${index}" data-detail="Request status: Not started" title="Request status">-</div>`;
+            
             // Add Size, Type, View, Preview columns
             html += `<div class="indicator-info" id="size-${index}">-</div>`;
             html += `<div class="indicator-info" id="type-${index}">-</div>`;
@@ -375,6 +407,9 @@
         }
         
         async fetchPreviewData(lines, index) {
+            // Set status to pending (yellow)
+            this.updateStatusIndicator(index, 'pending', 'Request in progress...');
+            
             try {
                 // Fetch metadata for this segment first
                 const segment = lines[index].text;
@@ -394,20 +429,27 @@
                 
                 // Fetch input preview - the input this segment receives is the output of the next segment
                 let inputPreview = '';
+                let previewError = null;
                 if (index < lines.length - 1) {
                     // Build URL for the next segment onwards to get what input this segment receives
                     const nextSegments = lines.slice(index + 1).map(l => l.text);
                     const nextUrl = '/' + nextSegments.join('/');
                     try {
                         const inputResponse = await fetch(nextUrl);
-                        const inputText = await inputResponse.text();
-                        const PREVIEW_LENGTH = 200;
-                        inputPreview = inputText.substring(0, PREVIEW_LENGTH);
-                        if (inputText.length > PREVIEW_LENGTH) {
-                            inputPreview += '...';
+                        if (!inputResponse.ok) {
+                            previewError = `HTTP ${inputResponse.status}: ${inputResponse.statusText}`;
+                            inputPreview = `Error: ${previewError}`;
+                        } else {
+                            const inputText = await inputResponse.text();
+                            const PREVIEW_LENGTH = 200;
+                            inputPreview = inputText.substring(0, PREVIEW_LENGTH);
+                            if (inputText.length > PREVIEW_LENGTH) {
+                                inputPreview += '...';
+                            }
                         }
                     } catch (error) {
-                        inputPreview = 'Error loading input';
+                        previewError = error.message;
+                        inputPreview = `Error: ${previewError}`;
                     }
                 }
                 
@@ -444,7 +486,17 @@
                         window.open(url, '_blank');
                     };
                 }
+                
+                // Set status to success (green) if no preview errors occurred
+                if (previewError) {
+                    this.updateStatusIndicator(index, 'invalid', `Request failed: ${previewError}`);
+                } else {
+                    this.updateStatusIndicator(index, 'valid', 'Request completed successfully');
+                }
             } catch (error) {
+                // Set status to failure (red)
+                this.updateStatusIndicator(index, 'invalid', `Request failed: ${error.message}`);
+                
                 const sizeElement = document.getElementById(`size-${index}`);
                 if (sizeElement) {
                     sizeElement.textContent = 'Error';
@@ -456,8 +508,10 @@
                 }
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.textContent = 'Error loading';
-                    previewElement.title = error.message;
+                    // Display failure information instead of preview text
+                    previewElement.textContent = `Failed: ${error.message}`;
+                    previewElement.title = `Request failed: ${error.message}`;
+                    previewElement.style.color = '#721c24';
                 }
             }
         }
