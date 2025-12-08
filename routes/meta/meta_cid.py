@@ -8,6 +8,7 @@ from flask import url_for
 from cid_presenter import cid_path, format_cid
 from db_access import find_server_invocations_by_cid, get_cid_by_path, get_servers
 from entity_references import extract_references_from_bytes
+from server_execution.language_detection import detect_server_language
 
 from .meta_path_utils import dedupe_links, split_extension
 
@@ -99,20 +100,49 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         ]),
     }
 
-    # Check if this CID is associated with any server definitions
+    # Check if this CID is associated with any named server definitions
     servers = get_servers()
     server_info = None
     for server in servers:
         if server.definition_cid == cid_value:
-            # TODO: Detect language and chaining support dynamically from server definition
-            # For now, assume Python and chaining support as that's the common case
+            # Use detected language from server definition
+            language = detect_server_language(server.definition)
             server_info = {
                 "name": server.name,
                 "enabled": server.enabled,
-                "supports_chaining": True,  # Python servers typically support chaining
-                "language": "python",  # Most server definitions are Python
+                "supports_chaining": True,  # Servers can accept chained input
+                "language": language,
             }
             break
+    
+    # If not a named server, check if the CID content is a server definition
+    if not server_info and cid_record and cid_record.file_data:
+        try:
+            content = cid_record.file_data.decode('utf-8', errors='ignore')
+            language = detect_server_language(content)
+            
+            # Heuristic: if language is detected as bash or python (not default), 
+            # and content looks like executable code, treat it as a server
+            if language in ('bash', 'python', 'typescript', 'clojure', 'clojurescript'):
+                # Check if content appears to be executable (has def main, shebang, or common patterns)
+                is_server = (
+                    'def main(' in content or 
+                    content.strip().startswith('#!') or
+                    'echo ' in content or
+                    'grep ' in content or
+                    'function main' in content
+                )
+                
+                if is_server:
+                    server_info = {
+                        "name": None,  # Anonymous server
+                        "enabled": True,
+                        "supports_chaining": True,  # Server literals can accept chained input
+                        "language": language,
+                    }
+        except Exception:
+            # If we can't decode or analyze, skip server detection
+            pass
     
     if server_info:
         metadata["resolution"]["server"] = server_info
