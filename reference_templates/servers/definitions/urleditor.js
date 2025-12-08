@@ -383,8 +383,8 @@
                 // Update indicators based on metadata
                 await this.updateIndicatorsFromMetadata(index, segment, metadata, index === lines.length - 1);
                 
-                // Build URL up to and including this line
-                const urlSegments = lines.slice(0, index + 1).map(l => l.text);
+                // Build URL from current line to end (cumulative path with remaining segments)
+                const urlSegments = lines.slice(index).map(l => l.text);
                 const url = '/' + urlSegments.join('/');
                 
                 // Make HEAD request to get size and content-type without downloading full content
@@ -392,12 +392,24 @@
                 const contentType = response.headers.get('content-type') || 'unknown';
                 const contentLength = response.headers.get('content-length') || '?';
                 
-                // Now fetch a small portion to get preview text
-                const previewResponse = await fetch(url);
-                const text = await previewResponse.text();
-                // Use a longer preview length to fill available space on the line
-                const PREVIEW_LENGTH = 200;
-                const preview = text.substring(0, PREVIEW_LENGTH);
+                // Fetch input preview - the input this segment receives is the output of the next segment
+                let inputPreview = '';
+                if (index < lines.length - 1) {
+                    // Build URL for the next segment onwards to get what input this segment receives
+                    const nextSegments = lines.slice(index + 1).map(l => l.text);
+                    const nextUrl = '/' + nextSegments.join('/');
+                    try {
+                        const inputResponse = await fetch(nextUrl);
+                        const inputText = await inputResponse.text();
+                        const PREVIEW_LENGTH = 200;
+                        inputPreview = inputText.substring(0, PREVIEW_LENGTH);
+                        if (inputText.length > PREVIEW_LENGTH) {
+                            inputPreview += '...';
+                        }
+                    } catch (error) {
+                        inputPreview = 'Error loading input';
+                    }
+                }
                 
                 // Update Size column
                 const sizeElement = document.getElementById(`size-${index}`);
@@ -416,11 +428,11 @@
                     typeElement.title = `Content-Type: ${contentType}`;
                 }
                 
-                // Update Preview column
+                // Update Preview column - show the input this segment receives
                 const previewElement = document.getElementById(`preview-${index}`);
                 if (previewElement) {
-                    previewElement.textContent = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
-                    previewElement.title = preview + (text.length > PREVIEW_LENGTH ? '...' : '');
+                    previewElement.textContent = inputPreview;
+                    previewElement.title = inputPreview;
                 }
                 
                 // Update the link to point to this URL
