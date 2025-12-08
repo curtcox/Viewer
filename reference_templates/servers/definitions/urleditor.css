@@ -148,6 +148,26 @@ body {
     font-size: 0.75rem;
 }
 
+.indicator-status.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.indicator-status.invalid {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.indicator-status.unknown {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.indicator-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
 .indicator-info {
     padding: 0.25rem 0.125rem;
     font-size: 0.85rem;
