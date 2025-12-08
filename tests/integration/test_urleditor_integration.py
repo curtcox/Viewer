@@ -214,3 +214,56 @@ def main():
         # Check for link element creation with proper ID pattern
         assert 'link-' in data
         assert 'linkElement.href' in data or 'href' in data
+    
+    def test_urleditor_has_status_indicator_column(self, memory_client):
+        """Test that the URL Editor has a status indicator column."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for status indicator element in the row
+        assert 'status-' in data
+        assert 'indicator-status' in data
+    
+    def test_urleditor_status_indicator_css(self, memory_client):
+        """Test that status indicator has proper CSS classes."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for status-related CSS classes
+        assert 'pending' in data
+        assert 'indicator-status' in data
+    
+    def test_urleditor_update_status_indicator_function(self, memory_client):
+        """Test that updateStatusIndicator function exists."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check for the updateStatusIndicator function
+        assert 'updateStatusIndicator' in data
+        assert 'status-${index}' in data
+    
+    def test_urleditor_status_changes_on_fetch(self, memory_client):
+        """Test that status indicator changes during fetch operations."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check that fetchPreviewData updates status
+        assert 'updateStatusIndicator' in data
+        # Check for status transitions: pending -> success/failure
+        assert 'pending' in data
+        assert 'valid' in data or 'success' in data.lower()
+        assert 'invalid' in data or 'failure' in data.lower()
+    
+    def test_urleditor_failure_info_display(self, memory_client):
+        """Test that failure information is displayed instead of preview on error."""
+        response = memory_client.get('/urleditor', follow_redirects=True)
+        assert response.status_code == 200
+        
+        data = response.get_data(as_text=True)
+        # Check that preview element shows failure information on error
+        assert 'Failed:' in data or 'Error:' in data
+        assert 'previewElement.textContent' in data
