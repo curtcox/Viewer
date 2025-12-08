@@ -237,6 +237,73 @@ describe('URLEditorApp', () => {
             expect(app.getLanguage('notfound')).toBe('-');
         });
     });
+    
+    describe('updateStatusIndicator', () => {
+        let mockStatusElement;
+        
+        beforeEach(() => {
+            mockStatusElement = {
+                classList: {
+                    remove: jest.fn(),
+                    add: jest.fn()
+                },
+                textContent: '',
+                setAttribute: jest.fn(),
+                title: ''
+            };
+            
+            // Mock getElementById to return our mock element
+            const originalGetElementById = global.document.getElementById;
+            global.document.getElementById = jest.fn((id) => {
+                if (id.startsWith('status-')) {
+                    return mockStatusElement;
+                }
+                return originalGetElementById(id);
+            });
+        });
+        
+        test('should set pending status with hourglass icon', () => {
+            app.updateStatusIndicator(0, 'pending', 'Request in progress...');
+            
+            expect(mockStatusElement.classList.remove).toHaveBeenCalledWith('pending', 'valid', 'invalid', 'unknown');
+            expect(mockStatusElement.classList.add).toHaveBeenCalledWith('pending');
+            expect(mockStatusElement.textContent).toBe('⏳');
+            expect(mockStatusElement.setAttribute).toHaveBeenCalledWith('data-detail', 'Request in progress...');
+            expect(mockStatusElement.title).toBe('Request in progress...');
+        });
+        
+        test('should set valid status with checkmark icon', () => {
+            app.updateStatusIndicator(1, 'valid', 'Request completed successfully');
+            
+            expect(mockStatusElement.classList.add).toHaveBeenCalledWith('valid');
+            expect(mockStatusElement.textContent).toBe('✓');
+            expect(mockStatusElement.title).toBe('Request completed successfully');
+        });
+        
+        test('should set invalid status with X icon', () => {
+            app.updateStatusIndicator(2, 'invalid', 'Request failed: HTTP 500');
+            
+            expect(mockStatusElement.classList.add).toHaveBeenCalledWith('invalid');
+            expect(mockStatusElement.textContent).toBe('✗');
+            expect(mockStatusElement.title).toBe('Request failed: HTTP 500');
+        });
+        
+        test('should handle unknown status with dash icon', () => {
+            app.updateStatusIndicator(3, 'unknown', 'Status unknown');
+            
+            expect(mockStatusElement.classList.add).toHaveBeenCalledWith('unknown');
+            expect(mockStatusElement.textContent).toBe('-');
+        });
+        
+        test('should handle missing status element gracefully', () => {
+            global.document.getElementById = jest.fn(() => null);
+            
+            // Should not throw an error
+            expect(() => {
+                app.updateStatusIndicator(99, 'valid', 'Test message');
+            }).not.toThrow();
+        });
+    });
 });
 
 // Run tests with Jest
