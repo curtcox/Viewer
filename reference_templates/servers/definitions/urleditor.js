@@ -393,7 +393,7 @@
                 html += `<div class="indicator ${this.escapeHtml(cssClass)}" id="${ind.id}" data-detail="${this.escapeHtml(ind.detail)}">${icon}</div>`;
             }
             
-            // Add Status column - starts as pending
+            // Add Status column - starts as unknown (not yet fetched)
             html += `<div class="indicator-status unknown" id="status-${index}" data-detail="Request status: Not started" title="Request status">-</div>`;
             
             // Add Size, Type, View, Preview columns
@@ -511,7 +511,7 @@
                     // Display failure information instead of preview text
                     previewElement.textContent = `Failed: ${error.message}`;
                     previewElement.title = `Request failed: ${error.message}`;
-                    previewElement.style.color = '#721c24';
+                    previewElement.classList.add('error-text');
                 }
             }
         }

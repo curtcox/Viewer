@@ -168,6 +168,10 @@ body {
     color: #856404;
 }
 
+.error-text {
+    color: #721c24;
+}
+
 .indicator-info {
     padding: 0.25rem 0.125rem;
     font-size: 0.85rem;
