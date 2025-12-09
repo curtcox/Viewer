@@ -1,0 +1,55 @@
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background-color: #f6f7fb;
+}
+
+#ai-editor-root .card {
+    border-radius: 12px;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 2px solid #0d6efd;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.endpoint-input {
+    min-width: 280px;
+}
+
+[data-ai-response] {
+    min-height: 140px;
+    white-space: pre-wrap;
+}
+
+[data-ai-response] pre {
+    background: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+.card-header h2 {
+    font-weight: 700;
+}
+
+.card-header p {
+    margin-top: 0.25rem;
+}
+
+[data-ai-status-wrapper] .spinner-border {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.font-monospace {
+    font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
