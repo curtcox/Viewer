@@ -6,7 +6,6 @@ from typing import Any
 
 class Store:
     """Simple storage object for test state."""
-    pass
 
 
 # Global state shared across all step implementations

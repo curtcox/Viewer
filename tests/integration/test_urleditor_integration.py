@@ -16,7 +16,7 @@ class TestURLEditorIntegration:
             from database import db
 
             urleditor_path = Path(__file__).parent.parent.parent / "reference_templates" / "servers" / "definitions" / "urleditor.py"
-            with open(urleditor_path, 'r') as f:
+            with open(urleditor_path, 'r', encoding="utf-8") as f:
                 server_code = f.read()
 
             # Create the server in the database

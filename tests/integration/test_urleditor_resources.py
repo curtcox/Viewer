@@ -1,11 +1,15 @@
 """Integration tests for urleditor server resource loading and serving."""
 
+from typing import Any
+
 import pytest
 import re
 
 
 class TestURLEditorResources:
     """Integration tests for URL Editor resource loading and serving."""
+
+    client: Any
 
     @pytest.fixture(autouse=True)
     def setup_urleditor_server(self, memory_db_app):
@@ -17,7 +21,7 @@ class TestURLEditorResources:
             from database import db
 
             urleditor_path = Path(__file__).parent.parent.parent / "reference_templates" / "servers" / "definitions" / "urleditor.py"
-            with open(urleditor_path, 'r') as f:
+            with open(urleditor_path, 'r', encoding="utf-8") as f:
                 server_code = f.read()
 
             # Create the server in the database

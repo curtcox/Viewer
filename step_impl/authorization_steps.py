@@ -23,14 +23,14 @@ def configure_authorization_rejection(status_code: str):
                 status_code=401,
                 message="Authentication required for testing"
             )
-        elif status == 403:
+        if status == 403:
             return AuthorizationResult(
                 allowed=False,
                 status_code=403,
                 message="Access denied for testing"
             )
-        else:
-            return AuthorizationResult(allowed=True)
+
+        return AuthorizationResult(allowed=True)
 
     # Store the mock in scenario state so it can be used by request steps
     state = get_scenario_state()
@@ -80,7 +80,7 @@ def the_response_should_be_valid_json():
     try:
         json.loads(response.get_data(as_text=True))
     except json.JSONDecodeError as e:
-        raise AssertionError(f"Response is not valid JSON: {e}")
+        raise AssertionError(f"Response is not valid JSON: {e}") from e
 
 
 @step("When I POST to <path> with form data name <name> and target <target>")
