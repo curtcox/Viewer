@@ -186,14 +186,16 @@ def click_preview_link(element):
     """Click a preview link."""
     element = element.strip('"\'')
     links = getattr(store, 'preview_links', {})
-    store.last_opened_url = links.get(element, '')
+    assert element in links, f"No preview link recorded for {element}"
+    store.last_opened_url = links[element]
 
 
 @step("Then a new tab should open with URL <expected_url>")
 def check_new_tab_opened(expected_url):
     """Verify that a new tab opened with the expected URL."""
     expected_url = expected_url.strip('"\'')
-    opened_url = getattr(store, 'last_opened_url', expected_url)
+    opened_url = getattr(store, 'last_opened_url', None)
+    assert opened_url is not None, "No tab opening recorded"
     assert opened_url == expected_url, f"Expected {expected_url}, opened {opened_url}"
 
 
