@@ -1,3 +1,4 @@
+import html
 import json
 import re
 
@@ -88,11 +89,31 @@ class TestAiEditorIntegration:
         location = response.headers.get("Location")
         assert location
         body = memory_client.get(location).get_data(as_text=True)
-        match = re.search(r"data-initial-payload='([^']*)'", body)
+        match = re.search(r"data-initial-payload=[\"']([^\"']*)[\"']", body)
         assert match
-        stored = json.loads(match.group(1))
+        stored = json.loads(html.unescape(match.group(1)))
         assert stored["request_text"] == payload["request_text"]
         assert stored["context_data"] == payload["context_data"]
+
+    def test_ai_editor_escapes_payload_attribute(self, memory_client):
+        payload = {"request_text": "Bob's draft"}
+        response = memory_client.post(
+            "/ai_editor",
+            json=payload,
+            follow_redirects=False,
+        )
+
+        assert response.status_code == 302
+        location = response.headers.get("Location")
+        assert location
+        body = memory_client.get(location).get_data(as_text=True)
+
+        assert "Bob&#x27;s draft" in body
+
+        match = re.search(r"data-initial-payload=[\"']([^\"']*)[\"']", body)
+        assert match
+        stored = json.loads(html.unescape(match.group(1)))
+        assert stored["request_text"] == payload["request_text"]
 
     def test_ai_editor_returns_error_for_invalid_json_payload(self, memory_client):
         response = memory_client.post("/ai_editor", json="bad payload", follow_redirects=False)

@@ -1,5 +1,6 @@
 """Unit tests for the AI request editor server."""
 
+import html
 import json
 import re
 from pathlib import Path
@@ -78,9 +79,9 @@ class TestAiEditorPayloadHandling:
 
         result = self.module["main"](request=request)
 
-        match = re.search(r"data-initial-payload='([^']*)'", result["output"])
+        match = re.search(r"data-initial-payload=[\"']([^\"']*)[\"']", result["output"])
         assert match, "Initial payload attribute should be present"
-        stored_payload = json.loads(match.group(1))
+        stored_payload = json.loads(html.unescape(match.group(1)))
         assert stored_payload["context_data"] == payload["context_data"]
         assert stored_payload["form_summary"] == payload["form_summary"]
         assert stored_payload["request_text"] == payload["request_text"]
@@ -117,7 +118,20 @@ class TestAiEditorPayloadHandling:
 
         result = self.module["main"](request=request)
 
-        match = re.search(r"data-initial-payload='([^']*)'", result["output"])
-        stored_payload = json.loads(match.group(1))
+        match = re.search(r"data-initial-payload=[\"']([^\"']*)[\"']", result["output"])
+        stored_payload = json.loads(html.unescape(match.group(1)))
         assert stored_payload["context_data"] == {"foo": "bar"}
         assert stored_payload["form_summary"] == {}
+
+    def test_payload_attribute_escapes_quotes(self):
+        payload = {"request_text": "Bob's draft"}
+        request = DummyRequest(json_payload=payload)
+
+        result = self.module["main"](request=request)
+
+        assert "Bob&#x27;s draft" in result["output"]
+
+        match = re.search(r"data-initial-payload=[\"']([^\"']*)[\"']", result["output"])
+        assert match
+        stored_payload = json.loads(html.unescape(match.group(1)))
+        assert stored_payload["request_text"] == payload["request_text"]
