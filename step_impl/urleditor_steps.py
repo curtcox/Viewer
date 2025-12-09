@@ -2,7 +2,8 @@
 
 from getgauge.python import step
 
-from step_impl.shared_state import store
+from step_impl.shared_app import get_shared_app, get_shared_client
+from step_impl.shared_state import get_scenario_state, store
 
 
 @step("When I check the available servers")
@@ -12,6 +13,13 @@ def check_available_servers():
 
     servers = get_servers()
     store.available_servers = [s.name for s in servers]
+
+
+@step("Given the default boot image is loaded")
+def given_default_boot_image_loaded() -> None:
+    """Ensure the shared app is initialized with the default boot image."""
+
+    get_shared_app()
 
 
 @step("Then the server <server_name> should be present")
@@ -58,6 +66,18 @@ def check_response_status(expected_status):
         f"Expected status {expected}, got {actual}"
 
 
+@step(["Then the response should contain <text>", "And the response should contain <text>"])
+def response_should_contain(text: str) -> None:
+    """Assert that the latest response body includes the expected text."""
+
+    scenario_state = get_scenario_state()
+    assert "response" in scenario_state, "No response stored"
+    needle = text.strip('"\'')
+    response = scenario_state["response"]
+    body = response.get_data(as_text=True)
+    assert needle in body, f"Expected response to contain '{needle}'"
+
+
 # Browser-based step implementations for interactive testing
 
 @step("When I navigate to <url> in a browser")
@@ -67,6 +87,17 @@ def navigate_to_url_in_browser(url):
     # In a real implementation, this would use Selenium or Playwright
     store.current_url = url
     store.editor_content = []
+
+
+@step("When I navigate to <url>")
+def navigate_to_url(url: str) -> None:
+    """Perform a direct navigation using the shared Flask test client."""
+
+    client = get_shared_client()
+    normalized = url.strip() or "/"
+    response = client.get(normalized)
+    store.last_response = response
+    store.current_url = normalized
 
 
 @step("And I enter <text> in the editor")

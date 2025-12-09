@@ -62,7 +62,10 @@ def the_response_status_should_be_200() -> None:
     ), f"Expected HTTP 200 but received {response.status_code} for {response.request.path!r}."
 
 
-@step("The response content type should be <content_type>")
+@step([
+    "The response content type should be <content_type>",
+    "And the response content type should be <content_type>",
+])
 def the_response_content_type_should_be(content_type: str) -> None:
     """Validate that the captured response used the expected media type."""
 
@@ -209,6 +212,45 @@ def lzzcif(arg1: str) -> None:
 def when_i_request_aliases_new_without_user() -> None:
     """Request the new alias page without a user session."""
     _perform_get_request("/aliases/new")
+
+
+@step("When I request the page <path>")
+def when_i_request_generic_page(path: str) -> None:
+    """Request an arbitrary page path and store the response."""
+
+    normalized = path.strip() or "/"
+    if not normalized.startswith("/"):
+        normalized = f"/{normalized}"
+    _perform_get_request(normalized)
+
+
+@step("Start the app with boot configuration")
+def start_app_with_boot_configuration() -> None:
+    """Initialize the shared application and client for UI suggestion scenarios."""
+
+    get_shared_app()
+    get_shared_client()
+
+
+@step('Navigate to "<path>"')
+def navigate_to_path(path: str) -> None:
+    """Navigate to the provided path using the shared client."""
+
+    when_i_request_generic_page(path)
+
+
+@step('Page contains "<text>"')
+def page_contains_text(text: str) -> None:
+    """Assert that the current page response contains the provided text."""
+
+    then_page_should_contain(text)
+
+
+@step('Click on "Details" tab')
+def click_on_details_tab() -> None:
+    """Simulate selecting the Details tab by asserting it is present."""
+
+    then_page_should_contain("Details")
 
 
 @step("When I request the resource /aliases.json")
@@ -606,6 +648,13 @@ def record_weather_server_path_coverage() -> None:
     """Acknowledge the weather server detail route for documentation coverage."""
 
     record_server_view_path_coverage("weather")
+
+
+@step("Path coverage: /")
+def record_root_path_coverage() -> None:
+    """Acknowledge the workspace landing page for documentation coverage."""
+
+    return None
 
 
 @step("Given there is a server named weather returning Weather forecast ready")
