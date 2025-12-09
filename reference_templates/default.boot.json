@@ -9,11 +9,6 @@
       "enabled": true
     },
     {
-      "name": "ai_editor",
-      "definition_cid": "AAAAAAATYWlfZWRpdG9yIC0-IC9lY2hvCg",
-      "enabled": true
-    },
-    {
       "name": "ai_about",
       "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
       "enabled": true
@@ -93,6 +88,11 @@
     {
       "name": "urleditor",
       "definition_cid": "AAAAABS2BAL1VlE00i3qLug4sdy9sUVYQn0Tr1j6zQ-DgZ2-tM478FCKlYVBaECA4fsfTb2pZpKnh7fSucawZQbfQy8MOw",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "AAAAABZX0trIaI_342ww4n7uaDhZoaY853sbWrUK1w49LMJ5BwNQFz7cdPxOzOdLoojJ6KS84-4lpoYpw0TKzIbX2rf2ng",
       "enabled": true
     }
   ],
