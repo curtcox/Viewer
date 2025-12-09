@@ -792,7 +792,8 @@ def test_literal_python_chains_into_bash(client, integration_app):
                     path=f"/{bash_cid}",
                     file_data=textwrap.dedent(
                         """
-                        python -c 'import json,sys; data=json.load(sys.stdin); print(f"bash:{data.get(\\'input\\', \\'\\')})'
+                        input=$(cat)
+                        echo "bash:$input"
                         """
                     ).encode("utf-8"),
                 ),
