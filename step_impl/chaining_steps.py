@@ -192,7 +192,10 @@ def when_request_resource_with_cid(path_prefix: str) -> None:
     state["response"] = response
 
 
-@step('Then the CID content should contain "<expected_content>"')
+@step([
+    'Then the CID content should contain "<expected_content>"',
+    'And the CID content should contain "<expected_content>"',
+])
 def then_cid_content_contains(expected_content: str) -> None:
     """Assert the CID content includes the expected substring."""
 

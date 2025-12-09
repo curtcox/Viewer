@@ -456,6 +456,24 @@ def and_clicking_it_should_populate_with_the_cid_content() -> None:
     )
 
 
+@step('Then I should see a template named <template_name>')
+def then_i_should_see_a_template_named(template_name: str) -> None:
+    """Confirm that the rendered upload page lists the provided template name."""
+
+    name = _normalize_quoted_text(template_name)
+    body = _get_response_body()
+    assert name in body, f"Expected template named {name!r} to appear in the upload page."
+
+
+@step('And its description should mention <snippet>')
+def and_its_description_should_mention(snippet: str) -> None:
+    """Verify the upload template description includes the provided text."""
+
+    expected = _normalize_quoted_text(snippet)
+    body = _get_response_body()
+    assert expected in body, f"Expected template description to include {expected!r}."
+
+
 # @step('Given there is an alias named <docs> pointing to /guides')
 # def ypefci(docs: str) -> None:
 #     """Specialised fixture for an alias pointing to /guides."""
