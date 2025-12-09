@@ -46,6 +46,14 @@
         }
     }
 
+    function createHiddenInput(name, value) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        return input;
+    }
+
     function AiAssistant(root, target, requestField, outputField) {
         this.root = root;
         this.target = target;
@@ -61,14 +69,14 @@
         this.historyList = root.querySelector('[data-ai-history-list]');
         this.historyEmpty = root.querySelector('[data-ai-history-empty]');
         this.changeField = root.querySelector('[data-change-message-store]');
+        this.form = (this.target && this.target.form) || root.closest('form');
         this.isRunning = false;
         this.triggerButtons = [];
         this.lastRequestText = '';
 
-        var form = (this.target && this.target.form) || root.closest('form');
-        if (form && this.changeField) {
+        if (this.form && this.changeField) {
             var self = this;
-            form.addEventListener('submit', function () {
+            this.form.addEventListener('submit', function () {
                 if (self.requestField) {
                     self.changeField.value = self.requestField.value || '';
                 }
@@ -92,6 +100,17 @@
             return '';
         }
         return nameField.value.trim();
+    };
+
+    AiAssistant.prototype._getCsrfToken = function () {
+        if (!this.form) {
+            return '';
+        }
+        var csrfInput = this.form.querySelector('input[name="csrf_token"]');
+        if (csrfInput && typeof csrfInput.value === 'string') {
+            return csrfInput.value;
+        }
+        return '';
     };
 
     AiAssistant.prototype._bindHistoryItems = function () {
@@ -332,34 +351,82 @@
         }
     };
 
+    AiAssistant.prototype.buildRequestPayload = function () {
+        if (!this.target || !this.requestField) {
+            return null;
+        }
+
+        var form = this.form || this.root.closest('form');
+        var contextData = this.contextData || {};
+        var formSummary = collectFormData(form);
+
+        return {
+            request_text: this.requestField.value || '',
+            original_text: this.target.value || '',
+            target_label: this.targetLabel,
+            context_data: contextData,
+            form_summary: formSummary,
+        };
+    };
+
+    AiAssistant.prototype.submitToEditor = function () {
+        var payload = this.buildRequestPayload();
+        if (!payload) {
+            return;
+        }
+
+        var submission = document.createElement('form');
+        submission.method = 'post';
+        submission.action = '/ai_editor';
+        submission.classList.add('d-none');
+
+        var csrfToken = this._getCsrfToken();
+        if (csrfToken) {
+            submission.appendChild(createHiddenInput('csrf_token', csrfToken));
+        }
+
+        try {
+            submission.appendChild(createHiddenInput('payload', JSON.stringify(payload)));
+        } catch (error) {
+            /* If JSON serialization fails, fall back to individual fields only. */
+        }
+
+        Object.keys(payload).forEach(function (key) {
+            var value = payload[key];
+            var serialised = value;
+            if (value === null) {
+                serialised = JSON.stringify(null);
+            } else if (typeof value === 'undefined') {
+                serialised = '';
+            } else if (typeof value === 'object') {
+                try {
+                    serialised = JSON.stringify(value);
+                } catch (error) {
+                    serialised = '';
+                }
+            }
+            submission.appendChild(createHiddenInput(key, serialised));
+        });
+
+        document.body.appendChild(submission);
+        submission.submit();
+    };
+
     AiAssistant.prototype.run = function () {
         if (this.isRunning) {
             return;
         }
 
-        if (!this.target || !this.requestField) {
+        var payload = this.buildRequestPayload();
+        if (!payload) {
             return;
         }
 
-        var requestText = this.requestField.value || '';
-        var originalText = this.target.value || '';
-        var form = this.target.form || this.root.closest('form');
-        var contextData = this.contextData || {};
-        var formSummary = collectFormData(form);
-
-        this.lastRequestText = requestText;
+        this.lastRequestText = payload.request_text;
         var resolvedName = this._resolveEntityName();
         if (resolvedName) {
             this.entityName = resolvedName;
         }
-
-        var payload = {
-            request_text: requestText,
-            original_text: originalText,
-            target_label: this.targetLabel,
-            context_data: contextData,
-            form_summary: formSummary
-        };
 
         var self = this;
         this.setLoadingState(true);
@@ -417,6 +484,18 @@
             assistant.triggerButtons.push(button);
             button.addEventListener('click', function () {
                 assistant.run();
+            });
+        });
+
+        document.querySelectorAll('[data-ai-request-editor]').forEach(function (link) {
+            var targetId = link.getAttribute('data-ai-target-id');
+            if (!targetId || !assistantMap.has(targetId)) {
+                return;
+            }
+            var assistant = assistantMap.get(targetId);
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                assistant.submitToEditor();
             });
         });
     }
