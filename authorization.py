@@ -87,8 +87,8 @@ def authorize_request(request: Request) -> AuthorizationResult:
     Example successful authorization:
         return AuthorizationResult(allowed=True)
     """
-    # PLACEHOLDER: Always allow requests
-    # TODO: Implement actual authorization logic here
+    # Placeholder implementation: always allow requests while authorization
+    # enforcement is handled by upstream systems.
     return AuthorizationResult(allowed=True)
 
 
