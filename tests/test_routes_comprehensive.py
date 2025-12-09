@@ -964,6 +964,11 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIn('data-code-editor-for="text_content"', page)
         self.assertIn('js/code_editor.js', page)
         self.assertIn('ace-builds@1.32.6', page)
+        self.assertIn('data-ai-request-editor', page)
+        self.assertIn('AI request editor', page)
+        self.assertIn('AI action editor', page)
+        self.assertIn('Sample AI server', page)
+        self.assertIn('About AI', page)
 
     def test_upload_post_stores_file_and_returns_success_page(self):
         """Uploading a new file persists its content for the user and renders the success page."""
