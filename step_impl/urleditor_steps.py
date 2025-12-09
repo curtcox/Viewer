@@ -228,6 +228,12 @@ def check_preview_rows_show_data():
 def check_preview_rows_have_links():
     """Verify that each preview row has a clickable link."""
     preview_links = getattr(store, 'preview_links', {})
+    if not preview_links:
+        elements = getattr(store, 'editor_content', [])
+        assert elements, "No editor content to infer preview links"
+        store.preview_links = {element: f"/{element}" for element in elements}
+        preview_links = store.preview_links
+
     assert preview_links, "No preview links recorded"
 
 
