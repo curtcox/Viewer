@@ -3,7 +3,7 @@
 from getgauge.python import step
 
 from step_impl.shared_app import get_shared_app, get_shared_client
-from step_impl.shared_state import store
+from step_impl.shared_state import get_scenario_state, store
 
 
 @step("When I check the available servers")
@@ -70,9 +70,11 @@ def check_response_status(expected_status):
 def response_should_contain(text: str) -> None:
     """Assert that the latest response body includes the expected text."""
 
-    assert hasattr(store, 'last_response'), "No response stored"
+    scenario_state = get_scenario_state()
+    assert "response" in scenario_state, "No response stored"
     needle = text.strip('"\'')
-    body = store.last_response.get_data(as_text=True)
+    response = scenario_state["response"]
+    body = response.get_data(as_text=True)
     assert needle in body, f"Expected response to contain '{needle}'"
 
 
