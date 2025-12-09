@@ -5,7 +5,17 @@
   "aliases": [
     {
       "name": "ai",
-      "definition_cid": "AAAAAAAOYWkgLT4gL2FpX3N0dWI",
+      "definition_cid": "AAAAAAAPYWkgLT4gL2FpX3N0dWIK",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "AAAAAAATYWlfZWRpdG9yIC0-IC9lY2hvCg",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
       "enabled": true
     }
   ],
@@ -89,7 +99,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABQH5rhp1eKNIb7SW4wxO25d3gp1o5mtrq_wKGrxytxlFWLVrNSsknUFnPItKM0aM8sOlf9ryNggETgJgKbAfraw-Q",
+      "definition": "AAAAABQIuUROlC-0GY8T1vLCoHWcVhXN6TkHr2pEXMwEB-kHoOBw6UUIiRqtp9YyQcrjZa-uJ-_0LqRB3a_341IeXePQ3A",
       "enabled": true
     },
     {
