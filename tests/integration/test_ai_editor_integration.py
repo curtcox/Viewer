@@ -1,3 +1,4 @@
+import html
 import json
 import re
 
@@ -90,6 +91,6 @@ class TestAiEditorIntegration:
         body = memory_client.get(location).get_data(as_text=True)
         match = re.search(r"data-initial-payload='([^']*)'", body)
         assert match
-        stored = json.loads(match.group(1))
+        stored = json.loads(html.unescape(match.group(1)))
         assert stored["request_text"] == payload["request_text"]
         assert stored["context_data"] == payload["context_data"]

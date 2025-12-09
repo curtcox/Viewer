@@ -141,12 +141,20 @@ def _get_html_page(payload: Dict[str, Any], *, target_endpoint: str, request_pat
     payload_json = json.dumps(payload, ensure_ascii=False)
     target_json = json.dumps(target_endpoint or DEFAULT_TARGET)
 
+    payload_attr = html.escape(payload_json, quote=True)
+    target_attr = html.escape(target_json, quote=True)
+
+    payload_js = payload_json.replace("</", "<\\/")
+    target_js = target_json.replace("</", "<\\/")
+
     meta_links = _build_meta_links(request_path)
 
     html_output = html_template.replace("{{CSS_CONTENT}}", css_tag)
     html_output = html_output.replace("{{JS_CONTENT}}", js_tag)
-    html_output = html_output.replace("{{INITIAL_PAYLOAD_JSON}}", payload_json)
-    html_output = html_output.replace("{{TARGET_ENDPOINT_JSON}}", target_json)
+    html_output = html_output.replace("{{INITIAL_PAYLOAD_ATTR}}", payload_attr)
+    html_output = html_output.replace("{{TARGET_ENDPOINT_ATTR}}", target_attr)
+    html_output = html_output.replace("{{INITIAL_PAYLOAD_JS}}", payload_js)
+    html_output = html_output.replace("{{TARGET_ENDPOINT_JS}}", target_js)
     html_output = html_output.replace("{{META_INSPECTOR_URL}}", html.escape(meta_links["meta"]))
     html_output = html_output.replace("{{HISTORY_SINCE_URL}}", html.escape(meta_links["history"]))
     html_output = html_output.replace("{{SERVER_EVENTS_SINCE_URL}}", html.escape(meta_links["server_events"]))

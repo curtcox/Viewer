@@ -1,5 +1,6 @@
 """Unit tests for the AI request editor server."""
 
+import html
 import json
 import re
 from pathlib import Path
@@ -80,7 +81,7 @@ class TestAiEditorPayloadHandling:
 
         match = re.search(r"data-initial-payload='([^']*)'", result["output"])
         assert match, "Initial payload attribute should be present"
-        stored_payload = json.loads(match.group(1))
+        stored_payload = json.loads(html.unescape(match.group(1)))
         assert stored_payload["context_data"] == payload["context_data"]
         assert stored_payload["form_summary"] == payload["form_summary"]
         assert stored_payload["request_text"] == payload["request_text"]
@@ -101,6 +102,19 @@ class TestAiEditorPayloadHandling:
         result = self.module["main"](request=request)
 
         match = re.search(r"data-initial-payload='([^']*)'", result["output"])
-        stored_payload = json.loads(match.group(1))
+        stored_payload = json.loads(html.unescape(match.group(1)))
         assert stored_payload["context_data"] == {"foo": "bar"}
         assert stored_payload["form_summary"] == {}
+
+    def test_escapes_payload_for_attributes_and_scripts(self):
+        payload = {"request_text": "Bob's </script> update"}
+
+        result = self.module["main"](request=DummyRequest(json_payload=payload))
+
+        attr_match = re.search(r"data-initial-payload='([^']*)'", result["output"])
+        assert attr_match
+        assert "Bob&#x27;s &lt;/script&gt; update" in attr_match.group(1)
+
+        script_match = re.search(r"payload: (\{.*\}),", result["output"], re.DOTALL)
+        assert script_match
+        assert "<\\/script>" in script_match.group(1)
