@@ -12,10 +12,10 @@ from unittest.mock import Mock
 def extract_filename_from_path(path):
     """
     Extract filename from CID path for content disposition header.
-    
+
     Rules:
     - /{CID} -> no filename (no content disposition)
-    - /{CID}.{ext} -> no filename (no content disposition) 
+    - /{CID}.{ext} -> no filename (no content disposition)
     - /{CID}.{filename}.{ext} -> filename = {filename}.{ext}
     """
     # Remove leading slash

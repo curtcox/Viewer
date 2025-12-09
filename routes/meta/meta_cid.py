@@ -114,25 +114,25 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
                 "language": language,
             }
             break
-    
+
     # If not a named server, check if the CID content is a server definition
     if not server_info and cid_record and cid_record.file_data:
         try:
             content = cid_record.file_data.decode('utf-8', errors='ignore')
             language = detect_server_language(content)
-            
-            # Heuristic: if language is detected as bash or python (not default), 
+
+            # Heuristic: if language is detected as bash or python (not default),
             # and content looks like executable code, treat it as a server
             if language in ('bash', 'python', 'typescript', 'clojure', 'clojurescript'):
                 # Check if content appears to be executable (has def main, shebang, or common patterns)
                 is_server = (
-                    'def main(' in content or 
+                    'def main(' in content or
                     content.strip().startswith('#!') or
                     'echo ' in content or
                     'grep ' in content or
                     'function main' in content
                 )
-                
+
                 if is_server:
                     server_info = {
                         "name": None,  # Anonymous server
@@ -143,7 +143,7 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         except Exception:
             # If we can't decode or analyze, skip server detection
             pass
-    
+
     if server_info:
         metadata["resolution"]["server"] = server_info
 

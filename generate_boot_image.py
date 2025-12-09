@@ -109,7 +109,7 @@ class BootImageGenerator:
 
     def process_server_definition_file(self, server_def_path: str) -> Optional[str]:
         """Process a server definition Python file to replace embedded filenames with CIDs.
-        
+
         Args:
             server_def_path: Path to the server definition file (e.g., "reference_templates/servers/definitions/urleditor.py")
 

@@ -107,7 +107,7 @@ class TestEntityInteractions(unittest.TestCase):
         data = response.get_json()
         self.assertIn('interactions', data)
         self.assertGreaterEqual(len(data['interactions']), 1)
-        
+
         # Check that each interaction has timestamp_url and timestamp_url_end fields
         for interaction in data['interactions']:
             self.assertIn('timestamp_url', interaction)
@@ -132,7 +132,7 @@ class TestEntityInteractions(unittest.TestCase):
                 self.assertIsNotNone(start_dt)
                 self.assertIsNotNone(end_dt)
                 diff = (end_dt - start_dt).total_seconds()
-                self.assertEqual(diff, 1.0, 
+                self.assertEqual(diff, 1.0,
                     f"timestamp_url_end should be 1 second after timestamp_url, but difference is {diff} seconds"
                 )
 

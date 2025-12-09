@@ -122,7 +122,7 @@ def after_scenario() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
 
 def step(pattern: Union[str, List[str]]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Register a Gauge step definition.
-    
+
     Args:
         pattern: A single pattern string or a list of pattern strings.
                  When a list is provided, the same function is registered

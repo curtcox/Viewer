@@ -8,13 +8,13 @@ from authorization import AuthorizationResult
 
 def create_authorization_error_response(result: AuthorizationResult) -> Response:
     """Create an appropriate error response based on the authorization result.
-    
+
     This function generates responses in the appropriate format (HTML, JSON, text)
     based on the request's Accept header.
-    
+
     Args:
         result: The authorization result containing status code and message.
-    
+
     Returns:
         Flask Response object with the appropriate content type and status code.
     """

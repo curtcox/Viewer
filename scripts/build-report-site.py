@@ -897,7 +897,7 @@ def _count_failing_jobs(job_statuses: dict[str, str]) -> int:
 
 def _get_background_color(job_statuses: dict[str, str]) -> str:
     """Determine the background color based on the number of failing jobs.
-    
+
     Returns:
         - Light green (#d4edda) if all jobs pass
         - Yellow (#fff3cd) if there are 1-2 failing jobs

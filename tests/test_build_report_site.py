@@ -328,7 +328,7 @@ def test_get_background_color_five_failures() -> None:
     """Test that 5 failing jobs get red background."""
     job_statuses = {
         "job1": "failure",
-        "job2": "failure", 
+        "job2": "failure",
         "job3": "failure",
         "job4": "failure",
         "job5": "failure"

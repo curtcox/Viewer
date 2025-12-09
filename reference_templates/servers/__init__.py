@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterable
 
 def get_server_templates() -> list[dict[str, str]]:
     """Return copies of all available server templates.
-    
+
     Returns:
         A list of template dictionaries, each containing 'id', 'name', 'description', and 'definition'.
     """
@@ -20,7 +20,7 @@ def get_server_templates() -> list[dict[str, str]]:
 
 def iter_server_templates() -> Iterable[Dict[str, Any]]:
     """Yield templates one-by-one without exposing internal state.
-    
+
     Yields:
         A generator of template dictionaries with loaded definitions.
     """

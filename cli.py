@@ -283,13 +283,13 @@ ONE-SHOT RUN MODE:
     - The URL request is processed through the same routing and handlers as HTTP
     - The response (status code and content) is printed to standard output
     - The application exits immediately after outputting the response
-    
+
     This mode is useful for:
     - Testing endpoints without running a full server
     - Scripting and automation that needs app responses
     - Verifying that CLI and HTTP responses are identical
     - CI/CD pipelines that validate application behavior
-    
+
     One-shot mode guarantees the same response you would get from:
         curl http://localhost:5001/path
     Instead you can simply run:
@@ -301,14 +301,14 @@ EXAMPLES:
 
     # ONE-SHOT: Get JSON response from /servers.json endpoint
     python main.py /servers.json
-    
+
     # ONE-SHOT: Get content for a specific CID
     python main.py /bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi
-    
+
     # ONE-SHOT: Test any endpoint without starting server
     python main.py /aliases
     python main.py /variables.json
-    
+
     # ONE-SHOT with absolute URL (same as relative path)
     python main.py http://localhost:5001/servers
 

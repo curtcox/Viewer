@@ -50,7 +50,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
     """Set up Logfire instrumentation hooks.
-    
+
     Returns:
         List of error messages for failed instrumentation steps.
     """
