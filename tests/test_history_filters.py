@@ -40,4 +40,3 @@ def test_parse_date_range_reports_validity_and_filters():
     assert parsed.start_at.strftime(HISTORY_TIMESTAMP_FORMAT) == start_raw
     assert parsed.end_at is None
     assert parsed.filters == {"start": start_raw}
-

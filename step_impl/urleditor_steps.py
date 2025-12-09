@@ -9,7 +9,7 @@ from step_impl.shared_state import store
 def check_available_servers():
     """Check which servers are available."""
     from db_access import get_servers
-    
+
     servers = get_servers()
     store.available_servers = [s.name for s in servers]
 
@@ -34,13 +34,13 @@ def check_response_is_redirect():
 def check_redirect_location(expected_location):
     """Verify the redirect location."""
     assert hasattr(store, 'last_response'), "No response stored"
-    
+
     # Get the Location header
     location = store.last_response.headers.get('Location', '')
-    
+
     # Normalize expected location (remove quotes if present)
     expected = expected_location.strip('"\'')
-    
+
     assert location == expected, \
         f"Expected redirect to {expected}, got {location}"
 
@@ -49,10 +49,10 @@ def check_redirect_location(expected_location):
 def check_response_status(expected_status):
     """Verify the response status code."""
     assert hasattr(store, 'last_response'), "No response stored"
-    
+
     # Normalize expected status (remove quotes if present)
     expected = int(expected_status.strip('"\''))
-    
+
     actual = store.last_response.status_code
     assert actual == expected, \
         f"Expected status {expected}, got {actual}"

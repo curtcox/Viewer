@@ -370,10 +370,10 @@ class TestMetaRoute(unittest.TestCase):
         """Test that /meta returns enhanced server metadata for urleditor."""
         with self.app.app_context():
             self._create_server(name='test-server', definition='def main(): return {"output": "test"}')
-            
+
             response = self.client.get('/meta/test-server')
             self.assertEqual(response.status_code, 200)
-            
+
             data = json.loads(response.data)
             self.assertEqual(data['resolution']['type'], 'server_execution')
             self.assertEqual(data['resolution']['server_name'], 'test-server')
@@ -390,15 +390,15 @@ class TestMetaRoute(unittest.TestCase):
             # Create a server with a CID
             definition = 'def main(): return {"output": "test"}'
             self._create_server(name='cid-server', definition=definition)
-            
+
             # Get the server to find its CID
             server = Server.query.filter_by(name='cid-server').first()
-            
+
             # If the server has a definition_cid, test it
             if server.definition_cid:
                 response = self.client.get(f'/meta/{server.definition_cid}')
                 self.assertEqual(response.status_code, 200)
-                
+
                 data = json.loads(response.data)
                 self.assertEqual(data['resolution']['type'], 'cid')
                 # Check for server info in CID metadata
@@ -411,9 +411,9 @@ class TestMetaRoute(unittest.TestCase):
         with self.app.app_context():
             cid_value = 'AAAAAAcXbQDQjYYWidERDfdPU5YfXClwenI_KWlxP67-A_2osC862sasaVf5uBL7tBgKDVtZHkX5VaB-UAfsNgSDhJj2Xg'
             self._create_cid(cid_value, b'test content')
-            
+
             response = self.client.get(f'/meta/{cid_value}')
-            
+
             # Should return CID metadata
             data = json.loads(response.data)
             if response.status_code == 200:
