@@ -104,6 +104,26 @@ Follow this recipe when you need to locate the output behind a chunk citation su
 - **Sharing context during active work**: If you must continue across multiple sessions, reference both the original chunk ID and the saved excerpt so collaborators can regenerate or verify the evidence. Avoid relying on terminal scrollback alone—use explicit citations in notes to bridge sessions.
 - **Re-running commands**: When repeating a command in a new session, expect new chunk IDs. To maintain traceability, cite the new chunks alongside any prior session excerpts rather than assuming equivalence.
 
+### Example: regenerating and validating evidence across sessions
+
+Use this walk-through to carry evidence from one session to another while keeping citations verifiable:
+
+1. **Capture the original chunk (Session A)**. Suppose running `pytest tests/test_widget.py::test_loads` produces chunk `a1b2c3` with a failure at lines 4-8. Record the exact excerpt and citation in a durable note (for example, add to `notes.md`):
+   - Save the command that produced it and the chunk text covering the failing assertion.
+   - Store the citation `【a1b2c3†L4-L8】` next to the summary so others can locate it while Session A remains available.
+2. **Plan for handoff**. Before closing Session A, ensure the saved note contains everything needed to reproduce the evidence: command invocation, environment flags, and any setup steps. This avoids ambiguity when regenerating later.
+3. **Open a new session (Session B) and rerun**. Execute the same command in Session B. The output will emit a new chunk ID—say `d4e5f6`—because the hash depends on the new chunk text and run metadata (timestamps, ordering, etc.).
+4. **Align the evidence**. Compare the saved excerpt from `a1b2c3` with the fresh output in `d4e5f6`:
+   - Match the failing lines by content rather than by chunk ID; verify the same assertion or stack trace appears at similar line numbers.
+   - If the content diverges, treat it as a behavioral change and adjust your notes accordingly.
+5. **Update citations for the new session**. When writing reports or PR summaries, cite both chunks if useful:
+   - `【a1b2c3†L4-L8】` refers to the preserved Session A evidence.
+   - `【d4e5f6†L3-L9】` (line numbers based on the new chunk) grounds the rerun in Session B.
+   Explicitly mentioning both shows the evidence was regenerated and still matches (or highlights differences).
+6. **Verify durability**. Store the Session B chunk text and citation in the same durable note or commit description so it persists beyond Session B. If future sessions are needed, repeat the cycle: rerun, record the new chunk ID, compare contents, and chain citations.
+
+This approach ensures that citations remain auditable even when session logs expire, while giving reviewers a traceable path from the original evidence to the regenerated confirmation.
+
 ## Recommended contexts
 
 - Use citations in TODOs, plan documents, and PR summaries to ground statements in observed failures (as seen in `/todo/fix_gauge_specs.md`).
