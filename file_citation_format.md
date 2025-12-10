@@ -96,6 +96,14 @@ Follow this recipe when you need to locate the output behind a chunk citation su
 - **Retention**: Chunk identifiers remain valid as long as the associated session logs are available. If logs are truncated or a new session is started, the same commands will produce fresh chunk IDs because the hashing input (captured text) may change with timestamps or environment details.
 - **Portability**: Citations should point to chunks recorded in shared or persisted logs when possible. For ephemeral sessions, copy the relevant chunk text into reviewable artifacts (e.g., PR descriptions) so the citation remains auditable after the session ends.
 
+### Sessions, scope, and sharing evidence
+
+- **Session start and end**: A session begins when you open a new tooling channel (for example, a fresh shell, REPL, or remote execution context) and ends when that channel is closed or its logs are discarded. Chunk IDs are scoped to the session’s captured output; once the session ends, new runs will create new chunks even for the same commands.
+- **What persists inside a session**: All command outputs (and therefore chunk IDs) created after the session starts remain addressable until the session is reset or closed. Line numbering is stable within each chunk because it is tied to the captured text, not to clock time or execution order beyond the chunk boundary.
+- **Passing information between sessions**: Because chunk IDs are session-local, preserve critical evidence by exporting it. Reliable mechanisms include copying the chunk text (with `chunk_id` and line numbers) into shared docs, commit messages, or PR descriptions, or saving it to tracked files that live beyond the session boundary.
+- **Sharing context during active work**: If you must continue across multiple sessions, reference both the original chunk ID and the saved excerpt so collaborators can regenerate or verify the evidence. Avoid relying on terminal scrollback alone—use explicit citations in notes to bridge sessions.
+- **Re-running commands**: When repeating a command in a new session, expect new chunk IDs. To maintain traceability, cite the new chunks alongside any prior session excerpts rather than assuming equivalence.
+
 ## Recommended contexts
 
 - Use citations in TODOs, plan documents, and PR summaries to ground statements in observed failures (as seen in `/todo/fix_gauge_specs.md`).
