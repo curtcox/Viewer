@@ -257,6 +257,25 @@ jobs:
           path: test-index-report
           if-no-files-found: error
 
+  cid-validation:
+    name: CID Validation
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate CID files
+        id: validate_cids
+        run: ./scripts/ci/validate_cids_with_report.sh
+      - name: Upload CID validation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cid-validation-report
+          path: cid-validation-report
+          if-no-files-found: error
+
   dead-fixtures:
     name: Dead Fixtures Check
     runs-on: ubuntu-latest
@@ -546,6 +565,7 @@ jobs:
       - stylelint
       - uncss
       - test-index
+      - cid-validation
       - dead-fixtures
       - unit-tests
       - property-tests
@@ -576,6 +596,7 @@ jobs:
           STYLELINT_STATUS: ${{ needs.stylelint.result }}
           UNCSS_STATUS: ${{ needs.uncss.result }}
           TEST_INDEX_STATUS: ${{ needs.test-index.result }}
+          CID_VALIDATION_STATUS: ${{ needs['cid-validation'].result }}
           DEAD_FIXTURES_STATUS: ${{ needs.dead-fixtures.result }}
           UNIT_TESTS_STATUS: ${{ needs.unit-tests.result }}
           PROPERTY_TESTS_STATUS: ${{ needs.property-tests.result }}
@@ -654,6 +675,12 @@ jobs:
         with:
           name: test-index-report
           path: site/test-index
+      - name: Download CID validation report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: cid-validation-report
+          path: site/cid-validation
       - name: Download Dead Fixtures report
         uses: actions/download-artifact@v4
         continue-on-error: true

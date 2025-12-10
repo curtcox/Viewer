@@ -197,6 +197,22 @@ def _copy_artifacts(source: Path | None, destination: Path) -> None:
     shutil.copytree(source, destination, dirs_exist_ok=True)
 
 
+def _format_size(byte_count: int) -> str:
+    """Return a human-readable size string."""
+
+    units = ["bytes", "KB", "MB", "GB", "TB"]
+    size = float(byte_count)
+
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            if unit == "bytes":
+                return f"{int(size)} {unit}"
+            return f"{size:.2f} {unit}"
+        size /= 1024
+
+    return f"{byte_count} bytes"
+
+
 
 def _flatten_htmlcov(unit_tests_dir: Path) -> None:
     htmlcov_dir = unit_tests_dir / "htmlcov"
@@ -258,6 +274,78 @@ def _build_integration_index(integration_dir: Path) -> None:
 
     index_path.write_text(
         _render_html_page("Integration test results", body, COMMON_CSS),
+        encoding="utf-8",
+    )
+
+
+def _build_cid_validation_index(cid_dir: Path) -> None:
+    """Render a summary page for CID validation results."""
+
+    cid_dir.mkdir(parents=True, exist_ok=True)
+
+    index_path = cid_dir / "index.html"
+    summary_path = cid_dir / "summary.json"
+    report_txt = cid_dir / "report.txt"
+
+    if not summary_path.exists():
+        body = """  <h1>CID Validation</h1>
+  <p>No CID validation summary was found.</p>"""
+        index_path.write_text(
+            _render_html_page("CID Validation", body, COMMON_CSS),
+            encoding="utf-8",
+        )
+        return
+
+    try:
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        body = """  <h1>CID Validation</h1>
+  <p>Unable to read the CID validation summary.</p>"""
+        index_path.write_text(
+            _render_html_page("CID Validation", body, COMMON_CSS),
+            encoding="utf-8",
+        )
+        return
+
+    cid_count = summary.get("cid_count", 0)
+    valid_count = summary.get("valid_count", 0)
+    failures = summary.get("failures", [])
+    failure_count = len(failures)
+    total_bytes = summary.get("total_bytes", 0)
+    readable_size = summary.get("total_size_readable") or _format_size(total_bytes)
+
+    totals_html = f"""  <ul>
+    <li>Total CIDs: {cid_count}</li>
+    <li>Valid CIDs: {valid_count}</li>
+    <li>Failures: {failure_count}</li>
+    <li>Total size: {readable_size} ({total_bytes} bytes)</li>
+  </ul>"""
+
+    if failures:
+        failure_items = "\n".join(
+            f"    <li><code>{escape(failure.get('filename', ''))}</code>: computed "
+            f"<code>{escape(failure.get('computed_cid', ''))}</code> "
+            f"({failure.get('size_bytes', 0)} bytes)</li>"
+            for failure in failures
+        )
+        failure_html = f"""  <h2>Failures</h2>
+  <ol>
+{failure_items}
+  </ol>"""
+    else:
+        failure_html = "  <h2>Failures</h2>\n  <p>No validation failures detected.</p>"
+
+    report_link = ""
+    if report_txt.exists():
+        report_link = '<p><a href="report.txt">Download full report</a></p>'
+
+    body = f"""  <h1>CID Validation Results</h1>
+  {totals_html}
+  {report_link}
+  {failure_html}"""
+
+    index_path.write_text(
+        _render_html_page("CID Validation", body, COMMON_CSS),
         encoding="utf-8",
     )
 
@@ -863,6 +951,12 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="Test Index Validation",
             report_link="test-index/index.html"
         ),
+        "cid-validation": JobMetadata(
+            name="CID Validation",
+            icon="🧬",
+            check_type="CID Consistency Check",
+            report_link="cid-validation/index.html"
+        ),
         "unit-tests": JobMetadata(
             name="Unit Tests",
             icon="🧪",
@@ -1002,6 +1096,7 @@ def build_site(
     shellcheck_artifacts: Path | None,
     hadolint_artifacts: Path | None,
     test_index_artifacts: Path | None,
+    cid_validation_artifacts: Path | None,
     job_statuses_path: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
@@ -1020,6 +1115,7 @@ def build_site(
     shellcheck_dir = output_dir / "shellcheck"
     hadolint_dir = output_dir / "hadolint"
     test_index_dir = output_dir / "test-index"
+    cid_validation_dir = output_dir / "cid-validation"
 
     _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
@@ -1033,6 +1129,7 @@ def build_site(
     _copy_artifacts(shellcheck_artifacts, shellcheck_dir)
     _copy_artifacts(hadolint_artifacts, hadolint_dir)
     _copy_artifacts(test_index_artifacts, test_index_dir)
+    _copy_artifacts(cid_validation_artifacts, cid_validation_dir)
 
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
@@ -1053,6 +1150,7 @@ def build_site(
     _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck", job_statuses.get("shellcheck"))
     _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
     _build_test_index_page(test_index_dir)
+    _build_cid_validation_index(cid_validation_dir)
     _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
 
 
@@ -1132,6 +1230,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing the Test Index artifacts.",
     )
     parser.add_argument(
+        "--cid-validation-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing CID validation artifacts.",
+    )
+    parser.add_argument(
         "--job-statuses",
         type=Path,
         default=None,
@@ -1168,6 +1272,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         shellcheck_artifacts=parsed.shellcheck_artifacts,
         hadolint_artifacts=parsed.hadolint_artifacts,
         test_index_artifacts=parsed.test_index_artifacts,
+        cid_validation_artifacts=parsed.cid_validation_artifacts,
         job_statuses_path=parsed.job_statuses,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
