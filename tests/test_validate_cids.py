@@ -1,9 +1,11 @@
 """Tests for the CID validation script."""
 
+from __future__ import annotations
+
 import sys
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 
 # Add the scripts directory and repo root to the path
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -13,8 +15,9 @@ if str(SCRIPTS_DIR) not in sys.path:
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from validate_cids import validate_cids, CidFailure
-from cid_core import generate_cid
+# Import after path setup to avoid E402
+from validate_cids import validate_cids  # noqa: E402
+from cid_core import generate_cid  # noqa: E402
 
 
 class TestValidateCids(unittest.TestCase):
