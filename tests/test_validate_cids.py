@@ -5,16 +5,15 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-# Add the scripts directory to the path
+# Add the scripts directory and repo root to the path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = REPO_ROOT / "scripts" / "checks"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from validate_cids import validate_cids, CidFailure
-
-# Import after adding to path
-sys.path.insert(0, str(REPO_ROOT))
 from cid_core import generate_cid
 
 

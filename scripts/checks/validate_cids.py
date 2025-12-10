@@ -118,7 +118,7 @@ def validate_cids(cid_dir: Path) -> ValidationSummary:
             failures.append(
                 CidFailure(
                     filename=path.name,
-                    computed_cid="",
+                    computed_cid="N/A",
                     size_bytes=len(content),
                     failure_type="short_filename",
                 )
