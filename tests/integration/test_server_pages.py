@@ -213,6 +213,59 @@ def test_servers_page_links_auto_main_context_matches(
     assert "/secrets/api_token" in page
 
 
+def test_servers_page_shows_keyword_only_parameter_secrets(
+    client,
+    integration_app,
+):
+    """Servers with keyword-only secret parameters should list those secrets even if they don't exist."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name="test-api-server",
+                definition=(
+                    "def main(message: str = 'Hello!', *, API_KEY: str, context=None):\n"
+                    "    return {'output': f'{message} with {API_KEY}'}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should show API_KEY as a potential secret parameter
+    assert "API_KEY" in page
+
+
+def test_servers_page_shows_lowercase_parameters_as_variables(
+    client,
+    integration_app,
+):
+    """Servers with lowercase main parameters should list them as variables even if they don't exist."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name="test-var-server",
+                definition=(
+                    "def main(city, temperature):\n"
+                    "    return {'output': f'{city}: {temperature}'}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should show city and temperature as potential variables
+    assert "city" in page
+    assert "temperature" in page
+
+
 def test_new_server_form_renders_in_single_user_mode(
     client,
 ):

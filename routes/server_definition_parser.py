@@ -105,6 +105,9 @@ class ServerDefinitionParser:
         """
         matches: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
 
+        # Filter out 'context' which is a special parameter
+        parameter_names = {name for name in parameter_names if name != 'context'}
+
         normalized = {
             'variables': {
                 str(name) for name in (known_variables or [])
@@ -116,12 +119,25 @@ class ServerDefinitionParser:
             },
         }
 
-        if not normalized['variables'] and not normalized['secrets']:
-            return matches
-
+        # First, match parameters against known variables and secrets
+        matched_params = set()
         for source in ('variables', 'secrets'):
             for name in parameter_names & normalized[source]:
                 matches[source].add(name)
+                matched_params.add(name)
+
+        # Then categorize unmatched parameters by naming convention:
+        # - ALL_UPPERCASE names (with optional underscores and digits) are likely secrets
+        # - Other names are likely variables
+        unmatched_params = parameter_names - matched_params
+        for name in unmatched_params:
+            # Check if the name is all uppercase (allowing underscores and digits)
+            # by removing underscores and digits and checking if remaining chars are uppercase
+            chars_only = ''.join(c for c in name if c.isalpha())
+            if chars_only and chars_only.isupper():
+                matches['secrets'].add(name)
+            else:
+                matches['variables'].add(name)
 
         return matches
 

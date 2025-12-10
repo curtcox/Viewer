@@ -62,12 +62,12 @@ def main(city, api_token, context=None):
     assert references['secrets'] == ['api_token']
 
 
-def test_auto_main_parameters_ignore_unknown_context_names() -> None:
-    """Auto main parameters without matching context names should be ignored."""
+def test_auto_main_parameters_categorize_by_naming_convention() -> None:
+    """Auto main parameters should be categorized by naming convention when no matches exist."""
 
     definition = """
-def main(city, api_token, context=None):
-    return {"output": f"{city} {api_token}", "content_type": "text/plain"}
+def main(city, api_token, API_KEY, context=None):
+    return {"output": f"{city} {api_token} {API_KEY}", "content_type": "text/plain"}
 """
 
     references = _extract_context_references(
@@ -76,5 +76,8 @@ def main(city, api_token, context=None):
         known_secrets={'different'},
     )
 
-    assert references['variables'] == []
-    assert references['secrets'] == []
+    # Lowercase names are categorized as variables
+    assert 'city' in references['variables']
+    assert 'api_token' in references['variables']
+    # ALL_UPPERCASE names are categorized as secrets
+    assert 'API_KEY' in references['secrets']
