@@ -302,6 +302,12 @@ def and_i_have_upload_templates_configured() -> None:
         'json_example': {
             'name': 'JSON Example',
             'content': '{\n  "key": "value"\n}',
+            'description': 'Quick JSON starter template.',
+        },
+        'cid_guide': {
+            'name': 'Embedded CID execution guide',
+            'content': 'CID execution walkthrough',
+            'description': 'Explains CID path elements and how to execute them.',
         },
     }
     _save_upload_templates(uploads)

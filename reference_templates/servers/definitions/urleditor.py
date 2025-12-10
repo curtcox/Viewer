@@ -4,7 +4,10 @@
 
 import html
 import json
+from datetime import datetime, timezone
 from typing import Optional
+
+from history_filters import format_history_timestamp
 
 
 def _should_redirect(request_path: str) -> tuple[bool, Optional[str]]:
@@ -53,7 +56,26 @@ def _load_resource_file(filename: str) -> str:
         return f.read()
 
 
-def _get_html_page(initial_url: str = "") -> str:
+def _build_meta_links(request_path: str) -> dict[str, str]:
+    """Construct metadata links that mirror the main Viewer navigation."""
+
+    from urllib.parse import quote_plus
+
+    stripped = (request_path or "/").strip("/")
+    requested_path = f"{stripped}.html" if stripped else ".html"
+
+    loaded_at = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    timestamp_param = format_history_timestamp(loaded_at)
+    encoded_timestamp = quote_plus(timestamp_param)
+
+    return {
+        "meta": f"/meta/{requested_path}",
+        "history": f"/history?start={encoded_timestamp}",
+        "server_events": f"/server_events?start={encoded_timestamp}",
+    }
+
+
+def _get_html_page(initial_url: str = "", *, meta_links: Optional[dict[str, str]] = None) -> str:
     """Generate the HTML page for the URL editor.
 
     Args:
@@ -77,10 +99,22 @@ def _get_html_page(initial_url: str = "") -> str:
     js_tag = f"<script>\n{js_content}\n</script>"
 
     # Replace placeholders in HTML template
+    meta_links = meta_links or {}
+
     html_output = html_template.replace("{{CSS_CONTENT}}", css_tag)
     html_output = html_output.replace("{{JS_CONTENT}}", js_tag)
     html_output = html_output.replace("{{ESCAPED_URL}}", escaped_url)
     html_output = html_output.replace("{{INITIAL_URL_JSON}}", escaped_url_json)
+    html_output = html_output.replace(
+        "{{META_INSPECTOR_URL}}", html.escape(meta_links.get("meta", ""))
+    )
+    html_output = html_output.replace(
+        "{{HISTORY_SINCE_URL}}", html.escape(meta_links.get("history", ""))
+    )
+    html_output = html_output.replace(
+        "{{SERVER_EVENTS_SINCE_URL}}",
+        html.escape(meta_links.get("server_events", "")),
+    )
 
     return html_output
 
@@ -134,8 +168,10 @@ def main(input_data=None, *, request=None, context=None):
     # and let JavaScript handle the fragment
     initial_url = ""
 
+    meta_links = _build_meta_links(request_path)
+
     # Generate and return the HTML page
-    html_content = _get_html_page(initial_url)
+    html_content = _get_html_page(initial_url, meta_links=meta_links)
 
     return {
         "output": html_content,

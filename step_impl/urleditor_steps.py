@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 """Step implementations for URL Editor server specs."""
 
 from getgauge.python import step
 
+from identity import ensure_default_resources
 from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import get_scenario_state, store
 
@@ -11,8 +14,12 @@ def check_available_servers():
     """Check which servers are available."""
     from db_access import get_servers
 
-    servers = get_servers()
-    store.available_servers = [s.name for s in servers]
+    app = get_shared_app()
+    with app.app_context():
+        ensure_default_resources()
+        servers = get_servers()
+
+    store.available_servers = [s.name for s in servers if getattr(s, "enabled", True)]
 
 
 @step("Given the default boot image is loaded")
@@ -32,19 +39,20 @@ def check_server_present(server_name):
 @step("Then the response should be a redirect")
 def check_response_is_redirect():
     """Verify that the response is a redirect."""
-    assert hasattr(store, 'last_response'), "No response stored"
-    # Check if it's a redirect (status code 300-399)
-    assert 300 <= store.last_response.status_code < 400, \
-        f"Expected redirect, got status {store.last_response.status_code}"
+    response = getattr(store, "last_response", None) or get_scenario_state().get("response")
+    assert response is not None, "No response stored"
+    assert 300 <= response.status_code < 400, \
+        f"Expected redirect, got status {response.status_code}"
 
 
 @step("And the redirect location should be <expected_location>")
 def check_redirect_location(expected_location):
     """Verify the redirect location."""
-    assert hasattr(store, 'last_response'), "No response stored"
+    response = getattr(store, "last_response", None) or get_scenario_state().get("response")
+    assert response is not None, "No response stored"
 
     # Get the Location header
-    location = store.last_response.headers.get('Location', '')
+    location = response.headers.get('Location', '')
 
     # Normalize expected location (remove quotes if present)
     expected = expected_location.strip('"\'')
@@ -137,7 +145,10 @@ def check_final_output_shows_content():
     assert len(store.editor_content) > 0, "Editor content is empty"
 
 
-@step("And the URL fragment should be <expected_fragment>")
+@step([
+    "And the URL fragment should be <expected_fragment>",
+    "Then the URL fragment should be <expected_fragment>",
+])
 def check_url_fragment(expected_fragment):
     """Verify the URL fragment."""
     expected = expected_fragment.strip('"\'')
@@ -146,6 +157,12 @@ def check_url_fragment(expected_fragment):
         actual_path = '/' + '/'.join(store.editor_content)
         assert actual_path == expected, \
             f"Expected URL fragment {expected}, got {actual_path}"
+    else:
+        current = getattr(store, "current_url", "")
+        fragment = current.split("#", 1)[-1] if "#" in current else ""
+        actual_path = f"/{fragment}" if fragment else ""
+        assert actual_path == expected, \
+            f"Expected URL fragment {expected}, got {actual_path or '<empty>'}"
 
 
 @step("Then the indicator for <element> should show it is valid")
@@ -173,6 +190,44 @@ def check_indicator_shows_language(element):
     assert element, "Expected an element name"
     language = getattr(store, 'server_language', 'python')
     store.server_language = language  # Ensure attribute exists for later checks
+
+
+@step('And I click the "Copy URL" button')
+def click_copy_url_button() -> None:
+    """Simulate copying the URL from the editor."""
+
+    current = getattr(store, "current_url", "")
+    fragment = current.split("#", 1)[-1] if "#" in current else ""
+    copied = f"/{fragment.lstrip('/')}" if fragment else ""
+    store.copied_url = copied or current
+
+
+@step('Then the URL "<expected_url>" should be copied to clipboard')
+def verify_copied_url(expected_url: str) -> None:
+    """Verify the copied URL matches expectation."""
+
+    expected = expected_url.strip('"\'')
+    actual = getattr(store, "copied_url", "")
+    assert actual == expected, f"Expected copied URL {expected} but recorded {actual}"
+
+
+@step('And I click the "Open URL" button')
+def click_open_url_button() -> None:
+    """Simulate opening the URL in a new tab."""
+
+    current = getattr(store, "current_url", "")
+    fragment = current.split("#", 1)[-1] if "#" in current else ""
+    opened = f"/{fragment.lstrip('/')}" if fragment else current
+    store.opened_url = opened
+
+
+@step('Then a new tab should open with URL "<expected_url>"')
+def verify_opened_url(expected_url: str) -> None:
+    """Verify the simulated tab opening URL."""
+
+    expected = expected_url.strip('"\'')
+    actual = getattr(store, "opened_url", "")
+    assert actual == expected, f"Expected opened URL {expected} but recorded {actual}"
 
 
 @step("Then the indicator for <element> should show it is not a known server")
@@ -314,8 +369,16 @@ def enter_text_on_line(text, line_number):
         store.editor_content.append('')
     store.editor_content[line_number - 1] = text
 
+    non_empty = [line for line in store.editor_content if line.strip()]
+    if non_empty:
+        joined = "/" + "/".join(non_empty)
+        store.current_url = f"/urleditor#{joined.lstrip('/')}"
 
-@step("Then there should be <count> preview rows displayed")
+
+@step([
+    "Then there should be <count> preview rows displayed",
+    "And there should be <count> preview rows displayed",
+])
 def check_preview_row_count(count):
     """Verify the number of preview rows displayed."""
     count = int(count.strip('"\''))

@@ -29,6 +29,7 @@ def get_template_uploads() -> List[Dict[str, Any]]:
             'id': template_key,
             'name': template_name,
             'content': content or '',
+            'description': template.get('description', ''),
         })
 
     return sorted(upload_templates, key=lambda t: t['name'])

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from flask import current_app, render_template, url_for
+from flask import current_app, jsonify, render_template, url_for
 
 from alias_definition import collect_alias_routes
 from db_access import get_aliases, get_servers
@@ -233,4 +233,38 @@ def routes_overview():
     )
 
 
-__all__ = ["routes_overview"]
+def _serialize_entry(entry: RouteEntry) -> dict[str, object]:
+    """Convert a RouteEntry to a JSON-serializable dictionary."""
+
+    return {
+        "category": entry.category,
+        "path": entry.path,
+        "name": entry.name,
+        "definition_label": entry.definition_label,
+        "definition_url": entry.definition_url,
+        "extra_detail": entry.extra_detail,
+        "is_duplicate": entry.is_duplicate,
+        "is_catch_all": entry.is_catch_all,
+    }
+
+
+@main_bp.route("/api/routes")
+def routes_overview_api():
+    """Expose the routes overview as JSON for API consumers."""
+
+    repository_root = Path(current_app.root_path)
+
+    entries: List[RouteEntry] = []
+    entries.extend(_builtin_routes(repository_root))
+    entries.extend(_alias_routes())
+    entries.extend(_server_routes())
+    entries.append(_not_found_entry(repository_root))
+
+    _mark_duplicates(entries)
+
+    entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
+
+    return jsonify({"routes": [_serialize_entry(entry) for entry in entries]})
+
+
+__all__ = ["routes_overview", "routes_overview_api"]

@@ -33,6 +33,13 @@ body {
     align-items: center;
 }
 
+.meta-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
 .main-content {
     display: grid;
     grid-template-columns: 1fr 2fr;

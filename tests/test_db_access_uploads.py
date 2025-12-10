@@ -47,7 +47,8 @@ class TestDbAccessUploads(unittest.TestCase):
             'uploads': {
                 'hello': {
                     'name': 'Hello World',
-                    'content': 'Hello, World!'
+                    'content': 'Hello, World!',
+                    'description': 'Greets the world.'
                 },
                 'json_sample': {
                     'name': 'JSON Sample',
@@ -72,12 +73,14 @@ class TestDbAccessUploads(unittest.TestCase):
         self.assertIsNotNone(hello_template)
         self.assertEqual(hello_template['name'], 'Hello World')
         self.assertEqual(hello_template['content'], 'Hello, World!')
+        self.assertEqual(hello_template['description'], 'Greets the world.')
 
         # Check second template
         json_template = next((t for t in templates if t['id'] == 'json_sample'), None)
         self.assertIsNotNone(json_template)
         self.assertEqual(json_template['name'], 'JSON Sample')
         self.assertEqual(json_template['content'], '{"key": "value"}')
+        self.assertEqual(json_template['description'], '')
 
     def test_get_template_uploads_with_cid_content(self):
         """Test getting upload templates with CID-referenced content."""
