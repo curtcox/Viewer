@@ -77,6 +77,16 @@ To resolve a citation:
    - For chunk citations, find the command output chunk with the matching six-character hash in your session logs (tool responses include a `chunk_id` field you can match against).
 3. **Verify the content** at the stated lines before relying on the cited claim.
 
+### Step-by-step: finding chunk citations
+
+Follow this recipe when you need to locate the output behind a chunk citation such as `【d05d1b†L1-L6】`:
+
+1. **Scan recent tool output** for the chunk hash. Tool responses expose a `chunk_id` label next to the rendered output—search for the six-character token (e.g., `d05d1b`).
+2. **Match the exact chunk** by comparing the hash and line numbers. The cited line range (here `L1-L6`) refers to the numbered lines in that chunked output block.
+3. **Open the chunk details**. If your tooling folds long outputs, expand the chunk so you can see all lines. Line numbers in citations map directly to the 1-indexed lines of the captured text.
+4. **Validate context**. Confirm the surrounding lines still represent the scenario being cited (e.g., the test run or command invocation). If the chunk shows multiple commands in one response, ensure you are looking at the right sub-block.
+5. **Cross-reference adjacent chunks** if necessary. When multiple sequential chunks share the same context (such as a long test run), check earlier or later chunk IDs to gather full context before relying on the citation.
+
 ## Recommended contexts
 
 - Use citations in TODOs, plan documents, and PR summaries to ground statements in observed failures (as seen in `/todo/fix_gauge_specs.md`).
