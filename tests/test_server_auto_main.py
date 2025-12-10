@@ -176,6 +176,25 @@ def test_auto_main_uses_secrets_when_variables_missing(monkeypatch):
     assert result["content_type"] == "text/plain"
 
 
+def test_auto_main_uses_secrets_for_keyword_only_parameters(monkeypatch):
+    definition = """
+ def main(*, api_key):
+     return {"output": api_key, "content_type": "text/plain"}
+ """
+
+    monkeypatch.setattr(
+        server_execution.code_execution,
+        "_load_user_context",
+        lambda: {"variables": {}, "secrets": {"api_key": "secret-key"}, "servers": {}},
+    )
+
+    with app.test_request_context("/secret-kwonly"):
+        result = server_execution.execute_server_code_from_definition(definition, "secret-kwonly")
+
+    assert result["output"] == "secret-key"
+    assert result["content_type"] == "text/plain"
+
+
 def test_auto_main_honors_optional_defaults():
     definition = """
  def main(name="World"):
