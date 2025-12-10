@@ -81,11 +81,20 @@ To resolve a citation:
 
 Follow this recipe when you need to locate the output behind a chunk citation such as `【d05d1b†L1-L6】`:
 
-1. **Scan recent tool output** for the chunk hash. Tool responses expose a `chunk_id` label next to the rendered output—search for the six-character token (e.g., `d05d1b`).
-2. **Match the exact chunk** by comparing the hash and line numbers. The cited line range (here `L1-L6`) refers to the numbered lines in that chunked output block.
-3. **Open the chunk details**. If your tooling folds long outputs, expand the chunk so you can see all lines. Line numbers in citations map directly to the 1-indexed lines of the captured text.
-4. **Validate context**. Confirm the surrounding lines still represent the scenario being cited (e.g., the test run or command invocation). If the chunk shows multiple commands in one response, ensure you are looking at the right sub-block.
-5. **Cross-reference adjacent chunks** if necessary. When multiple sequential chunks share the same context (such as a long test run), check earlier or later chunk IDs to gather full context before relying on the citation.
+1. **Scan recent tool output** for the chunk hash. Tool responses expose a `chunk_id` label next to the rendered output—search for the six-character token (e.g., `d05d1b`). If your terminal supports filtering, use a search (e.g., `/d05d1b` in `less`) to jump straight to the right block.
+2. **Match the exact chunk** by comparing the hash and line numbers. The cited line range (here `L1-L6`) refers to the numbered lines in that chunked output block. Verify the chunk heading still shows the same `chunk_id` to avoid confusing it with similarly prefixed IDs.
+3. **Open the chunk details**. If your tooling folds long outputs, expand the chunk so you can see all lines. When output is paginated across multiple chunks, note where the chunk begins so the `L1` anchor is unambiguous.
+4. **Validate context**. Confirm the surrounding lines still represent the scenario being cited (e.g., the test run or command invocation). If the chunk shows multiple commands in one response, ensure you are looking at the right sub-block. Re-read the prompt or command header if present to confirm you are in the expected output section.
+5. **Cross-reference adjacent chunks** if necessary. When multiple sequential chunks share the same context (such as a long test run), check earlier or later chunk IDs to gather full context before relying on the citation. Long commands often spill into several chunks; trace the sequence by timestamp or output ordering.
+6. **Capture the line numbers**. Once located, jot down the exact `L` range you need so you can transcribe the citation accurately into your document without re-opening the log.
+
+### Chunk lifecycles and durability
+
+- **Creation**: Each command invocation in the tool pipeline emits output in one or more discrete chunks. Every chunk receives a SHA-256-derived `chunk_id` at creation time based solely on its text content.
+- **Stability**: Within a session, the same chunk text always yields the same ID; editing or re-running commands that change output content produces new hashes, so citations remain tied to the captured evidence, not the command name.
+- **Ordering**: Chunks are ordered chronologically per tool response. When reconstructing long outputs, rely on this sequence plus the `L` ranges to stitch adjacent chunks together.
+- **Retention**: Chunk identifiers remain valid as long as the associated session logs are available. If logs are truncated or a new session is started, the same commands will produce fresh chunk IDs because the hashing input (captured text) may change with timestamps or environment details.
+- **Portability**: Citations should point to chunks recorded in shared or persisted logs when possible. For ephemeral sessions, copy the relevant chunk text into reviewable artifacts (e.g., PR descriptions) so the citation remains auditable after the session ends.
 
 ## Recommended contexts
 
