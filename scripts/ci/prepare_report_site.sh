@@ -14,5 +14,6 @@ python scripts/build-report-site.py \
   --shellcheck-artifacts site/shellcheck \
   --hadolint-artifacts site/hadolint \
   --test-index-artifacts site/test-index \
+  --cid-validation-artifacts site/cid-validation \
   --job-statuses job-statuses.json \
   --output site

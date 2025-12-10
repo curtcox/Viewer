@@ -16,6 +16,7 @@ cat > job-statuses.json << EOF
   "stylelint": "${STYLELINT_STATUS}",
   "uncss": "${UNCSS_STATUS}",
   "test-index": "${TEST_INDEX_STATUS}",
+  "cid-validation": "${CID_VALIDATION_STATUS}",
   "dead-fixtures": "${DEAD_FIXTURES_STATUS}",
   "unit-tests": "${UNIT_TESTS_STATUS}",
   "property-tests": "${PROPERTY_TESTS_STATUS}",
