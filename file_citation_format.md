@@ -11,6 +11,12 @@ There are two citation shapes:
 
 Each citation wraps the identifier in fullwidth brackets `【…】`, uses a dagger `†` to introduce the line range, and ends with `L<start>-L<end>` (or a single line `L5`).
 
+### What a chunk is (versus a plain string)
+
+- A **chunk** is a bounded block of captured tool output. It carries implicit metadata: the command context that produced it, chronological ordering, numbered lines for citation, and a deterministic `chunk_id` derived from hashing the chunk’s exact text. Once text is captured as a chunk, that text is treated as evidence and is addressable via citations.
+- A **string** is just a sequence of characters in memory or in a file. A string becomes a chunk only when the tooling captures it as output, freezes its boundaries, and assigns a `chunk_id`. A raw string has no ordering guarantees, line numbering, or citation-ready identifier until that capture step occurs.
+- Converting a string to a chunk is a lossy-to-lossless transition for citation purposes: the content is preserved byte-for-byte, but the act of chunking enriches it with structure (line numbers, chunk hash, and position in the session log) so that later references remain stable.
+
 ## Scope and usage rules
 
 - Use **file citations** when pointing to lines in tracked files. The path is relative to the repo root and prefixed with `F:` to distinguish it from chunk IDs.
