@@ -39,7 +39,7 @@ Viewer is a Flask-based web application focused on analyzing HTTP requests and p
 
 - **Unit tests**: Python `test_*.py` modules discovered automatically by pytest
 - **Gauge specs**: Browser-based user flow tests in `specs/` directory
-- **Integration tests**: Under `tests/integration/`, run with `scripts/run-integration.sh`
+- **Integration tests**: Under `tests/integration/`, run with `scripts/run-integration.sh` (mirrors CI behavior with logging)
 - **Test exclusions**: Configured in `pytest.ini` via `norecursedirs` setting
 
 ### Running Tests
@@ -92,7 +92,7 @@ scripts/run-integration.sh
 
 ### Environment Variables
 
-- `DATABASE_URL`: Database connection (defaults to SQLite `secureapp.db`)
+- `DATABASE_URL`: Database connection (defaults to SQLite `secureapp.db` in project root)
 - `SESSION_SECRET`: Flask secret key for signing sessions
 - `LOGFIRE_API_KEY`: Enable Logfire tracing
 - `LOGFIRE_PROJECT_URL`: Link to Logfire project dashboard
@@ -180,7 +180,7 @@ Authentication is handled by external systems. This repository focuses on conten
 
 ## Getting Help
 
-- See `docs/unit_test_instructions.md` for detailed testing walkthrough
-- See `AGENTS.md` for workflow and process principles
-- See `README.md` for comprehensive project documentation
+- See `docs/unit_test_instructions.md` for detailed testing walkthrough and testmon usage
+- See `AGENTS.md` for the original workflow and process principles (already incorporated above)
+- See `README.md` for comprehensive project documentation and detailed script descriptions
 - Check `docs/` directory for specific topics (import/export formats, deployment, etc.)
