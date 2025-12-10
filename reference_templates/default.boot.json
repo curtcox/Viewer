@@ -22,7 +22,7 @@
     },
     {
       "name": "anthropic_claude",
-      "definition_cid": "AAAAAAPwzEXWIcCLLI8SOYXGgLv9bdZDEzglzM_9d1UAqYP63lkyv059_RFJKpoLwMs1o5SDh2NtSwfMFhF5iYfwqL7jkQ",
+      "definition_cid": "AAAAAAR1K4NxeXNfbO--2jYloChZBEAn_FaPZzvIhHrcKDojjk2ong1aFMh1Dxpwc7P1NBm3XhhkSmFtaFRtmMEZuoNkYg",
       "enabled": true
     },
     {
@@ -52,7 +52,7 @@
     },
     {
       "name": "google_gemini",
-      "definition_cid": "AAAAAANHnPRv0PYSzE3knrTnnEG5yTioLZ4g6ltuauU72c7hfINdn-xoDNNWHnm32LHDHby3KAvhjb9-wLDRTxr2AeZAEw",
+      "definition_cid": "AAAAAALbFcjcp3fkzvs4NBbwtZNrAslDJrYE5QvG3D-PYOU8cUCTKwFs46XGpq4AZi5ZcG88VOkaymtAImgO4m-8TRSkRw",
       "enabled": true
     },
     {
@@ -67,12 +67,12 @@
     },
     {
       "name": "openai_chat",
-      "definition_cid": "AAAAAANwu7HyR3gM2sJssPHr6JPJpWI4zcQO_fT58onKSbXA79Zp1CyaCHrDDEdfP26bjCb8LWUdI0Gwi8znLfDGWvhCsg",
+      "definition_cid": "AAAAAAMWrWv-WBhDECY9jCTmF0_7an1vY81fmwJA_uMsBxs5kK6hXRAcGenL3M3HkRO-2kSsrH6b6EUI6Um8mL4WqIG9wQ",
       "enabled": true
     },
     {
       "name": "openrouter",
-      "definition_cid": "AAAAAAOiuUg36HLfqZq6inOKS2lY9YcsATJQrrBKws951lSDYBrpsezH0UwYXb9pH_WIATWnfFeNWpkaMuDLg5u4oINYVQ",
+      "definition_cid": "AAAAAANUOuanh8hUFyX6AozQDYoWYCncqXyvoX_5vWNXqtyMN5TDgI0ghksSqjTzyDxpESgJFv0PXWCQ3cNRth_V_fUqGQ",
       "enabled": true
     },
     {
@@ -87,19 +87,19 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "AAAAABS2BAL1VlE00i3qLug4sdy9sUVYQn0Tr1j6zQ-DgZ2-tM478FCKlYVBaECA4fsfTb2pZpKnh7fSucawZQbfQy8MOw",
+      "definition_cid": "AAAAABL5lrqfQrDLPxTfFwiJcbDBPIpk5Z7YVyGgqD7fPSDLERPPLiiQx-J4yY_O4RZgJ82DfgxSwVguMD_qIGEacN55fw",
       "enabled": true
     },
     {
       "name": "ai_editor",
-      "definition_cid": "AAAAABpH7h4igbiwbtqVBlamcVkKc6-W_39YXqmgugITz5etsjSj-z5pKZoHLrkxhPVp1e8jBJPhqxpcdgJnUN_y-HzPTA",
+      "definition_cid": "AAAAABtsgScICd5fg9CX8RWEzwZlwv-0CWuRDqicF1usoTCsnoFSKvtZoYSOqUMVkiN24xl8RYg6FcQ_MQQIVIgeu1PaQA",
       "enabled": true
     }
   ],
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABQIuUROlC-0GY8T1vLCoHWcVhXN6TkHr2pEXMwEB-kHoOBw6UUIiRqtp9YyQcrjZa-uJ-_0LqRB3a_341IeXePQ3A",
+      "definition": "AAAAABQIJiKvTuxTEe_cp65-bMe_8JbZGXhijkPJJDbzJLolPAlvGssyPZM8l-wVEjGViB_cfNumgqiG4rj__iONe1Uccw",
       "enabled": true
     },
     {
