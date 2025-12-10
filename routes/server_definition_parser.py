@@ -127,12 +127,14 @@ class ServerDefinitionParser:
                 matched_params.add(name)
 
         # Then categorize unmatched parameters by naming convention:
-        # - ALL_UPPERCASE names (with optional underscores) are likely secrets
+        # - ALL_UPPERCASE names (with optional underscores and digits) are likely secrets
         # - Other names are likely variables
         unmatched_params = parameter_names - matched_params
         for name in unmatched_params:
             # Check if the name is all uppercase (allowing underscores and digits)
-            if name and name.replace('_', '').replace('0', '').replace('1', '').replace('2', '').replace('3', '').replace('4', '').replace('5', '').replace('6', '').replace('7', '').replace('8', '').replace('9', '').isupper():
+            # by removing underscores and digits and checking if remaining chars are uppercase
+            chars_only = ''.join(c for c in name if c.isalpha())
+            if chars_only and chars_only.isupper():
                 matches['secrets'].add(name)
             else:
                 matches['variables'].add(name)
