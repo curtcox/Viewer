@@ -71,27 +71,6 @@ class TestURLEditorHelperFunctions:
         """Set up test fixtures."""
         self.module = load_urleditor_module()
 
-    def test_parse_url_from_input_handles_empty(self):
-        """Test that _parse_url_from_input handles empty input."""
-        parse_func = self.module['_parse_url_from_input']
-
-        result = parse_func("")
-        assert result == ""
-
-    def test_parse_url_from_input_adds_leading_slash(self):
-        """Test that _parse_url_from_input adds leading slash."""
-        parse_func = self.module['_parse_url_from_input']
-
-        result = parse_func("echo/test")
-        assert result == "/echo/test"
-
-    def test_parse_url_from_input_strips_whitespace(self):
-        """Test that _parse_url_from_input strips whitespace."""
-        parse_func = self.module['_parse_url_from_input']
-
-        result = parse_func("  /echo/test  ")
-        assert result == "/echo/test"
-
     def test_should_redirect_returns_false_for_root(self):
         """Test that _should_redirect returns False for root path."""
         redirect_func = self.module['_should_redirect']

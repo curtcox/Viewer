@@ -22,7 +22,7 @@
     },
     {
       "name": "anthropic_claude",
-      "definition_cid": "AAAAAAR1K4NxeXNfbO--2jYloChZBEAn_FaPZzvIhHrcKDojjk2ong1aFMh1Dxpwc7P1NBm3XhhkSmFtaFRtmMEZuoNkYg",
+      "definition_cid": "AAAAAAPwzEXWIcCLLI8SOYXGgLv9bdZDEzglzM_9d1UAqYP63lkyv059_RFJKpoLwMs1o5SDh2NtSwfMFhF5iYfwqL7jkQ",
       "enabled": true
     },
     {
@@ -52,7 +52,7 @@
     },
     {
       "name": "google_gemini",
-      "definition_cid": "AAAAAALbFcjcp3fkzvs4NBbwtZNrAslDJrYE5QvG3D-PYOU8cUCTKwFs46XGpq4AZi5ZcG88VOkaymtAImgO4m-8TRSkRw",
+      "definition_cid": "AAAAAANHnPRv0PYSzE3knrTnnEG5yTioLZ4g6ltuauU72c7hfINdn-xoDNNWHnm32LHDHby3KAvhjb9-wLDRTxr2AeZAEw",
       "enabled": true
     },
     {
@@ -67,12 +67,12 @@
     },
     {
       "name": "openai_chat",
-      "definition_cid": "AAAAAAMWrWv-WBhDECY9jCTmF0_7an1vY81fmwJA_uMsBxs5kK6hXRAcGenL3M3HkRO-2kSsrH6b6EUI6Um8mL4WqIG9wQ",
+      "definition_cid": "AAAAAANwu7HyR3gM2sJssPHr6JPJpWI4zcQO_fT58onKSbXA79Zp1CyaCHrDDEdfP26bjCb8LWUdI0Gwi8znLfDGWvhCsg",
       "enabled": true
     },
     {
       "name": "openrouter",
-      "definition_cid": "AAAAAANUOuanh8hUFyX6AozQDYoWYCncqXyvoX_5vWNXqtyMN5TDgI0ghksSqjTzyDxpESgJFv0PXWCQ3cNRth_V_fUqGQ",
+      "definition_cid": "AAAAAAOiuUg36HLfqZq6inOKS2lY9YcsATJQrrBKws951lSDYBrpsezH0UwYXb9pH_WIATWnfFeNWpkaMuDLg5u4oINYVQ",
       "enabled": true
     },
     {
