@@ -14,8 +14,8 @@ def _get_secret(context: Optional[Dict[str, Any]], name: str) -> Optional[str]:
     return None
 
 
-def main(message: str = "Hello from Viewer!", api_key: Optional[str] = None, *, context=None):
-    api_key = api_key or _get_secret(context, "OPENAI_API_KEY")
+def main(message: str = "Hello from Viewer!", *, OPENAI_API_KEY: str, context=None):
+    api_key = OPENAI_API_KEY or _get_secret(context, "OPENAI_API_KEY")
     if not api_key:
         return {"output": "Missing OPENAI_API_KEY"}
 

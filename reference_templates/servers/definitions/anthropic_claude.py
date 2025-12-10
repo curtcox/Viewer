@@ -20,12 +20,12 @@ DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
 def main(
     message: str = "Hello from Viewer!",
-    api_key: Optional[str] = None,
-    model: Optional[str] = None,
     *,
+    ANTHROPIC_API_KEY: str,
+    model: Optional[str] = None,
     context=None,
 ):
-    api_key = api_key or _get_secret(context, "ANTHROPIC_API_KEY")
+    api_key = ANTHROPIC_API_KEY or _get_secret(context, "ANTHROPIC_API_KEY")
     if not api_key:
         return {"output": "Missing ANTHROPIC_API_KEY"}
 
