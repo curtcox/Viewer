@@ -1,6 +1,7 @@
 # ruff: noqa: F821, F706
 """Call the Anthropic Claude Messages API using automatic main() mapping."""
 
+import os
 from typing import Any, Dict, Optional
 
 import requests
@@ -14,10 +15,21 @@ def _get_secret(context: Optional[Dict[str, Any]], name: str) -> Optional[str]:
     return None
 
 
-def main(message: str = "Hello from Viewer!", api_key: Optional[str] = None, *, context=None):
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
+
+
+def main(
+    message: str = "Hello from Viewer!",
+    api_key: Optional[str] = None,
+    model: Optional[str] = None,
+    *,
+    context=None,
+):
     api_key = api_key or _get_secret(context, "ANTHROPIC_API_KEY")
     if not api_key:
         return {"output": "Missing ANTHROPIC_API_KEY"}
+
+    model_id = model or os.getenv("ANTHROPIC_MODEL") or DEFAULT_MODEL
 
     url = "https://api.anthropic.com/v1/messages"
     headers = {
@@ -26,8 +38,8 @@ def main(message: str = "Hello from Viewer!", api_key: Optional[str] = None, *, 
         "anthropic-version": "2023-06-01",
     }
     payload = {
-        "model": "claude-3-haiku-20240307",
-        "max_tokens": 512,
+        "model": model_id,
+        "max_tokens": 1024,
         "messages": [
             {
                 "role": "user",
