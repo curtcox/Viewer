@@ -45,7 +45,7 @@ def setup_ai_assist_server(memory_db_app):
         if api_key:
             secret = db.session.query(Secret).filter_by(name='OPENROUTER_API_KEY').first()
             if not secret:
-                secret = Secret(name='OPENROUTER_API_KEY', value=api_key)
+                secret = Secret(name='OPENROUTER_API_KEY', definition=api_key)
                 db.session.add(secret)
 
         # Set default AI model variable
@@ -53,7 +53,7 @@ def setup_ai_assist_server(memory_db_app):
         if not ai_model:
             ai_model = Variable(
                 name='AI_MODEL',
-                value=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4-20250514')
+                definition=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4-20250514')
             )
             db.session.add(ai_model)
 
@@ -62,7 +62,7 @@ def setup_ai_assist_server(memory_db_app):
         if not ai_temp:
             ai_temp = Variable(
                 name='AI_TEMPERATURE',
-                value=os.getenv('AI_TEMPERATURE', '0.3')
+                definition=os.getenv('AI_TEMPERATURE', '0.3')
             )
             db.session.add(ai_temp)
 
@@ -71,7 +71,7 @@ def setup_ai_assist_server(memory_db_app):
         if not ai_tokens:
             ai_tokens = Variable(
                 name='AI_MAX_TOKENS',
-                value=os.getenv('AI_MAX_TOKENS', '4096')
+                definition=os.getenv('AI_MAX_TOKENS', '4096')
             )
             db.session.add(ai_tokens)
 
