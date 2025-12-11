@@ -42,8 +42,8 @@ The goal of future work would be to tighten typing around these values (e.g., vi
 - [ ] `cid_presenter.py` *(template / HTML boundary)*
   - Presenter helpers like `format_cid(value: Optional[str])`, `extract_cid_from_path(value: Optional[str])`, `format_cid_short(value: Optional[str], ...)`, and `render_cid_link(value: Optional[str])` operate on CID-like strings.
 
-- [ ] `cid_utils.py` *(HTTP path parsing boundary)*
-  - Utility functions for detecting / splitting CID paths (e.g., `split_cid_path`, `is_strict_cid_candidate`) work entirely in terms of CID-valued strings.
+- [x] `cid_utils.py` *(HTTP path parsing boundary / compatibility shim)*
+  - Deprecated shim that re-exports CID/path helpers from `cid_core`, `cid_storage`, `content_rendering`, and `mime_utils`, all of which currently expose CID values as strings at their public boundaries.
 
 - [ ] `boot_cid_importer.py` *(CLI / JSON / DB boundary)*
   - Functions `load_and_validate_boot_cid(boot_cid: str)`, `verify_boot_cid_dependencies(boot_cid: str)`, and `import_boot_cid(..., boot_cid: str)` treat the boot CID as a string.
