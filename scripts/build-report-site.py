@@ -1097,6 +1097,7 @@ def build_site(
     hadolint_artifacts: Path | None,
     test_index_artifacts: Path | None,
     cid_validation_artifacts: Path | None,
+    ai_eval_artifacts: Path | None,
     job_statuses_path: Path | None,
     output_dir: Path,
     public_base_url: str | None = None,
@@ -1116,6 +1117,7 @@ def build_site(
     hadolint_dir = output_dir / "hadolint"
     test_index_dir = output_dir / "test-index"
     cid_validation_dir = output_dir / "cid-validation"
+    ai_eval_dir = output_dir / "ai-eval"
 
     _copy_artifacts(unit_tests_artifacts, unit_tests_dir)
     _copy_artifacts(gauge_artifacts, gauge_dir)
@@ -1130,6 +1132,7 @@ def build_site(
     _copy_artifacts(hadolint_artifacts, hadolint_dir)
     _copy_artifacts(test_index_artifacts, test_index_dir)
     _copy_artifacts(cid_validation_artifacts, cid_validation_dir)
+    _copy_artifacts(ai_eval_artifacts, ai_eval_dir)
 
     _flatten_htmlcov(unit_tests_dir)
     _flatten_gauge_reports(gauge_dir)
@@ -1236,6 +1239,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory containing CID validation artifacts.",
     )
     parser.add_argument(
+        "--ai-eval-artifacts",
+        type=Path,
+        default=None,
+        help="Directory containing AI evaluation test artifacts.",
+    )
+    parser.add_argument(
         "--job-statuses",
         type=Path,
         default=None,
@@ -1273,6 +1282,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         hadolint_artifacts=parsed.hadolint_artifacts,
         test_index_artifacts=parsed.test_index_artifacts,
         cid_validation_artifacts=parsed.cid_validation_artifacts,
+        ai_eval_artifacts=parsed.ai_eval_artifacts,
         job_statuses_path=parsed.job_statuses,
         output_dir=parsed.output,
         public_base_url=parsed.public_base_url,
