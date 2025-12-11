@@ -34,6 +34,7 @@ class CidFailure:
     filename: str
     computed_cid: str
     size_bytes: int
+    failure_type: str = "mismatch"  # "mismatch" or "short_filename"
 
 
 @dataclass
@@ -49,6 +50,14 @@ class ValidationSummary:
     def total_size_readable(self) -> str:
         return _format_size(self.total_bytes)
 
+    @property
+    def short_filename_failures(self) -> list[CidFailure]:
+        return [f for f in self.failures if f.failure_type == "short_filename"]
+
+    @property
+    def mismatch_failures(self) -> list[CidFailure]:
+        return [f for f in self.failures if f.failure_type == "mismatch"]
+
     def to_json(self) -> str:
         payload = {
             "cid_count": self.cid_count,
@@ -56,6 +65,8 @@ class ValidationSummary:
             "total_bytes": self.total_bytes,
             "total_size_readable": self.total_size_readable,
             "failures": [asdict(failure) for failure in self.failures],
+            "short_filename_failures": len(self.short_filename_failures),
+            "mismatch_failures": len(self.mismatch_failures),
         }
         return json.dumps(payload, indent=2)
 
@@ -101,6 +112,20 @@ def validate_cids(cid_dir: Path) -> ValidationSummary:
     for path in cid_files:
         content = path.read_bytes()
         total_bytes += len(content)
+        
+        # Check if filename is less than 94 characters (literal CID)
+        if len(path.name) < 94:
+            failures.append(
+                CidFailure(
+                    filename=path.name,
+                    computed_cid="N/A",
+                    size_bytes=len(content),
+                    failure_type="short_filename",
+                )
+            )
+            continue
+        
+        # Check if computed CID matches filename
         computed = generate_cid(content)
         if computed != path.name:
             failures.append(
@@ -108,6 +133,7 @@ def validate_cids(cid_dir: Path) -> ValidationSummary:
                     filename=path.name,
                     computed_cid=computed,
                     size_bytes=len(content),
+                    failure_type="mismatch",
                 )
             )
 
@@ -137,11 +163,21 @@ def write_report(summary: ValidationSummary, output_dir: Path) -> None:
     ]
 
     if summary.failures:
-        report_lines.append("Failures:")
-        for failure in summary.failures:
-            report_lines.append(
-                f"- {failure.filename} (computed {failure.computed_cid}, {failure.size_bytes} bytes)"
-            )
+        if summary.short_filename_failures:
+            report_lines.append("Short Filename Failures (CIDs with filenames < 94 characters):")
+            report_lines.append("These CIDs should use embedded values rather than being stored as files.")
+            for failure in summary.short_filename_failures:
+                report_lines.append(
+                    f"- {failure.filename} (length: {len(failure.filename)}, {failure.size_bytes} bytes)"
+                )
+            report_lines.append("")
+        
+        if summary.mismatch_failures:
+            report_lines.append("CID Mismatch Failures:")
+            for failure in summary.mismatch_failures:
+                report_lines.append(
+                    f"- {failure.filename} (computed {failure.computed_cid}, {failure.size_bytes} bytes)"
+                )
     else:
         report_lines.append("No validation failures detected.")
 
