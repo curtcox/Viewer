@@ -2,12 +2,13 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Union
 
 from database import db
 import models
 from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
+from cid import CID as ValidatedCID, to_cid_string
 
 SaveServerDefinition = Callable[[str, int], str]
 StoreServerDefinitions = Callable[[int], str]
@@ -113,10 +114,28 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
     )
 
 
-def create_cid_record(cid: str, file_content: bytes) -> CID:
-    """Create a new CID record."""
+def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
+    """Create a new CID record.
+
+    Args:
+        cid: CID string or ValidatedCID object (will be validated)
+        file_content: Content to store
+
+    Returns:
+        CID database model instance
+
+    Raises:
+        ValueError: If cid is not a valid CID string
+
+    Example:
+        >>> record = create_cid_record("AAAAAAAA", b"")
+        >>> record = create_cid_record(ValidatedCID("AAAAAAAA"), b"")
+    """
+    # Validate and normalize the CID
+    cid_str = to_cid_string(cid)
+
     record = CID(
-        path=f"/{cid}",
+        path=f"/{cid_str}",
         file_data=file_content,
         file_size=len(file_content),
     )
