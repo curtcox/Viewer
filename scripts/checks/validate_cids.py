@@ -112,7 +112,7 @@ def validate_cids(cid_dir: Path) -> ValidationSummary:
     for path in cid_files:
         content = path.read_bytes()
         total_bytes += len(content)
-        
+
         # Check if filename is less than 94 characters (literal CID)
         if len(path.name) < 94:
             failures.append(
@@ -124,7 +124,7 @@ def validate_cids(cid_dir: Path) -> ValidationSummary:
                 )
             )
             continue
-        
+
         # Check if computed CID matches filename
         computed = generate_cid(content)
         if computed != path.name:
@@ -171,7 +171,7 @@ def write_report(summary: ValidationSummary, output_dir: Path) -> None:
                     f"- {failure.filename} (length: {len(failure.filename)}, {failure.size_bytes} bytes)"
                 )
             report_lines.append("")
-        
+
         if summary.mismatch_failures:
             report_lines.append("CID Mismatch Failures:")
             for failure in summary.mismatch_failures:

@@ -63,14 +63,14 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
     interactions = interaction_data.get('interactions', [])
     passed = interaction_data.get('passed', False)
     failed = interaction_data.get('failed', False)
-    
+
     # Load and highlight test source
     source_code = load_test_source(test_file_path) if test_file_path else None
     if source_code:
         highlighted_source, syntax_css = highlight_python_code(source_code)
     else:
         highlighted_source, syntax_css = None, None
-    
+
     # Determine status badge
     if passed:
         status_badge = '<span class="badge badge-success">✓ PASSED</span>'
@@ -78,7 +78,7 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
         status_badge = '<span class="badge badge-failed">✗ FAILED</span>'
     else:
         status_badge = '<span class="badge badge-unknown">? UNKNOWN</span>'
-    
+
     # Build interactions HTML
     interactions_html = []
     for idx, interaction in enumerate(interactions, 1):
@@ -86,22 +86,22 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
         response = interaction.get('response', {})
         status = interaction.get('status', 'N/A')
         timestamp = interaction.get('timestamp', 'N/A')
-        
+
         # Format request
         request_text = request.get('request_text', '')
         original_text = request.get('original_text', '')
         target_label = request.get('target_label', '')
-        
+
         # Format response
         updated_text = response.get('updated_text', '')
         error = response.get('error', '')
-        
+
         interaction_html = f"""
         <div class="interaction">
             <h3>Interaction {idx}</h3>
             <p class="timestamp">Timestamp: {timestamp}</p>
             <p class="status">HTTP Status: {status}</p>
-            
+
             <h4>Request</h4>
             <div class="request-details">
                 <p><strong>Target:</strong> {target_label}</p>
@@ -109,7 +109,7 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
                 <pre class="request-text">{request_text}</pre>
                 {f'<p><strong>Original Text:</strong></p><pre class="original-text">{original_text}</pre>' if original_text else ''}
             </div>
-            
+
             <h4>Response</h4>
             <div class="response-details">
                 {f'<p class="error"><strong>Error:</strong> {error}</p>' if error else ''}
@@ -118,9 +118,9 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
         </div>
         """
         interactions_html.append(interaction_html)
-    
+
     interactions_section = '\n'.join(interactions_html) if interactions_html else '<p class="no-interactions">No interactions recorded</p>'
-    
+
     # Generate HTML page
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -156,20 +156,20 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
 <body>
     <div class="container">
         <a href="index.html" class="back-link">← Back to Index</a>
-        
+
         <h1>{test_name} {status_badge}</h1>
-        
+
         {f'<div class="test-info"><p><strong>Description:</strong> {test_doc}</p></div>' if test_doc else ''}
-        
+
         <h2>Test Source Code</h2>
         {highlighted_source if highlighted_source else '<p class="no-interactions">Source code not available</p>'}
-        
+
         <h2>AI Interactions</h2>
         {interactions_section}
     </div>
 </body>
 </html>"""
-    
+
     # Write the HTML file
     output_path.write_text(html, encoding='utf-8')
     print(f"Generated detail page: {output_path}")
@@ -177,7 +177,7 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
 
 def generate_index_page(interaction_files: List[Path], output_path: Path) -> None:
     """Generate the index page listing all AI eval tests."""
-    
+
     # Load all interaction data
     tests = []
     for json_file in sorted(interaction_files):
@@ -191,7 +191,7 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
                 'failed': data.get('failed', False),
                 'detail_page': f"{json_file.stem}.html"
             })
-    
+
     # Build test list HTML
     test_items = []
     for test in tests:
@@ -204,9 +204,9 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
         else:
             status_icon = '?'
             status_class = 'status-unknown'
-        
+
         doc_text = test['doc'][:MAX_DOC_LENGTH] + '...' if len(test['doc']) > MAX_DOC_LENGTH else test['doc']
-        
+
         test_item = f"""
         <li class="test-item">
             <span class="status-icon {status_class}">{status_icon}</span>
@@ -217,14 +217,14 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
         </li>
         """
         test_items.append(test_item)
-    
+
     test_list = '\n'.join(test_items) if test_items else '<p class="no-tests">No tests found</p>'
-    
+
     # Count stats
     total = len(tests)
     passed = sum(1 for t in tests if t['passed'])
     failed = sum(1 for t in tests if t['failed'])
-    
+
     # Generate HTML
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -259,7 +259,7 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
 <body>
     <div class="container">
         <h1>AI Evaluation Tests</h1>
-        
+
         <div class="stats">
             <div class="stat stat-total">
                 <div class="stat-number">{total}</div>
@@ -274,7 +274,7 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
                 <div class="stat-label">Failed</div>
             </div>
         </div>
-        
+
         <h2>Test Cases</h2>
         <ul class="test-list">
             {test_list}
@@ -282,7 +282,7 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
     </div>
 </body>
 </html>"""
-    
+
     # Write the HTML file
     output_path.write_text(html, encoding='utf-8')
     print(f"Generated index page: {output_path}")
@@ -293,39 +293,39 @@ def main():
     # Paths
     interactions_dir = Path('test-results/ai-interactions')
     output_dir = Path('test-results/ai-eval-reports')
-    
+
     # Check if interactions directory exists
     if not interactions_dir.exists():
         print(f"Error: Interactions directory not found: {interactions_dir}", file=sys.stderr)
         print("Run the AI eval tests first to generate interaction data.", file=sys.stderr)
         return 1
-    
+
     # Find all interaction JSON files
     json_files = list(interactions_dir.glob('*.json'))
     if not json_files:
         print(f"Warning: No interaction JSON files found in {interactions_dir}", file=sys.stderr)
         return 1
-    
+
     print(f"Found {len(json_files)} test interaction files")
-    
+
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate detail pages for each test
     for json_file in json_files:
         interaction_data = load_interaction_file(json_file)
         if interaction_data:
             detail_page = output_dir / f"{json_file.stem}.html"
             generate_detail_page(interaction_data, detail_page)
-    
+
     # Generate index page
     index_page = output_dir / 'index.html'
     generate_index_page(json_files, index_page)
-    
+
     print("\n✓ Report generation complete!")
     print(f"  Index: {index_page}")
     print("  View via source browser at: /source/test-results/ai-eval-reports/index.html")
-    
+
     return 0
 
 
