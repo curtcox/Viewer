@@ -211,9 +211,8 @@ def _mark_duplicates(entries: List[RouteEntry]) -> None:
                 entry.is_duplicate = True
 
 
-@main_bp.route("/routes")
-def routes_overview():
-    """Render a comprehensive list of routes, aliases, and servers."""
+def _collect_routes() -> List[RouteEntry]:
+    """Collect all routes, mark duplicates, and return a sorted list."""
 
     repository_root = Path(current_app.root_path)
 
@@ -226,6 +225,15 @@ def routes_overview():
     _mark_duplicates(entries)
 
     entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
+
+    return entries
+
+
+@main_bp.route("/routes")
+def routes_overview():
+    """Render a comprehensive list of routes, aliases, and servers."""
+
+    entries = _collect_routes()
 
     return render_template(
         "routes_overview.html",
@@ -252,17 +260,7 @@ def _serialize_entry(entry: RouteEntry) -> dict[str, object]:
 def routes_overview_api():
     """Expose the routes overview as JSON for API consumers."""
 
-    repository_root = Path(current_app.root_path)
-
-    entries: List[RouteEntry] = []
-    entries.extend(_builtin_routes(repository_root))
-    entries.extend(_alias_routes())
-    entries.extend(_server_routes())
-    entries.append(_not_found_entry(repository_root))
-
-    _mark_duplicates(entries)
-
-    entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
+    entries = _collect_routes()
 
     return jsonify({"routes": [_serialize_entry(entry) for entry in entries]})
 
