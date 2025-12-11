@@ -18,7 +18,7 @@ def load_ai_editor_module():
     )
     namespace: dict = {}
     with open(ai_editor_path, "r", encoding="utf-8") as handle:
-        exec(handle.read(), namespace)
+        exec(handle.read(), namespace)  # pylint: disable=exec-used
     return namespace
 
 
@@ -38,7 +38,7 @@ class TestAiEditorBasics:
     """Basic behaviour checks for the AI editor server."""
 
     def setup_method(self):
-        self.module = load_ai_editor_module()
+        self.module = load_ai_editor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_main_exists_and_returns_html(self):
         result = self.module["main"]()
@@ -64,7 +64,7 @@ class TestAiEditorPayloadHandling:
     """Payload extraction and embedding behaviour."""
 
     def setup_method(self):
-        self.module = load_ai_editor_module()
+        self.module = load_ai_editor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_embeds_payload_from_json_request(self):
         payload = {

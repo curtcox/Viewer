@@ -10,14 +10,14 @@ def load_urleditor_module():
 
     # Read the urleditor.py file
     urleditor_path = Path(__file__).parent.parent / "reference_templates" / "servers" / "definitions" / "urleditor.py"
-    with open(urleditor_path, 'r') as f:
+    with open(urleditor_path, 'r', encoding='utf-8') as f:
         code = f.read()
 
     # Create a module namespace
     module_namespace = {}
 
     # Execute the code in the namespace
-    exec(code, module_namespace)
+    exec(code, module_namespace)  # pylint: disable=exec-used
 
     return module_namespace
 
@@ -27,7 +27,7 @@ class TestURLEditorServerBasics:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.module = load_urleditor_module()
+        self.module = load_urleditor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_main_function_exists(self):
         """Test that the main function exists."""
@@ -69,7 +69,7 @@ class TestURLEditorHelperFunctions:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.module = load_urleditor_module()
+        self.module = load_urleditor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_should_redirect_returns_false_for_root(self):
         """Test that _should_redirect returns False for root path."""
@@ -125,7 +125,7 @@ class TestURLEditorWithRequest:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.module = load_urleditor_module()
+        self.module = load_urleditor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_main_with_urleditor_path(self):
         """Test main with request path /urleditor."""
@@ -166,7 +166,7 @@ class TestURLEditorMetaLinks:
     """Ensure metadata links are rendered for navigation support."""
 
     def setup_method(self):
-        self.module = load_urleditor_module()
+        self.module = load_urleditor_module()  # pylint: disable=attribute-defined-outside-init
 
     def test_meta_links_point_to_history_and_server_events(self, monkeypatch):
         from datetime import datetime, timezone as real_timezone
