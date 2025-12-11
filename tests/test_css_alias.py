@@ -8,6 +8,7 @@ os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
 os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 
 from app import app, db
+from cid import CID
 from css_defaults import ensure_css_alias
 from db_access import create_cid_record, get_alias_by_name
 from reference_templates.uploads import get_upload_templates
@@ -140,7 +141,14 @@ class TestCssAliasDefaults(unittest.TestCase):
         db.session.commit()
 
     def _create_theme_cid(self, slug: str, css_text: str) -> str:
-        record = create_cid_record(slug, css_text.encode('utf-8'))
+        """Create a CID record for the supplied CSS content.
+
+        The "slug" parameter is retained for readability in call sites but
+        the CID itself is derived from the actual CSS bytes so it passes
+        strict CID validation.
+        """
+        cid_value = CID.from_bytes(css_text.encode('utf-8')).value
+        record = create_cid_record(cid_value, css_text.encode('utf-8'))
         return record.path
 
     def test_css_alias_light_mode_theme_content_changes(self):
