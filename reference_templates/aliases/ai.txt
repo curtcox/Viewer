@@ -1,1 +1,1 @@
-ai -> /ai_assist
+ai -> /ai_stub

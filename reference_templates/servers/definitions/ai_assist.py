@@ -7,7 +7,7 @@ real AI (via OpenRouter) to intelligently modify text based on user requests.
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 

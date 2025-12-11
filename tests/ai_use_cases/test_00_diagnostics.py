@@ -67,16 +67,16 @@ def test_openrouter_api_connectivity(requires_openrouter_api_key):
         "temperature": 0.0
     }
 
-    print(f"\nRequest payload:")
+    print("\nRequest payload:")
     print(json.dumps(payload, indent=2))
 
     # Make request with detailed error handling
     try:
-        print(f"\nMaking request to OpenRouter...")
+        print("\nMaking request to OpenRouter...")
         response = requests.post(url, headers=headers, json=payload, timeout=30)
 
         print(f"Response status: {response.status_code}")
-        print(f"Response headers:")
+        print("Response headers:")
         for key, value in response.headers.items():
             if key.lower() not in ['authorization', 'cookie', 'set-cookie']:
                 print(f"  {key}: {value}")
@@ -87,7 +87,7 @@ def test_openrouter_api_connectivity(requires_openrouter_api_key):
             print("ERROR: Non-200 status code")
             print(f"{'='*70}")
             print(f"Status: {response.status_code}")
-            print(f"\nResponse body:")
+            print("\nResponse body:")
             try:
                 error_data = response.json()
                 print(json.dumps(error_data, indent=2))
@@ -116,7 +116,7 @@ def test_openrouter_api_connectivity(requires_openrouter_api_key):
             pytest.fail(f"OpenRouter API returned status {response.status_code}")
 
         # Parse response
-        print(f"\nResponse body:")
+        print("\nResponse body:")
         data = response.json()
         print(json.dumps(data, indent=2))
 
@@ -133,9 +133,9 @@ def test_openrouter_api_connectivity(requires_openrouter_api_key):
         print(f"\n{'='*70}")
         print("✓ OpenRouter API connectivity test PASSED")
         print(f"{'='*70}")
-        print(f"✓ Authentication successful")
+        print("✓ Authentication successful")
         print(f"✓ Model {model} accessible")
-        print(f"✓ API responding correctly")
+        print("✓ API responding correctly")
         print(f"{'='*70}\n")
 
     except requests.exceptions.Timeout:
@@ -222,10 +222,10 @@ def test_ai_assist_minimal_request(memory_client, requires_openrouter_api_key):
         'form_summary': {}
     }
 
-    print(f"Request payload:")
+    print("Request payload:")
     print(json.dumps(payload, indent=2))
 
-    print(f"\nMaking POST request to /ai...")
+    print("\nMaking POST request to /ai...")
     response = memory_client.post('/ai', json=payload, follow_redirects=True)
 
     print(f"Response status: {response.status_code}")
@@ -235,12 +235,12 @@ def test_ai_assist_minimal_request(memory_client, requires_openrouter_api_key):
         print(f"\n{'='*70}")
         print("ERROR: Non-200 status from /ai endpoint")
         print(f"{'='*70}")
-        print(f"Response body:")
+        print("Response body:")
         print(response.get_data(as_text=True))
         pytest.fail(f"Expected status 200, got {response.status_code}")
 
     data = response.get_json()
-    print(f"\nResponse JSON:")
+    print("\nResponse JSON:")
     print(json.dumps(data, indent=2))
 
     # Check for errors in response
