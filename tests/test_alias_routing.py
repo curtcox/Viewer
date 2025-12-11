@@ -15,6 +15,7 @@ from alias_routing import (
     try_alias_redirect,
 )
 from app import app, db
+from cid import CID
 from db_access import create_cid_record, get_alias_by_name
 from models import Alias, Variable
 from routes.core import get_existing_routes, not_found_error
@@ -372,7 +373,7 @@ class TestAliasRouting(unittest.TestCase):
         self.assertIn(b'/latest', response.data)
 
     def test_view_alias_page(self):
-        cid_value = 'cidtarget123456'
+        cid_value = CID.from_bytes(b'document').value
         create_cid_record(cid_value, b'document')
 
         primary_line = format_primary_alias_line(
