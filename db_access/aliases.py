@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from models import Alias
 from database import db
+from cid import CID as ValidatedCID
 from alias_definition import (
     AliasDefinitionError,
     ParsedAliasDefinition,
@@ -260,8 +261,8 @@ def _update_existing_aliases(
 
 
 def update_alias_cid_reference(
-    old_cid: str,
-    new_cid: str,
+    old_cid: str | ValidatedCID,
+    new_cid: str | ValidatedCID,
     alias_name: str,
 ) -> Dict[str, int]:
     """Ensure an alias points to the supplied CID and update its definition.
@@ -285,7 +286,13 @@ def update_alias_cid_reference(
         aliases were updated.
     """
     normalized_alias = (alias_name or "").strip()
-    normalized_new = normalize_cid_value(new_cid)
+
+    def _normalize_cid_input(value: str | ValidatedCID | None) -> str:
+        if isinstance(value, ValidatedCID):
+            return value.value
+        return normalize_cid_value(value)
+
+    normalized_new = _normalize_cid_input(new_cid)
 
     if not normalized_alias or not normalized_new:
         return AliasUpdateResult(created=False, updated=0).to_dict()
@@ -295,7 +302,7 @@ def update_alias_cid_reference(
     if not aliases:
         return _create_new_alias(normalized_alias, normalized_new).to_dict()
 
-    normalized_old = normalize_cid_value(old_cid)
+    normalized_old = _normalize_cid_input(old_cid)
     return _update_existing_aliases(aliases, normalized_old, normalized_new).to_dict()
 
 

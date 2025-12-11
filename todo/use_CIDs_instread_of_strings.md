@@ -16,15 +16,15 @@ The goal of future work would be to tighten typing around these values (e.g., vi
   - `create_cid_record` already accepts `Union[str, ValidatedCID]` and normalizes / validates CIDs before persisting.
   - `update_cid_references` now accepts both string and `ValidatedCID` inputs, normalizing them before updating text references.
 
-- [ ] `db_access/aliases.py` *(DB boundary)*
-  - `_create_new_alias(alias_name: str, cid: str)` and `_update_existing_aliases(..., old_cid: str, new_cid: str)` pass CIDs as strings.
-  - `update_alias_cid_reference(old_cid: str, new_cid: str, ...)` also operates on CIDs as `str`.
+- [x] `db_access/aliases.py` *(DB boundary)*
+  - `_create_new_alias` and `_update_existing_aliases` still operate on normalized CID strings internally.
+  - `update_alias_cid_reference` now accepts both string and `ValidatedCID` inputs, normalizing them before updating alias definitions.
 
 - [x] `db_access/exports.py` *(DB boundary)*
   - `record_export` now accepts validated `CID` objects as well as strings, persisting the normalized CID value.
 
-- [ ] `db_access/_exports.py` *(DB boundary)*
-  - Re-exports helpers like `create_server_invocation`, `get_server_invocations_by_result_cids`, etc., which all use CID-valued strings.
+- [x] `db_access/_exports.py` *(DB boundary)*
+  - Re-exports CID helpers (`create_server_invocation`, `update_cid_references`, `update_alias_cid_reference`, etc.) which now accept `ValidatedCID` values as well as strings via their underlying modules.
 
 - [ ] `content_serving.py` *(HTTP path / response boundary)*
   - `PathInfo.normalized_cid: str` and `PathInfo.target_cid: str` fields are CID-valued strings.
