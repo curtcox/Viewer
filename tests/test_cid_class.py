@@ -10,7 +10,7 @@ This module tests the CID class to ensure:
 
 import unittest
 from cid import CID
-from cid_core import generate_cid, DIRECT_CONTENT_EMBED_LIMIT
+from cid_core import generate_cid
 
 
 class TestCIDConstruction(unittest.TestCase):

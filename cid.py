@@ -26,8 +26,6 @@ from cid_core import (
     is_normalized_cid,
     normalize_component,
     parse_cid_components,
-    extract_literal_content,
-    is_literal_cid,
     DIRECT_CONTENT_EMBED_LIMIT,
 )
 
