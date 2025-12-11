@@ -25,9 +25,11 @@ mkdir -p test-results
 # Note: No need to start web server - tests use memory_client fixture
 echo ""
 echo "Running AI evaluation tests..."
+echo "Tests will stop on first failure for fast diagnostics (-x flag)"
 pytest tests/ai_use_cases/ \
     --verbose \
     --tb=short \
+    -x \
     --junit-xml=test-results/ai-eval-results.xml \
     --html=test-results/ai-eval-report.html \
     --self-contained-html \
