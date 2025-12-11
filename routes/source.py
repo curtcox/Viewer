@@ -192,7 +192,7 @@ def _render_file(path: str, root_path: Path) -> Union[str, Response]:
 
     # Coverage and spec HTML reports already contain full HTML documents.
     # Serve them directly so the content is not wrapped in the source browser template.
-    html_passthrough_prefixes = ("htmlcov/", "reports/html-report/")
+    html_passthrough_prefixes = ("htmlcov/", "reports/html-report/", "test-results/ai-eval-reports/")
     if path.startswith(html_passthrough_prefixes):
         return send_file(file_path)
 

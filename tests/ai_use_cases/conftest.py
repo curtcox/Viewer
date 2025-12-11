@@ -99,7 +99,7 @@ def ai_interaction_tracker(request):
     """Track AI interactions for debugging and analysis.
 
     This fixture records all AI requests and responses during a test.
-    If the test fails, the interactions are saved to a JSON file for debugging.
+    Interactions are saved to a JSON file for all tests (passed and failed).
     """
     interactions = []
 
@@ -114,19 +114,31 @@ def ai_interaction_tracker(request):
 
     yield record
 
-    # Save interactions if test failed
-    if request.node.rep_call.failed:
-        test_name = request.node.name
-        output_dir = 'test-results/ai-interactions'
-        os.makedirs(output_dir, exist_ok=True)
+    # Save interactions for all tests (not just failures)
+    test_name = request.node.name
+    test_file = request.node.fspath.basename
+    test_module = request.node.module.__name__
+    test_doc = request.node.function.__doc__ or ""
+    
+    # Determine test status - handle passed, failed, and other states (e.g., skipped)
+    passed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'passed', False)
+    failed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'failed', False)
+    
+    output_dir = 'test-results/ai-interactions'
+    os.makedirs(output_dir, exist_ok=True)
 
-        output_file = os.path.join(output_dir, f'{test_name}.json')
-        with open(output_file, 'w') as f:
-            json.dump({
-                'test': test_name,
-                'failed': True,
-                'interactions': interactions
-            }, f, indent=2)
+    output_file = os.path.join(output_dir, f'{test_name}.json')
+    with open(output_file, 'w') as f:
+        json.dump({
+            'test_name': test_name,
+            'test_file': test_file,
+            'test_module': test_module,
+            'test_doc': test_doc.strip(),
+            'test_file_path': str(request.node.fspath),
+            'passed': passed,
+            'failed': failed,
+            'interactions': interactions
+        }, f, indent=2)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

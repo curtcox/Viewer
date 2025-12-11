@@ -38,9 +38,14 @@ pytest tests/ai_use_cases/ \
     --cov-report=term-missing
 
 echo ""
+echo "Generating AI eval HTML reports..."
+python3 scripts/generate_ai_eval_reports.py
+
+echo ""
 echo "========================================"
 echo "Test Results:"
 echo "  - JUnit XML: test-results/ai-eval-results.xml"
 echo "  - HTML Report: test-results/ai-eval-report.html"
 echo "  - Coverage: test-results/ai-eval-coverage/index.html"
+echo "  - AI Eval Reports: test-results/ai-eval-reports/index.html"
 echo "========================================"
