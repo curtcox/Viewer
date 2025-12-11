@@ -75,6 +75,16 @@
                                     </button>
                                     {% endfor %}
                                 </div>
+                                {% set has_descriptions = upload_templates | selectattr('description') | list %}
+                                {% if has_descriptions %}
+                                <ul class="list-unstyled small text-muted mb-2">
+                                    {% for template in upload_templates %}
+                                        {% if template.description %}
+                                        <li><strong>{{ template.name }}:</strong> {{ template.description }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
                                 <div class="form-text">
                                     Click a template to replace the text content field below. You can edit the content after loading a template.
                                 </div>

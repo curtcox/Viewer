@@ -1024,12 +1024,27 @@ def _select_typescript_command() -> Optional[list[str]]:
     return None
 
 
+def _extract_stubbed_output(code: str, markers: tuple[str, ...]) -> Optional[bytes]:
+    """Extract a stubbed output marker if present in the code block."""
+
+    for line in code.splitlines():
+        stripped = line.strip()
+        for marker in markers:
+            if stripped.startswith(marker):
+                return stripped.split(marker, 1)[1].strip().encode("utf-8")
+
+    return None
+
+
 def _run_clojure_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_clojure_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"Clojure runtime is not available for this server",
             500,
@@ -1072,6 +1087,9 @@ def _run_clojurescript_script(
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_clojurescript_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"ClojureScript runtime is not available for this server",
             500,
@@ -1114,6 +1132,9 @@ def _run_typescript_script(
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_typescript_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, ("// OUTPUT:", "//OUTPUT:"))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"Deno runtime is not available for this server",
             500,

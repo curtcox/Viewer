@@ -160,3 +160,34 @@ class TestURLEditorWithRequest:
         assert isinstance(result, dict)
         assert 'redirect' in result
         assert result['redirect'] == "/urleditor#/markdown/echo/test"
+
+
+class TestURLEditorMetaLinks:
+    """Ensure metadata links are rendered for navigation support."""
+
+    def setup_method(self):
+        self.module = load_urleditor_module()
+
+    def test_meta_links_point_to_history_and_server_events(self, monkeypatch):
+        from datetime import datetime, timezone as real_timezone
+
+        class FrozenDateTime:
+            @classmethod
+            def now(cls, tz=None):  # noqa: ARG003
+                return datetime(2024, 1, 1, 12, 0, tzinfo=real_timezone.utc)
+
+        monkeypatch.setitem(self.module, "datetime", FrozenDateTime)
+        monkeypatch.setitem(
+            self.module,
+            "format_history_timestamp",
+            lambda dt: dt.replace(tzinfo=real_timezone.utc).isoformat(timespec="minutes"),
+        )
+
+        request = Mock()
+        request.path = "/urleditor"
+
+        result = self.module['main'](request=request)
+
+        assert "/meta/urleditor.html" in result['output']
+        assert "/history?start=2024-01-01T12%3A00%2B00%3A00" in result['output']
+        assert "/server_events?start=2024-01-01T12%3A00%2B00%3A00" in result['output']

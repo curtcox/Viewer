@@ -177,6 +177,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
 
     cid_directory_overridden = bool(config_override and "CID_DIRECTORY" in config_override)
+    load_cids_in_tests = bool(config_override and config_override.get("LOAD_CIDS_IN_TESTS"))
 
     if config_override:
         flask_app.config.update(config_override)
@@ -262,7 +263,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             db.create_all()
             logging.info("Database tables created")
 
-            if not testing_mode or cid_directory_overridden:
+            if not testing_mode or cid_directory_overridden or load_cids_in_tests:
                 load_cids_from_directory(flask_app)
 
             if not testing_mode:
