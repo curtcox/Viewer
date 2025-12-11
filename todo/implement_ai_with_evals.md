@@ -523,6 +523,22 @@ page=1&limit=10&status=active&sort=date&order=desc
 
 ## Test Specifications
 
+### Test Strategy Overview
+
+**Approach:** Flask Test Client (NOT Selenium WebDriver)
+
+These tests verify AI functionality by making direct HTTP requests using Flask's test client. Each test is essentially a single POST request with setup and validation - perfect for the test client approach.
+
+**Why Test Client instead of Browser Automation:**
+1. **Simplicity**: AI interactions are single POST requests with JSON payloads
+2. **Speed**: 10-20x faster than Selenium (no browser startup overhead)
+3. **Reliability**: No browser flakiness, timing issues, or WebDriver management
+4. **Existing Pattern**: Follows `test_ai_stub_server.py` and `test_ai_editor_integration.py`
+5. **Minimal Dependencies**: Just pytest + Flask (no ChromeDriver, Selenium, etc.)
+
+**Note on One-Shot Runs:**
+The codebase has a "one-shot runs" feature for making requests without a full web server, but it currently only supports GET requests. Since AI interactions require POST with JSON payloads, we use Flask test client. See "Future Enhancements" for potential extension of one-shot runs to support POST/PUT/DELETE.
+
 ### Test Organization
 
 **Location:** `tests/ai_use_cases/`
@@ -545,14 +561,23 @@ tests/ai_use_cases/
 
 ### Test Framework
 
-**Technology:** Pytest + Selenium WebDriver (consistent with existing integration tests)
+**Technology:** Pytest + Flask Test Client (using existing test infrastructure)
+
+**Why Flask Test Client instead of Selenium:**
+- AI interactions are single POST requests with JSON payloads - perfect for test client
+- No browser automation needed - tests are faster and more reliable
+- Follows the pattern from existing AI tests (`test_ai_stub_server.py`)
+- Simpler setup with no ChromeDriver or Selenium dependencies
+- Can use the existing `memory_client` fixture from `tests/conftest.py`
+
+**Note on One-Shot Runs:**
+The codebase has a "one-shot runs" feature (`cli.py:make_http_get_request()`) that allows making requests without a full web server, but it currently only supports GET requests. Since AI interactions require POST with JSON payloads, we use Flask test client. A future enhancement could extend one-shot runs to support POST/PUT/DELETE operations.
 
 **Fixtures Required:** (`conftest.py`)
 ```python
 import pytest
 import os
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import json
 
 @pytest.fixture(scope="session")
 def requires_openrouter_api_key():
@@ -560,77 +585,136 @@ def requires_openrouter_api_key():
     if not os.getenv("OPENROUTER_API_KEY"):
         pytest.skip("OPENROUTER_API_KEY not set - skipping AI evaluation tests")
 
-@pytest.fixture
-def driver():
-    """WebDriver instance for browser automation."""
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    driver = webdriver.Chrome(options=options)
-    yield driver
-    driver.quit()
-
-@pytest.fixture
-def ai_test_server(app_client):
+@pytest.fixture(autouse=True)
+def setup_ai_assist_server(memory_db_app):
     """Ensure ai_assist server is enabled and configured."""
-    # Setup ai_assist server for testing
-    # Configure with test API key
+    with memory_db_app.app_context():
+        from database import db
+        from models import Server, Variable, Secret
+
+        # Create ai_assist server if not exists
+        ai_server = db.session.query(Server).filter_by(name='ai_assist').first()
+        if not ai_server:
+            with open('reference_templates/servers/definitions/ai_assist.py') as f:
+                definition = f.read()
+
+            ai_server = Server(
+                name='ai_assist',
+                definition=definition,
+                enabled=True
+            )
+            db.session.add(ai_server)
+
+        # Ensure OPENROUTER_API_KEY secret exists
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        if api_key:
+            secret = db.session.query(Secret).filter_by(name='OPENROUTER_API_KEY').first()
+            if not secret:
+                secret = Secret(name='OPENROUTER_API_KEY', value=api_key)
+                db.session.add(secret)
+
+        # Set default AI model variable
+        ai_model = db.session.query(Variable).filter_by(name='AI_MODEL').first()
+        if not ai_model:
+            ai_model = Variable(
+                name='AI_MODEL',
+                value=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4-20250514')
+            )
+            db.session.add(ai_model)
+
+        db.session.commit()
+
     yield
-    # Cleanup after tests
 
 @pytest.fixture
-def interaction_history():
-    """Track interaction history for debugging failed tests."""
-    history = []
-    yield history
-    # Save history if test fails
+def ai_interaction_tracker():
+    """Track AI interactions for debugging and analysis."""
+    interactions = []
+
+    def record(request_payload, response_data, status_code):
+        interactions.append({
+            'request': request_payload,
+            'response': response_data,
+            'status': status_code,
+            'timestamp': datetime.utcnow()
+        })
+
+    yield record
+
+    # Save interactions if test fails (pytest_runtest_makereport hook)
 ```
 
 ### Test Template
 
-Each test follows this pattern:
+Each test follows this pattern (adapted from `tests/test_ai_stub_server.py`):
 
 ```python
-def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
+def test_use_case_name(memory_client, requires_openrouter_api_key, ai_interaction_tracker):
     """
     Test Case: [Description]
 
     Given: [Initial state]
-    When: [User action]
-    Then: [Expected outcome]
+    When: [User submits AI request]
+    Then: [Expected AI transformation applied]
     """
-    # 1. Navigate to page
-    driver.get("http://localhost:5000/target/page")
+    # 1. Prepare test data
+    INITIAL_CONTENT = """
+    def main(name="World"):
+        return {"output": f"Hello, {name}!"}
+    """
 
-    # 2. Set initial content
-    text_area = driver.find_element(By.ID, "target-field")
-    text_area.clear()
-    text_area.send_keys(INITIAL_CONTENT)
+    USER_REQUEST = "Add input validation to reject empty names"
 
-    # 3. Enter AI request
-    ai_request_input = driver.find_element(By.ID, "ai-request-input")
-    ai_request_input.send_keys(USER_REQUEST)
+    # 2. Build AI request payload (matches ai_stub/ai_assist API)
+    payload = {
+        'request_text': USER_REQUEST,
+        'original_text': INITIAL_CONTENT,
+        'target_label': 'server definition',
+        'context_data': {
+            'form': 'server_form',
+            'server_name': 'hello_world'
+        },
+        'form_summary': {
+            'definition': INITIAL_CONTENT
+        }
+    }
 
-    # 4. Click AI button
-    ai_button = driver.find_element(By.CLASS_NAME, "ai-action-button")
-    ai_button.click()
+    # 3. Make POST request to /ai endpoint
+    response = memory_client.post(
+        '/ai',
+        json=payload,
+        follow_redirects=True
+    )
 
-    # 5. Wait for response
-    wait = WebDriverWait(driver, 30)  # AI responses may take time
-    wait.until(lambda d: d.find_element(By.ID, "ai-output").text != "")
+    # 4. Track interaction for debugging
+    ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
-    # 6. Verify result
-    result = driver.find_element(By.ID, "ai-output").text
+    # 5. Verify response status
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+    assert response.content_type == 'application/json'
 
-    # Assertions
-    assert_ai_output_valid(result)
-    assert_original_content_preserved(result, INITIAL_CONTENT)
-    assert_requested_change_applied(result, USER_REQUEST)
+    # 6. Parse response data
+    data = response.get_json()
+    assert 'updated_text' in data, "Response missing 'updated_text' field"
 
-    # 7. Verify no errors
-    assert "error" not in result.lower()
+    updated_text = data['updated_text']
+
+    # 7. Verify AI transformation
+    assert_ai_output_valid(updated_text)
+    assert_original_content_preserved(updated_text, INITIAL_CONTENT)
+    assert_requested_change_applied(updated_text, USER_REQUEST)
+
+    # 8. Verify specific expectations for this use case
+    assert 'if not name' in updated_text, "Missing input validation check"
+    assert_valid_python(updated_text)
 ```
+
+**Key Differences from Selenium Approach:**
+- **No browser needed**: Direct HTTP client calls (faster, more reliable)
+- **No WebDriver waits**: Synchronous request/response (simpler)
+- **No element selectors**: JSON payloads and responses (cleaner)
+- **Follows existing patterns**: Consistent with `test_ai_stub_server.py` and `test_ai_editor_integration.py`
+- **Single function call**: Each test is essentially one POST request with setup and validation
 
 ### Individual Test Specifications
 
@@ -638,28 +722,45 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_server_definition_editor.py::test_add_input_validation`
 
-**Setup:**
-- Navigate to `/server/edit?name=hello_world`
-- Ensure server exists with simple greeting code
-- Clear any existing AI history
+**Test Implementation:**
+```python
+def test_add_input_validation(memory_client, requires_openrouter_api_key, ai_interaction_tracker):
+    """Test AI adds input validation to server definition."""
+    # Use Case 1 initial content
+    original_text = 'def main(name="World"):\n    """Simple greeting server."""\n    return {\n        "output": f"Hello, {name}!",\n        "content_type": "text/plain"\n    }'
 
-**Execution:**
-1. Set definition field to Use Case 1 initial content
-2. Enter AI request: "Add input validation to reject empty names"
-3. Click AI action button
-4. Wait for AI response (max 30s)
+    payload = {
+        'request_text': 'Add input validation to reject empty names',
+        'original_text': original_text,
+        'target_label': 'server definition',
+        'context_data': {'form': 'server_form', 'server_name': 'hello_world'},
+        'form_summary': {'definition': original_text}
+    }
 
-**Assertions:**
-- Response contains `if not name or not name.strip()`
-- Response contains `status": 400` or similar error handling
-- Response contains original greeting logic
-- Valid Python syntax (use `ast.parse()` to verify)
-- Function signature preserved: `def main(name="World")`
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
-**Failure Handling:**
-- Save interaction history to test artifacts
-- Screenshot the form state
-- Log the AI response for debugging
+    assert response.status_code == 200
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify input validation added
+    assert 'if not name' in updated_text or 'if name' in updated_text
+    assert 'strip()' in updated_text or 'empty' in updated_text.lower()
+
+    # Verify error handling
+    assert '400' in updated_text or 'error' in updated_text.lower()
+
+    # Verify original logic preserved
+    assert 'Hello' in updated_text
+    assert 'name' in updated_text
+
+    # Verify valid Python
+    assert_valid_python(updated_text)
+
+    # Verify function signature preserved
+    assert 'def main(' in updated_text
+```
 
 ---
 
@@ -667,21 +768,37 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_server_definition_editor.py::test_add_logging`
 
-**Setup:**
-- Navigate to `/server/edit?name=data_processor`
-- Create server if not exists
+**Test Implementation:**
+```python
+def test_add_logging(memory_client, requires_openrouter_api_key):
+    """Test AI adds logging to server definition."""
+    original_text = 'def main(data=""):\n    """Process incoming data."""\n    processed = data.upper()\n    return {\n        "output": processed,\n        "content_type": "text/plain"\n    }'
 
-**Execution:**
-1. Set definition to Use Case 2 initial content
-2. AI request: "Add logging before and after processing"
-3. Submit and wait for response
+    payload = {
+        'request_text': 'Add logging before and after processing',
+        'original_text': original_text,
+        'target_label': 'server definition',
+        'context_data': {'form': 'server_form'},
+        'form_summary': {'definition': original_text}
+    }
 
-**Assertions:**
-- `import logging` present
-- At least 2 `logging.info()` or `logging.debug()` calls
-- Original processing logic preserved (`.upper()` operation)
-- Valid Python syntax
-- Function signature preserved
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify logging import added
+    assert 'import logging' in updated_text
+
+    # Verify logging calls present
+    logging_calls = updated_text.count('logging.info') + updated_text.count('logging.debug')
+    assert logging_calls >= 2, f"Expected at least 2 logging calls, found {logging_calls}"
+
+    # Verify original logic preserved
+    assert '.upper()' in updated_text
+    assert 'processed' in updated_text
+
+    assert_valid_python(updated_text)
+```
 
 ---
 
@@ -689,22 +806,35 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_alias_editor.py::test_add_query_parameters`
 
-**Setup:**
-- Navigate to `/alias/edit?name=hello`
-- Ensure alias exists
+**Test Implementation:**
+```python
+def test_add_query_parameters(memory_client, requires_openrouter_api_key):
+    """Test AI adds query parameters to alias."""
+    original_text = '/servers/hello_world'
 
-**Execution:**
-1. Set alias definition to `/servers/hello_world`
-2. AI request: "Add query parameters for name and greeting style"
-3. Submit and wait
+    payload = {
+        'request_text': 'Add query parameters for name and greeting style',
+        'original_text': original_text,
+        'target_label': 'alias definition',
+        'context_data': {'form': 'alias_form'},
+        'form_summary': {'definition': original_text}
+    }
 
-**Assertions:**
-- Original path `/servers/hello_world` preserved
-- Contains `?` character
-- Contains `name=` parameter
-- Contains `style=` parameter
-- Valid URL format (no invalid characters)
-- Length < 500 characters
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify original path preserved
+    assert '/servers/hello_world' in updated_text
+
+    # Verify query parameters added
+    assert '?' in updated_text
+    assert 'name=' in updated_text
+    assert 'style=' in updated_text or 'greeting=' in updated_text
+
+    # Verify reasonable length
+    assert len(updated_text) < 500
+```
 
 ---
 
@@ -712,21 +842,41 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_cid_editor.py::test_add_email_field`
 
-**Setup:**
-- Create test CID with user data
-- Navigate to `/cid/edit?id={cid}`
+**Test Implementation:**
+```python
+def test_add_email_field(memory_client, requires_openrouter_api_key):
+    """Test AI adds email field to JSON objects."""
+    original_text = '''{"users": [
+        {"name": "Alice", "role": "admin"},
+        {"name": "Bob", "role": "user"}
+    ]}'''
 
-**Execution:**
-1. Set content to Use Case 4 initial JSON
-2. AI request: "Add an email field to each user"
-3. Submit and wait
+    payload = {
+        'request_text': 'Add an email field to each user',
+        'original_text': original_text,
+        'target_label': 'CID content',
+        'context_data': {'form': 'cid_editor'},
+        'form_summary': {'content': original_text}
+    }
 
-**Assertions:**
-- Valid JSON structure (use `json.loads()`)
-- All users have `email` field
-- Original fields preserved (`name`, `role`)
-- Email format plausible (contains `@`)
-- User count unchanged (2 users)
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify valid JSON
+    parsed = assert_valid_json(updated_text)
+
+    # Verify all users have email field
+    assert 'users' in parsed
+    assert len(parsed['users']) == 2
+    for user in parsed['users']:
+        assert 'email' in user, f"User {user['name']} missing email"
+        assert '@' in user['email']
+
+    # Verify original fields preserved
+    assert parsed['users'][0]['name'] == 'Alice'
+    assert parsed['users'][0]['role'] == 'admin'
+```
 
 ---
 
@@ -734,20 +884,41 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_upload_form.py::test_convert_to_markdown_list`
 
-**Setup:**
-- Navigate to `/upload`
+**Test Implementation:**
+```python
+def test_convert_to_markdown_list(memory_client, requires_openrouter_api_key):
+    """Test AI converts plain text to markdown list."""
+    original_text = '''Product Features
+Fast Performance
+Easy to Use
+Secure'''
 
-**Execution:**
-1. Set text content to Use Case 5 initial content
-2. AI request: "Convert to markdown list with descriptions"
-3. Submit and wait
+    payload = {
+        'request_text': 'Convert to markdown list with descriptions',
+        'original_text': original_text,
+        'target_label': 'text content',
+        'context_data': {'form': 'upload'},
+        'form_summary': {'text_content': original_text}
+    }
 
-**Assertions:**
-- Contains markdown list markers (`-` or `*` or `1.`)
-- Contains markdown bold markers (`**`)
-- All original items present (Fast Performance, Easy to Use, Secure)
-- Format is valid markdown
-- Descriptions added (result longer than input)
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify markdown list markers
+    assert '-' in updated_text or '*' in updated_text or '1.' in updated_text
+
+    # Verify bold markers for emphasis
+    assert '**' in updated_text
+
+    # Verify original items present
+    assert 'Fast Performance' in updated_text or 'fast performance' in updated_text.lower()
+    assert 'Easy to Use' in updated_text or 'easy to use' in updated_text.lower()
+    assert 'Secure' in updated_text or 'secure' in updated_text.lower()
+
+    # Verify descriptions added
+    assert len(updated_text) > len(original_text) * 1.5
+```
 
 ---
 
@@ -755,21 +926,44 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_import_form.py::test_csv_to_json_conversion`
 
-**Setup:**
-- Navigate to `/import`
+**Test Implementation:**
+```python
+def test_csv_to_json_conversion(memory_client, requires_openrouter_api_key):
+    """Test AI converts CSV to JSON array."""
+    original_text = '''Name,Status,Priority
+Task 1,open,high
+Task 2,closed,low
+Task 3,open,medium'''
 
-**Execution:**
-1. Set import text to Use Case 6 CSV content
-2. AI request: "Convert to JSON array of objects"
-3. Submit and wait
+    payload = {
+        'request_text': 'Convert to JSON array of objects',
+        'original_text': original_text,
+        'target_label': 'import data',
+        'context_data': {'form': 'import'},
+        'form_summary': {'import_text': original_text}
+    }
 
-**Assertions:**
-- Valid JSON (parse with `json.loads()`)
-- Structure is array of objects
-- 3 objects present (one per CSV row)
-- All fields present: name, status, priority
-- Field names are lowercase
-- All data values preserved
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify valid JSON
+    parsed = assert_valid_json(updated_text)
+
+    # Verify array structure
+    assert isinstance(parsed, list), "Expected JSON array"
+    assert len(parsed) == 3, f"Expected 3 items, got {len(parsed)}"
+
+    # Verify all fields present
+    for item in parsed:
+        assert 'name' in item or 'Name' in item
+        assert 'status' in item or 'Status' in item
+        assert 'priority' in item or 'Priority' in item
+
+    # Verify data values preserved
+    task_names = [item.get('name', item.get('Name')) for item in parsed]
+    assert any('Task 1' in name for name in task_names)
+```
 
 ---
 
@@ -777,22 +971,41 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_secret_form.py::test_add_retry_configuration`
 
-**Setup:**
-- Navigate to `/secret/edit?name=API_CONFIG`
-- Create secret if needed
+**Test Implementation:**
+```python
+def test_add_retry_configuration(memory_client, requires_openrouter_api_key):
+    """Test AI adds retry configuration to JSON."""
+    original_text = '''{
+    "endpoint": "https://api.example.com",
+    "timeout": 30
+}'''
 
-**Execution:**
-1. Set value to Use Case 7 initial JSON
-2. AI request: "Add retry configuration with 3 attempts and exponential backoff"
-3. Submit and wait
+    payload = {
+        'request_text': 'Add retry configuration with 3 attempts and exponential backoff',
+        'original_text': original_text,
+        'target_label': 'secret value',
+        'context_data': {'form': 'secret_form'},
+        'form_summary': {'value': original_text}
+    }
 
-**Assertions:**
-- Valid JSON structure
-- Original fields preserved (`endpoint`, `timeout`)
-- `retry` object added
-- `retry.max_attempts` = 3
-- `retry.backoff_strategy` = "exponential"
-- Additional retry fields present (delay, etc.)
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify valid JSON
+    parsed = assert_valid_json(updated_text)
+
+    # Verify original fields preserved
+    assert parsed['endpoint'] == 'https://api.example.com'
+    assert parsed['timeout'] == 30
+
+    # Verify retry configuration added
+    assert 'retry' in parsed
+    retry = parsed['retry']
+    assert retry.get('max_attempts') == 3 or retry.get('attempts') == 3
+    assert 'exponential' in str(retry.get('backoff_strategy', '')).lower() or \
+           'exponential' in str(retry.get('backoff', '')).lower()
+```
 
 ---
 
@@ -800,22 +1013,46 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_variable_form.py::test_add_feature_flags`
 
-**Setup:**
-- Navigate to `/variable/edit?name=APP_CONFIG`
-- Create variable if needed
+**Test Implementation:**
+```python
+def test_add_feature_flags(memory_client, requires_openrouter_api_key):
+    """Test AI adds feature flags to configuration JSON."""
+    original_text = '''{
+    "app_name": "Viewer",
+    "version": "1.0.0"
+}'''
 
-**Execution:**
-1. Set value to Use Case 8 initial JSON
-2. AI request: "Add feature flags for dark mode and experimental features"
-3. Submit and wait
+    payload = {
+        'request_text': 'Add feature flags for dark mode and experimental features',
+        'original_text': original_text,
+        'target_label': 'variable value',
+        'context_data': {'form': 'variable_form'},
+        'form_summary': {'value': original_text}
+    }
 
-**Assertions:**
-- Valid JSON structure
-- Original fields preserved
-- `features` object added
-- `features.dark_mode` is boolean
-- `features.experimental_features` is boolean
-- Feature flags are reasonable (true/false, not random strings)
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify valid JSON
+    parsed = assert_valid_json(updated_text)
+
+    # Verify original fields preserved
+    assert parsed['app_name'] == 'Viewer'
+    assert parsed['version'] == '1.0.0'
+
+    # Verify features object added
+    assert 'features' in parsed
+    features = parsed['features']
+
+    # Verify dark mode flag
+    assert 'dark_mode' in features or 'darkMode' in features
+    dark_mode_value = features.get('dark_mode', features.get('darkMode'))
+    assert isinstance(dark_mode_value, bool)
+
+    # Verify experimental features flag
+    assert 'experimental_features' in features or 'experimental' in features
+```
 
 ---
 
@@ -823,22 +1060,37 @@ def test_use_case_name(driver, ai_test_server, requires_openrouter_api_key):
 
 **File:** `tests/ai_use_cases/test_server_test_card.py::test_add_query_filters`
 
-**Setup:**
-- Navigate to `/server/test?name=api_endpoint`
-- Ensure test server exists
+**Test Implementation:**
+```python
+def test_add_query_filters(memory_client, requires_openrouter_api_key):
+    """Test AI adds query parameters for filtering and sorting."""
+    original_text = 'page=1&limit=10'
 
-**Execution:**
-1. Set query params to `page=1&limit=10`
-2. AI request: "Add filtering by status and sorting by date descending"
-3. Submit and wait
+    payload = {
+        'request_text': 'Add filtering by status and sorting by date descending',
+        'original_text': original_text,
+        'target_label': 'query parameters',
+        'context_data': {'form': 'server_test'},
+        'form_summary': {'query_params': original_text}
+    }
 
-**Assertions:**
-- Original params preserved (`page=1`, `limit=10`)
-- Contains `status=` parameter
-- Contains `sort=` parameter (or `order=`)
-- Valid query string format
-- No duplicate parameters
-- Properly URL encoded
+    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    data = response.get_json()
+    updated_text = data['updated_text']
+
+    # Verify original params preserved
+    assert 'page=1' in updated_text
+    assert 'limit=10' in updated_text
+
+    # Verify status filter added
+    assert 'status=' in updated_text
+
+    # Verify sort/order parameters added
+    assert 'sort=' in updated_text or 'order=' in updated_text or 'orderBy=' in updated_text
+
+    # Verify valid query string format
+    assert_valid_query_string(updated_text)
+```
 
 ---
 
@@ -901,12 +1153,13 @@ def assert_valid_query_string(qs: str):
 
 ```bash
 #!/bin/bash
-# Run AI evaluation tests locally
+# Run AI evaluation tests locally using Flask test client
+# No web server or browser needed - tests use memory database
 
 set -e
 
-echo "Running AI Evaluation Tests"
-echo "============================="
+echo "AI Evaluation Tests (Flask Test Client)"
+echo "========================================"
 
 # 1. Check for OpenRouter API key
 if [ -z "$OPENROUTER_API_KEY" ]; then
@@ -915,42 +1168,31 @@ if [ -z "$OPENROUTER_API_KEY" ]; then
     exit 1
 fi
 
-# 2. Ensure ai_assist server is configured
-echo "Configuring ai_assist server..."
-python scripts/setup_ai_assist.py
-
-# 3. Start application in test mode
-echo "Starting application..."
-export FLASK_ENV=testing
+# 2. Set AI model (optional)
 export AI_MODEL="${AI_MODEL:-anthropic/claude-sonnet-4-20250514}"
-python run.py &
-APP_PID=$!
+echo "Using AI model: $AI_MODEL"
 
-# Wait for app to start
-sleep 5
-
-# 4. Run tests with coverage
+# 3. Run tests with coverage
+# Note: No need to start web server - tests use memory_client fixture
+echo ""
 echo "Running AI evaluation tests..."
 pytest tests/ai_use_cases/ \
     --verbose \
-    --capture=no \
     --tb=short \
     --junit-xml=test-results/ai-eval-results.xml \
     --html=test-results/ai-eval-report.html \
     --self-contained-html \
     --cov=reference_templates.servers.definitions.ai_assist \
-    --cov-report=html:test-results/ai-eval-coverage
-
-# 5. Cleanup
-kill $APP_PID
+    --cov-report=html:test-results/ai-eval-coverage \
+    --cov-report=term-missing
 
 echo ""
-echo "============================="
+echo "========================================"
 echo "Test Results:"
 echo "  - JUnit XML: test-results/ai-eval-results.xml"
 echo "  - HTML Report: test-results/ai-eval-report.html"
 echo "  - Coverage: test-results/ai-eval-coverage/index.html"
-echo "============================="
+echo "========================================"
 ```
 
 **Usage:**
@@ -969,7 +1211,17 @@ pytest tests/ai_use_cases/test_server_definition_editor.py::test_add_input_valid
 
 # Run with different model
 AI_MODEL=openai/gpt-4 ./run_ai_eval_tests.sh
+
+# Run with specific OpenRouter model
+AI_MODEL=google/gemini-pro-1.5 OPENROUTER_API_KEY=your_key ./run_ai_eval_tests.sh
 ```
+
+**Benefits of Test Client Approach:**
+- **Fast**: No browser startup overhead (typically 10-20x faster than Selenium)
+- **Simple**: No ChromeDriver installation or management
+- **Reliable**: No browser flakiness or timing issues
+- **Lightweight**: Minimal dependencies (just pytest and Flask test client)
+- **Debuggable**: Direct Python debugging, no browser automation complexity
 
 ### CI Execution - On-Demand Workflow
 
@@ -1014,28 +1266,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-html pytest-cov selenium
-
-      - name: Install Chrome and ChromeDriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
-
-      - name: Configure ai_assist server
-        run: |
-          python scripts/setup_ai_assist.py
+          pip install pytest pytest-html pytest-cov
 
       - name: Run AI evaluation tests
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           AI_MODEL: ${{ github.event.inputs.ai_model }}
         run: |
-          # Start application
-          python run.py &
-          APP_PID=$!
-          sleep 5
-
-          # Run tests
+          # Tests use Flask test client - no web server or browser needed
           TEST_PATTERN="${{ github.event.inputs.test_pattern }}"
           if [ -z "$TEST_PATTERN" ]; then
             pytest tests/ai_use_cases/ \
@@ -1053,9 +1291,6 @@ jobs:
               --html=test-results/ai-eval-report.html \
               --self-contained-html
           fi
-
-          # Cleanup
-          kill $APP_PID
 
       - name: Upload test results
         if: always()
@@ -1263,28 +1498,36 @@ gh-pages/
 
 ## Future Enhancements
 
-1. **Performance Monitoring:**
+1. **One-Shot Runs Enhancement:**
+   - Extend `cli.py:make_http_request()` to support POST/PUT/DELETE
+   - Add support for JSON request bodies in CLI mode
+   - Enable AI evaluation tests to run via CLI without test framework
+   - Example: `python main.py --method POST --json '{"request_text":"..."}'  /ai`
+   - Benefits: Even simpler test execution, true CLI/HTTP equivalence for AI endpoints
+   - Implementation: Modify `handle_http_request()` to accept method and body parameters
+
+2. **Performance Monitoring:**
    - Track AI response times
    - Monitor API costs
    - Alert on degraded performance
 
-2. **Model Comparison:**
+3. **Model Comparison:**
    - Run tests against multiple models
    - Compare quality and speed
    - Generate comparison reports
 
-3. **Advanced Use Cases:**
+4. **Advanced Use Cases:**
    - Multi-turn conversations
    - Code refactoring suggestions
    - Security vulnerability detection
    - Performance optimization suggestions
 
-4. **User Feedback:**
+5. **User Feedback:**
    - Collect user ratings on AI responses
    - Track acceptance/rejection rates
    - Use feedback to improve prompts
 
-5. **Prompt Optimization:**
+6. **Prompt Optimization:**
    - A/B test different prompt strategies
    - Fine-tune system prompts per use case
    - Implement prompt versioning
