@@ -11,6 +11,7 @@ os.environ['TESTING'] = 'True'
 
 from alias_definition import format_primary_alias_line
 from app import app
+from cid import CID as ValidatedCID
 from db_access import (
     count_cids,
     count_page_views,
@@ -91,7 +92,9 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(count_secrets(), 1)
 
     def test_server_invocation_and_cid_helpers(self):
-        create_cid_record('cid1', b'data')
+        cid_record = CID(path='/cid1', file_data=b'data', file_size=len(b'data'))
+        db.session.add(cid_record)
+        db.session.commit()
         self.assertIsNotNone(get_cid_by_path('/cid1'))
         invocation = create_server_invocation(
             'srv',
@@ -105,9 +108,12 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(find_cids_by_prefix(''), [])
         self.assertEqual(find_cids_by_prefix('/'), [])
 
-        create_cid_record('alpha.one', b'a')
-        create_cid_record('alpha.two', b'b')
-        create_cid_record('beta.one', b'c')
+        db.session.add_all([
+            CID(path='/alpha.one', file_data=b'a', file_size=len(b'a')),
+            CID(path='/alpha.two', file_data=b'b', file_size=len(b'b')),
+            CID(path='/beta.one', file_data=b'c', file_size=len(b'c')),
+        ])
+        db.session.commit()
 
         matches = find_cids_by_prefix('alpha')
         self.assertEqual([cid.path for cid in matches], ['/alpha.one', '/alpha.two'])
@@ -117,8 +123,12 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual([cid.path for cid in dotted_matches], ['/alpha.one', '/alpha.two'])
 
     def test_get_uploads_returns_latest_first(self):
-        create_cid_record('first', b'1')
-        create_cid_record('second', b'2')
+        first = CID(path='/first', file_data=b'1', file_size=len(b'1'))
+        db.session.add(first)
+        db.session.commit()
+        second = CID(path='/second', file_data=b'2', file_size=len(b'2'))
+        db.session.add(second)
+        db.session.commit()
 
         uploads = get_uploads()
         self.assertEqual([cid.path for cid in uploads], ['/second', '/first'])
@@ -133,16 +143,17 @@ class TestDBAccess(unittest.TestCase):
         """
         from sqlalchemy.exc import IntegrityError
 
-        # Create first CID
-        create_cid_record('test_cid', b'test data')
+        # Create first CID using a valid CID value
+        cid_value = ValidatedCID.from_bytes(b'test data').value
+        create_cid_record(cid_value, b'test data')
 
         # Verify it was created
-        cid = get_cid_by_path('/test_cid')
+        cid = get_cid_by_path(f'/{cid_value}')
         self.assertIsNotNone(cid)
 
         # Attempt to create duplicate should raise IntegrityError
         with self.assertRaises(IntegrityError):
-            create_cid_record('test_cid', b'different data')
+            create_cid_record(cid_value, b'different data')
 
     def test_page_view_helpers(self):
         base_time = datetime.now(timezone.utc)
@@ -336,8 +347,10 @@ class TestDBAccess(unittest.TestCase):
         CID.query.delete()
         db.session.commit()
 
-        create_cid_record('gamma', b'g')
-        create_cid_record('delta', b'd')
+        cid_gamma = CID(path='/gamma', file_data=b'g', file_size=len(b'g'))
+        cid_delta = CID(path='/delta', file_data=b'd', file_size=len(b'd'))
+        db.session.add_all([cid_gamma, cid_delta])
+        db.session.commit()
 
         paths = ['/gamma', '/delta']
         records = get_cids_by_paths(paths)

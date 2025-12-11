@@ -5,10 +5,11 @@ the database, including support for server, variable, and secret definitions.
 """
 
 import json
-from typing import Any
+from typing import Any, Union
 
 import db_access
 
+from cid import CID, to_cid_string
 from cid_core import generate_cid, is_literal_cid
 from cid_presenter import cid_path, format_cid
 
@@ -17,21 +18,31 @@ from cid_presenter import cid_path, format_cid
 # CID STORAGE HELPERS
 # ============================================================================
 
-def ensure_cid_exists(cid_value: str, content_bytes: bytes) -> None:
+def ensure_cid_exists(cid_value: Union[str, CID], content_bytes: bytes) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
     Note: Literal CIDs (content <= 64 bytes) are NOT stored in the database
     because their content is already embedded in the CID itself.
 
     Args:
-        cid_value: CID string
+        cid_value: CID string or CID object (will be validated)
         content_bytes: Content to store
+
+    Raises:
+        ValueError: If cid_value is not a valid CID
+
+    Example:
+        >>> ensure_cid_exists("AAAAAAAA", b"")
+        >>> ensure_cid_exists(CID("AAAAAAAA"), b"")
     """
+    # Validate and normalize the CID
+    cid_str = to_cid_string(cid_value)
+
     # Don't store literal CIDs - their content is embedded in the CID itself
-    if is_literal_cid(cid_value):
+    if is_literal_cid(cid_str):
         return
 
-    cid_record_path = cid_path(cid_value)
+    cid_record_path = cid_path(cid_str)
     try:
         content = db_access.get_cid_by_path(cid_record_path) if cid_record_path else None
     except RuntimeError:
@@ -41,7 +52,7 @@ def ensure_cid_exists(cid_value: str, content_bytes: bytes) -> None:
         return
 
     try:
-        db_access.create_cid_record(cid_value, content_bytes)
+        db_access.create_cid_record(cid_str, content_bytes)
     except RuntimeError:
         return
 
