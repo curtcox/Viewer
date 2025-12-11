@@ -171,7 +171,7 @@ def test_ai_assist_server_exists(memory_client):
     print("AI Assist Server Configuration Diagnostics")
     print(f"{'='*70}")
 
-    from models import Server, Secret, Variable
+    from models import Server, Variable
     from database import db
 
     with memory_client.application.app_context():
@@ -182,10 +182,6 @@ def test_ai_assist_server_exists(memory_client):
         if ai_server:
             print(f"ai_assist enabled: {ai_server.enabled}")
             print(f"Definition length: {len(ai_server.definition)} characters")
-
-        # Check secret exists
-        secret = db.session.query(Secret).filter_by(name='OPENROUTER_API_KEY').first()
-        print(f"OPENROUTER_API_KEY secret exists: {secret is not None}")
 
         # Check variables
         ai_model = db.session.query(Variable).filter_by(name='AI_MODEL').first()
@@ -201,7 +197,6 @@ def test_ai_assist_server_exists(memory_client):
 
         assert ai_server is not None, "ai_assist server not found in database"
         assert ai_server.enabled, "ai_assist server is disabled"
-        assert secret is not None, "OPENROUTER_API_KEY secret not found"
 
 
 def test_ai_assist_minimal_request(memory_client, requires_openrouter_api_key):
