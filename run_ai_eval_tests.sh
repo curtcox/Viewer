@@ -15,7 +15,7 @@ if [ -z "$OPENROUTER_API_KEY" ]; then
 fi
 
 # 2. Set AI model (optional)
-export AI_MODEL="${AI_MODEL:-anthropic/claude-sonnet-4-20250514}"
+export AI_MODEL="${AI_MODEL:-anthropic/claude-sonnet-4.5}"
 echo "Using AI model: $AI_MODEL"
 
 # 3. Create test-results directory

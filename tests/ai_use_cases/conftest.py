@@ -53,7 +53,7 @@ def setup_ai_assist_server(memory_db_app):
         if not ai_model:
             ai_model = Variable(
                 name='AI_MODEL',
-                definition=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4-20250514')
+                definition=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4.5')
             )
             db.session.add(ai_model)
 

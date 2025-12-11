@@ -41,7 +41,7 @@ def test_openrouter_api_connectivity(requires_openrouter_api_key):
     print(f"\nEndpoint: {url}")
 
     # Minimal test payload
-    model = os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4-20250514')
+    model = os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4.5')
     print(f"Model: {model}")
 
     headers = {

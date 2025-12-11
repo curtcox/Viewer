@@ -157,7 +157,7 @@ def main(
 
     Configuration (from variables/secrets):
     - OPENROUTER_API_KEY: Required secret for API authentication
-    - AI_MODEL: Model to use (default: anthropic/claude-sonnet-4-20250514)
+    - AI_MODEL: Model to use (default: anthropic/claude-sonnet-4.5)
     - AI_PROVIDER: Provider name for logging (default: openrouter)
     - AI_MAX_TOKENS: Maximum tokens in response (default: 4096)
     - AI_TEMPERATURE: Creativity level 0.0-1.0 (default: 0.3)
@@ -196,7 +196,7 @@ def main(
     form_summary = form_summary or {}
 
     # Configuration with defaults
-    model = AI_MODEL or os.getenv("AI_MODEL") or "anthropic/claude-sonnet-4-20250514"
+    model = AI_MODEL or os.getenv("AI_MODEL") or "anthropic/claude-sonnet-4.5"
     provider = AI_PROVIDER or os.getenv("AI_PROVIDER") or "openrouter"
     max_tokens = int(AI_MAX_TOKENS or os.getenv("AI_MAX_TOKENS") or "4096")
     temperature = float(AI_TEMPERATURE or os.getenv("AI_TEMPERATURE") or "0.3")

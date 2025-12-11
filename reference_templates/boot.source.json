@@ -114,7 +114,7 @@
     },
     {
       "name": "AI_MODEL",
-      "definition": "anthropic/claude-sonnet-4-20250514",
+      "definition": "anthropic/claude-sonnet-4.5",
       "enabled": true
     },
     {
