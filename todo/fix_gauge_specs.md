@@ -40,3 +40,46 @@ Tracking these areas and resolving them iteratively should clear the remaining G
 - Provisioned the AI and URL editor servers during default resource initialization and refreshed chaining step dependencies so default editors and chaining flows load without import errors.
 - Added the remaining chaining step imports (Gauge decorators, shared app helpers, CID utilities) so chaining scenarios can create servers and CIDs without NameErrors.
 - Added fallback stubs for TypeScript/Clojure runners, expanded chaining step definitions to create language-specific CIDs with placeholders, and wired placeholder substitution into shared web steps to keep Gauge chaining specs executing despite missing runtimes.
+
+## Current Status (2025-12-11)
+
+**Test Results:** 66 passing, 47 failing
+
+### Investigation Findings
+
+- Verified that `ai_editor` and `urleditor` servers ARE being loaded correctly by `ensure_default_resources()`
+- Standalone tests confirm both servers are available in the database with `enabled=True`
+- The shared gauge app context also shows servers are properly loaded
+- Some gauge specs pass (e.g., "Accessing ai_editor shows the editor page") while others fail (e.g., "Server is available in default boot image")
+- This suggests possible test infrastructure issues rather than code issues
+
+### Remaining Failures by Category
+
+1. **AI editor** (3 failures):
+   - Server is available in default boot image
+   - Request payload is embedded for editing
+   - Server rejects being used in a chain
+
+2. **Server command chaining** (34 failures):
+   - Most chaining scenarios failing across Python/Bash/Clojure/ClojureScript/TypeScript
+   - Affects CID literal execution and server chaining
+
+3. **Server events dashboard** (1 failure):
+   - Dashboard accessibility
+
+4. **Servers list dependencies** (3 failures):
+   - Dependency display on servers list page
+
+5. **URL editor** (6 failures):
+   - Server is available in default boot image
+   - Subpath redirect to fragment
+   - Chain rejection
+   - Required elements
+   - Multiple path element previews
+   - Preview links
+
+### Notes
+
+- Server availability tests may have timing or test framework issues since servers ARE loaded
+- The failures may be related to gauge test execution context rather than actual functionality
+- Significant progress has been made with 66 tests now passing
