@@ -1,11 +1,12 @@
 """Server invocation record creation and tracking."""
 
 import json
-from typing import Optional
+from typing import Optional, Union
 
 from flask import request
 from sqlalchemy.exc import SQLAlchemyError
 
+from cid import CID as ValidatedCID
 from cid_presenter import cid_path, format_cid
 from cid_utils import generate_cid, get_current_secret_definitions_cid, get_current_server_definitions_cid, get_current_variable_definitions_cid
 from db_access import ServerInvocationInput, create_cid_record, create_server_invocation, get_cid_by_path, save_entity
@@ -48,7 +49,17 @@ def request_details():
     }
 
 
-def create_server_invocation_record(server_name: str, result_cid: str) -> Optional[ServerInvocation]:
+def _normalize_cid_input(value: Union[str, ValidatedCID, None]) -> str:
+    """Return a normalized CID string from a string or ValidatedCID input."""
+    if isinstance(value, ValidatedCID):
+        return value.value
+    return value or ""
+
+
+def create_server_invocation_record(
+    server_name: str,
+    result_cid: Union[str, ValidatedCID],
+) -> Optional[ServerInvocation]:
     """Create a ServerInvocation record and persist related metadata."""
     servers_cid = get_current_server_definitions_cid()
     variables_cid = get_current_variable_definitions_cid()
@@ -80,7 +91,7 @@ def create_server_invocation_record(server_name: str, result_cid: str) -> Option
     try:
         inv_payload = {
             "server_name": server_name,
-            "result_cid": result_cid,
+            "result_cid": _normalize_cid_input(result_cid),
             "servers_cid": servers_cid,
             "variables_cid": variables_cid,
             "secrets_cid": secrets_cid,

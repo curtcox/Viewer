@@ -320,8 +320,8 @@ class TestDBAccess(unittest.TestCase):
 
     def test_update_cid_references_accepts_validated_cids(self):
         """update_cid_references should accept ValidatedCID inputs."""
-        old_obj = ValidatedCID("AAAAAAAA")
-        new_obj = ValidatedCID("AAAAAAAB")
+        old_obj = ValidatedCID.from_bytes(b"old-cid")
+        new_obj = ValidatedCID.from_bytes(b"new-cid")
 
         definition_text = format_primary_alias_line(
             'literal',
@@ -407,8 +407,8 @@ class TestDBAccess(unittest.TestCase):
 
     def test_update_alias_cid_reference_accepts_validated_cids(self):
         """update_alias_cid_reference should accept ValidatedCID inputs."""
-        old_obj = ValidatedCID("AAAAAAAC")
-        new_obj = ValidatedCID("AAAAAAAD")
+        old_obj = ValidatedCID.from_bytes(b"alias-old")
+        new_obj = ValidatedCID.from_bytes(b"alias-new")
 
         definition_text = format_primary_alias_line(
             'literal',
