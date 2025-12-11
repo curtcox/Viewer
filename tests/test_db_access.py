@@ -44,6 +44,8 @@ from db_access import (
     record_entity_interaction,
     save_entity,
     save_page_view,
+    record_export,
+    get_exports,
     update_alias_cid_reference,
     update_cid_references,
 )
@@ -316,6 +318,51 @@ class TestDBAccess(unittest.TestCase):
         mock_save.assert_called_once()
         mock_store.assert_called_once()
 
+    def test_update_cid_references_accepts_validated_cids(self):
+        """update_cid_references should accept ValidatedCID inputs."""
+        old_obj = ValidatedCID("AAAAAAAA")
+        new_obj = ValidatedCID("AAAAAAAB")
+
+        definition_text = format_primary_alias_line(
+            'literal',
+            '/docs2',
+            f'/{old_obj.value}?download=1',
+            alias_name='docs2',
+        )
+        alias = Alias(name='docs2', definition=definition_text)
+        server = Server(
+            name='reader2',
+            definition=(
+                "def main(request):\n"
+                f"    return '{old_obj.value}'\n"
+            ),
+            definition_cid=old_obj.value,
+        )
+        db.session.add_all([alias, server])
+        db.session.commit()
+
+        with patch('cid_utils.save_server_definition_as_cid') as mock_save, patch(
+            'cid_utils.store_server_definitions_cid'
+        ) as mock_store:
+            mock_save.side_effect = lambda definition: 'test-cid-2'
+            mock_store.side_effect = lambda: 'stored-2'
+
+            result = update_cid_references(old_obj, new_obj)
+
+        self.assertEqual(result, {'aliases': 1, 'servers': 1})
+
+        db.session.refresh(alias)
+        db.session.refresh(server)
+
+        self.assertIn(new_obj.value, alias.definition)
+        self.assertNotIn(old_obj.value, alias.definition)
+        self.assertIn(new_obj.value, server.definition)
+        self.assertNotIn(old_obj.value, server.definition)
+        self.assertEqual(server.definition_cid, 'test-cid-2')
+
+        mock_save.assert_called_once()
+        mock_store.assert_called_once()
+
     def test_update_alias_cid_reference_updates_existing_alias(self):
         definition_text = format_primary_alias_line(
             'regex',
@@ -358,6 +405,29 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(alias.match_type, 'literal')
         self.assertEqual(alias.match_pattern, '/latest')
 
+    def test_update_alias_cid_reference_accepts_validated_cids(self):
+        """update_alias_cid_reference should accept ValidatedCID inputs."""
+        old_obj = ValidatedCID("AAAAAAAC")
+        new_obj = ValidatedCID("AAAAAAAD")
+
+        definition_text = format_primary_alias_line(
+            'literal',
+            '/cidpath',
+            f'/{old_obj.value}?download=1',
+            alias_name='cidalias',
+        )
+        alias = Alias(name='cidalias', definition=definition_text)
+        db.session.add(alias)
+        db.session.commit()
+
+        result = update_alias_cid_reference(old_obj, new_obj, 'cidalias')
+
+        self.assertEqual(result, {'created': False, 'updated': 1})
+
+        db.session.refresh(alias)
+        self.assertIn(new_obj.value, alias.definition)
+        self.assertNotIn(old_obj.value, alias.definition)
+
     def test_cid_lookup_helpers(self):
         CID.query.delete()
         db.session.commit()
@@ -378,6 +448,18 @@ class TestDBAccess(unittest.TestCase):
         self.assertIsNotNone(first)
         self.assertEqual(first.path, '/gamma')
         self.assertEqual(count_cids(), 2)
+
+    def test_record_export_accepts_validated_cid(self):
+        """record_export should accept ValidatedCID inputs and persist value."""
+        cid_obj = ValidatedCID.from_bytes(b'export-data')
+
+        export = record_export(cid_obj)
+
+        self.assertIsNotNone(export.id)
+        self.assertEqual(export.cid, cid_obj.value)
+
+        exports = get_exports(limit=10)
+        self.assertTrue(any(e.cid == cid_obj.value for e in exports))
 
     def test_entity_interaction_helpers(self):
         timestamp = datetime.now(timezone.utc)
