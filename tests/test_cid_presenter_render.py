@@ -1,6 +1,15 @@
 import pytest
 
-from cid_presenter import extract_cid_from_path, is_probable_cid_path, render_cid_link
+from cid import CID
+from cid_presenter import (
+    cid_full_url,
+    cid_path,
+    extract_cid_from_path,
+    format_cid,
+    format_cid_short,
+    is_probable_cid_path,
+    render_cid_link,
+)
 
 
 @pytest.mark.parametrize("value", [None, "", "   ", "/ "])
@@ -34,12 +43,38 @@ def test_render_cid_link_includes_expected_elements():
     assert 'class="dropdown-menu dropdown-menu-end"' in rendered
 
 
+def test_render_cid_link_accepts_cid_object():
+    cid_str = "bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq"
+    cid_obj = CID(cid_str)
+
+    # Rendering with CID object should match rendering with plain string
+    rendered_from_str = str(render_cid_link(cid_str))
+    rendered_from_obj = str(render_cid_link(cid_obj))
+
+    assert rendered_from_obj == rendered_from_str
+
+
 def test_render_cid_link_strips_leading_slash():
     cid = "/bafybeigdyr"
     rendered = str(render_cid_link(cid))
 
     assert 'href="/bafybeigdyr.txt"' in rendered
     assert '>#bafybeigd...<' in rendered
+
+
+def test_format_helpers_accept_cid_object():
+    cid_str = "bafybeigdyr"
+    cid_obj = CID(cid_str)
+
+    assert format_cid(cid_obj) == cid_str
+    assert format_cid_short(cid_obj) == cid_str
+
+    # Path helpers should also work with CID objects
+    assert cid_path(cid_obj) == f"/{cid_str}"
+    assert cid_path(cid_obj, "txt") == f"/{cid_str}.txt"
+
+    base = "https://example.com/"
+    assert cid_full_url(base, cid_obj, "txt") == f"https://example.com/{cid_str}.txt"
 
 
 @pytest.mark.parametrize(

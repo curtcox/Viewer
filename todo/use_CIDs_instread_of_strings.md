@@ -39,8 +39,8 @@ The goal of future work would be to tighten typing around these values (e.g., vi
 - [ ] `cid_core.py` *(core CID API boundary)*
   - Core helpers such as `parse_cid_components(cid: str)`, `generate_cid(file_data: bytes) -> str`, `is_literal_cid(cid: str)`, `extract_literal_content(cid: str)` all represent CIDs as raw strings at the API boundary.
 
-- [ ] `cid_presenter.py` *(template / HTML boundary)*
-  - Presenter helpers like `format_cid(value: Optional[str])`, `extract_cid_from_path(value: Optional[str])`, `format_cid_short(value: Optional[str], ...)`, and `render_cid_link(value: Optional[str])` operate on CID-like strings.
+- [x] `cid_presenter.py` *(template / HTML boundary)*
+  - Presenter helpers such as `format_cid`, `format_cid_short`, `cid_path`, `cid_full_url`, and `render_cid_link` now accept both plain strings and `CID` objects, normalizing to strings for display and link generation while keeping string-based outputs for templates.
 
 - [x] `cid_utils.py` *(HTTP path parsing boundary / compatibility shim)*
   - Deprecated shim that re-exports CID/path helpers from `cid_core`, `cid_storage`, `content_rendering`, and `mime_utils`, all of which currently expose CID values as strings at their public boundaries.
