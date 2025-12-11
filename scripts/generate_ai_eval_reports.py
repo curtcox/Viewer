@@ -322,9 +322,9 @@ def main():
     index_page = output_dir / 'index.html'
     generate_index_page(json_files, index_page)
     
-    print(f"\n✓ Report generation complete!")
+    print("\n✓ Report generation complete!")
     print(f"  Index: {index_page}")
-    print(f"  View via source browser at: /source/test-results/ai-eval-reports/index.html")
+    print("  View via source browser at: /source/test-results/ai-eval-reports/index.html")
     
     return 0
 
