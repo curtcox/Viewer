@@ -1,0 +1,6 @@
+{
+  "id": "ai_assist",
+  "name": "AI Assist",
+  "description": "AI-powered text transformation using OpenRouter API. Supports multiple models and providers via configuration variables. Requires OPENROUTER_API_KEY secret.",
+  "definition_file": "definitions/ai_assist.py"
+}

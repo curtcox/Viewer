@@ -21,6 +21,11 @@
       "enabled": true
     },
     {
+      "name": "ai_assist",
+      "definition_cid": "reference_templates/servers/definitions/ai_assist.py",
+      "enabled": true
+    },
+    {
       "name": "anthropic_claude",
       "definition_cid": "reference_templates/servers/definitions/anthropic_claude.py",
       "enabled": true
@@ -105,6 +110,21 @@
     {
       "name": "uis",
       "definition": "GENERATED:uis.json",
+      "enabled": true
+    },
+    {
+      "name": "AI_MODEL",
+      "definition": "anthropic/claude-sonnet-4-20250514",
+      "enabled": true
+    },
+    {
+      "name": "AI_TEMPERATURE",
+      "definition": "0.3",
+      "enabled": true
+    },
+    {
+      "name": "AI_MAX_TOKENS",
+      "definition": "4096",
       "enabled": true
     }
   ]

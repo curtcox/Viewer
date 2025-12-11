@@ -1,0 +1,281 @@
+# ruff: noqa: F821, F706
+"""AI-powered text transformation using OpenRouter API.
+
+This server provides the same REST API interface as ai_stub but uses
+real AI (via OpenRouter) to intelligently modify text based on user requests.
+"""
+
+import json
+import os
+from typing import Any, Dict, Optional
+
+import requests
+
+
+def _summarise_context(context_data: Any, form_summary: Any) -> str:
+    """Build a context summary for the AI response."""
+    parts = []
+
+    if isinstance(context_data, dict) and context_data:
+        context_keys = ", ".join(str(k) for k in context_data.keys())
+        parts.append(f"Context: {context_keys}")
+
+    if isinstance(form_summary, dict) and form_summary:
+        form_keys = ", ".join(str(k) for k in form_summary.keys())
+        parts.append(f"Form fields: {form_keys}")
+
+    return " | ".join(parts) if parts else ""
+
+
+def _build_ai_prompt(
+    request_text: str,
+    original_text: str,
+    target_label: str,
+    context_data: dict,
+    form_summary: dict
+) -> str:
+    """Build a context-aware prompt for the AI model.
+
+    The prompt is designed to guide the AI to return ONLY the modified
+    content without explanations or markdown formatting.
+    """
+    system_prompt = """You are a helpful AI assistant for a web application.
+Users will ask you to modify text content. Return ONLY the modified content
+without any explanations, markdown formatting, or surrounding text.
+Do not add phrases like "Here is the modified version" or similar commentary.
+Just return the raw modified content exactly as it should appear."""
+
+    # Build context description
+    context_parts = []
+    if context_data and isinstance(context_data, dict):
+        form_type = context_data.get('form', 'unknown')
+        context_parts.append(f"This is from a {form_type} form")
+
+    context_desc = ". ".join(context_parts) if context_parts else ""
+
+    # Build the user prompt
+    user_prompt_parts = [
+        f"I need you to modify some {target_label}.",
+    ]
+
+    if context_desc:
+        user_prompt_parts.append(context_desc)
+
+    if original_text:
+        user_prompt_parts.append(f"\nOriginal content:\n{original_text}")
+
+    user_prompt_parts.append(f"\nRequested change: {request_text}")
+    user_prompt_parts.append("\nReturn ONLY the modified content (no explanations):")
+
+    user_prompt = "\n".join(user_prompt_parts)
+
+    return system_prompt, user_prompt
+
+
+def _call_openrouter(
+    api_key: str,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    max_tokens: int,
+    temperature: float
+) -> str:
+    """Make a request to OpenRouter API and return the response content."""
+    url = "https://openrouter.ai/api/v1/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://viewer.app",
+        "X-Title": "Viewer AI Assist",
+    }
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response.raise_for_status()
+
+    result = response.json()
+
+    # Extract the content from the response
+    if "choices" in result and len(result["choices"]) > 0:
+        content = result["choices"][0]["message"]["content"]
+        return content.strip()
+
+    raise ValueError("Unexpected response format from OpenRouter API")
+
+
+def _extract_code_if_wrapped(text: str) -> str:
+    """Remove markdown code fences if the AI wrapped the response in them.
+
+    Some models may wrap code in ```python or ``` blocks despite instructions.
+    This function extracts the actual content if that happens.
+    """
+    lines = text.strip().split('\n')
+
+    # Check if wrapped in code fence
+    if len(lines) > 2 and lines[0].startswith('```') and lines[-1] == '```':
+        # Remove first and last lines (the fence markers)
+        return '\n'.join(lines[1:-1])
+
+    return text
+
+
+def main(
+    request_text: str = None,
+    original_text: str = None,
+    target_label: str = None,
+    context_data: dict = None,
+    form_summary: dict = None,
+    *,
+    OPENROUTER_API_KEY: str,
+    AI_MODEL: str = None,
+    AI_PROVIDER: str = None,
+    AI_MAX_TOKENS: str = None,
+    AI_TEMPERATURE: str = None,
+    context=None
+):
+    """AI-powered text transformation using OpenRouter API.
+
+    This server provides the same API interface as ai_stub but uses real AI
+    to intelligently modify text based on user requests.
+
+    Parameters:
+    - request_text: The change requested by the user
+    - original_text: The original content to modify
+    - target_label: Description of what's being modified (e.g., "server definition")
+    - context_data: Additional context about the form/page
+    - form_summary: Summary of form fields
+
+    Configuration (from variables/secrets):
+    - OPENROUTER_API_KEY: Required secret for API authentication
+    - AI_MODEL: Model to use (default: anthropic/claude-sonnet-4-20250514)
+    - AI_PROVIDER: Provider name for logging (default: openrouter)
+    - AI_MAX_TOKENS: Maximum tokens in response (default: 4096)
+    - AI_TEMPERATURE: Creativity level 0.0-1.0 (default: 0.3)
+
+    Returns:
+    JSON response with updated_text, message, and context_summary
+    """
+    # Validate required parameters
+    if not request_text:
+        return {
+            "output": json.dumps({
+                "updated_text": original_text or "",
+                "message": "Error: No change requested",
+                "context_summary": "",
+                "error": "request_text is required"
+            }),
+            "content_type": "application/json"
+        }
+
+    if not OPENROUTER_API_KEY:
+        return {
+            "output": json.dumps({
+                "updated_text": original_text or "",
+                "message": "Error: OPENROUTER_API_KEY not configured",
+                "context_summary": "",
+                "error": "OPENROUTER_API_KEY secret must be set"
+            }),
+            "content_type": "application/json"
+        }
+
+    # Set defaults
+    request_text = request_text or ""
+    original_text = original_text or ""
+    target_label = target_label or "content"
+    context_data = context_data or {}
+    form_summary = form_summary or {}
+
+    # Configuration with defaults
+    model = AI_MODEL or os.getenv("AI_MODEL") or "anthropic/claude-sonnet-4-20250514"
+    provider = AI_PROVIDER or os.getenv("AI_PROVIDER") or "openrouter"
+    max_tokens = int(AI_MAX_TOKENS or os.getenv("AI_MAX_TOKENS") or "4096")
+    temperature = float(AI_TEMPERATURE or os.getenv("AI_TEMPERATURE") or "0.3")
+
+    try:
+        # Build prompts
+        system_prompt, user_prompt = _build_ai_prompt(
+            request_text=request_text,
+            original_text=original_text,
+            target_label=target_label,
+            context_data=context_data,
+            form_summary=form_summary
+        )
+
+        # Call OpenRouter API
+        updated_text = _call_openrouter(
+            api_key=OPENROUTER_API_KEY,
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            max_tokens=max_tokens,
+            temperature=temperature
+        )
+
+        # Clean up any markdown code fences the AI may have added
+        updated_text = _extract_code_if_wrapped(updated_text)
+
+        # Build response
+        result = {
+            "updated_text": updated_text,
+            "message": f"Applied: {request_text}",
+            "context_summary": _summarise_context(context_data, form_summary),
+            "model_used": model,
+            "provider": provider
+        }
+
+        return {
+            "output": json.dumps(result),
+            "content_type": "application/json"
+        }
+
+    except requests.exceptions.Timeout:
+        # Timeout - return original text with error
+        return {
+            "output": json.dumps({
+                "updated_text": original_text,
+                "message": "Error: AI request timed out (60s limit)",
+                "context_summary": _summarise_context(context_data, form_summary),
+                "error": "timeout"
+            }),
+            "content_type": "application/json"
+        }
+
+    except requests.exceptions.HTTPError as e:
+        # API error - return original text with error message
+        error_msg = f"OpenRouter API error: {e.response.status_code}"
+        if e.response.status_code == 401:
+            error_msg = "Authentication failed - check OPENROUTER_API_KEY"
+        elif e.response.status_code == 429:
+            error_msg = "Rate limit exceeded - please try again later"
+
+        return {
+            "output": json.dumps({
+                "updated_text": original_text,
+                "message": f"Error: {error_msg}",
+                "context_summary": _summarise_context(context_data, form_summary),
+                "error": "api_error"
+            }),
+            "content_type": "application/json"
+        }
+
+    except Exception as e:
+        # Unexpected error - return original text with generic error
+        return {
+            "output": json.dumps({
+                "updated_text": original_text,
+                "message": f"Error: {str(e)}",
+                "context_summary": _summarise_context(context_data, form_summary),
+                "error": "unexpected_error"
+            }),
+            "content_type": "application/json"
+        }
