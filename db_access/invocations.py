@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Optional, Union
 
 from sqlalchemy import or_
 
+from cid import CID as ValidatedCID
 from models import ServerInvocation
 from db_access._common import save_entity
 
@@ -19,19 +20,23 @@ class ServerInvocationInput:
     ``server_name`` and ``result_cid`` arguments while all attributes on this
     helper remain optional.
     """
-
-    servers_cid: Optional[str] = None
-    variables_cid: Optional[str] = None
-    secrets_cid: Optional[str] = None
-    request_details_cid: Optional[str] = None
-    invocation_cid: Optional[str] = None
+    # These fields may be supplied as either raw CID strings or validated
+    # ``cid.CID`` instances.  The public helpers will normalize values before
+    # persisting them to the database.
+    servers_cid: Optional[Union[str, ValidatedCID]] = None
+    variables_cid: Optional[Union[str, ValidatedCID]] = None
+    secrets_cid: Optional[Union[str, ValidatedCID]] = None
+    request_details_cid: Optional[Union[str, ValidatedCID]] = None
+    invocation_cid: Optional[Union[str, ValidatedCID]] = None
 
 
 def create_server_invocation(
     server_name: str,
-    result_cid: str,
-    cid_metadata: Optional[Union[ServerInvocationInput, Dict[str, Optional[str]]]] = None,
-    **legacy_kwargs: Optional[str],
+    result_cid: Union[str, ValidatedCID],
+    cid_metadata: Optional[
+        Union[ServerInvocationInput, Dict[str, Optional[Union[str, ValidatedCID]]]]
+    ] = None,
+    **legacy_kwargs: Optional[Union[str, ValidatedCID]],
 ) -> ServerInvocation:
     """Persist a ``ServerInvocation`` record.
 
@@ -50,7 +55,7 @@ def create_server_invocation(
             a mapping of optional CID values.
     """
     field_names = set(ServerInvocationInput.__annotations__)
-    merged: Dict[str, Optional[str]] = {}
+    merged: Dict[str, Optional[Union[str, ValidatedCID]]] = {}
 
     if isinstance(cid_metadata, ServerInvocationInput):
         merged.update(asdict(cid_metadata))
@@ -65,14 +70,21 @@ def create_server_invocation(
 
     cid_data = ServerInvocationInput(**merged)
 
+    def _normalize_optional(value: Optional[Union[str, ValidatedCID]]) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, ValidatedCID):
+            return value.value
+        return value
+
     invocation = ServerInvocation(
         server_name=server_name,
-        result_cid=result_cid,
-        servers_cid=cid_data.servers_cid,
-        variables_cid=cid_data.variables_cid,
-        secrets_cid=cid_data.secrets_cid,
-        request_details_cid=cid_data.request_details_cid,
-        invocation_cid=cid_data.invocation_cid,
+        result_cid=_normalize_optional(result_cid),
+        servers_cid=_normalize_optional(cid_data.servers_cid),
+        variables_cid=_normalize_optional(cid_data.variables_cid),
+        secrets_cid=_normalize_optional(cid_data.secrets_cid),
+        request_details_cid=_normalize_optional(cid_data.request_details_cid),
+        invocation_cid=_normalize_optional(cid_data.invocation_cid),
     )
     save_entity(invocation)
     return invocation
@@ -109,10 +121,20 @@ def get_server_invocations_by_server(server_name: str) -> List[ServerInvocation]
 
 
 def get_server_invocations_by_result_cids(
-    result_cids: Iterable[str],
+    result_cids: Iterable[Union[str, ValidatedCID]],
 ) -> List[ServerInvocation]:
     """Return invocation events matching any of the provided result CIDs."""
-    cid_values = {cid for cid in result_cids if cid}
+
+    normalized_values = set()
+    for cid in result_cids:
+        if not cid:
+            continue
+        if isinstance(cid, ValidatedCID):
+            normalized_values.add(cid.value)
+        else:
+            normalized_values.add(cid)
+
+    cid_values = normalized_values
     if not cid_values:
         return []
 

@@ -9,9 +9,8 @@ The goal of future work would be to tighten typing around these values (e.g., vi
 - [ ] `models.py` *(DB boundary)*
   - `ServerInvocation.result_cid`, `servers_cid`, `variables_cid`, `secrets_cid` are `db.String` columns that always represent CIDs.
 
-- [ ] `db_access/invocations.py` *(DB boundary)*
-  - `create_server_invocation(result_cid: str, ...)` and related helpers treat CIDs as plain `str`.
-  - `get_server_invocations_by_result_cids(result_cids: Iterable[str])` filters by `ServerInvocation.result_cid` using raw strings.
+- [x] `db_access/invocations.py` *(DB boundary)*
+  - `create_server_invocation` and `get_server_invocations_by_result_cids` now accept validated `CID` objects in addition to strings, normalizing values before persistence and queries.
 
 - [ ] `db_access/cids.py` *(DB boundary)*
   - `create_cid_record(cid: Union[str, ValidatedCID], ...)` normalizes / validates CIDs but works in terms of CID strings.
@@ -21,8 +20,8 @@ The goal of future work would be to tighten typing around these values (e.g., vi
   - `_create_new_alias(alias_name: str, cid: str)` and `_update_existing_aliases(..., old_cid: str, new_cid: str)` pass CIDs as strings.
   - `update_alias_cid_reference(old_cid: str, new_cid: str, ...)` also operates on CIDs as `str`.
 
-- [ ] `db_access/exports.py` *(DB boundary)*
-  - `record_export(cid: str)` stores CIDs as simple strings.
+- [x] `db_access/exports.py` *(DB boundary)*
+  - `record_export` now accepts validated `CID` objects as well as strings, persisting the normalized CID value.
 
 - [ ] `db_access/_exports.py` *(DB boundary)*
   - Re-exports helpers like `create_server_invocation`, `get_server_invocations_by_result_cids`, etc., which all use CID-valued strings.

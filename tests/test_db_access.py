@@ -245,6 +245,21 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(len(related), 1)
         self.assertEqual(related[0].server_name, 'demo')
 
+    def test_create_server_invocation_accepts_validated_cids(self):
+        """create_server_invocation should accept ValidatedCID inputs."""
+        result_cid_obj = ValidatedCID.from_bytes(b'result')
+        meta = ServerInvocationInput(
+            servers_cid=ValidatedCID.from_bytes(b'servers'),
+            variables_cid=ValidatedCID.from_bytes(b'vars'),
+            secrets_cid=ValidatedCID.from_bytes(b'secrets'),
+        )
+
+        invocation = create_server_invocation('srv-cid', result_cid_obj, meta)
+
+        self.assertIsNotNone(invocation.id)
+        self.assertEqual(invocation.server_name, 'srv-cid')
+        self.assertEqual(invocation.result_cid, result_cid_obj.value)
+
     def test_update_cid_references_updates_alias_and_server_records(self):
         old_cid = 'oldcid123456'
         new_cid = 'newcid789012'
