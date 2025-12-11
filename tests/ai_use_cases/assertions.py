@@ -29,6 +29,7 @@ def assert_valid_json(text: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError as e:
         pytest.fail(f"Invalid JSON: {e}\n\nText:\n{text}")
+        return {}  # Never reached, but satisfies pylint
 
 
 def assert_original_content_preserved(result: str, original: str):

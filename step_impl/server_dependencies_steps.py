@@ -107,7 +107,7 @@ def then_page_should_not_contain(text: str) -> None:
     """Assert that the current page response does not contain the provided text."""
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded. Call `When I request ...` first."
-    
+
     text = _normalize_path(text)
     body = response.get_data(as_text=True)
     assert text not in body, f"Expected NOT to find {text!r} in the response body, but it was present."

@@ -30,7 +30,7 @@ def setup_ai_assist_server(memory_db_app):
         if not ai_server:
             # Read the server definition from file
             definition_path = 'reference_templates/servers/definitions/ai_assist.py'
-            with open(definition_path) as f:
+            with open(definition_path, encoding='utf-8') as f:
                 definition = f.read()
 
             ai_server = Server(
@@ -119,16 +119,16 @@ def ai_interaction_tracker(request):
     test_file = request.node.fspath.basename
     test_module = request.node.module.__name__
     test_doc = request.node.function.__doc__ or ""
-    
+
     # Determine test status - handle passed, failed, and other states (e.g., skipped)
     passed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'passed', False)
     failed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'failed', False)
-    
+
     output_dir = 'test-results/ai-interactions'
     os.makedirs(output_dir, exist_ok=True)
 
     output_file = os.path.join(output_dir, f'{test_name}.json')
-    with open(output_file, 'w') as f:
+    with open(output_file, 'w', encoding='utf-8') as f:
         json.dump({
             'test_name': test_name,
             'test_file': test_file,

@@ -1,3 +1,4 @@
+"""Step implementations for URL Editor server specs."""
 from __future__ import annotations
 
 from getgauge.python import step
@@ -5,8 +6,6 @@ from getgauge.python import step
 from identity import ensure_default_resources
 from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import get_scenario_state, store
-
-"""Step implementations for URL Editor server specs."""
 
 
 @step("When I check the available servers")
