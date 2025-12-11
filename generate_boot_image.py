@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
-from cid_core import generate_cid
+from cid_core import generate_cid, is_literal_cid
 
 
 class BootImageGenerator:
@@ -69,14 +69,17 @@ class BootImageGenerator:
         content = self.read_file_content(file_path)
         cid = generate_cid(content)
 
-        # Store in cids directory
-        cid_file_path = self.cids_dir / cid
-        if not cid_file_path.exists():
-            with open(cid_file_path, 'wb') as f:
-                f.write(content)
-            print(f"  Stored {relative_path} -> {cid}")
+        # Store in cids directory (skip literal CIDs - they contain the content itself)
+        if not is_literal_cid(cid):
+            cid_file_path = self.cids_dir / cid
+            if not cid_file_path.exists():
+                with open(cid_file_path, 'wb') as f:
+                    f.write(content)
+                print(f"  Stored {relative_path} -> {cid}")
+            else:
+                print(f"  Already exists: {relative_path} -> {cid}")
         else:
-            print(f"  Already exists: {relative_path} -> {cid}")
+            print(f"  Skipped literal CID: {relative_path} -> {cid}")
 
         # Track the mapping
         self.file_to_cid[relative_path] = cid
@@ -242,11 +245,14 @@ class BootImageGenerator:
         templates_json_content = json.dumps(templates_data, indent=2).encode('utf-8')
         templates_cid = generate_cid(templates_json_content)
 
-        # Store templates.json CID
-        cid_file_path = self.cids_dir / templates_cid
-        with open(cid_file_path, 'wb') as f:
-            f.write(templates_json_content)
-        print(f"Stored templates.json -> {templates_cid}")
+        # Store templates.json CID (skip literal CIDs)
+        if not is_literal_cid(templates_cid):
+            cid_file_path = self.cids_dir / templates_cid
+            with open(cid_file_path, 'wb') as f:
+                f.write(templates_json_content)
+            print(f"Stored templates.json -> {templates_cid}")
+        else:
+            print(f"Skipped literal CID for templates.json -> {templates_cid}")
 
         return templates_cid
 
@@ -282,11 +288,14 @@ class BootImageGenerator:
         uis_json_content = json.dumps(uis_data, indent=2).encode('utf-8')
         uis_cid = generate_cid(uis_json_content)
 
-        # Store uis.json CID
-        cid_file_path = self.cids_dir / uis_cid
-        with open(cid_file_path, 'wb') as f:
-            f.write(uis_json_content)
-        print(f"Stored uis.json -> {uis_cid}")
+        # Store uis.json CID (skip literal CIDs)
+        if not is_literal_cid(uis_cid):
+            cid_file_path = self.cids_dir / uis_cid
+            with open(cid_file_path, 'wb') as f:
+                f.write(uis_json_content)
+            print(f"Stored uis.json -> {uis_cid}")
+        else:
+            print(f"Skipped literal CID for uis.json -> {uis_cid}")
 
         return uis_cid
 
@@ -343,11 +352,14 @@ class BootImageGenerator:
         boot_json_content = json.dumps(boot_data, indent=2).encode('utf-8')
         boot_cid = generate_cid(boot_json_content)
 
-        # Store boot.json CID
-        cid_file_path = self.cids_dir / boot_cid
-        with open(cid_file_path, 'wb') as f:
-            f.write(boot_json_content)
-        print(f"Stored {target_filename} -> {boot_cid}")
+        # Store boot.json CID (skip literal CIDs)
+        if not is_literal_cid(boot_cid):
+            cid_file_path = self.cids_dir / boot_cid
+            with open(cid_file_path, 'wb') as f:
+                f.write(boot_json_content)
+            print(f"Stored {target_filename} -> {boot_cid}")
+        else:
+            print(f"Skipped literal CID for {target_filename} -> {boot_cid}")
 
         # Save boot CID to boot.cid file
         boot_cid_file = self.reference_templates_dir / cid_filename
