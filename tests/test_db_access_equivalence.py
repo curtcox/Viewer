@@ -5,6 +5,7 @@ import pytest
 
 from database import db
 from models import Alias, CID, PageView, Server
+from cid import CID as ValidatedCID
 
 
 @pytest.mark.db_equivalence
@@ -173,11 +174,17 @@ class TestCIDsModuleEquivalence:
         """create_cid_record() produces equivalent results."""
         from db_access.cids import create_cid_record
 
+        file_content = b"test data"
+        cid_value = ValidatedCID.from_bytes(file_content).value
+
         results = {}
         for name, app in [("memory", memory_db_app), ("disk", disk_db_app)]:
             with app.app_context():
-                cid = create_cid_record("/cid/test", b"test data")
-                results[name] = {"path": cid.path, "data_len": len(cid.file_data)}
+                record = create_cid_record(cid_value, file_content)
+                results[name] = {
+                    "path": record.path,
+                    "data_len": len(record.file_data),
+                }
 
         assert results["memory"] == results["disk"]
 
