@@ -15,6 +15,10 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import PythonLexer
 
 
+# Constants
+MAX_DOC_LENGTH = 100  # Maximum length for test description in index page
+
+
 def load_interaction_file(json_path: Path) -> Optional[Dict]:
     """Load and parse an AI interaction JSON file."""
     try:
@@ -201,7 +205,7 @@ def generate_index_page(interaction_files: List[Path], output_path: Path) -> Non
             status_icon = '?'
             status_class = 'status-unknown'
         
-        doc_text = test['doc'][:100] + '...' if len(test['doc']) > 100 else test['doc']
+        doc_text = test['doc'][:MAX_DOC_LENGTH] + '...' if len(test['doc']) > MAX_DOC_LENGTH else test['doc']
         
         test_item = f"""
         <li class="test-item">

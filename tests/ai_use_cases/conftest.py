@@ -120,9 +120,9 @@ def ai_interaction_tracker(request):
     test_module = request.node.module.__name__
     test_doc = request.node.function.__doc__ or ""
     
-    # Determine test status
-    failed = hasattr(request.node, 'rep_call') and request.node.rep_call.failed
-    passed = hasattr(request.node, 'rep_call') and request.node.rep_call.passed
+    # Determine test status - handle passed, failed, and other states (e.g., skipped)
+    passed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'passed', False)
+    failed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'failed', False)
     
     output_dir = 'test-results/ai-interactions'
     os.makedirs(output_dir, exist_ok=True)
