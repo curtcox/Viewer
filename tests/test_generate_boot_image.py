@@ -158,12 +158,13 @@ class TestBootImageGenerator:
         assert content == b"test content"
 
     def test_generate_and_store_cid(self, temp_project):
-        """Test generating and storing a CID."""
+        """Test generating and storing a CID for content > 64 bytes (hashed CID)."""
         generator = BootImageGenerator(temp_project)
         generator.ensure_cids_directory()
 
         test_file = temp_project / "test.txt"
-        test_content = b"test content"
+        # Use content > 64 bytes to ensure it generates a hashed CID (94 chars)
+        test_content = b"This is a longer test content that exceeds 64 bytes to ensure a hashed CID is generated instead of a literal one"
         test_file.write_bytes(test_content)
 
         cid = generator.generate_and_store_cid(test_file, "test.txt")
@@ -172,7 +173,10 @@ class TestBootImageGenerator:
         expected_cid = generate_cid(test_content)
         assert cid == expected_cid
 
-        # Verify CID file was created
+        # Verify it's a hashed CID (exactly 94 characters)
+        assert len(cid) == 94
+
+        # Verify CID file was created (only hashed CIDs are stored)
         cid_file = temp_project / "cids" / cid
         assert cid_file.exists()
         assert cid_file.read_bytes() == test_content
@@ -188,12 +192,41 @@ class TestBootImageGenerator:
         generator.ensure_cids_directory()
 
         test_file = temp_project / "test.txt"
-        test_file.write_bytes(b"test content")
+        # Use content > 64 bytes to generate a hashed CID
+        test_file.write_bytes(b"This is a longer test content that exceeds 64 bytes to ensure a hashed CID is generated")
 
         cid1 = generator.generate_and_store_cid(test_file, "test.txt")
         cid2 = generator.generate_and_store_cid(test_file, "test.txt")
 
         assert cid1 == cid2
+
+    def test_generate_and_store_cid_literal(self, temp_project):
+        """Test that literal CIDs (< 94 chars) are NOT stored in /cids."""
+        generator = BootImageGenerator(temp_project)
+        generator.ensure_cids_directory()
+
+        test_file = temp_project / "test.txt"
+        # Use content <= 64 bytes to generate a literal CID
+        test_content = b"short content"
+        test_file.write_bytes(test_content)
+
+        cid = generator.generate_and_store_cid(test_file, "test.txt")
+
+        # Verify CID is correct
+        expected_cid = generate_cid(test_content)
+        assert cid == expected_cid
+
+        # Verify it's a literal CID (< 94 characters)
+        assert len(cid) < 94
+
+        # Verify CID file was NOT created (literal CIDs are not stored)
+        cid_file = temp_project / "cids" / cid
+        assert not cid_file.exists()
+
+        # Verify tracking still works
+        assert "test.txt" in generator.file_to_cid
+        assert generator.file_to_cid["test.txt"] == cid
+        assert "test.txt" in generator.processed_files
 
     def test_process_referenced_files(self, temp_project):
         """Test processing referenced files in JSON data."""
@@ -265,9 +298,13 @@ class TestBootImageGenerator:
         # Verify CIDs were replaced
         assert templates_data["aliases"]["test-alias"]["definition_cid"].startswith("AAAAAAA")
 
-        # Verify CID file was created
+        # Verify CID file was created only if it's a hashed CID (>= 94 chars)
         cid_file = temp_project / "cids" / templates_cid
-        assert cid_file.exists()
+        if len(templates_cid) >= 94:
+            assert cid_file.exists()
+        else:
+            # Literal CIDs are not stored in /cids
+            assert not cid_file.exists()
 
     def test_generate_boot_json(self, temp_project):
         """Test generating boot.json."""
@@ -308,9 +345,13 @@ class TestBootImageGenerator:
         assert templates_var["definition"] == templates_cid
         assert templates_var["definition"] != "GENERATED:templates.json"
 
-        # Verify CID file was created
+        # Verify CID file was created only if it's a hashed CID (>= 94 chars)
         cid_file = temp_project / "cids" / boot_cid
-        assert cid_file.exists()
+        if len(boot_cid) >= 94:
+            assert cid_file.exists()
+        else:
+            # Literal CIDs are not stored in /cids
+            assert not cid_file.exists()
 
     def test_generate_complete(self, temp_project):
         """Test the complete generation process."""
@@ -342,11 +383,16 @@ class TestBootImageGenerator:
         assert (temp_project / "reference_templates" / "minimal.boot.json").exists()
         assert (temp_project / "reference_templates" / "default.boot.json").exists()
 
-        # Verify CID files were created
-        assert (temp_project / "cids" / result["templates_cid"]).exists()
-        assert (temp_project / "cids" / result["boot_cid"]).exists()
-        assert (temp_project / "cids" / result["minimal_boot_cid"]).exists()
-        assert (temp_project / "cids" / result["default_boot_cid"]).exists()
+        # Verify CID files were created only for hashed CIDs (>= 94 chars)
+        # Literal CIDs (< 94 chars) are not stored in /cids
+        if len(result["templates_cid"]) >= 94:
+            assert (temp_project / "cids" / result["templates_cid"]).exists()
+        if len(result["boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["boot_cid"]).exists()
+        if len(result["minimal_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["minimal_boot_cid"]).exists()
+        if len(result["default_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["default_boot_cid"]).exists()
 
         # Verify processed files
         assert len(generator.processed_files) > 0
