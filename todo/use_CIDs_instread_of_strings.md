@@ -12,9 +12,9 @@ The goal of future work would be to tighten typing around these values (e.g., vi
 - [x] `db_access/invocations.py` *(DB boundary)*
   - `create_server_invocation` and `get_server_invocations_by_result_cids` now accept validated `CID` objects in addition to strings, normalizing values before persistence and queries.
 
-- [ ] `db_access/cids.py` *(DB boundary)*
-  - `create_cid_record(cid: Union[str, ValidatedCID], ...)` normalizes / validates CIDs but works in terms of CID strings.
-  - `update_cid_references(old_cid: str, new_cid: str)` updates CID references as strings.
+- [x] `db_access/cids.py` *(DB boundary)*
+  - `create_cid_record` already accepts `Union[str, ValidatedCID]` and normalizes / validates CIDs before persisting.
+  - `update_cid_references` now accepts both string and `ValidatedCID` inputs, normalizing them before updating text references.
 
 - [ ] `db_access/aliases.py` *(DB boundary)*
   - `_create_new_alias(alias_name: str, cid: str)` and `_update_existing_aliases(..., old_cid: str, new_cid: str)` pass CIDs as strings.

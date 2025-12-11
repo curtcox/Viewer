@@ -187,15 +187,24 @@ def count_cids() -> int:
     return CID.query.count()
 
 
-def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
+def _normalize_cid_input(value: str | ValidatedCID | None) -> str:
+    """Return a normalized CID component from string or ValidatedCID input."""
+    if isinstance(value, ValidatedCID):
+        return value.value
+    return normalize_cid_value(value)
+
+
+def update_cid_references(old_cid: str | ValidatedCID, new_cid: str | ValidatedCID) -> Dict[str, int]:
     """Replace CID references in alias and server definitions.
 
     Parameters
     ----------
     old_cid:
-        The previous CID value. Leading slashes are ignored.
+        The previous CID value, supplied as a string or :class:`cid.CID`.
+        Leading slashes are ignored for string values.
     new_cid:
-        The CID that should replace the previous value. Leading slashes are ignored.
+        The CID that should replace the previous value, supplied as a string
+        or :class:`cid.CID`. Leading slashes are ignored for string values.
 
     Returns
     -------
@@ -210,8 +219,8 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
 
     save_definition, store_definitions = _require_cid_utilities()
 
-    normalized_old = normalize_cid_value(old_cid)
-    normalized_new = normalize_cid_value(new_cid)
+    normalized_old = _normalize_cid_input(old_cid)
+    normalized_new = _normalize_cid_input(new_cid)
 
     if not normalized_old or not normalized_new or normalized_old == normalized_new:
         return {"aliases": 0, "servers": 0}
