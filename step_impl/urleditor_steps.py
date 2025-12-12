@@ -60,15 +60,19 @@ def check_redirect_location(expected_location):
         f"Expected redirect to {expected}, got {location}"
 
 
-@step("And the response status should be <expected_status>")
+@step([
+    "And the response status should be <expected_status>",
+    "Then the response status should be <expected_status>",
+])
 def check_response_status(expected_status):
     """Verify the response status code."""
-    assert hasattr(store, 'last_response'), "No response stored"
+    response = getattr(store, 'last_response', None) or get_scenario_state().get("response")
+    assert response is not None, "No response stored"
 
     # Normalize expected status (remove quotes if present)
     expected = int(expected_status.strip('"\''))
 
-    actual = store.last_response.status_code
+    actual = response.status_code
     assert actual == expected, \
         f"Expected status {expected}, got {actual}"
 

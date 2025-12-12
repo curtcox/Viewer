@@ -21,7 +21,10 @@ def _normalize_path(value: str) -> str:
     return value.strip().strip('"')
 
 
-@step("Given there is a variable named <name> with value <value>")
+@step([
+    "Given there is a variable named <name> with value <value>",
+    "And there is a variable named <name> with value <value>",
+])
 def given_variable_with_value(name: str, value: str) -> None:
     """Ensure a variable with the provided name and value exists in the workspace."""
     app = _require_app()
@@ -40,7 +43,10 @@ def given_variable_with_value(name: str, value: str) -> None:
         db.session.commit()
 
 
-@step("Given there is a secret named <name> with value <value>")
+@step([
+    "Given there is a secret named <name> with value <value>",
+    "And there is a secret named <name> with value <value>",
+])
 def given_secret_with_value(name: str, value: str) -> None:
     """Ensure a secret with the provided name and value exists in the workspace."""
     app = _require_app()
@@ -59,7 +65,10 @@ def given_secret_with_value(name: str, value: str) -> None:
         db.session.commit()
 
 
-@step("Given there is a server named <server_name> with main parameters <param1> and <param2>")
+@step([
+    "Given there is a server named <server_name> with main parameters <param1> and <param2>",
+    "And there is a server named <server_name> with main parameters <param1> and <param2>",
+])
 def given_server_with_two_main_parameters(server_name: str, param1: str, param2: str) -> None:
     """Ensure a server with the provided name and main parameters exists."""
     app = _require_app()
@@ -81,7 +90,10 @@ def given_server_with_two_main_parameters(server_name: str, param1: str, param2:
         db.session.commit()
 
 
-@step("Given there is a server named <server_name> with main parameter <param>")
+@step([
+    "Given there is a server named <server_name> with main parameter <param>",
+    "And there is a server named <server_name> with main parameter <param>",
+])
 def given_server_with_one_main_parameter(server_name: str, param: str) -> None:
     """Ensure a server with the provided name and single main parameter exists."""
     app = _require_app()
