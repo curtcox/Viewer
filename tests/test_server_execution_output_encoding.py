@@ -60,12 +60,14 @@ class _ServerInvocationInput:
         secrets_cid=None,
         request_details_cid=None,
         invocation_cid=None,
+        external_calls_cid=None,
     ):
         self.servers_cid = servers_cid
         self.variables_cid = variables_cid
         self.secrets_cid = secrets_cid
         self.request_details_cid = request_details_cid
         self.invocation_cid = invocation_cid
+        self.external_calls_cid = external_calls_cid
 
 
 mock_db_access.ServerInvocationInput = _ServerInvocationInput
