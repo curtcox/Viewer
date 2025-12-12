@@ -425,3 +425,314 @@ export default function main(payload) {{
 }}
 """
     _store_server(server_name, definition)
+
+
+def _substitute_placeholders(path: str) -> str:
+    """Replace CID placeholders in a path with actual stored CID values."""
+    state = get_scenario_state()
+    result = path
+
+    # Replace all {key} placeholders with values from state
+    for key, value in state.items():
+        if not isinstance(value, str):
+            continue
+        placeholder = f"{{{key}}}"
+        result = result.replace(placeholder, value)
+
+    return result
+
+
+def _request_path_and_store_response(path: str) -> None:
+    """Make a GET request to the path and store the response in scenario state."""
+    client = get_shared_client()
+    state = get_scenario_state()
+
+    # Substitute placeholders with actual CID values
+    resolved_path = _substitute_placeholders(path)
+
+    response = client.get(resolved_path)
+    state["response"] = response
+
+
+@step('When I request the resource /{stored CID}.py/<suffix>')
+def when_request_python_cid_literal(suffix: str) -> None:
+    """Request a Python CID literal server with a suffix."""
+    state = get_scenario_state()
+    cid_value = state.get("last_cid") or state.get("python server CID")
+    assert cid_value, "No Python CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}.py/{suffix}")
+
+
+@step('When I request the resource /{stored CID}.sh/<suffix>')
+def when_request_bash_cid_literal(suffix: str) -> None:
+    """Request a Bash CID literal server with a suffix."""
+    state = get_scenario_state()
+    cid_value = state.get("last_cid") or state.get("bash server CID")
+    assert cid_value, "No Bash CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}.sh/{suffix}")
+
+
+@step('When I request the resource /{bash server CID}.sh/{python server CID}.py/<suffix>')
+def when_request_bash_then_python(suffix: str) -> None:
+    """Request bash CID chained into python CID."""
+    state = get_scenario_state()
+    bash_cid = state.get("bash server CID")
+    python_cid = state.get("python server CID")
+    assert bash_cid, "No Bash CID stored."
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/{bash_cid}.sh/{python_cid}.py/{suffix}")
+
+
+@step('When I request the resource /{python server CID}.py/{bash server CID}.sh/<suffix>')
+def when_request_python_then_bash(suffix: str) -> None:
+    """Request python CID chained into bash CID."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    bash_cid = state.get("bash server CID")
+    assert python_cid, "No Python CID stored."
+    assert bash_cid, "No Bash CID stored."
+
+    _request_path_and_store_response(f"/{python_cid}.py/{bash_cid}.sh/{suffix}")
+
+
+@step('When I request the resource /{python server CID}.py/{clojure server CID}.clj/<suffix>')
+def when_request_python_then_clojure(suffix: str) -> None:
+    """Request python CID chained into clojure CID."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    clojure_cid = state.get("clojure server CID")
+    assert python_cid, "No Python CID stored."
+    assert clojure_cid, "No Clojure CID stored."
+
+    _request_path_and_store_response(f"/{python_cid}.py/{clojure_cid}.clj/{suffix}")
+
+
+@step('When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/<suffix>')
+def when_request_bash_then_clojure(suffix: str) -> None:
+    """Request bash CID chained into clojure CID."""
+    state = get_scenario_state()
+    bash_cid = state.get("bash server CID")
+    clojure_cid = state.get("clojure server CID")
+    assert bash_cid, "No Bash CID stored."
+    assert clojure_cid, "No Clojure CID stored."
+
+    _request_path_and_store_response(f"/{bash_cid}.sh/{clojure_cid}.clj/{suffix}")
+
+
+@step('When I request the resource /{clojure server CID}.clj/{bash server CID}.sh')
+def when_request_clojure_then_bash() -> None:
+    """Request clojure CID chained into bash CID."""
+    state = get_scenario_state()
+    clojure_cid = state.get("clojure server CID") or state.get("left clojure server CID")
+    bash_cid = state.get("bash server CID")
+    assert clojure_cid, "No Clojure CID stored."
+    assert bash_cid, "No Bash CID stored."
+
+    _request_path_and_store_response(f"/{clojure_cid}.clj/{bash_cid}.sh")
+
+
+@step('When I request the resource /{clojure server CID}.clj/{python server CID}.py')
+def when_request_clojure_then_python() -> None:
+    """Request clojure CID chained into python CID."""
+    state = get_scenario_state()
+    clojure_cid = state.get("clojure server CID") or state.get("left clojure server CID")
+    python_cid = state.get("python server CID")
+    assert clojure_cid, "No Clojure CID stored."
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/{clojure_cid}.clj/{python_cid}.py")
+
+
+@step('When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj')
+def when_request_clojure_chain() -> None:
+    """Request left clojure CID chained into right clojure CID."""
+    state = get_scenario_state()
+    left_cid = state.get("left clojure server CID")
+    right_cid = state.get("right clojure server CID")
+    assert left_cid, "No left Clojure CID stored."
+    assert right_cid, "No right Clojure CID stored."
+
+    _request_path_and_store_response(f"/{left_cid}.clj/{right_cid}.clj")
+
+
+@step('When I request the resource /{clojure CID}/<suffix>')
+def when_request_clojure_no_ext(suffix: str) -> None:
+    """Request a clojure CID without extension."""
+    state = get_scenario_state()
+    cid_value = state.get("clojure CID")
+    assert cid_value, "No Clojure CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}/{suffix}")
+
+
+@step('When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/<suffix>')
+def when_request_python_then_clojurescript(suffix: str) -> None:
+    """Request python CID chained into clojurescript CID."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    cljs_cid = state.get("clojurescript server CID")
+    assert python_cid, "No Python CID stored."
+    assert cljs_cid, "No ClojureScript CID stored."
+
+    _request_path_and_store_response(f"/{python_cid}.py/{cljs_cid}.cljs/{suffix}")
+
+
+@step('When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/<suffix>')
+def when_request_bash_then_clojurescript(suffix: str) -> None:
+    """Request bash CID chained into clojurescript CID."""
+    state = get_scenario_state()
+    bash_cid = state.get("bash server CID")
+    cljs_cid = state.get("clojurescript server CID")
+    assert bash_cid, "No Bash CID stored."
+    assert cljs_cid, "No ClojureScript CID stored."
+
+    _request_path_and_store_response(f"/{bash_cid}.sh/{cljs_cid}.cljs/{suffix}")
+
+
+@step('When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs')
+def when_request_clojurescript_chain() -> None:
+    """Request left clojurescript CID chained into right clojurescript CID."""
+    state = get_scenario_state()
+    left_cid = state.get("left clojurescript server CID")
+    right_cid = state.get("right clojurescript server CID")
+    assert left_cid, "No left ClojureScript CID stored."
+    assert right_cid, "No right ClojureScript CID stored."
+
+    _request_path_and_store_response(f"/{left_cid}.cljs/{right_cid}.cljs")
+
+
+@step('When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py')
+def when_request_clojurescript_then_python() -> None:
+    """Request clojurescript CID chained into python CID."""
+    state = get_scenario_state()
+    cljs_cid = state.get("clojurescript server CID") or state.get("left clojurescript server CID")
+    python_cid = state.get("python server CID")
+    assert cljs_cid, "No ClojureScript CID stored."
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/{cljs_cid}.cljs/{python_cid}.py")
+
+
+@step('When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh')
+def when_request_clojurescript_then_bash() -> None:
+    """Request clojurescript CID chained into bash CID."""
+    state = get_scenario_state()
+    cljs_cid = state.get("clojurescript server CID") or state.get("left clojurescript server CID")
+    bash_cid = state.get("bash server CID")
+    assert cljs_cid, "No ClojureScript CID stored."
+    assert bash_cid, "No Bash CID stored."
+
+    _request_path_and_store_response(f"/{cljs_cid}.cljs/{bash_cid}.sh")
+
+
+@step('When I request the resource /cljs-chain/{python server CID}.py/<suffix>')
+def when_request_cljs_chain_python(suffix: str) -> None:
+    """Request named cljs-chain server with python CID input."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/cljs-chain/{python_cid}.py/{suffix}")
+
+
+@step('When I request the resource /{clojurescript CID}/<suffix>')
+def when_request_clojurescript_no_ext(suffix: str) -> None:
+    """Request a clojurescript CID without extension."""
+    state = get_scenario_state()
+    cid_value = state.get("clojurescript CID")
+    assert cid_value, "No ClojureScript CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}/{suffix}")
+
+
+@step('When I request the resource /{python server CID}.py/{typescript server CID}.ts/<suffix>')
+def when_request_python_then_typescript(suffix: str) -> None:
+    """Request python CID chained into typescript CID."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    ts_cid = state.get("typescript server CID")
+    assert python_cid, "No Python CID stored."
+    assert ts_cid, "No TypeScript CID stored."
+
+    _request_path_and_store_response(f"/{python_cid}.py/{ts_cid}.ts/{suffix}")
+
+
+@step('When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/<suffix>')
+def when_request_bash_then_typescript(suffix: str) -> None:
+    """Request bash CID chained into typescript CID."""
+    state = get_scenario_state()
+    bash_cid = state.get("bash server CID")
+    ts_cid = state.get("typescript server CID")
+    assert bash_cid, "No Bash CID stored."
+    assert ts_cid, "No TypeScript CID stored."
+
+    _request_path_and_store_response(f"/{bash_cid}.sh/{ts_cid}.ts/{suffix}")
+
+
+@step('When I request the resource /{left typescript server CID}.ts/{right typescript server CID}.ts')
+def when_request_typescript_chain() -> None:
+    """Request left typescript CID chained into right typescript CID."""
+    state = get_scenario_state()
+    left_cid = state.get("left typescript server CID")
+    right_cid = state.get("right typescript server CID")
+    assert left_cid, "No left TypeScript CID stored."
+    assert right_cid, "No right TypeScript CID stored."
+
+    _request_path_and_store_response(f"/{left_cid}.ts/{right_cid}.ts")
+
+
+@step('When I request the resource /{typescript server CID}.ts/{python server CID}.py')
+def when_request_typescript_then_python() -> None:
+    """Request typescript CID chained into python CID."""
+    state = get_scenario_state()
+    ts_cid = state.get("typescript server CID") or state.get("left typescript server CID")
+    python_cid = state.get("python server CID")
+    assert ts_cid, "No TypeScript CID stored."
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/{ts_cid}.ts/{python_cid}.py")
+
+
+@step('When I request the resource /{typescript server CID}.ts/{bash server CID}.sh')
+def when_request_typescript_then_bash() -> None:
+    """Request typescript CID chained into bash CID."""
+    state = get_scenario_state()
+    ts_cid = state.get("typescript server CID") or state.get("left typescript server CID")
+    bash_cid = state.get("bash server CID")
+    assert ts_cid, "No TypeScript CID stored."
+    assert bash_cid, "No Bash CID stored."
+
+    _request_path_and_store_response(f"/{ts_cid}.ts/{bash_cid}.sh")
+
+
+@step('When I request the resource /ts-chain/{python server CID}.py/<suffix>')
+def when_request_ts_chain_python(suffix: str) -> None:
+    """Request named ts-chain server with python CID input."""
+    state = get_scenario_state()
+    python_cid = state.get("python server CID")
+    assert python_cid, "No Python CID stored."
+
+    _request_path_and_store_response(f"/ts-chain/{python_cid}.py/{suffix}")
+
+
+@step('When I request the resource /{typescript CID}/<suffix>')
+def when_request_typescript_no_ext(suffix: str) -> None:
+    """Request a typescript CID without extension."""
+    state = get_scenario_state()
+    cid_value = state.get("typescript CID")
+    assert cid_value, "No TypeScript CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}/{suffix}")
+
+
+@step('When I request the resource /{typescript CID}.ts/<suffix>')
+def when_request_typescript_with_ext(suffix: str) -> None:
+    """Request a typescript CID with .ts extension."""
+    state = get_scenario_state()
+    cid_value = state.get("typescript CID")
+    assert cid_value, "No TypeScript CID stored."
+
+    _request_path_and_store_response(f"/{cid_value}.ts/{suffix}")
