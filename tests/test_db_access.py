@@ -262,6 +262,29 @@ class TestDBAccess(unittest.TestCase):
         self.assertEqual(invocation.server_name, 'srv-cid')
         self.assertEqual(invocation.result_cid, result_cid_obj.value)
 
+    def test_server_invocation_cids_wrapper_parses_validated_values(self):
+        """ServerInvocation.cids should expose validated CID objects when possible."""
+        result_cid = ValidatedCID.from_bytes(b'result-wrapper')
+        request_cid = ValidatedCID.from_bytes(b'request-wrapper')
+        invocation_cid = ValidatedCID.from_bytes(b'invocation-wrapper')
+
+        invocation = ServerInvocation(
+            server_name='wrapper-test',
+            result_cid=result_cid.value,
+            request_details_cid=request_cid.value,
+            invocation_cid=invocation_cid.value,
+            servers_cid='not-a-valid-cid',
+        )
+
+        parsed = invocation.cids
+        self.assertIsNotNone(parsed.result)
+        self.assertEqual(parsed.result.value, result_cid.value)
+        self.assertIsNotNone(parsed.request_details)
+        self.assertEqual(parsed.request_details.value, request_cid.value)
+        self.assertIsNotNone(parsed.invocation)
+        self.assertEqual(parsed.invocation.value, invocation_cid.value)
+        self.assertIsNone(parsed.servers)
+
     def test_update_cid_references_updates_alias_and_server_records(self):
         old_cid = 'oldcid123456'
         new_cid = 'newcid789012'

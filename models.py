@@ -1,9 +1,11 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Boolean
 
 from alias_definition import get_primary_alias_route
+from cid import CID as ValidatedCID
 from database import db
 
 
@@ -17,6 +19,7 @@ class CID(db.Model):
     def __repr__(self) -> str:
         return f'<CID {self.path}>'
 
+
 class PageView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(255), nullable=False)
@@ -27,6 +30,7 @@ class PageView(db.Model):
 
     def __repr__(self) -> str:
         return f'<PageView {self.path} at {self.viewed_at}>'
+
 
 class Server(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -141,6 +145,7 @@ class Variable(db.Model):
     def __repr__(self) -> str:
         return f'<Variable {self.name}>'
 
+
 class Secret(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True, index=True)
@@ -152,6 +157,28 @@ class Secret(db.Model):
     def __repr__(self) -> str:
         return f'<Secret {self.name}>'
 
+
+@dataclass(frozen=True)
+class ServerInvocationCIDs:
+    result: Optional[ValidatedCID]
+    servers: Optional[ValidatedCID]
+    variables: Optional[ValidatedCID]
+    secrets: Optional[ValidatedCID]
+    request_details: Optional[ValidatedCID]
+    invocation: Optional[ValidatedCID]
+
+    @classmethod
+    def from_invocation(cls, invocation: "ServerInvocation") -> "ServerInvocationCIDs":
+        return cls(
+            result=ValidatedCID.try_from_string(getattr(invocation, "result_cid", None)),
+            servers=ValidatedCID.try_from_string(getattr(invocation, "servers_cid", None)),
+            variables=ValidatedCID.try_from_string(getattr(invocation, "variables_cid", None)),
+            secrets=ValidatedCID.try_from_string(getattr(invocation, "secrets_cid", None)),
+            request_details=ValidatedCID.try_from_string(getattr(invocation, "request_details_cid", None)),
+            invocation=ValidatedCID.try_from_string(getattr(invocation, "invocation_cid", None)),
+        )
+
+
 class ServerInvocation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     server_name = db.Column(db.String(100), nullable=False)  # Name of the server that was invoked
@@ -162,6 +189,10 @@ class ServerInvocation(db.Model):
     request_details_cid = db.Column(db.String(255), nullable=True)  # CID of request details JSON
     invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    @property
+    def cids(self) -> ServerInvocationCIDs:
+        return ServerInvocationCIDs.from_invocation(self)
 
     def __repr__(self) -> str:
         return f'<ServerInvocation {self.server_name} -> {self.result_cid}>'

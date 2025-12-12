@@ -287,12 +287,14 @@ def _attach_server_event_links(page_views: object) -> None:
 
         # Attach both the invocation object and helpful links for templates.
         view.server_invocation = invocation
-        view.server_invocation_link = cid_path(invocation.invocation_cid, 'json')
+        invocation_cid = getattr(invocation, "cids", None)
+        invocation_cid_value = getattr(invocation_cid, "invocation", None) if invocation_cid else None
+        view.server_invocation_link = cid_path(invocation_cid_value or invocation.invocation_cid, 'json')
 
         referer = None
         request_cid = getattr(invocation, 'request_details_cid', None)
         if request_cid:
-            referer = referer_by_request_cid.get(request_cid)
+            referer = referer_by_request_cid.get(format_cid(request_cid))
 
         if referer:
             view.server_invocation_referer = referer

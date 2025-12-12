@@ -16,7 +16,7 @@ The AI request editor allows users to inspect and adjust AI requests before send
 
 ## Request payload is embedded for editing
 * Given the default boot image is loaded
-* When I submit a form post to /ai_editor with payload '{"request_text": "Hello", "context_data": {"foo": "bar"}}'
+* When I submit a form post to /ai_editor with payload '\{"request_text": "Hello", "context_data": \{"foo": "bar"\}\}'
 * Then the response should contain "Hello"
 * And the response should contain "\"foo\": \"bar\""
 

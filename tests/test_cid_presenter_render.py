@@ -12,6 +12,11 @@ from cid_presenter import (
 )
 
 
+CID_SAMPLE = CID.from_bytes(b"cid-presenter-sample")
+CID_SAMPLE_STR = CID_SAMPLE.value
+CID_SAMPLE_SHORT = CID_SAMPLE_STR[:10]
+
+
 @pytest.mark.parametrize("value", [None, "", "   ", "/ "])
 def test_render_cid_link_empty_values(value):
     rendered = render_cid_link(value)
@@ -19,7 +24,7 @@ def test_render_cid_link_empty_values(value):
 
 
 def test_render_cid_link_includes_expected_elements():
-    cid = "bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq"
+    cid = CID_SAMPLE_STR
     rendered = str(render_cid_link(cid))
 
     assert '<span class="cid-display dropdown">' in rendered
@@ -44,8 +49,8 @@ def test_render_cid_link_includes_expected_elements():
 
 
 def test_render_cid_link_accepts_cid_object():
-    cid_str = "bafybeigdyrztgv7vdy3niece7krvlshk7qe5b6mr4uxk5qf7f4q23yyeuq"
-    cid_obj = CID(cid_str)
+    cid_obj = CID.from_bytes(b"cid-presenter-object")
+    cid_str = cid_obj.value
 
     # Rendering with CID object should match rendering with plain string
     rendered_from_str = str(render_cid_link(cid_str))
@@ -55,19 +60,19 @@ def test_render_cid_link_accepts_cid_object():
 
 
 def test_render_cid_link_strips_leading_slash():
-    cid = "/bafybeigdyr"
+    cid = f"/{CID_SAMPLE_SHORT}"
     rendered = str(render_cid_link(cid))
 
-    assert 'href="/bafybeigdyr.txt"' in rendered
-    assert '>#bafybeigd...<' in rendered
+    assert f'href="/{CID_SAMPLE_SHORT}.txt"' in rendered
+    assert f'>#{CID_SAMPLE_SHORT[:9]}...<' in rendered
 
 
 def test_format_helpers_accept_cid_object():
-    cid_str = "bafybeigdyr"
-    cid_obj = CID(cid_str)
+    cid_obj = CID.from_bytes(b"cid-presenter-format")
+    cid_str = cid_obj.value
 
     assert format_cid(cid_obj) == cid_str
-    assert format_cid_short(cid_obj) == cid_str
+    assert format_cid_short(cid_obj) == f"{cid_str[:6]}..."
 
     # Path helpers should also work with CID objects
     assert cid_path(cid_obj) == f"/{cid_str}"
@@ -85,9 +90,9 @@ def test_format_helpers_accept_cid_object():
         ("   ", None),
         ("/" , None),
         ("/alpha/beta", None),
-        ("/bafybeigdyr.txt", "bafybeigdyr"),
-        ("bafybeigdyr", "bafybeigdyr"),
-        ("/bafybeigdyr?download=1", "bafybeigdyr"),
+        (f"/{CID_SAMPLE_STR}.txt", CID_SAMPLE_STR),
+        (CID_SAMPLE_STR, CID_SAMPLE_STR),
+        (f"/{CID_SAMPLE_STR}?download=1", CID_SAMPLE_STR),
     ],
 )
 def test_extract_cid_from_path(value, expected):
@@ -95,6 +100,6 @@ def test_extract_cid_from_path(value, expected):
 
 
 def test_is_probable_cid_path_filters_non_cid_targets():
-    assert is_probable_cid_path("/bafybeigdyr")
+    assert is_probable_cid_path(f"/{CID_SAMPLE_SHORT}")
     assert not is_probable_cid_path("/servers/example")
     assert not is_probable_cid_path("/demo/path")

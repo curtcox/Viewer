@@ -68,33 +68,40 @@ def enrich_invocation_with_links(invocation: Any) -> Any:
     Returns:
         The same invocation object with added attributes
     """
+    cids = getattr(invocation, "cids", None)
+
+    invocation_cid = getattr(cids, "invocation", None) if cids else None
+    request_cid = getattr(cids, "request_details", None) if cids else None
+    result_cid = getattr(cids, "result", None) if cids else None
+    servers_cid = getattr(cids, "servers", None) if cids else None
+
     invocation.invocation_link = cid_path(
-        getattr(invocation, 'invocation_cid', None),
+        invocation_cid or getattr(invocation, 'invocation_cid', None),
         'json',
     )
     invocation.invocation_label = format_cid_short(
-        getattr(invocation, 'invocation_cid', None)
+        invocation_cid or getattr(invocation, 'invocation_cid', None)
     )
     invocation.request_details_link = cid_path(
-        getattr(invocation, 'request_details_cid', None),
+        request_cid or getattr(invocation, 'request_details_cid', None),
         'json',
     )
     invocation.request_details_label = format_cid_short(
-        getattr(invocation, 'request_details_cid', None)
+        request_cid or getattr(invocation, 'request_details_cid', None)
     )
     invocation.result_link = cid_path(
-        getattr(invocation, 'result_cid', None),
+        result_cid or getattr(invocation, 'result_cid', None),
         'txt',
     )
     invocation.result_label = format_cid_short(
-        getattr(invocation, 'result_cid', None)
+        result_cid or getattr(invocation, 'result_cid', None)
     )
     invocation.servers_cid_link = cid_path(
-        getattr(invocation, 'servers_cid', None),
+        servers_cid or getattr(invocation, 'servers_cid', None),
         'json',
     )
     invocation.servers_cid_label = format_cid_short(
-        getattr(invocation, 'servers_cid', None)
+        servers_cid or getattr(invocation, 'servers_cid', None)
     )
     return invocation
 

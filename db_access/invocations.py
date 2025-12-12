@@ -146,18 +146,24 @@ def get_server_invocations_by_result_cids(
     )
 
 
-def find_server_invocations_by_cid(cid_value: str) -> List[ServerInvocation]:
+def find_server_invocations_by_cid(
+    cid_value: Union[str, ValidatedCID],
+) -> List[ServerInvocation]:
     """Return invocation events that reference a CID in any tracked column."""
     if not cid_value:
         return []
 
+    normalized_value = cid_value.value if isinstance(cid_value, ValidatedCID) else cid_value
+    if not normalized_value:
+        return []
+
     filters = [
-        ServerInvocation.result_cid == cid_value,
-        ServerInvocation.invocation_cid == cid_value,
-        ServerInvocation.request_details_cid == cid_value,
-        ServerInvocation.servers_cid == cid_value,
-        ServerInvocation.variables_cid == cid_value,
-        ServerInvocation.secrets_cid == cid_value,
+        ServerInvocation.result_cid == normalized_value,
+        ServerInvocation.invocation_cid == normalized_value,
+        ServerInvocation.request_details_cid == normalized_value,
+        ServerInvocation.servers_cid == normalized_value,
+        ServerInvocation.variables_cid == normalized_value,
+        ServerInvocation.secrets_cid == normalized_value,
     ]
 
     return ServerInvocation.query.filter(or_(*filters)).all()

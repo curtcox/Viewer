@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from flask import url_for
 
+from cid import CID as ValidatedCID
 from cid_presenter import cid_path, format_cid
 from db_access import find_server_invocations_by_cid, get_cid_by_path, get_servers
 from entity_references import extract_references_from_bytes
@@ -15,7 +16,7 @@ from .meta_path_utils import dedupe_links, split_extension
 META_SOURCE_LINK = "/source/routes/meta.py"
 
 
-def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
+def server_events_for_cid(cid_value: str | ValidatedCID) -> List[Dict[str, Any]]:
     """Return server invocation metadata for the supplied CID."""
     if not cid_value:
         return []
@@ -41,7 +42,21 @@ def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
             value = getattr(invocation, field, None)
             if not value:
                 continue
-            formatted_value = format_cid(value)
+            cids = getattr(invocation, "cids", None)
+            if cids and label == "result" and getattr(cids, "result", None):
+                formatted_value = format_cid(getattr(cids, "result"))
+            elif cids and label == "servers" and getattr(cids, "servers", None):
+                formatted_value = format_cid(getattr(cids, "servers"))
+            elif cids and label == "variables" and getattr(cids, "variables", None):
+                formatted_value = format_cid(getattr(cids, "variables"))
+            elif cids and label == "secrets" and getattr(cids, "secrets", None):
+                formatted_value = format_cid(getattr(cids, "secrets"))
+            elif cids and label == "request_details" and getattr(cids, "request_details", None):
+                formatted_value = format_cid(getattr(cids, "request_details"))
+            elif cids and label == "invocation" and getattr(cids, "invocation", None):
+                formatted_value = format_cid(getattr(cids, "invocation"))
+            else:
+                formatted_value = format_cid(value)
             if not formatted_value:
                 continue
             related_cids[label] = formatted_value
