@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, MutableMapping, Sequence
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, MutableMapping
 
 import requests
 

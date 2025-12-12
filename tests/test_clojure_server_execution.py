@@ -62,7 +62,9 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(code_execution, "get_cid_by_path", fake_get_cid_by_path)
     monkeypatch.setattr(db_access, "get_cid_by_path", fake_get_cid_by_path)
 
-    def simple_success(output, content_type, server_name):  # pylint: disable=unused-argument
+    def simple_success(
+        output, content_type, server_name, *, external_calls=None
+    ):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
 
     monkeypatch.setattr(code_execution, "_handle_successful_execution", simple_success)
