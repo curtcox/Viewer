@@ -404,7 +404,7 @@ class TestCIDImmutability(unittest.TestCase):
         """Test that new attributes cannot be added (due to __slots__)."""
         cid = CID("AAAAAAAA")
         with self.assertRaises(AttributeError):
-            cid.new_attribute = "value"
+            setattr(cid, "new_attribute", "value")
 
 
 if __name__ == "__main__":
