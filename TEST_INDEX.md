@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 3357
-- Unit Tests: 2789
+**Total Tests:** 3348
+- Unit Tests: 2780
 - Integration Tests: 441
 - Property Tests: 14
 - Gauge Tests: 113
 
 ## Unit Tests
 
-Total: 2789 tests
+Total: 2780 tests
 
 - [TestAiEditorBasics.test_main_exists_and_returns_html](tests/test_ai_editor.py:43)
 - [TestAiEditorBasics.test_meta_links_present](tests/test_ai_editor.py:56)
@@ -1419,27 +1419,18 @@ Total: 2789 tests
 - [Large binary data storage is equivalent in both databases.](tests/test_db_equivalence.py:260)
 - [HTML detection works for DOCTYPE declarations.](tests/test_server_cid_links.py:45)
 - [HTML detection works for common HTML tags.](tests/test_server_cid_links.py:58)
-- [Markdown content is treated as plain text.](tests/test_server_cid_links.py:84)
-- [Non-HTML text is treated as plain text (markdown).](tests/test_server_cid_links.py:71)
-- [CIDs used as anchor text with matching href are not replaced.](tests/test_server_cid_links.py:135)
-- [CIDs already in markdown links are not replaced.](tests/test_server_cid_links.py:240)
-- [CIDs that are already link targets are not double-linked.](tests/test_server_cid_links.py:118)
-- [Empty literal CID is handled correctly.](tests/test_server_cid_links.py:204)
-- [Bytes input is handled correctly.](tests/test_server_cid_links.py:304)
-- [Empty input returns empty output.](tests/test_server_cid_links.py:278)
-- [Text without CIDs is returned unchanged.](tests/test_server_cid_links.py:291)
-- [Strings that look like CIDs but are invalid are not linked.](tests/test_server_cid_links.py:333)
-- [Surrounding text is preserved when replacing CIDs.](tests/test_server_cid_links.py:318)
-- [CIDs in HTML are replaced with anchor tags.](tests/test_server_cid_links.py:102)
-- [CIDs in Markdown are replaced with markdown links.](tests/test_server_cid_links.py:225)
-- [Multiple CIDs in HTML are all replaced.](tests/test_server_cid_links.py:151)
-- [Multiple CIDs in Markdown are all replaced.](tests/test_server_cid_links.py:257)
-- [The cid_links server definition file is syntactically valid Python.](tests/test_server_cid_links.py:383)
-- [Literal CIDs with embedded content use data URLs in HTML.](tests/test_server_cid_links.py:172)
-- [Literal CIDs with embedded content use data URLs in Markdown.](tests/test_server_cid_links.py:189)
-- [CID at the very end of text is handled.](tests/test_server_cid_links.py:364)
-- [CID at the very start of text is handled.](tests/test_server_cid_links.py:350)
-- [HTML with body tag is correctly detected and processed.](tests/test_server_cid_links.py:390)
+- [CIDs used as anchor text with matching href are not replaced.](tests/test_server_cid_links.py:109)
+- [CIDs that are already link targets are not double-linked.](tests/test_server_cid_links.py:92)
+- [Empty literal CID is handled correctly.](tests/test_server_cid_links.py:146)
+- [Bytes input is handled correctly.](tests/test_server_cid_links.py:192)
+- [Empty input returns empty output.](tests/test_server_cid_links.py:167)
+- [Text without CIDs is returned unchanged.](tests/test_server_cid_links.py:179)
+- [Strings that look like CIDs but are invalid are not linked.](tests/test_server_cid_links.py:221)
+- [Surrounding text is preserved when replacing CIDs.](tests/test_server_cid_links.py:206)
+- [CIDs in HTML are replaced with anchor tags.](tests/test_server_cid_links.py:76)
+- [Multiple CIDs in HTML are all replaced.](tests/test_server_cid_links.py:125)
+- [The cid_links server definition file is syntactically valid Python.](tests/test_server_cid_links.py:245)
+- [HTML with body tag is correctly detected and processed.](tests/test_server_cid_links.py:252)
 - [test_cid_lookup_helpers](tests/test_db_access.py:454)
 - [Simulate the CID lookup with the fix](tests/test_fix_validation.py:33)
 - [Test that CID model only has the required fields](tests/test_cid_functionality.py:475)
