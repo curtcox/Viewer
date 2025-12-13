@@ -46,6 +46,11 @@
       "enabled": true
     },
     {
+      "name": "cid_links",
+      "definition_cid": "reference_templates/servers/definitions/cid_links.py",
+      "enabled": true
+    },
+    {
       "name": "echo",
       "definition_cid": "reference_templates/servers/definitions/echo.py",
       "enabled": true
