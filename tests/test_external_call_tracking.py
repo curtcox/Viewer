@@ -79,3 +79,55 @@ def test_capture_is_thread_local(monkeypatch):
     assert len(collected.get("two", [])) == 1
     assert collected["one"][0]["request"]["url"].endswith("/one")
     assert collected["two"][0]["request"]["url"].endswith("/two")
+
+
+def test_nested_captures_propagate_to_outer(monkeypatch):
+    """Test that nested captures propagate calls to outer captures.
+
+    This is important for scenarios like test fixtures that wrap code
+    that also uses capture_external_calls (e.g., code_execution.py).
+    """
+    def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
+        response = requests.Response()
+        response.status_code = 200
+        response._content = b"ok"
+        response.headers = {}
+        response.url = url
+        return response
+
+    monkeypatch.setattr(requests.Session, "request", fake_request, raising=False)
+
+    # Outer capture (simulates test fixture)
+    with capture_external_calls() as outer_log:
+        # Inner capture (simulates code_execution.py)
+        with capture_external_calls() as inner_log:
+            requests.Session().get("https://example.com/api")
+
+        # Inner capture should have the call
+        assert len(inner_log) == 1
+        assert inner_log[0]["request"]["url"] == "https://example.com/api"
+
+    # Outer capture should ALSO have the call (propagation)
+    assert len(outer_log) == 1
+    assert outer_log[0]["request"]["url"] == "https://example.com/api"
+
+
+def test_nested_captures_independent_records(monkeypatch):
+    """Test that nested captures get independent copies of records."""
+    def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
+        response = requests.Response()
+        response.status_code = 200
+        response._content = b"ok"
+        response.headers = {}
+        response.url = url
+        return response
+
+    monkeypatch.setattr(requests.Session, "request", fake_request, raising=False)
+
+    with capture_external_calls() as outer_log:
+        with capture_external_calls() as inner_log:
+            requests.Session().get("https://example.com/api")
+
+    # Modifying one should not affect the other (deep copy)
+    outer_log[0]["request"]["url"] = "modified"
+    assert inner_log[0]["request"]["url"] == "https://example.com/api"

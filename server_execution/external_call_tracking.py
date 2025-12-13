@@ -135,7 +135,11 @@ def capture_external_calls() -> Iterator[List[MutableMapping[str, Any]]]:
             record["exception"] = _make_json_safe(str(exc))
             raise
         finally:
-            stack[-1].append(record)
+            # Propagate record to ALL captures in the stack, not just innermost.
+            # This allows outer captures (like test fixtures) to see calls made
+            # during inner captures (like code_execution).
+            for log in stack:
+                log.append(copy.deepcopy(record))
 
     try:
         log_stack = _get_log_stack()
