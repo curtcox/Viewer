@@ -5,8 +5,13 @@ from __future__ import annotations
 import contextlib
 import copy
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, MutableMapping
+import threading
+import urllib.parse
 
 import requests
+
+_THREAD_STATE = threading.local()
+_PATCH_STATE: Dict[str, Any] = {"original_request": requests.Session.request, "depth": 0}
 
 
 def _make_json_safe(value: Any) -> Any:
@@ -36,7 +41,16 @@ def _redact_string(text: str, secrets: Mapping[str, Any]) -> str:
         secret_text = str(secret)
         if not secret_text:
             continue
-        redacted = redacted.replace(secret_text, replacement)
+        variants = [secret_text]
+        quoted = urllib.parse.quote(secret_text)
+        if quoted != secret_text:
+            variants.append(quoted)
+        quoted_plus = urllib.parse.quote_plus(secret_text)
+        if quoted_plus != secret_text and quoted_plus != quoted:
+            variants.append(quoted_plus)
+
+        for variant in variants:
+            redacted = redacted.replace(variant, replacement)
     return redacted
 
 
@@ -83,9 +97,19 @@ def capture_external_calls() -> Iterator[List[MutableMapping[str, Any]]]:
     """Collect HTTP requests performed via ``requests`` during execution."""
 
     call_log: List[MutableMapping[str, Any]] = []
-    original_request = requests.Session.request
+
+    def _get_log_stack() -> List[List[MutableMapping[str, Any]]]:
+        stack = getattr(_THREAD_STATE, "call_log_stack", None)
+        if stack is None:
+            stack = []
+            _THREAD_STATE.call_log_stack = stack
+        return stack
 
     def _wrapper(self, method: str, url: str, **kwargs):  # type: ignore[override]
+        stack = getattr(_THREAD_STATE, "call_log_stack", [])
+        if not stack:
+            return _PATCH_STATE["original_request"](self, method, url, **kwargs)
+
         record: MutableMapping[str, Any] = {
             "request": {
                 "method": method,
@@ -99,7 +123,7 @@ def capture_external_calls() -> Iterator[List[MutableMapping[str, Any]]]:
         }
 
         try:
-            response = original_request(self, method, url, **kwargs)
+            response = _PATCH_STATE["original_request"](self, method, url, **kwargs)
             record["response"] = {
                 "status_code": getattr(response, "status_code", None),
                 "headers": _make_json_safe(getattr(response, "headers", {})),
@@ -111,10 +135,20 @@ def capture_external_calls() -> Iterator[List[MutableMapping[str, Any]]]:
             record["exception"] = _make_json_safe(str(exc))
             raise
         finally:
-            call_log.append(record)
+            stack[-1].append(record)
 
     try:
-        requests.Session.request = _wrapper  # type: ignore[assignment]
+        log_stack = _get_log_stack()
+        log_stack.append(call_log)
+        if _PATCH_STATE["depth"] == 0:
+            _PATCH_STATE["original_request"] = requests.Session.request
+            requests.Session.request = _wrapper  # type: ignore[assignment]
+        _PATCH_STATE["depth"] += 1
         yield call_log
     finally:
-        requests.Session.request = original_request  # type: ignore[assignment]
+        log_stack = getattr(_THREAD_STATE, "call_log_stack", [])
+        if log_stack:
+            log_stack.pop()
+        _PATCH_STATE["depth"] = max(_PATCH_STATE["depth"] - 1, 0)
+        if _PATCH_STATE["depth"] == 0:
+            requests.Session.request = _PATCH_STATE["original_request"]  # type: ignore[assignment]

@@ -1250,11 +1250,18 @@ def _execute_server_code_common(
     else:
         return prepared
 
+    secrets_context = args.get("context", {}).get("secrets") if isinstance(args, dict) else None
+
     try:
         with capture_external_calls() as call_log:
-            result = run_text_function(code_to_run, args_to_use)
+            try:
+                result = run_text_function(code_to_run, args_to_use)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                external_calls = sanitize_external_calls(call_log, secrets_context)
+                return _handle_execution_exception(
+                    exc, code, args, server_name, external_calls=external_calls
+                )
 
-        secrets_context = args.get("context", {}).get("secrets") if isinstance(args, dict) else None
         external_calls = sanitize_external_calls(call_log, secrets_context)
 
         if isinstance(result, dict):
@@ -1271,7 +1278,9 @@ def _execute_server_code_common(
         )
     except Exception as exc:  # pylint: disable=broad-exception-caught
         # Top-level exception handler for all user code execution errors
-        return _handle_execution_exception(exc, code, args, server_name)
+        return _handle_execution_exception(
+            exc, code, args, server_name, external_calls=external_calls
+        )
 
 
 @logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)

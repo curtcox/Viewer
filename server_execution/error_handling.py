@@ -5,6 +5,9 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from cid_presenter import cid_path, format_cid
+from cid_utils import generate_cid
+from db_access import create_cid_record, get_cid_by_path
 from flask import Response, current_app, make_response, render_template, url_for
 from werkzeug.routing import BuildError
 
@@ -89,7 +92,12 @@ def _render_execution_error_html(
 
 
 def _handle_execution_exception(
-    exc: Exception, code: str, args: Dict[str, Any], server_name: Optional[str]
+    exc: Exception,
+    code: str,
+    args: Dict[str, Any],
+    server_name: Optional[str],
+    *,
+    external_calls: Optional[list[dict[str, Any]]] = None,
 ) -> Response:
     try:
         html_content = _render_execution_error_html(exc, code, args, server_name)
@@ -111,4 +119,25 @@ def _handle_execution_exception(
         response.headers["Content-Type"] = "text/plain"
 
     response.status_code = 500
+    try:
+        output_bytes = response.get_data()
+    except Exception:  # pragma: no cover - defensive fallback
+        output_bytes = b""
+
+    try:
+        cid_value = format_cid(generate_cid(output_bytes))
+        cid_record_path = cid_path(cid_value)
+        existing = get_cid_by_path(cid_record_path) if cid_record_path else None
+        if cid_record_path and not existing:
+            create_cid_record(cid_value, output_bytes)
+
+        from server_execution.invocation_tracking import (  # pylint: disable=cyclic-import
+            create_server_invocation_record,
+        )
+
+        create_server_invocation_record(
+            server_name or "", cid_value, external_calls=external_calls
+        )
+    except Exception:  # pragma: no cover - best-effort logging
+        pass
     return response
