@@ -5,14 +5,15 @@ This script reads AI interaction JSON files and test source files,
 then generates an index page and detail pages for each test.
 """
 
+import html
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
-from pygments.lexers import PythonLexer
+from pygments.lexers import JsonLexer, PythonLexer
 
 
 # Constants
@@ -55,6 +56,126 @@ def format_json(data: dict, max_length: int = 1000) -> str:
     return formatted
 
 
+def highlight_json(data: Any) -> str:
+    """Return syntax-highlighted HTML for JSON data."""
+    try:
+        json_str = json.dumps(data, indent=2)
+        formatter = HtmlFormatter(style='friendly', cssclass='json-highlight', nowrap=True)
+        return highlight(json_str, JsonLexer(), formatter)
+    except (TypeError, ValueError):
+        return html.escape(str(data))
+
+
+def format_external_call_html(call: Dict, call_idx: int) -> str:
+    """Format a single external API call as HTML.
+
+    The call dict contains 'request' and 'response' keys with the
+    HTTP request/response details captured during server execution.
+    """
+    req = call.get('request', {})
+    resp = call.get('response', {})
+
+    # Request details
+    method = req.get('method', 'N/A')
+    url = req.get('url', 'N/A')
+    req_headers = req.get('headers', {})
+    req_json = req.get('json')
+    req_data = req.get('data')
+    timeout = req.get('timeout')
+
+    # Response details
+    status_code = resp.get('status_code', 'N/A')
+    resp_headers = resp.get('headers', {})
+    resp_body = resp.get('body', '')
+
+    # Format request headers (skip empty)
+    req_headers_html = ''
+    if req_headers:
+        req_headers_html = f'''
+            <p><strong>Headers:</strong></p>
+            <pre class="api-headers">{highlight_json(req_headers)}</pre>
+        '''
+
+    # Format request body (JSON payload)
+    req_body_html = ''
+    if req_json:
+        req_body_html = f'''
+            <p><strong>Request Body (JSON):</strong></p>
+            <pre class="api-body">{highlight_json(req_json)}</pre>
+        '''
+    elif req_data:
+        req_body_html = f'''
+            <p><strong>Request Body:</strong></p>
+            <pre class="api-body">{html.escape(str(req_data))}</pre>
+        '''
+
+    # Format response body - try to parse as JSON for highlighting
+    resp_body_html = ''
+    if resp_body:
+        try:
+            parsed_body = json.loads(resp_body) if isinstance(resp_body, str) else resp_body
+            resp_body_html = f'''
+                <p><strong>Response Body:</strong></p>
+                <pre class="api-body">{highlight_json(parsed_body)}</pre>
+            '''
+        except (json.JSONDecodeError, TypeError):
+            # Not JSON, show as plain text (truncated if too long)
+            body_display = resp_body if len(str(resp_body)) < 5000 else str(resp_body)[:5000] + '\n... (truncated)'
+            resp_body_html = f'''
+                <p><strong>Response Body:</strong></p>
+                <pre class="api-body">{html.escape(str(body_display))}</pre>
+            '''
+
+    # Format response headers
+    resp_headers_html = ''
+    if resp_headers:
+        # Show only relevant headers
+        relevant_headers = {k: v for k, v in resp_headers.items()
+                          if k.lower() in ['content-type', 'x-request-id', 'x-ratelimit-remaining']}
+        if relevant_headers:
+            resp_headers_html = f'''
+                <p><strong>Response Headers:</strong></p>
+                <pre class="api-headers">{highlight_json(relevant_headers)}</pre>
+            '''
+
+    # Determine status badge
+    status_class = 'api-status-success' if str(status_code).startswith('2') else 'api-status-error'
+
+    return f'''
+    <div class="external-call">
+        <h5>API Call {call_idx}</h5>
+        <div class="api-request">
+            <p class="api-method"><strong>{method}</strong> <code>{html.escape(str(url))}</code></p>
+            {f'<p class="api-timeout"><em>Timeout: {timeout}s</em></p>' if timeout else ''}
+            {req_headers_html}
+            {req_body_html}
+        </div>
+        <div class="api-response">
+            <p class="api-status {status_class}"><strong>Status:</strong> {status_code}</p>
+            {resp_headers_html}
+            {resp_body_html}
+        </div>
+    </div>
+    '''
+
+
+def format_external_calls_section(external_calls: List[Dict]) -> str:
+    """Format all external API calls as an HTML section."""
+    if not external_calls:
+        return ''
+
+    calls_html = []
+    for idx, call in enumerate(external_calls, 1):
+        calls_html.append(format_external_call_html(call, idx))
+
+    return f'''
+        <h4>OpenRouter API Details</h4>
+        <div class="external-calls-section">
+            {''.join(calls_html)}
+        </div>
+    '''
+
+
 def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
     """Generate a detail page for a single test."""
     test_name = interaction_data.get('test_name', 'Unknown')
@@ -86,15 +207,19 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
         response = interaction.get('response', {})
         status = interaction.get('status', 'N/A')
         timestamp = interaction.get('timestamp', 'N/A')
+        external_calls = interaction.get('external_calls', [])
 
         # Format request
-        request_text = request.get('request_text', '')
-        original_text = request.get('original_text', '')
-        target_label = request.get('target_label', '')
+        request_text = html.escape(request.get('request_text', ''))
+        original_text = html.escape(request.get('original_text', ''))
+        target_label = html.escape(request.get('target_label', ''))
 
         # Format response
-        updated_text = response.get('updated_text', '')
-        error = response.get('error', '')
+        updated_text = html.escape(response.get('updated_text', ''))
+        error = html.escape(response.get('error', ''))
+
+        # Format external API calls section
+        external_calls_html = format_external_calls_section(external_calls)
 
         interaction_html = f"""
         <div class="interaction">
@@ -115,6 +240,8 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
                 {f'<p class="error"><strong>Error:</strong> {error}</p>' if error else ''}
                 {f'<p><strong>Updated Text:</strong></p><pre class="updated-text">{updated_text}</pre>' if updated_text else ''}
             </div>
+
+            {external_calls_html}
         </div>
         """
         interactions_html.append(interaction_html)
@@ -150,6 +277,21 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
         .error {{ color: #d73a49; font-weight: 600; }}
         .timestamp, .status {{ color: #586069; font-size: 14px; }}
         .no-interactions {{ color: #6a737d; font-style: italic; padding: 20px; text-align: center; }}
+        /* External API calls styling */
+        .external-calls-section {{ margin-top: 20px; padding-top: 15px; border-top: 1px dashed #e1e4e8; }}
+        .external-call {{ background: #fafbfc; border: 1px solid #e1e4e8; border-radius: 6px; padding: 15px; margin: 15px 0; }}
+        .external-call h5 {{ color: #6f42c1; margin: 0 0 15px 0; padding-bottom: 8px; border-bottom: 1px solid #e1e4e8; }}
+        .api-request {{ margin-bottom: 15px; }}
+        .api-response {{ border-top: 1px dotted #e1e4e8; padding-top: 15px; }}
+        .api-method {{ font-family: monospace; }}
+        .api-method code {{ background: #e1e4e8; padding: 3px 8px; border-radius: 4px; word-break: break-all; }}
+        .api-timeout {{ color: #6a737d; font-size: 13px; }}
+        .api-status {{ font-size: 14px; }}
+        .api-status-success {{ color: #28a745; }}
+        .api-status-error {{ color: #d73a49; }}
+        .api-headers, .api-body {{ background: #f6f8fa; padding: 10px; border-radius: 4px; font-size: 13px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }}
+        .api-body {{ max-height: 400px; overflow-y: auto; }}
+        .json-highlight {{ font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }}
         {syntax_css if syntax_css else ''}
     </style>
 </head>

@@ -34,7 +34,9 @@ def test_add_input_validation(memory_client, requires_openrouter_api_key, ai_int
         'form_summary': {'definition': original_text}
     }
 
-    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    response, _ = ai_interaction_tracker.call_with_capture(
+        memory_client, 'post', '/ai', json=payload, follow_redirects=True
+    )
     ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
     assert response.status_code == 200, f"Expected 200, got {response.status_code}"
@@ -86,7 +88,9 @@ def test_add_logging(memory_client, requires_openrouter_api_key, ai_interaction_
         'form_summary': {'definition': original_text}
     }
 
-    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    response, _ = ai_interaction_tracker.call_with_capture(
+        memory_client, 'post', '/ai', json=payload, follow_redirects=True
+    )
     ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
     assert response.status_code == 200

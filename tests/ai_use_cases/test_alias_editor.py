@@ -26,7 +26,9 @@ def test_add_query_parameters(memory_client, requires_openrouter_api_key, ai_int
         'form_summary': {'definition': original_text}
     }
 
-    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    response, _ = ai_interaction_tracker.call_with_capture(
+        memory_client, 'post', '/ai', json=payload, follow_redirects=True
+    )
     ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
     assert response.status_code == 200

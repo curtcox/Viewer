@@ -6,6 +6,8 @@ from datetime import datetime
 
 import pytest
 
+from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
+
 
 @pytest.fixture(scope="session")
 def requires_openrouter_api_key():
@@ -94,25 +96,89 @@ def setup_ai_assist_server(memory_db_app):
     yield
 
 
+class AIInteractionTracker:
+    """Helper class to track AI interactions with external call capture."""
+
+    def __init__(self):
+        self.interactions = []
+        self._secrets = {}
+        self._pending_external_calls = []
+
+    def set_secrets(self, secrets: dict):
+        """Set the secrets dict for redaction of external calls."""
+        self._secrets = secrets or {}
+
+    def __call__(self, request_payload, response_data, status_code, external_calls=None):
+        """Make the tracker callable for backwards compatibility.
+
+        If external_calls is not provided, uses any pending calls from call_with_capture.
+        """
+        calls = external_calls if external_calls is not None else self._pending_external_calls
+        self.record(request_payload, response_data, status_code, calls)
+        self._pending_external_calls = []  # Clear pending calls after use
+
+    def record(self, request_payload, response_data, status_code, external_calls=None):
+        """Record an AI interaction with optional external calls."""
+        self.interactions.append({
+            'request': request_payload,
+            'response': response_data,
+            'status': status_code,
+            'timestamp': datetime.utcnow().isoformat(),
+            'external_calls': external_calls or []
+        })
+
+    def call_with_capture(self, client, method, url, **kwargs):
+        """Make an HTTP request while capturing external calls.
+
+        This wraps the client request and captures any outbound HTTP calls
+        made during server execution (e.g., to OpenRouter API).
+
+        The captured external calls are stored as pending and will be
+        automatically associated with the next record() or __call__() invocation.
+
+        Args:
+            client: Flask test client
+            method: HTTP method ('get', 'post', etc.)
+            url: Request URL
+            **kwargs: Additional arguments for the request
+
+        Returns:
+            tuple: (response, external_calls)
+        """
+        with capture_external_calls() as call_log:
+            http_method = getattr(client, method.lower())
+            response = http_method(url, **kwargs)
+
+        # Sanitize external calls (redact secrets)
+        external_calls = sanitize_external_calls(call_log, self._secrets)
+
+        # Store as pending for auto-association with next record() call
+        self._pending_external_calls = external_calls
+
+        return response, external_calls
+
+
 @pytest.fixture
-def ai_interaction_tracker(request):
+def ai_interaction_tracker(request, memory_db_app):
     """Track AI interactions for debugging and analysis.
 
     This fixture records all AI requests and responses during a test.
     Interactions are saved to a JSON file for all tests (passed and failed).
+
+    The tracker provides two ways to record interactions:
+    1. tracker.record(payload, response, status) - manual recording
+    2. tracker.call_with_capture(client, 'post', '/ai', json=payload) - auto-capture external calls
     """
-    interactions = []
+    tracker = AIInteractionTracker()
 
-    def record(request_payload, response_data, status_code):
-        """Record an AI interaction."""
-        interactions.append({
-            'request': request_payload,
-            'response': response_data,
-            'status': status_code,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+    # Get secrets for redaction
+    with memory_db_app.app_context():
+        from models import Secret
+        from database import db
+        secrets = {s.name: s.definition for s in db.session.query(Secret).all()}
+        tracker.set_secrets(secrets)
 
-    yield record
+    yield tracker
 
     # Save interactions for all tests (not just failures)
     test_name = request.node.name
@@ -137,7 +203,7 @@ def ai_interaction_tracker(request):
             'test_file_path': str(request.node.fspath),
             'passed': passed,
             'failed': failed,
-            'interactions': interactions
+            'interactions': tracker.interactions
         }, f, indent=2)
 
 

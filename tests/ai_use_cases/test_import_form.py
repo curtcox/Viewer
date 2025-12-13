@@ -29,7 +29,9 @@ Task 3,open,medium'''
         'form_summary': {'import_text': original_text}
     }
 
-    response = memory_client.post('/ai', json=payload, follow_redirects=True)
+    response, _ = ai_interaction_tracker.call_with_capture(
+        memory_client, 'post', '/ai', json=payload, follow_redirects=True
+    )
     ai_interaction_tracker(payload, response.get_json(), response.status_code)
 
     assert response.status_code == 200
