@@ -72,7 +72,7 @@ def patched_server_execution(monkeypatch):
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
 
-    def fake_success(output, content_type, server_name):
+    def fake_success(output, content_type, server_name, *, external_calls=None):
         return {
             "output": output,
             "content_type": content_type,

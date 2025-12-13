@@ -2,7 +2,7 @@
 
 import json
 import traceback
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from flask import Response, redirect
 
@@ -76,7 +76,13 @@ def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, conten
         traceback.print_exc()
 
 
-def _handle_successful_execution(output: Any, content_type: str, server_name: str) -> Response:
+def _handle_successful_execution(
+    output: Any,
+    content_type: str,
+    server_name: str,
+    *,
+    external_calls: Optional[List[Dict[str, Any]]] = None,
+) -> Response:
     output_bytes = _encode_output(output)
     cid_value = format_cid(generate_cid(output_bytes))
 
@@ -86,7 +92,10 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
         create_cid_record(cid_value, output_bytes)
 
     from server_execution.invocation_tracking import create_server_invocation_record  # pylint: disable=no-name-in-module
-    create_server_invocation_record(server_name, cid_value)
+
+    create_server_invocation_record(
+        server_name, cid_value, external_calls=external_calls
+    )
 
     extension = get_extension_from_mime_type(content_type)
     if extension and cid_record_path:

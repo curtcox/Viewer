@@ -8,11 +8,13 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
+import requests
 
 from database import db
+from cid_presenter import cid_path
 from cid_utils import _render_markdown_document
 from db_access import get_cid_by_path
-from models import Alias, CID, Server
+from models import Alias, CID, Secret, Server, ServerInvocation
 
 
 pytestmark = pytest.mark.integration
@@ -842,3 +844,114 @@ def test_literal_bash_chains_into_python(client, integration_app):
 
     payload = _resolve_cid_payload(integration_app, response.headers["Location"])
     assert payload.strip() == "py::bash-into-python"
+
+def test_python_server_captures_external_calls(client, integration_app, monkeypatch):
+    secret_value = "secret-token"
+
+    with integration_app.app_context():
+        db.session.add(Secret(name="API_KEY", definition=secret_value))
+        db.session.commit()
+
+    def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
+        response = requests.Response()
+        response.status_code = 200
+        response._content = f"result {secret_value}".encode("utf-8")
+        response.headers = {"Authorization": f"Bearer {secret_value}"}
+        response.url = url
+        return response
+
+    monkeypatch.setattr(requests.Session, "request", fake_request, raising=False)
+
+    _store_server(
+        integration_app,
+        "http_capture",
+        """
+import requests
+
+
+def main(request, context):
+    headers = {"Authorization": f"Bearer {context['secrets']['API_KEY']}"}
+    requests.get("https://example.com/data", headers=headers, params={"token": context['secrets']['API_KEY']})
+    return {"output": "ok", "content_type": "text/plain"}
+        """,
+    )
+
+    response = client.get("/http_capture")
+    assert response.status_code in {302, 303}
+
+    with integration_app.app_context():
+        invocation = (
+            ServerInvocation.query.filter_by(server_name="http_capture")
+            .order_by(ServerInvocation.invoked_at.desc())
+            .first()
+        )
+
+        assert invocation is not None
+        assert invocation.external_calls_cid is not None
+
+        record = CID.query.filter_by(path=cid_path(invocation.external_calls_cid)).first()
+        assert record is not None
+
+        calls = json.loads(record.file_data)
+        assert calls
+        entry = calls[0]
+        assert entry["request"]["headers"]["Authorization"] == "Bearer <secret:API_KEY>"
+        assert entry["response"]["body"] == "result <secret:API_KEY>"
+        assert entry["request"]["params"]["token"] == "<secret:API_KEY>"
+
+
+def test_python_server_captures_external_calls_on_error(
+    client, integration_app, monkeypatch
+):
+    secret_value = "secret-token"
+
+    with integration_app.app_context():
+        db.session.add(Secret(name="API_KEY", definition=secret_value))
+        db.session.commit()
+
+    def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
+        response = requests.Response()
+        response.status_code = 200
+        response._content = f"result {secret_value}".encode("utf-8")
+        response.headers = {"Authorization": f"Bearer {secret_value}"}
+        response.url = url
+        return response
+
+    monkeypatch.setattr(requests.Session, "request", fake_request, raising=False)
+
+    _store_server(
+        integration_app,
+        "http_capture_error",
+        """
+import requests
+
+
+def main(request, context):
+    headers = {"Authorization": f"Bearer {context['secrets']['API_KEY']}"}
+    requests.get("https://example.com/data", headers=headers, params={"token": context['secrets']['API_KEY']})
+    raise RuntimeError("boom")
+        """,
+    )
+
+    response = client.get("/http_capture_error")
+    assert response.status_code == 500
+
+    with integration_app.app_context():
+        invocation = (
+            ServerInvocation.query.filter_by(server_name="http_capture_error")
+            .order_by(ServerInvocation.invoked_at.desc())
+            .first()
+        )
+
+        assert invocation is not None
+        assert invocation.external_calls_cid is not None
+
+        record = CID.query.filter_by(path=cid_path(invocation.external_calls_cid)).first()
+        assert record is not None
+
+        calls = json.loads(record.file_data)
+        assert calls
+        entry = calls[0]
+        assert entry["request"]["headers"]["Authorization"] == "Bearer <secret:API_KEY>"
+        assert entry["response"]["body"] == "result <secret:API_KEY>"
+        assert entry["request"]["params"]["token"] == "<secret:API_KEY>"

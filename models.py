@@ -166,6 +166,7 @@ class ServerInvocationCIDs:
     secrets: Optional[ValidatedCID]
     request_details: Optional[ValidatedCID]
     invocation: Optional[ValidatedCID]
+    external_calls: Optional[ValidatedCID]
 
     @classmethod
     def from_invocation(cls, invocation: "ServerInvocation") -> "ServerInvocationCIDs":
@@ -176,6 +177,9 @@ class ServerInvocationCIDs:
             secrets=ValidatedCID.try_from_string(getattr(invocation, "secrets_cid", None)),
             request_details=ValidatedCID.try_from_string(getattr(invocation, "request_details_cid", None)),
             invocation=ValidatedCID.try_from_string(getattr(invocation, "invocation_cid", None)),
+            external_calls=ValidatedCID.try_from_string(
+                getattr(invocation, "external_calls_cid", None)
+            ),
         )
 
 
@@ -188,6 +192,7 @@ class ServerInvocation(db.Model):
     secrets_cid = db.Column(db.String(255), nullable=True)  # CID of current secrets definitions
     request_details_cid = db.Column(db.String(255), nullable=True)  # CID of request details JSON
     invocation_cid = db.Column(db.String(255), nullable=True, index=True)  # CID of this ServerInvocation JSON
+    external_calls_cid = db.Column(db.String(255), nullable=True)  # CID of captured external calls JSON
     invoked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     @property

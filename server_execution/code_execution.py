@@ -23,6 +23,7 @@ from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
 from server_execution.language_detection import detect_server_language
 from server_execution.invocation_tracking import request_details
+from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
 from server_execution.request_parsing import (
     _build_missing_parameter_response,
     _build_multi_parameter_error_page,
@@ -1232,6 +1233,7 @@ def _execute_server_code_common(
         )
 
     args = build_request_args()
+    external_calls: Optional[List[Dict[str, Any]]] = None
 
     prepared = _prepare_invocation(
         code,
@@ -1248,8 +1250,20 @@ def _execute_server_code_common(
     else:
         return prepared
 
+    secrets_context = args.get("context", {}).get("secrets") if isinstance(args, dict) else None
+
     try:
-        result = run_text_function(code_to_run, args_to_use)
+        with capture_external_calls() as call_log:
+            try:
+                result = run_text_function(code_to_run, args_to_use)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                external_calls = sanitize_external_calls(call_log, secrets_context)
+                return _handle_execution_exception(
+                    exc, code, args, server_name, external_calls=external_calls
+                )
+
+        external_calls = sanitize_external_calls(call_log, secrets_context)
+
         if isinstance(result, dict):
             output = result.get("output", "")
             content_type = result.get("content_type", "text/html")
@@ -1259,10 +1273,14 @@ def _execute_server_code_common(
             output = result
             content_type = "text/html"
         _log_server_output(debug_prefix, error_suffix, output, content_type)
-        return _handle_successful_execution(output, content_type, server_name)
+        return _handle_successful_execution(
+            output, content_type, server_name, external_calls=external_calls
+        )
     except Exception as exc:  # pylint: disable=broad-exception-caught
         # Top-level exception handler for all user code execution errors
-        return _handle_execution_exception(exc, code, args, server_name)
+        return _handle_execution_exception(
+            exc, code, args, server_name, external_calls=external_calls
+        )
 
 
 @logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)

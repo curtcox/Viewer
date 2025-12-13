@@ -28,6 +28,7 @@ class ServerInvocationInput:
     secrets_cid: Optional[Union[str, ValidatedCID]] = None
     request_details_cid: Optional[Union[str, ValidatedCID]] = None
     invocation_cid: Optional[Union[str, ValidatedCID]] = None
+    external_calls_cid: Optional[Union[str, ValidatedCID]] = None
 
 
 def create_server_invocation(
@@ -85,6 +86,7 @@ def create_server_invocation(
         secrets_cid=_normalize_optional(cid_data.secrets_cid),
         request_details_cid=_normalize_optional(cid_data.request_details_cid),
         invocation_cid=_normalize_optional(cid_data.invocation_cid),
+        external_calls_cid=_normalize_optional(cid_data.external_calls_cid),
     )
     save_entity(invocation)
     return invocation
@@ -164,6 +166,7 @@ def find_server_invocations_by_cid(
         ServerInvocation.servers_cid == normalized_value,
         ServerInvocation.variables_cid == normalized_value,
         ServerInvocation.secrets_cid == normalized_value,
+        ServerInvocation.external_calls_cid == normalized_value,
     ]
 
     return ServerInvocation.query.filter(or_(*filters)).all()

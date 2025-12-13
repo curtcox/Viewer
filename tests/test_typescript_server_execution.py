@@ -61,7 +61,9 @@ def typescript_environment(monkeypatch):
     monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
     monkeypatch.setattr(db_access, "get_servers", return_servers)
 
-    def simple_success(output, content_type, server_name):  # pylint: disable=unused-argument
+    def simple_success(
+        output, content_type, server_name, *, external_calls=None
+    ):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
 
     monkeypatch.setattr(code_execution, "_handle_successful_execution", simple_success)

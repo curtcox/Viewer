@@ -33,6 +33,7 @@ def server_events_for_cid(cid_value: str | ValidatedCID) -> List[Dict[str, Any]]
         "servers_cid": "servers",
         "variables_cid": "variables",
         "secrets_cid": "secrets",
+        "external_calls_cid": "external_calls",
     }
 
     for invocation in invocations:
