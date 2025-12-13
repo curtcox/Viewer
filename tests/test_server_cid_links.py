@@ -111,7 +111,7 @@ def test_cid_links_replaces_cid_in_html():
             definition, "cid_links"
         )
 
-    expected_link = f'<a href="/{test_cid}.txt">{test_cid}</a>'
+    expected_link = f'<a href="{test_cid}.txt">{test_cid}</a>'
     assert expected_link in result["output"]
 
 
@@ -119,7 +119,7 @@ def test_cid_links_does_not_replace_cid_in_href():
     """CIDs that are already link targets are not double-linked."""
     definition = _get_cid_links_definition()
     test_cid = generate_cid(b"y" * 100)
-    html_content = f'<p>See <a href="/{test_cid}.txt">this document</a>.</p>'
+    html_content = f'<p>See <a href="{test_cid}.txt">this document</a>.</p>'
 
     with app.test_request_context("/cid_links", json={"text": html_content}):
         result = server_execution.execute_server_code_from_definition(
@@ -129,14 +129,14 @@ def test_cid_links_does_not_replace_cid_in_href():
     # Should not have nested anchor tags
     assert '<a href="<a' not in result["output"]
     # Original link should be preserved
-    assert f'href="/{test_cid}.txt"' in result["output"]
+    assert f'href="{test_cid}.txt"' in result["output"]
 
 
 def test_cid_links_does_not_replace_cid_in_anchor_text_with_matching_href():
     """CIDs used as anchor text with matching href are not replaced."""
     definition = _get_cid_links_definition()
     test_cid = generate_cid(b"z" * 100)
-    html_content = f'<p><a href="/{test_cid}.txt">{test_cid}</a></p>'
+    html_content = f'<p><a href="{test_cid}.txt">{test_cid}</a></p>'
 
     with app.test_request_context("/cid_links", json={"text": html_content}):
         result = server_execution.execute_server_code_from_definition(
@@ -160,8 +160,8 @@ def test_cid_links_replaces_multiple_cids_in_html():
             definition, "cid_links"
         )
 
-    assert f'<a href="/{cid1}.txt">{cid1}</a>' in result["output"]
-    assert f'<a href="/{cid2}.txt">{cid2}</a>' in result["output"]
+    assert f'<a href="{cid1}.txt">{cid1}</a>' in result["output"]
+    assert f'<a href="{cid2}.txt">{cid2}</a>' in result["output"]
 
 
 # ============================================================================
@@ -181,9 +181,9 @@ def test_cid_links_uses_data_url_for_literal_cid_in_html():
             definition, "cid_links"
         )
 
-    # Should use data URL, not server path
+    # Should use data URL, not relative path
     assert "data:text/plain;base64," in result["output"]
-    assert f'href="/{literal_cid}.txt"' not in result["output"]
+    assert f'href="{literal_cid}.txt"' not in result["output"]
 
 
 def test_cid_links_uses_data_url_for_literal_cid_in_markdown():
@@ -233,7 +233,7 @@ def test_cid_links_replaces_cid_in_markdown():
             definition, "cid_links"
         )
 
-    expected_link = f"[{test_cid}](/{test_cid}.txt)"
+    expected_link = f"[{test_cid}]({test_cid}.txt)"
     assert expected_link in result["output"]
 
 
@@ -241,7 +241,7 @@ def test_cid_links_does_not_replace_cid_in_existing_markdown_link():
     """CIDs already in markdown links are not replaced."""
     definition = _get_cid_links_definition()
     test_cid = generate_cid(b"linked content" * 10)
-    md_content = f"See [{test_cid}](/{test_cid}.txt) here."
+    md_content = f"See [{test_cid}]({test_cid}.txt) here."
 
     with app.test_request_context("/cid_links", json={"text": md_content}):
         result = server_execution.execute_server_code_from_definition(
@@ -266,8 +266,8 @@ def test_cid_links_replaces_multiple_cids_in_markdown():
             definition, "cid_links"
         )
 
-    assert f"[{cid1}](/{cid1}.txt)" in result["output"]
-    assert f"[{cid2}](/{cid2}.txt)" in result["output"]
+    assert f"[{cid1}]({cid1}.txt)" in result["output"]
+    assert f"[{cid2}]({cid2}.txt)" in result["output"]
 
 
 # ============================================================================
@@ -358,7 +358,7 @@ def test_cid_links_with_cid_at_start_of_text():
             definition, "cid_links"
         )
 
-    assert f"[{test_cid}](/{test_cid}.txt)" in result["output"]
+    assert f"[{test_cid}]({test_cid}.txt)" in result["output"]
 
 
 def test_cid_links_with_cid_at_end_of_text():
@@ -372,7 +372,7 @@ def test_cid_links_with_cid_at_end_of_text():
             definition, "cid_links"
         )
 
-    assert f"[{test_cid}](/{test_cid}.txt)" in result["output"]
+    assert f"[{test_cid}]({test_cid}.txt)" in result["output"]
 
 
 # ============================================================================
@@ -399,4 +399,4 @@ def test_cid_links_with_html_body_tag():
         )
 
     assert result["content_type"] == "text/html"
-    assert f'<a href="/{test_cid}.txt">{test_cid}</a>' in result["output"]
+    assert f'<a href="{test_cid}.txt">{test_cid}</a>' in result["output"]
