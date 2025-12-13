@@ -179,15 +179,15 @@ class TestReportGeneration:
             }
         }
 
-        html = format_external_call_html(call, 1)
+        html_output = format_external_call_html(call, 1)
 
         # Check that key elements are present
-        assert 'API Call 1' in html
-        assert 'POST' in html
-        assert 'openrouter.ai' in html
-        assert '<secret:OPENROUTER_API_KEY>' in html
-        assert 'Status:' in html
-        assert '200' in html
+        assert 'API Call 1' in html_output
+        assert 'POST' in html_output
+        assert 'openrouter.ai' in html_output
+        assert 'Authorization' in html_output
+        assert 'Status:' in html_output
+        assert '200' in html_output
 
     def test_format_external_call_html_redacted_key(self):
         """Test that redacted API keys appear correctly in HTML."""
