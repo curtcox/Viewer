@@ -8,10 +8,7 @@ These tests validate that:
 """
 
 import json
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
 
 from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
@@ -350,7 +347,6 @@ class TestHighlightJson:
     def test_highlight_json_handles_non_serializable(self):
         """Test that non-serializable data falls back gracefully."""
         from scripts.generate_ai_eval_reports import highlight_json
-        import html as html_module
 
         class NonSerializable:
             def __str__(self):
