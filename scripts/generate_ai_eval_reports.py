@@ -249,7 +249,7 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
     interactions_section = '\n'.join(interactions_html) if interactions_html else '<p class="no-interactions">No interactions recorded</p>'
 
     # Generate HTML page
-    html = f"""<!DOCTYPE html>
+    page_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -313,7 +313,7 @@ def generate_detail_page(interaction_data: Dict, output_path: Path) -> None:
 </html>"""
 
     # Write the HTML file
-    output_path.write_text(html, encoding='utf-8')
+    output_path.write_text(page_html, encoding='utf-8')
     print(f"Generated detail page: {output_path}")
 
 
