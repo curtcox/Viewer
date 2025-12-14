@@ -2,7 +2,6 @@
 import json
 import os
 import unittest
-from unittest.mock import patch, MagicMock, Mock
 
 # Set required environment variables before importing app
 os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
@@ -11,7 +10,6 @@ os.environ.setdefault('SESSION_SECRET', 'test-secret-key')
 # Import the functions we want to test
 # We'll need to extract them from the server definition
 from pathlib import Path
-import sys
 
 
 class TestSystemPromptLookup(unittest.TestCase):
