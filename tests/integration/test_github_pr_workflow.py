@@ -59,6 +59,7 @@ class TestGitHubPRIntegration(unittest.TestCase):
             'html_url': 'https://github.com/owner/repo/pull/1',
             'branch_name': 'viewer-export-test',
             'target_repo': 'owner/repo',
+            'mode': 'github',
         }
 
         # Submit export form with GitHub PR details
@@ -187,8 +188,9 @@ class TestGitHubPRIntegration(unittest.TestCase):
         # The error should be displayed in the form
         self.assertIn(b'does not modify the boot image file', response.data)
 
-    def test_export_missing_github_fields(self):
-        """Test validation when GitHub fields are missing."""
+    @patch('routes.import_export.github_pr.create_export_pr')
+    def test_export_missing_github_fields_prepares_manual_flow(self, mock_create_pr):
+        """Test that missing GitHub fields results in manual preparation."""
         self.authenticate()
 
         # Create test data
@@ -197,16 +199,21 @@ class TestGitHubPRIntegration(unittest.TestCase):
             db.session.add(alias)
             db.session.commit()
 
-        # Submit without required fields
+        mock_create_pr.return_value = {
+            'mode': 'manual',
+            'target_repo': '',
+            'branch_name': '',
+            'prepared_paths': ['reference_templates/default.boot.source.json'],
+        }
+
         response = self.client.post('/export', data={
             'snapshot': 'y',
             'include_aliases': 'y',
             'submit_github_pr': 'Create Pull Request',
         }, follow_redirects=False)
 
-        # Verify validation error
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Target repository is required', response.data)
+        self.assertIn(b'Prepared boot image update locally', response.data)
 
     def test_import_missing_github_pr_url(self):
         """Test validation when GitHub PR URL is missing."""

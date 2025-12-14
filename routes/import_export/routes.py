@@ -39,15 +39,10 @@ def export_data():
             # Handle GitHub PR creation
             from flask import flash
             from .github_pr import create_export_pr, GitHubPRError
-            
-            # Validate required fields
-            if not form.github_target_repo.data or not form.github_target_repo.data.strip():
-                flash('Target repository is required for creating a pull request', 'danger')
-                return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
-            
-            if not form.github_token.data or not form.github_token.data.strip():
-                flash('GitHub token is required for creating a pull request', 'danger')
-                return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
+
+            # For PR preparation we must include CID values so missing CID content can be
+            # materialized into the repository's cids/ directory.
+            form.include_cid_map.data = True
             
             # Generate the export
             export_result = build_export_payload(form)
@@ -57,14 +52,23 @@ def export_data():
             try:
                 pr_result = create_export_pr(
                     export_json=export_result['json_payload'],
-                    target_repo=form.github_target_repo.data.strip(),
-                    github_token=form.github_token.data.strip(),
+                    target_repo=(form.github_target_repo.data or '').strip() or None,
+                    github_token=(form.github_token.data or '').strip() or None,
                     pr_title=form.github_pr_title.data.strip() if form.github_pr_title.data else None,
                     pr_description=form.github_pr_description.data.strip() if form.github_pr_description.data else None,
                     branch_name=form.github_branch_name.data.strip() if form.github_branch_name.data else None,
                 )
-                
-                flash(f'Pull request created successfully: <a href="{pr_result["html_url"]}" target="_blank" class="alert-link">#{pr_result["number"]}</a>', 'success')
+
+                if pr_result.get('mode') == 'github':
+                    flash(
+                        f'Pull request created successfully: <a href="{pr_result["html_url"]}" target="_blank" class="alert-link">#{pr_result["number"]}</a>',
+                        'success',
+                    )
+                else:
+                    flash(
+                        'Prepared boot image update locally. Supply a repo + token to submit automatically, or commit/push the prepared filesystem changes later.',
+                        'info',
+                    )
                 # Return the export result page with PR info
                 export_result['github_pr'] = pr_result
                 return render_template('export_result.html', **export_result)

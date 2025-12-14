@@ -312,13 +312,13 @@
                         
                         <div class="mb-3">
                             {{ form.github_target_repo.label(class="form-label required") }}
-                            {{ form.github_target_repo(class="form-control", required=True) }}
+                            {{ form.github_target_repo(class="form-control") }}
                             <div class="form-text">Format: owner/repo (e.g., curtcox/Viewer)</div>
                         </div>
                         
                         <div class="mb-3">
                             {{ form.github_token.label(class="form-label required") }}
-                            {{ form.github_token(class="form-control", required=True) }}
+                            {{ form.github_token(class="form-control") }}
                             <div class="form-text">
                                 GitHub personal access token with 'repo' scope. 
                                 <a href="https://github.com/settings/tokens/new" target="_blank">Create token</a>
@@ -607,7 +607,7 @@
 
                 updateSizeStatus('Calculating…', false);
 
-                fetch('{{ url_for('main.export_size') }}', requestInit)
+                fetch("{{ url_for('main.export_size') }}", requestInit)
                     .then(function (response) {
                         return response.json().catch(function () {
                             return {};

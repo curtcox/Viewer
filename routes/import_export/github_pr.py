@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import urlparse
 
@@ -11,10 +12,229 @@ from github import Github, GithubException
 from github.Repository import Repository
 from github.PullRequest import PullRequest
 
+from cid_core import is_literal_cid
+from generate_boot_image import BootImageGenerator
+
 LOGGER = logging.getLogger(__name__)
 
 # Boot image file path in the repository
 BOOT_IMAGE_PATH = "reference_templates/default.boot.json"
+
+
+REFERENCE_TEMPLATES_DIR = Path("reference_templates")
+CIDS_DIR = Path("cids")
+
+
+def _safe_filename(value: str) -> str:
+    cleaned = ''.join(ch if (ch.isalnum() or ch in {'-', '_'}) else '_' for ch in value.strip())
+    return cleaned.strip('_') or 'unnamed'
+
+
+def _load_section_from_export(payload: dict[str, Any], section: str) -> Any:
+    cid_values = payload.get('cid_values', {})
+    cid = payload.get(section)
+    if not isinstance(cid, str):
+        return None
+    if not isinstance(cid_values, dict):
+        return None
+    raw = cid_values.get(cid)
+    if not isinstance(raw, str):
+        return None
+    return json.loads(raw)
+
+
+def _ensure_cid_file(base_dir: Path, cid: str, content: bytes) -> None:
+    if is_literal_cid(cid):
+        return
+    target_dir = base_dir / CIDS_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    cid_path = target_dir / cid
+    if cid_path.exists():
+        return
+    cid_path.write_bytes(content)
+
+
+def _merge_named_entries(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_name: dict[str, dict[str, Any]] = {}
+    ordered: list[str] = []
+    for entry in existing:
+        name = entry.get('name')
+        if isinstance(name, str) and name not in by_name:
+            by_name[name] = dict(entry)
+            ordered.append(name)
+    for entry in incoming:
+        name = entry.get('name')
+        if not isinstance(name, str):
+            continue
+        if name in by_name:
+            merged = dict(by_name[name])
+            merged.update(entry)
+            by_name[name] = merged
+        else:
+            by_name[name] = dict(entry)
+            ordered.append(name)
+    return [by_name[name] for name in ordered if name in by_name]
+
+
+def prepare_boot_image_update(
+    *,
+    export_json: str,
+    base_dir: Path,
+) -> dict[str, Any]:
+    payload = json.loads(export_json)
+    if not isinstance(payload, dict):
+        raise GitHubPRError('Export payload must be a JSON object.')
+
+    cid_values = payload.get('cid_values', {})
+    if not isinstance(cid_values, dict):
+        cid_values = {}
+
+    aliases = _load_section_from_export(payload, 'aliases') or []
+    servers = _load_section_from_export(payload, 'servers') or []
+    variables = _load_section_from_export(payload, 'variables') or []
+
+    if not isinstance(aliases, list) or not isinstance(servers, list) or not isinstance(variables, list):
+        raise GitHubPRError('Export payload sections were not in the expected format.')
+
+    ref_dir = base_dir / REFERENCE_TEMPLATES_DIR
+    aliases_dir = ref_dir / 'aliases'
+    servers_dir = ref_dir / 'servers' / 'definitions'
+    aliases_dir.mkdir(parents=True, exist_ok=True)
+    servers_dir.mkdir(parents=True, exist_ok=True)
+
+    changed_paths: set[str] = set()
+
+    merged_alias_entries: list[dict[str, Any]] = []
+    for entry in aliases:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get('name')
+        definition_cid = entry.get('definition_cid')
+        enabled = entry.get('enabled', True)
+        if not isinstance(name, str) or not isinstance(definition_cid, str):
+            continue
+        definition_text = cid_values.get(definition_cid)
+        if not isinstance(definition_text, str):
+            raise GitHubPRError(
+                f'Missing CID content for alias "{name}" ({definition_cid}).',
+                details={'missing_cid': definition_cid, 'entity': name},
+            )
+        filename = f"{_safe_filename(name)}.txt"
+        relative_path = REFERENCE_TEMPLATES_DIR / 'aliases' / filename
+        absolute_path = base_dir / relative_path
+        absolute_path.write_text(definition_text, encoding='utf-8')
+        changed_paths.add(str(relative_path.as_posix()))
+        merged_alias_entries.append(
+            {
+                'name': name,
+                'definition_cid': str(relative_path.as_posix()),
+                'enabled': bool(enabled),
+            }
+        )
+
+    merged_server_entries: list[dict[str, Any]] = []
+    for entry in servers:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get('name')
+        definition_cid = entry.get('definition_cid')
+        enabled = entry.get('enabled', True)
+        if not isinstance(name, str) or not isinstance(definition_cid, str):
+            continue
+        definition_text = cid_values.get(definition_cid)
+        if not isinstance(definition_text, str):
+            raise GitHubPRError(
+                f'Missing CID content for server "{name}" ({definition_cid}).',
+                details={'missing_cid': definition_cid, 'entity': name},
+            )
+        filename = f"{_safe_filename(name)}.py"
+        relative_path = REFERENCE_TEMPLATES_DIR / 'servers' / 'definitions' / filename
+        absolute_path = base_dir / relative_path
+        absolute_path.write_text(definition_text, encoding='utf-8')
+        changed_paths.add(str(relative_path.as_posix()))
+        merged_server_entries.append(
+            {
+                'name': name,
+                'definition_cid': str(relative_path.as_posix()),
+                'enabled': bool(enabled),
+            }
+        )
+
+    source_path = ref_dir / 'default.boot.source.json'
+    if source_path.exists():
+        existing_data = json.loads(source_path.read_text(encoding='utf-8'))
+        if isinstance(existing_data, dict):
+            existing_aliases = (
+                existing_data.get('aliases') if isinstance(existing_data.get('aliases'), list) else []
+            )
+            existing_servers = (
+                existing_data.get('servers') if isinstance(existing_data.get('servers'), list) else []
+            )
+            existing_variables = (
+                existing_data.get('variables') if isinstance(existing_data.get('variables'), list) else []
+            )
+
+            existing_data['aliases'] = _merge_named_entries(existing_aliases, merged_alias_entries)
+            existing_data['servers'] = _merge_named_entries(existing_servers, merged_server_entries)
+
+            incoming_variables: list[dict[str, Any]] = []
+            for var in variables:
+                if not isinstance(var, dict):
+                    continue
+                var_name = var.get('name')
+                if not isinstance(var_name, str):
+                    continue
+                if var_name in {'templates', 'uis'}:
+                    continue
+                incoming_variables.append(
+                    {
+                        'name': var_name,
+                        'definition': var.get('definition'),
+                        'enabled': bool(var.get('enabled', True)),
+                    }
+                )
+
+            existing_data['variables'] = _merge_named_entries(existing_variables, incoming_variables)
+
+            source_path.write_text(json.dumps(existing_data, indent=2), encoding='utf-8')
+            changed_paths.add(str(source_path.relative_to(base_dir).as_posix()))
+
+    for cid, value in cid_values.items():
+        if not isinstance(cid, str) or not isinstance(value, str):
+            continue
+        _ensure_cid_file(base_dir, cid, value.encode('utf-8'))
+        if not is_literal_cid(cid):
+            changed_paths.add(str((CIDS_DIR / cid).as_posix()))
+
+    generator = BootImageGenerator(base_dir)
+    generator.generate()
+
+    for rel in generator.processed_files:
+        if rel.startswith('reference_templates/minimal.boot.'):
+            continue
+        changed_paths.add(rel)
+
+    for rel in (
+        'reference_templates/templates.json',
+        'reference_templates/uis.json',
+        'reference_templates/default.boot.json',
+        'reference_templates/boot.json',
+        'reference_templates/default.boot.cid',
+        'reference_templates/boot.cid',
+    ):
+        if (base_dir / rel).exists():
+            changed_paths.add(rel)
+
+    cids_path = base_dir / CIDS_DIR
+    if cids_path.exists():
+        for cid_file in cids_path.iterdir():
+            if cid_file.is_file():
+                changed_paths.add(str((CIDS_DIR / cid_file.name).as_posix()))
+
+    return {
+        'mode': 'prepared',
+        'changed_paths': sorted(changed_paths),
+    }
 
 
 class GitHubPRError(Exception):
@@ -101,7 +321,7 @@ def get_repository(client: Github, owner: str, repo: str) -> Repository:
 
 def create_export_pr(
     export_json: str,
-    target_repo: str,
+    target_repo: Optional[str] = None,
     github_token: Optional[str] = None,
     pr_title: Optional[str] = None,
     pr_description: Optional[str] = None,
@@ -123,18 +343,23 @@ def create_export_pr(
     Raises:
         GitHubPRError: If PR creation fails
     """
-    if not github_token:
-        raise GitHubPRError(
-            "GitHub token is required to create pull requests",
-            details={'error': 'missing_token'}
-        )
+    base_dir = Path(__file__).resolve().parents[2]
 
-    # Parse target repository
-    parts = target_repo.split('/')
+    preparation = prepare_boot_image_update(export_json=export_json, base_dir=base_dir)
+
+    if not target_repo or not target_repo.strip() or not github_token or not github_token.strip():
+        return {
+            'mode': 'manual',
+            'target_repo': (target_repo or '').strip(),
+            'branch_name': (branch_name or '').strip(),
+            'prepared_paths': preparation['changed_paths'],
+        }
+
+    parts = target_repo.strip().split('/')
     if len(parts) != 2:
         raise GitHubPRError(
             f"Invalid repository format: {target_repo}. Expected 'owner/repo'",
-            details={'target_repo': target_repo, 'error': 'invalid_format'}
+            details={'target_repo': target_repo, 'error': 'invalid_format'},
         )
 
     owner, repo = parts
@@ -170,28 +395,32 @@ def create_export_pr(
                 ) from e
             raise
 
-        # Get current file content if it exists
-        try:
-            file_content = repository.get_contents(BOOT_IMAGE_PATH, ref=default_branch)
-            # Update the file
-            repository.update_file(
-                BOOT_IMAGE_PATH,
-                f"Update boot image via Viewer export\n\n{pr_description or 'Exported definitions'}",
-                export_json,
-                file_content.sha,
-                branch=branch_name
-            )
-        except GithubException as e:
-            if e.status == 404:
-                # File doesn't exist, create it
-                repository.create_file(
-                    BOOT_IMAGE_PATH,
-                    f"Create boot image via Viewer export\n\n{pr_description or 'Exported definitions'}",
-                    export_json,
-                    branch=branch_name
+        commit_message = f"Update boot image via Viewer export\n\n{pr_description or 'Exported definitions'}"
+
+        for rel_path in preparation['changed_paths']:
+            abs_path = base_dir / rel_path
+            if not abs_path.exists() or not abs_path.is_file():
+                continue
+            file_bytes = abs_path.read_bytes()
+            try:
+                existing = repository.get_contents(rel_path, ref=default_branch)
+                repository.update_file(
+                    rel_path,
+                    commit_message,
+                    file_bytes.decode('utf-8', errors='replace'),
+                    existing.sha,
+                    branch=branch_name,
                 )
-            else:
-                raise
+            except GithubException as e:
+                if e.status == 404:
+                    repository.create_file(
+                        rel_path,
+                        commit_message,
+                        file_bytes.decode('utf-8', errors='replace'),
+                        branch=branch_name,
+                    )
+                else:
+                    raise
 
         # Create the pull request
         pr_title = pr_title or "Update boot image definitions via Viewer export"
@@ -211,6 +440,7 @@ def create_export_pr(
             'html_url': pull_request.html_url,
             'branch_name': branch_name,
             'target_repo': target_repo,
+            'mode': 'github',
         }
 
     except GitHubPRError:
@@ -271,37 +501,52 @@ def fetch_pr_export_data(
                 }
             ) from e
 
-        # Get the files changed in the PR
-        files = pull_request.get_files()
-        boot_image_file = None
+        files = list(pull_request.get_files())
 
-        for file in files:
-            if file.filename == BOOT_IMAGE_PATH:
-                boot_image_file = file
-                break
+        allowed_markers = {
+            'reference_templates/default.boot.source.json',
+            'reference_templates/minimal.boot.source.json',
+            'reference_templates/boot.source.json',
+            'reference_templates/default.boot.cid',
+            'reference_templates/minimal.boot.cid',
+            'reference_templates/boot.cid',
+        }
 
-        if not boot_image_file:
+        touches_boot_image = any(
+            getattr(file, 'filename', None) in allowed_markers or getattr(file, 'filename', None) == BOOT_IMAGE_PATH
+            for file in files
+        )
+
+        if not touches_boot_image:
             return None, (
-                f"Pull request does not modify the boot image file ({BOOT_IMAGE_PATH}). "
+                f"Pull request does not modify a supported boot image file. "
                 f"This PR cannot be imported as it was not created by the Viewer export system. "
                 f"Files modified: {', '.join([f.filename for f in files[:5]])}"
             )
 
-        # Get the file content from the PR branch
+        # Import-from-PR remains a legacy mechanism that expects the export JSON
+        # stored at the default boot image path.
         try:
             file_content = repository.get_contents(BOOT_IMAGE_PATH, ref=pull_request.head.sha)
-            if hasattr(file_content, 'decoded_content'):
-                json_data = file_content.decoded_content.decode('utf-8')
-                # Validate it's valid JSON
-                try:
-                    json.loads(json_data)
-                    return json_data, None
-                except json.JSONDecodeError as e:
-                    return None, f"Boot image file contains invalid JSON: {str(e)}"
-            else:
-                return None, "Failed to decode file content from PR"
         except GithubException as e:
-            return None, f"Failed to read boot image file from PR: {e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)}"
+            if e.status == 404:
+                return None, (
+                    f"Pull request updated boot image inputs but did not include {BOOT_IMAGE_PATH}. "
+                    "Importing from PR currently requires the legacy export JSON file to be present."
+                )
+            return None, (
+                f"Failed to read boot image file from PR: {e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)}"
+            )
+
+        if not hasattr(file_content, 'decoded_content'):
+            return None, "Failed to decode file content from PR"
+
+        json_data = file_content.decoded_content.decode('utf-8')
+        try:
+            json.loads(json_data)
+        except json.JSONDecodeError as exc:
+            return None, f"Boot image file contains invalid JSON: {str(exc)}"
+        return json_data, None
 
     except GitHubPRError as e:
         return None, f"{e.message}. Details: {e.details}"
