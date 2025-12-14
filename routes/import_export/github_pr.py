@@ -246,7 +246,9 @@ class GitHubPRError(Exception):
         self.details = details or {}
 
 
-def parse_github_pr_url(pr_url: str) -> tuple[Optional[str], Optional[str], Optional[int]]:
+def parse_github_pr_url(
+    pr_url: str,
+) -> tuple[Optional[str], Optional[str], Optional[int]]:
     """Parse a GitHub PR URL to extract owner, repo, and PR number.
 
     Args:
@@ -312,7 +314,11 @@ def get_repository(client: Github, owner: str, repo: str) -> Repository:
             f"Failed to access repository {owner}/{repo}",
             details={
                 'status': e.status,
-                'message': e.data.get('message', str(e)) if hasattr(e, 'data') else str(e),
+                'message': (
+                    e.data.get('message', str(e))
+                    if hasattr(e, 'data')
+                    else str(e)
+                ),
                 'owner': owner,
                 'repo': repo,
             }
@@ -446,8 +452,13 @@ def create_export_pr(
     except GitHubPRError:
         raise
     except GithubException as e:
+        error_msg = (
+            e.data.get('message', str(e))
+            if hasattr(e, 'data')
+            else str(e)
+        )
         raise GitHubPRError(
-            f"GitHub API error: {e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)}",
+            f"GitHub API error: {error_msg}",
             details={
                 'status': e.status,
                 'target_repo': target_repo,
@@ -490,7 +501,10 @@ def fetch_pr_export_data(
             pull_request: PullRequest = repository.get_pull(pr_number)
         except GithubException as e:
             if e.status == 404:
-                return None, f"Pull request #{pr_number} not found in {owner}/{repo}"
+                return (
+                    None,
+                    f"Pull request #{pr_number} not found in {owner}/{repo}",
+                )
             raise GitHubPRError(
                 f"Failed to access pull request #{pr_number}",
                 details={
@@ -551,7 +565,10 @@ def fetch_pr_export_data(
     except GitHubPRError as e:
         return None, f"{e.message}. Details: {e.details}"
     except GithubException as e:
-        return None, f"GitHub API error: {e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)}"
+        error_msg = (
+            e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)
+        )
+        return None, f"GitHub API error: {error_msg}"
     except Exception as e:
         LOGGER.exception("Unexpected error fetching PR data")
         return None, f"Unexpected error: {str(e)}"

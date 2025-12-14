@@ -3,11 +3,6 @@ import json
 import unittest
 from unittest.mock import patch
 
-try:
-    import github  # noqa: F401
-except ModuleNotFoundError as exc:
-    raise unittest.SkipTest("PyGithub dependency is not installed") from exc
-
 from app import create_app, db
 from models import Alias, Server, Variable
 
@@ -46,8 +41,12 @@ class TestGitHubPRIntegration(unittest.TestCase):
 
         # Create some test data
         with self.app.app_context():
-            alias = Alias(name='test-alias', definition='literal /test -> /prod')
-            server = Server(name='test-server', definition='def main():\n    return "test"')
+            alias = Alias(
+                name='test-alias', definition='literal /test -> /prod'
+            )
+            server = Server(
+                name='test-server', definition='def main():\n    return "test"'
+            )
             variable = Variable(name='test-var', definition='test-value')
             db.session.add_all([alias, server, variable])
             db.session.commit()
@@ -173,7 +172,10 @@ class TestGitHubPRIntegration(unittest.TestCase):
         self.authenticate()
 
         # Mock PR fetch failure
-        mock_fetch_pr.return_value = (None, 'Pull request does not modify the boot image file')
+        mock_fetch_pr.return_value = (
+            None,
+            'Pull request does not modify the boot image file',
+        )
 
         # Submit import form
         response = self.client.post('/import', data={
