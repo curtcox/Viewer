@@ -41,18 +41,18 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: |
-          if git diff --quiet; then
+          git add -A reference_templates/*.json reference_templates/*.cid cids/ TEST_INDEX.md
+          if git diff --cached --quiet; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected"
           else
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected:"
-            git diff --stat
+            git diff --cached --stat
           fi
 
       - name: Commit and push changes
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
-          git add reference_templates/*.json reference_templates/*.cid cids/* TEST_INDEX.md
           git commit -m "chore: regenerate boot images and test index [skip ci]"
           git push origin main
