@@ -244,7 +244,7 @@ def when_request_path_with_stored_cid(path: str) -> None:
 
     # Replace {stored CID} placeholder in path if present
     normalized_path = path.replace("{stored CID}", cid_value)
-    request_path = f"/{normalized_path}/{cid_value}" if "{stored CID}" not in path else f"/{normalized_path}"
+    request_path = f"/{normalized_path}"
 
     client = get_shared_client()
     response = client.get(request_path)
