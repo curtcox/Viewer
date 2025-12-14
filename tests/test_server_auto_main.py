@@ -103,7 +103,8 @@ def test_auto_main_error_page_includes_debug_details():
     html = response.get_data(as_text=True)
 
     assert "failure for Auto" in html
-    assert "Traceback" in html
+    assert "Stack trace with source links" in html
+    assert "Server source code" in html
 
 
 def test_auto_main_matches_hyphenated_headers():

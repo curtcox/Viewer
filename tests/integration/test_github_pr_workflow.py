@@ -1,7 +1,12 @@
 """Integration tests for GitHub PR import/export workflows."""
 import json
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
+
+try:
+    import github  # noqa: F401
+except ModuleNotFoundError as exc:
+    raise unittest.SkipTest("PyGithub dependency is not installed") from exc
 
 from app import create_app, db
 from models import Alias, Server, Variable

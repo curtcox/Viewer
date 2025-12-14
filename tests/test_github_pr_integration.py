@@ -1,9 +1,12 @@
 """Unit tests for GitHub PR integration."""
 import json
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
-from github import GithubException
+try:
+    from github import GithubException
+except ModuleNotFoundError as exc:
+    raise unittest.SkipTest("PyGithub dependency is not installed") from exc
 
 from routes.import_export.github_pr import (
     GitHubPRError,
