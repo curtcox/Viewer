@@ -323,3 +323,21 @@ def and_executing_destination_route_returns_message(route_path: str, expected_me
     assert (
         expected_message in content_response.get_data(as_text=True)
     ), "Imported server did not return the expected output."
+
+
+@step('Given an origin site with a server named "shared-tool" returning "Hello from origin"')
+def given_origin_site_with_shared_tool() -> None:
+    """Create an origin site with shared-tool server."""
+    given_origin_site_with_server("shared-tool", "Hello from origin")
+
+
+@step('Then the destination site should have a server named "shared-tool"')
+def then_destination_has_shared_tool() -> None:
+    """Verify destination has shared-tool server."""
+    then_destination_has_server("shared-tool")
+
+
+@step('And executing "/shared-tool" on the destination site should return "Hello from origin"')
+def and_executing_shared_tool_returns_hello() -> None:
+    """Execute shared-tool and verify output."""
+    and_executing_destination_route_returns_message("/shared-tool", "Hello from origin")

@@ -96,3 +96,29 @@ def post_form_data(path: str, name: str, target: str):
     state = get_scenario_state()
     state['response'] = response
     attach_response_snapshot(response)
+
+
+@step('When I POST to /aliases/new with form data name "test-alias" and target "/test"')
+def post_to_aliases_new_with_test_alias():
+    """POST to /aliases/new with test-alias data."""
+    post_form_data("/aliases/new", "test-alias", "/test")
+
+
+@step("The response status should be 401")
+def the_response_status_should_be_401():
+    """Validate that the response has status code 401."""
+    response = get_scenario_state().get('response')
+    assert response is not None, "No response recorded."
+    assert response.status_code == 401, (
+        f"Expected HTTP 401 but received {response.status_code}"
+    )
+
+
+@step("The response status should be 403")
+def the_response_status_should_be_403():
+    """Validate that the response has status code 403."""
+    response = get_scenario_state().get('response')
+    assert response is not None, "No response recorded."
+    assert response.status_code == 403, (
+        f"Expected HTTP 403 but received {response.status_code}"
+    )

@@ -412,3 +412,281 @@ def check_url_fragment_contains_cid():
     assert getattr(store, 'last_cid_literal', ''), "No CID literal recorded"
     assert hasattr(store, 'editor_content'), "No editor content"
     assert store.last_cid_literal in '/'.join(store.editor_content)
+
+
+@step('Then the server "urleditor" should be present')
+def check_urleditor_server_present():
+    """Verify that the urleditor server is present."""
+    check_server_present("urleditor")
+
+
+@step('Then the server "ai_editor" should be present')
+def check_ai_editor_server_present():
+    """Verify that the ai_editor server is present."""
+    check_server_present("ai_editor")
+
+
+@step("When I request the resource /urleditor")
+def request_urleditor_resource():
+    """Request the urleditor resource."""
+    from step_impl.shared_state import get_scenario_state
+    from step_impl.artifacts import attach_response_snapshot
+    client = get_shared_client()
+    response = client.get("/urleditor")
+    store.last_response = response
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+@step("When I request the resource /urleditor/echo/test")
+def request_urleditor_echo_test():
+    """Request the urleditor/echo/test resource."""
+    from step_impl.shared_state import get_scenario_state
+    from step_impl.artifacts import attach_response_snapshot
+    client = get_shared_client()
+    response = client.get("/urleditor/echo/test", follow_redirects=False)
+    store.last_response = response
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+@step("When I request the resource /urleditor/test-chain")
+def request_urleditor_test_chain():
+    """Request the urleditor/test-chain resource."""
+    from step_impl.shared_state import get_scenario_state
+    from step_impl.artifacts import attach_response_snapshot
+    client = get_shared_client()
+    response = client.get("/urleditor/test-chain", follow_redirects=False)
+    store.last_response = response
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+@step("When I request the resource /ai_editor")
+def request_ai_editor_resource():
+    """Request the ai_editor resource."""
+    from step_impl.shared_state import get_scenario_state
+    from step_impl.artifacts import attach_response_snapshot
+    client = get_shared_client()
+    response = client.get("/ai_editor")
+    store.last_response = response
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+@step("When I request the resource /ai_editor/test-chain")
+def request_ai_editor_test_chain():
+    """Request the ai_editor/test-chain resource."""
+    from step_impl.shared_state import get_scenario_state
+    from step_impl.artifacts import attach_response_snapshot
+    client = get_shared_client()
+    response = client.get("/ai_editor/test-chain", follow_redirects=False)
+    store.last_response = response
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
+
+
+# Response content assertion steps
+@step('Then the response should contain "URL Editor"')
+def response_should_contain_url_editor():
+    """Assert response contains URL Editor."""
+    response_should_contain("URL Editor")
+
+
+@step('And the response should contain "url-editor"')
+def response_should_contain_url_editor_class():
+    """Assert response contains url-editor."""
+    response_should_contain("url-editor")
+
+
+@step('And the response should contain "ace.edit"')
+def response_should_contain_ace_edit():
+    """Assert response contains ace.edit."""
+    response_should_contain("ace.edit")
+
+
+@step('Then the response should contain "does not support URL chaining"')
+def response_should_contain_no_chaining():
+    """Assert response contains chaining error message."""
+    response_should_contain("does not support URL chaining")
+
+
+@step('And the response status should be "400"')
+def response_status_should_be_400():
+    """Assert response status is 400."""
+    check_response_status("400")
+
+
+@step('Then the response status should be "400"')
+def then_response_status_should_be_400():
+    """Assert response status is 400."""
+    check_response_status("400")
+
+
+@step('And the response should contain "Line Indicators"')
+def response_should_contain_line_indicators():
+    """Assert response contains Line Indicators."""
+    response_should_contain("Line Indicators")
+
+
+@step('And the response should contain "Line Previews"')
+def response_should_contain_line_previews():
+    """Assert response contains Line Previews."""
+    response_should_contain("Line Previews")
+
+
+@step('And the response should contain "Copy URL"')
+def response_should_contain_copy_url():
+    """Assert response contains Copy URL."""
+    response_should_contain("Copy URL")
+
+
+@step('And the response should contain "Open URL"')
+def response_should_contain_open_url():
+    """Assert response contains Open URL."""
+    response_should_contain("Open URL")
+
+
+@step('And the response should contain "Final Output Preview"')
+def response_should_contain_final_preview():
+    """Assert response contains Final Output Preview."""
+    response_should_contain("Final Output Preview")
+
+
+@step('And the response should contain "ace/theme/"')
+def response_should_contain_ace_theme():
+    """Assert response contains ace/theme/."""
+    response_should_contain("ace/theme/")
+
+
+@step('Then the response should contain "normalizeUrl"')
+def response_should_contain_normalize_url():
+    """Assert response contains normalizeUrl."""
+    response_should_contain("normalizeUrl")
+
+
+@step('And the response should contain "updateFromEditor"')
+def response_should_contain_update_from_editor():
+    """Assert response contains updateFromEditor."""
+    response_should_contain("updateFromEditor")
+
+
+@step('And the response should contain "updateHash"')
+def response_should_contain_update_hash():
+    """Assert response contains updateHash."""
+    response_should_contain("updateHash")
+
+
+@step('Then the response should contain "editor-section"')
+def response_should_contain_editor_section():
+    """Assert response contains editor-section."""
+    response_should_contain("editor-section")
+
+
+@step('And the response should contain "indicators-section"')
+def response_should_contain_indicators_section():
+    """Assert response contains indicators-section."""
+    response_should_contain("indicators-section")
+
+
+@step('And the response should contain "preview-section"')
+def response_should_contain_preview_section():
+    """Assert response contains preview-section."""
+    response_should_contain("preview-section")
+
+
+@step('And the response should contain "grid-template-columns"')
+def response_should_contain_grid_columns():
+    """Assert response contains grid-template-columns."""
+    response_should_contain("grid-template-columns")
+
+
+@step('Then the response should contain "fetchMetadata"')
+def response_should_contain_fetch_metadata():
+    """Assert response contains fetchMetadata."""
+    response_should_contain("fetchMetadata")
+
+
+@step('And the response should contain "/meta/"')
+def response_should_contain_meta():
+    """Assert response contains /meta/."""
+    response_should_contain("/meta/")
+
+
+@step('And the response should contain "updateIndicatorsFromMetadata"')
+def response_should_contain_update_indicators():
+    """Assert response contains updateIndicatorsFromMetadata."""
+    response_should_contain("updateIndicatorsFromMetadata")
+
+
+@step('Then the response should contain "valid URL path segment"')
+def response_should_contain_valid_segment():
+    """Assert response contains valid URL path segment."""
+    response_should_contain("valid URL path segment")
+
+
+@step('And the response should contain "can accept chained input"')
+def response_should_contain_chained_input():
+    """Assert response contains can accept chained input."""
+    response_should_contain("can accept chained input")
+
+
+@step('And the response should contain "Content Identifier"')
+def response_should_contain_content_identifier():
+    """Assert response contains Content Identifier."""
+    response_should_contain("Content Identifier")
+
+
+@step('And the redirect location should be "/urleditor#/echo/test"')
+def redirect_location_should_be_urleditor_echo_test():
+    """Assert redirect location is /urleditor#/echo/test."""
+    check_redirect_location("/urleditor#/echo/test")
+
+
+# AI Editor specific response steps
+@step('Then the response should contain "AI request editor"')
+def response_should_contain_ai_request_editor():
+    """Assert response contains AI request editor."""
+    response_should_contain("AI request editor")
+
+
+@step('And the response should contain "request_text"')
+def response_should_contain_request_text():
+    """Assert response contains request_text."""
+    response_should_contain("request_text")
+
+
+@step('And the response should contain "AI response"')
+def response_should_contain_ai_response():
+    """Assert response contains AI response."""
+    response_should_contain("AI response")
+
+
+@step('Then the response should contain "Hello"')
+def response_should_contain_hello():
+    """Assert response contains Hello."""
+    response_should_contain("Hello")
+
+
+@step('And the response should contain "\\"foo\\": \\"bar\\""')
+def response_should_contain_foo_bar():
+    """Assert response contains foo: bar JSON."""
+    response_should_contain('"foo": "bar"')
+
+
+@step('Then the response should contain "/search"')
+def response_should_contain_search():
+    """Assert response contains /search."""
+    response_should_contain("/search")
+
+
+@step('And the response should contain "Server Events"')
+def response_should_contain_server_events():
+    """Assert response contains Server Events."""
+    response_should_contain("Server Events")
+
+
+@step('And the response should contain "cannot be used in a server chain"')
+def response_should_contain_cannot_chain():
+    """Assert response contains cannot be used in a server chain."""
+    response_should_contain("cannot be used in a server chain")

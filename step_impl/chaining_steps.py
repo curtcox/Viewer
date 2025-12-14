@@ -736,3 +736,239 @@ def when_request_typescript_with_ext(suffix: str) -> None:
     assert cid_value, "No TypeScript CID stored."
 
     _request_path_and_store_response(f"/{cid_value}.ts/{suffix}")
+
+
+@step('Given a python CID literal server that wraps its payload with "<prefix>"')
+def python_literal_wraps_payload(prefix: str) -> None:
+    """Persist a Python CID server that wraps its input payload."""
+
+    definition = f'''def main(payload=None):
+    return {{"output": "{prefix}" + str(payload or ""), "content_type": "text/plain"}}
+'''
+    _save_language_cid(
+        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+    )
+
+
+@step('Given a python CID literal server that prefixes its payload with "<prefix>"')
+def python_literal_prefix_payload(prefix: str) -> None:
+    """Persist a Python CID server that prefixes its input payload."""
+
+    definition = f'''def main(payload=None):
+    return {{"output": "{prefix}" + str(payload or ""), "content_type": "text/plain"}}
+'''
+    _save_language_cid(
+        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+    )
+
+
+@step('Given a bash CID literal server that prefixes its payload with "<prefix>"')
+def bash_literal_prefixes_payload(prefix: str) -> None:
+    """Persist a Bash CID server that prefixes its payload."""
+
+    script = f"""#!/bin/bash
+read input_payload
+echo "{prefix}${{input_payload}}"
+"""
+    _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
+
+
+# Response assertion steps for server command chaining
+@step('Then the response should contain "literal-bash"')
+def then_response_contains_literal_bash() -> None:
+    """Assert response contains literal-bash."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "literal-bash" in body, f"Expected 'literal-bash' in response body"
+
+
+@step('Then the response should contain "bash:py-literal"')
+def then_response_contains_bash_py_literal() -> None:
+    """Assert response contains bash:py-literal."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "bash:py-literal" in body, f"Expected 'bash:py-literal' in response body"
+
+
+@step('Then the response should contain "bash:clj->bash"')
+def then_response_contains_bash_clj_bash() -> None:
+    """Assert response contains bash:clj->bash."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "bash:clj->bash" in body, f"Expected 'bash:clj->bash' in response body"
+
+
+@step('Then the response should contain "clj:bash->clj"')
+def then_response_contains_clj_bash_clj() -> None:
+    """Assert response contains clj:bash->clj."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "clj:bash->clj" in body, f"Expected 'clj:bash->clj' in response body"
+
+
+@step('Then the response should contain "clj:py->clj"')
+def then_response_contains_clj_py_clj() -> None:
+    """Assert response contains clj:py->clj."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "clj:py->clj" in body, f"Expected 'clj:py->clj' in response body"
+
+
+@step('Then the response should contain "clj:clj-right"')
+def then_response_contains_clj_clj_right() -> None:
+    """Assert response contains clj:clj-right."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "clj:clj-right" in body, f"Expected 'clj:clj-right' in response body"
+
+
+@step('Then the response should contain "clj-noext"')
+def then_response_contains_clj_noext() -> None:
+    """Assert response contains clj-noext."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "clj-noext" in body, f"Expected 'clj-noext' in response body"
+
+
+@step('Then the response should contain "bash:cljs->bash"')
+def then_response_contains_bash_cljs_bash() -> None:
+    """Assert response contains bash:cljs->bash."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "bash:cljs->bash" in body, f"Expected 'bash:cljs->bash' in response body"
+
+
+@step('Then the response should contain "cljs:cljs-right"')
+def then_response_contains_cljs_cljs_right() -> None:
+    """Assert response contains cljs:cljs-right."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "cljs:cljs-right" in body, f"Expected 'cljs:cljs-right' in response body"
+
+
+@step('Then the response should contain "cljs:py->cljs"')
+def then_response_contains_cljs_py_cljs() -> None:
+    """Assert response contains cljs:py->cljs."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "cljs:py->cljs" in body, f"Expected 'cljs:py->cljs' in response body"
+
+
+@step('Then the response should contain "cljs:bash->cljs"')
+def then_response_contains_cljs_bash_cljs() -> None:
+    """Assert response contains cljs:bash->cljs."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "cljs:bash->cljs" in body, f"Expected 'cljs:bash->cljs' in response body"
+
+
+@step('Then the response should contain "cljs:named->cljs"')
+def then_response_contains_cljs_named_cljs() -> None:
+    """Assert response contains cljs:named->cljs."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "cljs:named->cljs" in body, f"Expected 'cljs:named->cljs' in response body"
+
+
+@step('Then the response should contain "cljs-noext"')
+def then_response_contains_cljs_noext() -> None:
+    """Assert response contains cljs-noext."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "cljs-noext" in body, f"Expected 'cljs-noext' in response body"
+
+
+@step('Then the response should contain "bash:ts->bash"')
+def then_response_contains_bash_ts_bash() -> None:
+    """Assert response contains bash:ts->bash."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "bash:ts->bash" in body, f"Expected 'bash:ts->bash' in response body"
+
+
+@step('Then the response should contain "ts:ts-right"')
+def then_response_contains_ts_ts_right() -> None:
+    """Assert response contains ts:ts-right."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts:ts-right" in body, f"Expected 'ts:ts-right' in response body"
+
+
+@step('Then the response should contain "ts:py->ts"')
+def then_response_contains_ts_py_ts() -> None:
+    """Assert response contains ts:py->ts."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts:py->ts" in body, f"Expected 'ts:py->ts' in response body"
+
+
+@step('Then the response should contain "ts:bash->ts"')
+def then_response_contains_ts_bash_ts() -> None:
+    """Assert response contains ts:bash->ts."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts:bash->ts" in body, f"Expected 'ts:bash->ts' in response body"
+
+
+@step('Then the response should contain "ts:named->ts"')
+def then_response_contains_ts_named_ts() -> None:
+    """Assert response contains ts:named->ts."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts:named->ts" in body, f"Expected 'ts:named->ts' in response body"
+
+
+@step('Then the response should contain "ts-noext"')
+def then_response_contains_ts_noext() -> None:
+    """Assert response contains ts-noext."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts-noext" in body, f"Expected 'ts-noext' in response body"
+
+
+@step('Then the response should contain "ts-ext"')
+def then_response_contains_ts_ext() -> None:
+    """Assert response contains ts-ext."""
+    state = get_scenario_state()
+    response = state.get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "ts-ext" in body, f"Expected 'ts-ext' in response body"
