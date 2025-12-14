@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Any, Optional
 from urllib.parse import urlparse
 
@@ -147,7 +148,6 @@ def create_export_pr(
 
         # Generate branch name if not provided
         if not branch_name:
-            from datetime import datetime
             timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
             branch_name = f"viewer-export-{timestamp}"
 

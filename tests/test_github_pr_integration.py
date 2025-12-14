@@ -3,6 +3,8 @@ import json
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
+from github import GithubException
+
 from routes.import_export.github_pr import (
     GitHubPRError,
     create_export_pr,
@@ -85,7 +87,6 @@ class TestCreateExportPR(unittest.TestCase):
         mock_repo.get_git_ref.return_value = mock_ref
 
         # Mock file content (doesn't exist)
-        from github import GithubException
         mock_repo.get_contents.side_effect = GithubException(404, {'message': 'Not Found'}, None)
 
         # Mock PR creation
@@ -138,8 +139,6 @@ class TestCreateExportPR(unittest.TestCase):
     @patch('routes.import_export.github_pr.get_repository')
     def test_create_pr_branch_exists(self, mock_get_repo, mock_get_client):
         """Test creating PR when branch already exists."""
-        from github import GithubException
-
         # Setup mocks
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
@@ -267,8 +266,6 @@ class TestFetchPRExportData(unittest.TestCase):
     @patch('routes.import_export.github_pr.get_repository')
     def test_fetch_pr_not_found(self, mock_get_repo, mock_get_client):
         """Test fetching non-existent PR."""
-        from github import GithubException
-
         # Setup mocks
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
