@@ -21,12 +21,16 @@ def _store_server(name: str, definition: str) -> None:
     app = get_shared_app()
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
-        existing = Server.query.filter_by(name=name).first()
-        if existing:
-            existing.definition = normalized
-        else:
-            db.session.add(Server(name=name, definition=normalized, enabled=True))
-        db.session.commit()
+        try:
+            existing = Server.query.filter_by(name=name).first()
+            if existing:
+                existing.definition = normalized
+            else:
+                db.session.add(Server(name=name, definition=normalized, enabled=True))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
 
 def _store_cid(content: bytes) -> str:
@@ -35,10 +39,14 @@ def _store_cid(content: bytes) -> str:
     cid_value = generate_cid(content)
 
     with app.app_context():
-        existing = CID.query.filter_by(path=f"/{cid_value}").first()
-        if not existing:
-            db.session.add(CID(path=f"/{cid_value}", file_data=content))
-            db.session.commit()
+        try:
+            existing = CID.query.filter_by(path=f"/{cid_value}").first()
+            if not existing:
+                db.session.add(CID(path=f"/{cid_value}", file_data=content))
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
     return cid_value
 
@@ -50,7 +58,7 @@ def _resolve_cid_content(location: str) -> Optional[str]:
 
     candidates = [raw_path]
     if "." in raw_path:
-        candidates.append(raw_path.split(".", 1)[0])
+        candidates.append(raw_path.rsplit(".", 1)[0])
 
     with app.app_context():
         for candidate in candidates:
@@ -211,7 +219,7 @@ def when_request_grep_with_pattern(pattern: str) -> None:
     state["response"] = response
 
 
-@step('When I request the jq server with filter "<filter>" and the stored CID')
+@step('When I request the jq server with filter "<jq_filter>" and the stored CID')
 def when_request_jq_with_filter(jq_filter: str) -> None:
     """Request the jq server with a filter and stored CID."""
     state = get_scenario_state()
