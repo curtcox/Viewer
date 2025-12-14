@@ -238,7 +238,34 @@ class ExportForm(FlaskForm):
         validators=[Optional()],
         render_kw={'placeholder': 'Required when exporting secrets'},
     )
+    # GitHub PR fields
+    github_target_repo = StringField(
+        'Target Repository',
+        validators=[Optional()],
+        render_kw={'placeholder': 'owner/repo'},
+    )
+    github_token = StringField(
+        'GitHub Token',
+        validators=[Optional()],
+        render_kw={'placeholder': 'ghp_...', 'type': 'password'},
+    )
+    github_pr_title = StringField(
+        'Pull Request Title',
+        validators=[Optional()],
+        render_kw={'placeholder': 'Update boot image definitions'},
+    )
+    github_pr_description = TextAreaField(
+        'Pull Request Description',
+        validators=[Optional()],
+        render_kw={'rows': 3, 'placeholder': 'Describe the changes...'},
+    )
+    github_branch_name = StringField(
+        'Branch Name',
+        validators=[Optional()],
+        render_kw={'placeholder': 'Auto-generated if not provided'},
+    )
     submit = SubmitField('Generate JSON Export')
+    submit_github_pr = SubmitField('Create Pull Request')
 
     def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
@@ -258,6 +285,7 @@ class ImportForm(FlaskForm):
             ('file', 'Upload JSON File'),
             ('text', 'Paste JSON Text'),
             ('url', 'Load JSON from URL'),
+            ('github_pr', 'Import from GitHub PR'),
         ],
         default='file',
         validators=[DataRequired()],
@@ -272,6 +300,17 @@ class ImportForm(FlaskForm):
         'JSON URL',
         validators=[Optional()],
         render_kw={'placeholder': 'https://example.com/export.json'},
+    )
+    # GitHub PR import fields
+    github_pr_url = StringField(
+        'GitHub PR URL',
+        validators=[Optional()],
+        render_kw={'placeholder': 'https://github.com/owner/repo/pull/123'},
+    )
+    github_import_token = StringField(
+        'GitHub Token (Optional)',
+        validators=[Optional()],
+        render_kw={'placeholder': 'ghp_... (for private repos)', 'type': 'password'},
     )
     include_aliases = BooleanField('Aliases')
     include_servers = BooleanField('Servers')

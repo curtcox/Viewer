@@ -16,6 +16,7 @@ from server_execution.code_execution import (
     execute_server_function,
     execute_server_function_from_definition,
 )
+from server_execution.function_analysis import _analyze_server_definition_for_function
 from server_execution.language_detection import detect_server_language
 # pylint: enable=no-name-in-module
 
@@ -130,6 +131,16 @@ def try_server_execution(path: str) -> Optional[Response]:
         if detect_server_language(getattr(server, "definition", "")) != "python":
             return execute_server_code(server, server_name)
 
+        helper_details = _analyze_server_definition_for_function(server.definition, function_name)
+        if helper_details is None:
+            main_details = _analyze_server_definition_for_function(server.definition, "main")
+            if main_details is None:
+                return execute_server_code(server, server_name)
+
+            # Preserve existing behavior for "normal" servers: when a helper
+            # is requested but missing, allow a 404 rather than running main.
+            return None
+
         result = execute_server_function(server, server_name, function_name)
         if result is None:
             if _auto_main_accepts_additional_path(server):
@@ -160,6 +171,20 @@ def try_server_execution(path: str) -> Optional[Response]:
             allow_fallback=True,
             language_override=literal_language,
         )
+
+    helper_details = _analyze_server_definition_for_function(definition_text, function_name)
+    if helper_details is None:
+        main_details = _analyze_server_definition_for_function(definition_text, "main")
+        if main_details is None:
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
+        return None
 
     result = _execute_server_code_common(
         definition_text,

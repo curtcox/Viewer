@@ -2,6 +2,7 @@
 
 import json
 import traceback
+import html
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -10,6 +11,60 @@ from cid_utils import generate_cid
 from db_access import create_cid_record, get_cid_by_path
 from flask import Response, current_app, make_response, render_template, url_for
 from werkzeug.routing import BuildError
+
+
+def _extract_server_error_lineno(exc: Exception) -> Optional[int]:
+    lineno = getattr(exc, "lineno", None)
+    if isinstance(lineno, int) and lineno > 0:
+        return lineno
+
+    traceback_obj = getattr(exc, "__traceback__", None)
+    if traceback_obj is None:
+        return None
+
+    try:
+        frames = traceback.extract_tb(traceback_obj)
+    except Exception:  # pragma: no cover - defensive fallback
+        return None
+
+    server_frame = None
+    for frame in frames:
+        if frame.filename == "<string>":
+            server_frame = frame
+
+    if server_frame and isinstance(server_frame.lineno, int) and server_frame.lineno > 0:
+        return server_frame.lineno
+
+    return None
+
+
+def _render_server_source_with_highlight(code_text: str, highlight_lineno: int) -> str:
+    lines = code_text.splitlines()
+    output_lines: list[str] = []
+    for index, line in enumerate(lines, start=1):
+        escaped = html.escape(line)
+        css_class = "server-source-line"
+        if index == highlight_lineno:
+            css_class += " highlight"
+        output_lines.append(
+            f'<span class="{css_class}" data-line="{index}">' \
+            f'<span class="server-source-lineno">{index:4d}</span> {escaped}</span>'
+        )
+    return "\n".join(output_lines)
+
+
+def _wrap_highlighted_lines(highlighted_html: str, highlight_lineno: Optional[int]) -> str:
+    lines = highlighted_html.splitlines()
+    output_lines: list[str] = []
+    for index, line in enumerate(lines, start=1):
+        css_class = "server-source-line"
+        if highlight_lineno is not None and index == highlight_lineno:
+            css_class += " highlight"
+        output_lines.append(
+            f'<span class="{css_class}" data-line="{index}">'
+            f'<span class="server-source-lineno">{index:4d}</span> {line}</span>'
+        )
+    return "\n".join(output_lines)
 
 
 def _render_execution_error_html(
@@ -41,11 +96,28 @@ def _render_execution_error_html(
     code_text = code if isinstance(code, str) else ""
     highlighted_code = None
     syntax_css = None
+    server_source_css = None
     if code_text:
-        highlighted_code, syntax_css = highlight_source(
+        highlight_lineno = _extract_server_error_lineno(exc)
+        mapped_lineno = highlight_lineno - 1 if highlight_lineno is not None else None
+        if mapped_lineno is not None and not (1 <= mapped_lineno <= len(code_text.splitlines())):
+            mapped_lineno = None
+
+        highlighted_inner, syntax_css = highlight_source(
             code_text,
             filename=f"{server_name or 'server'}.py",
             fallback_lexer="python",
+        )
+        if highlighted_inner is not None:
+            highlighted_code = _wrap_highlighted_lines(highlighted_inner, mapped_lineno)
+        else:
+            highlighted_code = None
+
+        server_source_css = (
+            ".server-source-line{display:block;white-space:pre;}"
+            ".server-source-lineno{display:inline-block;color:#6c757d;margin-right:.75rem;}"
+            ".server-source-line.highlight{background-color:rgba(255,193,7,.25);"
+            "border-left:4px solid #ffc107;padding-left:.5rem;}"
         )
 
     server_definition_url: Optional[str]
@@ -85,6 +157,7 @@ def _render_execution_error_html(
         highlighted_server_code=highlighted_code,
         server_definition=code_text,
         syntax_css=syntax_css,
+        server_source_css=server_source_css,
         server_args_json=args_json,
         server_name=server_name,
         server_definition_url=server_definition_url,
