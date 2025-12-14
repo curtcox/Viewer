@@ -78,25 +78,39 @@ class TestResolveBashPathParameters(unittest.TestCase):
 
     def test_extracts_first_segment_as_script_arg(self):
         """First path segment should be extracted as script arg."""
-        app = Flask(__name__)
-        with app.test_request_context("/awk/pattern"):
-            script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
-                "awk", '#!/bin/bash\nawk "$1"'
-            )
-        assert script_arg == "pattern"
-        assert chained_input_path is None
-        assert remaining == []
+        from app import create_app
+        from database import db
+        from db_config import DatabaseConfig, DatabaseMode
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        app = create_app({"TESTING": True})
+        with app.app_context():
+            db.create_all()
+            with app.test_request_context("/awk/pattern"):
+                script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
+                    "awk", '#!/bin/bash\nawk "$1"'
+                )
+            assert script_arg == "pattern"
+            assert chained_input_path is None
+            assert remaining == []
+        DatabaseConfig.reset()
 
     def test_extracts_remaining_path_for_stdin(self):
         """Remaining path after first segment should be for chained input."""
-        app = Flask(__name__)
-        with app.test_request_context("/sed/s/foo/bar/echo/hello"):
-            script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
-                "sed", '#!/bin/bash\nsed "$1"'
-            )
-        assert script_arg == "s"
-        assert chained_input_path == "/foo/bar/echo/hello"
-        assert remaining == ["foo", "bar", "echo", "hello"]
+        from app import create_app
+        from database import db
+        from db_config import DatabaseConfig, DatabaseMode
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        app = create_app({"TESTING": True})
+        with app.app_context():
+            db.create_all()
+            with app.test_request_context("/sed/s/foo/bar/echo/hello"):
+                script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
+                    "sed", '#!/bin/bash\nsed "$1"'
+                )
+            assert script_arg == "s"
+            assert chained_input_path == "/foo/bar/echo/hello"
+            assert remaining == ["foo", "bar", "echo", "hello"]
+        DatabaseConfig.reset()
 
     def test_returns_none_with_no_remaining_path(self):
         """No remaining path means no script arg."""
