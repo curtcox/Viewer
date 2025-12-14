@@ -7,6 +7,8 @@ path parameters as positional arguments when they use $1, $2, etc.
 import unittest
 from unittest.mock import patch, MagicMock
 
+import pytest
+
 from flask import Flask
 
 from server_execution.code_execution import (
@@ -173,8 +175,12 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         assert status == 200
 
 
+@pytest.mark.integration
 class TestAwkServer(unittest.TestCase):
-    """Test awk server with path parameters."""
+    """Test awk server with path parameters.
+
+    Marked as integration test because it requires gawk binary.
+    """
 
     def test_awk_with_pattern(self):
         """Awk should process pattern from $1."""
@@ -236,8 +242,12 @@ class TestGrepServer(unittest.TestCase):
         assert status == 200
 
 
+@pytest.mark.integration
 class TestJqServer(unittest.TestCase):
-    """Test jq server with path parameters."""
+    """Test jq server with path parameters.
+
+    Marked as integration test because it requires jq binary.
+    """
 
     def test_jq_with_filter(self):
         """Jq should apply filter from $1."""
