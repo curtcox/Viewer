@@ -918,3 +918,183 @@ def when_i_request_shell_resource() -> None:
 def the_response_content_type_should_be_text_html() -> None:
     """Validate that the response content type is text/html."""
     the_response_content_type_should_be("text/html")
+
+
+@step("And the response content type should be text/html")
+def and_the_response_content_type_should_be_text_html() -> None:
+    """Validate that the response content type is text/html."""
+    the_response_content_type_should_be("text/html")
+
+
+@step("When I request the page /servers")
+def when_i_request_servers_page() -> None:
+    """Request the servers list page."""
+    _perform_get_request("/servers")
+
+
+@step("When I request the page /api/routes")
+def when_i_request_api_routes_page() -> None:
+    """Request the API routes page."""
+    _perform_get_request("/api/routes")
+
+
+@step("The page should contain User management is handled externally")
+def then_page_should_contain_user_management() -> None:
+    """Verify the page contains User management message."""
+    then_page_should_contain("User management is handled externally")
+
+
+@step('The page should contain href="/source/authorization.py"')
+def then_page_should_contain_authorization_source_link() -> None:
+    """Verify the page contains authorization source link."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert 'href="/source/authorization.py"' in body, (
+        'Expected to find href="/source/authorization.py" in the response body.'
+    )
+
+
+@step("The page should contain Create New Variable")
+def then_page_should_contain_create_new_variable() -> None:
+    """Verify the page contains Create New Variable text."""
+    then_page_should_contain("Create New Variable")
+
+
+@step('And the page should contain "request"')
+def and_page_should_contain_request() -> None:
+    """Verify the page contains request text."""
+    then_page_should_contain("request")
+
+
+@step('And the page should contain "context"')
+def and_page_should_contain_context() -> None:
+    """Verify the page contains context text."""
+    then_page_should_contain("context")
+
+
+@step('And the page should contain "form"')
+def and_page_should_contain_form() -> None:
+    """Verify the page contains form text."""
+    then_page_should_contain("form")
+
+
+@step('And the page should contain "command"')
+def and_page_should_contain_command() -> None:
+    """Verify the page contains command text."""
+    then_page_should_contain("command")
+
+
+@step('The page should contain href="/history?start="')
+def then_page_should_contain_history_link() -> None:
+    """Verify the page contains history link."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert 'href="/history?start=' in body, (
+        'Expected to find href="/history?start=" in the response body.'
+    )
+
+
+@step('The page should contain href="/server_events?start="')
+def then_page_should_contain_server_events_link() -> None:
+    """Verify the page contains server_events link."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert 'href="/server_events?start=' in body, (
+        'Expected to find href="/server_events?start=" in the response body.'
+    )
+
+
+@step("The page should contain About this page")
+def then_page_should_contain_about_this_page() -> None:
+    """Verify the page contains About this page text."""
+    then_page_should_contain("About this page")
+
+
+@step("The page should contain History")
+def then_page_should_contain_history() -> None:
+    """Verify the page contains History text."""
+    then_page_should_contain("History")
+
+
+@step("The page should contain city")
+def then_page_should_contain_city() -> None:
+    """Verify the page contains city text."""
+    then_page_should_contain("city")
+
+
+@step("The page should contain api_key")
+def then_page_should_contain_api_key() -> None:
+    """Verify the page contains api_key text."""
+    then_page_should_contain("api_key")
+
+
+@step("The page should contain /variables/city")
+def then_page_should_contain_variables_city() -> None:
+    """Verify the page contains /variables/city link."""
+    then_page_should_contain("/variables/city")
+
+
+@step("The page should contain /secrets/api_key")
+def then_page_should_contain_secrets_api_key() -> None:
+    """Verify the page contains /secrets/api_key link."""
+    then_page_should_contain("/secrets/api_key")
+
+
+@step("The page should contain echo_service")
+def then_page_should_contain_echo_service() -> None:
+    """Verify the page contains echo_service text."""
+    then_page_should_contain("echo_service")
+
+
+@step("The page should contain 403")
+def then_page_should_contain_403() -> None:
+    """Verify the page contains 403 status."""
+    then_page_should_contain("403")
+
+
+@step("The page should contain Forbidden")
+def then_page_should_contain_forbidden() -> None:
+    """Verify the page contains Forbidden text."""
+    then_page_should_contain("Forbidden")
+
+
+# Authorization-related response assertions
+@step("The response should contain Create New Alias")
+def the_response_should_contain_create_new_alias() -> None:
+    """Verify the response contains Create New Alias text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "Create New Alias" in body, "Expected to find Create New Alias in the response."
+
+
+@step("The response should contain error")
+def the_response_should_contain_error() -> None:
+    """Verify the response contains error text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "error" in body.lower(), "Expected to find error in the response."
+
+
+@step("The response should contain Authorization failed")
+def the_response_should_contain_authorization_failed() -> None:
+    """Verify the response contains Authorization failed text."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "Authorization" in body or "authorization" in body.lower(), (
+        "Expected to find Authorization in the response."
+    )
+
+
+@step("The response should contain Error 401")
+def the_response_should_contain_error_401() -> None:
+    """Verify the response contains Error 401."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    body = response.get_data(as_text=True)
+    assert "401" in body, "Expected to find 401 in the response."

@@ -589,3 +589,83 @@ def given_enabled_alias_exists(alias_name: str, target_path: str) -> None:
         db.session.commit()
 
     get_scenario_state()["alias_name"] = alias_name
+
+
+@step('Given there is an alias named "docs" pointing to /guides')
+def given_docs_alias_exists() -> None:
+    """Create docs alias pointing to /guides."""
+    given_alias_exists("docs", "/guides")
+
+
+# Alias view page assertions
+@step('Then the response status should be 200')
+def then_response_status_should_be_200() -> None:
+    """Assert the response status is 200."""
+    response = get_scenario_state().get("response")
+    assert response is not None, "No response recorded."
+    assert response.status_code == 200, f"Expected status 200, got {response.status_code}"
+
+
+@step('And the page should contain "Alias Details"')
+def and_page_should_contain_alias_details() -> None:
+    """Assert page contains Alias Details."""
+    body = _get_response_body()
+    assert "Alias Details" in body, "Expected to find 'Alias Details' in page"
+
+
+@step('And the page should contain "test-alias"')
+def and_page_should_contain_test_alias() -> None:
+    """Assert page contains test-alias."""
+    body = _get_response_body()
+    assert "test-alias" in body, "Expected to find 'test-alias' in page"
+
+
+@step('And the page should contain "/test-target"')
+def and_page_should_contain_test_target() -> None:
+    """Assert page contains /test-target."""
+    body = _get_response_body()
+    assert "/test-target" in body, "Expected to find '/test-target' in page"
+
+
+@step('And the page should contain "Back to Aliases"')
+def and_page_should_contain_back_to_aliases() -> None:
+    """Assert page contains Back to Aliases."""
+    body = _get_response_body()
+    assert "Back to Aliases" in body, "Expected to find 'Back to Aliases' in page"
+
+
+@step('And the page should contain "Edit Alias"')
+def and_page_should_contain_edit_alias() -> None:
+    """Assert page contains Edit Alias."""
+    body = _get_response_body()
+    assert "Edit Alias" in body, "Expected to find 'Edit Alias' in page"
+
+
+@step('And the page should contain "Enabled"')
+def and_page_should_contain_enabled() -> None:
+    """Assert page contains Enabled."""
+    body = _get_response_body()
+    assert "Enabled" in body, "Expected to find 'Enabled' in page"
+
+
+@step('And the page should contain "Alias Definition"')
+def and_page_should_contain_alias_definition() -> None:
+    """Assert page contains Alias Definition."""
+    body = _get_response_body()
+    assert "Alias Definition" in body, "Expected to find 'Alias Definition' in page"
+
+
+@step('And the page should contain "How it Works"')
+def and_page_should_contain_how_it_works() -> None:
+    """Assert page contains How it Works."""
+    body = _get_response_body()
+    assert "How it Works" in body, "Expected to find 'How it Works' in page"
+
+
+@step("When I request the page /aliases/new as user \"alternate-user\"")
+def when_i_request_aliases_new_as_alternate() -> None:
+    """Request /aliases/new as alternate-user."""
+    client = _require_client()
+    response = client.get("/aliases/new")
+    get_scenario_state()["response"] = response
+    attach_response_snapshot(response)
