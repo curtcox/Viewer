@@ -4,6 +4,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -37,6 +38,108 @@ from text_function_runner import run_text_function
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 _SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
+
+# Pattern to detect positional parameters in bash scripts (e.g., $1, $2)
+_BASH_POSITIONAL_PARAM_PATTERN = r'\$[1-9]'
+
+
+def _bash_script_uses_positional_params(code: str) -> bool:
+    """Check if a bash script uses positional parameters like $1, $2, etc.
+
+    Args:
+        code: The bash script code
+
+    Returns:
+        True if the script uses positional parameters, False otherwise
+    """
+    return bool(re.search(_BASH_POSITIONAL_PARAM_PATTERN, code))
+
+
+def _resolve_cid_content(cid_segment: str) -> Optional[str]:
+    """Resolve CID content from a path segment.
+
+    If the segment is a valid CID, returns its contents.
+    Otherwise, returns None.
+
+    Args:
+        cid_segment: A path segment that may be a CID
+
+    Returns:
+        The CID content as a string, or None if not a valid CID
+    """
+    # Try to extract CID components
+    cid_components = split_cid_path(cid_segment) or split_cid_path(f"/{cid_segment}")
+    if not cid_components:
+        return None
+
+    cid_value, _ = cid_components
+    normalized_cid = format_cid(cid_value)
+
+    # Try literal CID content first
+    literal_bytes = extract_literal_content(normalized_cid)
+    if literal_bytes is not None:
+        try:
+            return literal_bytes.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            return literal_bytes.decode("utf-8", errors="replace")
+
+    # Try database CID lookup
+    cid_record_path = cid_path(normalized_cid)
+    if cid_record_path:
+        cid_record = get_cid_by_path(cid_record_path)
+        if cid_record and getattr(cid_record, "file_data", None) is not None:
+            try:
+                return cid_record.file_data.decode("utf-8")
+            except (UnicodeDecodeError, AttributeError):
+                return cid_record.file_data.decode("utf-8", errors="replace")
+
+    return None
+
+
+def _resolve_bash_path_parameters(
+    server_name: str,
+    code: str,
+) -> tuple[Optional[str], Optional[str], list[str]]:
+    """Resolve path parameters for bash scripts that use $1.
+
+    When a bash script contains $1, this function extracts path parameters:
+    - The first path segment after the server name becomes $1
+    - If that segment is a valid CID, its contents are used instead
+    - The remaining path segments are returned for chained input resolution
+
+    Args:
+        server_name: The name of the bash server
+        code: The bash script code
+
+    Returns:
+        A tuple of (script_arg, chained_input_path, remaining_segments):
+        - script_arg: The value to pass as $1 to the script (or None)
+        - chained_input_path: Path to resolve for stdin input (or None)
+        - remaining_segments: List of remaining path segments
+    """
+    if not _bash_script_uses_positional_params(code):
+        return None, None, []
+
+    remainder_segments = _remaining_path_segments(server_name)
+    if not remainder_segments:
+        return None, None, []
+
+    # First segment is the script argument ($1)
+    first_segment = remainder_segments[0]
+
+    # Try to resolve as CID content
+    cid_content = _resolve_cid_content(first_segment)
+    script_arg = cid_content if cid_content is not None else first_segment
+
+    # Remaining segments are for stdin
+    remaining_segments = remainder_segments[1:]
+
+    if remaining_segments:
+        chained_input_path = "/" + "/".join(remaining_segments)
+    else:
+        chained_input_path = None
+
+    return script_arg, chained_input_path, remaining_segments
 
 
 def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
@@ -212,10 +315,14 @@ def _execute_python_code_to_value(
 
 
 def _execute_bash_code_to_value(
-    code: str, server_name: str, chained_input: Optional[str]
+    code: str,
+    server_name: str,
+    chained_input: Optional[str],
+    *,
+    script_args: Optional[List[str]] = None,
 ) -> Any:
     stdout, status_code, stderr = _run_bash_script(
-        code, server_name, chained_input=chained_input
+        code, server_name, chained_input=chained_input, script_args=script_args
     )
     combined_output = stdout or b""
     if status_code >= 400 and stderr:
@@ -608,9 +715,10 @@ def _execute_bash_server_response(
     debug_prefix: str,
     *,
     chained_input: Optional[str],
+    script_args: Optional[List[str]] = None,
 ) -> Response:
     stdout, status_code, stderr = _run_bash_script(
-        code, server_name, chained_input=chained_input
+        code, server_name, chained_input=chained_input, script_args=script_args
     )
 
     output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
@@ -969,17 +1077,37 @@ def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
 
 
 def _run_bash_script(
-    code: str, server_name: str, *, chained_input: Optional[str] = None
+    code: str,
+    server_name: str,
+    *,
+    chained_input: Optional[str] = None,
+    script_args: Optional[List[str]] = None,
 ) -> tuple[bytes, int, bytes]:
+    """Execute a bash script with optional positional arguments and stdin input.
+
+    Args:
+        code: The bash script code
+        server_name: Name of the server (for logging)
+        chained_input: Optional content to pass as stdin
+        script_args: Optional list of positional arguments ($1, $2, etc.)
+
+    Returns:
+        Tuple of (stdout, status_code, stderr)
+    """
     stdin_payload = _build_bash_stdin_payload(chained_input)
 
     with tempfile.NamedTemporaryFile("w", delete=False, suffix=".sh") as script_file:
         script_file.write(code)
         script_path = script_file.name
 
+    # Build the command with optional script arguments
+    cmd = ["bash", script_path]
+    if script_args:
+        cmd.extend(script_args)
+
     try:
         result = subprocess.run(
-            ["bash", script_path],
+            cmd,
             input=stdin_payload,
             capture_output=True,
             check=False,
@@ -1185,6 +1313,32 @@ def _execute_server_code_common(
     language = language_override or detect_server_language(code)
 
     if language == "bash":
+        # Check if script uses positional parameters ($1, $2, etc.)
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(server_name, code)
+
+        if script_arg is not None:
+            # Script uses $1 - use path parameter logic
+            chained_input: Optional[str] = None
+            early_response: Optional[Response] = None
+
+            if chained_input_path:
+                # Resolve the remaining path for stdin
+                visited: Set[str] = set()
+                nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+                if isinstance(nested_value, Response):
+                    return nested_value
+                if nested_value is not None:
+                    chained_input = str(_extract_chained_output(nested_value))
+
+            return _execute_bash_server_response(
+                code,
+                server_name,
+                debug_prefix,
+                chained_input=chained_input,
+                script_args=[script_arg],
+            )
+
+        # Standard bash execution (no $1 in script)
         chained_input, early_response = _resolve_chained_input_for_server(server_name)
         if early_response:
             return early_response

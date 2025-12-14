@@ -94,6 +94,26 @@
       "name": "ai_editor",
       "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
       "enabled": true
+    },
+    {
+      "name": "awk",
+      "definition_cid": "reference_templates/servers/definitions/awk.sh",
+      "enabled": true
+    },
+    {
+      "name": "sed",
+      "definition_cid": "reference_templates/servers/definitions/sed.sh",
+      "enabled": true
+    },
+    {
+      "name": "grep",
+      "definition_cid": "reference_templates/servers/definitions/grep.sh",
+      "enabled": true
+    },
+    {
+      "name": "jq",
+      "definition_cid": "reference_templates/servers/definitions/jq.sh",
+      "enabled": true
     }
   ],
   "variables": [
