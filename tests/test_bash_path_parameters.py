@@ -5,7 +5,7 @@ path parameters as positional arguments when they use $1, $2, etc.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
@@ -14,7 +14,6 @@ from flask import Flask
 from server_execution.code_execution import (
     _bash_script_uses_positional_params,
     _resolve_bash_path_parameters,
-    _resolve_cid_content,
     _run_bash_script,
 )
 
