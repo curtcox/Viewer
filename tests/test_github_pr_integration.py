@@ -1,7 +1,7 @@
 """Unit tests for GitHub PR integration."""
 import json
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 from github import GithubException
 
@@ -87,7 +87,9 @@ class TestCreateExportPR(unittest.TestCase):
         mock_repo.get_git_ref.return_value = mock_ref
 
         # Mock file content (doesn't exist)
-        mock_repo.get_contents.side_effect = GithubException(404, {'message': 'Not Found'}, None)
+        mock_repo.get_contents.side_effect = GithubException(
+            404, {'message': 'Not Found'}, None
+        )
 
         # Mock PR creation
         mock_pr = MagicMock()
@@ -153,7 +155,9 @@ class TestCreateExportPR(unittest.TestCase):
         mock_repo.get_git_ref.return_value = mock_ref
 
         # Mock branch creation failure (already exists)
-        mock_repo.create_git_ref.side_effect = GithubException(422, {'message': 'Reference already exists'}, None)
+        mock_repo.create_git_ref.side_effect = GithubException(
+            422, {'message': 'Reference already exists'}, None
+        )
 
         # Test
         with self.assertRaises(GitHubPRError) as ctx:
@@ -163,7 +167,7 @@ class TestCreateExportPR(unittest.TestCase):
                 github_token='test_token',
                 branch_name='existing-branch',
             )
-        
+
         self.assertIn('already exists', str(ctx.exception))
 
     @patch('routes.import_export.github_pr.get_github_client')
@@ -274,7 +278,9 @@ class TestFetchPRExportData(unittest.TestCase):
         mock_get_repo.return_value = mock_repo
 
         # Mock PR not found
-        mock_repo.get_pull.side_effect = GithubException(404, {'message': 'Not Found'}, None)
+        mock_repo.get_pull.side_effect = GithubException(
+            404, {'message': 'Not Found'}, None
+        )
 
         # Test
         json_data, error = fetch_pr_export_data(
