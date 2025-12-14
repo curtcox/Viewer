@@ -261,9 +261,94 @@
                     <a href="{{ url_for('main.settings') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-times me-1"></i>Cancel
                     </a>
-                    {{ form.submit(class="btn btn-primary") }}
+                    <div class="d-flex gap-2 flex-wrap">
+                        {{ form.submit(class="btn btn-primary") }}
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#githubPRModal">
+                            <i class="fab fa-github me-1"></i>Create Pull Request
+                        </button>
+                    </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- GitHub PR Modal -->
+    <div class="modal fade" id="githubPRModal" tabindex="-1" aria-labelledby="githubPRModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="githubPRModalLabel">
+                        <i class="fab fa-github me-2"></i>Create GitHub Pull Request
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="github-pr-form">
+                    {{ form.hidden_tag() }}
+                    <!-- Include all existing form fields as hidden -->
+                    <input type="hidden" name="snapshot" id="pr-snapshot" value="">
+                    <input type="hidden" name="include_aliases" id="pr-include-aliases" value="">
+                    <input type="hidden" name="include_disabled_aliases" id="pr-include-disabled-aliases" value="">
+                    <input type="hidden" name="include_template_aliases" id="pr-include-template-aliases" value="">
+                    <input type="hidden" name="include_servers" id="pr-include-servers" value="">
+                    <input type="hidden" name="include_disabled_servers" id="pr-include-disabled-servers" value="">
+                    <input type="hidden" name="include_template_servers" id="pr-include-template-servers" value="">
+                    <input type="hidden" name="include_variables" id="pr-include-variables" value="">
+                    <input type="hidden" name="include_disabled_variables" id="pr-include-disabled-variables" value="">
+                    <input type="hidden" name="include_template_variables" id="pr-include-template-variables" value="">
+                    <input type="hidden" name="include_secrets" id="pr-include-secrets" value="">
+                    <input type="hidden" name="include_disabled_secrets" id="pr-include-disabled-secrets" value="">
+                    <input type="hidden" name="include_template_secrets" id="pr-include-template-secrets" value="">
+                    <input type="hidden" name="include_history" id="pr-include-history" value="">
+                    <input type="hidden" name="include_source" id="pr-include-source" value="">
+                    <input type="hidden" name="include_cid_map" id="pr-include-cid-map" value="">
+                    <input type="hidden" name="include_unreferenced_cid_data" id="pr-include-unreferenced-cid-data" value="">
+                    <input type="hidden" name="secret_key" id="pr-secret-key" value="">
+                    
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Create a pull request with your exported definitions to update the boot image in a GitHub repository.
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.github_target_repo.label(class="form-label required") }}
+                            {{ form.github_target_repo(class="form-control", required=True) }}
+                            <div class="form-text">Format: owner/repo (e.g., curtcox/Viewer)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.github_token.label(class="form-label required") }}
+                            {{ form.github_token(class="form-control", required=True) }}
+                            <div class="form-text">
+                                GitHub personal access token with 'repo' scope. 
+                                <a href="https://github.com/settings/tokens/new" target="_blank">Create token</a>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.github_pr_title.label(class="form-label") }}
+                            {{ form.github_pr_title(class="form-control") }}
+                            <div class="form-text">Leave blank for default title</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.github_pr_description.label(class="form-label") }}
+                            {{ form.github_pr_description(class="form-control") }}
+                            <div class="form-text">Describe what definitions you're exporting</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.github_branch_name.label(class="form-label") }}
+                            {{ form.github_branch_name(class="form-control") }}
+                            <div class="form-text">Leave blank to auto-generate branch name</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        {{ form.submit_github_pr(class="btn btn-success") }}
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -725,5 +810,36 @@
                 schedulePreviewUpdate();
             }
         });
+
+        // Sync form values to GitHub PR modal when it opens
+        var githubPRModal = document.getElementById('githubPRModal');
+        if (githubPRModal) {
+            githubPRModal.addEventListener('show.bs.modal', function () {
+                // Copy checkbox values
+                document.getElementById('pr-snapshot').value = document.getElementById('snapshot-toggle').checked ? 'y' : '';
+                document.getElementById('pr-include-aliases').value = document.getElementById('include-aliases').checked ? 'y' : '';
+                document.getElementById('pr-include-disabled-aliases').value = document.getElementById('include-disabled-aliases').checked ? 'y' : '';
+                document.getElementById('pr-include-template-aliases').value = document.getElementById('include-template-aliases').checked ? 'y' : '';
+                document.getElementById('pr-include-servers').value = document.getElementById('include-servers').checked ? 'y' : '';
+                document.getElementById('pr-include-disabled-servers').value = document.getElementById('include-disabled-servers').checked ? 'y' : '';
+                document.getElementById('pr-include-template-servers').value = document.getElementById('include-template-servers').checked ? 'y' : '';
+                document.getElementById('pr-include-variables').value = document.getElementById('include-variables').checked ? 'y' : '';
+                document.getElementById('pr-include-disabled-variables').value = document.getElementById('include-disabled-variables').checked ? 'y' : '';
+                document.getElementById('pr-include-template-variables').value = document.getElementById('include-template-variables').checked ? 'y' : '';
+                document.getElementById('pr-include-secrets').value = document.getElementById('include-secrets').checked ? 'y' : '';
+                document.getElementById('pr-include-disabled-secrets').value = document.getElementById('include-disabled-secrets').checked ? 'y' : '';
+                document.getElementById('pr-include-template-secrets').value = document.getElementById('include-template-secrets').checked ? 'y' : '';
+                document.getElementById('pr-include-history').value = document.getElementById('include-history').checked ? 'y' : '';
+                document.getElementById('pr-include-source').value = document.getElementById('include-source').checked ? 'y' : '';
+                document.getElementById('pr-include-cid-map').value = document.getElementById('include-cid-map').checked ? 'y' : '';
+                document.getElementById('pr-include-unreferenced-cid-data').value = document.getElementById('include-unreferenced-cid-data').checked ? 'y' : '';
+                
+                // Copy text values
+                var secretKeyInput = document.getElementById('secret_key');
+                if (secretKeyInput) {
+                    document.getElementById('pr-secret-key').value = secretKeyInput.value;
+                }
+            });
+        }
     </script>
 {% endblock %}

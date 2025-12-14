@@ -32,6 +32,28 @@
                         </div>
                     </div>
 
+                    {% if github_pr %}
+                    <div class="alert alert-success" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fab fa-github me-2"></i>Pull Request Created Successfully
+                        </h5>
+                        <p class="mb-2">Your exported definitions have been pushed to GitHub and a pull request has been created.</p>
+                        <hr>
+                        <div class="mb-2">
+                            <strong>Repository:</strong> <code>{{ github_pr.target_repo }}</code>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Branch:</strong> <code>{{ github_pr.branch_name }}</code>
+                        </div>
+                        <div class="mb-3">
+                            <strong>PR Number:</strong> #{{ github_pr.number }}
+                        </div>
+                        <a href="{{ github_pr.html_url }}" target="_blank" class="btn btn-success btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>View Pull Request on GitHub
+                        </a>
+                    </div>
+                    {% endif %}
+
                     <details class="mt-3">
                         <summary class="fw-semibold">View exported JSON</summary>
                         <pre class="mt-3 bg-dark text-light p-3 rounded" style="max-height: 24rem; overflow:auto;">{{ json_payload }}</pre>

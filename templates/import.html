@@ -22,7 +22,7 @@
                     <form method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
 
-                        <p class="text-muted">Upload a previously exported JSON file, paste JSON directly, or fetch the data from a URL.</p>
+                        <p class="text-muted">Upload a previously exported JSON file, paste JSON directly, fetch from a URL, or import from a GitHub PR.</p>
 
                         <ul class="nav nav-tabs" role="tablist">
                             <li class="nav-item" role="presentation">
@@ -33,6 +33,11 @@
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="tab-url" data-bs-toggle="tab" data-bs-target="#pane-url" type="button" role="tab" aria-controls="pane-url" aria-selected="false">Load JSON from URL</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="tab-github-pr" data-bs-toggle="tab" data-bs-target="#pane-github-pr" type="button" role="tab" aria-controls="pane-github-pr" aria-selected="false">
+                                    <i class="fab fa-github me-1"></i>Import from GitHub PR
+                                </button>
                             </li>
                         </ul>
 
@@ -86,6 +91,35 @@
                                 {% else %}
                                     <div class="form-text">Provide a URL that returns a Viewer JSON export.</div>
                                 {% endif %}
+                            </div>
+                            <div class="tab-pane fade" id="pane-github-pr" role="tabpanel" aria-labelledby="tab-github-pr">
+                                {{ form.github_pr_url.label(class="form-label") }}
+                                {{ form.github_pr_url(class="form-control" + (" is-invalid" if form.github_pr_url.errors else "")) }}
+                                {% if form.github_pr_url.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.github_pr_url.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="form-text">Provide the URL of a GitHub pull request created by Viewer export.</div>
+                                {% endif %}
+                                
+                                <div class="mt-3">
+                                    {{ form.github_import_token.label(class="form-label") }}
+                                    {{ form.github_import_token(class="form-control" + (" is-invalid" if form.github_import_token.errors else "")) }}
+                                    {% if form.github_import_token.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.github_import_token.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="form-text">
+                                            Optional. Required only for private repositories or to increase API rate limits.
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
 
@@ -236,6 +270,7 @@
                 document.getElementById('tab-file').addEventListener('shown.bs.tab', function() { setSource('file'); });
                 document.getElementById('tab-text').addEventListener('shown.bs.tab', function() { setSource('text'); });
                 document.getElementById('tab-url').addEventListener('shown.bs.tab', function() { setSource('url'); });
+                document.getElementById('tab-github-pr').addEventListener('shown.bs.tab', function() { setSource('github_pr'); });
                 // Initialize based on default
                 setSource('file');
             })();

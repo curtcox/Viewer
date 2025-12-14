@@ -49,3 +49,4 @@ opentelemetry-instrumentation-urllib
 langsmith>=0.1.0
 attrs>=23.0.0
 aiohttp>=3.9.0
+PyGithub>=2.5.0
