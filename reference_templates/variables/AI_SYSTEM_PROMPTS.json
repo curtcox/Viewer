@@ -1,0 +1,8 @@
+{
+  "default": "reference_templates/prompts/default_system_prompt.txt",
+  "/servers": "reference_templates/prompts/server_system_prompt.txt",
+  "/aliases": "reference_templates/prompts/alias_system_prompt.txt",
+  "/variables": "reference_templates/prompts/variable_system_prompt.txt",
+  "/secrets": "reference_templates/prompts/variable_system_prompt.txt",
+  "/uploads": "reference_templates/prompts/default_system_prompt.txt"
+}

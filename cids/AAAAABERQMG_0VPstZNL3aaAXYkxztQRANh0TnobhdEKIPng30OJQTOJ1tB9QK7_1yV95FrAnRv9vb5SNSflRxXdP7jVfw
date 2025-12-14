@@ -131,11 +131,6 @@
       "name": "AI_MAX_TOKENS",
       "definition": "4096",
       "enabled": true
-    },
-    {
-      "name": "AI_SYSTEM_PROMPTS",
-      "definition_file": "AAAAAAGse-T5Wy3Z86ZVULZ0S75QQoKT8TgrOlkHNOEkzsmJZMQ6v8rux_gwewSYXktPQO-Ab4YX0WrdxFyVaIw984idvA",
-      "enabled": true
     }
   ]
 }
