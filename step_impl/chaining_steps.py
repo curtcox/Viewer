@@ -781,7 +781,7 @@ def then_response_contains_literal_bash() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "literal-bash" in body, f"Expected 'literal-bash' in response body"
+    assert "literal-bash" in body, "Expected 'literal-bash' in response body"
 
 
 @step('Then the response should contain "bash:py-literal"')
@@ -791,7 +791,7 @@ def then_response_contains_bash_py_literal() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "bash:py-literal" in body, f"Expected 'bash:py-literal' in response body"
+    assert "bash:py-literal" in body, "Expected 'bash:py-literal' in response body"
 
 
 @step('Then the response should contain "bash:clj->bash"')
@@ -801,7 +801,7 @@ def then_response_contains_bash_clj_bash() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "bash:clj->bash" in body, f"Expected 'bash:clj->bash' in response body"
+    assert "bash:clj->bash" in body, "Expected 'bash:clj->bash' in response body"
 
 
 @step('Then the response should contain "clj:bash->clj"')
@@ -811,7 +811,7 @@ def then_response_contains_clj_bash_clj() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "clj:bash->clj" in body, f"Expected 'clj:bash->clj' in response body"
+    assert "clj:bash->clj" in body, "Expected 'clj:bash->clj' in response body"
 
 
 @step('Then the response should contain "clj:py->clj"')
@@ -821,7 +821,7 @@ def then_response_contains_clj_py_clj() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "clj:py->clj" in body, f"Expected 'clj:py->clj' in response body"
+    assert "clj:py->clj" in body, "Expected 'clj:py->clj' in response body"
 
 
 @step('Then the response should contain "clj:clj-right"')
@@ -831,7 +831,7 @@ def then_response_contains_clj_clj_right() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "clj:clj-right" in body, f"Expected 'clj:clj-right' in response body"
+    assert "clj:clj-right" in body, "Expected 'clj:clj-right' in response body"
 
 
 @step('Then the response should contain "clj-noext"')
@@ -841,7 +841,7 @@ def then_response_contains_clj_noext() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "clj-noext" in body, f"Expected 'clj-noext' in response body"
+    assert "clj-noext" in body, "Expected 'clj-noext' in response body"
 
 
 @step('Then the response should contain "bash:cljs->bash"')
@@ -851,7 +851,7 @@ def then_response_contains_bash_cljs_bash() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "bash:cljs->bash" in body, f"Expected 'bash:cljs->bash' in response body"
+    assert "bash:cljs->bash" in body, "Expected 'bash:cljs->bash' in response body"
 
 
 @step('Then the response should contain "cljs:cljs-right"')
@@ -861,7 +861,7 @@ def then_response_contains_cljs_cljs_right() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "cljs:cljs-right" in body, f"Expected 'cljs:cljs-right' in response body"
+    assert "cljs:cljs-right" in body, "Expected 'cljs:cljs-right' in response body"
 
 
 @step('Then the response should contain "cljs:py->cljs"')
@@ -871,7 +871,7 @@ def then_response_contains_cljs_py_cljs() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "cljs:py->cljs" in body, f"Expected 'cljs:py->cljs' in response body"
+    assert "cljs:py->cljs" in body, "Expected 'cljs:py->cljs' in response body"
 
 
 @step('Then the response should contain "cljs:bash->cljs"')
@@ -881,7 +881,7 @@ def then_response_contains_cljs_bash_cljs() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "cljs:bash->cljs" in body, f"Expected 'cljs:bash->cljs' in response body"
+    assert "cljs:bash->cljs" in body, "Expected 'cljs:bash->cljs' in response body"
 
 
 @step('Then the response should contain "cljs:named->cljs"')
@@ -891,7 +891,7 @@ def then_response_contains_cljs_named_cljs() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "cljs:named->cljs" in body, f"Expected 'cljs:named->cljs' in response body"
+    assert "cljs:named->cljs" in body, "Expected 'cljs:named->cljs' in response body"
 
 
 @step('Then the response should contain "cljs-noext"')
@@ -901,7 +901,7 @@ def then_response_contains_cljs_noext() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "cljs-noext" in body, f"Expected 'cljs-noext' in response body"
+    assert "cljs-noext" in body, "Expected 'cljs-noext' in response body"
 
 
 @step('Then the response should contain "bash:ts->bash"')
@@ -911,7 +911,7 @@ def then_response_contains_bash_ts_bash() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "bash:ts->bash" in body, f"Expected 'bash:ts->bash' in response body"
+    assert "bash:ts->bash" in body, "Expected 'bash:ts->bash' in response body"
 
 
 @step('Then the response should contain "ts:ts-right"')
@@ -921,7 +921,7 @@ def then_response_contains_ts_ts_right() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts:ts-right" in body, f"Expected 'ts:ts-right' in response body"
+    assert "ts:ts-right" in body, "Expected 'ts:ts-right' in response body"
 
 
 @step('Then the response should contain "ts:py->ts"')
@@ -931,7 +931,7 @@ def then_response_contains_ts_py_ts() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts:py->ts" in body, f"Expected 'ts:py->ts' in response body"
+    assert "ts:py->ts" in body, "Expected 'ts:py->ts' in response body"
 
 
 @step('Then the response should contain "ts:bash->ts"')
@@ -941,7 +941,7 @@ def then_response_contains_ts_bash_ts() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts:bash->ts" in body, f"Expected 'ts:bash->ts' in response body"
+    assert "ts:bash->ts" in body, "Expected 'ts:bash->ts' in response body"
 
 
 @step('Then the response should contain "ts:named->ts"')
@@ -951,7 +951,7 @@ def then_response_contains_ts_named_ts() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts:named->ts" in body, f"Expected 'ts:named->ts' in response body"
+    assert "ts:named->ts" in body, "Expected 'ts:named->ts' in response body"
 
 
 @step('Then the response should contain "ts-noext"')
@@ -961,7 +961,7 @@ def then_response_contains_ts_noext() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts-noext" in body, f"Expected 'ts-noext' in response body"
+    assert "ts-noext" in body, "Expected 'ts-noext' in response body"
 
 
 @step('Then the response should contain "ts-ext"')
@@ -971,4 +971,4 @@ def then_response_contains_ts_ext() -> None:
     response = state.get("response")
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
-    assert "ts-ext" in body, f"Expected 'ts-ext' in response body"
+    assert "ts-ext" in body, "Expected 'ts-ext' in response body"
