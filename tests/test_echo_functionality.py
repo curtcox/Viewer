@@ -77,6 +77,44 @@ class TestEchoFunctionality(unittest.TestCase):
                 result = try_server_execution('/echo')
                 self.assertIsNotNone(result, "Should return a result when echo server exists")
 
+    def test_echo_server_two_segment_path_falls_back_to_main(self):
+        """Test that /echo/path executes main when 'path' helper is not defined."""
+        echo_server = Server(
+            name='echo',
+            definition='return {"output": "Hello, World!", "content_type": "text/html"}',
+        )
+        db.session.add(echo_server)
+        db.session.commit()
+
+        with app.test_request_context('/echo/path'):
+            with patch('server_execution.code_execution.run_text_function') as mock_runner:
+                mock_runner.return_value = {
+                    'output': 'Hello, World!',
+                    'content_type': 'text/html'
+                }
+
+                result = try_server_execution('/echo/path')
+                self.assertIsNotNone(result, "Should execute main for /echo/path")
+
+    def test_echo_server_three_segment_path_executes_main(self):
+        """Test that /echo/path/to executes main (existing behavior)."""
+        echo_server = Server(
+            name='echo',
+            definition='return {"output": "Hello, World!", "content_type": "text/html"}',
+        )
+        db.session.add(echo_server)
+        db.session.commit()
+
+        with app.test_request_context('/echo/path/to'):
+            with patch('server_execution.code_execution.run_text_function') as mock_runner:
+                mock_runner.return_value = {
+                    'output': 'Hello, World!',
+                    'content_type': 'text/html'
+                }
+
+                result = try_server_execution('/echo/path/to')
+                self.assertIsNotNone(result, "Should execute main for /echo/path/to")
+
     def test_not_found_error_flow_for_echo(self):
         """Test the complete 404 error handler flow for /echo"""
         with app.test_request_context('/echo'):
