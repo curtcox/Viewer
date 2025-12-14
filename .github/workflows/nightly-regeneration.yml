@@ -1,0 +1,62 @@
+name: Nightly Boot Images and Test Index Regeneration
+
+on:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  regenerate:
+    name: Regenerate Boot Images and Test Index
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Generate boot images
+        run: python generate_boot_image.py
+
+      - name: Generate test index
+        run: python generate_test_index.py
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          # Add all changes in the specific directories/files we care about
+          # Using || true to handle cases where glob patterns don't match any files
+          git add reference_templates/*.json reference_templates/*.cid TEST_INDEX.md 2>/dev/null || true
+          git add cids/ 2>/dev/null || true
+          
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected:"
+            git diff --cached --stat
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git commit -m "chore: regenerate boot images and test index [skip ci]"
+          git push origin main
