@@ -143,7 +143,7 @@ def import_selected_sections(context: ImportContext) -> None:
         SectionImportPlan(
             include=context.form.include_variables.data,
             section_key='variables',
-            importer=import_variables_with_names,
+            importer=partial(import_variables_with_names, cid_map=context.cid_lookup),
             singular_label='variable',
             plural_label='variables',
         ),

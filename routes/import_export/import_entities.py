@@ -29,6 +29,17 @@ from .routes_integration import (
 )
 
 
+def _has_flask_app_context() -> bool:
+    try:
+        from flask import has_app_context
+    except ModuleNotFoundError:
+        return False
+    try:
+        return bool(has_app_context())
+    except RuntimeError:
+        return False
+
+
 @dataclass
 class AliasImport:
     """Normalized alias entry produced from import payload data."""
@@ -41,6 +52,15 @@ class AliasImport:
 @dataclass
 class ServerImport:
     """Normalized server entry produced from import payload data."""
+
+    name: str
+    definition: str
+    enabled: bool
+
+
+@dataclass
+class VariableImport:
+    """Normalized variable entry produced from import payload data."""
 
     name: str
     definition: str
@@ -182,6 +202,76 @@ def prepare_server_import(
     )
 
 
+def prepare_variable_import(
+    entry: Any,
+    cid_map: dict[str, bytes],
+    errors: list[str],
+    index: int,
+) -> VariableImport | None:
+    """Return a normalized variable import entry when the payload entry is valid."""
+    if not isinstance(entry, dict):
+        errors.append(
+            f"Variable entry at index {index} must be an object; got {type(entry).__name__}."
+        )
+        return None
+
+    name_raw = entry.get('name')
+    if not isinstance(name_raw, str) or not name_raw.strip():
+        errors.append(
+            f"Variable entry at index {index} must include a valid name; keys={sorted(entry.keys())}."
+        )
+        return None
+
+    name = name_raw.strip()
+
+    definition_text: str | None = None
+    raw_definition = entry.get('definition')
+    if isinstance(raw_definition, str):
+        definition_text = raw_definition
+    elif raw_definition is not None:
+        errors.append(f'Variable "{name}" definition must be text.')
+        return None
+
+    definition_cid = normalise_cid(entry.get('definition_cid'))
+    definition_file = normalise_cid(entry.get('definition_file'))
+    resolved_definition_cid = definition_cid or definition_file
+
+    if definition_text is None and resolved_definition_cid:
+        cid_bytes = load_cid_bytes(resolved_definition_cid, cid_map)
+        if cid_bytes is None:
+            errors.append(
+                (
+                    f'Variable "{name}" definition with CID "{resolved_definition_cid}" '
+                    'was not included in the import.'
+                )
+            )
+            return None
+        try:
+            definition_text = cid_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            errors.append(
+                f'Variable "{name}" definition for CID "{resolved_definition_cid}" must be UTF-8 text.'
+            )
+            return None
+
+    if definition_text is None:
+        errors.append(
+            (
+                f"Variable entry at index {index} must include a definition or a definition_cid/definition_file; "
+                f'name={name!r}, keys={sorted(entry.keys())}, entry={entry!r}'
+            )
+        )
+        return None
+
+    enabled = coerce_enabled_flag(entry.get('enabled'))
+
+    return VariableImport(
+        name=name,
+        definition=definition_text,
+        enabled=enabled,
+    )
+
+
 def impl_import_aliases(
     raw_aliases: Any,
     cid_map: dict[str, bytes] | None = None,
@@ -292,53 +382,59 @@ def import_servers(
     return count, errors
 
 
-def impl_import_variables(raw_variables: Any) -> tuple[int, list[str], list[str]]:
+def impl_import_variables(
+    raw_variables: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str], list[str]]:
     """Implementation of variable import with name tracking."""
     errors: list[str] = []
     imported = 0
     names: list[str] = []
+    allow_persistence = _has_flask_app_context()
     if raw_variables is None:
         return 0, ['No variable data found in import file.'], []
     if not isinstance(raw_variables, list):
         return 0, ['Variables in import file must be a list.'], []
-    for entry in raw_variables:
-        if not isinstance(entry, dict):
-            errors.append('Variable entries must be objects with name and definition.')
+    cid_map = cid_map or {}
+    for index, entry in enumerate(raw_variables):
+        prepared = prepare_variable_import(entry, cid_map, errors, index)
+        if prepared is None:
             continue
-        name = entry.get('name')
-        definition = entry.get('definition')
-        if not name or definition is None:
-            errors.append('Variable entry must include both name and definition.')
-            continue
-        enabled = coerce_enabled_flag(entry.get('enabled'))
-        existing = get_variable_by_name(name)
-        if existing:
-            existing.definition = definition
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.enabled = enabled
-            save_entity(existing)
-        else:
-            variable = Variable(
-                name=name,
-                definition=definition,
-                enabled=enabled,
-            )
-            save_entity(variable)
+        if allow_persistence:
+            existing = get_variable_by_name(prepared.name)
+            if existing:
+                existing.definition = prepared.definition
+                existing.updated_at = datetime.now(timezone.utc)
+                existing.enabled = prepared.enabled
+                save_entity(existing)
+            else:
+                variable = Variable(
+                    name=prepared.name,
+                    definition=prepared.definition,
+                    enabled=prepared.enabled,
+                )
+                save_entity(variable)
         imported += 1
-        names.append(name)
-    if imported:
+        names.append(prepared.name)
+    if imported and allow_persistence:
         update_variable_definitions_cid_safe()
     return imported, errors, names
 
 
-def import_variables_with_names(raw_variables: Any) -> tuple[int, list[str], list[str]]:
+def import_variables_with_names(
+    raw_variables: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str], list[str]]:
     """Import variables and return count, errors, and imported names."""
-    return impl_import_variables(raw_variables)
+    return impl_import_variables(raw_variables, cid_map)
 
 
-def import_variables(raw_variables: Any) -> tuple[int, list[str]]:
+def import_variables(
+    raw_variables: Any,
+    cid_map: dict[str, bytes] | None = None,
+) -> tuple[int, list[str]]:
     """Import variables and return count and errors (legacy interface)."""
-    count, errors, _names = impl_import_variables(raw_variables)
+    count, errors, _names = impl_import_variables(raw_variables, cid_map)
     return count, errors
 
 

@@ -71,11 +71,6 @@
       "enabled": true
     },
     {
-      "name": "file",
-      "definition_cid": "AAAAAAg7b3IpIpdQpaFUlsnJvOiMUpgHSWwNvN1W2FQooEp-ESZQ_EXqoH6FplHvvlOZdMfgvq4BEyX4B0yEtYOh-Mhd3g",
-      "enabled": true
-    },
-    {
       "name": "nvidia_nim",
       "definition_cid": "AAAAAAOg-mV6JeAUpcGkW5mp_hjvcUFExHUji2L0-7mVuBYgrHPBVxp4NekjMpJPRkIgOMxWVSnRLS43tOwKCZoXoD2c0Q",
       "enabled": true
