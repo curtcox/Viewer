@@ -2,7 +2,7 @@
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_variable_bulk_handler
 from cid_utils import (
@@ -15,15 +15,12 @@ from db_access import (
     get_variables,
 )
 from forms import BulkVariablesForm, VariableForm
-from interaction_log import load_interaction_history
 from models import Variable
 from serialization import model_to_dict
-from template_status import get_template_link_info
 from ui_status import get_ui_suggestions_info
 
 from . import main_bp
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
-from .entities import create_entity, update_entity
 from .meta import inspect_path_metadata
 
 
@@ -237,6 +234,19 @@ def _build_variable_view_context(variable: Variable) -> Dict[str, Any]:
     }
 
 
+def _build_variable_new_context(form: Any) -> Dict[str, Any]:
+    """Build extra context for new variable form."""
+    return {'matching_route': None}
+
+
+def _build_variable_edit_context(form: Any, variable: Variable) -> Dict[str, Any]:
+    """Build extra context for edit variable form."""
+    current_definition = form.definition.data
+    if current_definition is None:
+        current_definition = variable.definition
+    return {'matching_route': build_matching_route_info(current_definition)}
+
+
 def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
     if not value or not isinstance(value, str):
         return None
@@ -287,6 +297,10 @@ _variable_config = EntityRouteConfig(
     to_json_func=model_to_dict,
     build_list_context=_build_variables_list_context,
     build_view_context=_build_variable_view_context,
+    form_template='variable_form.html',
+    get_templates_func=get_template_variables,
+    build_new_context=_build_variable_new_context,
+    build_edit_context=_build_variable_edit_context,
 )
 
 register_standard_crud_routes(main_bp, _variable_config)
@@ -324,108 +338,8 @@ def bulk_edit_variables():
     )
 
 
-@main_bp.route('/variables/new', methods=['GET', 'POST'])
-def new_variable():
-    """Create a new variable."""
-    form = VariableForm()
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text = form.definition.data or ''
-
-    variable_templates = [
-        {
-            'id': getattr(variable, 'template_key', None) or variable.id,
-            'name': variable.name,
-            'definition': variable.definition or '',
-            'suggested_name': f"{variable.name}-copy" if variable.name else '',
-        }
-        for variable in get_template_variables()
-    ]
-
-    if form.validate_on_submit():
-        if create_entity(
-            Variable,
-            form,
-            'variable',
-            change_message=change_message,
-            content_text=definition_text,
-        ):
-            return redirect(url_for('main.variables'))
-
-    entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history('variable', entity_name_hint)
-
-    template_link_info = get_template_link_info('variables')
-
-    return render_template(
-        'variable_form.html',
-        form=form,
-        title='Create New Variable',
-        variable=None,
-        interaction_history=interaction_history,
-        ai_entity_name=entity_name_hint,
-        ai_entity_name_field=form.name.id,
-        matching_route=None,
-        variable_templates=variable_templates,
-        template_link_info=template_link_info,
-    )
-
-
-@main_bp.route('/variables/<variable_name>/edit', methods=['GET', 'POST'])
-def edit_variable(variable_name):
-    """Edit a specific variable."""
-    variable = get_variable_by_name(variable_name)
-    if not variable:
-        abort(404)
-
-    form = VariableForm(obj=variable)
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text = form.definition.data or variable.definition or ''
-
-    interaction_history = load_interaction_history('variable', variable.name)
-
-    current_definition = form.definition.data
-    if current_definition is None:
-        current_definition = variable.definition
-    matching_route = build_matching_route_info(current_definition)
-
-    if form.validate_on_submit():
-        if update_entity(
-            variable,
-            form,
-            'variable',
-            change_message=change_message,
-            content_text=definition_text,
-        ):
-            return redirect(url_for('main.view_variable', variable_name=variable.name))
-        return render_template(
-            'variable_form.html',
-            form=form,
-            title=f'Edit Variable "{variable.name}"',
-            variable=variable,
-            interaction_history=interaction_history,
-            ai_entity_name=variable.name,
-            ai_entity_name_field=form.name.id,
-            matching_route=matching_route,
-        )
-
-    return render_template(
-        'variable_form.html',
-        form=form,
-        title=f'Edit Variable "{variable.name}"',
-        variable=variable,
-        interaction_history=interaction_history,
-        ai_entity_name=variable.name,
-        ai_entity_name_field=form.name.id,
-        matching_route=matching_route,
-    )
-
-
 __all__ = [
     'bulk_edit_variables',
-    'edit_variable',
-    'new_variable',
     'update_variable_definitions_cid',
     'list_variables',
 ]

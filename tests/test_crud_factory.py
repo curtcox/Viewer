@@ -369,5 +369,71 @@ class TestCrudFactoryBackwardCompatibility(unittest.TestCase):
         self.assertEqual(config.param_name, 'custom_name')
 
 
+class TestCrudFactoryNewEditRoutes(unittest.TestCase):
+    """Test new/edit route creation."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.app = Flask(__name__)
+        self.app.config['TESTING'] = True
+        self.app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for form testing
+
+        self.mock_entity = Mock()
+        self.mock_entity.name = 'test-entity'
+        self.mock_entity.definition = 'test-definition'
+
+        self.mock_get_by_name = Mock(return_value=self.mock_entity)
+        self.mock_get_entities = Mock(return_value=[self.mock_entity])
+
+        # Mock Form
+        self.mock_form = Mock()
+        self.mock_form.return_value = self.mock_form
+        self.mock_form.validate_on_submit.return_value = False
+        self.mock_form.name.data = ''
+        self.mock_form.name.id = 'name'
+        self.mock_form.definition.data = ''
+
+        self.config = EntityRouteConfig(
+            entity_class=Mock,
+            entity_type='test',
+            plural_name='tests',
+            get_by_name_func=self.mock_get_by_name,
+            get_entities_func=self.mock_get_entities,
+            form_class=self.mock_form,
+            form_template='test_form.html',
+        )
+
+    def _create_blueprint(self):
+        return Blueprint('test', __name__)
+
+    @patch('routes.crud_factory.create_new_route')
+    @patch('routes.crud_factory.create_edit_route')
+    def test_register_standard_crud_routes_registers_new_edit_if_template(self, mock_edit, mock_new):
+        """Test register_standard_crud_routes registers new/edit if template is present."""
+        bp = self._create_blueprint()
+        register_standard_crud_routes(bp, self.config)
+
+        mock_new.assert_called_once()
+        mock_edit.assert_called_once()
+
+    @patch('routes.crud_factory.create_new_route')
+    @patch('routes.crud_factory.create_edit_route')
+    def test_register_standard_crud_routes_skips_new_edit_if_no_template(self, mock_edit, mock_new):
+        """Test register_standard_crud_routes skips new/edit if template is missing."""
+        bp = self._create_blueprint()
+        config_no_template = EntityRouteConfig(
+            entity_class=Mock,
+            entity_type='test',
+            plural_name='tests',
+            get_by_name_func=self.mock_get_by_name,
+            get_entities_func=self.mock_get_entities,
+            form_class=self.mock_form,
+        )
+        register_standard_crud_routes(bp, config_no_template)
+
+        mock_new.assert_not_called()
+        mock_edit.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()
