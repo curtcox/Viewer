@@ -22,7 +22,7 @@
     },
     {
       "name": "ai_assist",
-      "definition_cid": "AAAAADr0bbwV3XcXQDW5THYxvDPn2C9rF5e3B0N0MRL70Cx8EvIc2NawEzxb038Ri3Pyd5sCUbemR8SEtc1mNT1kWUJ_Vg",
+      "definition_cid": "AAAAADqk6NVmZB4Vvdm-mObjEIC1vTVxt8Bvp2MqshxUK4cG0Q3u2E5c0kJLQKg2DA0ajqFZDEzCbIc9m94JbkEa4SmVLA",
       "enabled": true
     },
     {
@@ -97,7 +97,7 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "AAAAABk0xM_v-PvWiFnfeWzgYza9brQy4mb54cM0TQQxh6ps9TQEwfZDOBCqISw7_nci3AKOHYTaUHjvBPYvJRWlDGwK5A",
+      "definition_cid": "AAAAABgP8v9usJePBmm9dFaSfiq7A3yLS4ig34HQsonxwv2VC8Gnl8Ykw2GsA58BYgTDPOONZI85to2SvZZ9PWg13MR3iA",
       "enabled": true
     },
     {
@@ -130,11 +130,6 @@
     {
       "name": "AI_MAX_TOKENS",
       "definition": "4096",
-      "enabled": true
-    },
-    {
-      "name": "AI_SYSTEM_PROMPTS",
-      "definition_file": "AAAAAAKjzmQXzKjvPUCcuwOWz8WE80vh6i1UU7x63NmlP1KRnsMboBt9DGXzk1yEy1Inl3-hy8WWHlnHIkU5Xfb0r8-gDQ",
       "enabled": true
     }
   ]

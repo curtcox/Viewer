@@ -131,6 +131,11 @@
       "name": "AI_MAX_TOKENS",
       "definition": "4096",
       "enabled": true
+    },
+    {
+      "name": "AI_SYSTEM_PROMPTS",
+      "definition_file": "reference_templates/variables/AI_SYSTEM_PROMPTS.json",
+      "enabled": true
     }
   ]
 }
