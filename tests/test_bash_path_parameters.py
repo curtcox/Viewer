@@ -117,7 +117,7 @@ class TestResolveBashPathParameters(unittest.TestCase):
         """No remaining path means no script arg."""
         app = Flask(__name__)
         with app.test_request_context("/awk"):
-            script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
+            script_arg, chained_input_path, _remaining = _resolve_bash_path_parameters(
                 "awk", '#!/bin/bash\nawk "$1"'
             )
         assert script_arg is None
@@ -132,7 +132,7 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         app = Flask(__name__)
         with app.test_request_context("/test"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "$1"',
                     "test",
                     chained_input=None,
@@ -147,7 +147,7 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         app = Flask(__name__)
         with app.test_request_context("/test"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "$1 $2"',
                     "test",
                     chained_input=None,
@@ -162,7 +162,7 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         app = Flask(__name__)
         with app.test_request_context("/test"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "Pattern: $1"\necho "Input: $(cat)"',
                     "test",
                     chained_input="input-data",
@@ -187,7 +187,7 @@ class TestAwkServer(unittest.TestCase):
         script = '#!/bin/bash\nawk "$1"'
         with app.test_request_context("/awk"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     script,
                     "awk",
                     chained_input="hello world",
@@ -207,7 +207,7 @@ class TestSedServer(unittest.TestCase):
         script = '#!/bin/bash\nsed "$1"'
         with app.test_request_context("/sed"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     script,
                     "sed",
                     chained_input="hello world",
@@ -227,7 +227,7 @@ class TestGrepServer(unittest.TestCase):
         script = '#!/bin/bash\ngrep -E "$1" || true'
         with app.test_request_context("/grep"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     script,
                     "grep",
                     chained_input="hello world\nfoo bar\nhello again",
@@ -254,7 +254,7 @@ class TestJqServer(unittest.TestCase):
         script = '#!/bin/bash\njq "$1"'
         with app.test_request_context("/jq"):
             with patch("server_execution.code_execution.build_request_args", return_value={}):
-                stdout, status, stderr = _run_bash_script(
+                stdout, status, _stderr = _run_bash_script(
                     script,
                     "jq",
                     chained_input='{"name": "test", "value": 42}',

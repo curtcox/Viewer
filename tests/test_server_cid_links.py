@@ -39,7 +39,7 @@ def _get_cid_links_definition():
     definition_path = Path(
         "reference_templates/servers/definitions/cid_links.py"
     )
-    return definition_path.read_text()
+    return definition_path.read_text(encoding="utf-8")
 
 
 def test_cid_links_detects_html_doctype():

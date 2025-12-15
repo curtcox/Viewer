@@ -76,7 +76,7 @@ class TestAIInteractionTracker:
 
         assert len(tracker.interactions) == 1
         assert len(tracker.interactions[0]['external_calls']) == 1
-        assert tracker._pending_external_calls == []  # Should be cleared
+        assert not tracker._pending_external_calls  # Should be cleared
 
     def test_tracker_callable_clears_pending_after_use(self):
         """Test that pending calls are cleared after being used."""
@@ -87,7 +87,7 @@ class TestAIInteractionTracker:
 
         tracker({'test': 'payload'}, {'test': 'response'}, 200)
 
-        assert tracker._pending_external_calls == []
+        assert not tracker._pending_external_calls
 
     def test_tracker_secrets_redaction(self):
         """Test that secrets are set for redaction."""
