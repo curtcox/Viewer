@@ -370,6 +370,7 @@ class TestBootImageReferenceTemplates:
             assert 'glom' in server_names, "glom should be loaded from default boot"
             assert 'markdown' in server_names, "markdown should be loaded from default boot"
             assert 'jinja' in server_names, "jinja should be loaded from default boot"
+            assert 'file' in server_names, "file should be loaded from default boot"
             assert 'proxy' in server_names, "proxy should be loaded from default boot"
             assert 'pygments' in server_names, "pygments should be loaded from default boot"
 

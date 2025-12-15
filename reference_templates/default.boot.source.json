@@ -61,6 +61,11 @@
       "enabled": true
     },
     {
+      "name": "file",
+      "definition_cid": "reference_templates/servers/definitions/file.py",
+      "enabled": true
+    },
+    {
       "name": "nvidia_nim",
       "definition_cid": "reference_templates/servers/definitions/nvidia_nim.py",
       "enabled": true
