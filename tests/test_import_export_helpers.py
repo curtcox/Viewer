@@ -83,7 +83,7 @@ def test_import_variables_supports_definition_file_via_cid_map():
     )
 
     assert imported == 1
-    assert errors == []
+    assert not errors
     assert names == ["AI_SYSTEM_PROMPTS"]
 
 
@@ -95,7 +95,7 @@ def test_import_variables_reports_index_and_entry_details_on_missing_definition(
     imported, errors, names = import_variables_with_names(raw_variables, cid_map={})
 
     assert imported == 0
-    assert names == []
+    assert not names
     assert len(errors) == 1
     assert "index 0" in errors[0]
     assert "keys=" in errors[0]
