@@ -21,7 +21,6 @@ from template_status import get_template_link_info
 
 from . import main_bp
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
-from .entities import create_entity, update_entity
 
 
 # Create bulk editor handler for secrets
@@ -72,6 +71,8 @@ _secret_config = EntityRouteConfig(
     update_cid_func=update_secret_definitions_cid,
     to_json_func=model_to_dict,
     build_list_context=_build_secrets_list_context,
+    form_template='secret_form.html',
+    get_templates_func=get_template_secrets,
 )
 
 register_standard_crud_routes(main_bp, _secret_config)
@@ -109,100 +110,8 @@ def bulk_edit_secrets():
     )
 
 
-@main_bp.route('/secrets/new', methods=['GET', 'POST'])
-def new_secret():
-    """Create a new secret."""
-    form = SecretForm()
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text = form.definition.data or ''
-
-    secret_templates = [
-        {
-            'id': getattr(secret, 'template_key', None) or secret.id,
-            'name': secret.name,
-            'definition': secret.definition or '',
-            'suggested_name': f"{secret.name}-copy" if secret.name else '',
-        }
-        for secret in get_template_secrets()
-    ]
-
-    if form.validate_on_submit():
-        if create_entity(
-            Secret,
-            form,
-            'secret',
-            change_message=change_message,
-            content_text=definition_text,
-        ):
-            return redirect(url_for('main.secrets'))
-
-    entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history('secret', entity_name_hint)
-
-    template_link_info = get_template_link_info('secrets')
-
-    return render_template(
-        'secret_form.html',
-        form=form,
-        title='Create New Secret',
-        secret=None,
-        interaction_history=interaction_history,
-        ai_entity_name=entity_name_hint,
-        ai_entity_name_field=form.name.id,
-        secret_templates=secret_templates,
-        template_link_info=template_link_info,
-    )
-
-
-@main_bp.route('/secrets/<secret_name>/edit', methods=['GET', 'POST'])
-def edit_secret(secret_name):
-    """Edit a specific secret."""
-    secret = get_secret_by_name(secret_name)
-    if not secret:
-        abort(404)
-
-    form = SecretForm(obj=secret)
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text = form.definition.data or secret.definition or ''
-
-    interaction_history = load_interaction_history('secret', secret.name)
-
-    if form.validate_on_submit():
-        if update_entity(
-            secret,
-            form,
-            'secret',
-            change_message=change_message,
-            content_text=definition_text,
-        ):
-            return redirect(url_for('main.view_secret', secret_name=secret.name))
-        return render_template(
-            'secret_form.html',
-            form=form,
-            title=f'Edit Secret "{secret.name}"',
-            secret=secret,
-            interaction_history=interaction_history,
-            ai_entity_name=secret.name,
-            ai_entity_name_field=form.name.id,
-        )
-
-    return render_template(
-        'secret_form.html',
-        form=form,
-        title=f'Edit Secret "{secret.name}"',
-        secret=secret,
-        interaction_history=interaction_history,
-        ai_entity_name=secret.name,
-        ai_entity_name_field=form.name.id,
-    )
-
-
 __all__ = [
     'bulk_edit_secrets',
-    'edit_secret',
-    'new_secret',
     'update_secret_definitions_cid',
     'list_secrets',
 ]

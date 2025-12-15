@@ -5,8 +5,8 @@ import re
 from collections.abc import Iterable
 from typing import Any
 
-from constants import ActionType, EntityType, ServerMode
-from flask import abort, jsonify, redirect, render_template, request, url_for
+from constants import EntityType, ServerMode
+from flask import abort, jsonify, render_template, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
@@ -36,13 +36,11 @@ from server_execution import (
     detect_server_language,
 )
 from syntax_highlighting import highlight_source
-from template_status import get_template_link_info
 from ui_status import get_ui_suggestions_info
 
 from . import main_bp
 from .core import derive_name_from_path
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
-from .entities import create_entity, update_entity
 from .history import _load_request_referers
 from .server_definition_parser import ServerDefinitionParser
 
@@ -106,55 +104,56 @@ def enrich_invocation_with_links(invocation: Any) -> Any:
     return invocation
 
 
-def _prepare_server_form_context(
-    form: Any,
-    *,
-    title: str,
-    server: Any,
-    history: list[Any],
-    invocations: list[Any],
-    test_config: dict[str, Any] | None,
-    interaction_history: list[Any],
-    test_interactions: list[Any],
-    syntax_css: str | None,
-    server_test_upload_url: str | None = None,
-) -> dict[str, object]:
-    """Prepare common context for server form rendering.
+def _prepare_server_form(form: Any) -> None:
+    """Prepare form with request data for new server."""
+    if request.method == 'GET':
+        path_hint = request.args.get('path', '')
+        suggested_name = derive_name_from_path(path_hint)
+        if suggested_name and not form.name.data:
+            form.name.data = suggested_name
 
-    Args:
-        form: ServerForm instance
-        title: Page title
-        server: Server instance (None for new server)
-        history: Definition history
-        invocations: Server invocations
-        test_config: Test configuration
-        interaction_history: Interaction history
-        test_interactions: Test interactions
-        syntax_css: Syntax highlighting CSS
-        server_test_upload_url: Optional upload URL
 
-    Returns:
-        dict: Template context
-    """
-    context = {
-        'form': form,
-        'title': title,
-        'server': server,
+def _build_server_new_context(form: Any) -> dict[str, Any]:
+    """Build extra context for new server form."""
+    definition_text = form.definition.data or ''
+    return {
+        'server_test_interactions': [],
+        'implementation_language': detect_server_language(definition_text),
+    }
+
+
+def _build_server_edit_context(form: Any, server: Server) -> dict[str, Any]:
+    """Build extra context for edit server form."""
+    history = get_server_definition_history(server.name)
+    invocations = get_server_invocation_history(server.name)
+    definition_text = form.definition.data if form.definition.data is not None else server.definition
+    test_config = _build_server_test_config(server.name, definition_text)
+
+    _, syntax_css = _highlight_definition_content(
+        server.definition,
+        history,
+        server.name,
+    )
+
+    test_interactions = []
+    if test_config and test_config.get('action'):
+        test_interactions = load_interaction_history(
+            EntityType.SERVER_TEST.value,
+            test_config.get('action'),
+        )
+
+    upload_url = url_for('main.upload_server_test_page', server_name=server.name)
+
+    return {
         'definition_history': history,
         'server_invocations': invocations,
         'server_invocation_count': len(invocations),
         'server_test_config': test_config,
-        'interaction_history': interaction_history,
-        'ai_entity_name': server.name if server else ((form.name.data or '').strip()),
-        'ai_entity_name_field': form.name.id,
         'server_test_interactions': test_interactions,
         'syntax_css': syntax_css,
+        'implementation_language': detect_server_language(definition_text),
+        'server_test_upload_url': upload_url,
     }
-    definition_text = form.definition.data if form.definition.data is not None else getattr(server, 'definition', '')
-    context['implementation_language'] = detect_server_language(definition_text)
-    if server_test_upload_url:
-        context['server_test_upload_url'] = server_test_upload_url
-    return context
 
 
 def _extract_server_dependencies(
@@ -696,132 +695,15 @@ _server_config = EntityRouteConfig(
     to_json_func=model_to_dict,
     build_list_context=_build_servers_list_context,
     build_view_context=_build_server_view_context,
+    form_template='server_form.html',
+    get_templates_func=get_template_servers,
+    prepare_form_func=_prepare_server_form,
+    build_new_context=_build_server_new_context,
+    build_edit_context=_build_server_edit_context,
+    handle_save_as=True,
 )
 
 register_standard_crud_routes(main_bp, _server_config)
-
-
-@main_bp.route('/servers/new', methods=['GET', 'POST'])
-def new_server():
-    """Create a new server."""
-    form = ServerForm()
-
-    if request.method == 'GET':
-        path_hint = request.args.get('path', '')
-        suggested_name = derive_name_from_path(path_hint)
-        if suggested_name and not form.name.data:
-            form.name.data = suggested_name
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text = form.definition.data or ''
-
-    saved_server_templates = [
-        {
-            'id': getattr(server, 'template_key', None) or (f'user-{server.id}' if server.id else None),
-            'name': server.name,
-            'definition': server.definition or '',
-            'suggested_name': f"{server.name}-copy" if server.name else '',
-        }
-        for server in get_template_servers()
-    ]
-
-    if form.validate_on_submit():
-        if create_entity(
-            Server,
-            form,
-            'server',
-            change_message=change_message,
-            content_text=definition_text,
-        ):
-            return redirect(url_for('main.servers'))
-
-    entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(EntityType.SERVER.value, entity_name_hint)
-
-    template_link_info = get_template_link_info('servers')
-
-    return render_template(
-        'server_form.html',
-        form=form,
-        title='Create New Server',
-        saved_server_templates=saved_server_templates,
-        server=None,
-        interaction_history=interaction_history,
-        ai_entity_name=entity_name_hint,
-        ai_entity_name_field=form.name.id,
-        server_test_interactions=[],
-        template_link_info=template_link_info,
-        implementation_language=detect_server_language(definition_text),
-    )
-
-
-@main_bp.route('/servers/<server_name>/edit', methods=['GET', 'POST'])
-def edit_server(server_name):
-    """Edit a specific server."""
-    server = get_server_by_name(server_name)
-    if not server:
-        abort(404)
-
-    form = ServerForm(obj=server)
-
-    history = get_server_definition_history(server_name)
-    invocations = get_server_invocation_history(server_name)
-    definition_text = form.definition.data if form.definition.data is not None else server.definition
-    test_config = _build_server_test_config(server.name, definition_text)
-
-    _, syntax_css = _highlight_definition_content(
-        server.definition,
-        history,
-        server.name,
-    )
-
-    change_message = (request.form.get('change_message') or '').strip()
-    definition_text_current = form.definition.data or server.definition or ''
-
-    server_interactions = load_interaction_history(EntityType.SERVER.value, server.name)
-    test_interactions = []
-    if test_config and test_config.get('action'):
-        test_interactions = load_interaction_history(
-            EntityType.SERVER_TEST.value,
-            test_config.get('action'),
-        )
-
-    upload_url = url_for('main.upload_server_test_page', server_name=server.name)
-
-    if form.validate_on_submit():
-        save_action = (request.form.get('submit_action') or '').strip().lower()
-        if save_action == ActionType.SAVE_AS.value:
-            if create_entity(
-                Server,
-                form,
-                'server',
-                change_message=change_message,
-                content_text=definition_text_current,
-            ):
-                return redirect(url_for('main.view_server', server_name=form.name.data))
-        else:
-            if update_entity(
-                server,
-                form,
-                'server',
-                change_message=change_message,
-                content_text=definition_text_current,
-            ):
-                return redirect(url_for('main.view_server', server_name=server.name))
-
-    context = _prepare_server_form_context(
-        form=form,
-        title=f'Edit Server "{server.name}"',
-        server=server,
-        history=history,
-        invocations=invocations,
-        test_config=test_config,
-        interaction_history=server_interactions,
-        test_interactions=test_interactions,
-        syntax_css=syntax_css,
-        server_test_upload_url=upload_url,
-    )
-    return render_template('server_form.html', **context)
 
 
 def get_server_invocation_history(server_name: str) -> list[Any]:
@@ -846,11 +728,9 @@ def get_server_invocation_history(server_name: str) -> list[Any]:
 
 
 __all__ = [
-    'edit_server',
     'enrich_invocation_with_links',
     'get_server_definition_history',
     'get_server_invocation_history',
-    'new_server',
     'update_server_definitions_cid',
     'list_servers',
     'upload_server_test_page',
