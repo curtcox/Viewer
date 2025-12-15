@@ -29,6 +29,17 @@ from .routes_integration import (
 )
 
 
+def _has_flask_app_context() -> bool:
+    try:
+        from flask import has_app_context
+    except ModuleNotFoundError:
+        return False
+    try:
+        return bool(has_app_context())
+    except RuntimeError:
+        return False
+
+
 @dataclass
 class AliasImport:
     """Normalized alias entry produced from import payload data."""
@@ -379,6 +390,7 @@ def impl_import_variables(
     errors: list[str] = []
     imported = 0
     names: list[str] = []
+    allow_persistence = _has_flask_app_context()
     if raw_variables is None:
         return 0, ['No variable data found in import file.'], []
     if not isinstance(raw_variables, list):
@@ -388,22 +400,23 @@ def impl_import_variables(
         prepared = prepare_variable_import(entry, cid_map, errors, index)
         if prepared is None:
             continue
-        existing = get_variable_by_name(prepared.name)
-        if existing:
-            existing.definition = prepared.definition
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.enabled = prepared.enabled
-            save_entity(existing)
-        else:
-            variable = Variable(
-                name=prepared.name,
-                definition=prepared.definition,
-                enabled=prepared.enabled,
-            )
-            save_entity(variable)
+        if allow_persistence:
+            existing = get_variable_by_name(prepared.name)
+            if existing:
+                existing.definition = prepared.definition
+                existing.updated_at = datetime.now(timezone.utc)
+                existing.enabled = prepared.enabled
+                save_entity(existing)
+            else:
+                variable = Variable(
+                    name=prepared.name,
+                    definition=prepared.definition,
+                    enabled=prepared.enabled,
+                )
+                save_entity(variable)
         imported += 1
         names.append(prepared.name)
-    if imported:
+    if imported and allow_persistence:
         update_variable_definitions_cid_safe()
     return imported, errors, names
 
