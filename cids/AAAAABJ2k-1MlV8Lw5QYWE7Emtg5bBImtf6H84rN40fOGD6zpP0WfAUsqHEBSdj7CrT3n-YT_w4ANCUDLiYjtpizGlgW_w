@@ -12,12 +12,17 @@
       "name": "ai_about",
       "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
       "enabled": true
+    },
+    {
+      "name": "CSS",
+      "definition_cid": "AAAAAACLo_MRZQ2EM409frs_eH_4gIG5P2m90LjEkARFwXQr0a0uU9xIcMqRrcEnVJ6s31RFKByb1YV6rrCvlAFlokg7DQ",
+      "enabled": true
     }
   ],
   "servers": [
     {
       "name": "ai_stub",
-      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "definition_cid": "AAAAAAleiNx9m13dcu5ymJvrmiN8K_gRVo0VWXQlJEUzru26al-s2XyUWxaaQMxoGzejJtK53kRkiQgH5M6zmRW9x8i5Cw",
       "enabled": true
     },
     {
@@ -87,7 +92,7 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "AAAAABk0xM_v-PvWiFnfeWzgYza9brQy4mb54cM0TQQxh6ps9TQEwfZDOBCqISw7_nci3AKOHYTaUHjvBPYvJRWlDGwK5A",
+      "definition_cid": "AAAAABgP8v9usJePBmm9dFaSfiq7A3yLS4ig34HQsonxwv2VC8Gnl8Ykw2GsA58BYgTDPOONZI85to2SvZZ9PWg13MR3iA",
       "enabled": true
     },
     {
@@ -96,35 +101,45 @@
       "enabled": true
     },
     {
-      "name": "awk",
-      "definition_cid": "AAAAAAFtUY9vT9BcTsUpJFvpESIYALeUlBIjsFqsQtF25gz8ThXz6UfaE-82grKHDWkFwUrS-N7qJJStlVtrlLRWYbVCnQ",
+      "name": "ai_assist",
+      "definition_cid": "AAAAACtvnjSvFvTQYfH5hHYk9ggexNlmteOthdyprNiGsyJWnF2ohZnJO-Czm9a3zbiSjDZTqTOnHV2PDeQgxchcyW13KQ",
       "enabled": true
     },
     {
-      "name": "sed",
-      "definition_cid": "AAAAAAGC67hTQruErttWoS4xosnrD2dHx6jfEsUdojyybgXJyT_dx07puNrcBSbo7MkLvLCdg_RPmXqxvhWusbpJajA40w",
+      "name": "cid_links",
+      "definition_cid": "AAAAAA3riMBTHxn7jK9m0IeiBHgo4gdv37KLpoVLlCyJ_JqWJz1oF4mVsTqiMOrShpa4koBa0FYGVRGOQDDPPB9sdgjh4Q",
       "enabled": true
     },
     {
-      "name": "grep",
-      "definition_cid": "AAAAAAMVcofDROfmJI-16SDGMhR2kuLFZ9Z9ACTAce8c9Uh8MH_gduLKReVh44t7_nwV20itfqHD4OTS5ZjcNm8dQr85YA",
-      "enabled": true
-    },
-    {
-      "name": "jq",
-      "definition_cid": "AAAAAAFuGGjd7ioKxGcGa2aZbEhI0_j1c37srYEsPCuAqI03EPIZstPLFOMlcrxugsvIwAsAbzpd7hq6p_X_6Y1WQodkBQ",
+      "name": "file",
+      "definition_cid": "AAAAAAhV54Rrk19iqqpOkrNmbAwXoKi-B96j4n_pflwMtT9fsZS3sPi2qOqBAxKcYHNXbWFdwNhMLEU2EMzHTHtT3n_ROw",
       "enabled": true
     }
   ],
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABQLA9YwugtR1Tu4kAHtxeyR6WTlv9iOq6eFeh-Z5sxQ22Yjm3s9PelXhbxfecMpxmBzmryYBiIDJe5hHJZF4pt_4w",
+      "definition": "AAAAABQL4N_2enhaMIcWpdZLF7hfl7W-Z3dqV53UDRHQfrj-IPFVqT6tKRwDgbbTNcoGTIM-1FzSKNREQWBVCum5ovV0Ig",
       "enabled": true
     },
     {
       "name": "uis",
       "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+      "enabled": true
+    },
+    {
+      "name": "AI_MAX_TOKENS",
+      "definition": "4096",
+      "enabled": true
+    },
+    {
+      "name": "AI_MODEL",
+      "definition": "anthropic/claude-sonnet-4.5",
+      "enabled": true
+    },
+    {
+      "name": "AI_TEMPERATURE",
+      "definition": "0.3",
       "enabled": true
     }
   ]

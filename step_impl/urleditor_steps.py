@@ -432,7 +432,7 @@ def request_urleditor_resource():
     from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
-    response = client.get("/urleditor")
+    response = client.get("/urleditor", follow_redirects=True)
     store.last_response = response
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
