@@ -91,19 +91,19 @@ def load_import_payload(form: ImportForm) -> str | None:
 
     if source == 'github_pr':
         from .github_pr import fetch_pr_export_data
-        
+
         pr_url = form.github_pr_url.data.strip() if form.github_pr_url.data else ''
         if not pr_url:
             form.github_pr_url.errors.append('GitHub PR URL is required.')
             return None
-        
+
         github_token = form.github_import_token.data.strip() if form.github_import_token.data else None
-        
+
         json_data, error_message = fetch_pr_export_data(pr_url, github_token)
         if error_message:
             form.github_pr_url.errors.append(error_message)
             return None
-        
+
         return json_data
 
     return None

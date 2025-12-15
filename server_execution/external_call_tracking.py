@@ -46,7 +46,7 @@ def _redact_string(text: str, secrets: Mapping[str, Any]) -> str:
         if quoted != secret_text:
             variants.append(quoted)
         quoted_plus = urllib.parse.quote_plus(secret_text)
-        if quoted_plus != secret_text and quoted_plus != quoted:
+        if quoted_plus not in (secret_text, quoted):
             variants.append(quoted_plus)
 
         for variant in variants:
