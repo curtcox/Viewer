@@ -5,10 +5,11 @@
 import json
 import os
 import re
+import textwrap
+from urllib.parse import unquote
 import shutil
 import subprocess
 import tempfile
-import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import logfire
@@ -124,22 +125,51 @@ def _resolve_bash_path_parameters(
     if not remainder_segments:
         return None, None, []
 
-    # First segment is the script argument ($1)
-    first_segment = remainder_segments[0]
+    if len(remainder_segments) == 1:
+        cid_content = _resolve_cid_content(remainder_segments[0])
+        script_arg = cid_content if cid_content is not None else remainder_segments[0]
+        return script_arg, None, []
 
-    # Try to resolve as CID content
-    cid_content = _resolve_cid_content(first_segment)
-    script_arg = cid_content if cid_content is not None else first_segment
+    # When Werkzeug/Flask decodes %2F into '/', the intended $1 argument may be
+    # split across multiple path segments. We recover by finding the earliest
+    # tail segment that appears to be a resolvable input source (CID, server,
+    # alias, or literal). Everything before that is treated as the $1 value.
+    split_index: Optional[int] = None
+    for index in range(1, len(remainder_segments)):
+        candidate = remainder_segments[index]
+        if not candidate:
+            continue
 
-    # Remaining segments are for stdin
-    remaining_segments = remainder_segments[1:]
+        if split_cid_path(candidate) or split_cid_path(f"/{candidate}"):
+            split_index = index
+            break
 
-    if remaining_segments:
-        chained_input_path = "/" + "/".join(remaining_segments)
-    else:
-        chained_input_path = None
+        if get_server_by_name(candidate) is not None:
+            split_index = index
+            break
 
-    return script_arg, chained_input_path, remaining_segments
+        alias_match = find_matching_alias("/" + "/".join(remainder_segments[index:]))
+        if alias_match and getattr(alias_match, "route", None):
+            split_index = index
+            break
+
+        literal_definition, _, _ = _load_server_literal(candidate)
+        if literal_definition is not None:
+            split_index = index
+            break
+
+    if split_index is None:
+        split_index = 1
+
+    arg_segments = remainder_segments[:split_index]
+    input_segments = remainder_segments[split_index:]
+
+    raw_arg = "/".join(arg_segments)
+    cid_content = _resolve_cid_content(raw_arg)
+    script_arg = cid_content if cid_content is not None else raw_arg
+
+    chained_input_path = "/" + "/".join(input_segments) if input_segments else None
+    return script_arg, chained_input_path, input_segments
 
 
 def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
@@ -190,13 +220,31 @@ def _split_path_segments(path: Optional[str]) -> List[str]:
     return [segment for segment in path.split("/") if segment]
 
 
+def _split_request_path_segments() -> List[str]:
+    if not has_request_context():
+        return []
+
+    raw_uri = request.environ.get("RAW_URI") or request.environ.get("REQUEST_URI")
+    raw_path = raw_uri.split("?", 1)[0] if isinstance(raw_uri, str) and raw_uri else request.path
+
+    segments = _split_path_segments(raw_path)
+    return [unquote(segment) for segment in segments]
+
+
 def _remaining_path_segments(server_name: Optional[str]) -> List[str]:
     if not server_name or not has_request_context():
         return []
-    segments = _split_path_segments(request.path)
-    if not segments or segments[0] != server_name:
+
+    segments = _split_request_path_segments()
+    if not segments:
         return []
-    return segments[1:]
+
+    try:
+        server_index = segments.index(server_name)
+    except ValueError:
+        return []
+
+    return segments[server_index + 1 :]
 
 
 def _auto_main_accepts_additional_path(server: Any) -> bool:
@@ -431,25 +479,72 @@ def _execute_nested_server_to_value(
     *,
     language_override: Optional[str] = None,
 ) -> Any:
-    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
-    if early_response:
-        return early_response
-
     language = language_override or detect_server_language(getattr(server, "definition", ""))
     if language == "bash":
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(
+            server_name, server.definition
+        )
+
+        if script_arg is not None:
+            chained_input: Optional[str] = None
+            if chained_input_path:
+                segments = _split_path_segments(chained_input_path)
+                if len(segments) == 1:
+                    cid_content = _resolve_cid_content(segments[0])
+                    if cid_content is not None:
+                        chained_input = cid_content
+                    else:
+                        nested_value = _evaluate_nested_path_to_value(
+                            chained_input_path, visited
+                        )
+                        if isinstance(nested_value, Response):
+                            return nested_value
+                        if nested_value is not None:
+                            chained_input = str(_extract_chained_output(nested_value))
+                else:
+                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+                    if isinstance(nested_value, Response):
+                        return nested_value
+                    if nested_value is not None:
+                        chained_input = str(_extract_chained_output(nested_value))
+
+            return _execute_bash_code_to_value(
+                server.definition,
+                server_name,
+                chained_input,
+                script_args=[script_arg],
+            )
+
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
+
         return _execute_bash_code_to_value(server.definition, server_name, chained_input)
     if language == "clojure":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojure_code_to_value(
             server.definition, server_name, chained_input
         )
     if language == "clojurescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojurescript_code_to_value(
             server.definition, server_name, chained_input
         )
     if language == "typescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_typescript_code_to_value(
             server.definition, server_name, chained_input
         )
+
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
 
     return _execute_python_code_to_value(server.definition, server_name, path, chained_input=chained_input)
 
@@ -462,25 +557,72 @@ def _execute_literal_definition_to_value(
     *,
     language_override: Optional[str],
 ) -> Any:
-    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
-    if early_response:
-        return early_response
-
     language = language_override or detect_server_language(definition_text)
     if language == "bash":
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(
+            server_name, definition_text
+        )
+
+        if script_arg is not None:
+            chained_input: Optional[str] = None
+            if chained_input_path:
+                segments = _split_path_segments(chained_input_path)
+                if len(segments) == 1:
+                    cid_content = _resolve_cid_content(segments[0])
+                    if cid_content is not None:
+                        chained_input = cid_content
+                    else:
+                        nested_value = _evaluate_nested_path_to_value(
+                            chained_input_path, visited
+                        )
+                        if isinstance(nested_value, Response):
+                            return nested_value
+                        if nested_value is not None:
+                            chained_input = str(_extract_chained_output(nested_value))
+                else:
+                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+                    if isinstance(nested_value, Response):
+                        return nested_value
+                    if nested_value is not None:
+                        chained_input = str(_extract_chained_output(nested_value))
+
+            return _execute_bash_code_to_value(
+                definition_text,
+                server_name,
+                chained_input,
+                script_args=[script_arg],
+            )
+
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
+
         return _execute_bash_code_to_value(definition_text, server_name, chained_input)
     if language == "clojure":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojure_code_to_value(
             definition_text, server_name, chained_input
         )
     if language == "clojurescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojurescript_code_to_value(
             definition_text, server_name, chained_input
         )
     if language == "typescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_typescript_code_to_value(
             definition_text, server_name, chained_input
         )
+
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
 
     return _execute_python_code_to_value(
         definition_text, server_name, path, chained_input=chained_input
@@ -1323,12 +1465,25 @@ def _execute_server_code_common(
 
             if chained_input_path:
                 # Resolve the remaining path for stdin
-                visited: Set[str] = set()
-                nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
-                if isinstance(nested_value, Response):
-                    return nested_value
-                if nested_value is not None:
-                    chained_input = str(_extract_chained_output(nested_value))
+                segments = _split_path_segments(chained_input_path)
+                if len(segments) == 1:
+                    cid_content = _resolve_cid_content(segments[0])
+                    if cid_content is not None:
+                        chained_input = cid_content
+                    else:
+                        visited: Set[str] = set()
+                        nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+                        if isinstance(nested_value, Response):
+                            return nested_value
+                        if nested_value is not None:
+                            chained_input = str(_extract_chained_output(nested_value))
+                else:
+                    visited: Set[str] = set()
+                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+                    if isinstance(nested_value, Response):
+                        return nested_value
+                    if nested_value is not None:
+                        chained_input = str(_extract_chained_output(nested_value))
 
             return _execute_bash_server_response(
                 code,

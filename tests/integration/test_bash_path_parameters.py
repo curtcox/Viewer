@@ -7,7 +7,6 @@ path parameters through $1, including the new awk, sed, grep, and jq servers.
 from __future__ import annotations
 
 import textwrap
-from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest

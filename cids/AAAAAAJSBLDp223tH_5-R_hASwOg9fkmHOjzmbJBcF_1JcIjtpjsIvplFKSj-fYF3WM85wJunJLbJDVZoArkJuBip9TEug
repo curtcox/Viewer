@@ -1,0 +1,27 @@
+[
+  {
+    "definition": "4096",
+    "enabled": true,
+    "name": "AI_MAX_TOKENS"
+  },
+  {
+    "definition": "anthropic/claude-sonnet-4.5",
+    "enabled": true,
+    "name": "AI_MODEL"
+  },
+  {
+    "definition": "0.3",
+    "enabled": true,
+    "name": "AI_TEMPERATURE"
+  },
+  {
+    "definition": "AAAAABQLA9YwugtR1Tu4kAHtxeyR6WTlv9iOq6eFeh-Z5sxQ22Yjm3s9PelXhbxfecMpxmBzmryYBiIDJe5hHJZF4pt_4w",
+    "enabled": true,
+    "name": "templates"
+  },
+  {
+    "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+    "enabled": true,
+    "name": "uis"
+  }
+]

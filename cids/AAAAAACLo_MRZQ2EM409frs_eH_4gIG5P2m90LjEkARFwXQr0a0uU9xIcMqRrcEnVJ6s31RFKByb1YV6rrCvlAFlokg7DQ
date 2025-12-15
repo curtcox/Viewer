@@ -1,0 +1,4 @@
+css/custom.css -> /css/default
+css/default -> /css/lightmode
+css/lightmode -> /static/css/custom.css
+css/darkmode -> /static/css/custom.css

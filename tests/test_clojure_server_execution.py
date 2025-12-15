@@ -81,7 +81,9 @@ def clojure_environment(monkeypatch):
         )
         return f"clj:{payload}".encode(), 200, b""
 
-    def fake_run_bash(code, server_name, chained_input=None):  # pylint: disable=unused-argument
+    def fake_run_bash(
+        code, server_name, chained_input=None, *, script_args=None
+    ):  # pylint: disable=unused-argument
         if chained_input is not None:
             payload = chained_input
         else:

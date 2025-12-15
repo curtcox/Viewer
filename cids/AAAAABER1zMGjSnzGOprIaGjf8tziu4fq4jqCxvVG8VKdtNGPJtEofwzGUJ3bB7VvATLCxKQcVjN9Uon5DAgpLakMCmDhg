@@ -17,7 +17,7 @@
   "servers": [
     {
       "name": "ai_stub",
-      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "definition_cid": "AAAAAAleiNx9m13dcu5ymJvrmiN8K_gRVo0VWXQlJEUzru26al-s2XyUWxaaQMxoGzejJtK53kRkiQgH5M6zmRW9x8i5Cw",
       "enabled": true
     },
     {
@@ -97,7 +97,7 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "AAAAABk0xM_v-PvWiFnfeWzgYza9brQy4mb54cM0TQQxh6ps9TQEwfZDOBCqISw7_nci3AKOHYTaUHjvBPYvJRWlDGwK5A",
+      "definition_cid": "AAAAABgP8v9usJePBmm9dFaSfiq7A3yLS4ig34HQsonxwv2VC8Gnl8Ykw2GsA58BYgTDPOONZI85to2SvZZ9PWg13MR3iA",
       "enabled": true
     },
     {
@@ -109,7 +109,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABQLA9YwugtR1Tu4kAHtxeyR6WTlv9iOq6eFeh-Z5sxQ22Yjm3s9PelXhbxfecMpxmBzmryYBiIDJe5hHJZF4pt_4w",
+      "definition": "AAAAABQL4N_2enhaMIcWpdZLF7hfl7W-Z3dqV53UDRHQfrj-IPFVqT6tKRwDgbbTNcoGTIM-1FzSKNREQWBVCum5ovV0Ig",
       "enabled": true
     },
     {
