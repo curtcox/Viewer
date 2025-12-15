@@ -14,9 +14,7 @@ from routes.crud_factory import (
     EntityRouteConfig,
     create_delete_route,
     create_enabled_toggle_route,
-    create_edit_route,
     create_list_route,
-    create_new_route,
     create_view_route,
     register_standard_crud_routes,
 )

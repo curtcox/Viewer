@@ -1,7 +1,7 @@
 """Secret management routes and helpers."""
 from typing import Dict, List, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_secret_bulk_handler
 from cid_utils import (
@@ -14,10 +14,8 @@ from db_access import (
     get_template_secrets,
 )
 from forms import BulkSecretsForm, SecretForm
-from interaction_log import load_interaction_history
 from models import Secret
 from serialization import model_to_dict
-from template_status import get_template_link_info
 
 from . import main_bp
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes

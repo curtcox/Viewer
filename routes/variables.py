@@ -2,7 +2,7 @@
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 
 from bulk_editor import create_variable_bulk_handler
 from cid_utils import (
@@ -15,10 +15,8 @@ from db_access import (
     get_variables,
 )
 from forms import BulkVariablesForm, VariableForm
-from interaction_log import load_interaction_history
 from models import Variable
 from serialization import model_to_dict
-from template_status import get_template_link_info
 from ui_status import get_ui_suggestions_info
 
 from . import main_bp

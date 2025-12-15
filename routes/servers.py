@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from constants import EntityType, ServerMode
-from flask import abort, jsonify, render_template, request, url_for
+from flask import abort, jsonify, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
