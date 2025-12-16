@@ -304,7 +304,10 @@ def test_jq_server_accepts_filter_from_path(client, integration_app):
         integration_app,
         "jq",
         """#!/bin/bash
-jq --unbuffered "$1"
+tmp=$(mktemp)
+cat > "$tmp"
+jq --unbuffered "$1" "$tmp"
+rm "$tmp"
 """,
     )
 
@@ -331,7 +334,10 @@ def test_jq_server_with_cid_input(client, integration_app):
         integration_app,
         "jq",
         """#!/bin/bash
-jq --unbuffered "$1"
+tmp=$(mktemp)
+cat > "$tmp"
+jq --unbuffered "$1" "$tmp"
+rm "$tmp"
 """,
     )
 
@@ -349,7 +355,10 @@ def test_jq_server_provides_input_to_left(client, integration_app):
         integration_app,
         "jq",
         """#!/bin/bash
-jq --unbuffered "$1"
+tmp=$(mktemp)
+cat > "$tmp"
+jq --unbuffered "$1" "$tmp"
+rm "$tmp"
 """,
     )
 
