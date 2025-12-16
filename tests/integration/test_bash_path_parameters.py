@@ -20,11 +20,7 @@ from models import CID, Server
 pytestmark = pytest.mark.integration
 
 JQ_SERVER_DEFINITION = """#!/bin/bash
-set -e
-tmp=$(mktemp -t jq-server.XXXXXX)
-trap 'rm -f "$tmp"' EXIT
-cat > "$tmp"
-jq --unbuffered "$1" "$tmp"
+jq --unbuffered "$1"
 """
 
 
