@@ -2,21 +2,22 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 3445
-- Unit Tests: 2852
-- Integration Tests: 456
+**Total Tests:** 3529
+- Unit Tests: 2920
+- Integration Tests: 468
 - Property Tests: 14
-- Gauge Tests: 123
+- Gauge Tests: 127
 
 ## Unit Tests
 
-Total: 2852 tests
+Total: 2920 tests
 
 - [Test that pending calls are cleared after being used.](tests/test_ai_eval_reports.py:81)
 - [Test that __call__ uses pending external calls from call_with_capture.](tests/test_ai_eval_reports.py:64)
 - [Test that tracker includes external calls when provided.](tests/test_ai_eval_reports.py:39)
 - [Test that tracker records basic interactions.](tests/test_ai_eval_reports.py:20)
 - [Test that secrets are set for redaction.](tests/test_ai_eval_reports.py:92)
+- [Test that ai_assist reads AI_SYSTEM_PROMPTS variable.](tests/test_ai_system_prompts.py:186)
 - [TestAiEditorBasics.test_main_exists_and_returns_html](tests/test_ai_editor.py:43)
 - [TestAiEditorBasics.test_meta_links_present](tests/test_ai_editor.py:56)
 - [TestAiEditorBasics.test_rejects_chained_input](tests/test_ai_editor.py:50)
@@ -424,6 +425,8 @@ Total: 2852 tests
 - [Test creating PR when file already exists (update instead of create).](tests/test_github_pr_integration.py:206)
 - [Test that explicitly setting param_name overrides the default.](tests/test_crud_factory.py:357)
 - [Test that default parameter name matches Flask conventions.](tests/test_crud_factory.py:333)
+- [Test register_standard_crud_routes registers new/edit if template is present.](tests/test_crud_factory.py:411)
+- [Test register_standard_crud_routes skips new/edit if template is missing.](tests/test_crud_factory.py:421)
 - [Test that delete route has correct function name.](tests/test_crud_factory.py:228)
 - [Test that enabled toggle route has correct function name.](tests/test_crud_factory.py:221)
 - [Test that create_list_route registers the correct URL pattern.](tests/test_crud_factory.py:182)
@@ -2171,6 +2174,8 @@ Total: 2852 tests
 - [test_import_section_records_summary](tests/test_import_export.py:1281)
 - [test_import_section_rejects_invalid_plan_shape](tests/test_import_export.py:1317)
 - [Test import structure validation with complex rule sets.](tests/test_validate_import_export_integration.py:348)
+- [test_import_variables_reports_index_and_entry_details_on_missing_definition](tests/test_import_export_helpers.py:90)
+- [test_import_variables_supports_definition_file_via_cid_map](tests/test_import_export_helpers.py:71)
 - [test_import_verifies_app_source_matches](tests/test_import_export.py:1023)
 - [--in-memory-db flag should set in_memory_db to True.](tests/test_cli_args.py:23)
 - [test_includes_both_match_type_and_ignore_case](tests/test_alias_definition.py:512)
@@ -2461,8 +2466,8 @@ Total: 2852 tests
 - [Test that root pattern / is preserved during import.](tests/test_alias_import_definition_preservation.py:80)
 - [test_prepare_alias_import_uses_definition_cid](tests/test_import_export.py:1243)
 - [test_prepare_boot_image_update_materializes_cids_and_does_not_write_generated_outputs](tests/test_github_pr_integration.py:337)
-- [test_prepare_history_event_reports_invalid_timestamp](tests/test_import_export_helpers.py:89)
-- [test_prepare_history_event_truncates_long_messages](tests/test_import_export_helpers.py:71)
+- [test_prepare_history_event_reports_invalid_timestamp](tests/test_import_export_helpers.py:122)
+- [test_prepare_history_event_truncates_long_messages](tests/test_import_export_helpers.py:104)
 - [test_prepare_server_import_falls_back_to_cid](tests/test_import_export_helpers.py:48)
 - [test_prepare_server_import_prefers_definition](tests/test_import_export_helpers.py:36)
 - [test_prepare_server_import_reports_missing_data](tests/test_import_export_helpers.py:59)
@@ -2526,6 +2531,8 @@ Total: 2852 tests
 - [test_reenabled_alias_matches_requests](tests/test_alias_routing.py:138)
 - [Test helper methods with regex definitions.](tests/test_alias_model.py:162)
 - [Test that register_standard_crud_routes creates all 4 routes.](tests/test_crud_factory.py:235)
+- [Test register_standard_crud_routes registers new/edit if template is present.](tests/test_crud_factory.py:411)
+- [Test register_standard_crud_routes skips new/edit if template is missing.](tests/test_crud_factory.py:421)
 - [Test that regular text is not a CID.](tests/test_cid_editor_helper.py:28)
 - [Test that rejected API requests return JSON with 401.](tests/test_authorization_integration.py:51)
 - [Test that rejected API requests return JSON with 403.](tests/test_authorization_integration.py:69)
@@ -2928,7 +2935,7 @@ Total: 2852 tests
 
 ## Integration Tests
 
-Total: 456 tests
+Total: 468 tests
 
 - [TestAiEditorIntegration.test_ai_editor_contains_navigation_and_info_menu](tests/integration/test_ai_editor_integration.py:68)
 - [TestAiEditorIntegration.test_ai_editor_escapes_payload_attribute](tests/integration/test_ai_editor_integration.py:98)
@@ -2982,9 +2989,9 @@ Total: 456 tests
 - [Test that templates variable from boot.source.json is loaded with correct CID.](tests/integration/test_boot_image_reference_templates.py:130)
 - [Test that template definitions are properly resolved from CIDs.](tests/integration/test_boot_image_reference_templates.py:211)
 - [Test that templates defined in templates.source.json are accessible.](tests/integration/test_boot_image_reference_templates.py:161)
-- [Test that echo server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:376)
+- [Test that echo server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:377)
 - [Test that default boot CID loads all servers.](tests/integration/test_boot_image_reference_templates.py:341)
-- [Test that shell server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:405)
+- [Test that shell server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:406)
 - [Test that minimal boot CID loads only the ai_stub server.](tests/integration/test_boot_image_reference_templates.py:310)
 - [Test --help works.](tests/integration/test_cli_integration.py:282)
 - [Test -h works.](tests/integration/test_cli_integration.py:296)
@@ -3167,10 +3174,10 @@ Total: 456 tests
 - [test_css_alias_resolves_without_user_specific_alias](tests/integration/test_identity_responses.py:93)
 - [ai_stub should treat chained CID content as request_text input.](tests/integration/test_server_execution_auto_main.py:664)
 - [ai_stub output should flow into the next chained server.](tests/integration/test_server_execution_auto_main.py:686)
-- [Test that echo server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:376)
+- [Test that echo server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:377)
 - [Test that default boot CID loads all servers.](tests/integration/test_boot_image_reference_templates.py:341)
 - [Test that default boot CID is NOT loaded when making HTTP requests.](tests/integration/test_cli_integration.py:211)
-- [Test that shell server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:405)
+- [Test that shell server works when booted from default CID.](tests/integration/test_boot_image_reference_templates.py:406)
 - [Markdown server should render CID content supplied via chained path.](tests/integration/test_server_execution_auto_main.py:485)
 - [Markdown output should feed into the next server on the left.](tests/integration/test_server_execution_auto_main.py:583)
 - [The markdown server should render the showcase markdown file from a CID.](tests/integration/test_server_execution_auto_main.py:507)
@@ -3420,7 +3427,7 @@ Total: 14 tests
 
 ## Gauge Tests
 
-Total: 123 scenarios
+Total: 127 scenarios
 
 - [AI menu links are available alongside AI actions](specs/ai_actions_menu.spec:3)
 - [Accept headers request alternate representations](specs/content_negotiation.spec:31)
@@ -3476,6 +3483,7 @@ Total: 123 scenarios
 - [Extension overrides provide alternate representations](specs/content_negotiation.spec:3)
 - [Grep server accepts pattern from path parameter](specs/bash_path_parameters.spec:49)
 - [Grep server provides input to left server](specs/bash_path_parameters.spec:58)
+- [Import shows helpful errors when PR format is wrong](specs/github_pr_integration.spec:20)
 - [Info icon opens navigation shortcuts](specs/meta_navigation.spec:3)
 - [Jq server accepts filter from path parameter](specs/bash_path_parameters.spec:68)
 - [Jq server provides input to left server](specs/bash_path_parameters.spec:76)
