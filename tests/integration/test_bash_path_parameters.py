@@ -19,6 +19,14 @@ from models import CID, Server
 
 pytestmark = pytest.mark.integration
 
+JQ_SERVER_DEFINITION = """#!/bin/bash
+set -e
+tmp=$(mktemp -t jq-server.XXXXXX)
+trap 'rm -f "$tmp"' EXIT
+cat > "$tmp"
+jq --unbuffered "$1" "$tmp"
+"""
+
 
 def _store_server(app, name: str, definition: str) -> None:
     """Persist a server definition."""
@@ -303,12 +311,7 @@ def test_jq_server_accepts_filter_from_path(client, integration_app):
     _store_server(
         integration_app,
         "jq",
-        """#!/bin/bash
-tmp=$(mktemp)
-cat > "$tmp"
-jq --unbuffered "$1" "$tmp"
-rm "$tmp"
-""",
+        JQ_SERVER_DEFINITION,
     )
 
     _store_server(
@@ -333,12 +336,7 @@ def test_jq_server_with_cid_input(client, integration_app):
     _store_server(
         integration_app,
         "jq",
-        """#!/bin/bash
-tmp=$(mktemp)
-cat > "$tmp"
-jq --unbuffered "$1" "$tmp"
-rm "$tmp"
-""",
+        JQ_SERVER_DEFINITION,
     )
 
     cid = _store_cid(integration_app, b'{"items": [1, 2, 3], "total": 6}')
@@ -354,12 +352,7 @@ def test_jq_server_provides_input_to_left(client, integration_app):
     _store_server(
         integration_app,
         "jq",
-        """#!/bin/bash
-tmp=$(mktemp)
-cat > "$tmp"
-jq --unbuffered "$1" "$tmp"
-rm "$tmp"
-""",
+        JQ_SERVER_DEFINITION,
     )
 
     _store_server(
