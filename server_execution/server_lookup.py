@@ -137,6 +137,9 @@ def try_server_execution(path: str) -> Optional[Response]:
             if main_details is None:
                 return execute_server_code(server, server_name)
 
+            if _auto_main_accepts_additional_path(server):
+                return execute_server_code(server, server_name)
+
             # Preserve existing behavior for "normal" servers: when a helper
             # is requested but missing, allow a 404 rather than running main.
             return None
@@ -184,6 +187,18 @@ def try_server_execution(path: str) -> Optional[Response]:
                 allow_fallback=True,
                 language_override=literal_language,
             )
+
+        placeholder_server = SimpleNamespace(definition=definition_text)
+        if _auto_main_accepts_additional_path(placeholder_server):
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
+
         return None
 
     result = _execute_server_code_common(
