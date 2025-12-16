@@ -429,7 +429,6 @@ def check_ai_editor_server_present():
 @step("When I request the resource /urleditor")
 def request_urleditor_resource():
     """Request the urleditor resource."""
-    from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
     response = client.get("/urleditor", follow_redirects=True)
@@ -441,7 +440,6 @@ def request_urleditor_resource():
 @step("When I request the resource /urleditor/echo/test")
 def request_urleditor_echo_test():
     """Request the urleditor/echo/test resource."""
-    from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
     response = client.get("/urleditor/echo/test", follow_redirects=False)
@@ -453,7 +451,6 @@ def request_urleditor_echo_test():
 @step("When I request the resource /urleditor/test-chain")
 def request_urleditor_test_chain():
     """Request the urleditor/test-chain resource."""
-    from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
     response = client.get("/urleditor/test-chain", follow_redirects=False)
@@ -465,7 +462,6 @@ def request_urleditor_test_chain():
 @step("When I request the resource /ai_editor")
 def request_ai_editor_resource():
     """Request the ai_editor resource."""
-    from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
     response = client.get("/ai_editor")
@@ -477,7 +473,6 @@ def request_ai_editor_resource():
 @step("When I request the resource /ai_editor/test-chain")
 def request_ai_editor_test_chain():
     """Request the ai_editor/test-chain resource."""
-    from step_impl.shared_state import get_scenario_state
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
     response = client.get("/ai_editor/test-chain", follow_redirects=False)

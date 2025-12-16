@@ -30,10 +30,10 @@ def export_data():
     form = ExportForm()
     preview = build_export_preview(form)
     recent_exports = get_exports(limit=100)
-    
+
     if form.validate_on_submit():
         from db_access import record_export
-        
+
         # Check if this is a GitHub PR creation request
         if form.submit_github_pr.data:
             # Handle GitHub PR creation
@@ -43,11 +43,11 @@ def export_data():
             # For PR preparation we must include CID values so missing CID content can be
             # materialized into the repository's cids/ directory.
             form.include_cid_map.data = True
-            
+
             # Generate the export
             export_result = build_export_payload(form)
             record_export(export_result['cid_value'])
-            
+
             # Create the PR
             try:
                 pr_result = create_export_pr(
@@ -72,21 +72,21 @@ def export_data():
                 # Return the export result page with PR info
                 export_result['github_pr'] = pr_result
                 return render_template('export_result.html', **export_result)
-                
+
             except GitHubPRError as e:
                 error_details = []
                 if e.details:
                     for key, value in e.details.items():
                         if key != 'error':
                             error_details.append(f"{key}: {value}")
-                
+
                 error_msg = f"Failed to create pull request: {e.message}"
                 if error_details:
                     error_msg += f"<br>Details: {', '.join(error_details)}"
-                
+
                 flash(error_msg, 'danger')
                 return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
-        
+
         # Standard JSON export
         export_result = build_export_payload(form)
         record_export(export_result['cid_value'])

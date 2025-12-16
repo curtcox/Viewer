@@ -471,6 +471,29 @@ def _execute_typescript_code_to_value(
         return combined_output.decode("utf-8", errors="replace")
 
 
+def _resolve_chained_input_for_bash_arg(
+    chained_input_path: Optional[str],
+    visited: Optional[Set[str]] = None,
+) -> tuple[Optional[str], Optional[Response]]:
+    """Resolve input for bash scripts with arguments ($1)."""
+    if not chained_input_path:
+        return None, None
+
+    segments = _split_path_segments(chained_input_path)
+    if len(segments) == 1:
+        cid_content = _resolve_cid_content(segments[0])
+        if cid_content is not None:
+            return cid_content, None
+
+    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is not None:
+        return str(_extract_chained_output(nested_value)), None
+
+    return None, None
+
+
 def _execute_nested_server_to_value(
     server: Any,
     server_name: str,
@@ -486,27 +509,11 @@ def _execute_nested_server_to_value(
         )
 
         if script_arg is not None:
-            chained_input: Optional[str] = None
-            if chained_input_path:
-                segments = _split_path_segments(chained_input_path)
-                if len(segments) == 1:
-                    cid_content = _resolve_cid_content(segments[0])
-                    if cid_content is not None:
-                        chained_input = cid_content
-                    else:
-                        nested_value = _evaluate_nested_path_to_value(
-                            chained_input_path, visited
-                        )
-                        if isinstance(nested_value, Response):
-                            return nested_value
-                        if nested_value is not None:
-                            chained_input = str(_extract_chained_output(nested_value))
-                else:
-                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
-                    if isinstance(nested_value, Response):
-                        return nested_value
-                    if nested_value is not None:
-                        chained_input = str(_extract_chained_output(nested_value))
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
 
             return _execute_bash_code_to_value(
                 server.definition,
@@ -564,27 +571,11 @@ def _execute_literal_definition_to_value(
         )
 
         if script_arg is not None:
-            chained_input: Optional[str] = None
-            if chained_input_path:
-                segments = _split_path_segments(chained_input_path)
-                if len(segments) == 1:
-                    cid_content = _resolve_cid_content(segments[0])
-                    if cid_content is not None:
-                        chained_input = cid_content
-                    else:
-                        nested_value = _evaluate_nested_path_to_value(
-                            chained_input_path, visited
-                        )
-                        if isinstance(nested_value, Response):
-                            return nested_value
-                        if nested_value is not None:
-                            chained_input = str(_extract_chained_output(nested_value))
-                else:
-                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
-                    if isinstance(nested_value, Response):
-                        return nested_value
-                    if nested_value is not None:
-                        chained_input = str(_extract_chained_output(nested_value))
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
 
             return _execute_bash_code_to_value(
                 definition_text,
@@ -1460,30 +1451,13 @@ def _execute_server_code_common(
 
         if script_arg is not None:
             # Script uses $1 - use path parameter logic
-            chained_input: Optional[str] = None
-            early_response: Optional[Response] = None
-
-            if chained_input_path:
-                # Resolve the remaining path for stdin
-                segments = _split_path_segments(chained_input_path)
-                if len(segments) == 1:
-                    cid_content = _resolve_cid_content(segments[0])
-                    if cid_content is not None:
-                        chained_input = cid_content
-                    else:
-                        visited: Set[str] = set()
-                        nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
-                        if isinstance(nested_value, Response):
-                            return nested_value
-                        if nested_value is not None:
-                            chained_input = str(_extract_chained_output(nested_value))
-                else:
-                    visited: Set[str] = set()
-                    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
-                    if isinstance(nested_value, Response):
-                        return nested_value
-                    if nested_value is not None:
-                        chained_input = str(_extract_chained_output(nested_value))
+            # Use a fresh visited set for top-level execution
+            visited: Set[str] = set()
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
 
             return _execute_bash_server_response(
                 code,

@@ -25,7 +25,7 @@ class TestSystemPromptLookup(unittest.TestCase):
 
         # Create a module namespace
         self.ai_assist_module = {}
-        exec(code, self.ai_assist_module)
+        exec(code, self.ai_assist_module)  # pylint: disable=exec-used
 
         # Extract the functions we need to test
         self._lookup_system_prompt = self.ai_assist_module['_lookup_system_prompt']

@@ -100,7 +100,7 @@ def _render_execution_error_html(
     if code_text:
         highlight_lineno = _extract_server_error_lineno(exc)
         mapped_lineno = highlight_lineno - 1 if highlight_lineno is not None else None
-        if mapped_lineno is not None and not (1 <= mapped_lineno <= len(code_text.splitlines())):
+        if mapped_lineno is not None and not 1 <= mapped_lineno <= len(code_text.splitlines()):
             mapped_lineno = None
 
         highlighted_inner, syntax_css = highlight_source(

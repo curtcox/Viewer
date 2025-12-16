@@ -274,7 +274,7 @@ def parse_github_pr_url(
 
         return None, None, None
     except Exception as e:
-        LOGGER.warning(f"Failed to parse GitHub PR URL: {e}")
+        LOGGER.warning("Failed to parse GitHub PR URL: %s", e)
         return None, None, None
 
 
@@ -327,6 +327,7 @@ def get_repository(client: Github, owner: str, repo: str) -> Repository:
 
 def create_export_pr(
     export_json: str,
+    *,
     target_repo: Optional[str] = None,
     github_token: Optional[str] = None,
     pr_title: Optional[str] = None,
