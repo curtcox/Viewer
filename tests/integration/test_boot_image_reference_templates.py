@@ -10,6 +10,7 @@ import pytest
 
 import main
 from app import create_app, db
+from cid import CID
 from db_access import create_cid_record
 from db_access.cids import get_cid_by_path
 from generate_boot_image import BootImageGenerator
@@ -17,6 +18,20 @@ from models import Alias, Server, Variable
 from template_manager import get_templates_config
 
 pytestmark = pytest.mark.integration
+
+
+COOKIE_EDITOR_HTML_CID = CID.from_bytes(
+    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.html").read_bytes()
+).value
+COOKIE_EDITOR_CSS_CID = CID.from_bytes(
+    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.css").read_bytes()
+).value
+COOKIE_EDITOR_JS_CID = CID.from_bytes(
+    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.js").read_bytes()
+).value
+COOKIE_EDITOR_ICON_CID = CID.from_bytes(
+    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor_icon.svg").read_bytes()
+).value
 
 
 class TestBootImageReferenceTemplates:
@@ -98,6 +113,41 @@ class TestBootImageReferenceTemplates:
             assert alias is not None, "Alias 'ai' should be loaded from boot image"
             assert 'ai -> /ai_assist' in alias.definition
             assert alias.enabled is True
+
+            cookie_alias = Alias.query.filter_by(name='cookies').first()
+            assert cookie_alias is not None, "Alias 'cookies' should be loaded from boot image"
+            assert cookie_alias.enabled is True
+            assert cookie_alias.target_path is not None
+            assert cookie_alias.target_path.endswith(f"{COOKIE_EDITOR_HTML_CID}.html")
+
+    @pytest.mark.parametrize("boot_key", ["default_boot_cid", "readonly_boot_cid"])
+    def test_cookie_editor_alias_serves_page(self, tmp_path, boot_key):
+        """Cookie editor alias returns the HTML page in default and readonly boots."""
+        project_dir = Path(__file__).parent.parent.parent
+        generator = BootImageGenerator(project_dir)
+        result = generator.generate()
+        boot_cid = result[boot_key]
+
+        self.load_cids_into_db(generator)
+
+        captured_output = StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            main.handle_boot_cid_import(boot_cid)
+        finally:
+            sys.stdout = old_stdout
+
+        with self.app.test_client() as client:
+            response = client.get('/cookies', follow_redirects=True)
+
+        assert response.status_code == 200
+        body = response.data.decode('utf-8')
+        assert 'Cookie Editor' in body
+        assert COOKIE_EDITOR_CSS_CID in body
+        assert COOKIE_EDITOR_JS_CID in body
+        assert COOKIE_EDITOR_ICON_CID in body
 
     def test_boot_image_loads_servers(self, tmp_path):
         """Test that servers from boot.source.json are loaded."""

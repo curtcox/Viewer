@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Cookie icon</title>
+  <desc id="desc">A rounded cookie with sparkling highlights</desc>
+  <defs>
+    <linearGradient id="shine" x1="20%" y1="10%" x2="80%" y2="90%">
+      <stop offset="0%" stop-color="#8bd5ff" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#5dcba5" stop-opacity="0.8" />
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="80" r="70" fill="url(#shine)" stroke="#0f1f33" stroke-width="6" />
+  <circle cx="54" cy="54" r="9" fill="#0f1f33" opacity="0.8" />
+  <circle cx="106" cy="54" r="9" fill="#0f1f33" opacity="0.8" />
+  <circle cx="70" cy="96" r="9" fill="#0f1f33" opacity="0.8" />
+  <circle cx="104" cy="96" r="9" fill="#0f1f33" opacity="0.8" />
+  <path d="M60 30c16 8 32-4 44-4-2 14 4 26 12 34-18-2-28 12-24 22-18-4-32 6-38 22-10-20-6-58 6-74z" fill="#fff" fill-opacity="0.08" />
+</svg>

@@ -4,6 +4,11 @@
       "name": "AI Alias",
       "description": "Shortcut alias to AI stub server",
       "definition_cid": "reference_templates/aliases/ai.txt"
+    },
+    "cookie-editor": {
+      "name": "Cookie Editor alias",
+      "description": "Serves the cookie editor interface at /cookies",
+      "definition_cid": "reference_templates/aliases/cookies.txt"
     }
   },
   "servers": {
@@ -111,6 +116,26 @@
       "name": "Embedded CID execution guide",
       "description": "Demonstrates chaining embedded CID path elements for Unix-style tools.",
       "content_cid": "reference_templates/uploads/contents/embedded_cid_execution.formdown"
+    },
+    "cookie-editor": {
+      "name": "Cookie Editor",
+      "description": "Standalone page for viewing and editing cookies",
+      "content_cid": "reference_templates/uploads/contents/cookie_editor.html"
+    },
+    "cookie-editor-style": {
+      "name": "Cookie Editor CSS",
+      "description": "Stylesheet used by the cookie editor page",
+      "content_cid": "reference_templates/uploads/contents/cookie_editor.css"
+    },
+    "cookie-editor-script": {
+      "name": "Cookie Editor JavaScript",
+      "description": "Client-side logic for editing cookies",
+      "content_cid": "reference_templates/uploads/contents/cookie_editor.js"
+    },
+    "cookie-editor-icon": {
+      "name": "Cookie Editor Icon",
+      "description": "Cookie illustration referenced by the editor",
+      "content_cid": "reference_templates/uploads/contents/cookie_editor_icon.svg"
     }
   }
 }
