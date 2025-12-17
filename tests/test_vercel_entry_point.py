@@ -2,7 +2,6 @@
 import os
 import sys
 from pathlib import Path
-import pytest
 
 
 class TestVercelEntryPoint:
@@ -35,7 +34,7 @@ class TestVercelEntryPoint:
             ReadOnlyConfig.reset()  # Reset first
             
             # Now import the api module which should enable read-only mode
-            import index as api_index
+            import index  # noqa: F401 - Import has side effect of enabling read-only mode
             
             # Verify read-only mode is enabled
             assert ReadOnlyConfig.is_read_only_mode() is True
@@ -83,7 +82,7 @@ class TestVercelEntryPoint:
             ReadOnlyConfig.reset()
             
             # Import the api module
-            import index as api_index
+            import index  # noqa: F401 - Import has side effect on read-only mode
             
             # Verify read-only mode is NOT enabled
             assert ReadOnlyConfig.is_read_only_mode() is False
@@ -133,7 +132,7 @@ class TestVercelEntryPoint:
                 ReadOnlyConfig.reset()
                 
                 # Import the api module
-                import index as api_index
+                import index  # noqa: F401 - Import has side effect of enabling read-only mode
                 
                 # Verify read-only mode is enabled
                 assert ReadOnlyConfig.is_read_only_mode() is True, f"Failed for value: {value}"

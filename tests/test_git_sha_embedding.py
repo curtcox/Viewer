@@ -1,6 +1,5 @@
 """Tests for GIT_SHA embedding in deployed app."""
 import os
-import pytest
 from app import create_app
 
 
