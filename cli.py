@@ -267,6 +267,14 @@ OPTIONS:
     --boot-cid CID      Import a boot CID on startup (legacy, use positional CID instead)
     --port PORT         Port to run the server on (default: 5001)
     --in-memory-db      Use an in-memory database instead of persistent SQLite
+    --dump-db-on-exit FILE
+                        Dump the in-memory database to FILE on exit
+    --snapshot NAME     Create an in-memory database snapshot with the given NAME
+    --list-snapshots    List available in-memory database snapshots and exit
+    --read-only         Run in read-only mode (blocks state changes, uses in-memory DB)
+    --max-cid-memory SIZE
+                        Maximum memory for CID storage in read-only mode (default: 1G)
+                        Supports K, M, G, T units (e.g., 512M, 2G)
 
 ARGUMENTS:
     URL                 A URL to make a GET request to (must start with http://, https://, or /)
@@ -299,6 +307,12 @@ EXAMPLES:
     # Launch the app normally as a server
     python main.py
 
+    # Run in read-only mode (secure, memory-constrained)
+    python main.py --read-only
+
+    # Read-only mode with custom memory limit
+    python main.py --read-only --max-cid-memory 512M
+
     # ONE-SHOT: Get JSON response from /servers.json endpoint
     python main.py /servers.json
 
@@ -321,6 +335,15 @@ EXAMPLES:
     # Launch app as server and open browser
     python main.py --show
     python main.py --show http://localhost:5001/dashboard
+
+READ-ONLY MODE:
+    Read-only mode provides a secure, memory-constrained environment:
+    - Blocks all state-changing operations (POST/PUT/PATCH/DELETE)
+    - Uses in-memory database (no persistent storage)
+    - Loads readonly boot image (excludes shell, file, and system servers)
+    - Enforces CID memory limits with automatic eviction
+    - Returns 405 for blocked operations, 413 for oversized CIDs
+    - See docs/readonly_mode.md for full documentation
 
 NOTES:
     - One-shot mode uses Flask's test client internally for identical behavior

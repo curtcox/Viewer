@@ -36,11 +36,6 @@
       "enabled": true
     },
     {
-      "name": "shell",
-      "definition_cid": "reference_templates/servers/definitions/shell.py",
-      "enabled": true
-    },
-    {
       "name": "echo",
       "definition_cid": "reference_templates/servers/definitions/echo.py",
       "enabled": true
@@ -58,11 +53,6 @@
     {
       "name": "jinja",
       "definition_cid": "reference_templates/servers/definitions/jinja_renderer.py",
-      "enabled": true
-    },
-    {
-      "name": "file",
-      "definition_cid": "reference_templates/servers/definitions/file.py",
       "enabled": true
     },
     {
@@ -98,26 +88,6 @@
     {
       "name": "ai_editor",
       "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
-      "enabled": true
-    },
-    {
-      "name": "awk",
-      "definition_cid": "reference_templates/servers/definitions/awk.sh",
-      "enabled": true
-    },
-    {
-      "name": "sed",
-      "definition_cid": "reference_templates/servers/definitions/sed.sh",
-      "enabled": true
-    },
-    {
-      "name": "grep",
-      "definition_cid": "reference_templates/servers/definitions/grep.sh",
-      "enabled": true
-    },
-    {
-      "name": "jq",
-      "definition_cid": "reference_templates/servers/definitions/jq.sh",
       "enabled": true
     }
   ],

@@ -19,6 +19,15 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture(autouse=True)
+def reset_readonly_config():
+    """Reset ReadOnlyConfig before each test to ensure clean state."""
+    from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+    ReadOnlyConfig.reset()
+    yield
+    ReadOnlyConfig.reset()
+
+
 @pytest.fixture()
 def memory_db_app():
     """Flask app configured with in-memory database."""
