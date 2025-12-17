@@ -211,7 +211,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     @flask_app.before_request
     def check_readonly_mode():
         """Block state-changing requests in read-only mode."""
-        from flask import request as flask_request
         from readonly_middleware import is_state_changing_request
         from readonly_config import ReadOnlyConfig
 

@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [
     {

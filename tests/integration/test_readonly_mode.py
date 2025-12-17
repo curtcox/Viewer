@@ -1,8 +1,6 @@
 # tests/integration/test_readonly_mode.py
 """Integration tests for read-only mode functionality."""
 
-import pytest
-
 from app import create_app
 from db_config import DatabaseConfig, DatabaseMode
 from readonly_config import ReadOnlyConfig

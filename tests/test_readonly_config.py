@@ -1,8 +1,6 @@
 # tests/test_readonly_config.py
 """Tests for read-only mode configuration."""
 
-import pytest
-
 from readonly_config import ReadOnlyConfig
 
 

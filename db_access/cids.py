@@ -114,6 +114,38 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
     )
 
 
+def create_cid_record_raw(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
+    """Create a new CID record without memory checks (for internal use).
+    
+    This is a low-level function that bypasses memory checks. Use create_cid_record
+    for normal operations, which includes read-only mode memory management.
+
+    Args:
+        cid: CID string or ValidatedCID object (will be validated)
+        file_content: Content to store
+
+    Returns:
+        CID database model instance
+
+    Raises:
+        ValueError: If cid is not a valid CID string
+
+    Example:
+        >>> record = create_cid_record_raw("AAAAAAAA", b"")
+        >>> record = create_cid_record_raw(ValidatedCID("AAAAAAAA"), b"")
+    """
+    # Validate and normalize the CID
+    cid_str = to_cid_string(cid)
+
+    record = CID(
+        path=f"/{cid_str}",
+        file_data=file_content,
+        file_size=len(file_content),
+    )
+    save_entity(record)
+    return record
+
+
 def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
     """Create a new CID record.
 

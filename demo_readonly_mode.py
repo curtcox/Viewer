@@ -127,7 +127,7 @@ def demo_readonly_config():
     ReadOnlyConfig.set_read_only_mode(True)
     ReadOnlyConfig.set_max_cid_memory(512 * 1024 * 1024)
     
-    print(f"\nAfter configuration:")
+    print("\nAfter configuration:")
     print(f"Read-only mode: {ReadOnlyConfig.is_read_only_mode()}")
     print(f"Max memory: {ReadOnlyConfig.get_max_cid_memory():,} bytes (512MB)")
 

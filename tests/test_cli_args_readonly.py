@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from cli_args import configure_from_args, parse_arguments, parse_memory_size
-from db_config import DatabaseConfig, DatabaseMode
+from db_config import DatabaseConfig
 from readonly_config import ReadOnlyConfig
 
 
