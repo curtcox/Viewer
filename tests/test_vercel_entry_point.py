@@ -8,7 +8,7 @@ class TestVercelEntryPoint:
     """Test suite for Vercel serverless function entry point."""
 
     def test_read_only_mode_enabled_from_env(self):
-        """Test that READ_ONLY environment variable enables read-only mode and memory database."""
+        """Test that READ_ONLY environment variable enables both read-only mode and sets database to memory mode."""
         # Store original state
         original_read_only = os.environ.get("READ_ONLY")
         original_testing = os.environ.get("TESTING")
@@ -85,7 +85,7 @@ class TestVercelEntryPoint:
                 del sys.modules["app"]
             
             from readonly_config import ReadOnlyConfig
-            from db_config import DatabaseConfig
+            from db_config import DatabaseConfig, DatabaseMode
             ReadOnlyConfig.reset()
             DatabaseConfig.reset()
             
@@ -95,7 +95,6 @@ class TestVercelEntryPoint:
             # Verify read-only mode is NOT enabled
             assert ReadOnlyConfig.is_read_only_mode() is False
             # Verify database mode is NOT memory (should be default DISK)
-            from db_config import DatabaseMode
             assert DatabaseConfig.get_mode() == DatabaseMode.DISK
             
         finally:
