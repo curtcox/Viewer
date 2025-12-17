@@ -13,14 +13,81 @@ jobs:
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
+    outputs:
+      deployment-url: ${{ steps.deploy.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get git SHA
+        id: git-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Deploy to Vercel
+        id: deploy
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+          vercel-args: '--prod --build-env READ_ONLY=true --build-env GIT_SHA=${{ steps.git-sha.outputs.sha }}'
+
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get git SHA
+        id: git-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting 30 seconds for deployment to stabilize..."
+          sleep 30
+
+      - name: Validate deployment is serving responses
+        id: health-check
+        run: |
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Deployment URL is empty"
+            exit 1
+          fi
+          
+          echo "Testing deployment at: $DEPLOYMENT_URL"
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL" || echo "000")
+          echo "HTTP response code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Deployment is serving responses successfully"
+          else
+            echo "❌ Deployment failed to return HTTP 200 (got $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Verify embedded SHA matches deployed version
+        id: sha-check
+        run: |
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
+          EXPECTED_SHA="${{ steps.git-sha.outputs.sha }}"
+          
+          echo "Expected SHA: $EXPECTED_SHA"
+          echo "Fetching deployed page from: $DEPLOYMENT_URL"
+          
+          # Fetch the page and look for the SHA in either meta tag or HTML comment
+          RESPONSE=$(curl -s "$DEPLOYMENT_URL")
+          
+          # Check for SHA in meta tag or HTML comment
+          if echo "$RESPONSE" | grep -q "$EXPECTED_SHA"; then
+            echo "✅ SHA verification successful: Found $EXPECTED_SHA in deployed app"
+          else
+            echo "❌ SHA verification failed: Expected SHA $EXPECTED_SHA not found in deployed app"
+            echo "Searching for any git-sha meta tag or comment..."
+            echo "$RESPONSE" | grep -i "git.sha\|GIT_SHA" || echo "No SHA information found"
+            exit 1
+          fi

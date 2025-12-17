@@ -175,6 +175,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
     flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
+    
+    # Set GIT_SHA from environment variable if provided (used in Vercel deployments)
+    git_sha = os.environ.get("GIT_SHA")
+    if git_sha:
+        flask_app.config["GIT_SHA"] = git_sha
 
     cid_directory_overridden = bool(config_override and "CID_DIRECTORY" in config_override)
     load_cids_in_tests = bool(config_override and config_override.get("LOAD_CIDS_IN_TESTS"))
