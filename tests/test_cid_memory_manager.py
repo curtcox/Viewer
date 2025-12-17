@@ -4,6 +4,7 @@
 import pytest
 
 from app import create_app
+from cid import CID
 from cid_memory_manager import CIDMemoryManager
 from db_config import DatabaseConfig, DatabaseMode
 from readonly_config import ReadOnlyConfig
@@ -82,9 +83,11 @@ class TestCIDMemoryManager:
         with app.app_context():
             from db_access.cids import create_cid_record
             
-            # Create some CIDs
-            create_cid_record("AAAAAAAA", b"content1")  # 8 bytes
-            create_cid_record("BBBBBBBB", b"content22")  # 9 bytes
+            # Create some CIDs with valid CID values
+            cid1 = CID.from_bytes(b"content1").value
+            cid2 = CID.from_bytes(b"content22").value
+            create_cid_record(cid1, b"content1")  # 8 bytes
+            create_cid_record(cid2, b"content22")  # 9 bytes
             
             total_size = CIDMemoryManager.get_total_cid_size()
             assert total_size == 17  # 8 + 9
@@ -99,16 +102,17 @@ class TestCIDMemoryManager:
         
         with app.app_context():
             from db_access.cids import create_cid_record
-            from models import CID
+            from models import CID as CIDModel
             
-            # Create a small CID
-            create_cid_record("AAAAAAAA", b"small")  # 5 bytes
+            # Create a small CID with valid CID value
+            cid_value = CID.from_bytes(b"small").value
+            create_cid_record(cid_value, b"small")  # 5 bytes
             
             # Request space for another small CID
             CIDMemoryManager.ensure_memory_available(5)
             
             # Original CID should still exist
-            assert CID.query.count() == 1
+            assert CIDModel.query.count() == 1
 
     def test_ensure_memory_available_evicts_largest(self):
         """Should evict largest CIDs when memory needed."""
@@ -120,23 +124,31 @@ class TestCIDMemoryManager:
         
         with app.app_context():
             from db_access.cids import create_cid_record
-            from models import CID
+            from models import CID as CIDModel
             
             # Fill up memory with CIDs of different sizes
-            create_cid_record("AAAAAAAA", b"x" * 10)   # 10 bytes
-            create_cid_record("BBBBBBBB", b"x" * 40)   # 40 bytes (largest)
-            create_cid_record("CCCCCCCC", b"x" * 20)   # 20 bytes
+            content1 = b"x" * 10
+            content2 = b"x" * 40
+            content3 = b"x" * 20
+            
+            cid1 = CID.from_bytes(content1).value
+            cid2 = CID.from_bytes(content2).value  # largest
+            cid3 = CID.from_bytes(content3).value
+            
+            create_cid_record(cid1, content1)   # 10 bytes
+            create_cid_record(cid2, content2)   # 40 bytes (largest)
+            create_cid_record(cid3, content3)   # 20 bytes
             
             # Total: 70 bytes, available: 30 bytes
             # Request 50 bytes - should evict the 40-byte CID
             CIDMemoryManager.ensure_memory_available(50)
             
             # Should have 2 CIDs left
-            assert CID.query.count() == 2
+            assert CIDModel.query.count() == 2
             
-            # The 40-byte CID (BBBBBBBB) should be gone
-            assert CID.query.filter_by(path="/BBBBBBBB").first() is None
+            # The 40-byte CID (cid2) should be gone
+            assert CIDModel.query.filter_by(path=f"/{cid2}").first() is None
             
             # The other two should still exist
-            assert CID.query.filter_by(path="/AAAAAAAA").first() is not None
-            assert CID.query.filter_by(path="/CCCCCCCC").first() is not None
+            assert CIDModel.query.filter_by(path=f"/{cid1}").first() is not None
+            assert CIDModel.query.filter_by(path=f"/{cid3}").first() is not None
