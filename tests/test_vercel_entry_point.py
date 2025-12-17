@@ -8,7 +8,7 @@ class TestVercelEntryPoint:
     """Test suite for Vercel serverless function entry point."""
 
     def test_read_only_mode_enabled_from_env(self):
-        """Test that READ_ONLY environment variable enables read-only mode."""
+        """Test that READ_ONLY environment variable enables read-only mode and memory database."""
         # Store original state
         original_read_only = os.environ.get("READ_ONLY")
         original_testing = os.environ.get("TESTING")
@@ -31,13 +31,17 @@ class TestVercelEntryPoint:
             
             # Import and check read-only mode
             from readonly_config import ReadOnlyConfig
+            from db_config import DatabaseConfig, DatabaseMode
             ReadOnlyConfig.reset()  # Reset first
+            DatabaseConfig.reset()  # Reset database config too
             
             # Now import the api module which should enable read-only mode
             import index  # noqa: F401 - Import has side effect of enabling read-only mode
             
             # Verify read-only mode is enabled
             assert ReadOnlyConfig.is_read_only_mode() is True
+            # Verify database mode is set to memory
+            assert DatabaseConfig.get_mode() == DatabaseMode.MEMORY
             
         finally:
             # Restore original environment
@@ -57,9 +61,11 @@ class TestVercelEntryPoint:
             if "index" in sys.modules:
                 del sys.modules["index"]
             
-            # Reset read-only config
+            # Reset read-only config and database config
             from readonly_config import ReadOnlyConfig
+            from db_config import DatabaseConfig
             ReadOnlyConfig.reset()
+            DatabaseConfig.reset()
 
     def test_read_only_mode_not_enabled_when_env_false(self):
         """Test that READ_ONLY=false does not enable read-only mode."""
@@ -79,13 +85,18 @@ class TestVercelEntryPoint:
                 del sys.modules["app"]
             
             from readonly_config import ReadOnlyConfig
+            from db_config import DatabaseConfig
             ReadOnlyConfig.reset()
+            DatabaseConfig.reset()
             
             # Import the api module
             import index  # noqa: F401 - Import has side effect on read-only mode
             
             # Verify read-only mode is NOT enabled
             assert ReadOnlyConfig.is_read_only_mode() is False
+            # Verify database mode is NOT memory (should be default DISK)
+            from db_config import DatabaseMode
+            assert DatabaseConfig.get_mode() == DatabaseMode.DISK
             
         finally:
             # Restore original environment
@@ -106,7 +117,9 @@ class TestVercelEntryPoint:
                 del sys.modules["index"]
             
             from readonly_config import ReadOnlyConfig
+            from db_config import DatabaseConfig
             ReadOnlyConfig.reset()
+            DatabaseConfig.reset()
 
     def test_read_only_mode_respects_various_true_values(self):
         """Test that various true values enable read-only mode."""
@@ -129,13 +142,17 @@ class TestVercelEntryPoint:
                     del sys.modules["app"]
                 
                 from readonly_config import ReadOnlyConfig
+                from db_config import DatabaseConfig, DatabaseMode
                 ReadOnlyConfig.reset()
+                DatabaseConfig.reset()
                 
                 # Import the api module
                 import index  # noqa: F401 - Import has side effect of enabling read-only mode
                 
                 # Verify read-only mode is enabled
                 assert ReadOnlyConfig.is_read_only_mode() is True, f"Failed for value: {value}"
+                # Verify database mode is set to memory
+                assert DatabaseConfig.get_mode() == DatabaseMode.MEMORY, f"Failed for value: {value}"
                 
             finally:
                 # Clean up for next iteration
@@ -158,4 +175,6 @@ class TestVercelEntryPoint:
             del os.environ["TESTING"]
         
         from readonly_config import ReadOnlyConfig
+        from db_config import DatabaseConfig
         ReadOnlyConfig.reset()
+        DatabaseConfig.reset()
