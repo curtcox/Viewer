@@ -2,9 +2,9 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 3529
+**Total Tests:** 3531
 - Unit Tests: 2920
-- Integration Tests: 468
+- Integration Tests: 470
 - Property Tests: 14
 - Gauge Tests: 127
 
@@ -2935,7 +2935,7 @@ Total: 2920 tests
 
 ## Integration Tests
 
-Total: 468 tests
+Total: 470 tests
 
 - [TestAiEditorIntegration.test_ai_editor_contains_navigation_and_info_menu](tests/integration/test_ai_editor_integration.py:68)
 - [TestAiEditorIntegration.test_ai_editor_escapes_payload_attribute](tests/integration/test_ai_editor_integration.py:98)
@@ -3126,10 +3126,10 @@ Total: 468 tests
 - [Test that /aliases.json returns identical content via HTTP and CLI.](tests/integration/test_one_shot_equivalence.py:297)
 - [Each alias entry should expose a toggle reflecting its enabled state.](tests/integration/test_alias_pages.py:42)
 - [The aliases index should render saved aliases for the workspace.](tests/integration/test_alias_pages.py:15)
-- [Awk server should accept pattern from path segment and input from chained server.](tests/integration/test_bash_path_parameters.py:76)
-- [Awk server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:122)
-- [Awk server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:102)
-- [Awk server should use CID contents as the pattern.](tests/integration/test_bash_path_parameters.py:404)
+- [Awk server should accept pattern from path segment and input from chained server.](tests/integration/test_bash_path_parameters.py:81)
+- [Awk server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:127)
+- [Awk server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:107)
+- [Awk server should use CID contents as the pattern.](tests/integration/test_bash_path_parameters.py:409)
 - [Exit codes outside HTTP range should be normalised.](tests/integration/test_server_execution_auto_main.py:380)
 - [Identifier-only path segments should still allow chaining into bash servers.](tests/integration/test_server_execution_auto_main.py:458)
 - [Bash servers should stream stdin JSON and map exit codes to HTTP codes.](tests/integration/test_server_execution_auto_main.py:361)
@@ -3197,9 +3197,9 @@ Total: 468 tests
 - [Test error handling when PR creation fails.](tests/integration/test_github_pr_workflow.py:138)
 - [Test complete export to GitHub PR flow.](tests/integration/test_github_pr_workflow.py:38)
 - [Test that filtering by enabled status works identically.](tests/integration/test_one_shot_equivalence.py:556)
-- [Grep server should accept pattern from path segment.](tests/integration/test_bash_path_parameters.py:223)
-- [Grep server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:271)
-- [Grep server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:251)
+- [Grep server should accept pattern from path segment.](tests/integration/test_bash_path_parameters.py:228)
+- [Grep server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:276)
+- [Grep server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:256)
 - [Test that invalid CID format causes SystemExit with helpful message.](tests/integration/test_boot_cid_cli.py:127)
 - [Test that KeyboardInterrupt is not caught by the exception handler.](tests/integration/test_main_exception_handling.py:75)
 - [Test that missing dependency causes SystemExit with helpful message.](tests/integration/test_boot_cid_cli.py:93)
@@ -3230,9 +3230,10 @@ Total: 468 tests
 - [Test providing an invalid CID format shows error.](tests/integration/test_cli_integration.py:67)
 - [Test that requesting invalid CID format returns same error.](tests/integration/test_one_shot_equivalence.py:388)
 - [Test providing an invalid URL shows error.](tests/integration/test_cli_integration.py:105)
-- [Jq server should accept filter from path segment.](tests/integration/test_bash_path_parameters.py:301)
-- [Jq server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:346)
-- [Jq server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:328)
+- [Verify jq is installed and functional.](tests/integration/test_diagnostics.py:20)
+- [Jq server should accept filter from path segment.](tests/integration/test_bash_path_parameters.py:310)
+- [Jq server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:353)
+- [Jq server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:336)
 - [Test JSON endpoint with query parameters for equivalence.](tests/integration/test_one_shot_equivalence.py:269)
 - [Test legacy --boot-cid flag still works.](tests/integration/test_cli_integration.py:194)
 - [Test that --list completes within reasonable time without hanging.](tests/integration/test_cli_integration.py:564)
@@ -3271,7 +3272,7 @@ Total: 468 tests
 - [Variables marked as templates should appear on the creation form.](tests/integration/test_variable_pages.py:147)
 - [The new-variable form should render without explicit login helpers.](tests/integration/test_variable_pages.py:132)
 - [Test that /openapi.json returns identical OpenAPI specification.](tests/integration/test_one_shot_equivalence.py:399)
-- [When path parameter is a CID, its contents should be used as $1.](tests/integration/test_bash_path_parameters.py:375)
+- [When path parameter is a CID, its contents should be used as $1.](tests/integration/test_bash_path_parameters.py:380)
 - [Authenticated users should see the workspace shortcut on the profile page.](tests/integration/test_profile_page.py:9)
 - [test_python_server_captures_external_calls](tests/integration/test_server_execution_auto_main.py:848)
 - [test_python_server_captures_external_calls_on_error](tests/integration/test_server_execution_auto_main.py:903)
@@ -3301,9 +3302,9 @@ Total: 468 tests
 - [Test that /secrets.json returns same response via HTTP and CLI.](tests/integration/test_one_shot_equivalence.py:350)
 - [The secrets overview should list saved secrets for the user.](tests/integration/test_secret_pages.py:163)
 - [Each secret card should display an enabled toggle.](tests/integration/test_secret_pages.py:191)
-- [Sed server should accept expression from path segment.](tests/integration/test_bash_path_parameters.py:151)
-- [Sed server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:194)
-- [Sed server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:176)
+- [Sed server should accept expression from path segment.](tests/integration/test_bash_path_parameters.py:156)
+- [Sed server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:199)
+- [Sed server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:181)
 - [test_server_creation_redirects_consistently](tests/integration/test_identity_responses.py:68)
 - [test_server_detail_endpoint_returns_record](tests/integration/test_content_negotiation_integration.py:188)
 - [test_server_detail_endpoint_supports_csv_extension](tests/integration/test_content_negotiation_integration.py:200)
@@ -3335,8 +3336,9 @@ Total: 468 tests
 - [The source browser should render a directory listing for the project root.](tests/integration/test_source_browser_page.py:13)
 - [The instance page should enumerate database tables and their columns.](tests/integration/test_source_browser_page.py:77)
 - [Viewing a specific table should render its rows in an HTML table.](tests/integration/test_source_browser_page.py:92)
-- [Bash servers without $1 should continue to work as before.](tests/integration/test_bash_path_parameters.py:429)
+- [Bash servers without $1 should continue to work as before.](tests/integration/test_bash_path_parameters.py:434)
 - [Test providing too many positional arguments.](tests/integration/test_cli_integration.py:160)
+- [Verify awk, sed, grep are available.](tests/integration/test_diagnostics.py:48)
 - [Test that content with unicode characters renders identically.](tests/integration/test_one_shot_equivalence.py:491)
 - [test_update_alias_cid_reference_creates_alias_when_missing](tests/integration/test_cid_reference_updates.py:107)
 - [test_update_alias_cid_reference_updates_existing_alias](tests/integration/test_cid_reference_updates.py:70)
