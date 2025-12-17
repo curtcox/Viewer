@@ -126,6 +126,11 @@ class TestBootImageGenerator:
         default_boot_source_file = ref_templates / "default.boot.source.json"
         default_boot_source_file.write_text(json.dumps(default_boot_source, indent=2))
 
+        # Create readonly.boot.source.json (same as boot but for readonly mode)
+        readonly_boot_source = boot_source.copy()
+        readonly_boot_source_file = ref_templates / "readonly.boot.source.json"
+        readonly_boot_source_file.write_text(json.dumps(readonly_boot_source, indent=2))
+
         return tmp_path
 
     def test_init(self, temp_project):
@@ -364,24 +369,28 @@ class TestBootImageGenerator:
         assert "boot_cid" in result
         assert "minimal_boot_cid" in result
         assert "default_boot_cid" in result
+        assert "readonly_boot_cid" in result
 
         # Verify both CIDs are valid (at least 8 characters, valid CID format)
         assert len(result["templates_cid"]) >= 8
         assert len(result["boot_cid"]) >= 8
         assert len(result["minimal_boot_cid"]) >= 8
         assert len(result["default_boot_cid"]) >= 8
+        assert len(result["readonly_boot_cid"]) >= 8
         # All CIDs should be alphanumeric with _ and - allowed
         import re
         assert re.match(r'^[A-Za-z0-9_-]+$', result["templates_cid"])
         assert re.match(r'^[A-Za-z0-9_-]+$', result["boot_cid"])
         assert re.match(r'^[A-Za-z0-9_-]+$', result["minimal_boot_cid"])
         assert re.match(r'^[A-Za-z0-9_-]+$', result["default_boot_cid"])
+        assert re.match(r'^[A-Za-z0-9_-]+$', result["readonly_boot_cid"])
 
         # Verify files were created
         assert (temp_project / "reference_templates" / "templates.json").exists()
         assert (temp_project / "reference_templates" / "boot.json").exists()
         assert (temp_project / "reference_templates" / "minimal.boot.json").exists()
         assert (temp_project / "reference_templates" / "default.boot.json").exists()
+        assert (temp_project / "reference_templates" / "readonly.boot.json").exists()
 
         # Verify CID files were created only for hashed CIDs (>= 94 chars)
         # Literal CIDs (< 94 chars) are not stored in /cids
@@ -393,6 +402,8 @@ class TestBootImageGenerator:
             assert (temp_project / "cids" / result["minimal_boot_cid"]).exists()
         if len(result["default_boot_cid"]) >= 94:
             assert (temp_project / "cids" / result["default_boot_cid"]).exists()
+        if len(result["readonly_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["readonly_boot_cid"]).exists()
 
         # Verify processed files
         assert len(generator.processed_files) > 0
