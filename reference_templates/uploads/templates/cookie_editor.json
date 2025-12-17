@@ -1,0 +1,7 @@
+{
+  "id": "cookie-editor",
+  "name": "Cookie Editor",
+  "description": "Standalone page for viewing, adding, editing, and deleting cookies.",
+  "content_file": "contents/cookie_editor.html",
+  "suggested_filename": "cookie-editor.html"
+}
