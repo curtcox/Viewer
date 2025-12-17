@@ -6,6 +6,7 @@ path parameters through $1, including the new awk, sed, grep, and jq servers.
 
 from __future__ import annotations
 
+import shutil
 import textwrap
 from urllib.parse import urlsplit
 
@@ -302,6 +303,10 @@ def main(payload):
 
 # Tests for jq server
 
+jq_missing = shutil.which("jq") is None
+
+
+@pytest.mark.skipif(jq_missing, reason="jq is not installed")
 def test_jq_server_accepts_filter_from_path(client, integration_app):
     """Jq server should accept filter from path segment."""
     _store_server(
@@ -327,6 +332,7 @@ def main():
     assert '"test"' in body
 
 
+@pytest.mark.skipif(jq_missing, reason="jq is not installed")
 def test_jq_server_with_cid_input(client, integration_app):
     """Jq server should accept CID as input source."""
     _store_server(
@@ -343,6 +349,7 @@ def test_jq_server_with_cid_input(client, integration_app):
     assert "6" in body
 
 
+@pytest.mark.skipif(jq_missing, reason="jq is not installed")
 def test_jq_server_provides_input_to_left(client, integration_app):
     """Jq server output should chain to the server on its left."""
     _store_server(
