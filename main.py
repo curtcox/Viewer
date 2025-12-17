@@ -41,15 +41,19 @@ def signal_handler(_sig, _frame):
     sys.exit(0)
 
 
-def get_default_boot_cid() -> str | None:
-    """Get the default boot CID from reference_templates/boot.cid.
+def get_default_boot_cid(readonly: bool = False) -> str | None:
+    """Get the default boot CID from reference_templates.
+    
+    Args:
+        readonly: If True, returns readonly.boot.cid instead of default
 
     Returns:
         The boot CID if the file exists and is readable, None otherwise
     """
     from pathlib import Path  # pylint: disable=import-outside-toplevel
 
-    boot_cid_file = Path(__file__).parent / "reference_templates" / "boot.cid"
+    filename = "readonly.boot.cid" if readonly else "boot.cid"
+    boot_cid_file = Path(__file__).parent / "reference_templates" / filename
     if boot_cid_file.exists():
         try:
             return boot_cid_file.read_text(encoding='utf-8').strip()
@@ -410,6 +414,17 @@ if __name__ == "__main__":
         help='List available in-memory database snapshots and exit',
     )
     parser.add_argument(
+        '--read-only',
+        action='store_true',
+        help='Run in read-only mode with in-memory database',
+    )
+    parser.add_argument(
+        '--max-cid-memory',
+        type=str,
+        default='1G',
+        help='Maximum memory for CID storage in read-only mode (default: 1G, e.g., 100M, 2G)',
+    )
+    parser.add_argument(
         'positional',
         nargs='*',
         help='URL and/or CID arguments',
@@ -417,7 +432,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Configure database mode (must be done before app is accessed)
-    if args.in_memory_db:
+    if args.read_only:
+        from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+        from cli_args import parse_memory_size  # pylint: disable=import-outside-toplevel
+        
+        ReadOnlyConfig.set_read_only_mode(True)
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+        
+        # Parse and set max CID memory
+        try:
+            max_bytes = parse_memory_size(args.max_cid_memory)
+            ReadOnlyConfig.set_max_cid_memory(max_bytes)
+        except ValueError as e:
+            print(f"Error: Invalid --max-cid-memory value: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.in_memory_db:
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
 
     # Handle --help
@@ -448,10 +477,12 @@ if __name__ == "__main__":
 
     # Use default boot CID if no CID was specified and no URL (i.e., starting server)
     # Don't load default CID if just making an HTTP request
+    # Use readonly boot CID in read-only mode
     if cid is None and url is None:
-        default_cid = get_default_boot_cid()
+        default_cid = get_default_boot_cid(readonly=args.read_only)
         if default_cid:
-            print(f"Using default boot CID from reference_templates/boot.cid: {default_cid}")
+            boot_type = "readonly" if args.read_only else "default"
+            print(f"Using {boot_type} boot CID from reference_templates: {default_cid}")
             cid = default_cid
 
     # Register signal handlers for graceful shutdown

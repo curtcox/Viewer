@@ -373,7 +373,7 @@ class BootImageGenerator:
         """Generate the complete boot image.
 
         Returns:
-            Dictionary with 'templates_cid', 'uis_cid', 'minimal_boot_cid', and 'default_boot_cid' keys
+            Dictionary with 'templates_cid', 'uis_cid', 'minimal_boot_cid', 'default_boot_cid', and 'readonly_boot_cid' keys
         """
         print("Generating Boot Image")
         print("=" * 60)
@@ -389,6 +389,7 @@ class BootImageGenerator:
 
         minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal", uis_cid)
         default_boot_cid = self.generate_boot_json(templates_cid, "default", uis_cid)
+        readonly_boot_cid = self.generate_boot_json(templates_cid, "readonly", uis_cid)
         boot_cid = self.generate_boot_json(templates_cid, "boot", uis_cid)
 
         # Summary
@@ -399,18 +400,21 @@ class BootImageGenerator:
         print(f"UIs CID:           {uis_cid}")
         print(f"Minimal Boot CID:  {minimal_boot_cid}")
         print(f"Default Boot CID:  {default_boot_cid}")
+        print(f"Readonly Boot CID: {readonly_boot_cid}")
         print(f"Boot CID (legacy): {boot_cid}")
         print(f"\nTotal files processed: {len(self.processed_files)}")
         print("\nTo boot with these images, run:")
         print(f"  python main.py --boot-cid {minimal_boot_cid}  # Minimal boot (ai_stub only)")
         print(f"  python main.py --boot-cid {default_boot_cid}  # Default boot (all servers)")
+        print(f"  python main.py --boot-cid {readonly_boot_cid}  # Readonly boot (no shell/file access)")
 
         return {
             'templates_cid': templates_cid,
             'uis_cid': uis_cid,
             'boot_cid': boot_cid,
             'minimal_boot_cid': minimal_boot_cid,
-            'default_boot_cid': default_boot_cid
+            'default_boot_cid': default_boot_cid,
+            'readonly_boot_cid': readonly_boot_cid
         }
 
 

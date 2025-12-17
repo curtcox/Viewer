@@ -207,6 +207,19 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     # Register application components
     flask_app.before_request(make_session_permanent)
 
+    # Add read-only mode check before authorization
+    @flask_app.before_request
+    def check_readonly_mode():
+        """Block state-changing requests in read-only mode."""
+        from flask import request as flask_request
+        from readonly_middleware import is_state_changing_request
+        from readonly_config import ReadOnlyConfig
+
+        if ReadOnlyConfig.is_read_only_mode() and is_state_changing_request():
+            from flask import abort
+            abort(405, description="Operation not allowed in read-only mode")
+        return None
+
     # Add authorization check for all requests
     @flask_app.before_request
     def check_authorization():

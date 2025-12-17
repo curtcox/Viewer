@@ -126,6 +126,7 @@ def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID
 
     Raises:
         ValueError: If cid is not a valid CID string
+        Aborts with 413 if content is too large in read-only mode
 
     Example:
         >>> record = create_cid_record("AAAAAAAA", b"")
@@ -133,6 +134,16 @@ def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID
     """
     # Validate and normalize the CID
     cid_str = to_cid_string(cid)
+    
+    # Check memory limits in read-only mode
+    from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+    
+    if ReadOnlyConfig.is_read_only_mode():
+        from cid_memory_manager import CIDMemoryManager  # pylint: disable=import-outside-toplevel
+        
+        content_size = len(file_content)
+        CIDMemoryManager.check_cid_size(content_size)
+        CIDMemoryManager.ensure_memory_available(content_size)
 
     record = CID(
         path=f"/{cid_str}",
