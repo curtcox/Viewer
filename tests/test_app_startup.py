@@ -167,7 +167,7 @@ def test_create_app_loads_cids_from_directory(
 def test_create_app_exits_on_cid_mismatch(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, app_config_factory
 ) -> None:
-    """Startup should abort if a CID filename does not match its contents."""
+    """Startup should store error in config and show 500 page if CID filename is invalid or doesn't match contents."""
 
     monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
 
@@ -178,7 +178,20 @@ def test_create_app_exits_on_cid_mismatch(
     config = app_config_factory("cid-mismatch")
     config["CID_DIRECTORY"] = str(cid_dir)
 
-    with pytest.raises(SystemExit) as excinfo:
-        app_module.create_app(config)
+    # App should be created successfully, but with error stored in config
+    app_instance = app_module.create_app(config)
 
-    assert "not-a-cid" in str(excinfo.value)
+    # Check that the error is stored in config
+    with app_instance.app_context():
+        cid_error = app_instance.config.get("CID_LOAD_ERROR")
+        assert cid_error is not None
+        assert "not-a-cid" in cid_error
+        assert "not a valid normalized CID" in cid_error
+
+    # Check that requests return 500 error page with the error message
+    client = app_instance.test_client()
+    response = client.get("/")
+    assert response.status_code == 500
+    response_text = response.get_data(as_text=True)
+    # The error message should contain information about the invalid CID
+    assert "not-a-cid" in response_text
