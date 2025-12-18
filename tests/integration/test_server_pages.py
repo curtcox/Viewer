@@ -428,7 +428,7 @@ def test_server_config_tab_surfaces_named_values(
     assert "Named value configuration" in page
 
     def _extract_status(name: str, source: str) -> str:
-        pattern = rf'data-named-value-name="{name}" data-named-value-source="{source}">\\s*<a[^>]*>([^<]+)'  # noqa: W605
+        pattern = rf'data-named-value-name="{name}" data-named-value-source="{source}">\s*<a[^>]*>([^<]+)'
         match = re.search(pattern, page, re.DOTALL)
         assert match, f"Missing status for {name} from {source}"
         return match.group(1).strip()
