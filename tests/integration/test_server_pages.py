@@ -388,6 +388,57 @@ def test_server_detail_page_displays_server_information(
     assert "Run Test" in page
 
 
+def test_server_config_tab_surfaces_named_values(
+    client,
+    integration_app,
+):
+    """The config tab should summarize pre-request named values."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Variable(
+                name="city",
+                definition="return 'London'",
+            )
+        )
+        db.session.add(
+            Secret(
+                name="API_KEY",
+                definition="return 'secret'",
+            )
+        )
+        db.session.add(
+            Server(
+                name="configurable",
+                definition=(
+                    "def main(city, API_KEY, units='metric'):\n"
+                    "    return {'output': city}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    client.set_cookie('localhost', 'city', 'cookie-value')
+
+    response = client.get('/servers/configurable')
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Config" in page
+    assert "Named value configuration" in page
+
+    def _extract_status(name: str, source: str) -> str:
+        pattern = rf'data-named-value-name="{name}" data-named-value-source="{source}">\s*<a[^>]*>([^<]+)'
+        match = re.search(pattern, page, re.DOTALL)
+        assert match, f"Missing status for {name} from {source}"
+        return match.group(1).strip()
+
+    assert _extract_status('city', 'cookies') == 'Defined'
+    assert _extract_status('city', 'variables') == 'Overridden'
+    assert _extract_status('API_KEY', 'secrets') == 'Defined'
+    assert _extract_status('units', 'variables') == 'None'
+
+
 def test_edit_server_updates_definition_snapshots(
     client,
     integration_app,

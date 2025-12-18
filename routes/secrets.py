@@ -108,6 +108,13 @@ def bulk_edit_secrets():
     )
 
 
+@main_bp.route('/values/<secret_name>', methods=['GET'])
+def view_secret_value(secret_name):
+    """Alias route for viewing a secret via the values/ path."""
+
+    return redirect(url_for('main.view_secret', secret_name=secret_name))
+
+
 __all__ = [
     'bulk_edit_secrets',
     'update_secret_definitions_cid',

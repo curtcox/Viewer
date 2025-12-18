@@ -34,6 +34,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="server-view-config-tab" data-bs-toggle="tab" data-bs-target="#server-view-config" type="button" role="tab" aria-controls="server-view-config" aria-selected="false">
+                <i class="fas fa-sliders-h me-1"></i>Config
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="server-view-details-tab" data-bs-toggle="tab" data-bs-target="#server-view-details" type="button" role="tab" aria-controls="server-view-details" aria-selected="false">
                 <i class="fas fa-info-circle me-1"></i>Details
             </button>
@@ -117,6 +122,61 @@
 
         <div class="tab-pane fade" id="server-view-docs" role="tabpanel" aria-labelledby="server-view-docs-tab">
             {% include "_server_docs_tab.html" %}
+        </div>
+
+        <div class="tab-pane fade" id="server-view-config" role="tabpanel" aria-labelledby="server-view-config-tab">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Named value configuration</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Viewer fills handler parameters using the query string, request body, headers, and cookies
+                        before falling back to saved variables and then secrets. Values from higher-priority sources
+                        override later ones with the same name.
+                    </p>
+                    <div class="d-flex flex-wrap gap-3 align-items-center small mb-3">
+                        <span><span class="text-success fw-semibold">Defined</span>: available before a request is sent.</span>
+                        <span><span class="text-warning fw-semibold">Overridden</span>: present but replaced by a higher-priority source.</span>
+                        <span><span class="text-muted fw-semibold">None</span>: not defined for this source.</span>
+                    </div>
+                    {% if named_value_matrix.rows %}
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="w-25">Name</th>
+                                    {% for source in named_value_matrix.sources %}
+                                    <th scope="col" class="text-capitalize">{{ source }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in named_value_matrix.rows %}
+                                <tr>
+                                    <th scope="row" class="fw-semibold">{{ row.name }}</th>
+                                    {% for source in named_value_matrix.sources %}
+                                        {% set entry = row.sources.get(source) %}
+                                        <td data-named-value-name="{{ row.name }}" data-named-value-source="{{ source }}">
+                                            {% if entry %}
+                                            <a href="{{ entry.url }}" class="text-decoration-none {{ named_value_matrix.status_classes.get(entry.status, '') }}">
+                                                {{ entry.label }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="mb-0 text-muted">No named values were detected for this server. Add parameters or context lookups to see which variables, secrets, or cookies would be used.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="tab-pane fade" id="server-view-details" role="tabpanel" aria-labelledby="server-view-details-tab">
