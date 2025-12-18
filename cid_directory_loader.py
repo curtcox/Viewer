@@ -33,19 +33,41 @@ def load_cids_from_directory(app: Flask) -> None:
     the ``CID_DIRECTORY`` configuration option. Each file's name must exactly match
     the generated CID for its contents. Any mismatch terminates the application
     immediately.
+
+    The CID directory must exist (it can be read-only). If the directory does not
+    exist, a RuntimeError is raised with the message "No CID directory", which will
+    be displayed as a 500 error page.
     """
 
     configured_directory = app.config.get("CID_DIRECTORY")
     directory = Path(configured_directory) if configured_directory else Path(app.root_path) / "cids"
 
-    directory.mkdir(parents=True, exist_ok=True)
+    # Check if directory exists - it must exist (can be read-only, but must exist)
+    if not directory.exists():
+        message = "No CID directory"
+        LOGGER.error("CID directory %s does not exist: %s", directory, message)
+        raise RuntimeError(message)
 
     if not directory.is_dir():
         message = f"CID directory {directory} is not a directory"
         LOGGER.error(message)
-        raise SystemExit(message)
+        raise RuntimeError(message)
 
-    for file_path in _iter_candidate_files(directory):
+    # Try to iterate files from the directory (read-only is fine)
+    try:
+        candidate_files = list(_iter_candidate_files(directory))
+    except (OSError, PermissionError) as e:
+        # Directory exists but we can't read from it
+        message = f"Cannot read from CID directory {directory}: {e}"
+        LOGGER.error(message)
+        raise RuntimeError(message) from e
+
+    # If directory is empty, that's fine - just skip loading
+    if not candidate_files:
+        LOGGER.debug("CID directory %s is empty, skipping CID loading", directory)
+        return
+
+    for file_path in candidate_files:
         filename = file_path.name
 
         if not is_normalized_cid(filename):
@@ -53,7 +75,7 @@ def load_cids_from_directory(app: Flask) -> None:
                 f"CID filename {filename!r} in {directory} is not a valid normalized CID"
             )
             LOGGER.error(message)
-            raise SystemExit(message)
+            raise RuntimeError(message)
 
         file_bytes = file_path.read_bytes()
         generated_cid = generate_cid(file_bytes)
@@ -64,7 +86,7 @@ def load_cids_from_directory(app: Flask) -> None:
                 f"filename {filename} does not match generated CID {generated_cid}"
             )
             LOGGER.error(message)
-            raise SystemExit(message)
+            raise RuntimeError(message)
 
         cid_path = f"/{generated_cid}"
         existing = get_cid_by_path(cid_path)
@@ -78,5 +100,5 @@ def load_cids_from_directory(app: Flask) -> None:
                     f"CID {generated_cid} already exists in the database with different content"
                 )
                 LOGGER.error(message)
-                raise SystemExit(message)
+                raise RuntimeError(message)
             LOGGER.debug("CID %s already present in database; skipping", generated_cid)
