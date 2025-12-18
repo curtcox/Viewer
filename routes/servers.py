@@ -609,6 +609,116 @@ def _get_known_entity_names() -> tuple[set[str], set[str]]:
     return known_variable_names, known_secret_names
 
 
+def _collect_named_value_candidates(
+    server: Server,
+    known_variables: Iterable[str] | None = None,
+    known_secrets: Iterable[str] | None = None,
+) -> list[str]:
+    """Return a sorted list of names that may be resolved for this server.
+
+    Names include referenced variables/secrets and detected main() parameters.
+    """
+
+    known_variables_set = {str(name) for name in (known_variables or []) if name}
+    known_secrets_set = {str(name) for name in (known_secrets or []) if name}
+
+    dependencies = _extract_server_dependencies(
+        getattr(server, 'definition', ''),
+        known_variables=known_variables_set,
+        known_secrets=known_secrets_set,
+    )
+
+    names = set(dependencies.get('variables', [])) | set(
+        dependencies.get('secrets', [])
+    )
+
+    description = describe_main_function_parameters(getattr(server, 'definition', ''))
+    if description:
+        for parameter in description.get('parameters', []):
+            if isinstance(parameter, dict) and parameter.get('name'):
+                names.add(str(parameter.get('name')))
+
+    return sorted(name for name in names if name)
+
+
+def _build_named_value_matrix(
+    server: Server,
+    *,
+    available_variables: Iterable[str] | None = None,
+    available_secrets: Iterable[str] | None = None,
+    available_cookies: Iterable[str] | None = None,
+) -> dict[str, object]:
+    """Describe which named values exist for a server prior to a request."""
+
+    known_variable_names, known_secret_names = _get_known_entity_names()
+
+    variable_names = (
+        {str(name) for name in available_variables}
+        if available_variables is not None
+        else known_variable_names
+    )
+    secret_names = (
+        {str(name) for name in available_secrets}
+        if available_secrets is not None
+        else known_secret_names
+    )
+    cookie_names = (
+        {str(name) for name in available_cookies}
+        if available_cookies is not None
+        else {str(name) for name in (request.cookies.keys() if request.cookies else [])}
+    )
+
+    candidate_names = _collect_named_value_candidates(
+        server,
+        known_variables=variable_names,
+        known_secrets=secret_names,
+    )
+    source_order = ('cookies', 'variables', 'secrets')
+
+    def _has_value(source: str, name: str) -> bool:
+        if source == 'cookies':
+            return name in cookie_names
+        if source == 'variables':
+            return name in variable_names
+        if source == 'secrets':
+            return name in secret_names
+        return False
+
+    def _build_source_url(source: str, name: str) -> str:
+        if source == 'variables':
+            return url_for('main.view_variable', variable_name=name)
+        if source == 'secrets':
+            return url_for('main.view_secret_value', secret_name=name)
+        return '/cookies'
+
+    rows: list[dict[str, object]] = []
+    for name in candidate_names:
+        source_entries: dict[str, dict[str, str]] = {}
+        for index, source in enumerate(source_order):
+            has_value = _has_value(source, name)
+            overridden = has_value and any(
+                _has_value(prior, name) for prior in source_order[:index]
+            )
+            status = 'overridden' if overridden else 'defined' if has_value else 'none'
+            source_entries[source] = {
+                'status': status,
+                'label': {'none': 'None', 'defined': 'Defined', 'overridden': 'Overridden'}[status],
+                'url': _build_source_url(source, name),
+            }
+
+        rows.append({'name': name, 'sources': source_entries})
+
+    return {
+        'rows': rows,
+        'sources': source_order,
+        'status_classes': {
+            'none': 'text-muted',
+            'defined': 'text-success',
+            'overridden': 'text-warning',
+        },
+    }
+
+
 def _build_servers_list_context(servers_list: list) -> dict[str, Any]:
     """Build extra context for servers list view.
 
@@ -680,6 +790,7 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
         'definition_references': definition_references,
         'ui_suggestions': ui_suggestions,
         'implementation_language': detect_server_language(server.definition),
+        'named_value_matrix': _build_named_value_matrix(server),
     }
 
 
