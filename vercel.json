@@ -14,7 +14,7 @@
   ],
   "env": {
     "SESSION_SECRET": "@session_secret",
-    "READ_ONLY": "@read_only",
+    "READ_ONLY": "true",
     "GIT_SHA": "@git_sha"
   }
 }
