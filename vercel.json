@@ -13,7 +13,6 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@database_url",
     "SESSION_SECRET": "@session_secret",
     "READ_ONLY": "@read_only",
     "GIT_SHA": "@git_sha"
