@@ -1574,6 +1574,14 @@ def _execute_server_code_common(
                 status_code = None
 
             if status_code is not None and status_code >= 400:
+                if content_type in {"text/plain", "text/html"}:
+                    _log_server_output(debug_prefix, error_suffix, output, content_type)
+                    return _handle_successful_execution(
+                        output,
+                        content_type,
+                        server_name,
+                        external_calls=external_calls,
+                    )
                 output_bytes = _encode_output(output)
                 return Response(output_bytes, status=status_code, mimetype=content_type)
         elif isinstance(result, tuple) and len(result) == 2:

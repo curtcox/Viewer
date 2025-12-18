@@ -17,6 +17,23 @@ def _require_client():
     return get_shared_client()
 
 
+def _ensure_clean_dependency_workspace() -> None:
+    """Reset servers/variables/secrets once per scenario for dependency specs."""
+
+    state = get_scenario_state()
+    if state.get("server_dependencies_cleaned"):
+        return
+
+    app = _require_app()
+    with app.app_context():
+        db.session.query(Server).delete()
+        db.session.query(Variable).delete()
+        db.session.query(Secret).delete()
+        db.session.commit()
+
+    state["server_dependencies_cleaned"] = True
+
+
 def _normalize_path(value: str) -> str:
     return value.strip().strip('"')
 
@@ -27,6 +44,7 @@ def _normalize_path(value: str) -> str:
 ])
 def given_variable_with_value(name: str, value: str) -> None:
     """Ensure a variable with the provided name and value exists in the workspace."""
+    _ensure_clean_dependency_workspace()
     app = _require_app()
 
     name = _normalize_path(name)
@@ -49,6 +67,7 @@ def given_variable_with_value(name: str, value: str) -> None:
 ])
 def given_secret_with_value(name: str, value: str) -> None:
     """Ensure a secret with the provided name and value exists in the workspace."""
+    _ensure_clean_dependency_workspace()
     app = _require_app()
 
     name = _normalize_path(name)
@@ -71,6 +90,7 @@ def given_secret_with_value(name: str, value: str) -> None:
 ])
 def given_server_with_two_main_parameters(server_name: str, param1: str, param2: str) -> None:
     """Ensure a server with the provided name and main parameters exists."""
+    _ensure_clean_dependency_workspace()
     app = _require_app()
 
     server_name = _normalize_path(server_name)
@@ -96,6 +116,7 @@ def given_server_with_two_main_parameters(server_name: str, param1: str, param2:
 ])
 def given_server_with_one_main_parameter(server_name: str, param: str) -> None:
     """Ensure a server with the provided name and single main parameter exists."""
+    _ensure_clean_dependency_workspace()
     app = _require_app()
 
     server_name = _normalize_path(server_name)

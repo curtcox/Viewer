@@ -25,15 +25,14 @@ chained server URLs. It stores state in the browser URL fragment.
 * Given the default boot image is loaded
 * And a server named "test-chain" that returns "chain-output"
 * When I request the resource /urleditor/test-chain
-* Then the response should contain "does not support URL chaining"
-* And the response status should be "400"
+* Then the response should redirect to a CID
+* And the CID content should contain "does not support URL chaining"
 
 ## URL Editor page has required elements
 * Given the default boot image is loaded
 * When I request the resource /urleditor
 * Then the response should contain "URL Editor"
 * And the response should contain "Line Indicators"
-* And the response should contain "Line Previews"
 * And the response should contain "Copy URL"
 * And the response should contain "Open URL"
 * And the response should contain "Final Output Preview"

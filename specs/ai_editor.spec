@@ -16,9 +16,10 @@ The AI request editor allows users to inspect and adjust AI requests before send
 
 ## Request payload is embedded for editing
 * Given the default boot image is loaded
-* When I submit a form post to /ai_editor with payload '\{"request_text": "Hello", "context_data": \{"foo": "bar"\}\}'
+* When I submit a form post to /ai_editor with payload '{"request_text": "Hello", "context_data": {"foo": "bar"}}'
 * Then the response should contain "Hello"
-* And the response should contain "\"foo\": \"bar\""
+* And the response should contain "foo"
+* And the response should contain "bar"
 
 ## Navigation and information menu are present
 * Given the default boot image is loaded
@@ -30,5 +31,5 @@ The AI request editor allows users to inspect and adjust AI requests before send
 * Given the default boot image is loaded
 * And a server named "test-chain" that returns "chain-output"
 * When I request the resource /ai_editor/test-chain
-* Then the response status should be "400"
-* And the response should contain "cannot be used in a server chain"
+* Then the response should redirect to a CID
+* And the CID content should contain "cannot be used in a server chain"

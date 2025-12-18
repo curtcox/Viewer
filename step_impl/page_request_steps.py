@@ -249,7 +249,7 @@ def when_i_submit_form_post(path: str, payload: str) -> None:
     """POST a payload string to the specified path."""
 
     normalized_path = _normalize_path(path)
-    payload_text = payload.strip().strip('"')
+    payload_text = payload.strip().strip('"\'')
     _perform_post_request(normalized_path, data={"payload": payload_text})
 
 

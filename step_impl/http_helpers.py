@@ -63,7 +63,7 @@ def _perform_post_request(path: str, *, data: dict[str, str]) -> None:
 
 
 def _normalize_path(path: str) -> str:
-    normalized = path.strip().strip('"')
+    normalized = path.strip().strip('"\'')
     state = get_scenario_state()
 
     for key, value in state.items():

@@ -488,7 +488,7 @@ def request_ai_editor_resource():
     """Request the ai_editor resource."""
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
-    response = client.get("/ai_editor")
+    response = client.get("/ai_editor", follow_redirects=True)
     store.last_response = response
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
