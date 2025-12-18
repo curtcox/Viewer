@@ -29,6 +29,7 @@ def ensure_default_resources() -> None:
 
     ensure_ai_stub()
     ensure_css_alias()
+    _ensure_cookie_editor_alias()
     _ensure_editor_servers()
 
 
@@ -79,3 +80,26 @@ def _ensure_editor_servers() -> None:
 
     if changed:
         db.session.commit()
+
+
+def _ensure_cookie_editor_alias() -> None:
+    from db_access import get_alias_by_name, save_entity  # pylint: disable=import-outside-toplevel
+    from models import Alias  # pylint: disable=import-outside-toplevel
+
+    alias_path = Path(__file__).parent / "reference_templates" / "aliases" / "cookies.txt"
+    if not alias_path.exists():
+        return
+
+    desired_definition = alias_path.read_text(encoding="utf-8").strip()
+    if not desired_definition:
+        return
+
+    alias_name = "cookies"
+    alias = get_alias_by_name(alias_name)
+    if alias:
+        if (alias.definition or "").strip() != desired_definition:
+            alias.definition = desired_definition
+            save_entity(alias)
+        return
+
+    save_entity(Alias(name=alias_name, definition=desired_definition))

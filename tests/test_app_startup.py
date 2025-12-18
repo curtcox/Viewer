@@ -195,3 +195,4 @@ def test_create_app_exits_on_cid_mismatch(
     response_text = response.get_data(as_text=True)
     # The error message should contain information about the invalid CID
     assert "not-a-cid" in response_text
+    assert "not a valid normalized CID" in response_text

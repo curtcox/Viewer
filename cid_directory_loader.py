@@ -44,7 +44,7 @@ def load_cids_from_directory(app: Flask) -> None:
 
     # Check if directory exists - it must exist (can be read-only, but must exist)
     if not directory.exists():
-        message = "No CID directory"
+        message = f"No CID directory: {directory}"
         LOGGER.error("CID directory %s does not exist: %s", directory, message)
         raise RuntimeError(message)
 

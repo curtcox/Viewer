@@ -159,7 +159,13 @@ def main(input_data=None, *, request=None, context=None):
         }
 
     # Get the request path
-    request_path = getattr(request, "path", "/urleditor") if request else "/urleditor"
+    if request:
+        if isinstance(request, dict):
+            request_path = request.get("path") or "/urleditor"
+        else:
+            request_path = getattr(request, "path", "/urleditor")
+    else:
+        request_path = "/urleditor"
 
     # Extract the path after /urleditor
     if request_path.startswith("/urleditor"):

@@ -72,7 +72,7 @@ class TestBootImageDynamicContent:
         (ref_templates / "uploads" / "contents").mkdir(parents=True)
         (self.project_dir / "cids").mkdir()
 
-        # Create base boot source files (minimal, default, and legacy boot)
+        # Create base boot source files (minimal, default, readonly, and legacy boot)
         boot_source = {
             "version": 6,
             "runtime": '{"python": {"version": "3.11.0"}}',
@@ -91,6 +91,7 @@ class TestBootImageDynamicContent:
         (ref_templates / "boot.source.json").write_text(boot_source_json)
         (ref_templates / "minimal.boot.source.json").write_text(boot_source_json)
         (ref_templates / "default.boot.source.json").write_text(boot_source_json)
+        (ref_templates / "readonly.boot.source.json").write_text(boot_source_json)
 
         # Create base templates.source.json
         templates_source = {

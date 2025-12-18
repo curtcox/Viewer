@@ -418,7 +418,7 @@ def test_server_config_tab_surfaces_named_values(
         )
         db.session.commit()
 
-    client.set_cookie('localhost', 'city', 'cookie-value')
+    client.set_cookie('city', 'cookie-value')
 
     response = client.get('/servers/configurable')
     assert response.status_code == 200

@@ -160,14 +160,27 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     # Use DatabaseConfig for URI (respects memory mode and CLI flags)
     default_database_uri = DatabaseConfig.get_database_uri()
 
+    engine_options: dict[str, Any] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+
+    # sqlite:///:memory: requires a single shared connection; otherwise SQLAlchemy
+    # may open multiple independent in-memory databases (one per connection),
+    # causing tables created during app startup to be missing later.
+    if default_database_uri.strip().lower() == "sqlite:///:memory:":
+        from sqlalchemy.pool import StaticPool
+
+        engine_options = {
+            "poolclass": StaticPool,
+            "connect_args": {"check_same_thread": False},
+        }
+
     flask_app.config.update(
         SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
         SQLALCHEMY_DATABASE_URI=default_database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ENGINE_OPTIONS={
-            "pool_pre_ping": True,
-            "pool_recycle": 300,
-        },
+        SQLALCHEMY_ENGINE_OPTIONS=engine_options,
     )
 
     flask_app.config.setdefault(

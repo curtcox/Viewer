@@ -163,6 +163,10 @@ def load_step_modules(step_dir: Path, project_root: Path) -> None:
 
 
 def iter_spec_files(spec_root: Path) -> Iterable[Path]:
+    if spec_root.is_file():
+        if spec_root.suffix == ".spec":
+            return [spec_root]
+        return []
     return sorted(path for path in spec_root.rglob("*.spec") if path.is_file())
 
 
@@ -257,8 +261,19 @@ def ensure_getgauge_available() -> None:
 
     try:  # pragma: no cover - import succeeds in CI
         import getgauge  # type: ignore  # noqa: F401
-        return
+        from getgauge.python import registry as existing_registry  # type: ignore
+
+        if (
+            hasattr(existing_registry, "before_suite_hooks")
+            and hasattr(existing_registry, "before_scenario_hooks")
+            and hasattr(existing_registry, "after_scenario_hooks")
+            and hasattr(existing_registry, "step_definitions")
+        ):
+            return
     except ImportError:
+        pass
+    except Exception:
+        # If an incompatible getgauge is installed, fall back to the bundled stub.
         pass
 
     try:
@@ -300,6 +315,15 @@ def report_scenario(spec_path: Path, scenario: ScenarioResult) -> None:
     # Write summary to stdout (only scenario status, not individual steps)
     status_symbol = "✖" if scenario.failed else "✔"
     print(f"{status_symbol} {rel} :: {scenario.name}")
+    if scenario.failed:
+        for text, success, error in scenario.steps:
+            if not success:
+                # Keep the console output compact while still providing context.
+                error_text = (error or "").strip().splitlines()[0] if error else ""
+                print(f"    Step: {text}")
+                if error_text:
+                    print(f"    Error: {error_text}")
+                break
 
 
 if __name__ == "__main__":

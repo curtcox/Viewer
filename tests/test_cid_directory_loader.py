@@ -121,8 +121,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             invalid_file = self.cid_dir / "not-a-valid-cid.txt"
             invalid_file.write_bytes(b"some content")
 
-            # Should raise SystemExit with helpful message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with helpful message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message mentions the invalid filename
@@ -141,8 +141,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file = self.cid_dir / correct_cid
             cid_file.write_bytes(wrong_content)
 
-            # Should raise SystemExit with helpful message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with helpful message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message shows the mismatch
@@ -192,8 +192,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file = self.cid_dir / cid_value
             cid_file.write_bytes(correct_content)
 
-            # Should raise SystemExit because DB has different content for this CID
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError because DB has different content for this CID
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message
@@ -210,12 +210,13 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             self.assertFalse(new_dir.exists())
 
-            # Load CIDs - should create the directory
-            load_cids_from_directory(self.app)
+            # Load CIDs - should fail because CID directory must already exist
+            with self.assertRaises(RuntimeError) as context:
+                load_cids_from_directory(self.app)
 
-            # Verify directory was created
-            self.assertTrue(new_dir.exists())
-            self.assertTrue(new_dir.is_dir())
+            error_message = str(context.exception)
+            self.assertIn("No CID directory", error_message)
+            self.assertIn(str(new_dir), error_message)
 
     def test_non_file_entries_are_skipped(self):
         """Test that subdirectories and other non-file entries are skipped."""
@@ -293,7 +294,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             # We're just verifying it doesn't crash when CID_DIRECTORY is not set
             try:
                 load_cids_from_directory(app)
-            except SystemExit:
+            except RuntimeError:
                 # May exit if there are CID validation issues in the real directory
                 # but we're mainly testing that it uses the correct default path
                 pass
@@ -305,8 +306,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             invalid_file = self.cid_dir / "invalid-cid"
             invalid_file.write_bytes(b"content")
 
-            # Should raise SystemExit with directory path in message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with directory path in message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message includes the directory path
