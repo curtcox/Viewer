@@ -1,0 +1,6 @@
+{
+  "id": "gateway",
+  "name": "Gateway Server",
+  "description": "Proxy requests to external REST APIs with optional request and response transformations. Converts JSON responses to browsable HTML.",
+  "definition_file": "definitions/gateway.py"
+}
