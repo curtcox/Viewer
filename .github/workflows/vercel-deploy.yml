@@ -14,7 +14,7 @@ jobs:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
     outputs:
-      deployment-url: ${{ steps.deploy.outputs.url }}
+      deployment-url: ${{ steps.determine-url.outputs.deployment-url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,6 +31,34 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: "--prod --env GIT_SHA=${{ steps.git-sha.outputs.sha }} --env READ_ONLY=true --env SESSION_SECRET=${{ secrets.SESSION_SECRET }}"
+
+      - name: Capture and determine deployment URL
+        id: determine-url
+        run: |
+          echo "Debug: Capturing deployment URL from Vercel action..."
+          
+          # The amondnet/vercel-action provides the deployment URL through different outputs:
+          # - url: Typically set for production deployments (when using --prod flag)
+          # - preview-url: Always set, contains the unique deployment URL
+          # We try 'url' first (for production), then fall back to 'preview-url'
+          
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.url }}"
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            DEPLOYMENT_URL="${{ steps.deploy.outputs.preview-url }}"
+            echo "Using preview-url output"
+          else
+            echo "Using url output"
+          fi
+          
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: No deployment URL was captured from Vercel deployment"
+            echo "Debug: Both 'url' and 'preview-url' outputs are empty"
+            exit 1
+          fi
+          
+          # Set the output for use in subsequent jobs
+          echo "deployment-url=${DEPLOYMENT_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Deployment URL captured successfully"
 
   validate:
     name: Validate Deployment
