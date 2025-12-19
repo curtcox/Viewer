@@ -17,6 +17,11 @@
                     <p class="card-text text-muted mb-4">
                         Something went wrong on our end. We're working to fix the issue. Please try again later.
                     </p>
+                    {% if config.get('GIT_SHA') %}
+                    <p class="card-text text-muted small mb-4">
+                        Git SHA: <code>{{ config.get('GIT_SHA') }}</code>
+                    </p>
+                    {% endif %}
                     <a href="{{ url_for('main.index') }}" class="btn btn-primary">
                         <i class="fas fa-home me-2"></i>Back to Home
                     </a>

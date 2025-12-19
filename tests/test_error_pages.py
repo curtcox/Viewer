@@ -51,6 +51,22 @@ class TestInternalServerErrorPage(unittest.TestCase):
         # Updated to match our enhanced error handling output format
         self.assertIn('<code class="text-primary">tests/test_error_pages.py</code>', body)
 
+    def test_error_page_displays_git_sha_when_available(self):
+        test_sha = "abc123def456"
+        self.app.config["GIT_SHA"] = test_sha
+
+        response = None
+        status = None
+        with self.app.test_request_context('/broken'):
+            try:
+                raise RuntimeError('Intentional failure for git sha test')
+            except RuntimeError as exc:
+                response, status = internal_error(exc)
+
+        self.assertEqual(status, 500)
+        self.assertIn('Git SHA:', response)
+        self.assertIn(f'<code>{test_sha}</code>', response)
+
     def test_stack_trace_links_when_repo_root_differs(self):
         frames = None
         with self.app.app_context():

@@ -14,7 +14,11 @@ except ImportError:
     LogfireConfigError = Exception  # type: ignore[assignment, misc]
     LOGFIRE_AVAILABLE = False
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(*args: Any, **kwargs: Any) -> bool:  # type: ignore[no-redef]
+        return False
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
