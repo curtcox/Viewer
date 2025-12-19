@@ -9,9 +9,9 @@ from urllib.parse import quote, urlsplit
 
 from getgauge.python import step
 
-from cid_utils import generate_cid
+from cid_storage import get_cid_content, store_cid_from_bytes
 from database import db
-from models import CID, Server
+from models import Server
 from step_impl.shared_app import get_shared_app, get_shared_client
 from step_impl.shared_state import get_scenario_state
 
@@ -36,19 +36,8 @@ def _store_server(name: str, definition: str) -> None:
 def _store_cid(content: bytes) -> str:
     """Store content as a CID and return the CID value."""
     app = get_shared_app()
-    cid_value = generate_cid(content)
-
     with app.app_context():
-        try:
-            existing = CID.query.filter_by(path=f"/{cid_value}").first()
-            if not existing:
-                db.session.add(CID(path=f"/{cid_value}", file_data=content))
-                db.session.commit()
-        except Exception:
-            db.session.rollback()
-            raise
-
-    return cid_value
+        return store_cid_from_bytes(content)
 
 
 def _resolve_cid_content(location: str) -> Optional[str]:
@@ -62,7 +51,7 @@ def _resolve_cid_content(location: str) -> Optional[str]:
 
     with app.app_context():
         for candidate in candidates:
-            record = CID.query.filter_by(path=candidate).first()
+            record = get_cid_content(candidate)
             if record is not None:
                 return record.file_data.decode("utf-8")
 

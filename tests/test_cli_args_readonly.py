@@ -61,7 +61,7 @@ class TestParseMemorySize:
         """Should raise ValueError for invalid formats."""
         with pytest.raises(ValueError, match="Invalid memory size format"):
             parse_memory_size("invalid")
-        
+
         with pytest.raises(ValueError, match="Invalid memory size format"):
             parse_memory_size("1X")
 
@@ -97,7 +97,7 @@ class TestReadOnlyModeArguments:
         with patch.object(sys, "argv", ["app.py", "--read-only"]):
             args = parse_arguments()
             configure_from_args(args)
-            
+
             assert ReadOnlyConfig.is_read_only_mode() is True
             assert DatabaseConfig.is_memory_mode() is True
 
@@ -106,13 +106,13 @@ class TestReadOnlyModeArguments:
         with patch.object(sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "512M"]):
             args = parse_arguments()
             configure_from_args(args)
-            
+
             assert ReadOnlyConfig.get_max_cid_memory() == 512 * 1024 * 1024
 
     def test_configure_invalid_max_cid_memory(self):
         """configure_from_args should raise ValueError for invalid memory size."""
         with patch.object(sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "invalid"]):
             args = parse_arguments()
-            
+
             with pytest.raises(ValueError, match="Invalid --max-cid-memory value"):
                 configure_from_args(args)

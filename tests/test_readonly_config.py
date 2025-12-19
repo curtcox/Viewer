@@ -40,8 +40,8 @@ class TestReadOnlyConfig:
         """Reset should restore defaults."""
         ReadOnlyConfig.set_read_only_mode(True)
         ReadOnlyConfig.set_max_cid_memory(100)
-        
+
         ReadOnlyConfig.reset()
-        
+
         assert ReadOnlyConfig.is_read_only_mode() is False
         assert ReadOnlyConfig.get_max_cid_memory() == 1 * 1024 * 1024 * 1024

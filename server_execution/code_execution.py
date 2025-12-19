@@ -18,8 +18,7 @@ from flask import Response, current_app, has_app_context, has_request_context, j
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
 from cid_core import extract_literal_content, split_cid_path
-from cid_utils import generate_cid
-from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
+from db_access import get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
 from server_execution.error_handling import _handle_execution_exception
 from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
@@ -868,21 +867,9 @@ def _execute_bash_server_response(
         ) + stderr
 
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
-        )
-
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_clojure_server_response(
@@ -903,21 +890,9 @@ def _execute_clojure_server_response(
         ) + stderr
 
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
-        )
-
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_clojurescript_server_response(
@@ -938,21 +913,9 @@ def _execute_clojurescript_server_response(
         ) + stderr
 
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
-        )
-
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_typescript_server_response(
@@ -973,21 +936,9 @@ def _execute_typescript_server_response(
         ) + stderr
 
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
-        )
-
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _build_unsupported_signature_response(

@@ -1,7 +1,10 @@
 """Gauge steps for requesting pages."""
 from __future__ import annotations
 from getgauge.python import step
+from boot_cid_importer import import_boot_cid
 from database import db
+from identity import ensure_default_resources
+from main import get_default_boot_cid
 from models import Server
 from step_impl.shared_state import get_scenario_state
 from step_impl.artifacts import attach_response_snapshot
@@ -156,8 +159,18 @@ def when_i_request_generic_page(path: str) -> None:
 def start_app_with_boot_configuration() -> None:
     """Initialize the shared application and client for UI suggestion scenarios."""
 
-    _require_app()
+    app = _require_app()
     _require_client()
+
+    with app.app_context():
+        default_boot_cid = get_default_boot_cid()
+        if default_boot_cid:
+            success, error = import_boot_cid(app, default_boot_cid)
+            if not success:
+                raise RuntimeError(
+                    f"Failed to import default boot CID {default_boot_cid}: {error}"
+                )
+        ensure_default_resources()
 
 
 

@@ -4,7 +4,7 @@ import csv
 import io
 import xml.etree.ElementTree as ET
 from getgauge.python import step
-from step_impl.shared_state import get_scenario_state
+from step_impl.shared_state import get_scenario_state, store
 from step_impl.http_helpers import _normalize_path
 
 @step(["The response status should be 200", "the response status should be 200", "Then the response status should be 200"])
@@ -90,6 +90,13 @@ def then_page_should_contain(text: str) -> None:
     body = response.get_data(as_text=True)
     text = _normalize_path(text)
     assert text in body, f"Expected to find {text!r} in the response body."
+
+
+def _response_for_redirect_assertions():
+    response = getattr(store, "last_response", None)
+    if response is not None:
+        return response
+    return get_scenario_state().get("response")
 
 
 

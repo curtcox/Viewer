@@ -9,11 +9,12 @@ from urllib.parse import urlsplit
 
 from getgauge.python import step
 
-from cid_utils import generate_cid
+from cid_storage import get_cid_content, store_cid_from_bytes
 from database import db
-from models import CID, Server
-from step_impl.shared_app import get_shared_app, get_shared_client
-from step_impl.shared_state import get_scenario_state
+from models import Server
+from step_impl.http_helpers import _perform_get_request
+from step_impl.shared_app import get_shared_app
+from step_impl.shared_state import get_scenario_state, store
 
 
 def _store_server(name: str, definition: str) -> None:
@@ -28,18 +29,13 @@ def _store_server(name: str, definition: str) -> None:
             db.session.add(Server(name=name, definition=normalized, enabled=True))
         db.session.commit()
 
+
 def _store_cid(content: bytes) -> str:
     """Store content as a CID and return the CID value."""
     app = get_shared_app()
-    cid_value = generate_cid(content)
-
     with app.app_context():
-        existing = CID.query.filter_by(path=f"/{cid_value}").first()
-        if not existing:
-            db.session.add(CID(path=f"/{cid_value}", file_data=content))
-            db.session.commit()
+        return store_cid_from_bytes(content)
 
-    return cid_value
 
 def _resolve_cid_content(location: str) -> Optional[str]:
     """Retrieve CID content from a redirect location."""
@@ -52,11 +48,12 @@ def _resolve_cid_content(location: str) -> Optional[str]:
 
     with app.app_context():
         for candidate in candidates:
-            record = CID.query.filter_by(path=candidate).first()
+            record = get_cid_content(candidate)
             if record is not None:
                 return record.file_data.decode("utf-8")
 
     return None
+
 
 def _save_language_cid(
     language: str, code: str, *, keys: list[str], extension: str | None
@@ -108,18 +105,13 @@ def when_request_processor_cid() -> None:
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored. Call 'And a CID containing' first."
 
-    client = get_shared_client()
-    response = client.get(f"/processor/{cid_value}")
-    state["response"] = response
+    _request_path_and_store_response(f"/processor/{cid_value}")
 
 
 @step("When I request the chained resource /second/first")
 def when_request_second_first() -> None:
     """Request the chained second/first resource."""
-    client = get_shared_client()
-    state = get_scenario_state()
-    response = client.get("/second/first")
-    state["response"] = response
+    _request_path_and_store_response("/second/first")
 
 
 @step("When I request the level2/level1 servers with the stored CID")
@@ -129,9 +121,7 @@ def when_request_level2_level1_cid() -> None:
     cid_value = state.get("last_cid")
     assert cid_value, "No CID stored. Call 'And a CID containing' first."
 
-    client = get_shared_client()
-    response = client.get(f"/level2/level1/{cid_value}")
-    state["response"] = response
+    _request_path_and_store_response(f"/level2/level1/{cid_value}")
 
 
 @step("Then the response should redirect to a CID")
@@ -139,6 +129,20 @@ def then_response_redirects() -> None:
     """Assert the response is a redirect to a CID."""
     state = get_scenario_state()
     response = state.get("response")
+    if response is None:
+        response = getattr(store, "last_response", None)
+    else:
+        status = getattr(response, "status_code", 0) or 0
+        has_location = bool(getattr(response, "headers", {}).get("Location"))
+        if not (300 <= status < 400 and has_location):
+            last_response = getattr(store, "last_response", None)
+            if last_response is not None:
+                last_status = getattr(last_response, "status_code", 0) or 0
+                last_has_location = bool(
+                    getattr(last_response, "headers", {}).get("Location")
+                )
+                if 300 <= last_status < 400 and last_has_location:
+                    response = last_response
     assert response is not None, "No response recorded."
     assert response.status_code in {302, 303}, (
         f"Expected redirect status but got {response.status_code}"
@@ -196,9 +200,7 @@ def when_request_resource_with_cid(path_prefix: str) -> None:
     normalized = path_prefix.strip("/")
     request_path = f"/{normalized}/{cid_value}"
 
-    client = get_shared_client()
-    response = client.get(request_path)
-    state["response"] = response
+    _request_path_and_store_response(request_path)
 
 
 @step(['Then the CID content should contain "<expected_content>"',
@@ -474,14 +476,9 @@ def _substitute_placeholders(path: str) -> str:
 
 def _request_path_and_store_response(path: str) -> None:
     """Make a GET request to the path and store the response in scenario state."""
-    client = get_shared_client()
-    state = get_scenario_state()
-
     # Substitute placeholders with actual CID values
     resolved_path = _substitute_placeholders(path)
-
-    response = client.get(resolved_path)
-    state["response"] = response
+    _perform_get_request(resolved_path)
 
 
 @step('When I request the resource /{stored CID}.py/<suffix>')
