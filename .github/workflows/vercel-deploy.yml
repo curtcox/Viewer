@@ -35,25 +35,27 @@ jobs:
       - name: Capture and determine deployment URL
         id: determine-url
         run: |
-          echo "Debug: Checking deployment URL from Vercel action..."
+          echo "Debug: Capturing deployment URL from Vercel action..."
           
           # The amondnet/vercel-action provides the deployment URL
-          # Try both possible outputs: url (production) and preview-url
+          # Try both possible outputs: url (for production) and preview-url (fallback)
           DEPLOYMENT_URL="${{ steps.deploy.outputs.url }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
             DEPLOYMENT_URL="${{ steps.deploy.outputs.preview-url }}"
+            echo "Using preview-url output"
+          else
+            echo "Using url output"
           fi
-          
-          echo "Deployment URL: \"$DEPLOYMENT_URL\""
           
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "Error: No deployment URL was captured from Vercel deployment"
+            echo "Available outputs: url='${{ steps.deploy.outputs.url }}', preview-url='${{ steps.deploy.outputs.preview-url }}'"
             exit 1
           fi
           
           # Set the output for use in subsequent jobs
           echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployment URL captured: \"$DEPLOYMENT_URL\""
+          echo "✅ Deployment URL captured successfully"
 
   validate:
     name: Validate Deployment
