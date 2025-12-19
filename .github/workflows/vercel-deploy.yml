@@ -57,7 +57,7 @@ jobs:
           fi
           
           # Set the output for use in subsequent jobs
-          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "deployment-url=${DEPLOYMENT_URL}" >> $GITHUB_OUTPUT
           echo "✅ Deployment URL captured successfully"
 
   validate:
