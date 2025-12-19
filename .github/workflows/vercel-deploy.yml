@@ -46,9 +46,9 @@ jobs:
           PROD_URL="${{ steps.deploy.outputs.url }}"
           DEPLOYMENT_NAME="${{ steps.deploy.outputs.preview-name }}"
           
-          echo "Preview URL: $PREVIEW_URL"
-          echo "Production URL: $PROD_URL"
-          echo "Deployment Name: $DEPLOYMENT_NAME"
+          echo "Preview URL: \"$PREVIEW_URL\""
+          echo "Production URL: \"$PROD_URL\""
+          echo "Deployment Name: \"$DEPLOYMENT_NAME\""
           
           # For production deployments (--prod flag), use the production URL if available
           # Otherwise use the preview URL
