@@ -58,45 +58,49 @@ try:
     except SystemExit as e:
         # SystemExit from legacy code should be caught and converted
         logger.error("SystemExit during app creation: %s", e)
+        error_message = f"Application initialization failed: {e}"
         # Create a minimal error-handling app so Vercel has something to serve
         from flask import Flask
         error_app = Flask(__name__)
         @error_app.route('/', defaults={'path': ''})
         @error_app.route('/<path:path>')
         def error_handler(path):  # pylint: disable=unused-argument
-            return f"Application initialization failed: {e}", 500
+            return error_message, 500
         app = error_app
     except Exception as e:
         # Log any other exceptions during app creation (these are fatal)
         logger.exception("Failed to create Flask application: %s", e)
+        error_message = f"Application initialization failed: {e}"
         # Create a minimal error-handling app so Vercel has something to serve
         from flask import Flask
         error_app = Flask(__name__)
         @error_app.route('/', defaults={'path': ''})
         @error_app.route('/<path:path>')
         def error_handler(path):  # pylint: disable=unused-argument
-            return f"Application initialization failed: {e}", 500
+            return error_message, 500
         app = error_app
 
 except ImportError as e:
     # If imports fail, create a minimal error app so Vercel can serve error responses
     logger.exception("Failed to import required modules: %s", e)
+    error_message = f"Failed to import required modules: {e}"
     from flask import Flask
     error_app = Flask(__name__)
     @error_app.route('/', defaults={'path': ''})
     @error_app.route('/<path:path>')
     def error_handler(path):  # pylint: disable=unused-argument
-        return f"Failed to import required modules: {e}", 500
+        return error_message, 500
     app = error_app
 except Exception as e:
     # Catch-all for any other initialization errors
     logger.exception("Unexpected error during Vercel function initialization: %s", e)
+    error_message = f"Unexpected initialization error: {e}"
     from flask import Flask
     error_app = Flask(__name__)
     @error_app.route('/', defaults={'path': ''})
     @error_app.route('/<path:path>')
     def error_handler(path):  # pylint: disable=unused-argument
-        return f"Unexpected initialization error: {e}", 500
+        return error_message, 500
     app = error_app
 
 # Ensure app is always defined (Vercel requires this at module level)
