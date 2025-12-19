@@ -3,6 +3,8 @@ import os
 import sys
 from pathlib import Path
 
+import main
+
 
 class TestVercelEntryPoint:
     """Test suite for Vercel serverless function entry point."""
@@ -42,6 +44,11 @@ class TestVercelEntryPoint:
             assert ReadOnlyConfig.is_read_only_mode() is True
             # Verify database mode is set to memory
             assert DatabaseConfig.get_mode() == DatabaseMode.MEMORY
+
+            # Verify the entrypoint imported the readonly boot CID.
+            readonly_boot_cid = main.get_default_boot_cid(readonly=True)
+            assert readonly_boot_cid is not None
+            assert getattr(index, "app").config.get("BOOT_CID") == readonly_boot_cid
             
         finally:
             # Restore original environment

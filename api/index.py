@@ -19,6 +19,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def _is_truthy_env(value: str | None) -> bool:
+    return (value or "").strip().lower() in ("true", "1", "yes")
+
+
+def _resolve_boot_cid(project_root: Path, read_only: bool) -> str | None:
+    explicit_boot_cid = (os.environ.get("BOOT_CID") or "").strip()
+    if explicit_boot_cid:
+        return explicit_boot_cid
+
+    if not read_only:
+        return None
+
+    boot_cid_file = project_root / "reference_templates" / "readonly.boot.cid"
+    if not boot_cid_file.exists():
+        return None
+
+    return (boot_cid_file.read_text(encoding="utf-8") or "").strip() or None
+
 # Add parent directory to path so we can import from the main app
 parent_dir = str(Path(__file__).parent.parent)
 if parent_dir not in sys.path:
@@ -32,8 +51,11 @@ try:
     from readonly_config import ReadOnlyConfig  # noqa: E402
     from db_config import DatabaseConfig, DatabaseMode  # noqa: E402
 
+    read_only_env = _is_truthy_env(os.environ.get("READ_ONLY"))
+    testing_env = _is_truthy_env(os.environ.get("TESTING"))
+
     # Enable read-only mode if READ_ONLY environment variable is set
-    if os.environ.get("READ_ONLY", "").lower() in ("true", "1", "yes"):
+    if read_only_env:
         ReadOnlyConfig.set_read_only_mode(True)
         # Use in-memory database for read-only deployments
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
@@ -48,7 +70,36 @@ try:
         logger.info("Environment: VERCEL=%s, VERCEL_ENV=%s, READ_ONLY=%s", 
                    os.environ.get("VERCEL"), os.environ.get("VERCEL_ENV"), 
                    os.environ.get("READ_ONLY"))
-        app = create_app()
+
+        config_override = None
+        if testing_env:
+            config_override = {
+                "TESTING": True,
+                "LOAD_CIDS_IN_TESTS": True,
+            }
+
+        app = create_app(config_override)
+
+        boot_cid = _resolve_boot_cid(Path(parent_dir), read_only_env)
+        if boot_cid:
+            try:
+                from boot_cid_importer import import_boot_cid  # noqa: E402
+
+                with app.app_context():
+                    success, error = import_boot_cid(app, boot_cid)
+
+                if not success:
+                    raise RuntimeError(error or "Boot CID import failed")
+
+                app.config["BOOT_CID"] = boot_cid
+                logger.info("Boot CID %s imported successfully", boot_cid)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                error_message = f"Boot CID import failed for {boot_cid}: {exc}"
+                logger.exception(error_message)
+                app.config["CID_LOAD_ERROR"] = error_message
+        elif read_only_env:
+            logger.warning("READ_ONLY is enabled but no boot CID was configured/found; skipping boot import")
+
         # Check if there was a CID loading error (app will still be created)
         cid_error = app.config.get("CID_LOAD_ERROR")
         if cid_error:

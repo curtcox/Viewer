@@ -6,6 +6,14 @@
       "use": "@vercel/python"
     }
   ],
+  "functions": {
+    "api/index.py": {
+      "includeFiles": [
+        "cids/**",
+        "reference_templates/readonly.boot.cid"
+      ]
+    }
+  },
   "routes": [
     {
       "src": "/(.*)",
