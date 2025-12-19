@@ -1,7 +1,6 @@
 """Tests for gateway server functionality."""
 # pylint: disable=no-name-in-module
 
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
