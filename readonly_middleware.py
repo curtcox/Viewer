@@ -11,12 +11,12 @@ from readonly_config import ReadOnlyConfig
 
 def block_in_readonly_mode(f: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator to block state-changing operations in read-only mode.
-    
+
     Returns 405 Method Not Allowed when in read-only mode.
-    
+
     Args:
         f: The route function to wrap
-        
+
     Returns:
         Wrapped function that checks read-only mode
     """
@@ -30,14 +30,14 @@ def block_in_readonly_mode(f: Callable[..., Any]) -> Callable[..., Any]:
 
 def is_state_changing_request() -> bool:
     """Check if the current request is attempting to change state.
-    
+
     Returns:
         True if request would change state, False otherwise
     """
     # State-changing HTTP methods
     if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
         return True
-    
+
     # Check for specific state-changing paths (GET requests that change state)
     path = request.path
     state_changing_paths = [
@@ -46,9 +46,9 @@ def is_state_changing_request() -> bool:
         '/disable',
         '/toggle',
     ]
-    
+
     for pattern in state_changing_paths:
         if pattern in path:
             return True
-    
+
     return False

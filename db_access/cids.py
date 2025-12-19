@@ -116,7 +116,7 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
 
 def create_cid_record_raw(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
     """Create a new CID record without memory checks (for internal use).
-    
+
     This is a low-level function that bypasses memory checks. Use create_cid_record
     for normal operations, which includes read-only mode memory management.
 
@@ -166,13 +166,13 @@ def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID
     """
     # Validate and normalize the CID
     cid_str = to_cid_string(cid)
-    
+
     # Check memory limits in read-only mode
     from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
-    
+
     if ReadOnlyConfig.is_read_only_mode():
         from cid_memory_manager import CIDMemoryManager  # pylint: disable=import-outside-toplevel
-        
+
         content_size = len(file_content)
         CIDMemoryManager.check_cid_size(content_size)
         CIDMemoryManager.ensure_memory_available(content_size)

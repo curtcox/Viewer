@@ -67,9 +67,12 @@ try:
     # in app config, so the app can still be created and show 500 error page
     try:
         logger.info("Initializing Flask application for Vercel...")
-        logger.info("Environment: VERCEL=%s, VERCEL_ENV=%s, READ_ONLY=%s", 
-                   os.environ.get("VERCEL"), os.environ.get("VERCEL_ENV"), 
-                   os.environ.get("READ_ONLY"))
+        logger.info(
+            "Environment: VERCEL=%s, VERCEL_ENV=%s, READ_ONLY=%s",
+            os.environ.get("VERCEL"),
+            os.environ.get("VERCEL_ENV"),
+            os.environ.get("READ_ONLY"),
+        )
 
         config_override = None
         if testing_env:

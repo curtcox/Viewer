@@ -28,7 +28,6 @@ def _store_server(name: str, definition: str) -> None:
             db.session.add(Server(name=name, definition=normalized, enabled=True))
         db.session.commit()
 
-
 def _store_cid(content: bytes) -> str:
     """Store content as a CID and return the CID value."""
     app = get_shared_app()
@@ -41,7 +40,6 @@ def _store_cid(content: bytes) -> str:
             db.session.commit()
 
     return cid_value
-
 
 def _resolve_cid_content(location: str) -> Optional[str]:
     """Retrieve CID content from a redirect location."""
@@ -60,12 +58,10 @@ def _resolve_cid_content(location: str) -> Optional[str]:
 
     return None
 
-
 def _save_language_cid(
     language: str, code: str, *, keys: list[str], extension: str | None
 ) -> str:
     """Persist a CID containing source code for the requested language."""
-
     cid_value = _store_cid(code.encode("utf-8"))
     state = get_scenario_state()
     for key in keys:
@@ -77,7 +73,6 @@ def _save_language_cid(
 
     return cid_value
 
-
 @step(['Given a server named "<server_name>" that echoes its input with prefix "<prefix>"',
        'And a server named "<server_name>" that echoes its input with prefix "<prefix>"'])
 def given_echo_server(server_name: str, prefix: str) -> None:
@@ -88,7 +83,6 @@ def main(input_data):
 '''
     _store_server(server_name, definition)
 
-
 @step(['Given a server named "<server_name>" that returns "<value>"',
        'And a server named "<server_name>" that returns "<value>"'])
 def given_simple_server(server_name: str, value: str) -> None:
@@ -98,7 +92,6 @@ def main():
     return {{"output": "{value}", "content_type": "text/plain"}}
 '''
     _store_server(server_name, definition)
-
 
 @step('And a CID containing "<content>"')
 def and_cid_containing(content: str) -> None:
@@ -208,10 +201,8 @@ def when_request_resource_with_cid(path_prefix: str) -> None:
     state["response"] = response
 
 
-@step([
-    'Then the CID content should contain "<expected_content>"',
-    'And the CID content should contain "<expected_content>"',
-])
+@step(['Then the CID content should contain "<expected_content>"',
+       'And the CID content should contain "<expected_content>"'])
 def then_cid_content_contains(expected_content: str) -> None:
     """Assert the CID content includes the expected substring."""
 
@@ -248,10 +239,8 @@ echo "{output}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step([
-    'Given a python CID literal server that returns "<output>"',
-    'And a python CID literal server that returns "<output>"',
-])
+@step(['Given a python CID literal server that returns "<output>"',
+       'And a python CID literal server that returns "<output>"'])
 def python_literal_server(output: str) -> None:
     """Persist a Python CID server for chaining checks."""
 
@@ -263,10 +252,8 @@ def python_literal_server(output: str) -> None:
     )
 
 
-@step([
-    'Given a python CID literal server that prefixes its payload with "<prefix>"',
-    'And a python CID literal server that prefixes its payload with "<prefix>"',
-])
+@step(['Given a python CID literal server that prefixes its payload with "<prefix>"',
+       'And a python CID literal server that prefixes its payload with "<prefix>"'])
 def python_literal_prefix(prefix: str) -> None:
     """Persist a Python CID server that prefixes chained payloads."""
 
@@ -279,10 +266,8 @@ def python_literal_prefix(prefix: str) -> None:
     )
 
 
-@step([
-    'Given a python CID literal server that wraps its payload with "<prefix>"',
-    'And a python CID literal server that wraps its payload with "<prefix>"',
-])
+@step(['Given a python CID literal server that wraps its payload with "<prefix>"',
+       'And a python CID literal server that wraps its payload with "<prefix>"'])
 def python_literal_wrap(prefix: str) -> None:
     """Persist a Python CID server that wraps chained payloads."""
 
@@ -295,12 +280,10 @@ def python_literal_wrap(prefix: str) -> None:
     )
 
 
-@step([
-    'Given a bash CID literal server that prefixes input with "<prefix>"',
-    'And a bash CID literal server that prefixes input with "<prefix>"',
-    'Given a bash CID literal server that prefixes its payload with "<prefix>"',
-    'And a bash CID literal server that prefixes its payload with "<prefix>"',
-])
+@step(['Given a bash CID literal server that prefixes input with "<prefix>"',
+       'And a bash CID literal server that prefixes input with "<prefix>"',
+       'Given a bash CID literal server that prefixes its payload with "<prefix>"',
+       'And a bash CID literal server that prefixes its payload with "<prefix>"'])
 def bash_literal_prefix(prefix: str) -> None:
     """Persist a Bash CID server that prefixes its input payload."""
 
@@ -311,10 +294,8 @@ echo "{prefix}${{input_payload}}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step([
-    'Given a bash CID literal server that echoes "<output>"',
-    'And a bash CID literal server that echoes "<output>"',
-])
+@step(['Given a bash CID literal server that echoes "<output>"',
+       'And a bash CID literal server that echoes "<output>"'])
 def bash_literal_echo(output: str) -> None:
     """Persist a Bash CID server that echoes a constant string."""
 
@@ -324,10 +305,8 @@ echo "{output}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step([
-    'Given a clojure CID literal server that emits "<output>"',
-    'And a clojure CID literal server that emits "<output>"',
-])
+@step(['Given a clojure CID literal server that emits "<output>"',
+       'And a clojure CID literal server that emits "<output>"'])
 def clojure_literal_emit(output: str) -> None:
     """Persist a Clojure CID server with stubbed output."""
 
@@ -340,10 +319,8 @@ def clojure_literal_emit(output: str) -> None:
     )
 
 
-@step([
-    'Given a clojure CID literal server that prefixes its payload with "<prefix>"',
-    'And a clojure CID literal server that prefixes its payload with "<prefix>"',
-])
+@step(['Given a clojure CID literal server that prefixes its payload with "<prefix>"',
+       'And a clojure CID literal server that prefixes its payload with "<prefix>"'])
 def clojure_literal_prefix(prefix: str) -> None:
     """Persist a Clojure CID server that prefixes chained payloads."""
 
@@ -366,10 +343,8 @@ def clojure_literal_no_extension(output: str) -> None:
     _save_language_cid("clojure", script, keys=["clojure CID"], extension=None)
 
 
-@step([
-    'Given a clojurescript CID literal server that emits "<output>"',
-    'And a clojurescript CID literal server that emits "<output>"',
-])
+@step(['Given a clojurescript CID literal server that emits "<output>"',
+       'And a clojurescript CID literal server that emits "<output>"'])
 def clojurescript_literal_emit(output: str) -> None:
     """Persist a ClojureScript CID server with stubbed output."""
 
@@ -385,10 +360,8 @@ def clojurescript_literal_emit(output: str) -> None:
     )
 
 
-@step([
-    'Given a clojurescript CID literal server that prefixes its payload with "<prefix>"',
-    'And a clojurescript CID literal server that prefixes its payload with "<prefix>"',
-])
+@step(['Given a clojurescript CID literal server that prefixes its payload with "<prefix>"',
+       'And a clojurescript CID literal server that prefixes its payload with "<prefix>"'])
 def clojurescript_literal_prefix(prefix: str) -> None:
     """Persist a ClojureScript CID server that prefixes chained payloads."""
 
@@ -414,10 +387,8 @@ def clojurescript_literal_no_extension(output: str) -> None:
     _save_language_cid("clojurescript", script, keys=["clojurescript CID"], extension=None)
 
 
-@step([
-    'Given a TypeScript CID literal server that emits "<output>"',
-    'And a TypeScript CID literal server that emits "<output>"',
-])
+@step(['Given a TypeScript CID literal server that emits "<output>"',
+       'And a TypeScript CID literal server that emits "<output>"'])
 def typescript_literal_emit(output: str) -> None:
     """Persist a TypeScript CID server with stubbed output."""
 
@@ -431,10 +402,8 @@ export default function main(payload) {{
     )
 
 
-@step([
-    'Given a TypeScript CID literal server that prefixes its payload with "<prefix>"',
-    'And a TypeScript CID literal server that prefixes its payload with "<prefix>"',
-])
+@step(['Given a TypeScript CID literal server that prefixes its payload with "<prefix>"',
+       'And a TypeScript CID literal server that prefixes its payload with "<prefix>"'])
 def typescript_literal_prefix(prefix: str) -> None:
     """Persist a TypeScript CID server that prefixes payloads."""
 
@@ -974,7 +943,6 @@ def then_response_contains_bash_ts_bash() -> None:
     body = response.get_data(as_text=True)
     assert "bash:ts->bash" in body, "Expected 'bash:ts->bash' in response body"
 
-
 @step('Then the response should contain "ts:ts-right"')
 def then_response_contains_ts_ts_right() -> None:
     """Assert response contains ts:ts-right."""
@@ -983,7 +951,6 @@ def then_response_contains_ts_ts_right() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts:ts-right" in body, "Expected 'ts:ts-right' in response body"
-
 
 @step('Then the response should contain "ts:py->ts"')
 def then_response_contains_ts_py_ts() -> None:
@@ -994,7 +961,6 @@ def then_response_contains_ts_py_ts() -> None:
     body = response.get_data(as_text=True)
     assert "ts:py->ts" in body, "Expected 'ts:py->ts' in response body"
 
-
 @step('Then the response should contain "ts:bash->ts"')
 def then_response_contains_ts_bash_ts() -> None:
     """Assert response contains ts:bash->ts."""
@@ -1003,7 +969,6 @@ def then_response_contains_ts_bash_ts() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts:bash->ts" in body, "Expected 'ts:bash->ts' in response body"
-
 
 @step('Then the response should contain "ts:named->ts"')
 def then_response_contains_ts_named_ts() -> None:
@@ -1014,7 +979,6 @@ def then_response_contains_ts_named_ts() -> None:
     body = response.get_data(as_text=True)
     assert "ts:named->ts" in body, "Expected 'ts:named->ts' in response body"
 
-
 @step('Then the response should contain "ts-noext"')
 def then_response_contains_ts_noext() -> None:
     """Assert response contains ts-noext."""
@@ -1023,7 +987,6 @@ def then_response_contains_ts_noext() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts-noext" in body, "Expected 'ts-noext' in response body"
-
 
 @step('Then the response should contain "ts-ext"')
 def then_response_contains_ts_ext() -> None:

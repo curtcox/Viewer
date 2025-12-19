@@ -130,7 +130,7 @@ def internal_error(error):
             import sys
 
             # Get the current exception info
-            _, _, exc_traceback = sys.exc_info()
+            sys.exc_info()
             # Create a basic stack trace as fallback
             stack_trace = [{
                 "display_path": "Error in stack trace generation",

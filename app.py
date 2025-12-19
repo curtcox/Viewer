@@ -11,7 +11,8 @@ try:
     LOGFIRE_AVAILABLE = True
 except ImportError:
     logfire = None  # type: ignore[assignment, misc]
-    LogfireConfigError = Exception  # type: ignore[assignment, misc]
+    class LogfireConfigError(Exception):
+        pass
     LOGFIRE_AVAILABLE = False
 
 try:
@@ -214,7 +215,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
     flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
-    
+
     # Set GIT_SHA from environment variable if provided (used in Vercel deployments)
     git_sha = os.environ.get("GIT_SHA")
     if git_sha:
@@ -260,6 +261,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             # Create a RuntimeError with the stored message to trigger 500 handler
             error = RuntimeError(cid_error)
             return internal_error(error)
+        return None
 
     # Add read-only mode check before authorization
     @flask_app.before_request
@@ -271,7 +273,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         if ReadOnlyConfig.is_read_only_mode() and is_state_changing_request():
             from flask import abort
             abort(405, description="Operation not allowed in read-only mode")
-        return None
 
     # Add authorization check for all requests
     @flask_app.before_request

@@ -43,7 +43,7 @@ def signal_handler(_sig, _frame):
 
 def get_default_boot_cid(readonly: bool = False) -> str | None:
     """Get the default boot CID from reference_templates.
-    
+
     Args:
         readonly: If True, returns readonly.boot.cid instead of default
 
@@ -435,10 +435,10 @@ if __name__ == "__main__":
     if args.read_only:
         from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
         from cli_args import parse_memory_size  # pylint: disable=import-outside-toplevel
-        
+
         ReadOnlyConfig.set_read_only_mode(True)
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
-        
+
         # Parse and set max CID memory
         try:
             max_bytes = parse_memory_size(args.max_cid_memory)

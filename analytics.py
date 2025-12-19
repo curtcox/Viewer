@@ -54,10 +54,10 @@ def track_page_view(response: Response) -> Response:
     """Track page views."""
     # Skip tracking in read-only mode
     from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
-    
+
     if ReadOnlyConfig.is_read_only_mode():
         return response
-    
+
     try:
         if should_track_page_view(response):
             page_view = create_page_view_record()

@@ -38,10 +38,10 @@ def record_entity_interaction(
     """Persist a change or AI interaction for later recall."""
     # Skip recording in read-only mode
     from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
-    
+
     if ReadOnlyConfig.is_read_only_mode():
         return None
-    
+
     if not request.entity_type or not request.entity_name:
         return None
 

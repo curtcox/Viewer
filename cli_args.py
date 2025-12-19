@@ -75,25 +75,25 @@ def parse_arguments() -> argparse.Namespace:
 
 def parse_memory_size(size_str: str) -> int:
     """Parse a memory size string like '1G', '512M', '100K' into bytes.
-    
+
     Args:
         size_str: Memory size string (e.g., '1G', '512M', '100K')
-        
+
     Returns:
         Size in bytes
-        
+
     Raises:
         ValueError: If the size string is invalid
     """
     size_str = size_str.strip().upper()
     match = re.match(r'^(\d+(?:\.\d+)?)\s*([KMGT]?)B?$', size_str)
-    
+
     if not match:
         raise ValueError(f"Invalid memory size format: {size_str}")
-    
+
     value, unit = match.groups()
     value = float(value)
-    
+
     multipliers = {
         '': 1,
         'K': 1024,
@@ -101,7 +101,7 @@ def parse_memory_size(size_str: str) -> int:
         'G': 1024 ** 3,
         'T': 1024 ** 4,
     }
-    
+
     return int(value * multipliers[unit])
 
 
@@ -109,13 +109,13 @@ def configure_from_args(args: argparse.Namespace) -> None:
     """Configure the application based on parsed arguments."""
     if args.in_memory_db:
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
-    
+
     # Handle read-only mode
     if hasattr(args, 'read_only') and args.read_only:
         ReadOnlyConfig.set_read_only_mode(True)
         # Read-only mode requires in-memory database
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
-        
+
         # Parse and set max CID memory
         if hasattr(args, 'max_cid_memory'):
             try:
