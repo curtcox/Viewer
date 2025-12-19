@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Type
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from flask import flash
 from markupsafe import Markup, escape
 
@@ -117,7 +117,7 @@ def check_name_exists(model_class: Type[Any], name: str, exclude_id: Any = None)
     return entity is not None
 
 
-@logfire.instrument("entities.create_entity({model_class=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire_instrument("entities.create_entity({model_class=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
 def create_entity(
     model_class: Type[Any],
     form,
@@ -182,7 +182,7 @@ def create_entity(
     return True
 
 
-@logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire_instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
 def update_entity(
     entity,
     form,

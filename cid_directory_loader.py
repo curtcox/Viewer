@@ -26,7 +26,7 @@ def _iter_candidate_files(directory: Path) -> Iterable[Path]:
         yield entry
 
 
-def load_cids_from_directory(app: Flask) -> None:
+def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
     """Ensure the database contains CID entries for files in the directory.
 
     The directory defaults to ``app.root_path / "cids"`` but can be overridden via
@@ -34,9 +34,15 @@ def load_cids_from_directory(app: Flask) -> None:
     the generated CID for its contents. Any mismatch terminates the application
     immediately.
 
-    The CID directory must exist (it can be read-only). If the directory does not
-    exist, a RuntimeError is raised with the message "No CID directory", which will
-    be displayed as a 500 error page.
+    Args:
+        app: Flask application instance
+        allow_missing: If True, missing directory is treated as empty (no error).
+                      If False, raises RuntimeError when directory doesn't exist.
+                      Defaults to False for backward compatibility.
+
+    Raises:
+        RuntimeError: If directory doesn't exist and allow_missing=False, or if
+                     there are validation errors with CID files.
     """
 
     configured_directory = app.config.get("CID_DIRECTORY")
@@ -44,6 +50,9 @@ def load_cids_from_directory(app: Flask) -> None:
 
     # Check if directory exists - it must exist (can be read-only, but must exist)
     if not directory.exists():
+        if allow_missing:
+            LOGGER.info("CID directory %s does not exist, skipping CID loading (allow_missing=True)", directory)
+            return
         message = f"No CID directory: {directory}"
         LOGGER.error("CID directory %s does not exist: %s", directory, message)
         raise RuntimeError(message)

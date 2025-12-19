@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict, Optional, TypeAlias
 from urllib.parse import urlsplit
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -162,7 +162,7 @@ def _build_definition_value(
     return definition_text or None
 
 
-@logfire.instrument(
+@logfire_instrument(
     "aliases._persist_alias({alias=})", extract_args=True, record_return=True
 )
 def _persist_alias(alias: Alias) -> Alias:

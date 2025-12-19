@@ -4,10 +4,18 @@ from os import getenv
 from pathlib import Path
 from typing import Any, Optional
 
-import logfire
+# Optional logfire import - gracefully handle if not available
+try:
+    import logfire
+    from logfire.exceptions import LogfireConfigError
+    LOGFIRE_AVAILABLE = True
+except ImportError:
+    logfire = None  # type: ignore[assignment, misc]
+    LogfireConfigError = Exception  # type: ignore[assignment, misc]
+    LOGFIRE_AVAILABLE = False
+
 from dotenv import load_dotenv
 from flask import Flask
-from logfire.exceptions import LogfireConfigError
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import models  # noqa: F401  # pylint: disable=unused-import
@@ -54,6 +62,9 @@ def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
     Returns:
         List of error messages for failed instrumentation steps.
     """
+    if not LOGFIRE_AVAILABLE or logfire is None:
+        return ["logfire module not available"]
+
     instrumentation_steps = (
         ("requests", logfire.instrument_requests),
         ("aiohttp", logfire.instrument_aiohttp_client),
@@ -103,52 +114,59 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     send_to_logfire = getenv("LOGFIRE_SEND_TO_LOGFIRE")
 
     if send_to_logfire:
-        if testing_mode:
-            logger.debug(
-                "LOGFIRE_SEND_TO_LOGFIRE is set while TESTING is enabled; running Logfire setup"
-            )
-
-        logfire_token = getenv("LOGFIRE_TOKEN")
-
-        if not logfire_token and not testing_mode:
+        if not LOGFIRE_AVAILABLE or logfire is None:
             logger.warning(
-                "LOGFIRE_SEND_TO_LOGFIRE is set but LOGFIRE_TOKEN is missing; disabling Logfire"
+                "LOGFIRE_SEND_TO_LOGFIRE is set but logfire module is not available; "
+                "install logfire package to enable observability"
             )
-            logfire_reason = "LOGFIRE_TOKEN not set"
+            logfire_reason = "logfire module not installed"
         else:
-            if not logfire_token:
+            if testing_mode:
                 logger.debug(
-                    "LOGFIRE_TOKEN is not set but TESTING is enabled; running Logfire setup anyway"
+                    "LOGFIRE_SEND_TO_LOGFIRE is set while TESTING is enabled; running Logfire setup"
                 )
-            logger.info("Logfire is enabled")
 
-            try:
-                logfire.configure(
-                    code_source=logfire.CodeSource(
-                        repository='https://github.com/curtcox/Viewer',
-                        revision=getenv("REVISION"),
-                    )
+            logfire_token = getenv("LOGFIRE_TOKEN")
+
+            if not logfire_token and not testing_mode:
+                logger.warning(
+                    "LOGFIRE_SEND_TO_LOGFIRE is set but LOGFIRE_TOKEN is missing; disabling Logfire"
                 )
-            except LogfireConfigError as exc:
-                logfire_reason = str(exc)
-                logger.warning("Logfire configuration failed: %s", logfire_reason)
-            except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
-                # Logfire loads optional integrations dynamically; keep a broad guard so
-                # unexpected configuration/import failures do not crash application
-                # startup in environments where those dependencies are absent.
-                logfire_reason = f"Unexpected Logfire error: {exc}"
-                logger.exception("Unexpected Logfire configuration failure")
+                logfire_reason = "LOGFIRE_TOKEN not set"
             else:
-                instrumentation_errors = _setup_logfire_instrumentation(logger)
+                if not logfire_token:
+                    logger.debug(
+                        "LOGFIRE_TOKEN is not set but TESTING is enabled; running Logfire setup anyway"
+                    )
+                logger.info("Logfire is enabled")
 
-                if instrumentation_errors:
-                    logfire_available = False
-                    logfire_reason = "; ".join(instrumentation_errors)
+                try:
+                    logfire.configure(
+                        code_source=logfire.CodeSource(
+                            repository='https://github.com/curtcox/Viewer',
+                            revision=getenv("REVISION"),
+                        )
+                    )
+                except LogfireConfigError as exc:
+                    logfire_reason = str(exc)
+                    logger.warning("Logfire configuration failed: %s", logfire_reason)
+                except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
+                    # Logfire loads optional integrations dynamically; keep a broad guard so
+                    # unexpected configuration/import failures do not crash application
+                    # startup in environments where those dependencies are absent.
+                    logfire_reason = f"Unexpected Logfire error: {exc}"
+                    logger.exception("Unexpected Logfire configuration failure")
                 else:
-                    logger.info("Logfire configured")
-                    logfire_available = True
-                    logfire_reason = None
-                    logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
+                    instrumentation_errors = _setup_logfire_instrumentation(logger)
+
+                    if instrumentation_errors:
+                        logfire_available = False
+                        logfire_reason = "; ".join(instrumentation_errors)
+                    else:
+                        logger.info("Logfire configured")
+                        logfire_available = True
+                        logfire_reason = None
+                        logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
 
@@ -300,13 +318,21 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         if skip_db_setup:
             logging.info("Skipping database setup due to SKIP_DB_SETUP flag")
         else:
-            db.create_all()
-            logging.info("Database tables created")
+            try:
+                db.create_all()
+                logging.info("Database tables created")
+            except Exception as e:
+                # Database initialization failure is critical - log and re-raise
+                logging.error("Failed to create database tables: %s", e, exc_info=True)
+                raise
 
             if not testing_mode or cid_directory_overridden or load_cids_in_tests:
                 # Try to load CIDs, but store error if it fails so we can show 500 page
+                # On Vercel/serverless, allow missing CID directory (it may not be deployed)
+                is_vercel = os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL_ENV")
+                allow_missing_cids = is_vercel or flask_app.config.get("ALLOW_MISSING_CID_DIRECTORY", False)
                 try:
-                    load_cids_from_directory(flask_app)
+                    load_cids_from_directory(flask_app, allow_missing=allow_missing_cids)
                     flask_app.config["CID_LOAD_ERROR"] = None
                 except RuntimeError as e:
                     # Store the error so we can show it in a 500 error page
@@ -315,7 +341,13 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                     flask_app.config["CID_LOAD_ERROR"] = error_message
 
             if not testing_mode:
-                ensure_default_resources()
+                # Wrap ensure_default_resources in error handling to prevent initialization failures
+                # This is especially important for serverless deployments where file access may be limited
+                try:
+                    ensure_default_resources()
+                except Exception as e:
+                    # Log but don't fail - default resources are nice-to-have, not critical
+                    logging.warning("Failed to ensure default resources (non-fatal): %s", e, exc_info=True)
 
         # Set up observability status for template context
         logfire_enabled = logfire_available

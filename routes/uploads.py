@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from constants import ActionType, EntityType, UploadType
 from flask import abort, flash, redirect, render_template, request, url_for
 from markupsafe import Markup
@@ -154,7 +154,7 @@ def _render_upload_success(
     )
 
 
-@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
+@logfire_instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
 def _persist_alias_from_upload(alias: Alias) -> Alias:
     """Persist alias changes that originate from upload workflows.
 

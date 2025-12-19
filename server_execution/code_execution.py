@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from flask import Response, current_app, has_app_context, has_request_context, jsonify, redirect, request
 
 from alias_routing import find_matching_alias
@@ -1600,7 +1600,7 @@ def _execute_server_code_common(
         )
 
 
-@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
+@logfire_instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -1613,7 +1613,7 @@ def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     )
 
 
-@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
+@logfire_instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
 def execute_server_code_from_definition(definition_text: str, server_name: str) -> Optional[Response]:
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
@@ -1626,7 +1626,7 @@ def execute_server_code_from_definition(definition_text: str, server_name: str) 
     )
 
 
-@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
+@logfire_instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function(server: Any, server_name: str, function_name: str) -> Optional[Response]:
     """Execute a named helper function within a server definition."""
     if detect_server_language(getattr(server, "definition", "")) != "python":
@@ -1642,7 +1642,7 @@ def execute_server_function(server: Any, server_name: str, function_name: str) -
     )
 
 
-@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
+@logfire_instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ) -> Optional[Response]:
