@@ -14,7 +14,7 @@ jobs:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
     outputs:
-      deployment-url: ${{ steps.deploy.outputs.url }}
+      deployment-url: ${{ steps.determine-url.outputs.deployment-url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,6 +31,41 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: "--prod --env GIT_SHA=${{ steps.git-sha.outputs.sha }} --env READ_ONLY=true --env SESSION_SECRET=${{ secrets.SESSION_SECRET }}"
+
+      - name: Capture and determine deployment URL
+        id: determine-url
+        run: |
+          echo "Debug: Checking all available outputs from Vercel deployment..."
+          
+          # The amondnet/vercel-action provides these outputs:
+          # - preview-url: URL of the deployment (always available)
+          # - url: Production URL (may be same as preview-url for --prod deployments)
+          # - preview-name: Name of the deployment
+          
+          PREVIEW_URL="${{ steps.deploy.outputs.preview-url }}"
+          PROD_URL="${{ steps.deploy.outputs.url }}"
+          DEPLOYMENT_NAME="${{ steps.deploy.outputs.preview-name }}"
+          
+          echo "Preview URL: $PREVIEW_URL"
+          echo "Production URL: $PROD_URL"
+          echo "Deployment Name: $DEPLOYMENT_NAME"
+          
+          # For production deployments (--prod flag), use the production URL if available
+          # Otherwise use the preview URL
+          if [ -n "$PROD_URL" ]; then
+            DEPLOYMENT_URL="$PROD_URL"
+            echo "Using production URL: $DEPLOYMENT_URL"
+          elif [ -n "$PREVIEW_URL" ]; then
+            DEPLOYMENT_URL="$PREVIEW_URL"
+            echo "Using preview URL: $DEPLOYMENT_URL"
+          else
+            echo "Error: No deployment URL was captured from Vercel deployment"
+            exit 1
+          fi
+          
+          # Set the output for use in subsequent jobs
+          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployment URL captured: $DEPLOYMENT_URL"
 
   validate:
     name: Validate Deployment
