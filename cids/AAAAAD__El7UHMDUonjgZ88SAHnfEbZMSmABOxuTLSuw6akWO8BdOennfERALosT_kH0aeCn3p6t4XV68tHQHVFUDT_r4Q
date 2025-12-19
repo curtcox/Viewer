@@ -307,93 +307,6 @@ def _ensure_logging_import(
     return "\n".join(lines)
 
 
-def _ensure_server_definition_logging(
-    updated_text: str,
-    request_text: str | None,
-    target_label: str | None,
-    context_data: dict | None,
-) -> str:
-    if not updated_text:
-        return updated_text
-
-    if (target_label or "").strip().lower() != "server definition":
-        return updated_text
-
-    if not isinstance(context_data, dict) or context_data.get("form") != "server_form":
-        return updated_text
-
-    request_lower = (request_text or "").lower()
-    if "log" not in request_lower:
-        return updated_text
-
-    existing_calls = (
-        updated_text.count("logging.info")
-        + updated_text.count("logging.debug")
-        + updated_text.count("logging.warning")
-    )
-    if existing_calls >= 2:
-        return updated_text
-
-    lines = updated_text.splitlines()
-    def_line_index = None
-    for index, line in enumerate(lines):
-        if re.match(r"^\s*def\s+main\s*\(", line):
-            def_line_index = index
-            break
-
-    if def_line_index is None:
-        return updated_text
-
-    base_indent_match = re.match(r"^(\s*)def\s+main\s*\(", lines[def_line_index])
-    base_indent = base_indent_match.group(1) if base_indent_match else ""
-    body_indent = base_indent + "    "
-
-    function_end = len(lines)
-    for index in range(def_line_index + 1, len(lines)):
-        candidate = lines[index]
-        if not candidate.strip():
-            continue
-        indent = candidate[: len(candidate) - len(candidate.lstrip())]
-        if len(indent) <= len(base_indent) and re.match(r"^\s*def\s+\w+\s*\(", candidate):
-            function_end = index
-            break
-
-    insert_after = def_line_index + 1
-    cursor = def_line_index + 1
-    while cursor < function_end and lines[cursor].strip() == "":
-        cursor += 1
-
-    if cursor < function_end:
-        stripped = lines[cursor].lstrip()
-        if stripped.startswith(('"""', "'''")):
-            quote = '"""' if stripped.startswith('"""') else "'''"
-            if stripped.count(quote) >= 2 and stripped.strip() != quote:
-                insert_after = cursor + 1
-            else:
-                doc_end = cursor + 1
-                while doc_end < function_end and quote not in lines[doc_end]:
-                    doc_end += 1
-                insert_after = min(doc_end + 1, function_end)
-        else:
-            insert_after = cursor
-
-    last_return_index = None
-    for index in range(def_line_index + 1, function_end):
-        if re.match(rf"^{re.escape(body_indent)}return\b", lines[index]):
-            last_return_index = index
-
-    lines.insert(insert_after, f'{body_indent}logging.info("Starting processing")')
-
-    if last_return_index is not None:
-        if last_return_index >= insert_after:
-            last_return_index += 1
-        lines.insert(last_return_index, f'{body_indent}logging.info("Finished processing")')
-    else:
-        lines.insert(insert_after + 1, f'{body_indent}logging.info("Finished processing")')
-
-    return "\n".join(lines)
-
-
 def main(
     request_text: str = None,
     original_text: str = None,
@@ -498,13 +411,6 @@ def main(
         # Apply CID-editor specific normalisation for email fields when
         # editing JSON content in the CID editor.
         updated_text = _ensure_cid_editor_emails(updated_text, context_data)
-
-        updated_text = _ensure_server_definition_logging(
-            updated_text,
-            request_text=request_text,
-            target_label=target_label,
-            context_data=context_data,
-        )
 
         updated_text = _ensure_logging_import(
             updated_text,

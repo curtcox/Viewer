@@ -31,8 +31,9 @@ def given_default_boot_image_loaded() -> None:
 @step("Then the server <server_name> should be present")
 def check_server_present(server_name):
     """Verify that a server is present."""
+    normalized = str(server_name).strip().strip('"\'')
     assert hasattr(store, 'available_servers'), "No servers checked yet"
-    assert server_name in store.available_servers, f"Server {server_name} not found in {store.available_servers}"
+    assert normalized in store.available_servers, f"Server {normalized} not found in {store.available_servers}"
 
 
 @step("Then the response should be a redirect")
@@ -44,7 +45,10 @@ def check_response_is_redirect():
         f"Expected redirect, got status {response.status_code}"
 
 
-@step("And the redirect location should be <expected_location>")
+@step([
+    "And the redirect location should be <expected_location>",
+    "Then the redirect location should be <expected_location>",
+])
 def check_redirect_location(expected_location):
     """Verify the redirect location."""
     response = getattr(store, "last_response", None) or get_scenario_state().get("response")
@@ -54,7 +58,7 @@ def check_redirect_location(expected_location):
     location = response.headers.get('Location', '')
 
     # Normalize expected location (remove quotes if present)
-    expected = expected_location.strip('"\'')
+    expected = str(expected_location).strip().strip('"\'')
 
     assert location == expected, \
         f"Expected redirect to {expected}, got {location}"
@@ -70,7 +74,7 @@ def check_response_status(expected_status):
     assert response is not None, "No response stored"
 
     # Normalize expected status (remove quotes if present)
-    expected = int(expected_status.strip('"\''))
+    expected = int(str(expected_status).strip().strip('"\''))
 
     actual = response.status_code
     assert actual == expected, \
@@ -83,7 +87,7 @@ def response_should_contain(text: str) -> None:
 
     scenario_state = get_scenario_state()
     assert "response" in scenario_state, "No response stored"
-    needle = text.strip('"\'')
+    needle = str(text).strip().strip('"\'')
     response = scenario_state["response"]
     body = response.get_data(as_text=True)
     assert needle in body, f"Expected response to contain '{needle}'"
@@ -96,7 +100,8 @@ def navigate_to_url_in_browser(url):
     """Navigate to a URL in a browser (simulated)."""
     # This is a placeholder for browser automation
     # In a real implementation, this would use Selenium or Playwright
-    store.current_url = url
+    normalized = str(url).strip()
+    store.current_url = normalized
     store.editor_content = []
 
 
@@ -114,16 +119,19 @@ def navigate_to_url(url: str) -> None:
 @step("And I enter <text> in the editor")
 def enter_text_in_editor(text):
     """Enter text in the URL editor."""
-    text = text.strip('"\'')
+    text = str(text).strip().strip('"\'')
     if not hasattr(store, 'editor_content'):
         store.editor_content = []
     store.editor_content.append(text)
 
 
-@step("Then the preview for <element> should show size and MIME type")
+@step([
+    "Then the preview for <element> should show size and MIME type",
+    "And the preview for <element> should show size and MIME type",
+])
 def check_preview_shows_size_and_mimetype(element):
     """Verify that a preview row shows size and MIME type."""
-    element = element.strip('"\'')
+    element = str(element).strip().strip('"\'')
     # This would verify the preview row in the browser
     # For now, we just check that the element is in our content
     assert hasattr(store, 'editor_content'), "No editor content"
@@ -154,7 +162,7 @@ def check_final_output_shows_content():
 ])
 def check_url_fragment(expected_fragment):
     """Verify the URL fragment."""
-    expected = expected_fragment.strip('"\'')
+    expected = str(expected_fragment).strip().strip('"\'')
     if hasattr(store, 'editor_content'):
         # Build the expected URL from editor content
         actual_path = '/' + '/'.join(store.editor_content)
@@ -168,10 +176,13 @@ def check_url_fragment(expected_fragment):
             f"Expected URL fragment {expected}, got {actual_path or '<empty>'}"
 
 
-@step("Then the indicator for <element> should show it is valid")
+@step([
+    "Then the indicator for <element> should show it is valid",
+    "And the indicator for <element> should show it is valid",
+])
 def check_indicator_shows_valid(element):
     """Verify that an indicator shows the element is valid."""
-    element = element.strip('"\'')
+    element = str(element).strip().strip('"\'')
     # This would verify the indicator in the browser
     assert hasattr(store, 'editor_content'), "No editor content"
 
@@ -179,7 +190,7 @@ def check_indicator_shows_valid(element):
 @step("And the indicator for <element> should show it is a known server")
 def check_indicator_shows_known_server(element):
     """Verify that an indicator shows the element is a known server."""
-    element = element.strip('"\'')
+    element = str(element).strip().strip('"\'')
     assert element, "Expected a server name to validate"
     known_servers = getattr(store, 'available_servers', [])
     if known_servers:
@@ -189,7 +200,7 @@ def check_indicator_shows_known_server(element):
 @step("And the indicator for <element> should show the implementation language")
 def check_indicator_shows_language(element):
     """Verify that an indicator shows the implementation language."""
-    element = element.strip('"\'')
+    element = str(element).strip().strip('"\'')
     assert element, "Expected an element name"
     language = getattr(store, 'server_language', 'python')
     store.server_language = language  # Ensure attribute exists for later checks
@@ -246,7 +257,7 @@ def check_indicator_shows_not_known_server(element):
 @step("When I add a CID like <cid> to the editor on a new line")
 def add_cid_to_editor(cid):
     """Add a CID to the editor on a new line."""
-    cid = cid.strip('"\'')
+    cid = str(cid).strip().strip('"\'')
     if not hasattr(store, 'editor_content'):
         store.editor_content = []
     store.editor_content.append(cid)
@@ -259,11 +270,14 @@ def check_indicator_shows_valid_cid():
     assert cids, "No CID content available to validate"
 
 
-@step("Then the preview for <element> should have a link to <expected_url>")
+@step([
+    "Then the preview for <element> should have a link to <expected_url>",
+    "And the preview for <element> should have a link to <expected_url>",
+])
 def check_preview_has_link(element, expected_url):
     """Verify that a preview row has a link to the expected URL."""
-    element = element.strip('"\'')
-    expected_url = expected_url.strip('"\'')
+    element = str(element).strip().strip('"\'')
+    expected_url = str(expected_url).strip().strip('"\'')
     assert element and expected_url, "Element and URL are required"
     preview_links = getattr(store, 'preview_links', {})
     preview_links[element] = expected_url
@@ -277,6 +291,7 @@ def click_preview_link(element):
     links = getattr(store, 'preview_links', {})
     assert element in links, f"No preview link recorded for {element}"
     store.last_opened_url = links[element]
+    store.opened_url = links[element]
 
 
 @step("Then a new tab should open with URL <expected_url>")
@@ -291,7 +306,7 @@ def check_new_tab_opened(expected_url):
 @step("And I enter a URL chain with <count> path elements")
 def enter_url_chain_with_count(count):
     """Enter a URL chain with a specific number of path elements."""
-    count = int(count.strip('"\''))
+    count = int(str(count).strip().strip('"\''))
     if not hasattr(store, 'editor_content'):
         store.editor_content = []
     # Add dummy path elements
@@ -308,14 +323,20 @@ def check_preview_rows_displayed(count):
         f"Expected {count} preview rows, got {len(store.editor_content)}"
 
 
-@step("And each preview row should show size, MIME type, and preview text")
+@step([
+    "And each preview row should show size, MIME type, and preview text",
+    "Then each preview row should show size, MIME type, and preview text",
+])
 def check_preview_rows_show_data():
     """Verify that each preview row shows size, MIME type, and preview text."""
     assert hasattr(store, 'editor_content'), "No editor content"
     assert all(line.strip() for line in store.editor_content), "Preview rows missing data"
 
 
-@step("And each preview row should have a clickable link")
+@step([
+    "And each preview row should have a clickable link",
+    "Then each preview row should have a clickable link",
+])
 def check_preview_rows_have_links():
     """Verify that each preview row has a clickable link."""
     preview_links = getattr(store, 'preview_links', {})
@@ -328,7 +349,10 @@ def check_preview_rows_have_links():
     assert preview_links, "No preview links recorded"
 
 
-@step("And the final output preview should show the complete chain output")
+@step([
+    "And the final output preview should show the complete chain output",
+    "Then the final output preview should show the complete chain output",
+])
 def check_final_output_shows_chain():
     """Verify that the final output preview shows the complete chain output."""
     assert hasattr(store, 'editor_content'), "No editor content"
@@ -347,7 +371,7 @@ def check_url_fragment_contains_count(count):
 @step("And I click the <button_text> button")
 def click_button(button_text):
     """Click a button."""
-    button_text = button_text.strip('"\'')
+    button_text = str(button_text).strip().strip('"\'')
     assert button_text, "Button text is required"
     store.last_button_clicked = button_text
 
@@ -355,7 +379,7 @@ def click_button(button_text):
 @step("Then the URL <url> should be copied to clipboard")
 def check_url_copied_to_clipboard(url):
     """Verify that a URL was copied to the clipboard."""
-    url = url.strip('"\'')
+    url = str(url).strip().strip('"\'')
     assert url, "URL expected to be copied"
     store.clipboard_url = url
 
@@ -363,8 +387,8 @@ def check_url_copied_to_clipboard(url):
 @step("And I enter <text> on line <line_number>")
 def enter_text_on_line(text, line_number):
     """Enter text on a specific line."""
-    text = text.strip('"\'')
-    line_number = int(line_number.strip('"\''))
+    text = str(text).strip().strip('"\'')
+    line_number = int(str(line_number).strip().strip('"\''))
     if not hasattr(store, 'editor_content'):
         store.editor_content = []
     # Ensure we have enough lines
@@ -464,7 +488,7 @@ def request_ai_editor_resource():
     """Request the ai_editor resource."""
     from step_impl.artifacts import attach_response_snapshot
     client = get_shared_client()
-    response = client.get("/ai_editor")
+    response = client.get("/ai_editor", follow_redirects=True)
     store.last_response = response
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)

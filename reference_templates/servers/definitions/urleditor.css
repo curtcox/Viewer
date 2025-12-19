@@ -42,13 +42,13 @@ body {
 
 .main-content {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 2fr 2fr;
     gap: 1rem;
     flex: 1;
     overflow: hidden;
 }
 
-.editor-section, .indicators-section {
+.editor-section, .indicators-section, .preview-section {
     display: flex;
     flex-direction: column;
     overflow: hidden;

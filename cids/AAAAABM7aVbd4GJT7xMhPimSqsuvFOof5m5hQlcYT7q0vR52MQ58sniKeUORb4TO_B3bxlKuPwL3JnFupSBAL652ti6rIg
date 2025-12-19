@@ -1,6 +1,6 @@
 {
   "version": 6,
-  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
+  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [
     {
@@ -15,7 +15,7 @@
     },
     {
       "name": "cookies",
-      "definition_cid": "AAAAAABwT5wpsj5DSheNKHonqPEoD6dBhqwmGJHWwCeDvje7WhhC64I5jJCWzdorCkW19vkdi1LLePQzB6pFNcr1HkPjeQ",
+      "definition_cid": "AAAAAABw8lQrueBcDCIk5la_nbhpjUHo2C9gMtYZ2bIi8NfV4K5D7QIDg_GwylvrJo0ExsQ5_7MjcD1ROiNfccn6D6kuAw",
       "enabled": true
     }
   ],
@@ -23,6 +23,11 @@
     {
       "name": "ai_stub",
       "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "enabled": true
+    },
+    {
+      "name": "ai_assist",
+      "definition_cid": "AAAAAD__El7UHMDUonjgZ88SAHnfEbZMSmABOxuTLSuw6akWO8BdOennfERALosT_kH0aeCn3p6t4XV68tHQHVFUDT_r4Q",
       "enabled": true
     },
     {
@@ -38,6 +43,16 @@
     {
       "name": "markdown",
       "definition_cid": "AAAAAANlCGrLM1BcFmv6LErO8aEV2AU4L3OcHg_U47eGIAmhupMoKQkLBDyhIisiCf5czzVRecc3AikQG54OT26fjsXmUw",
+      "enabled": true
+    },
+    {
+      "name": "shell",
+      "definition_cid": "AAAAAAgtwBtwa6VeHRHBWwDQuW0ROARRuIA7xSC0cQXHz3KG7o-Yo2AyNiIAA8wJCyb5oeprfuqpRb8L2ZHzch2gachQhg",
+      "enabled": true
+    },
+    {
+      "name": "cid_links",
+      "definition_cid": "AAAAAA3riMBTHxn7jK9m0IeiBHgo4gdv37KLpoVLlCyJ_JqWJz1oF4mVsTqiMOrShpa4koBa0FYGVRGOQDDPPB9sdgjh4Q",
       "enabled": true
     },
     {
@@ -58,6 +73,11 @@
     {
       "name": "jinja",
       "definition_cid": "AAAAAAK0EyIKCfFeUdnn2bWHrk09Lo0Ff4oVTdcn4iG7Iqj6JMOmABI1nByfVpUgJzbJ9nPn-vIhAU39r2xBKrPMnTbsBg",
+      "enabled": true
+    },
+    {
+      "name": "file",
+      "definition_cid": "AAAAAAg7b3IpIpdQpaFUlsnJvOiMUpgHSWwNvN1W2FQooEp-ESZQ_EXqoH6FplHvvlOZdMfgvq4BEyX4B0yEtYOh-Mhd3g",
       "enabled": true
     },
     {
@@ -87,7 +107,7 @@
     },
     {
       "name": "urleditor",
-      "definition_cid": "AAAAABnQAWLwQKdZyE67rVUTjK1FC7Bw906gKYaMMFePz2xU2Sdc6IhsY_v2nIodRmWB95DSfhZMvzZR41GyakqmeAU7DQ",
+      "definition_cid": "AAAAABk0xM_v-PvWiFnfeWzgYza9brQy4mb54cM0TQQxh6ps9TQEwfZDOBCqISw7_nci3AKOHYTaUHjvBPYvJRWlDGwK5A",
       "enabled": true
     },
     {
@@ -99,12 +119,32 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABkNoTY7MXktDLhSzOWWkqOyBzk-RbVRFpBUNCXfqRsfgfTagmD8b5hVkhsqXicZuvdRW1mcFbx1IUXcrVsDXFrG9A",
+      "definition": "AAAAABkNjb_v5Az3zng4fS9DQ2-HVoDAS3gIb1Sf2eGpdBaay_ptaUAuoTQmR7O5ikLYLSACS5Dw1XKvUeUrDvOWBUdCjg",
       "enabled": true
     },
     {
       "name": "uis",
       "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+      "enabled": true
+    },
+    {
+      "name": "AI_MODEL",
+      "definition": "anthropic/claude-sonnet-4.5",
+      "enabled": true
+    },
+    {
+      "name": "AI_TEMPERATURE",
+      "definition": "0.3",
+      "enabled": true
+    },
+    {
+      "name": "AI_MAX_TOKENS",
+      "definition": "4096",
+      "enabled": true
+    },
+    {
+      "name": "AI_SYSTEM_PROMPTS",
+      "definition_file": "AAAAAAKjzmQXzKjvPUCcuwOWz8WE80vh6i1UU7x63NmlP1KRnsMboBt9DGXzk1yEy1Inl3-hy8WWHlnHIkU5Xfb0r8-gDQ",
       "enabled": true
     }
   ]

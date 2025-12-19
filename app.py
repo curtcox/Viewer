@@ -160,14 +160,27 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     # Use DatabaseConfig for URI (respects memory mode and CLI flags)
     default_database_uri = DatabaseConfig.get_database_uri()
 
+    engine_options: dict[str, Any] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
+
+    # sqlite:///:memory: requires a single shared connection; otherwise SQLAlchemy
+    # may open multiple independent in-memory databases (one per connection),
+    # causing tables created during app startup to be missing later.
+    if default_database_uri.strip().lower() == "sqlite:///:memory:":
+        from sqlalchemy.pool import StaticPool
+
+        engine_options = {
+            "poolclass": StaticPool,
+            "connect_args": {"check_same_thread": False},
+        }
+
     flask_app.config.update(
         SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
         SQLALCHEMY_DATABASE_URI=default_database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ENGINE_OPTIONS={
-            "pool_pre_ping": True,
-            "pool_recycle": 300,
-        },
+        SQLALCHEMY_ENGINE_OPTIONS=engine_options,
     )
 
     flask_app.config.setdefault(
@@ -211,6 +224,16 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
     # Register application components
     flask_app.before_request(make_session_permanent)
+
+    # Check for CID loading errors before processing any requests
+    @flask_app.before_request
+    def check_cid_load_error():
+        """Show 500 error page if CID directory is missing."""
+        cid_error = flask_app.config.get("CID_LOAD_ERROR")
+        if cid_error:
+            # Create a RuntimeError with the stored message to trigger 500 handler
+            error = RuntimeError(cid_error)
+            return internal_error(error)
 
     # Add read-only mode check before authorization
     @flask_app.before_request
@@ -281,7 +304,15 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             logging.info("Database tables created")
 
             if not testing_mode or cid_directory_overridden or load_cids_in_tests:
-                load_cids_from_directory(flask_app)
+                # Try to load CIDs, but store error if it fails so we can show 500 page
+                try:
+                    load_cids_from_directory(flask_app)
+                    flask_app.config["CID_LOAD_ERROR"] = None
+                except RuntimeError as e:
+                    # Store the error so we can show it in a 500 error page
+                    error_message = str(e)
+                    logging.error("Failed to load CIDs from directory: %s", error_message)
+                    flask_app.config["CID_LOAD_ERROR"] = error_message
 
             if not testing_mode:
                 ensure_default_resources()

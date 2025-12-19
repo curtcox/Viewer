@@ -112,6 +112,18 @@ def internal_error(error):
 
         stack_trace = build_stack_trace(error, root_path, tracked_paths)
 
+        if not stack_trace:
+            stack_trace = [
+                {
+                    "display_path": "(no traceback available)",
+                    "lineno": 0,
+                    "function": exception_type,
+                    "code": exception_message,
+                    "source_link": None,
+                    "is_separator": False,
+                }
+            ]
+
     except Exception as trace_error:  # pylint: disable=broad-exception-caught  # Fallback error handler
         # If stack trace building fails, create a minimal fallback
         try:
@@ -119,16 +131,15 @@ def internal_error(error):
 
             # Get the current exception info
             _, _, exc_traceback = sys.exc_info()
-            if exc_traceback:
-                # Create a basic stack trace as fallback
-                stack_trace = [{
-                    "display_path": "Error in stack trace generation",
-                    "lineno": 0,
-                    "function": "internal_error",
-                    "code": f"Stack trace generation failed: {trace_error}\n\nOriginal error: {error}",
-                    "source_link": None,
-                    "is_separator": False,
-                }]
+            # Create a basic stack trace as fallback
+            stack_trace = [{
+                "display_path": "Error in stack trace generation",
+                "lineno": 0,
+                "function": "internal_error",
+                "code": f"Stack trace generation failed: {trace_error}\n\nOriginal error: {error}",
+                "source_link": None,
+                "is_separator": False,
+            }]
 
             # Try to get basic info about the original error
             if not exception:

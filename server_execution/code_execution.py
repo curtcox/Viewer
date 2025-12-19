@@ -13,7 +13,7 @@ import tempfile
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import logfire
-from flask import Response, current_app, has_app_context, has_request_context, jsonify, request
+from flask import Response, current_app, has_app_context, has_request_context, jsonify, redirect, request
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
@@ -788,6 +788,13 @@ def _inject_optional_parameter_from_path(
             if not remainder_segments:
                 return None, None
 
+            # The urleditor server uses additional path segments as an editor
+            # input encoded into the URL fragment (e.g. /urleditor/echo/test ->
+            # /urleditor#/echo/test). Treat multi-segment subpaths as direct
+            # navigation rather than chained-input injection.
+            if server_name == "urleditor" and len(remainder_segments) > 1:
+                return None, None
+
             nested_path = "/" + "/".join(remainder_segments)
             nested_value = _evaluate_nested_path_to_value(nested_path)
             if isinstance(nested_value, Response):
@@ -1548,8 +1555,35 @@ def _execute_server_code_common(
         external_calls = sanitize_external_calls(call_log, secrets_context)
 
         if isinstance(result, dict):
+            redirect_target = result.get("redirect")
+            if isinstance(redirect_target, str) and redirect_target.strip():
+                status = result.get("status")
+                try:
+                    code = int(status) if status is not None else 302
+                except (TypeError, ValueError):
+                    code = 302
+                return redirect(redirect_target, code=code)
+
             output = result.get("output", "")
             content_type = result.get("content_type", "text/html")
+
+            status = result.get("status")
+            try:
+                status_code = int(status) if status is not None else None
+            except (TypeError, ValueError):
+                status_code = None
+
+            if status_code is not None and status_code >= 400:
+                if content_type in {"text/plain", "text/html"}:
+                    _log_server_output(debug_prefix, error_suffix, output, content_type)
+                    return _handle_successful_execution(
+                        output,
+                        content_type,
+                        server_name,
+                        external_calls=external_calls,
+                    )
+                output_bytes = _encode_output(output)
+                return Response(output_bytes, status=status_code, mimetype=content_type)
         elif isinstance(result, tuple) and len(result) == 2:
             output, content_type = result
         else:
