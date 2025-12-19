@@ -15,6 +15,7 @@ RUN apt-get update \
         curl \
         git \
         gnupg \
+        jq \
         unzip \
         libnss3 \
         libatk1.0-0 \
