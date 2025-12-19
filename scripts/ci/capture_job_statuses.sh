@@ -21,7 +21,8 @@ cat > job-statuses.json << EOF
   "unit-tests": "${UNIT_TESTS_STATUS}",
   "property-tests": "${PROPERTY_TESTS_STATUS}",
   "integration-tests": "${INTEGRATION_TESTS_STATUS}",
-  "gauge-specs": "${GAUGE_SPECS_STATUS}"
+  "gauge-specs": "${GAUGE_SPECS_STATUS}",
+  "ai-eval": "${AI_EVAL_STATUS}"
 }
 EOF
 cat job-statuses.json

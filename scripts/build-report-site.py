@@ -350,6 +350,47 @@ def _build_cid_validation_index(cid_dir: Path) -> None:
     )
 
 
+def _build_ai_eval_index(ai_eval_dir: Path) -> None:
+    """Build an index page for AI eval test results with links to generated reports."""
+    ai_eval_dir.mkdir(parents=True, exist_ok=True)
+
+    index_path = ai_eval_dir / "index.html"
+    junit_xml_path = ai_eval_dir / "ai-eval-results.xml"
+    pytest_html_path = ai_eval_dir / "ai-eval-report.html"
+    reports_index_path = ai_eval_dir / "ai-eval-reports" / "index.html"
+    coverage_index_path = ai_eval_dir / "ai-eval-coverage" / "index.html"
+
+    # Build summary from JUnit XML if available
+    summary_html = "<p>No JUnit XML report was generated.</p>"
+    if junit_xml_path.exists():
+        summary_html = _build_property_summary(junit_xml_path)
+
+    # Add links to available reports
+    report_links = []
+    if reports_index_path.exists():
+        report_links.append('<li><a href="ai-eval-reports/index.html">View AI interaction details</a></li>')
+    if pytest_html_path.exists():
+        report_links.append('<li><a href="ai-eval-report.html">View pytest HTML report</a></li>')
+    if coverage_index_path.exists():
+        report_links.append('<li><a href="ai-eval-coverage/index.html">View coverage report</a></li>')
+
+    links_html = ""
+    if report_links:
+        links_html = f"""  <h2>Available Reports</h2>
+  <ul>
+    {''.join(report_links)}
+  </ul>"""
+
+    body = f"""  <h1>AI Evaluation Test Results</h1>
+  {summary_html}
+  {links_html}"""
+
+    index_path.write_text(
+        _render_html_page("AI Evaluation Test Results", body, COMMON_CSS),
+        encoding="utf-8",
+    )
+
+
 def _build_property_summary(xml_path: Path) -> str:
     """Return an HTML summary snippet for a JUnit XML report."""
 
@@ -981,6 +1022,12 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             check_type="BDD Specifications",
             report_link="gauge-specs/index.html"
         ),
+        "ai-eval": JobMetadata(
+            name="AI Eval",
+            icon="🤖",
+            check_type="AI Evaluation Tests",
+            report_link="ai-eval/index.html"
+        ),
     }
 
 
@@ -1154,6 +1201,7 @@ def build_site(
     _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
     _build_test_index_page(test_index_dir)
     _build_cid_validation_index(cid_validation_dir)
+    _build_ai_eval_index(ai_eval_dir)
     _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
 
 
