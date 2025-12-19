@@ -48,6 +48,17 @@ def test_create_app_serves_homepage(monkeypatch: pytest.MonkeyPatch, app_config_
         assert status["logfire_reason"] == "LOGFIRE_SEND_TO_LOGFIRE not set"
 
 
+def test_create_app_uses_fallback_secret_key_when_session_secret_empty(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+    monkeypatch.setenv("SESSION_SECRET", "")
+
+    app_instance = app_module.create_app(app_config_factory("empty-session-secret"))
+
+    assert app_instance.config.get("SECRET_KEY")
+
+
 def test_create_app_handles_logfire_configuration_errors(
     monkeypatch: pytest.MonkeyPatch, app_config_factory
 ):

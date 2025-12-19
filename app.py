@@ -198,8 +198,12 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "connect_args": {"check_same_thread": False},
         }
 
+    session_secret = os.environ.get("SESSION_SECRET")
+    if not session_secret:
+        session_secret = "dev-secret"
+
     flask_app.config.update(
-        SECRET_KEY=os.environ.get("SESSION_SECRET", "dev-secret"),
+        SECRET_KEY=session_secret,
         SQLALCHEMY_DATABASE_URI=default_database_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS=engine_options,

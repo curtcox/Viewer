@@ -30,7 +30,7 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: "--prod --env GIT_SHA=${{ steps.git-sha.outputs.sha }} --env READ_ONLY=true --env SESSION_SECRET=${{ secrets['SESSION-SECRET'] }}"
+          vercel-args: "--prod --env GIT_SHA=${{ steps.git-sha.outputs.sha }} --env READ_ONLY=true --env SESSION_SECRET=${{ secrets.SESSION_SECRET }}"
 
   validate:
     name: Validate Deployment
