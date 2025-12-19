@@ -54,10 +54,10 @@ jobs:
           # Otherwise use the preview URL
           if [ -n "$PROD_URL" ]; then
             DEPLOYMENT_URL="$PROD_URL"
-            echo "Using production URL: $DEPLOYMENT_URL"
+            echo "Using production URL: \"$DEPLOYMENT_URL\""
           elif [ -n "$PREVIEW_URL" ]; then
             DEPLOYMENT_URL="$PREVIEW_URL"
-            echo "Using preview URL: $DEPLOYMENT_URL"
+            echo "Using preview URL: \"$DEPLOYMENT_URL\""
           else
             echo "Error: No deployment URL was captured from Vercel deployment"
             exit 1
@@ -65,7 +65,7 @@ jobs:
           
           # Set the output for use in subsequent jobs
           echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "✅ Deployment URL captured: $DEPLOYMENT_URL"
+          echo "✅ Deployment URL captured: \"$DEPLOYMENT_URL\""
 
   validate:
     name: Validate Deployment
