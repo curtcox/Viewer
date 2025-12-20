@@ -176,7 +176,7 @@ def test_gateway_uses_path_after_mount_point():
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
-    
+ 
     # Verify the definition contains path handling logic
     definition = gateway_template["definition"]
     assert "request_path" in definition
