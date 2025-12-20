@@ -603,35 +603,30 @@ def _build_gauge_index(gauge_dir: Path) -> None:
 
     log_path = gauge_dir / "gauge-execution.log"
     index_path = gauge_dir / "index.html"
-    original_index = gauge_dir / "index_original.html"
+    summary_path = gauge_dir / "summary.html"
 
-    # Preserve the original Gauge HTML report index if it exists
-    # (it may have been moved here by _flatten_gauge_reports)
-    if index_path.exists() and not original_index.exists():
-        # Check if it's actually a Gauge HTML report (contains gauge-specific content)
+    has_gauge_report = False
+    if index_path.exists():
         try:
             content = index_path.read_text(encoding="utf-8", errors="replace")
-            if "gauge" in content.lower() and (
-                "executionResult" in content or "specs" in content.lower()
-            ):
-                shutil.move(index_path, original_index)
         except OSError:
-            pass
+            content = ""
+        has_gauge_report = "gauge" in content.lower() and (
+            "executionResult" in content or "specs" in content.lower()
+        )
 
     summary_html = _build_gauge_summary(log_path)
 
-    # Add link to original Gauge report if it exists
-    original_link = ""
-    if original_index.exists():
-        original_link = (
-            '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
-        )
+    # When a Gauge HTML report exists, keep it at index.html and publish the
+    # summary as a separate page.
+    summary_target = summary_path if has_gauge_report else index_path
+    report_link = "" if not has_gauge_report else '<p><a href="index.html">View full Gauge HTML report</a></p>'
 
     body = f"""  <h1>Gauge specification results</h1>
-  {original_link}
+  {report_link}
   {summary_html}"""
 
-    index_path.write_text(
+    summary_target.write_text(
         _render_html_page("Gauge specification results", body, GAUGE_CSS),
         encoding="utf-8",
     )

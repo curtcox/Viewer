@@ -128,6 +128,51 @@ def test_parse_gauge_log_detects_status_prefixed_spec_lines(tmp_path) -> None:
     assert summary.failed_scenarios_count == 1
 
 
+def test_build_gauge_index_preserves_existing_gauge_report(tmp_path) -> None:
+    gauge_dir = tmp_path / "gauge"
+    gauge_dir.mkdir()
+
+    index_path = gauge_dir / "index.html"
+    original_index = """<!DOCTYPE html>
+<html><head><title>Gauge</title></head>
+<body>
+<script>
+  gauge.executionResult = {"specs": []};
+</script>
+</body></html>
+"""
+    index_path.write_text(original_index, encoding="utf-8")
+
+    log_path = gauge_dir / "gauge-execution.log"
+    log_path.write_text("Total scenarios: 1\nPassed: 1\nFailed: 0\n", encoding="utf-8")
+
+    build_report._build_gauge_index(gauge_dir)
+
+    assert index_path.read_text(encoding="utf-8") == original_index
+    summary_path = gauge_dir / "summary.html"
+    assert summary_path.exists()
+    summary_content = summary_path.read_text(encoding="utf-8")
+    assert "Gauge specification results" in summary_content
+    assert 'href="index.html"' in summary_content
+
+
+def test_build_gauge_index_writes_index_when_no_gauge_report_present(tmp_path) -> None:
+    gauge_dir = tmp_path / "gauge"
+    gauge_dir.mkdir()
+
+    log_path = gauge_dir / "gauge-execution.log"
+    log_path.write_text("Total scenarios: 1\nPassed: 1\nFailed: 0\n", encoding="utf-8")
+
+    build_report._build_gauge_index(gauge_dir)
+
+    index_path = gauge_dir / "index.html"
+    assert index_path.exists()
+    content = index_path.read_text(encoding="utf-8")
+    assert "Gauge specification results" in content
+    summary_path = gauge_dir / "summary.html"
+    assert not summary_path.exists()
+
+
 def test_build_linter_index_empty_summary(tmp_path) -> None:
     """Test that empty summary.txt shows 'No summary available' message."""
     linter_dir = tmp_path / "pylint"
