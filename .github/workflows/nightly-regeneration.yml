@@ -38,6 +38,12 @@ jobs:
       - name: Generate test index
         run: python generate_test_index.py
 
+      - name: Ruff format
+        run: ruff format .
+
+      - name: Ruff check (auto-fix)
+        run: ruff check . --fix
+
       - name: Check for changes
         id: check_changes
         run: |
