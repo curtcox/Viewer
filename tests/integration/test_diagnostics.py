@@ -39,7 +39,7 @@ def test_jq_availability(client, integration_app):
         """
     )
 
-    response = client.get("/check_jq/dummy")
+    response = client.get("/check_jq/dummy", follow_redirects=True)
     body = response.get_data(as_text=True)
 
     assert "jq" in body, "jq command seems missing or failed"
@@ -66,7 +66,7 @@ def test_tools_availability(client, integration_app):
         """
     )
 
-    response = client.get("/check_tools/dummy")
+    response = client.get("/check_tools/dummy", follow_redirects=True)
     body = response.get_data(as_text=True)
 
     assert "awk" in body

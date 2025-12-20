@@ -154,7 +154,17 @@ class TestContextProcessors(BaseTestCase):
             context = inject_meta_inspector_link()
 
         self.assertEqual(context["meta_inspector_url"], "/meta/servers/example.html")
-        self.assertIn("/history?start=", context["history_since_url"])
+        self.assertEqual(context["history_since_url"], "/history")
+        self.assertEqual(context["server_events_since_url"], "/server_events")
+
+    def test_inject_meta_inspector_link_is_deterministic(self):
+        from routes.core import inject_meta_inspector_link
+
+        with self.app.test_request_context('/servers/example'):
+            context = inject_meta_inspector_link()
+
+        self.assertNotIn("?start=", context["history_since_url"])
+        self.assertNotIn("?start=", context["server_events_since_url"])
 
 
 class TestPublicRoutes(BaseTestCase):
@@ -901,8 +911,8 @@ class TestAuthenticatedRoutes(BaseTestCase):
         self.assertIn('About this page', page)
         self.assertIn('History', page)
         self.assertIn('Server Events', page)
-        self.assertIn('/history?start=', page)
-        self.assertIn('/server_events?start=', page)
+        self.assertIn('/history', page)
+        self.assertIn('/server_events', page)
 
     def test_content_route_returns_not_found(self):
         """Legacy /content endpoint should be unavailable."""

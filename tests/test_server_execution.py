@@ -707,5 +707,27 @@ def test_run_bash_script_times_out(monkeypatch):
     assert removed_paths
 
 
+def test_execute_bash_server_response_returns_non_200_success(monkeypatch):
+    from server_execution.code_execution import _execute_bash_server_response
+
+    def fake_run(code, server_name, *, chained_input=None, script_args=None):
+        return b"{\"input\": \"body-text\"}", 201, b""
+
+    monkeypatch.setattr("server_execution.code_execution._run_bash_script", fake_run)
+
+    app = Flask(__name__)
+    with app.test_request_context("/bash-echo", method="POST", data="body-text"):
+        response = _execute_bash_server_response(
+            "#!/usr/bin/env bash\ncat\nexit 201\n",
+            "bash-echo",
+            "test_execute_bash_server_response",
+            chained_input=None,
+        )
+
+    assert response.status_code == 201
+    assert response.headers["Content-Type"].startswith("text/plain")
+    assert "body-text" in response.get_data(as_text=True)
+
+
 if __name__ == "__main__":
     unittest.main()
