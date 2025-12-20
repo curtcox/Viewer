@@ -344,10 +344,16 @@ def when_i_navigate_to_upload() -> None:
     assert response.status_code == 200, "Expected the upload page to load successfully."
 
 
-@step('Then I should see "Start from a Template" label')
-def then_i_should_see_start_from_template_label() -> None:
+@step(
+    [
+        'Then I should see "Start from a Template" label',
+        "Then I should see <text> label",
+    ]
+)
+def then_i_should_see_start_from_template_label(text: str | None = None) -> None:
     body = _get_response_body()
-    assert "Start from a Template" in body, "Upload template label is missing."
+    expected = "Start from a Template" if text is None else text.strip('"')
+    assert expected in body, "Upload template label is missing."
 
 
 @step("And I should see template selection buttons")
@@ -358,12 +364,20 @@ def and_i_should_see_template_selection_buttons() -> None:
     )
 
 
-@step('Then I should see a link to "/variables/templates?type=uploads"')
-def then_i_should_see_template_status_link() -> None:
+@step(
+    [
+        'Then I should see a link to "/variables/templates?type=uploads"',
+        "Then I should see a link to <link>",
+    ]
+)
+def then_i_should_see_template_status_link(link: str | None = None) -> None:
     body = _get_response_body()
-    assert "/variables/templates?type=uploads" in body, (
-        "Template status link is missing."
+    target = (
+        "/variables/templates?type=uploads"
+        if link is None
+        else link.strip('"')
     )
+    assert target in body, ("Template status link is missing.")
 
 
 @step("And the link should show the template count")
@@ -380,12 +394,18 @@ def and_the_link_should_show_the_template_count() -> None:
     )
 
 
-@step('Then I should not see "Start from a Template" buttons')
-def then_i_should_not_see_start_from_template_buttons() -> None:
+@step(
+    [
+        'Then I should not see "Start from a Template" buttons',
+        "Then I should not see <text> buttons",
+    ]
+)
+def then_i_should_not_see_start_from_template_buttons(text: str | None = None) -> None:
     body = _get_response_body()
-    assert "data-upload-template-id" not in body, (
-        "Unexpected template buttons were rendered."
-    )
+    marker = "data-upload-template-id"
+    if text:
+        marker = text.strip('"')
+    assert marker not in body, ("Unexpected template buttons were rendered.")
 
 
 @step(
