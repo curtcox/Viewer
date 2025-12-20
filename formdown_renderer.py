@@ -76,11 +76,7 @@ TEXT_INPUT_TYPES = {
 def _unescape_attribute_value(value: str) -> str:
     """Reverse the escaping performed when generating formdown attributes."""
 
-    return (
-        value.replace("\\n", "\n")
-        .replace("\\\\", "\\")
-        .replace("\\\"", '"')
-    )
+    return value.replace("\\n", "\n").replace("\\\\", "\\").replace('\\"', '"')
 
 
 def _parse_descriptor(descriptor: str) -> Tuple[str, Dict[str, str]]:
@@ -152,7 +148,9 @@ def parse_formdown_document(source: str) -> List[DocumentNode]:
         if form_match:
             if current_form is not None:
                 nodes.append(current_form)
-            current_form = FormBlock(attributes=_parse_form_attributes(form_match.group("descriptor")))
+            current_form = FormBlock(
+                attributes=_parse_form_attributes(form_match.group("descriptor"))
+            )
             continue
 
         if stripped.startswith("@") and _FIELD_PATTERN.match(stripped):
@@ -187,7 +185,7 @@ def _render_attribute(name: str, value: Optional[str]) -> str:
     if value is None:
         return ""
 
-    return f" {html.escape(name)}=\"{html.escape(value, quote=True)}\""
+    return f' {html.escape(name)}="{html.escape(value, quote=True)}"'
 
 
 def _combine_classes(defaults: Sequence[str], custom: Optional[str]) -> str:
@@ -257,7 +255,9 @@ def _render_choice_field(field: FormField, field_id: str) -> str:
     selected_values: Sequence[str]
     raw_value = field.attributes.pop("value", "")
     if isinstance(raw_value, str) and raw_value:
-        selected_values = [item.strip() for item in raw_value.split(",") if item.strip()]
+        selected_values = [
+            item.strip() for item in raw_value.split(",") if item.strip()
+        ]
     else:
         selected_values = []
 
@@ -266,8 +266,8 @@ def _render_choice_field(field: FormField, field_id: str) -> str:
 
     container = [
         '<fieldset class="formdown-field formdown-field--choices">',
-        f"<legend class=\"formdown-label\">{html.escape(label_text)}</legend>",
-        f"<div class=\"{layout_class}\">",
+        f'<legend class="formdown-label">{html.escape(label_text)}</legend>',
+        f'<div class="{layout_class}">',
     ]
 
     base_classes = ["formdown-input", f"formdown-input--{field.control_type}"]
@@ -290,17 +290,19 @@ def _render_choice_field(field: FormField, field_id: str) -> str:
         if value in selected_values:
             input_attrs["checked"] = ""
 
-        rendered_attrs = "".join(_render_attribute(key, input_attrs[key]) for key in sorted(input_attrs))
+        rendered_attrs = "".join(
+            _render_attribute(key, input_attrs[key]) for key in sorted(input_attrs)
+        )
         container.append(
-            f"<label class=\"formdown-option\" for=\"{html.escape(option_id)}\">"
+            f'<label class="formdown-option" for="{html.escape(option_id)}">'
             f"<input{rendered_attrs}>"
-            f"<span class=\"formdown-option-label\">{html.escape(label)}</span>"
+            f'<span class="formdown-option-label">{html.escape(label)}</span>'
             "</label>"
         )
 
     container.append("</div>")
     if help_text:
-        container.append(f"<div class=\"formdown-help\">{html.escape(help_text)}</div>")
+        container.append(f'<div class="formdown-help">{html.escape(help_text)}</div>')
     container.append("</fieldset>")
     return "\n".join(container)
 
@@ -312,12 +314,19 @@ def _render_select_field(field: FormField, field_id: str) -> str:
     label_text = field.label or field.attributes.pop("label", None) or field.name
 
     raw_value = field.attributes.pop("value", "")
-    selected_values = {item.strip() for item in raw_value.split(",") if item.strip()} if raw_value else set()
+    selected_values = (
+        {item.strip() for item in raw_value.split(",") if item.strip()}
+        if raw_value
+        else set()
+    )
 
     select_attrs = {
         "name": field.name,
         "id": field_id,
-        "class": _combine_classes(["formdown-input", "formdown-input--select"], field.attributes.pop("class", None)),
+        "class": _combine_classes(
+            ["formdown-input", "formdown-input--select"],
+            field.attributes.pop("class", None),
+        ),
     }
 
     for key, value in field.attributes.items():
@@ -327,21 +336,27 @@ def _render_select_field(field: FormField, field_id: str) -> str:
 
     parts = [
         '<div class="formdown-field">',
-        f"<label class=\"formdown-label\" for=\"{html.escape(field_id)}\">{html.escape(label_text)}</label>",
+        f'<label class="formdown-label" for="{html.escape(field_id)}">{html.escape(label_text)}</label>',
     ]
 
-    rendered_attrs = "".join(_render_attribute(key, select_attrs[key]) for key in sorted(select_attrs))
+    rendered_attrs = "".join(
+        _render_attribute(key, select_attrs[key]) for key in sorted(select_attrs)
+    )
     parts.append(f"<select{rendered_attrs}>")
     for value, label in options:
         option_attrs = {
             "value": value,
             "selected": "" if value in selected_values else None,
         }
-        attr_html = "".join(_render_attribute(key, option_attrs[key]) for key in sorted(option_attrs) if option_attrs[key] is not None)
+        attr_html = "".join(
+            _render_attribute(key, option_attrs[key])
+            for key in sorted(option_attrs)
+            if option_attrs[key] is not None
+        )
         parts.append(f"<option{attr_html}>{html.escape(label)}</option>")
     parts.append("</select>")
     if help_text:
-        parts.append(f"<div class=\"formdown-help\">{html.escape(help_text)}</div>")
+        parts.append(f'<div class="formdown-help">{html.escape(help_text)}</div>')
     parts.append("</div>")
     return "\n".join(parts)
 
@@ -355,7 +370,10 @@ def _render_textarea_field(field: FormField, field_id: str) -> str:
     textarea_attrs = {
         "name": field.name,
         "id": field_id,
-        "class": _combine_classes(["formdown-input", "formdown-input--textarea"], field.attributes.pop("class", None)),
+        "class": _combine_classes(
+            ["formdown-input", "formdown-input--textarea"],
+            field.attributes.pop("class", None),
+        ),
     }
 
     for key, attr_value in field.attributes.items():
@@ -363,13 +381,15 @@ def _render_textarea_field(field: FormField, field_id: str) -> str:
 
     parts = [
         '<div class="formdown-field">',
-        f"<label class=\"formdown-label\" for=\"{html.escape(field_id)}\">{html.escape(label_text)}</label>",
+        f'<label class="formdown-label" for="{html.escape(field_id)}">{html.escape(label_text)}</label>',
     ]
 
-    rendered_attrs = "".join(_render_attribute(key, textarea_attrs[key]) for key in sorted(textarea_attrs))
+    rendered_attrs = "".join(
+        _render_attribute(key, textarea_attrs[key]) for key in sorted(textarea_attrs)
+    )
     parts.append(f"<textarea{rendered_attrs}>{html.escape(value)}</textarea>")
     if help_text:
-        parts.append(f"<div class=\"formdown-help\">{html.escape(help_text)}</div>")
+        parts.append(f'<div class="formdown-help">{html.escape(help_text)}</div>')
     parts.append("</div>")
     return "\n".join(parts)
 
@@ -382,7 +402,10 @@ def _render_text_input_field(field: FormField, field_id: str) -> str:
         "type": field.control_type,
         "name": field.name,
         "id": field_id,
-        "class": _combine_classes(["formdown-input", f"formdown-input--{field.control_type}"], field.attributes.pop("class", None)),
+        "class": _combine_classes(
+            ["formdown-input", f"formdown-input--{field.control_type}"],
+            field.attributes.pop("class", None),
+        ),
     }
 
     for key, value in field.attributes.items():
@@ -390,13 +413,15 @@ def _render_text_input_field(field: FormField, field_id: str) -> str:
 
     parts = [
         '<div class="formdown-field">',
-        f"<label class=\"formdown-label\" for=\"{html.escape(field_id)}\">{html.escape(label_text)}</label>",
+        f'<label class="formdown-label" for="{html.escape(field_id)}">{html.escape(label_text)}</label>',
     ]
 
-    rendered_attrs = "".join(_render_attribute(key, input_attrs[key]) for key in sorted(input_attrs))
+    rendered_attrs = "".join(
+        _render_attribute(key, input_attrs[key]) for key in sorted(input_attrs)
+    )
     parts.append(f"<input{rendered_attrs}>")
     if help_text:
-        parts.append(f"<div class=\"formdown-help\">{html.escape(help_text)}</div>")
+        parts.append(f'<div class="formdown-help">{html.escape(help_text)}</div>')
     parts.append("</div>")
     return "\n".join(parts)
 
@@ -413,14 +438,21 @@ def _render_action_field(field: FormField) -> str:
     button_attrs = {
         "type": button_type,
         "name": field.name,
-        "class": _combine_classes(["formdown-button", f"formdown-button--{button_type}"], field.attributes.pop("class", None)),
+        "class": _combine_classes(
+            ["formdown-button", f"formdown-button--{button_type}"],
+            field.attributes.pop("class", None),
+        ),
         "value": field.attributes.pop("value", None),
     }
 
     for key, value in field.attributes.items():
         button_attrs[key] = value
 
-    attr_html = "".join(_render_attribute(key, button_attrs[key]) for key in sorted(button_attrs) if button_attrs[key] is not None)
+    attr_html = "".join(
+        _render_attribute(key, button_attrs[key])
+        for key in sorted(button_attrs)
+        if button_attrs[key] is not None
+    )
     return f"<button{attr_html}>{html.escape(label_text)}</button>"
 
 
@@ -432,7 +464,9 @@ def _render_form_field(field: FormField, id_counts: Dict[str, int]) -> str:
         attributes=dict(field.attributes),
     )
 
-    field_id = field.attributes.pop("id", None) or _generate_field_id(field.name, id_counts)
+    field_id = field.attributes.pop("id", None) or _generate_field_id(
+        field.name, id_counts
+    )
 
     if field.control_type in CHOICE_FIELD_TYPES:
         return _render_choice_field(field, field_id)
@@ -477,7 +511,9 @@ def _render_form_block(block: FormBlock) -> str:
 
     attr_pairs.update(form_attributes)
 
-    rendered_attrs = "".join(_render_attribute(key, attr_pairs[key]) for key in sorted(attr_pairs))
+    rendered_attrs = "".join(
+        _render_attribute(key, attr_pairs[key]) for key in sorted(attr_pairs)
+    )
 
     parts = [f"<form{rendered_attrs}>"]
     for element in block.elements:

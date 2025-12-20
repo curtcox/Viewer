@@ -15,6 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 try:
     import markdown  # type: ignore
+
     _markdown_available = True
     _markdown_import_error = None
 except ModuleNotFoundError as exc:  # pragma: no cover
@@ -34,27 +35,27 @@ from formdown_renderer import render_formdown_html
 
 # Markdown extensions to use
 MARKDOWN_EXTENSIONS = [
-    'extra',
-    'admonition',
-    'sane_lists',
+    "extra",
+    "admonition",
+    "sane_lists",
 ]
 
 # Patterns to detect markdown content
 MARKDOWN_INDICATOR_PATTERNS = [
-    re.compile(r'(^|\n)#{1,6}\s+\S'),  # Headers
-    re.compile(r'(^|\n)(?:\*|-|\+)\s+\S'),  # Bullet lists
-    re.compile(r'(^|\n)\d+\.\s+\S'),  # Numbered lists
-    re.compile(r'(^|\n)>\s+\S'),  # Blockquotes
-    re.compile(r'```'),  # Code blocks
-    re.compile(r'\[[^\]]+\]\([^\)]+\)'),  # Links
-    re.compile(r'!\[[^\]]*\]\([^\)]+\)'),  # Images
-    re.compile(r'(^|\n)[^\n]+\n[=-]{3,}\s*(\n|$)'),  # Setext headers
+    re.compile(r"(^|\n)#{1,6}\s+\S"),  # Headers
+    re.compile(r"(^|\n)(?:\*|-|\+)\s+\S"),  # Bullet lists
+    re.compile(r"(^|\n)\d+\.\s+\S"),  # Numbered lists
+    re.compile(r"(^|\n)>\s+\S"),  # Blockquotes
+    re.compile(r"```"),  # Code blocks
+    re.compile(r"\[[^\]]+\]\([^\)]+\)"),  # Links
+    re.compile(r"!\[[^\]]*\]\([^\)]+\)"),  # Images
+    re.compile(r"(^|\n)[^\n]+\n[=-]{3,}\s*(\n|$)"),  # Setext headers
 ]
 
 # Patterns for inline formatting
-INLINE_BOLD_PATTERN = re.compile(r'\*\*(?=\S)(.+?)(?<=\S)\*\*')
-INLINE_ITALIC_PATTERN = re.compile(r'(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)')
-INLINE_CODE_PATTERN = re.compile(r'`[^`\n]+`')
+INLINE_BOLD_PATTERN = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*")
+INLINE_ITALIC_PATTERN = re.compile(r"(?<!\*)\*(?=\S)(.+?)(?<=\S)\*(?!\*)")
+INLINE_CODE_PATTERN = re.compile(r"`[^`\n]+`")
 
 # GitHub-style relative link patterns
 GITHUB_RELATIVE_LINK_PATTERN = re.compile(r"\[\[([^\[\]]+)\]\]")
@@ -69,6 +70,7 @@ MERMAID_FENCE_RE = re.compile(r"(^|\n)([ \t]*)```mermaid\s*\n(.*?)```", re.DOTAL
 # ============================================================================
 # TEXT DECODING AND MARKDOWN DETECTION
 # ============================================================================
+
 
 def decode_text_safely(data: bytes) -> Optional[str]:
     """Decode bytes as UTF-8 if possible, returning None on failure.
@@ -86,7 +88,7 @@ def decode_text_safely(data: bytes) -> Optional[str]:
         None
     """
     try:
-        return data.decode('utf-8')
+        return data.decode("utf-8")
     except UnicodeDecodeError:
         return None
 
@@ -104,7 +106,7 @@ def count_bullet_lines(lines: list[str]) -> int:
         >>> count_bullet_lines(['- item', '* thing', 'normal'])
         2
     """
-    return sum(1 for line in lines if line.lstrip().startswith(('- ', '* ', '+ ')))
+    return sum(1 for line in lines if line.lstrip().startswith(("- ", "* ", "+ ")))
 
 
 def looks_like_markdown(text: str) -> bool:
@@ -129,7 +131,7 @@ def looks_like_markdown(text: str) -> bool:
         return False
 
     # Binary data is not markdown
-    if '\x00' in text:
+    if "\x00" in text:
         return False
 
     # Count structural indicators
@@ -153,11 +155,11 @@ def looks_like_markdown(text: str) -> bool:
         return False
 
     # Single ATX header at start
-    if lines[0].startswith('# '):
+    if lines[0].startswith("# "):
         return True
 
     # Setext header (underlined)
-    if len(lines) > 1 and set(lines[1].strip()) in ({'='}, {'-'}):
+    if len(lines) > 1 and set(lines[1].strip()) in ({"="}, {"-"}):
         return True
 
     # Multiple bullet points
@@ -184,14 +186,15 @@ def extract_markdown_title(text: str) -> str:
     """
     for line in text.splitlines():
         stripped = line.strip()
-        if stripped.startswith('#'):
-            return stripped.lstrip('#').strip() or 'Document'
-    return 'Document'
+        if stripped.startswith("#"):
+            return stripped.lstrip("#").strip() or "Document"
+    return "Document"
 
 
 # ============================================================================
 # GITHUB-STYLE LINK CONVERSION
 # ============================================================================
+
 
 def normalize_github_relative_link_target(raw_target: str) -> Optional[str]:
     """Normalize GitHub-style relative link targets.
@@ -219,38 +222,38 @@ def normalize_github_relative_link_target(raw_target: str) -> Optional[str]:
         return None
 
     # Handle pipe syntax: [[target|label]] - use only target
-    primary = target.split('|', 1)[0].strip()
+    primary = target.split("|", 1)[0].strip()
     if not primary:
         return None
 
     # Split into page and anchor parts
-    page_part, _, anchor_part = primary.partition('#')
+    page_part, _, anchor_part = primary.partition("#")
 
     normalized_path = ""
     if page_part:
-        preserve_trailing_slash = page_part.rstrip().endswith('/')
+        preserve_trailing_slash = page_part.rstrip().endswith("/")
         # Replace spaces with hyphens
         prepared = re.sub(r"\s+", "-", page_part.strip())
         # Remove invalid characters
-        cleaned = GITHUB_RELATIVE_LINK_PATH_SANITIZER.sub('', prepared)
-        segments = [segment for segment in cleaned.split('/') if segment]
+        cleaned = GITHUB_RELATIVE_LINK_PATH_SANITIZER.sub("", prepared)
+        segments = [segment for segment in cleaned.split("/") if segment]
         if segments:
             normalized_segments = [segment.lower() for segment in segments]
-            normalized_path = '/' + '/'.join(normalized_segments)
+            normalized_path = "/" + "/".join(normalized_segments)
             if preserve_trailing_slash:
-                normalized_path += '/'
+                normalized_path += "/"
 
     anchor_fragment = ""
     if anchor_part:
         anchor_slug = anchor_part.strip().lower()
-        anchor_slug = re.sub(r"\s+", '-', anchor_slug)
-        anchor_slug = GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER.sub('', anchor_slug)
-        anchor_slug = anchor_slug.strip('-')
+        anchor_slug = re.sub(r"\s+", "-", anchor_slug)
+        anchor_slug = GITHUB_RELATIVE_LINK_ANCHOR_SANITIZER.sub("", anchor_slug)
+        anchor_slug = anchor_slug.strip("-")
         if anchor_slug:
-            anchor_fragment = f'#{anchor_slug}'
+            anchor_fragment = f"#{anchor_slug}"
 
     if normalized_path and anchor_fragment:
-        return f'{normalized_path}{anchor_fragment}'
+        return f"{normalized_path}{anchor_fragment}"
     if normalized_path:
         return normalized_path
     if anchor_fragment:
@@ -273,14 +276,15 @@ def convert_github_relative_links(text: str) -> str:
         >>> convert_github_relative_links("[[Page|Custom Label]]")
         'See [Custom Label](/page)'
     """
+
     def replacement(match: re.Match[str]) -> str:
         inner = match.group(1)
         if not inner:
             return match.group(0)
 
         label, target = inner, inner
-        if '|' in inner:
-            target, label = (part.strip() for part in inner.split('|', 1))
+        if "|" in inner:
+            target, label = (part.strip() for part in inner.split("|", 1))
         else:
             label = inner.strip()
             target = label
@@ -298,6 +302,7 @@ def convert_github_relative_links(text: str) -> str:
 # ============================================================================
 # MERMAID DIAGRAM RENDERING
 # ============================================================================
+
 
 class MermaidRenderingError(RuntimeError):
     """Raised when a Mermaid diagram cannot be rendered."""
@@ -516,6 +521,7 @@ def replace_mermaid_fences(text: str) -> Tuple[str, bool]:
 # FORMDOWN RENDERING
 # ============================================================================
 
+
 def replace_formdown_fences(text: str) -> Tuple[str, bool]:
     """Replace ```formdown fences with rendered HTML forms.
 
@@ -544,6 +550,7 @@ def replace_formdown_fences(text: str) -> Tuple[str, bool]:
 # ============================================================================
 # MARKDOWN DOCUMENT RENDERING
 # ============================================================================
+
 
 def render_markdown_document(text: str) -> str:
     """Render Markdown text to a standalone HTML document.
@@ -578,9 +585,7 @@ def render_markdown_document(text: str) -> str:
 
     # Render markdown
     body = markdown.markdown(
-        converted,
-        extensions=MARKDOWN_EXTENSIONS,
-        output_format='html5'
+        converted, extensions=MARKDOWN_EXTENSIONS, output_format="html5"
     )
 
     title = extract_markdown_title(text)
@@ -601,17 +606,15 @@ def _build_html_document(title: str, body: str) -> str:
     """
     return (
         "<!DOCTYPE html>\n"
-        "<html lang=\"en\">\n"
+        '<html lang="en">\n'
         "<head>\n"
-        "  <meta charset=\"utf-8\">\n"
+        '  <meta charset="utf-8">\n'
         f"  <title>{title}</title>\n"
-        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-        "  <style>\n"
-        + _get_document_styles() +
-        "  </style>\n"
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        "  <style>\n" + _get_document_styles() + "  </style>\n"
         "</head>\n"
         "<body>\n"
-        "  <main class=\"markdown-body\">\n"
+        '  <main class="markdown-body">\n'
         f"  {body}\n"
         "  </main>\n"
         "</body>\n"

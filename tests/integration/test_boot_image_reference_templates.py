@@ -21,16 +21,40 @@ pytestmark = pytest.mark.integration
 
 
 COOKIE_EDITOR_HTML_CID = CID.from_bytes(
-    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.html").read_bytes()
+    (
+        Path(__file__).parent.parent.parent
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "cookie_editor.html"
+    ).read_bytes()
 ).value
 COOKIE_EDITOR_CSS_CID = CID.from_bytes(
-    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.css").read_bytes()
+    (
+        Path(__file__).parent.parent.parent
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "cookie_editor.css"
+    ).read_bytes()
 ).value
 COOKIE_EDITOR_JS_CID = CID.from_bytes(
-    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor.js").read_bytes()
+    (
+        Path(__file__).parent.parent.parent
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "cookie_editor.js"
+    ).read_bytes()
 ).value
 COOKIE_EDITOR_ICON_CID = CID.from_bytes(
-    (Path(__file__).parent.parent.parent / "reference_templates" / "uploads" / "contents" / "cookie_editor_icon.svg").read_bytes()
+    (
+        Path(__file__).parent.parent.parent
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "cookie_editor_icon.svg"
+    ).read_bytes()
 ).value
 
 
@@ -41,11 +65,13 @@ class TestBootImageReferenceTemplates:
     def setup(self, tmp_path):
         """Set up test environment."""
         # Create app with test configuration
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -88,7 +114,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
+        boot_cid = result["boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -109,13 +135,15 @@ class TestBootImageReferenceTemplates:
 
         # Verify the alias was imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='ai').first()
+            alias = Alias.query.filter_by(name="ai").first()
             assert alias is not None, "Alias 'ai' should be loaded from boot image"
-            assert 'ai -> /ai_assist' in alias.definition
+            assert "ai -> /ai_assist" in alias.definition
             assert alias.enabled is True
 
-            cookie_alias = Alias.query.filter_by(name='cookies').first()
-            assert cookie_alias is not None, "Alias 'cookies' should be loaded from boot image"
+            cookie_alias = Alias.query.filter_by(name="cookies").first()
+            assert cookie_alias is not None, (
+                "Alias 'cookies' should be loaded from boot image"
+            )
             assert cookie_alias.enabled is True
             assert cookie_alias.target_path is not None
             assert cookie_alias.target_path.endswith(f"{COOKIE_EDITOR_HTML_CID}.html")
@@ -140,11 +168,11 @@ class TestBootImageReferenceTemplates:
             sys.stdout = old_stdout
 
         with self.app.test_client() as client:
-            response = client.get('/cookies', follow_redirects=True)
+            response = client.get("/cookies", follow_redirects=True)
 
         assert response.status_code == 200
-        body = response.data.decode('utf-8')
-        assert 'Cookie Editor' in body
+        body = response.data.decode("utf-8")
+        assert "Cookie Editor" in body
         assert COOKIE_EDITOR_CSS_CID in body
         assert COOKIE_EDITOR_JS_CID in body
         assert COOKIE_EDITOR_ICON_CID in body
@@ -155,7 +183,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
+        boot_cid = result["boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -172,9 +200,11 @@ class TestBootImageReferenceTemplates:
 
         # Verify the server was imported
         with self.app.app_context():
-            server = Server.query.filter_by(name='ai_stub').first()
-            assert server is not None, "Server 'ai_stub' should be loaded from boot image"
-            assert 'def main(' in server.definition
+            server = Server.query.filter_by(name="ai_stub").first()
+            assert server is not None, (
+                "Server 'ai_stub' should be loaded from boot image"
+            )
+            assert "def main(" in server.definition
             assert server.enabled is True
 
     def test_boot_image_loads_templates_variable(self, tmp_path):
@@ -183,8 +213,8 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
-        templates_cid = result['templates_cid']
+        boot_cid = result["boot_cid"]
+        templates_cid = result["templates_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -201,10 +231,10 @@ class TestBootImageReferenceTemplates:
 
         # Verify the templates variable was imported
         with self.app.app_context():
-            templates_var = Variable.query.filter_by(
-                name='templates'
-            ).first()
-            assert templates_var is not None, "Variable 'templates' should be loaded from boot image"
+            templates_var = Variable.query.filter_by(name="templates").first()
+            assert templates_var is not None, (
+                "Variable 'templates' should be loaded from boot image"
+            )
             assert templates_var.definition == templates_cid
             assert templates_var.enabled is True
 
@@ -214,7 +244,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
+        boot_cid = result["boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -235,27 +265,33 @@ class TestBootImageReferenceTemplates:
             assert templates_config is not None, "Templates config should be loaded"
 
             # Verify templates.source.json templates are present
-            assert 'aliases' in templates_config
-            assert 'servers' in templates_config
-            assert 'variables' in templates_config
-            assert 'uploads' in templates_config
+            assert "aliases" in templates_config
+            assert "servers" in templates_config
+            assert "variables" in templates_config
+            assert "uploads" in templates_config
 
             # Check specific templates from templates.source.json
-            assert 'ai-shortcut' in templates_config['aliases']
-            assert templates_config['aliases']['ai-shortcut']['name'] == 'AI Alias'
+            assert "ai-shortcut" in templates_config["aliases"]
+            assert templates_config["aliases"]["ai-shortcut"]["name"] == "AI Alias"
 
-            assert 'echo' in templates_config['servers']
-            assert templates_config['servers']['echo']['name'] == 'Echo request context'
+            assert "echo" in templates_config["servers"]
+            assert templates_config["servers"]["echo"]["name"] == "Echo request context"
 
-            assert 'example-variable' in templates_config['variables']
-            assert templates_config['variables']['example-variable']['name'] == 'Example Variable'
-
-            assert 'hello-world' in templates_config['uploads']
-            assert templates_config['uploads']['hello-world']['name'] == 'Hello World HTML page'
-            assert 'embedded-cid-execution' in templates_config['uploads']
+            assert "example-variable" in templates_config["variables"]
             assert (
-                templates_config['uploads']['embedded-cid-execution']['name']
-                == 'Embedded CID execution guide'
+                templates_config["variables"]["example-variable"]["name"]
+                == "Example Variable"
+            )
+
+            assert "hello-world" in templates_config["uploads"]
+            assert (
+                templates_config["uploads"]["hello-world"]["name"]
+                == "Hello World HTML page"
+            )
+            assert "embedded-cid-execution" in templates_config["uploads"]
+            assert (
+                templates_config["uploads"]["embedded-cid-execution"]["name"]
+                == "Embedded CID execution guide"
             )
 
     def test_boot_image_template_definitions_resolve(self, tmp_path):
@@ -264,7 +300,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
+        boot_cid = result["boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -284,16 +320,16 @@ class TestBootImageReferenceTemplates:
             templates_config = get_templates_config()
 
             # Get the AI alias template
-            ai_alias_template = templates_config['aliases']['ai-shortcut']
-            assert 'definition_cid' in ai_alias_template
+            ai_alias_template = templates_config["aliases"]["ai-shortcut"]
+            assert "definition_cid" in ai_alias_template
             # The CID should be valid and stored
-            definition_cid = ai_alias_template['definition_cid']
+            definition_cid = ai_alias_template["definition_cid"]
             assert len(definition_cid) >= 8
 
             # Get the echo server template
-            echo_server_template = templates_config['servers']['echo']
-            assert 'definition_cid' in echo_server_template
-            server_definition_cid = echo_server_template['definition_cid']
+            echo_server_template = templates_config["servers"]["echo"]
+            assert "definition_cid" in echo_server_template
+            server_definition_cid = echo_server_template["definition_cid"]
             assert len(server_definition_cid) >= 8
 
     def test_boot_image_complete_workflow(self, tmp_path):
@@ -302,8 +338,8 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        boot_cid = result['boot_cid']
-        templates_cid = result['templates_cid']
+        boot_cid = result["boot_cid"]
+        templates_cid = result["templates_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -324,19 +360,17 @@ class TestBootImageReferenceTemplates:
         # Verify complete workflow
         with self.app.app_context():
             # 1. Alias is loaded
-            alias = Alias.query.filter_by(name='ai').first()
+            alias = Alias.query.filter_by(name="ai").first()
             assert alias is not None
             assert alias.enabled is True
 
             # 2. Server is loaded
-            server = Server.query.filter_by(name='ai_stub').first()
+            server = Server.query.filter_by(name="ai_stub").first()
             assert server is not None
             assert server.enabled is True
 
             # 3. Templates variable is loaded with correct CID
-            templates_var = Variable.query.filter_by(
-                name='templates'
-            ).first()
+            templates_var = Variable.query.filter_by(name="templates").first()
             assert templates_var is not None
             assert templates_var.definition == templates_cid
             assert templates_var.enabled is True
@@ -346,16 +380,16 @@ class TestBootImageReferenceTemplates:
             assert templates_config is not None
 
             # Verify all template categories exist
-            assert len(templates_config['aliases']) > 0
-            assert len(templates_config['servers']) > 0
-            assert len(templates_config['variables']) > 0
-            assert len(templates_config['uploads']) > 0
+            assert len(templates_config["aliases"]) > 0
+            assert len(templates_config["servers"]) > 0
+            assert len(templates_config["variables"]) > 0
+            assert len(templates_config["uploads"]) > 0
 
             # Verify specific templates
-            assert 'ai-shortcut' in templates_config['aliases']
-            assert 'echo' in templates_config['servers']
-            assert 'example-variable' in templates_config['variables']
-            assert 'hello-world' in templates_config['uploads']
+            assert "ai-shortcut" in templates_config["aliases"]
+            assert "echo" in templates_config["servers"]
+            assert "example-variable" in templates_config["variables"]
+            assert "hello-world" in templates_config["uploads"]
 
     def test_minimal_boot_cid_loads_only_ai_stub(self, tmp_path):
         """Test that minimal boot CID loads only the ai_stub server."""
@@ -363,7 +397,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        minimal_boot_cid = result['minimal_boot_cid']
+        minimal_boot_cid = result["minimal_boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -382,11 +416,19 @@ class TestBootImageReferenceTemplates:
         with self.app.app_context():
             servers = Server.query.all()
             server_names = [s.name for s in servers]
-            assert 'ai_stub' in server_names, "ai_stub should be loaded from minimal boot"
+            assert "ai_stub" in server_names, (
+                "ai_stub should be loaded from minimal boot"
+            )
             # Verify extra default servers are NOT loaded
-            assert 'echo' not in server_names, "echo should NOT be loaded from minimal boot"
-            assert 'shell' not in server_names, "shell should NOT be loaded from minimal boot"
-            assert 'glom' not in server_names, "glom should NOT be loaded from minimal boot"
+            assert "echo" not in server_names, (
+                "echo should NOT be loaded from minimal boot"
+            )
+            assert "shell" not in server_names, (
+                "shell should NOT be loaded from minimal boot"
+            )
+            assert "glom" not in server_names, (
+                "glom should NOT be loaded from minimal boot"
+            )
 
     def test_default_boot_cid_loads_all_servers(self, tmp_path):
         """Test that default boot CID loads all servers."""
@@ -394,7 +436,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        default_boot_cid = result['default_boot_cid']
+        default_boot_cid = result["default_boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -414,15 +456,21 @@ class TestBootImageReferenceTemplates:
             servers = Server.query.all()
             server_names = [s.name for s in servers]
             # Verify all default servers are loaded
-            assert 'ai_stub' in server_names, "ai_stub should be loaded from default boot"
-            assert 'echo' in server_names, "echo should be loaded from default boot"
-            assert 'shell' in server_names, "shell should be loaded from default boot"
-            assert 'glom' in server_names, "glom should be loaded from default boot"
-            assert 'markdown' in server_names, "markdown should be loaded from default boot"
-            assert 'jinja' in server_names, "jinja should be loaded from default boot"
-            assert 'file' in server_names, "file should be loaded from default boot"
-            assert 'proxy' in server_names, "proxy should be loaded from default boot"
-            assert 'pygments' in server_names, "pygments should be loaded from default boot"
+            assert "ai_stub" in server_names, (
+                "ai_stub should be loaded from default boot"
+            )
+            assert "echo" in server_names, "echo should be loaded from default boot"
+            assert "shell" in server_names, "shell should be loaded from default boot"
+            assert "glom" in server_names, "glom should be loaded from default boot"
+            assert "markdown" in server_names, (
+                "markdown should be loaded from default boot"
+            )
+            assert "jinja" in server_names, "jinja should be loaded from default boot"
+            assert "file" in server_names, "file should be loaded from default boot"
+            assert "proxy" in server_names, "proxy should be loaded from default boot"
+            assert "pygments" in server_names, (
+                "pygments should be loaded from default boot"
+            )
 
     def test_default_boot_cid_echo_server_works(self, tmp_path):
         """Test that echo server works when booted from default CID."""
@@ -430,7 +478,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        default_boot_cid = result['default_boot_cid']
+        default_boot_cid = result["default_boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -447,11 +495,14 @@ class TestBootImageReferenceTemplates:
 
         # Verify echo server is available and works
         with self.app.app_context():
-            server = Server.query.filter_by(name='echo').first()
+            server = Server.query.filter_by(name="echo").first()
             assert server is not None, "echo server should be loaded from default boot"
             assert server.enabled is True
             # Verify the definition contains expected content
-            assert 'def main(' in server.definition or 'dict_to_html_ul' in server.definition
+            assert (
+                "def main(" in server.definition
+                or "dict_to_html_ul" in server.definition
+            )
 
     def test_default_boot_cid_shell_server_works(self, tmp_path):
         """Test that shell server works when booted from default CID."""
@@ -459,7 +510,7 @@ class TestBootImageReferenceTemplates:
         project_dir = Path(__file__).parent.parent.parent
         generator = BootImageGenerator(project_dir)
         result = generator.generate()
-        default_boot_cid = result['default_boot_cid']
+        default_boot_cid = result["default_boot_cid"]
 
         # Load all CIDs into database
         self.load_cids_into_db(generator)
@@ -476,9 +527,12 @@ class TestBootImageReferenceTemplates:
 
         # Verify shell server is available and works
         with self.app.app_context():
-            server = Server.query.filter_by(name='shell').first()
+            server = Server.query.filter_by(name="shell").first()
             assert server is not None, "shell server should be loaded from default boot"
             assert server.enabled is True
             # Verify the definition contains expected content
-            assert 'def main(' in server.definition
-            assert 'subprocess' in server.definition or 'shell' in server.definition.lower()
+            assert "def main(" in server.definition
+            assert (
+                "subprocess" in server.definition
+                or "shell" in server.definition.lower()
+            )

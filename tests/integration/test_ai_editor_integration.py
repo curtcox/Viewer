@@ -41,7 +41,13 @@ class TestAiEditorIntegration:
         assert location
         body = memory_client.get(location).get_data(as_text=True)
         assert "AI request editor" in body
-        for label in ["request_text", "original_text", "target_label", "context_data", "form_summary"]:
+        for label in [
+            "request_text",
+            "original_text",
+            "target_label",
+            "context_data",
+            "form_summary",
+        ]:
             assert label in body
 
     def test_ai_editor_populates_from_payload(self, memory_client):
@@ -63,7 +69,7 @@ class TestAiEditorIntegration:
         body = memory_client.get(location).get_data(as_text=True)
         assert "Edit me" in body
         assert "Original value" in body
-        assert "\"area\": \"test\"" in body
+        assert '"area": "test"' in body
 
     def test_ai_editor_contains_navigation_and_info_menu(self, memory_client):
         response = memory_client.get("/ai_editor", follow_redirects=False)
@@ -116,7 +122,9 @@ class TestAiEditorIntegration:
         assert stored["request_text"] == payload["request_text"]
 
     def test_ai_editor_returns_error_for_invalid_json_payload(self, memory_client):
-        response = memory_client.post("/ai_editor", json="bad payload", follow_redirects=False)
+        response = memory_client.post(
+            "/ai_editor", json="bad payload", follow_redirects=False
+        )
 
         assert response.status_code == 302
         location = response.headers.get("Location")

@@ -1,4 +1,5 @@
 """Path normalization and utility functions for meta route."""
+
 from __future__ import annotations
 
 from typing import Iterable, List, Optional, Tuple

@@ -26,7 +26,9 @@ def _apply_time_bounds(query, start: datetime | None, end: datetime | None):
     return query
 
 
-def count_unique_page_view_paths(start: datetime | None = None, end: datetime | None = None) -> int:
+def count_unique_page_view_paths(
+    start: datetime | None = None, end: datetime | None = None
+) -> int:
     """Return the number of unique paths viewed."""
     # pylint: disable=not-callable  # SQLAlchemy func.count is callable
     query = db.session.query(func.count(func.distinct(PageView.path)))
@@ -41,12 +43,11 @@ def get_popular_page_paths(
 ) -> List[Tuple[str, int]]:
     """Return the most frequently viewed paths."""
     # pylint: disable=not-callable  # SQLAlchemy func.count is callable
-    query = db.session.query(PageView.path, func.count(PageView.path).label('count'))
+    query = db.session.query(PageView.path, func.count(PageView.path).label("count"))
     query = _apply_time_bounds(query, start, end)
 
     return (
-        query
-        .group_by(PageView.path)
+        query.group_by(PageView.path)
         .order_by(func.count(PageView.path).desc())
         .limit(limit)
         .all()

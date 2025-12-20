@@ -21,11 +21,9 @@ def dict_to_html_ul(data):
 
     return render(data)
 
-out = {
-    'request': request,
-    'context': context
-}
 
-html = '<html><body>' + dict_to_html_ul(out) + '</body></html>'
+out = {"request": request, "context": context}
 
-return {'output': html}
+html = "<html><body>" + dict_to_html_ul(out) + "</body></html>"
+
+return {"output": html}

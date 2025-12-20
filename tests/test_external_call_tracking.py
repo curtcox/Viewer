@@ -7,7 +7,10 @@ from queue import Queue
 
 import requests
 
-from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
+from server_execution.external_call_tracking import (
+    capture_external_calls,
+    sanitize_external_calls,
+)
 
 
 def test_capture_and_sanitize_external_calls(monkeypatch):
@@ -65,7 +68,9 @@ def test_capture_is_thread_local(monkeypatch):
             requests.Session().get(f"https://example.com/{name}")
         results.put((name, list(call_log)))
 
-    threads = [threading.Thread(target=_worker, args=(label,)) for label in ("one", "two")]
+    threads = [
+        threading.Thread(target=_worker, args=(label,)) for label in ("one", "two")
+    ]
     for thread in threads:
         thread.start()
     for thread in threads:
@@ -87,6 +92,7 @@ def test_nested_captures_propagate_to_outer(monkeypatch):
     This is important for scenarios like test fixtures that wrap code
     that also uses capture_external_calls (e.g., code_execution.py).
     """
+
     def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
         response = requests.Response()
         response.status_code = 200
@@ -114,6 +120,7 @@ def test_nested_captures_propagate_to_outer(monkeypatch):
 
 def test_nested_captures_independent_records(monkeypatch):
     """Test that nested captures get independent copies of records."""
+
     def fake_request(self, method, url, **kwargs):  # pylint: disable=unused-argument
         response = requests.Response()
         response.status_code = 200

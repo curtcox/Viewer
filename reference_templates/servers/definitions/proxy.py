@@ -41,7 +41,9 @@ def _build_target_url(base_url: str, path: str, query_string: str) -> str:
 
     parsed = urlsplit(base_url)
     if not parsed.scheme or not parsed.netloc:
-        raise ValueError("BASE_TARGET_URL must include a scheme (https://) and hostname")
+        raise ValueError(
+            "BASE_TARGET_URL must include a scheme (https://) and hostname"
+        )
 
     scheme = parsed.scheme.lower()
     if scheme not in {"http", "https"}:
@@ -58,7 +60,9 @@ def _build_target_url(base_url: str, path: str, query_string: str) -> str:
         combined_path = base_path
 
     if combined_path:
-        normalized_path = combined_path if combined_path.startswith("/") else f"/{combined_path}"
+        normalized_path = (
+            combined_path if combined_path.startswith("/") else f"/{combined_path}"
+        )
     else:
         normalized_path = parsed.path or ""
 
@@ -145,7 +149,9 @@ def _coalesce_config_value(source: dict, keys: list[str]) -> str:
     return ""
 
 
-def _resolve_base_target_url(default_url: str, request_info: dict, context_info: dict) -> str:
+def _resolve_base_target_url(
+    default_url: str, request_info: dict, context_info: dict
+) -> str:
     request_info = request_info or {}
     context_info = context_info or {}
 

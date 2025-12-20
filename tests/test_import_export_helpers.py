@@ -5,7 +5,10 @@ from routes.import_export.change_history import (
     prepare_history_event,
 )
 from routes.import_export.import_sources import parse_import_payload
-from routes.import_export.import_entities import import_variables_with_names, prepare_server_import
+from routes.import_export.import_entities import (
+    import_variables_with_names,
+    prepare_server_import,
+)
 
 
 def test_parse_import_payload_success():
@@ -79,7 +82,7 @@ def test_import_variables_supports_definition_file_via_cid_map():
 
     imported, errors, names = import_variables_with_names(
         raw_variables,
-        cid_map={"cid-prompts": b"{\"prompts\": []}"},
+        cid_map={"cid-prompts": b'{"prompts": []}'},
     )
 
     assert imported == 1
@@ -88,9 +91,7 @@ def test_import_variables_supports_definition_file_via_cid_map():
 
 
 def test_import_variables_reports_index_and_entry_details_on_missing_definition():
-    raw_variables = [
-        {"name": "broken", "enabled": True}
-    ]
+    raw_variables = [{"name": "broken", "enabled": True}]
 
     imported, errors, names = import_variables_with_names(raw_variables, cid_map={})
 

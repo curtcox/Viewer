@@ -21,11 +21,13 @@ class TestMainExceptionHandling:
     def setup(self, tmp_path):
         """Set up test environment."""
         # Create app with test configuration
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -46,8 +48,10 @@ class TestMainExceptionHandling:
     def test_handle_boot_cid_import_unexpected_exception(self):
         """Test that unexpected exceptions in handle_boot_cid_import produce helpful error messages."""
         # Mock import_boot_cid to raise an unexpected exception
-        with patch('boot_cid_importer.import_boot_cid') as mock_import:
-            mock_import.side_effect = RuntimeError("Unexpected database connection error")
+        with patch("boot_cid_importer.import_boot_cid") as mock_import:
+            mock_import.side_effect = RuntimeError(
+                "Unexpected database connection error"
+            )
 
             # Capture stderr
             captured_error = StringIO()
@@ -75,7 +79,7 @@ class TestMainExceptionHandling:
     def test_handle_boot_cid_import_keyboard_interrupt_not_caught(self):
         """Test that KeyboardInterrupt is not caught by the exception handler."""
         # Mock import_boot_cid to raise KeyboardInterrupt
-        with patch('boot_cid_importer.import_boot_cid') as mock_import:
+        with patch("boot_cid_importer.import_boot_cid") as mock_import:
             mock_import.side_effect = KeyboardInterrupt()
 
             # KeyboardInterrupt should propagate (not be caught by our handler)
@@ -112,7 +116,7 @@ class TestMainExceptionHandling:
         # (not just in handle_boot_cid_import)
 
         # Mock signal.signal to raise an unexpected exception
-        with patch('signal.signal') as mock_signal:
+        with patch("signal.signal") as mock_signal:
             mock_signal.side_effect = OSError("Unable to set signal handler")
 
             # Capture stderr
@@ -121,7 +125,7 @@ class TestMainExceptionHandling:
             sys.stderr = captured_error
 
             # Mock sys.argv to simulate running without arguments
-            with patch('sys.argv', ['main.py']):
+            with patch("sys.argv", ["main.py"]):
                 try:
                     # Should exit with status 1
                     with pytest.raises(SystemExit) as exc_info:
@@ -131,12 +135,16 @@ class TestMainExceptionHandling:
                         # by simulating what happens in the main execution block
                         try:
                             import signal
+
                             signal.signal(signal.SIGINT, lambda x, y: None)
                         except OSError as e:
                             # This simulates the exception handling in main
-                            print("\nFatal error starting application:", file=sys.stderr)
+                            print(
+                                "\nFatal error starting application:", file=sys.stderr
+                            )
                             print(f"{type(e).__name__}: {e}", file=sys.stderr)
                             import traceback
+
                             traceback.print_exc(file=sys.stderr)
                             sys.exit(1)
 

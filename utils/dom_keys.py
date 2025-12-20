@@ -20,10 +20,10 @@ class DomKeyGenerator:
         Returns:
             A stable DOM identifier string
         """
-        text = (value or '').strip()
-        slug = re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+        text = (value or "").strip()
+        slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
         digest_source = text or prefix
-        digest = hashlib.sha1(digest_source.encode('utf-8')).hexdigest()[:8]
+        digest = hashlib.sha1(digest_source.encode("utf-8")).hexdigest()[:8]
         if slug:
             return f"{prefix}-{slug}-{digest}"
         return f"{prefix}-{digest}"
@@ -54,7 +54,7 @@ class DomKeyGenerator:
         Returns:
             A DOM key representing the relationship
         """
-        return DomKeyGenerator._make_id('ref', f"{source_key}->{target_key}")
+        return DomKeyGenerator._make_id("ref", f"{source_key}->{target_key}")
 
 
 # Backward compatibility functions

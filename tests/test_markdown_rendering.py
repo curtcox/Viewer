@@ -17,7 +17,7 @@ def _render_fragment(markdown_text: str) -> str:
     marker = '<main class="markdown-body">'
     start = html_document.index(marker)
     fragment_with_tag = html_document[start:].split("</main>", 1)[0]
-    fragment = fragment_with_tag.split('>', 1)[1]
+    fragment = fragment_with_tag.split(">", 1)[1]
     return fragment.strip()
 
 
@@ -87,7 +87,7 @@ class TestCodeBlocksAndAdmonitions:
 
         assert 'class="admonition note"' in fragment
         assert '<p class="admonition-title">Reusable components</p>' in fragment
-        assert '<p>Wrap snippets in callouts.</p>' in fragment
+        assert "<p>Wrap snippets in callouts.</p>" in fragment
 
 
 class TestDataRepresentations:
@@ -115,7 +115,10 @@ class TestDataRepresentations:
 
         assert "<dl>" in fragment
         assert "<dt>Term</dt>" in fragment
-        assert "<dd>Details stay aligned thanks to the definition list extension.</dd>" in fragment
+        assert (
+            "<dd>Details stay aligned thanks to the definition list extension.</dd>"
+            in fragment
+        )
 
 
 class TestImagesAndEmbeds:
@@ -131,12 +134,14 @@ class TestImagesAndEmbeds:
         assert 'title="Embed screenshots or generated charts"' in fragment
 
     def test_mermaid_fenced_block_renders_to_svg_image(self):
-        svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+        svg_bytes = b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'
         with (
-            patch('content_rendering._mermaid_renderer._fetch_svg', return_value=svg_bytes),
             patch(
-                'content_rendering._mermaid_renderer._store_svg',
-                return_value=MermaidRenderLocation(is_cid=True, value='diagramcid123'),
+                "content_rendering._mermaid_renderer._fetch_svg", return_value=svg_bytes
+            ),
+            patch(
+                "content_rendering._mermaid_renderer._store_svg",
+                return_value=MermaidRenderLocation(is_cid=True, value="diagramcid123"),
             ),
         ):
             fragment = _render_fragment(
@@ -153,8 +158,11 @@ class TestImagesAndEmbeds:
 
     def test_mermaid_renderer_falls_back_to_remote_svg_on_error(self):
         with (
-            patch('content_rendering._mermaid_renderer._fetch_svg', side_effect=RuntimeError('network down')),
-            patch('content_rendering._mermaid_renderer._store_svg') as store_svg,
+            patch(
+                "content_rendering._mermaid_renderer._fetch_svg",
+                side_effect=RuntimeError("network down"),
+            ),
+            patch("content_rendering._mermaid_renderer._store_svg") as store_svg,
         ):
             fragment = _render_fragment(
                 """
@@ -182,9 +190,9 @@ class TestFormIdeasAndDividers:
             """
         )
 
-        assert '<pre><code>' in fragment
-        assert ':::form id=&quot;feature-request&quot;' in fragment
-        assert '[priority] (select: low | medium | high)' in fragment
+        assert "<pre><code>" in fragment
+        assert ":::form id=&quot;feature-request&quot;" in fragment
+        assert "[priority] (select: low | medium | high)" in fragment
 
     def test_horizontal_rule_renders_between_sections(self):
         fragment = _render_fragment(
@@ -199,7 +207,11 @@ class TestFormIdeasAndDividers:
 
         assert fragment.count("<p>") == 2
         assert "<hr>" in fragment
-        assert fragment.index("First section") < fragment.index("<hr>") < fragment.index("Second section")
+        assert (
+            fragment.index("First section")
+            < fragment.index("<hr>")
+            < fragment.index("Second section")
+        )
 
 
 class TestFormdownIntegration:
@@ -215,12 +227,12 @@ class TestFormdownIntegration:
         )
 
         assert '<div class="formdown-document">' in fragment
-        assert '<form' in fragment and '</form>' in fragment
-        assert '<input' in fragment
+        assert "<form" in fragment and "</form>" in fragment
+        assert "<input" in fragment
         assert 'type="text"' in fragment
         assert 'name="name"' in fragment
-        assert 'required' in fragment
-        assert '<button' in fragment and 'Send</button>' in fragment
+        assert "required" in fragment
+        assert "<button" in fragment and "Send</button>" in fragment
 
     def test_formdown_document_renders_without_client_script(self):
         html_document = _render_markdown_document(
@@ -231,8 +243,11 @@ class TestFormdownIntegration:
             """
         )
 
-        assert '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>' not in html_document
-        assert '<form ' in html_document
+        assert (
+            '<script type="module" src="https://unpkg.com/@formdown/ui@latest/dist/standalone.js"></script>'
+            not in html_document
+        )
+        assert "<form " in html_document
 
     def test_plain_markdown_has_no_formdown_markup(self):
         html_document = _render_markdown_document("Regular content with no forms.")
@@ -262,14 +277,21 @@ class TestGithubStyleLinks:
         assert '<a href="/about">About</a>' in fragment
 
     def test_relative_link_with_custom_label_uses_pipe_syntax(self):
-        fragment = _render_fragment("Refer to [[Guides/Getting Started|the quickstart guide]].")
+        fragment = _render_fragment(
+            "Refer to [[Guides/Getting Started|the quickstart guide]]."
+        )
 
         assert '<a href="/guides/getting-started">the quickstart guide</a>' in fragment
 
     def test_relative_link_with_anchor_slugifies_target_heading(self):
-        fragment = _render_fragment("See [[Guides/Getting Started#Deep Dive|the deep dive section]].")
+        fragment = _render_fragment(
+            "See [[Guides/Getting Started#Deep Dive|the deep dive section]]."
+        )
 
-        assert '<a href="/guides/getting-started#deep-dive">the deep dive section</a>' in fragment
+        assert (
+            '<a href="/guides/getting-started#deep-dive">the deep dive section</a>'
+            in fragment
+        )
 
     def test_relative_anchor_only_link_targets_heading_on_same_page(self):
         fragment = _render_fragment("Jump to [[#Usage Notes]] for details.")
@@ -282,7 +304,9 @@ class TestGithubStyleLinks:
         assert '<a href="/docs/api.md">API reference</a>' in fragment
 
     def test_multiple_relative_links_convert_independently(self):
-        fragment = _render_fragment("See [[About]] alongside [[Guides/Overview|the overview]].")
+        fragment = _render_fragment(
+            "See [[About]] alongside [[Guides/Overview|the overview]]."
+        )
 
         assert '<a href="/about">About</a>' in fragment
         assert '<a href="/guides/overview">the overview</a>' in fragment
@@ -300,4 +324,4 @@ class TestGithubStyleLinks:
     def test_invalid_relative_link_is_left_unchanged(self):
         fragment = _render_fragment("Avoid [[   |blank]] targets.")
 
-        assert '[[   |blank]]' in fragment
+        assert "[[   |blank]]" in fragment

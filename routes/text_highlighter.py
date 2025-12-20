@@ -45,7 +45,7 @@ class TextHighlighter:
             if match_index > cursor:
                 result_parts.append(str(escape(text[cursor:match_index])))
 
-            matched_text = text[match_index: match_index + query_length]
+            matched_text = text[match_index : match_index + query_length]
             result_parts.append(f"<mark>{escape(matched_text)}</mark>")
             cursor = match_index + query_length
 
@@ -53,10 +53,7 @@ class TextHighlighter:
 
     @staticmethod
     def highlight_snippet(
-        text: str | None,
-        query_lower: str,
-        *,
-        context: int = DEFAULT_CONTEXT_CHARS
+        text: str | None, query_lower: str, *, context: int = DEFAULT_CONTEXT_CHARS
     ) -> str:
         """Return a snippet of text around the first match with highlighting."""
         if not text or not query_lower:

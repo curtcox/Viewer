@@ -20,6 +20,7 @@ from alias_definition import AliasDefinitionError, parse_alias_definition
 def _strip_filter(value: Any) -> Any:
     return value.strip() if isinstance(value, str) else value
 
+
 class EntityForm(FlaskForm):
     """Base form for all entity types (Server, Variable, Secret).
 
@@ -30,25 +31,23 @@ class EntityForm(FlaskForm):
     """
 
     name = StringField(
-        'Name',
+        "Name",
         validators=[
             DataRequired(),
             Regexp(
-                r'^[a-zA-Z0-9._-]+$',
-                message='Name can only contain letters, numbers, dots, hyphens, and underscores'
-            )
+                r"^[a-zA-Z0-9._-]+$",
+                message="Name can only contain letters, numbers, dots, hyphens, and underscores",
+            ),
         ],
         filters=[_strip_filter],
     )
     definition = TextAreaField(
-        'Definition',
-        validators=[DataRequired()],
-        render_kw={'rows': 15}
+        "Definition", validators=[DataRequired()], render_kw={"rows": 15}
     )
-    enabled = BooleanField('Enabled', default=True)
-    submit = SubmitField('Save')
+    enabled = BooleanField("Enabled", default=True)
+    submit = SubmitField("Save")
 
-    def __init__(self, *args, entity_type: str = 'Entity', **kwargs):
+    def __init__(self, *args, entity_type: str = "Entity", **kwargs):
         """Initialize the form with entity-specific labels.
 
         Args:
@@ -57,47 +56,64 @@ class EntityForm(FlaskForm):
             **kwargs: Keyword arguments for FlaskForm
         """
         super().__init__(*args, **kwargs)
-        self.name.label.text = f'{entity_type} Name'
-        self.definition.label.text = f'{entity_type} Definition'
-        self.submit.label.text = f'Save {entity_type}'
+        self.name.label.text = f"{entity_type} Name"
+        self.definition.label.text = f"{entity_type} Definition"
+        self.submit.label.text = f"Save {entity_type}"
 
     def validate_name(self, field: Field) -> None:
         """Validate name format for URL safety."""
-        if not re.match(r'^[a-zA-Z0-9._-]+$', field.data):
-            raise ValidationError(f'{self.name.label.text} contains invalid characters for URLs')
+        if not re.match(r"^[a-zA-Z0-9._-]+$", field.data):
+            raise ValidationError(
+                f"{self.name.label.text} contains invalid characters for URLs"
+            )
 
 
 class FileUploadForm(FlaskForm):
-    upload_type = RadioField('Upload Method', choices=[
-        ('file', 'Upload File'),
-        ('text', 'Paste Text'),
-        ('url', 'Download from URL')
-    ], default='file', validators=[DataRequired()])
-    file = FileField('Choose File', validators=[Optional()])
-    text_content = TextAreaField('Text Content', validators=[Optional()], render_kw={'rows': 10, 'placeholder': 'Paste your text content here...'})
-    url = StringField('URL', validators=[Optional()], render_kw={'placeholder': 'https://example.com/file.pdf'})
-    submit = SubmitField('Upload')
+    upload_type = RadioField(
+        "Upload Method",
+        choices=[
+            ("file", "Upload File"),
+            ("text", "Paste Text"),
+            ("url", "Download from URL"),
+        ],
+        default="file",
+        validators=[DataRequired()],
+    )
+    file = FileField("Choose File", validators=[Optional()])
+    text_content = TextAreaField(
+        "Text Content",
+        validators=[Optional()],
+        render_kw={"rows": 10, "placeholder": "Paste your text content here..."},
+    )
+    url = StringField(
+        "URL",
+        validators=[Optional()],
+        render_kw={"placeholder": "https://example.com/file.pdf"},
+    )
+    submit = SubmitField("Upload")
 
     def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
-        if self.upload_type.data == 'file':
+        if self.upload_type.data == "file":
             if not self.file.data:
-                self.file.errors.append('File is required when using file upload.')
+                self.file.errors.append("File is required when using file upload.")
                 return False
-        elif self.upload_type.data == 'text':
+        elif self.upload_type.data == "text":
             if not self.text_content.data or not self.text_content.data.strip():
-                self.text_content.errors.append('Text content is required when using text upload.')
+                self.text_content.errors.append(
+                    "Text content is required when using text upload."
+                )
                 return False
-        elif self.upload_type.data == 'url':
+        elif self.upload_type.data == "url":
             if not self.url.data or not self.url.data.strip():
-                self.url.errors.append('URL is required when using URL upload.')
+                self.url.errors.append("URL is required when using URL upload.")
                 return False
             # Basic URL validation
             url = self.url.data.strip()
-            if not (url.startswith('http://') or url.startswith('https://')):
-                self.url.errors.append('URL must start with http:// or https://')
+            if not (url.startswith("http://") or url.startswith("https://")):
+                self.url.errors.append("URL must start with http:// or https://")
                 return False
 
         return True
@@ -105,79 +121,82 @@ class FileUploadForm(FlaskForm):
 
 class EditCidForm(FlaskForm):
     text_content = TextAreaField(
-        'CID Content',
+        "CID Content",
         validators=[DataRequired()],
-        render_kw={'rows': 15, 'placeholder': 'Update the CID content here...'},
+        render_kw={"rows": 15, "placeholder": "Update the CID content here..."},
     )
     alias_name = StringField(
-        'Alias Name (optional)',
+        "Alias Name (optional)",
         validators=[
             Optional(),
             Regexp(
-                r'^[a-zA-Z0-9._-]+$',
-                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores',
+                r"^[a-zA-Z0-9._-]+$",
+                message="Alias name can only contain letters, numbers, dots, hyphens, and underscores",
             ),
         ],
         filters=[_strip_filter],
     )
-    submit = SubmitField('Save Changes')
+    submit = SubmitField("Save Changes")
+
 
 class ServerForm(EntityForm):
     """Form for server management."""
 
     def __init__(self, *args, **kwargs):
         """Initialize ServerForm with 'Server' labels."""
-        super().__init__(*args, entity_type='Server', **kwargs)
+        super().__init__(*args, entity_type="Server", **kwargs)
+
 
 class VariableForm(EntityForm):
     """Form for variable management."""
 
     def __init__(self, *args, **kwargs):
         """Initialize VariableForm with 'Variable' labels."""
-        super().__init__(*args, entity_type='Variable', **kwargs)
+        super().__init__(*args, entity_type="Variable", **kwargs)
 
 
 class BulkVariablesForm(FlaskForm):
     variables_json = TextAreaField(
-        'Variables JSON',
+        "Variables JSON",
         validators=[DataRequired()],
-        render_kw={'rows': 18, 'spellcheck': 'false'},
+        render_kw={"rows": 18, "spellcheck": "false"},
     )
-    submit = SubmitField('Save Variables')
+    submit = SubmitField("Save Variables")
 
 
 class BulkSecretsForm(FlaskForm):
     secrets_json = TextAreaField(
-        'Secrets JSON',
+        "Secrets JSON",
         validators=[DataRequired()],
-        render_kw={'rows': 18, 'spellcheck': 'false'},
+        render_kw={"rows": 18, "spellcheck": "false"},
     )
-    submit = SubmitField('Save Secrets')
+    submit = SubmitField("Save Secrets")
+
 
 class AliasForm(FlaskForm):
     name = StringField(
-        'Alias Name',
+        "Alias Name",
         validators=[
             DataRequired(),
             Regexp(
-                r'^[a-zA-Z0-9._-]+$',
-                message='Alias name can only contain letters, numbers, dots, hyphens, and underscores'
+                r"^[a-zA-Z0-9._-]+$",
+                message="Alias name can only contain letters, numbers, dots, hyphens, and underscores",
             ),
         ],
         filters=[_strip_filter],
     )
     definition = TextAreaField(
-        'Alias Definition',
+        "Alias Definition",
         validators=[Optional()],
         filters=[_strip_filter],
         render_kw={
-            'rows': 10,
-            'placeholder': 'pattern -> /target [glob]\n# Add related aliases or notes on following lines',
+            "rows": 10,
+            "placeholder": "pattern -> /target [glob]\n# Add related aliases or notes on following lines",
         },
     )
-    enabled = BooleanField('Enabled', default=True)
-    template = BooleanField('Template', default=False)
-    submit = SubmitField('Save Alias')
+    enabled = BooleanField("Enabled", default=True)
+    template = BooleanField("Template", default=False)
+    submit = SubmitField("Save Alias")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -193,7 +212,7 @@ class AliasForm(FlaskForm):
 
         try:
             self._parsed_definition = parse_alias_definition(
-                self.definition.data or '',
+                self.definition.data or "",
                 alias_name=self.name.data or None,
             )
         except AliasDefinitionError as exc:
@@ -208,71 +227,75 @@ class SecretForm(EntityForm):
 
     def __init__(self, *args, **kwargs):
         """Initialize SecretForm with 'Secret' labels."""
-        super().__init__(*args, entity_type='Secret', **kwargs)
+        super().__init__(*args, entity_type="Secret", **kwargs)
 
 
 class ExportForm(FlaskForm):
-    snapshot = BooleanField('Snapshot', default=True)
-    include_aliases = BooleanField('Aliases', default=True)
-    include_disabled_aliases = BooleanField('Disabled aliases')
-    include_template_aliases = BooleanField('Template aliases')
+    snapshot = BooleanField("Snapshot", default=True)
+    include_aliases = BooleanField("Aliases", default=True)
+    include_disabled_aliases = BooleanField("Disabled aliases")
+    include_template_aliases = BooleanField("Template aliases")
     selected_aliases = SelectMultipleField(coerce=str, validate_choice=False)
-    include_servers = BooleanField('Servers', default=True)
-    include_disabled_servers = BooleanField('Disabled servers')
-    include_template_servers = BooleanField('Template servers')
+    include_servers = BooleanField("Servers", default=True)
+    include_disabled_servers = BooleanField("Disabled servers")
+    include_template_servers = BooleanField("Template servers")
     selected_servers = SelectMultipleField(coerce=str, validate_choice=False)
-    include_variables = BooleanField('Variables', default=True)
-    include_disabled_variables = BooleanField('Disabled variables')
-    include_template_variables = BooleanField('Template variables')
+    include_variables = BooleanField("Variables", default=True)
+    include_disabled_variables = BooleanField("Disabled variables")
+    include_template_variables = BooleanField("Template variables")
     selected_variables = SelectMultipleField(coerce=str, validate_choice=False)
-    include_secrets = BooleanField('Secrets')
-    include_disabled_secrets = BooleanField('Disabled secrets')
-    include_template_secrets = BooleanField('Template secrets')
+    include_secrets = BooleanField("Secrets")
+    include_disabled_secrets = BooleanField("Disabled secrets")
+    include_template_secrets = BooleanField("Template secrets")
     selected_secrets = SelectMultipleField(coerce=str, validate_choice=False)
-    include_history = BooleanField('Change History')
-    include_source = BooleanField('Application Source Files')
-    include_cid_map = BooleanField('CID Content Map', default=True)
-    include_unreferenced_cid_data = BooleanField('Include Unreferenced CID Content')
+    include_history = BooleanField("Change History")
+    include_source = BooleanField("Application Source Files")
+    include_cid_map = BooleanField("CID Content Map", default=True)
+    include_unreferenced_cid_data = BooleanField("Include Unreferenced CID Content")
     secret_key = StringField(
-        'Secret Encryption Key',
+        "Secret Encryption Key",
         validators=[Optional()],
-        render_kw={'placeholder': 'Required when exporting secrets'},
+        render_kw={"placeholder": "Required when exporting secrets"},
     )
     # GitHub PR fields
     github_target_repo = StringField(
-        'Target Repository',
+        "Target Repository",
         validators=[Optional()],
-        render_kw={'placeholder': 'owner/repo'},
+        render_kw={"placeholder": "owner/repo"},
     )
     github_token = StringField(
-        'GitHub Token',
+        "GitHub Token",
         validators=[Optional()],
-        render_kw={'placeholder': 'ghp_...', 'type': 'password'},
+        render_kw={"placeholder": "ghp_...", "type": "password"},
     )
     github_pr_title = StringField(
-        'Pull Request Title',
+        "Pull Request Title",
         validators=[Optional()],
-        render_kw={'placeholder': 'Update boot image definitions'},
+        render_kw={"placeholder": "Update boot image definitions"},
     )
     github_pr_description = TextAreaField(
-        'Pull Request Description',
+        "Pull Request Description",
         validators=[Optional()],
-        render_kw={'rows': 3, 'placeholder': 'Describe the changes...'},
+        render_kw={"rows": 3, "placeholder": "Describe the changes..."},
     )
     github_branch_name = StringField(
-        'Branch Name',
+        "Branch Name",
         validators=[Optional()],
-        render_kw={'placeholder': 'Auto-generated if not provided'},
+        render_kw={"placeholder": "Auto-generated if not provided"},
     )
-    submit = SubmitField('Generate JSON Export')
-    submit_github_pr = SubmitField('Create Pull Request')
+    submit = SubmitField("Generate JSON Export")
+    submit_github_pr = SubmitField("Create Pull Request")
 
     def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
-        if self.include_secrets.data and not (self.secret_key.data and self.secret_key.data.strip()):
-            self.secret_key.errors.append('Encryption key is required when exporting secrets.')
+        if self.include_secrets.data and not (
+            self.secret_key.data and self.secret_key.data.strip()
+        ):
+            self.secret_key.errors.append(
+                "Encryption key is required when exporting secrets."
+            )
             return False
 
         return True
@@ -280,109 +303,115 @@ class ExportForm(FlaskForm):
 
 class ImportForm(FlaskForm):
     import_source = RadioField(
-        'Import Method',
+        "Import Method",
         choices=[
-            ('file', 'Upload JSON File'),
-            ('text', 'Paste JSON Text'),
-            ('url', 'Load JSON from URL'),
-            ('github_pr', 'Import from GitHub PR'),
+            ("file", "Upload JSON File"),
+            ("text", "Paste JSON Text"),
+            ("url", "Load JSON from URL"),
+            ("github_pr", "Import from GitHub PR"),
         ],
-        default='file',
+        default="file",
         validators=[DataRequired()],
     )
-    import_file = FileField('JSON File', validators=[Optional()])
+    import_file = FileField("JSON File", validators=[Optional()])
     import_text = TextAreaField(
-        'JSON Text',
+        "JSON Text",
         validators=[Optional()],
-        render_kw={'rows': 10, 'placeholder': '{"aliases": []}'},
+        render_kw={"rows": 10, "placeholder": '{"aliases": []}'},
     )
     import_url = StringField(
-        'JSON URL',
+        "JSON URL",
         validators=[Optional()],
-        render_kw={'placeholder': 'https://example.com/export.json'},
+        render_kw={"placeholder": "https://example.com/export.json"},
     )
     # GitHub PR import fields
     github_pr_url = StringField(
-        'GitHub PR URL',
+        "GitHub PR URL",
         validators=[Optional()],
-        render_kw={'placeholder': 'https://github.com/owner/repo/pull/123'},
+        render_kw={"placeholder": "https://github.com/owner/repo/pull/123"},
     )
     github_import_token = StringField(
-        'GitHub Token (Optional)',
+        "GitHub Token (Optional)",
         validators=[Optional()],
-        render_kw={'placeholder': 'ghp_... (for private repos)', 'type': 'password'},
+        render_kw={"placeholder": "ghp_... (for private repos)", "type": "password"},
     )
-    include_aliases = BooleanField('Aliases')
-    include_servers = BooleanField('Servers')
-    include_variables = BooleanField('Variables')
-    include_secrets = BooleanField('Secrets')
-    include_history = BooleanField('Change History')
-    include_source = BooleanField('Application Source Files')
-    process_cid_map = BooleanField('Process CID Map', default=True)
+    include_aliases = BooleanField("Aliases")
+    include_servers = BooleanField("Servers")
+    include_variables = BooleanField("Variables")
+    include_secrets = BooleanField("Secrets")
+    include_history = BooleanField("Change History")
+    include_source = BooleanField("Application Source Files")
+    process_cid_map = BooleanField("Process CID Map", default=True)
     secret_key = StringField(
-        'Secret Decryption Key',
+        "Secret Decryption Key",
         validators=[Optional()],
-        render_kw={'placeholder': 'Required when importing secrets'},
+        render_kw={"placeholder": "Required when importing secrets"},
     )
-    submit = SubmitField('Import Data')
+    submit = SubmitField("Import Data")
 
     def validate(self, extra_validators: OptionalType[Any] = None) -> bool:
         if not super().validate(extra_validators):
             return False
 
-        if not any([
-            self.include_aliases.data,
-            self.include_servers.data,
-            self.include_variables.data,
-            self.include_secrets.data,
-            self.include_history.data,
-            self.include_source.data,
-        ]):
-            message = 'Select at least one data type to import.'
+        if not any(
+            [
+                self.include_aliases.data,
+                self.include_servers.data,
+                self.include_variables.data,
+                self.include_secrets.data,
+                self.include_history.data,
+                self.include_source.data,
+            ]
+        ):
+            message = "Select at least one data type to import."
             self.include_aliases.errors.append(message)
             return False
 
         source = self.import_source.data
-        if source == 'file':
+        if source == "file":
             file_storage = self.import_file.data
-            if not getattr(file_storage, 'filename', None):
-                self.import_file.errors.append('Choose a JSON file to upload.')
+            if not getattr(file_storage, "filename", None):
+                self.import_file.errors.append("Choose a JSON file to upload.")
                 return False
-        elif source == 'text':
+        elif source == "text":
             if not (self.import_text.data and self.import_text.data.strip()):
-                self.import_text.errors.append('Paste JSON content to import.')
+                self.import_text.errors.append("Paste JSON content to import.")
                 return False
-        elif source == 'url':
+        elif source == "url":
             if not (self.import_url.data and self.import_url.data.strip()):
-                self.import_url.errors.append('Provide a URL to download JSON from.')
+                self.import_url.errors.append("Provide a URL to download JSON from.")
                 return False
 
-        if self.include_secrets.data and not (self.secret_key.data and self.secret_key.data.strip()):
-            self.secret_key.errors.append('Decryption key is required when importing secrets.')
+        if self.include_secrets.data and not (
+            self.secret_key.data and self.secret_key.data.strip()
+        ):
+            self.secret_key.errors.append(
+                "Decryption key is required when importing secrets."
+            )
             return False
 
         return True
 
 
-def validate_templates_json(form: 'TemplatesConfigForm', field: Field) -> None:
+def validate_templates_json(form: "TemplatesConfigForm", field: Field) -> None:
     """Validate templates JSON structure."""
     from template_manager import validate_templates_json as validate_json
 
     if not field.data or not field.data.strip():
-        raise ValidationError('Templates configuration cannot be empty')
+        raise ValidationError("Templates configuration cannot be empty")
 
     is_valid, error = validate_json(field.data)
     if not is_valid:
-        raise ValidationError(f'Invalid templates JSON: {error}')
+        raise ValidationError(f"Invalid templates JSON: {error}")
 
 
 class TemplatesConfigForm(FlaskForm):
     """Form for editing templates configuration."""
 
     templates_json = TextAreaField(
-        'Templates Configuration',
+        "Templates Configuration",
         validators=[DataRequired(), validate_templates_json],
-        render_kw={'rows': 20, 'class': 'font-monospace'}
+        render_kw={"rows": 20, "class": "font-monospace"},
     )
-    use_cid = BooleanField('Store as CID', default=False)
-    submit = SubmitField('Save Templates')
+    use_cid = BooleanField("Store as CID", default=False)
+    submit = SubmitField("Save Templates")

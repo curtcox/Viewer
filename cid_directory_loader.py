@@ -46,12 +46,19 @@ def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
     """
 
     configured_directory = app.config.get("CID_DIRECTORY")
-    directory = Path(configured_directory) if configured_directory else Path(app.root_path) / "cids"
+    directory = (
+        Path(configured_directory)
+        if configured_directory
+        else Path(app.root_path) / "cids"
+    )
 
     # Check if directory exists - it must exist (can be read-only, but must exist)
     if not directory.exists():
         if allow_missing:
-            LOGGER.info("CID directory %s does not exist, skipping CID loading (allow_missing=True)", directory)
+            LOGGER.info(
+                "CID directory %s does not exist, skipping CID loading (allow_missing=True)",
+                directory,
+            )
             return
         message = f"No CID directory: {directory}"
         LOGGER.error("CID directory %s does not exist: %s", directory, message)
@@ -80,9 +87,7 @@ def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
         filename = file_path.name
 
         if not is_normalized_cid(filename):
-            message = (
-                f"CID filename {filename!r} in {directory} is not a valid normalized CID"
-            )
+            message = f"CID filename {filename!r} in {directory} is not a valid normalized CID"
             LOGGER.error(message)
             raise RuntimeError(message)
 
@@ -105,9 +110,7 @@ def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
             LOGGER.info("Loaded CID %s from %s", generated_cid, file_path)
         else:
             if existing.file_data != file_bytes:
-                message = (
-                    f"CID {generated_cid} already exists in the database with different content"
-                )
+                message = f"CID {generated_cid} already exists in the database with different content"
                 LOGGER.error(message)
                 raise RuntimeError(message)
             LOGGER.debug("CID %s already present in database; skipping", generated_cid)

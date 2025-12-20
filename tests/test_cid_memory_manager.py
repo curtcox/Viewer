@@ -135,9 +135,9 @@ class TestCIDMemoryManager:
             cid2 = CID.from_bytes(content2).value  # largest
             cid3 = CID.from_bytes(content3).value
 
-            create_cid_record(cid1, content1)   # 10 bytes
-            create_cid_record(cid2, content2)   # 40 bytes (largest)
-            create_cid_record(cid3, content3)   # 20 bytes
+            create_cid_record(cid1, content1)  # 10 bytes
+            create_cid_record(cid2, content2)  # 40 bytes (largest)
+            create_cid_record(cid3, content3)  # 20 bytes
 
             # Total: 70 bytes, available: 30 bytes
             # Request 50 bytes - should evict the 40-byte CID

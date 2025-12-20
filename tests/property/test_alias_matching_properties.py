@@ -1,4 +1,5 @@
 """Property-based tests for alias matching helpers."""
+
 from __future__ import annotations
 
 from hypothesis import given, strategies as st
@@ -12,7 +13,9 @@ _text = st.text(
 
 
 @given(pattern=_text, fallback=_text)
-def test_normalise_literal_paths_generate_clean_slashes(pattern: str, fallback: str) -> None:
+def test_normalise_literal_paths_generate_clean_slashes(
+    pattern: str, fallback: str
+) -> None:
     """Literal patterns should always normalise to a clean, slash-prefixed path."""
     valid_input = pattern.strip() or fallback.strip()
     if not valid_input:
@@ -26,4 +29,6 @@ def test_normalise_literal_paths_generate_clean_slashes(pattern: str, fallback: 
 
     assert matches_path("literal", normalised, normalised)
     assert matches_path("literal", normalised, normalised + "/")
-    assert matches_path("literal", normalised.lower(), normalised.upper(), ignore_case=True)
+    assert matches_path(
+        "literal", normalised.lower(), normalised.upper(), ignore_case=True
+    )

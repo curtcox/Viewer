@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+
 def _load_generate_cid():
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
@@ -164,8 +165,12 @@ def write_report(summary: ValidationSummary, output_dir: Path) -> None:
 
     if summary.failures:
         if summary.short_filename_failures:
-            report_lines.append("Short Filename Failures (CIDs with filenames < 94 characters):")
-            report_lines.append("These CIDs should use embedded values rather than being stored as files.")
+            report_lines.append(
+                "Short Filename Failures (CIDs with filenames < 94 characters):"
+            )
+            report_lines.append(
+                "These CIDs should use embedded values rather than being stored as files."
+            )
             for failure in summary.short_filename_failures:
                 report_lines.append(
                     f"- {failure.filename} (length: {len(failure.filename)}, {failure.size_bytes} bytes)"
@@ -184,9 +189,10 @@ def write_report(summary: ValidationSummary, output_dir: Path) -> None:
     (output_dir / "report.txt").write_text("\n".join(report_lines), encoding="utf-8")
 
 
-
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate CID filenames against their contents.")
+    parser = argparse.ArgumentParser(
+        description="Validate CID filenames against their contents."
+    )
     parser.add_argument(
         "--cid-dir",
         type=Path,

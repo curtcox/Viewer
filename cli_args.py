@@ -86,7 +86,7 @@ def parse_memory_size(size_str: str) -> int:
         ValueError: If the size string is invalid
     """
     size_str = size_str.strip().upper()
-    match = re.match(r'^(\d+(?:\.\d+)?)\s*([KMGT]?)B?$', size_str)
+    match = re.match(r"^(\d+(?:\.\d+)?)\s*([KMGT]?)B?$", size_str)
 
     if not match:
         raise ValueError(f"Invalid memory size format: {size_str}")
@@ -95,11 +95,11 @@ def parse_memory_size(size_str: str) -> int:
     value = float(value)
 
     multipliers = {
-        '': 1,
-        'K': 1024,
-        'M': 1024 ** 2,
-        'G': 1024 ** 3,
-        'T': 1024 ** 4,
+        "": 1,
+        "K": 1024,
+        "M": 1024**2,
+        "G": 1024**3,
+        "T": 1024**4,
     }
 
     return int(value * multipliers[unit])
@@ -111,13 +111,13 @@ def configure_from_args(args: argparse.Namespace) -> None:
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
 
     # Handle read-only mode
-    if hasattr(args, 'read_only') and args.read_only:
+    if hasattr(args, "read_only") and args.read_only:
         ReadOnlyConfig.set_read_only_mode(True)
         # Read-only mode requires in-memory database
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
 
         # Parse and set max CID memory
-        if hasattr(args, 'max_cid_memory'):
+        if hasattr(args, "max_cid_memory"):
             try:
                 max_bytes = parse_memory_size(args.max_cid_memory)
                 ReadOnlyConfig.set_max_cid_memory(max_bytes)

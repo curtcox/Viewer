@@ -167,7 +167,9 @@ class DatabaseSnapshot:
                     raw_connection = raw_connection.connection
 
             if not isinstance(raw_connection, sqlite3.Connection):
-                raise RuntimeError(f"Could not get raw SQLite connection. Got {type(raw_connection)}")
+                raise RuntimeError(
+                    f"Could not get raw SQLite connection. Got {type(raw_connection)}"
+                )
 
             # Open the target database
             dest_conn = sqlite3.connect(str(target_path))

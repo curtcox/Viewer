@@ -23,50 +23,52 @@ class TestIsValidUrl(unittest.TestCase):
 
     def test_valid_url_starting_with_slash(self):
         """Test URL starting with / is valid."""
-        is_valid, error = is_valid_url('/dashboard')
+        is_valid, error = is_valid_url("/dashboard")
         self.assertTrue(is_valid)
         self.assertIsNone(error)
 
     def test_valid_http_url(self):
         """Test valid http URL."""
-        is_valid, error = is_valid_url('http://localhost:5001/servers')
+        is_valid, error = is_valid_url("http://localhost:5001/servers")
         self.assertTrue(is_valid)
         self.assertIsNone(error)
 
     def test_valid_https_url(self):
         """Test valid https URL."""
-        is_valid, error = is_valid_url('https://example.com/api/data')
+        is_valid, error = is_valid_url("https://example.com/api/data")
         self.assertTrue(is_valid)
         self.assertIsNone(error)
 
     def test_invalid_url_no_scheme(self):
         """Test URL without scheme is invalid."""
-        is_valid, error = is_valid_url('localhost:5001/dashboard')
+        is_valid, error = is_valid_url("localhost:5001/dashboard")
         self.assertFalse(is_valid)
-        self.assertIn('scheme', error.lower())
+        self.assertIn("scheme", error.lower())
 
     def test_invalid_url_wrong_scheme(self):
         """Test URL with wrong scheme is invalid."""
-        is_valid, error = is_valid_url('ftp://example.com/file')
+        is_valid, error = is_valid_url("ftp://example.com/file")
         self.assertFalse(is_valid)
-        self.assertIn('http', error.lower())
+        self.assertIn("http", error.lower())
 
     def test_invalid_url_no_host(self):
         """Test URL without host is invalid."""
-        is_valid, error = is_valid_url('http://')
+        is_valid, error = is_valid_url("http://")
         self.assertFalse(is_valid)
-        self.assertIn('host', error.lower())
+        self.assertIn("host", error.lower())
 
 
 class TestValidateCid(unittest.TestCase):
     """Tests for CID validation."""
 
     def setUp(self):
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
         self.client = self.app.test_client()
 
         with self.app.app_context():
@@ -99,59 +101,61 @@ class TestValidateCid(unittest.TestCase):
 
             is_valid, error_type, error_msg = validate_cid(cid_value)
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'not_found')
-            self.assertIn('not found', error_msg.lower())
+            self.assertEqual(error_type, "not_found")
+            self.assertIn("not found", error_msg.lower())
 
     def test_invalid_cid_empty(self):
         """Test empty string is invalid CID."""
         with self.app.app_context():
-            is_valid, error_type, error_msg = validate_cid('')
+            is_valid, error_type, error_msg = validate_cid("")
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'invalid_format')
-            self.assertIn('empty', error_msg.lower())
+            self.assertEqual(error_type, "invalid_format")
+            self.assertIn("empty", error_msg.lower())
 
     def test_invalid_cid_too_short(self):
         """Test CID that is too short."""
         with self.app.app_context():
-            is_valid, error_type, error_msg = validate_cid('abc')
+            is_valid, error_type, error_msg = validate_cid("abc")
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'invalid_format')
-            self.assertIn('short', error_msg.lower())
+            self.assertEqual(error_type, "invalid_format")
+            self.assertIn("short", error_msg.lower())
 
     def test_invalid_cid_contains_dot(self):
         """Test CID containing dot is invalid."""
         with self.app.app_context():
-            is_valid, error_type, error_msg = validate_cid('AAAAAAAA.txt')
+            is_valid, error_type, error_msg = validate_cid("AAAAAAAA.txt")
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'invalid_format')
-            self.assertIn('.', error_msg)
+            self.assertEqual(error_type, "invalid_format")
+            self.assertIn(".", error_msg)
 
     def test_invalid_cid_contains_slash(self):
         """Test CID containing slash is invalid."""
         with self.app.app_context():
-            is_valid, error_type, error_msg = validate_cid('AAAA/AAAA')
+            is_valid, error_type, error_msg = validate_cid("AAAA/AAAA")
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'invalid_format')
-            self.assertIn('/', error_msg)
+            self.assertEqual(error_type, "invalid_format")
+            self.assertIn("/", error_msg)
 
     def test_invalid_cid_invalid_characters(self):
         """Test CID with invalid characters."""
         with self.app.app_context():
-            is_valid, error_type, error_msg = validate_cid('AAAA@@@@@')
+            is_valid, error_type, error_msg = validate_cid("AAAA@@@@@")
             self.assertFalse(is_valid)
-            self.assertEqual(error_type, 'invalid_format')
-            self.assertIn('invalid character', error_msg.lower())
+            self.assertEqual(error_type, "invalid_format")
+            self.assertIn("invalid character", error_msg.lower())
 
 
 class TestIsValidBootCid(unittest.TestCase):
     """Tests for boot CID validation."""
 
     def setUp(self):
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -164,7 +168,9 @@ class TestIsValidBootCid(unittest.TestCase):
     def test_valid_boot_cid(self):
         """Test valid boot CID (JSON object)."""
         with self.app.app_context():
-            content = json.dumps({'aliases': 'AAAAAAAA', 'servers': 'AAAAAAAB'}).encode('utf-8')
+            content = json.dumps({"aliases": "AAAAAAAA", "servers": "AAAAAAAB"}).encode(
+                "utf-8"
+            )
             cid_value = generate_cid(content)
             record = create_cid_record(cid_value, content)
 
@@ -181,54 +187,56 @@ class TestIsValidBootCid(unittest.TestCase):
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
-            self.assertIn('json', error.lower())
+            self.assertIn("json", error.lower())
 
     def test_invalid_boot_cid_json_array(self):
         """Test CID with JSON array instead of object."""
         with self.app.app_context():
-            content = json.dumps(['item1', 'item2']).encode('utf-8')
+            content = json.dumps(["item1", "item2"]).encode("utf-8")
             cid_value = generate_cid(content)
             record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
-            self.assertIn('object', error.lower())
+            self.assertIn("object", error.lower())
 
     def test_invalid_boot_cid_not_utf8(self):
         """Test CID with non-UTF8 content."""
         with self.app.app_context():
-            content = b'\xff\xfe\xfd'  # Invalid UTF-8
+            content = b"\xff\xfe\xfd"  # Invalid UTF-8
             cid_value = generate_cid(content)
             record = create_cid_record(cid_value, content)
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
-            self.assertIn('utf-8', error.lower())
+            self.assertIn("utf-8", error.lower())
 
     def test_invalid_boot_cid_no_content(self):
         """Test CID with no content."""
         with self.app.app_context():
             # Create a mock CID record with no content
             record = CID(
-                path='/AAAAAAAA',
+                path="/AAAAAAAA",
                 file_data=None,
                 file_size=0,
             )
 
             is_valid, error = is_valid_boot_cid(record)
             self.assertFalse(is_valid)
-            self.assertIn('no content', error.lower())
+            self.assertIn("no content", error.lower())
 
 
 class TestListBootCids(unittest.TestCase):
     """Tests for listing boot CIDs."""
 
     def setUp(self):
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -256,11 +264,13 @@ class TestListBootCids(unittest.TestCase):
         """Test listing boot CIDs returns valid boot CIDs."""
         with self.app.app_context():
             # Create valid boot CIDs
-            boot1 = json.dumps({'aliases': 'AAAAAAAA'}).encode('utf-8')
+            boot1 = json.dumps({"aliases": "AAAAAAAA"}).encode("utf-8")
             cid1 = generate_cid(boot1)
             create_cid_record(cid1, boot1)
 
-            boot2 = json.dumps({'servers': 'AAAAAAAB', 'variables': 'AAAAAAAC'}).encode('utf-8')
+            boot2 = json.dumps({"servers": "AAAAAAAB", "variables": "AAAAAAAC"}).encode(
+                "utf-8"
+            )
             cid2 = generate_cid(boot2)
             create_cid_record(cid2, boot2)
 
@@ -280,10 +290,12 @@ class TestListBootCids(unittest.TestCase):
     def test_list_boot_cids_metadata(self):
         """Test that metadata is correctly populated."""
         with self.app.app_context():
-            boot_content = json.dumps({
-                'aliases': 'AAAAAAAA',
-                'servers': 'AAAAAAAB',
-            }).encode('utf-8')
+            boot_content = json.dumps(
+                {
+                    "aliases": "AAAAAAAA",
+                    "servers": "AAAAAAAB",
+                }
+            ).encode("utf-8")
             cid_value = generate_cid(boot_content)
             create_cid_record(cid_value, boot_content)
 
@@ -300,22 +312,24 @@ class TestListBootCids(unittest.TestCase):
             _, metadata = our_cid
 
             # Check metadata
-            self.assertEqual(metadata['size'], len(boot_content))
+            self.assertEqual(metadata["size"], len(boot_content))
             # uploaded_by is no longer included in metadata after user field removal
-            self.assertIn('aliases', metadata['sections'])
-            self.assertIn('servers', metadata['sections'])
-            self.assertIsNotNone(metadata['created_at'])
+            self.assertIn("aliases", metadata["sections"])
+            self.assertIn("servers", metadata["sections"])
+            self.assertIsNotNone(metadata["created_at"])
 
 
 class TestMakeHttpGetRequest(unittest.TestCase):
     """Tests for making HTTP GET requests."""
 
     def setUp(self):
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -328,7 +342,7 @@ class TestMakeHttpGetRequest(unittest.TestCase):
     def test_make_http_get_request_valid_path(self):
         """Test making GET request to valid path."""
         with self.app.app_context():
-            success, response_text, status_code = make_http_get_request(self.app, '/')
+            success, response_text, status_code = make_http_get_request(self.app, "/")
             self.assertTrue(success)
             self.assertEqual(status_code, 200)
             self.assertIsNotNone(response_text)
@@ -337,7 +351,7 @@ class TestMakeHttpGetRequest(unittest.TestCase):
         """Test making GET request to non-existent path."""
         with self.app.app_context():
             success, response_text, status_code = make_http_get_request(
-                self.app, '/nonexistent-path-12345'
+                self.app, "/nonexistent-path-12345"
             )
             self.assertTrue(success)
             self.assertEqual(status_code, 404)
@@ -347,7 +361,7 @@ class TestMakeHttpGetRequest(unittest.TestCase):
         """Test making GET request with full URL."""
         with self.app.app_context():
             success, response_text, status_code = make_http_get_request(
-                self.app, 'http://localhost:5001/'
+                self.app, "http://localhost:5001/"
             )
             self.assertTrue(success)
             self.assertEqual(status_code, 200)
@@ -357,7 +371,7 @@ class TestMakeHttpGetRequest(unittest.TestCase):
         """Test making GET request with query parameters."""
         with self.app.app_context():
             success, response_text, status_code = make_http_get_request(
-                self.app, '/?test=value'
+                self.app, "/?test=value"
             )
             self.assertTrue(success)
             self.assertEqual(status_code, 200)
@@ -371,31 +385,31 @@ class TestMakeHttpGetRequest(unittest.TestCase):
             create_cid_record(cid_value, content)
 
             success, response_text, status_code = make_http_get_request(
-                self.app, f'/{cid_value}'
+                self.app, f"/{cid_value}"
             )
             self.assertTrue(success)
             self.assertEqual(status_code, 200)
-            self.assertIn('test content', response_text)
+            self.assertIn("test content", response_text)
 
 
 class TestOpenBrowser(unittest.TestCase):
     """Tests for opening browser."""
 
-    @patch('cli.webbrowser.open')
+    @patch("cli.webbrowser.open")
     def test_open_browser_success(self, mock_open):
         """Test opening browser successfully."""
         mock_open.return_value = True
 
-        result = open_browser('http://localhost:5001')
+        result = open_browser("http://localhost:5001")
         self.assertTrue(result)
-        mock_open.assert_called_once_with('http://localhost:5001')
+        mock_open.assert_called_once_with("http://localhost:5001")
 
-    @patch('cli.webbrowser.open')
+    @patch("cli.webbrowser.open")
     def test_open_browser_failure(self, mock_open):
         """Test opening browser with exception."""
         mock_open.side_effect = Exception("Browser not found")
 
-        result = open_browser('http://localhost:5001')
+        result = open_browser("http://localhost:5001")
         self.assertFalse(result)
 
 
@@ -403,11 +417,13 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
     """Tests for listing boot CIDs with null timestamps."""
 
     def setUp(self):
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -423,10 +439,10 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
             from database import db as database
 
             # Create boot CIDs with null created_at
-            boot1_content = json.dumps({'aliases': 'AAAAAAAA'}).encode('utf-8')
+            boot1_content = json.dumps({"aliases": "AAAAAAAA"}).encode("utf-8")
             cid1_value = generate_cid(boot1_content)
             cid1 = CID(
-                path=f'/{cid1_value}',
+                path=f"/{cid1_value}",
                 file_data=boot1_content,
                 file_size=len(boot1_content),
             )
@@ -438,14 +454,15 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
             )
 
             # Create boot CID with valid created_at
-            boot2_content = json.dumps({'servers': 'AAAAAAAB'}).encode('utf-8')
+            boot2_content = json.dumps({"servers": "AAAAAAAB"}).encode("utf-8")
             cid2_value = generate_cid(boot2_content)
             from datetime import datetime, timezone
+
             cid2 = CID(
-                path=f'/{cid2_value}',
+                path=f"/{cid2_value}",
                 file_data=boot2_content,
                 file_size=len(boot2_content),
-                created_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc),
             )
             database.session.add(cid2)
             database.session.commit()
@@ -461,9 +478,12 @@ class TestListBootCidsWithNullTimestamps(unittest.TestCase):
             # CID with valid timestamp should be sorted before CID with null timestamp
             cid1_index = cid_values.index(cid1_value)
             cid2_index = cid_values.index(cid2_value)
-            self.assertLess(cid2_index, cid1_index,
-                           "CID with valid timestamp should come before CID with null timestamp")
+            self.assertLess(
+                cid2_index,
+                cid1_index,
+                "CID with valid timestamp should come before CID with null timestamp",
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

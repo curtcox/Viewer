@@ -23,7 +23,7 @@ class AuthorizationResult:
         self,
         allowed: bool,
         status_code: Optional[int] = None,
-        message: Optional[str] = None
+        message: Optional[str] = None,
     ):
         """Initialize an authorization result.
 
@@ -92,4 +92,4 @@ def authorize_request(request: Request) -> AuthorizationResult:
     return AuthorizationResult(allowed=True)
 
 
-__all__ = ['authorize_request', 'AuthorizationResult']
+__all__ = ["authorize_request", "AuthorizationResult"]

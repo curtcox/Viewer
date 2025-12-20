@@ -1,4 +1,5 @@
 """Gauge steps for exercising the import and export workflow."""
+
 from __future__ import annotations
 
 import base64
@@ -158,16 +159,12 @@ def given_origin_site_with_server(server_name: str, server_message: str) -> None
     origin_app, origin_client = _create_isolated_site("origin")
 
     server_definition = (
-        "return {\"output\": \""
-        + server_message
-        + "\", \"content_type\": \"text/plain\"}"
+        'return {"output": "' + server_message + '", "content_type": "text/plain"}'
     )
 
     with origin_app.app_context():
         ensure_default_resources()
-        db.session.add(
-            Server(name=server_name, definition=server_definition)
-        )
+        db.session.add(Server(name=server_name, definition=server_definition))
         db.session.commit()
 
     _scenario_state.update(
@@ -186,7 +183,9 @@ def and_i_export_servers_from_origin() -> None:
     """Run an export that includes servers and the CID map, capturing the payload."""
     origin_app = _scenario_state.get("origin_app")
     origin_client = _scenario_state.get("origin_client")
-    assert origin_app is not None and origin_client is not None, "Origin site is not configured."
+    assert origin_app is not None and origin_client is not None, (
+        "Origin site is not configured."
+    )
 
     export_response = origin_client.post(
         "/export",
@@ -197,9 +196,9 @@ def and_i_export_servers_from_origin() -> None:
         },
     )
     attach_response_snapshot(export_response)
-    assert (
-        export_response.status_code == 200
-    ), f"Expected export to succeed, received {export_response.status_code}."
+    assert export_response.status_code == 200, (
+        f"Expected export to succeed, received {export_response.status_code}."
+    )
 
     with origin_app.app_context():
         export_record = next(
@@ -244,9 +243,9 @@ def when_i_import_exported_data_into_destination() -> None:
         follow_redirects=False,
     )
     attach_response_snapshot(import_response)
-    assert (
-        import_response.status_code == 302
-    ), f"Expected import to redirect on success, received {import_response.status_code}."
+    assert import_response.status_code == 302, (
+        f"Expected import to redirect on success, received {import_response.status_code}."
+    )
 
     _scenario_state.update(
         {
@@ -269,14 +268,16 @@ def then_destination_has_server(server_name: str) -> None:
     assert server_definition is not None, "Origin server definition is missing."
 
     servers_section = _resolve_export_section("servers")
-    assert isinstance(
-        servers_section, list
-    ), "Export payload did not include a servers section."
+    assert isinstance(servers_section, list), (
+        "Export payload did not include a servers section."
+    )
     exported_entry = next(
         (entry for entry in servers_section if entry.get("name") == server_name),
         None,
     )
-    assert exported_entry is not None, "Export payload did not include the server entry."
+    assert exported_entry is not None, (
+        "Export payload did not include the server entry."
+    )
     expected_cid = exported_entry.get("definition_cid")
     assert expected_cid, "Exported server did not record a definition CID."
 
@@ -292,39 +293,45 @@ def then_destination_has_server(server_name: str) -> None:
         raise AssertionError(
             f'CID "{expected_cid}" content was not UTF-8 encoded.'
         ) from exc
-    assert cid_text == server_definition, "CID map content did not match the server definition."
+    assert cid_text == server_definition, (
+        "CID map content did not match the server definition."
+    )
 
     with destination_app.app_context():
         imported_server = Server.query.filter_by(name=server_name).first()
         assert imported_server is not None, "Imported server was not found."
-        assert (
-            imported_server.definition == server_definition
-        ), "Imported server definition does not match the origin definition."
-        assert (
-            imported_server.definition_cid == expected_cid
-        ), "Imported server definition CID does not match export metadata."
+        assert imported_server.definition == server_definition, (
+            "Imported server definition does not match the origin definition."
+        )
+        assert imported_server.definition_cid == expected_cid, (
+            "Imported server definition CID does not match export metadata."
+        )
 
         if not is_literal_cid(expected_cid):
             cid_record = CID.query.filter_by(path=cid_path(expected_cid)).first()
-            assert cid_record is not None, "Definition CID file was not stored on import."
-            assert (
-                cid_record.file_data.decode("utf-8") == server_definition
-            ), "Imported CID content does not match the server definition."
+            assert cid_record is not None, (
+                "Definition CID file was not stored on import."
+            )
+            assert cid_record.file_data.decode("utf-8") == server_definition, (
+                "Imported CID content does not match the server definition."
+            )
 
     _scenario_state["destination_server_name"] = server_name
 
 
 @step('And executing "{}" on the destination site should return "{}"')
-def and_executing_destination_route_returns_message(route_path: str, expected_message: str) -> None:
+def and_executing_destination_route_returns_message(
+    route_path: str, expected_message: str
+) -> None:
     """Execute the imported server and confirm the expected response content."""
     destination_client = _scenario_state.get("destination_client")
     assert destination_client is not None, "Destination client is not configured."
 
     execution_response = destination_client.get(route_path, follow_redirects=False)
     attach_response_snapshot(execution_response)
-    assert (
-        execution_response.status_code == 302
-    ), f"Expected execution redirect, received {execution_response.status_code}."
+    assert execution_response.status_code == 302, (
+        f"Expected execution redirect, received {execution_response.status_code}."
+    )
 
     redirect_location = execution_response.headers.get("Location")
     assert redirect_location, "Execution redirect did not specify a location."
@@ -332,12 +339,14 @@ def and_executing_destination_route_returns_message(route_path: str, expected_me
     content_response = destination_client.get(redirect_location)
     attach_response_snapshot(content_response)
     assert content_response.status_code == 200, "CID content request failed."
-    assert (
-        expected_message in content_response.get_data(as_text=True)
-    ), "Imported server did not return the expected output."
+    assert expected_message in content_response.get_data(as_text=True), (
+        "Imported server did not return the expected output."
+    )
 
 
-@step('Given an origin site with a server named "shared-tool" returning "Hello from origin"')
+@step(
+    'Given an origin site with a server named "shared-tool" returning "Hello from origin"'
+)
 def given_origin_site_with_shared_tool() -> None:
     """Create an origin site with shared-tool server."""
     given_origin_site_with_server("shared-tool", "Hello from origin")
@@ -349,7 +358,9 @@ def then_destination_has_shared_tool() -> None:
     then_destination_has_server("shared-tool")
 
 
-@step('And executing "/shared-tool" on the destination site should return "Hello from origin"')
+@step(
+    'And executing "/shared-tool" on the destination site should return "Hello from origin"'
+)
 def and_executing_shared_tool_returns_hello() -> None:
     """Execute shared-tool and verify output."""
     and_executing_destination_route_returns_message("/shared-tool", "Hello from origin")
@@ -364,7 +375,9 @@ def when_i_export_server_to_github_pr_with_mock_repo(target_repo: str) -> None:
 
     captured: dict[str, Any] = {}
 
-    def _mock_create_export_pr(*, export_json: str, target_repo: str | None = None, **kwargs: Any) -> dict[str, Any]:
+    def _mock_create_export_pr(
+        *, export_json: str, target_repo: str | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         captured["export_json"] = export_json
         captured["target_repo"] = target_repo
         captured["kwargs"] = dict(kwargs)
@@ -377,7 +390,10 @@ def when_i_export_server_to_github_pr_with_mock_repo(target_repo: str) -> None:
             "mode": "github",
         }
 
-    patcher = patch("routes.import_export.github_pr.create_export_pr", side_effect=_mock_create_export_pr)
+    patcher = patch(
+        "routes.import_export.github_pr.create_export_pr",
+        side_effect=_mock_create_export_pr,
+    )
     patcher.start()
     _active_patchers.append(patcher)
 
@@ -405,14 +421,20 @@ def then_pr_should_be_created_successfully() -> None:
 
     response = _scenario_state.get("last_response")
     assert response is not None, "No response available to validate."
-    assert response.status_code == 200, f"Expected 200 response, got {response.status_code}."
+    assert response.status_code == 200, (
+        f"Expected 200 response, got {response.status_code}."
+    )
 
     body = response.get_data(as_text=True)
-    assert "Pull request created successfully" in body, "Expected PR success message in response body."
+    assert "Pull request created successfully" in body, (
+        "Expected PR success message in response body."
+    )
 
     captured = _scenario_state.get("github_export_capture")
     assert captured is not None, "Expected GitHub PR mock capture metadata."
-    assert captured.get("target_repo") is not None, "Expected target repo passed to create_export_pr."
+    assert captured.get("target_repo") is not None, (
+        "Expected target repo passed to create_export_pr."
+    )
 
 
 @step("And the PR should contain the boot image file with the exported server")
@@ -420,14 +442,20 @@ def and_pr_should_contain_boot_image_file_with_exported_server() -> None:
     """Verify the exported JSON payload contains the server entry."""
 
     server_name = _scenario_state.get("server_name")
-    assert isinstance(server_name, str) and server_name, "Server name metadata is missing."
+    assert isinstance(server_name, str) and server_name, (
+        "Server name metadata is missing."
+    )
 
     captured = _scenario_state.get("github_export_capture")
     assert captured is not None, "Expected GitHub PR mock capture metadata."
 
     export_json = captured.get("export_json")
-    assert isinstance(export_json, str) and export_json.strip(), "Expected export JSON to be passed to create_export_pr."
-    assert server_name in export_json, "Expected exported server name to appear in export JSON payload."
+    assert isinstance(export_json, str) and export_json.strip(), (
+        "Expected export JSON to be passed to create_export_pr."
+    )
+    assert server_name in export_json, (
+        "Expected exported server name to appear in export JSON payload."
+    )
 
 
 @step('Given a GitHub PR with mock URL containing a server named "{}"')
@@ -455,7 +483,9 @@ def given_github_pr_with_mock_url_containing_server(server_name: str) -> None:
         },
     )
     attach_response_snapshot(export_response)
-    assert export_response.status_code == 200, "Expected export to succeed for mock PR payload."
+    assert export_response.status_code == 200, (
+        "Expected export to succeed for mock PR payload."
+    )
 
     with pr_source_app.app_context():
         export_record = next(
@@ -466,11 +496,15 @@ def given_github_pr_with_mock_url_containing_server(server_name: str) -> None:
             ),
             None,
         )
-        assert export_record is not None, "Expected a stored export payload for mock PR."
+        assert export_record is not None, (
+            "Expected a stored export payload for mock PR."
+        )
         export_payload = export_record.file_data.decode("utf-8")
 
     parsed_export = json.loads(export_payload)
-    assert isinstance(parsed_export, dict), "Mock PR export payload was not a JSON object."
+    assert isinstance(parsed_export, dict), (
+        "Mock PR export payload was not a JSON object."
+    )
 
     pr_url = "https://github.com/owner/repo/pull/123"
 
@@ -526,7 +560,9 @@ def when_i_import_from_the_github_pr_url() -> None:
     )
 
 
-@step('And executing "/imported-server" on the destination site should return "Hello from PR"')
+@step(
+    'And executing "/imported-server" on the destination site should return "Hello from PR"'
+)
 def and_executing_imported_server_returns_hello_from_pr() -> None:
     and_executing_destination_route_returns_message("/imported-server", "Hello from PR")
 
@@ -543,7 +579,10 @@ def when_i_attempt_export_to_github_pr_without_token() -> None:
     def _raise_missing_token(*args: Any, **kwargs: Any) -> Any:
         raise GitHubPRError("GitHub token is required")
 
-    patcher = patch("routes.import_export.github_pr.create_export_pr", side_effect=_raise_missing_token)
+    patcher = patch(
+        "routes.import_export.github_pr.create_export_pr",
+        side_effect=_raise_missing_token,
+    )
     patcher.start()
     _active_patchers.append(patcher)
 
@@ -569,7 +608,9 @@ def then_i_should_see_error_message(expected_message: str) -> None:
     response = _scenario_state.get("last_response")
     assert response is not None, "No response available to validate."
     body = response.get_data(as_text=True)
-    assert expected_message in body, f"Expected to find '{expected_message}' in the response body."
+    assert expected_message in body, (
+        f"Expected to find '{expected_message}' in the response body."
+    )
 
 
 @step("Given a GitHub PR URL that doesn't modify the boot image file")

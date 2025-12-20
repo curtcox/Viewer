@@ -75,7 +75,7 @@ class EntityMessages:
             'An Alias named "home" already exists.'
         """
         # Use 'An' for vowel sounds, 'A' otherwise
-        article = 'An' if entity_type[0].lower() in 'aeiou' else 'A'
+        article = "An" if entity_type[0].lower() in "aeiou" else "A"
         return f'{article} {entity_type.title()} named "{name}" already exists.'
 
     @staticmethod
@@ -110,4 +110,4 @@ class EntityMessages:
             >>> EntityMessages.bulk_updated('variables', 5)
             'Variables updated successfully! (5 items)'
         """
-        return f'{entity_type.title()} updated successfully! ({count} items)'
+        return f"{entity_type.title()} updated successfully! ({count} items)"

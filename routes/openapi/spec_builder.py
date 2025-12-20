@@ -1,4 +1,5 @@
 """OpenAPI specification builder for the Viewer application."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -73,7 +74,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/InteractionRequest"},
+                            "schema": {
+                                "$ref": "#/components/schemas/InteractionRequest"
+                            },
                             "examples": {
                                 "interaction": {
                                     "summary": "Record AI assistance for a server",
@@ -82,7 +85,7 @@ def build_openapi_spec() -> Dict[str, Any]:
                                         "entity_name": "example",
                                         "action": "ai",
                                         "message": "Trim trailing spaces",
-                                        "content": "print(\"hello world\")",
+                                        "content": 'print("hello world")',
                                     },
                                 }
                             },
@@ -94,7 +97,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                         "description": "Interaction persisted and history returned.",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": "#/components/schemas/InteractionHistory"},
+                                "schema": {
+                                    "$ref": "#/components/schemas/InteractionHistory"
+                                },
                             }
                         },
                     },
@@ -177,15 +182,21 @@ def build_openapi_spec() -> Dict[str, Any]:
                     "required": True,
                     "content": {
                         "application/x-www-form-urlencoded": {
-                            "schema": {"$ref": "#/components/schemas/AliasEnabledUpdate"}
+                            "schema": {
+                                "$ref": "#/components/schemas/AliasEnabledUpdate"
+                            }
                         },
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/AliasEnabledUpdate"}
+                            "schema": {
+                                "$ref": "#/components/schemas/AliasEnabledUpdate"
+                            }
                         },
                     },
                 },
                 "responses": {
-                    "302": redirect_response("Alias enabled state updated and browser redirected."),
+                    "302": redirect_response(
+                        "Alias enabled state updated and browser redirected."
+                    ),
                     "200": {
                         "description": "Alias enabled state updated.",
                         "content": {
@@ -239,7 +250,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": {"$ref": "#/components/schemas/AliasMatchPreviewRequest"}
+                            "schema": {
+                                "$ref": "#/components/schemas/AliasMatchPreviewRequest"
+                            }
                         }
                     },
                 },
@@ -248,7 +261,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                         "description": "Alias match evaluation results.",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": "#/components/schemas/AliasMatchPreviewResponse"}
+                                "schema": {
+                                    "$ref": "#/components/schemas/AliasMatchPreviewResponse"
+                                }
                             }
                         },
                     },
@@ -368,7 +383,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                         "description": "Analysis results describing auto-main compatibility.",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": "#/components/schemas/ServerDefinitionAnalysis"}
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServerDefinitionAnalysis"
+                                }
                             }
                         },
                     },
@@ -384,7 +401,9 @@ def build_openapi_spec() -> Dict[str, Any]:
             }
         },
         "/servers/{server_name}/upload-test-page": {
-            "parameters": [path_parameter("server_name", "Server name supplying the test form.")],
+            "parameters": [
+                path_parameter("server_name", "Server name supplying the test form.")
+            ],
             "post": {
                 "tags": ["Servers"],
                 "summary": "Upload server test page",
@@ -398,7 +417,14 @@ def build_openapi_spec() -> Dict[str, Any]:
                                     "values": {
                                         "type": "object",
                                         "description": "Default values used to pre-populate the generated form.",
-                                        "additionalProperties": {"type": ["string", "number", "boolean", "null"]},
+                                        "additionalProperties": {
+                                            "type": [
+                                                "string",
+                                                "number",
+                                                "boolean",
+                                                "null",
+                                            ]
+                                        },
                                     }
                                 },
                                 "additionalProperties": False,
@@ -411,7 +437,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                         "description": "Generated Formdown document persisted as a CID-backed upload.",
                         "content": {
                             "application/json": {
-                                "schema": {"$ref": "#/components/schemas/ServerTestUploadResponse"}
+                                "schema": {
+                                    "$ref": "#/components/schemas/ServerTestUploadResponse"
+                                }
                             }
                         },
                     },
@@ -450,7 +478,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "summary": "Create variable",
                 "requestBody": form_request_body("VariableFormSubmission"),
                 "responses": {
-                    "302": redirect_response("Variable created and browser redirected."),
+                    "302": redirect_response(
+                        "Variable created and browser redirected."
+                    ),
                     "200": html_response("Form re-rendered with validation errors."),
                 },
             },
@@ -466,8 +496,12 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "summary": "Replace variables from JSON",
                 "requestBody": form_request_body("VariablesBulkEditFormSubmission"),
                 "responses": {
-                    "302": redirect_response("Variables updated and browser redirected."),
-                    "200": html_response("Bulk editor re-rendered with validation errors."),
+                    "302": redirect_response(
+                        "Variables updated and browser redirected."
+                    ),
+                    "200": html_response(
+                        "Bulk editor re-rendered with validation errors."
+                    ),
                 },
             },
         },
@@ -496,7 +530,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "summary": "Update variable",
                 "requestBody": form_request_body("VariableFormSubmission"),
                 "responses": {
-                    "302": redirect_response("Variable updated and browser redirected."),
+                    "302": redirect_response(
+                        "Variable updated and browser redirected."
+                    ),
                     "200": html_response("Form re-rendered with validation errors."),
                 },
             },
@@ -508,7 +544,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "summary": "Delete variable",
                 "requestBody": form_request_body("DeletionConfirmation"),
                 "responses": {
-                    "302": redirect_response("Variable deleted and browser redirected."),
+                    "302": redirect_response(
+                        "Variable deleted and browser redirected."
+                    ),
                     "404": html_response("Variable not found."),
                 },
             },
@@ -553,7 +591,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "requestBody": form_request_body("SecretsBulkEditFormSubmission"),
                 "responses": {
                     "302": redirect_response("Secrets updated and browser redirected."),
-                    "200": html_response("Bulk editor re-rendered with validation errors."),
+                    "200": html_response(
+                        "Bulk editor re-rendered with validation errors."
+                    ),
                 },
             },
         },
@@ -610,7 +650,9 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "summary": "Upload CID content",
                 "requestBody": multipart_request_body("UploadFormSubmission"),
                 "responses": {
-                    "302": redirect_response("Upload processed and browser redirected to the success page."),
+                    "302": redirect_response(
+                        "Upload processed and browser redirected to the success page."
+                    ),
                     "200": html_response("Form re-rendered with validation errors."),
                 },
             },

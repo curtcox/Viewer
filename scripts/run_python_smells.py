@@ -15,6 +15,7 @@ from typing import Sequence
 @dataclass
 class SmellsConfig:
     """Configuration for Python smells analysis."""
+
     project_path: Path
     output_dir: Path
 
@@ -23,7 +24,9 @@ class SmellsError(RuntimeError):
     """Raised when the Python smells detector command fails."""
 
 
-def _run_command(command: Sequence[str], cwd: Path | None = None) -> tuple[str, str, int]:
+def _run_command(
+    command: Sequence[str], cwd: Path | None = None
+) -> tuple[str, str, int]:
     """Run a command and return stdout, stderr, and exit code."""
     try:
         result = subprocess.run(
@@ -45,46 +48,50 @@ def _run_command(command: Sequence[str], cwd: Path | None = None) -> tuple[str, 
 def _parse_smells_output(output: str) -> dict[str, int]:
     """Parse the smells output to extract summary statistics."""
     stats = {
-        'code_smells': 0,
-        'architectural_smells': 0,
-        'structural_smells': 0,
-        'total': 0
+        "code_smells": 0,
+        "architectural_smells": 0,
+        "structural_smells": 0,
+        "total": 0,
     }
 
-    lines = output.split('\n')
+    lines = output.split("\n")
     for line in lines:
         line_lower = line.lower()
         # Look for patterns in the output that indicate smell counts
-        if 'code smell' in line_lower and 'found' in line_lower:
+        if "code smell" in line_lower and "found" in line_lower:
             try:
                 # Extract number from patterns like "Found X code smells"
                 parts = line.split()
                 for i, part in enumerate(parts):
-                    if part.lower() == 'found' and i + 1 < len(parts):
-                        stats['code_smells'] = int(parts[i + 1])
+                    if part.lower() == "found" and i + 1 < len(parts):
+                        stats["code_smells"] = int(parts[i + 1])
                         break
             except (ValueError, IndexError):
                 pass
-        elif 'architectural smell' in line_lower and 'found' in line_lower:
+        elif "architectural smell" in line_lower and "found" in line_lower:
             try:
                 parts = line.split()
                 for i, part in enumerate(parts):
-                    if part.lower() == 'found' and i + 1 < len(parts):
-                        stats['architectural_smells'] = int(parts[i + 1])
+                    if part.lower() == "found" and i + 1 < len(parts):
+                        stats["architectural_smells"] = int(parts[i + 1])
                         break
             except (ValueError, IndexError):
                 pass
-        elif 'structural smell' in line_lower and 'found' in line_lower:
+        elif "structural smell" in line_lower and "found" in line_lower:
             try:
                 parts = line.split()
                 for i, part in enumerate(parts):
-                    if part.lower() == 'found' and i + 1 < len(parts):
-                        stats['structural_smells'] = int(parts[i + 1])
+                    if part.lower() == "found" and i + 1 < len(parts):
+                        stats["structural_smells"] = int(parts[i + 1])
                         break
             except (ValueError, IndexError):
                 pass
 
-    stats['total'] = stats['code_smells'] + stats['architectural_smells'] + stats['structural_smells']
+    stats["total"] = (
+        stats["code_smells"]
+        + stats["architectural_smells"]
+        + stats["structural_smells"]
+    )
     return stats
 
 
@@ -95,31 +102,35 @@ def _format_markdown_summary(stats: dict[str, int], output_text: str) -> str:
         "",
     ]
 
-    if stats['total'] == 0:
-        lines.extend([
-            "No code smells detected! 🎉",
-            "",
-            "PyExamine analyzed the codebase for:",
-            "- Code smells (e.g., long methods, large classes)",
-            "- Architectural smells (e.g., cyclic dependencies)",
-            "- Structural issues (e.g., high complexity)",
-        ])
+    if stats["total"] == 0:
+        lines.extend(
+            [
+                "No code smells detected! 🎉",
+                "",
+                "PyExamine analyzed the codebase for:",
+                "- Code smells (e.g., long methods, large classes)",
+                "- Architectural smells (e.g., cyclic dependencies)",
+                "- Structural issues (e.g., high complexity)",
+            ]
+        )
     else:
-        lines.extend([
-            f"* Found {stats['total']} total code smell(s)",
-            f"* Code smells: {stats['code_smells']}",
-            f"* Architectural smells: {stats['architectural_smells']}",
-            f"* Structural smells: {stats['structural_smells']}",
-            "",
-            "## Summary",
-            "",
-            "| Category | Count |",
-            "| --- | ---: |",
-            f"| Code Smells | {stats['code_smells']} |",
-            f"| Architectural Smells | {stats['architectural_smells']} |",
-            f"| Structural Smells | {stats['structural_smells']} |",
-            f"| **Total** | **{stats['total']}** |",
-        ])
+        lines.extend(
+            [
+                f"* Found {stats['total']} total code smell(s)",
+                f"* Code smells: {stats['code_smells']}",
+                f"* Architectural smells: {stats['architectural_smells']}",
+                f"* Structural smells: {stats['structural_smells']}",
+                "",
+                "## Summary",
+                "",
+                "| Category | Count |",
+                "| --- | ---: |",
+                f"| Code Smells | {stats['code_smells']} |",
+                f"| Architectural Smells | {stats['architectural_smells']} |",
+                f"| Structural Smells | {stats['structural_smells']} |",
+                f"| **Total** | **{stats['total']}** |",
+            ]
+        )
 
     return "\n".join(lines) + "\n"
 
@@ -128,12 +139,15 @@ def _format_html_report(stats: dict[str, int], output_text: str) -> str:
     """Format the smells findings as an HTML report."""
 
     summary_text = (
-        f"Found {stats['total']} code smell(s)." if stats['total'] > 0
+        f"Found {stats['total']} code smell(s)."
+        if stats["total"] > 0
         else "No code smells detected!"
     )
 
     # Escape the output text for HTML
-    escaped_output = escape(output_text) if output_text else "No detailed output available."
+    escaped_output = (
+        escape(output_text) if output_text else "No detailed output available."
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -166,10 +180,10 @@ def _format_html_report(stats: dict[str, int], output_text: str) -> str:
         <tr><th>Category</th><th>Count</th></tr>
       </thead>
       <tbody>
-        <tr><td>Code Smells</td><td class="numeric">{stats['code_smells']}</td></tr>
-        <tr><td>Architectural Smells</td><td class="numeric">{stats['architectural_smells']}</td></tr>
-        <tr><td>Structural Smells</td><td class="numeric">{stats['structural_smells']}</td></tr>
-        <tr><td><strong>Total</strong></td><td class="numeric"><strong>{stats['total']}</strong></td></tr>
+        <tr><td>Code Smells</td><td class="numeric">{stats["code_smells"]}</td></tr>
+        <tr><td>Architectural Smells</td><td class="numeric">{stats["architectural_smells"]}</td></tr>
+        <tr><td>Structural Smells</td><td class="numeric">{stats["structural_smells"]}</td></tr>
+        <tr><td><strong>Total</strong></td><td class="numeric"><strong>{stats["total"]}</strong></td></tr>
       </tbody>
     </table>
   </section>
@@ -231,13 +245,21 @@ def run(argv: Sequence[str] | None = None) -> int:
         # Check if output looks like an error rather than findings
         combined_output = f"{output}\n{stderr}".lower()
         error_indicators = [
-            "error:", "traceback", "exception:", "failed to",
-            "could not", "no such file", "permission denied",
-            "invalid", "cannot"
+            "error:",
+            "traceback",
+            "exception:",
+            "failed to",
+            "could not",
+            "no such file",
+            "permission denied",
+            "invalid",
+            "cannot",
         ]
 
         # If we see error indicators and have very little/no output, it's likely a real error
-        has_error_indicators = any(indicator in combined_output for indicator in error_indicators)
+        has_error_indicators = any(
+            indicator in combined_output for indicator in error_indicators
+        )
         has_minimal_output = len(output.strip()) < 50
 
         if has_error_indicators and has_minimal_output:
@@ -270,7 +292,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(markdown)
 
     # Note any issues found
-    if stats['total'] > 0:
+    if stats["total"] > 0:
         print(
             f"::warning::PyExamine found {stats['total']} code smell(s). "
             f"Review the report for details.",

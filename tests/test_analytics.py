@@ -91,10 +91,14 @@ class TestAnalytics(unittest.TestCase):
     def test_track_page_view_rolls_back_on_error(self):
         with app.test_request_context("/servers"):
             response = app.response_class(status=200)
-            with patch("analytics.should_track_page_view", return_value=True), patch(
-                "analytics.create_page_view_record",
-                side_effect=RuntimeError("boom"),
-            ), patch.object(db.session, "rollback") as rollback:
+            with (
+                patch("analytics.should_track_page_view", return_value=True),
+                patch(
+                    "analytics.create_page_view_record",
+                    side_effect=RuntimeError("boom"),
+                ),
+                patch.object(db.session, "rollback") as rollback,
+            ):
                 result = track_page_view(response)
 
         self.assertIs(result, response)
@@ -131,7 +135,9 @@ class TestAnalytics(unittest.TestCase):
         self.assertEqual(stats["popular_paths"][0].path, "/a")
         self.assertEqual(stats["popular_paths"][0].count, 2)
 
-        filtered_stats = get_history_statistics(start=now + timedelta(minutes=1, seconds=30))
+        filtered_stats = get_history_statistics(
+            start=now + timedelta(minutes=1, seconds=30)
+        )
         self.assertEqual(filtered_stats["total_views"], 1)
         self.assertEqual(filtered_stats["unique_paths"], 1)
         self.assertEqual(filtered_stats["popular_paths"][0].path, "/b")

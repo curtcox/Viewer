@@ -18,6 +18,7 @@ from cid_presenter import cid_path, format_cid
 # CID STORAGE HELPERS
 # ============================================================================
 
+
 def ensure_cid_exists(cid_value: Union[str, CID], content_bytes: bytes) -> None:
     """Ensure a CID record exists in the database, creating it if needed.
 
@@ -44,7 +45,9 @@ def ensure_cid_exists(cid_value: Union[str, CID], content_bytes: bytes) -> None:
 
     cid_record_path = cid_path(cid_str)
     try:
-        content = db_access.get_cid_by_path(cid_record_path) if cid_record_path else None
+        content = (
+            db_access.get_cid_by_path(cid_record_path) if cid_record_path else None
+        )
     except RuntimeError:
         return
 
@@ -105,13 +108,14 @@ def store_cid_from_json(json_content: str) -> str:
         >>> isinstance(cid, str)
         True
     """
-    json_bytes = json_content.encode('utf-8')
+    json_bytes = json_content.encode("utf-8")
     return store_cid_from_bytes(json_bytes)
 
 
 # ============================================================================
 # SERVER DEFINITIONS
 # ============================================================================
+
 
 def generate_all_server_definitions_json() -> str:
     """Generate JSON containing all server definitions.
@@ -157,7 +161,7 @@ def get_current_server_definitions_cid() -> str:
         CID string
     """
     json_content = generate_all_server_definitions_json()
-    json_bytes = json_content.encode('utf-8')
+    json_bytes = json_content.encode("utf-8")
     cid_value = format_cid(generate_cid(json_bytes))
 
     cid_record_path = cid_path(cid_value)
@@ -170,6 +174,7 @@ def get_current_server_definitions_cid() -> str:
 # ============================================================================
 # VARIABLE DEFINITIONS
 # ============================================================================
+
 
 def generate_all_variable_definitions_json() -> str:
     """Generate JSON containing all variable definitions.
@@ -210,7 +215,7 @@ def get_current_variable_definitions_cid() -> str:
         CID string
     """
     json_content = generate_all_variable_definitions_json()
-    json_bytes = json_content.encode('utf-8')
+    json_bytes = json_content.encode("utf-8")
     cid_value = format_cid(generate_cid(json_bytes))
 
     cid_record_path = cid_path(cid_value)
@@ -223,6 +228,7 @@ def get_current_variable_definitions_cid() -> str:
 # ============================================================================
 # SECRET DEFINITIONS
 # ============================================================================
+
 
 def generate_all_secret_definitions_json() -> str:
     """Generate JSON containing all secret definitions.
@@ -251,7 +257,7 @@ def store_secret_definitions_cid() -> str:
         CID string
     """
     json_content = generate_all_secret_definitions_json()
-    json_bytes = json_content.encode('utf-8')
+    json_bytes = json_content.encode("utf-8")
     cid_value = format_cid(generate_cid(json_bytes))
 
     ensure_cid_exists(cid_value, json_bytes)
@@ -267,7 +273,7 @@ def get_current_secret_definitions_cid() -> str:
         CID string
     """
     json_content = generate_all_secret_definitions_json()
-    json_bytes = json_content.encode('utf-8')
+    json_bytes = json_content.encode("utf-8")
     cid_value = format_cid(generate_cid(json_bytes))
 
     cid_record_path = cid_path(cid_value)

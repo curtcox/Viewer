@@ -1,4 +1,5 @@
 """Database access functions for exports."""
+
 from typing import List, Union
 
 from cid import CID as ValidatedCID
@@ -21,9 +22,4 @@ def record_export(cid: Union[str, ValidatedCID]) -> Export:
 
 def get_exports(limit: int = 100) -> List[Export]:
     """Return the most recent exports ordered from newest to oldest."""
-    return (
-        Export.query
-        .order_by(Export.created_at.desc())
-        .limit(limit)
-        .all()
-    )
+    return Export.query.order_by(Export.created_at.desc()).limit(limit).all()

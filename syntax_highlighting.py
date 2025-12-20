@@ -1,4 +1,5 @@
 """Utilities for rendering syntax-highlighted code snippets."""
+
 from __future__ import annotations
 
 from typing import Optional

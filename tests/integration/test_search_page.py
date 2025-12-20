@@ -1,4 +1,5 @@
 """Integration tests for the workspace search page."""
+
 from __future__ import annotations
 
 import pytest
@@ -24,12 +25,12 @@ def test_search_page_displays_filters_and_status(client):
     page = response.get_data(as_text=True)
     assert "Workspace Search" in page
     assert "Start typing to search the workspace." in page
-    assert "id=\"search-query\"" in page
-    assert "id=\"search-endpoint\"" in page
+    assert 'id="search-query"' in page
+    assert 'id="search-endpoint"' in page
 
     for category in _DEFAULT_CATEGORIES:
-        assert f"id=\"filter-{category}\"" in page
-        assert f"data-search-category=\"{category}\"" in page
-        assert f"data-search-count=\"{category}\"" in page
+        assert f'id="filter-{category}"' in page
+        assert f'data-search-category="{category}"' in page
+        assert f'data-search-count="{category}"' in page
 
     assert "static/js/search.js" in page

@@ -74,40 +74,40 @@ def enrich_invocation_with_links(invocation: Any) -> Any:
     servers_cid = getattr(cids, "servers", None) if cids else None
 
     invocation.invocation_link = cid_path(
-        invocation_cid or getattr(invocation, 'invocation_cid', None),
-        'json',
+        invocation_cid or getattr(invocation, "invocation_cid", None),
+        "json",
     )
     invocation.invocation_label = format_cid_short(
-        invocation_cid or getattr(invocation, 'invocation_cid', None)
+        invocation_cid or getattr(invocation, "invocation_cid", None)
     )
     invocation.request_details_link = cid_path(
-        request_cid or getattr(invocation, 'request_details_cid', None),
-        'json',
+        request_cid or getattr(invocation, "request_details_cid", None),
+        "json",
     )
     invocation.request_details_label = format_cid_short(
-        request_cid or getattr(invocation, 'request_details_cid', None)
+        request_cid or getattr(invocation, "request_details_cid", None)
     )
     invocation.result_link = cid_path(
-        result_cid or getattr(invocation, 'result_cid', None),
-        'txt',
+        result_cid or getattr(invocation, "result_cid", None),
+        "txt",
     )
     invocation.result_label = format_cid_short(
-        result_cid or getattr(invocation, 'result_cid', None)
+        result_cid or getattr(invocation, "result_cid", None)
     )
     invocation.servers_cid_link = cid_path(
-        servers_cid or getattr(invocation, 'servers_cid', None),
-        'json',
+        servers_cid or getattr(invocation, "servers_cid", None),
+        "json",
     )
     invocation.servers_cid_label = format_cid_short(
-        servers_cid or getattr(invocation, 'servers_cid', None)
+        servers_cid or getattr(invocation, "servers_cid", None)
     )
     return invocation
 
 
 def _prepare_server_form(form: Any) -> None:
     """Prepare form with request data for new server."""
-    if request.method == 'GET':
-        path_hint = request.args.get('path', '')
+    if request.method == "GET":
+        path_hint = request.args.get("path", "")
         suggested_name = derive_name_from_path(path_hint)
         if suggested_name and not form.name.data:
             form.name.data = suggested_name
@@ -115,10 +115,10 @@ def _prepare_server_form(form: Any) -> None:
 
 def _build_server_new_context(form: Any) -> dict[str, Any]:
     """Build extra context for new server form."""
-    definition_text = form.definition.data or ''
+    definition_text = form.definition.data or ""
     return {
-        'server_test_interactions': [],
-        'implementation_language': detect_server_language(definition_text),
+        "server_test_interactions": [],
+        "implementation_language": detect_server_language(definition_text),
     }
 
 
@@ -126,7 +126,9 @@ def _build_server_edit_context(form: Any, server: Server) -> dict[str, Any]:
     """Build extra context for edit server form."""
     history = get_server_definition_history(server.name)
     invocations = get_server_invocation_history(server.name)
-    definition_text = form.definition.data if form.definition.data is not None else server.definition
+    definition_text = (
+        form.definition.data if form.definition.data is not None else server.definition
+    )
     test_config = _build_server_test_config(server.name, definition_text)
 
     _, syntax_css = _highlight_definition_content(
@@ -136,23 +138,23 @@ def _build_server_edit_context(form: Any, server: Server) -> dict[str, Any]:
     )
 
     test_interactions = []
-    if test_config and test_config.get('action'):
+    if test_config and test_config.get("action"):
         test_interactions = load_interaction_history(
             EntityType.SERVER_TEST.value,
-            test_config.get('action'),
+            test_config.get("action"),
         )
 
-    upload_url = url_for('main.upload_server_test_page', server_name=server.name)
+    upload_url = url_for("main.upload_server_test_page", server_name=server.name)
 
     return {
-        'definition_history': history,
-        'server_invocations': invocations,
-        'server_invocation_count': len(invocations),
-        'server_test_config': test_config,
-        'server_test_interactions': test_interactions,
-        'syntax_css': syntax_css,
-        'implementation_language': detect_server_language(definition_text),
-        'server_test_upload_url': upload_url,
+        "definition_history": history,
+        "server_invocations": invocations,
+        "server_invocation_count": len(invocations),
+        "server_test_config": test_config,
+        "server_test_interactions": test_interactions,
+        "syntax_css": syntax_css,
+        "implementation_language": detect_server_language(definition_text),
+        "server_test_upload_url": upload_url,
     }
 
 
@@ -172,16 +174,16 @@ def _extract_server_dependencies(
         dict: Mapping with 'variables' and 'secrets' keys containing dependency lists
     """
     if not definition:
-        return {'variables': [], 'secrets': []}
+        return {"variables": [], "secrets": []}
 
     # Extract parameter names if available
     parameter_names = None
     description = describe_main_function_parameters(definition)
     if description:
         parameter_names = {
-            str(parameter.get('name'))
-            for parameter in description.get('parameters', [])
-            if isinstance(parameter, dict) and parameter.get('name')
+            str(parameter.get("name"))
+            for parameter in description.get("parameters", [])
+            if isinstance(parameter, dict) and parameter.get("name")
         }
 
     parser = ServerDefinitionParser()
@@ -189,7 +191,7 @@ def _extract_server_dependencies(
         definition,
         known_variables=known_variables,
         known_secrets=known_secrets,
-        parameter_names=parameter_names
+        parameter_names=parameter_names,
     )
 
 
@@ -210,7 +212,9 @@ def _extract_route_references(definition: str | None) -> list[str]:
 _extract_context_references = _extract_server_dependencies
 
 
-def _build_server_test_config(server_name: str | None, definition: str | None) -> dict[str, Any] | None:
+def _build_server_test_config(
+    server_name: str | None, definition: str | None
+) -> dict[str, Any] | None:
     """Create the context needed to render the server test form."""
 
     if not server_name:
@@ -221,49 +225,51 @@ def _build_server_test_config(server_name: str | None, definition: str | None) -
 
     if description:
         return {
-            'mode': ServerMode.MAIN.value,
-            'action': action_path,
-            'parameters': description.get('parameters', []),
+            "mode": ServerMode.MAIN.value,
+            "action": action_path,
+            "parameters": description.get("parameters", []),
         }
 
     return {
-        'mode': ServerMode.QUERY.value,
-        'action': action_path,
+        "mode": ServerMode.QUERY.value,
+        "action": action_path,
     }
 
 
 def _sanitize_formdown_identifier(value: str) -> str:
     """Return a safe identifier for formdown form IDs."""
 
-    candidate = (value or '').strip()
+    candidate = (value or "").strip()
     if not candidate:
-        return 'server-test-form'
+        return "server-test-form"
 
-    sanitized = re.sub(r'[^a-zA-Z0-9_-]+', '-', candidate)
-    sanitized = re.sub(r'-{2,}', '-', sanitized).strip('-')
-    return sanitized or 'server-test-form'
+    sanitized = re.sub(r"[^a-zA-Z0-9_-]+", "-", candidate)
+    sanitized = re.sub(r"-{2,}", "-", sanitized).strip("-")
+    return sanitized or "server-test-form"
 
 
 def _escape_formdown_attribute(value: str) -> str:
     """Escape attribute values for inclusion in formdown markup."""
 
     if value is None:
-        return ''
+        return ""
 
     text = str(value)
-    text = text.replace('\\', '\\\\').replace('"', '\\"')
-    text = text.replace('\r\n', '\n').replace('\r', '\n')
-    return text.replace('\n', '\\n')
+    text = text.replace("\\", "\\\\").replace('"', '\\"')
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("\n", "\\n")
 
 
-def _render_server_test_formdown(server: Server, config: dict[str, object], defaults: dict[str, str]) -> str:
+def _render_server_test_formdown(
+    server: Server, config: dict[str, object], defaults: dict[str, str]
+) -> str:
     """Build the formdown document that mirrors the inline server test form."""
 
     if not server or not config:
-        return ''
+        return ""
 
-    action = str(config.get('action') or f'/{server.name}')
-    mode = (config.get('mode') or ServerMode.QUERY.value).lower()
+    action = str(config.get("action") or f"/{server.name}")
+    mode = (config.get("mode") or ServerMode.QUERY.value).lower()
     form_id = _sanitize_formdown_identifier(f"{server.name}-test-page")
 
     normalized_defaults: dict[str, str] = {}
@@ -274,64 +280,68 @@ def _render_server_test_formdown(server: Server, config: dict[str, object], defa
 
     lines = [
         f"# Test page for /{server.name}",
-        '',
+        "",
         "This page mirrors the inline test form so you can save or reuse the same inputs later.",
-        '',
-        '```formdown',
-        f"@form[id=\"{form_id}\" action=\"{_escape_formdown_attribute(action)}\" method=\"get\"]",
-        '',
+        "",
+        "```formdown",
+        f'@form[id="{form_id}" action="{_escape_formdown_attribute(action)}" method="get"]',
+        "",
     ]
 
     if mode == ServerMode.MAIN.value:
-        parameters = config.get('parameters') or []
+        parameters = config.get("parameters") or []
         if parameters:
-            lines.extend(['## Parameters', ''])
+            lines.extend(["## Parameters", ""])
         for parameter in parameters:
             if not isinstance(parameter, dict):
                 continue
-            name = parameter.get('name')
+            name = parameter.get("name")
             if not name:
                 continue
             label = str(name)
             placeholder = f"Value for {label}"
-            value_attr = ''
-            existing_value = normalized_defaults.get(str(name), '')
-            if existing_value != '':
-                value_attr = f' value=\"{_escape_formdown_attribute(existing_value)}\"'
-            help_text = 'Required parameter.' if parameter.get('required') else 'Optional parameter.'
+            value_attr = ""
+            existing_value = normalized_defaults.get(str(name), "")
+            if existing_value != "":
+                value_attr = f' value="{_escape_formdown_attribute(existing_value)}"'
+            help_text = (
+                "Required parameter."
+                if parameter.get("required")
+                else "Optional parameter."
+            )
             attributes = (
-                f'text placeholder=\"{_escape_formdown_attribute(placeholder)}\"'
-                f'{value_attr} help=\"{_escape_formdown_attribute(help_text)}\"'
+                f'text placeholder="{_escape_formdown_attribute(placeholder)}"'
+                f'{value_attr} help="{_escape_formdown_attribute(help_text)}"'
             )
             lines.append(f"@{name}({label}): [{attributes}]")
     else:
-        lines.extend(['## Query Parameters', ''])
-        query_value = normalized_defaults.get('query', '')
-        value_attr = ''
-        if query_value != '':
-            value_attr = f' value=\"{_escape_formdown_attribute(query_value)}\"'
+        lines.extend(["## Query Parameters", ""])
+        query_value = normalized_defaults.get("query", "")
+        value_attr = ""
+        if query_value != "":
+            value_attr = f' value="{_escape_formdown_attribute(query_value)}"'
         textarea_attributes = (
-            f'textarea rows=4 placeholder=\"key=value\"{value_attr} '
-            f'help=\"Enter one key=value pair per line.\"'
+            f'textarea rows=4 placeholder="key=value"{value_attr} '
+            f'help="Enter one key=value pair per line."'
         )
         lines.append(f"@query_parameters(Query parameters): [{textarea_attributes}]")
 
-    lines.extend([
-        '',
-        '@submit_test: [submit label="Run Test"]',
-        '@reset_form: [reset label="Clear Inputs"]',
-        '```',
-        '',
-        f"Submitting this form sends a GET request to `{action}` using your server's current definition.",
-    ])
+    lines.extend(
+        [
+            "",
+            '@submit_test: [submit label="Run Test"]',
+            '@reset_form: [reset label="Clear Inputs"]',
+            "```",
+            "",
+            f"Submitting this form sends a GET request to `{action}` using your server's current definition.",
+        ]
+    )
 
-    return '\n'.join(lines).strip() + '\n'
+    return "\n".join(lines).strip() + "\n"
 
 
 def _highlight_definition_content(
-    definition: str | None,
-    history: list[dict[str, Any]],
-    server_name: str
+    definition: str | None, history: list[dict[str, Any]], server_name: str
 ) -> tuple[str | None, str | None]:
     """Return highlighted content for the current definition and history entries."""
 
@@ -352,27 +362,27 @@ def _highlight_definition_content(
         highlighted_definition, syntax_css = _highlight_text(definition)
 
     for entry in history or []:
-        highlighted, css = _highlight_text(entry.get('definition'))
-        entry['highlighted_definition'] = highlighted
+        highlighted, css = _highlight_text(entry.get("definition"))
+        entry["highlighted_definition"] = highlighted
         if not syntax_css and css:
             syntax_css = css
 
     return highlighted_definition, syntax_css
 
 
-@main_bp.route('/servers/validate-definition', methods=['POST'])
+@main_bp.route("/servers/validate-definition", methods=["POST"])
 def validate_server_definition():
     """Validate a server definition and report auto main compatibility."""
 
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
-        response = jsonify({'error': 'Request body must be JSON.'})
+        response = jsonify({"error": "Request body must be JSON."})
         response.status_code = 400
         return response
 
-    definition = payload.get('definition')
+    definition = payload.get("definition")
     if not isinstance(definition, str):
-        response = jsonify({'error': 'Definition must be provided as a string.'})
+        response = jsonify({"error": "Definition must be provided as a string."})
         response.status_code = 400
         return response
 
@@ -380,7 +390,7 @@ def validate_server_definition():
     return jsonify(analysis)
 
 
-@main_bp.route('/servers/<server_name>/upload-test-page', methods=['POST'])
+@main_bp.route("/servers/<server_name>/upload-test-page", methods=["POST"])
 def upload_server_test_page(server_name):
     """Persist a formdown page that mirrors the inline server test form."""
 
@@ -390,7 +400,7 @@ def upload_server_test_page(server_name):
 
     test_config = _build_server_test_config(server.name, server.definition)
     if not test_config:
-        response = jsonify({'error': 'Test form is not available for this server.'})
+        response = jsonify({"error": "Test form is not available for this server."})
         response.status_code = 400
         return response
 
@@ -399,42 +409,48 @@ def upload_server_test_page(server_name):
         payload = {}
 
     defaults: dict[str, str] = {}
-    values = payload.get('values')
+    values = payload.get("values")
     if isinstance(values, dict):
         for key, value in values.items():
             if value is None:
                 continue
             defaults[str(key)] = str(value)
 
-    mode = (test_config.get('mode') or 'query').lower()
+    mode = (test_config.get("mode") or "query").lower()
     if mode == ServerMode.MAIN.value:
         allowed_names = {
-            str(parameter.get('name'))
-            for parameter in test_config.get('parameters') or []
-            if isinstance(parameter, dict) and parameter.get('name')
+            str(parameter.get("name"))
+            for parameter in test_config.get("parameters") or []
+            if isinstance(parameter, dict) and parameter.get("name")
         }
-        defaults = {key: value for key, value in defaults.items() if key in allowed_names}
+        defaults = {
+            key: value for key, value in defaults.items() if key in allowed_names
+        }
     else:
-        query_value = ''
-        if isinstance(values, dict) and 'query' in values and values.get('query') is not None:
-            query_value = str(values.get('query'))
-        defaults = {'query': query_value}
+        query_value = ""
+        if (
+            isinstance(values, dict)
+            and "query" in values
+            and values.get("query") is not None
+        ):
+            query_value = str(values.get("query"))
+        defaults = {"query": query_value}
 
     document = _render_server_test_formdown(server, test_config, defaults)
     if not document:
-        response = jsonify({'error': 'Unable to generate formdown content.'})
+        response = jsonify({"error": "Unable to generate formdown content."})
         response.status_code = 400
         return response
 
-    content_bytes = document.encode('utf-8')
+    content_bytes = document.encode("utf-8")
     cid_value = _generate_and_format_cid(content_bytes)
     record_path = cid_path(cid_value)
     existing = get_cid_by_path(record_path) if record_path else None
     if not existing:
         create_cid_record(cid_value, content_bytes)
 
-    redirect_url = cid_path(cid_value, 'md.html')
-    response = jsonify({'redirect_url': redirect_url, 'cid': cid_value})
+    redirect_url = cid_path(cid_value, "md.html")
+    response = jsonify({"redirect_url": redirect_url, "cid": cid_value})
     response.status_code = 200
     return response
 
@@ -450,7 +466,7 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
         dict: Parsed snapshot data, or None if parsing fails
     """
     try:
-        content = cid.file_data.decode('utf-8')
+        content = cid.file_data.decode("utf-8")
     except (UnicodeDecodeError, AttributeError):
         return None
 
@@ -459,23 +475,26 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
     except (json.JSONDecodeError, TypeError):
         return None
 
-    if not isinstance(server_definitions, dict) or server_name not in server_definitions:
+    if (
+        not isinstance(server_definitions, dict)
+        or server_name not in server_definitions
+    ):
         return None
 
     definition_text = server_definitions[server_name]
-    definition_bytes = definition_text.encode('utf-8')
+    definition_bytes = definition_text.encode("utf-8")
     per_server_cid = _generate_and_format_cid(definition_bytes)
 
     snapshot_cid = format_cid(cid.path)
     snapshot_path = cid_path(snapshot_cid) if snapshot_cid else None
 
     return {
-        'definition': definition_text,
-        'definition_cid': per_server_cid,
-        'snapshot_cid': snapshot_cid,
-        'snapshot_path': snapshot_path,
-        'created_at': cid.created_at,
-        'is_current': False,
+        "definition": definition_text,
+        "definition_cid": per_server_cid,
+        "snapshot_cid": snapshot_cid,
+        "snapshot_path": snapshot_path,
+        "created_at": cid.created_at,
+        "is_current": False,
     }
 
 
@@ -503,7 +522,7 @@ def get_server_definition_history(server_name: str) -> list[dict[str, Any]]:
             history.append(snapshot)
 
     if history:
-        history[0]['is_current'] = True
+        history[0]["is_current"] = True
 
     return history
 
@@ -534,8 +553,8 @@ def _build_reference_links(entity_type: str, names: list[str]) -> list[dict[str,
     """
     return [
         {
-            'label': name,
-            'url': url_for(f'main.view_{entity_type}', **{f'{entity_type}_name': name}),
+            "label": name,
+            "url": url_for(f"main.view_{entity_type}", **{f"{entity_type}_name": name}),
         }
         for name in names
     ]
@@ -552,17 +571,15 @@ def _build_route_links(paths: list[str]) -> list[dict[str, str]]:
     """
     return [
         {
-            'label': path,
-            'url': path,
+            "label": path,
+            "url": path,
         }
         for path in paths
     ]
 
 
 def _build_server_row(
-    server,
-    known_variables: set[str],
-    known_secrets: set[str]
+    server, known_variables: set[str], known_secrets: set[str]
 ) -> dict[str, object]:
     """Build display data for a single server row.
 
@@ -574,7 +591,7 @@ def _build_server_row(
     Returns:
         dict: Server row data with references
     """
-    definition_text = getattr(server, 'definition', '')
+    definition_text = getattr(server, "definition", "")
     context_refs = _extract_server_dependencies(
         definition_text,
         known_variables=known_variables,
@@ -583,10 +600,12 @@ def _build_server_row(
     route_refs = _extract_route_references(definition_text)
 
     return {
-        'server': server,
-        'variables': _build_reference_links('variable', context_refs.get('variables', [])),
-        'secrets': _build_reference_links('secret', context_refs.get('secrets', [])),
-        'routes': _build_route_links(route_refs),
+        "server": server,
+        "variables": _build_reference_links(
+            "variable", context_refs.get("variables", [])
+        ),
+        "secrets": _build_reference_links("secret", context_refs.get("secrets", [])),
+        "routes": _build_route_links(route_refs),
     }
 
 
@@ -599,12 +618,10 @@ def _get_known_entity_names() -> tuple[set[str], set[str]]:
     known_variable_names = {
         str(variable.name)
         for variable in get_variables()
-        if getattr(variable, 'name', None)
+        if getattr(variable, "name", None)
     }
     known_secret_names = {
-        str(secret.name)
-        for secret in get_secrets()
-        if getattr(secret, 'name', None)
+        str(secret.name) for secret in get_secrets() if getattr(secret, "name", None)
     }
     return known_variable_names, known_secret_names
 
@@ -623,20 +640,20 @@ def _collect_named_value_candidates(
     known_secrets_set = {str(name) for name in (known_secrets or []) if name}
 
     dependencies = _extract_server_dependencies(
-        getattr(server, 'definition', ''),
+        getattr(server, "definition", ""),
         known_variables=known_variables_set,
         known_secrets=known_secrets_set,
     )
 
-    names = set(dependencies.get('variables', [])) | set(
-        dependencies.get('secrets', [])
+    names = set(dependencies.get("variables", [])) | set(
+        dependencies.get("secrets", [])
     )
 
-    description = describe_main_function_parameters(getattr(server, 'definition', ''))
+    description = describe_main_function_parameters(getattr(server, "definition", ""))
     if description:
-        for parameter in description.get('parameters', []):
-            if isinstance(parameter, dict) and parameter.get('name'):
-                names.add(str(parameter.get('name')))
+        for parameter in description.get("parameters", []):
+            if isinstance(parameter, dict) and parameter.get("name"):
+                names.add(str(parameter.get("name")))
 
     return sorted(name for name in names if name)
 
@@ -673,23 +690,23 @@ def _build_named_value_matrix(
         known_variables=variable_names,
         known_secrets=secret_names,
     )
-    source_order = ('cookies', 'variables', 'secrets')
+    source_order = ("cookies", "variables", "secrets")
 
     def _has_value(source: str, name: str) -> bool:
-        if source == 'cookies':
+        if source == "cookies":
             return name in cookie_names
-        if source == 'variables':
+        if source == "variables":
             return name in variable_names
-        if source == 'secrets':
+        if source == "secrets":
             return name in secret_names
         return False
 
     def _build_source_url(source: str, name: str) -> str:
-        if source == 'variables':
-            return url_for('main.view_variable', variable_name=name)
-        if source == 'secrets':
-            return url_for('main.view_secret_value', secret_name=name)
-        return '/cookies'
+        if source == "variables":
+            return url_for("main.view_variable", variable_name=name)
+        if source == "secrets":
+            return url_for("main.view_secret_value", secret_name=name)
+        return "/cookies"
 
     rows: list[dict[str, object]] = []
     for name in candidate_names:
@@ -699,22 +716,26 @@ def _build_named_value_matrix(
             overridden = has_value and any(
                 _has_value(prior, name) for prior in source_order[:index]
             )
-            status = 'overridden' if overridden else 'defined' if has_value else 'none'
+            status = "overridden" if overridden else "defined" if has_value else "none"
             source_entries[source] = {
-                'status': status,
-                'label': {'none': 'None', 'defined': 'Defined', 'overridden': 'Overridden'}[status],
-                'url': _build_source_url(source, name),
+                "status": status,
+                "label": {
+                    "none": "None",
+                    "defined": "Defined",
+                    "overridden": "Overridden",
+                }[status],
+                "url": _build_source_url(source, name),
             }
 
-        rows.append({'name': name, 'sources': source_entries})
+        rows.append({"name": name, "sources": source_entries})
 
     return {
-        'rows': rows,
-        'sources': source_order,
-        'status_classes': {
-            'none': 'text-muted',
-            'defined': 'text-success',
-            'overridden': 'text-warning',
+        "rows": rows,
+        "sources": source_order,
+        "status_classes": {
+            "none": "text-muted",
+            "defined": "text-success",
+            "overridden": "text-warning",
         },
     }
 
@@ -731,7 +752,7 @@ def _build_servers_list_context(servers_list: list) -> dict[str, Any]:
     context = {}
 
     if servers_list:
-        context['server_definitions_cid'] = format_cid(
+        context["server_definitions_cid"] = format_cid(
             get_current_server_definitions_cid()
         )
 
@@ -739,9 +760,11 @@ def _build_servers_list_context(servers_list: list) -> dict[str, Any]:
 
         server_rows = []
         for server in servers_list:
-            server_rows.append(_build_server_row(server, known_variables, known_secrets))
+            server_rows.append(
+                _build_server_row(server, known_variables, known_secrets)
+            )
 
-        context['server_rows'] = server_rows
+        context["server_rows"] = server_rows
 
     return context
 
@@ -766,39 +789,39 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
     )
 
     definition_references = extract_references_from_text(
-        getattr(server, 'definition', ''),
+        getattr(server, "definition", ""),
     )
 
     test_interactions = []
-    if test_config and test_config.get('action'):
+    if test_config and test_config.get("action"):
         test_interactions = load_interaction_history(
             EntityType.SERVER_TEST.value,
-            test_config.get('action'),
+            test_config.get("action"),
         )
 
     # Get UI suggestions for this server
-    ui_suggestions = get_ui_suggestions_info('servers', server.name)
+    ui_suggestions = get_ui_suggestions_info("servers", server.name)
 
     return {
-        'definition_history': history,
-        'server_invocations': invocations,
-        'server_invocation_count': len(invocations),
-        'server_test_config': test_config,
-        'server_test_interactions': test_interactions,
-        'highlighted_definition': highlighted_definition,
-        'syntax_css': syntax_css,
-        'definition_references': definition_references,
-        'ui_suggestions': ui_suggestions,
-        'implementation_language': detect_server_language(server.definition),
-        'named_value_matrix': _build_named_value_matrix(server),
+        "definition_history": history,
+        "server_invocations": invocations,
+        "server_invocation_count": len(invocations),
+        "server_test_config": test_config,
+        "server_test_interactions": test_interactions,
+        "highlighted_definition": highlighted_definition,
+        "syntax_css": syntax_css,
+        "definition_references": definition_references,
+        "ui_suggestions": ui_suggestions,
+        "implementation_language": detect_server_language(server.definition),
+        "named_value_matrix": _build_named_value_matrix(server),
     }
 
 
 # Configure and register standard CRUD routes using the factory
 _server_config = EntityRouteConfig(
     entity_class=Server,
-    entity_type='server',
-    plural_name='servers',
+    entity_type="server",
+    plural_name="servers",
     get_by_name_func=get_server_by_name,
     get_entities_func=get_servers,
     form_class=ServerForm,
@@ -806,7 +829,7 @@ _server_config = EntityRouteConfig(
     to_json_func=model_to_dict,
     build_list_context=_build_servers_list_context,
     build_view_context=_build_server_view_context,
-    form_template='server_form.html',
+    form_template="server_form.html",
     get_templates_func=get_template_servers,
     prepare_form_func=_prepare_server_form,
     build_new_context=_build_server_new_context,
@@ -828,22 +851,20 @@ def get_server_invocation_history(server_name: str) -> list[Any]:
 
     for invocation in invocations:
         enrich_invocation_with_links(invocation)
-        request_cid = getattr(invocation, 'request_details_cid', None)
+        request_cid = getattr(invocation, "request_details_cid", None)
         invocation.request_referer = (
-            referer_by_request.get(request_cid)
-            if request_cid
-            else None
+            referer_by_request.get(request_cid) if request_cid else None
         )
 
     return invocations
 
 
 __all__ = [
-    'enrich_invocation_with_links',
-    'get_server_definition_history',
-    'get_server_invocation_history',
-    'update_server_definitions_cid',
-    'list_servers',
-    'upload_server_test_page',
-    'validate_server_definition',
+    "enrich_invocation_with_links",
+    "get_server_definition_history",
+    "get_server_invocation_history",
+    "update_server_definitions_cid",
+    "list_servers",
+    "upload_server_test_page",
+    "validate_server_definition",
 ]

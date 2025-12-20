@@ -60,7 +60,10 @@ def test_resolve_variable_values_prefetches_when_possible(monkeypatch):
 
     # After decomposition, patch functions in variable_resolution module where they're used
     from server_execution import variable_resolution  # pylint: disable=no-name-in-module
-    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: False)
+
+    monkeypatch.setattr(
+        variable_resolution, "_should_skip_variable_prefetch", lambda: False
+    )
     monkeypatch.setattr(
         variable_resolution,
         "_fetch_variable_content",
@@ -76,8 +79,13 @@ def test_resolve_variable_values_prefetches_when_possible(monkeypatch):
 def test_resolve_variable_values_keeps_original_when_fetch_fails(monkeypatch):
     # After decomposition, patch functions in variable_resolution module where they're used
     from server_execution import variable_resolution  # pylint: disable=no-name-in-module
-    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: False)
-    monkeypatch.setattr(variable_resolution, "_fetch_variable_content", lambda path: None)
+
+    monkeypatch.setattr(
+        variable_resolution, "_should_skip_variable_prefetch", lambda: False
+    )
+    monkeypatch.setattr(
+        variable_resolution, "_fetch_variable_content", lambda path: None
+    )
 
     original = {"foo": "/bar"}
     result = server_execution._resolve_variable_values(original)
@@ -89,7 +97,10 @@ def test_resolve_variable_values_returns_copy_when_prefetch_skipped(monkeypatch)
     data = {"foo": "/bar"}
     # After decomposition, patch functions in variable_resolution module where they're used
     from server_execution import variable_resolution  # pylint: disable=no-name-in-module
-    monkeypatch.setattr(variable_resolution, "_should_skip_variable_prefetch", lambda: True)
+
+    monkeypatch.setattr(
+        variable_resolution, "_should_skip_variable_prefetch", lambda: True
+    )
 
     result = server_execution._resolve_variable_values(data)
 

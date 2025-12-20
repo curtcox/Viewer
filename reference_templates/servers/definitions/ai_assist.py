@@ -30,10 +30,10 @@ def _summarise_context(context_data: Any, form_summary: Any) -> str:
 
 def _get_system_prompt_from_cid(cid: str) -> str:
     """Load system prompt content from a CID.
-    
+
     Args:
         cid: The CID string of the system prompt content
-        
+
     Returns:
         The system prompt text, or a default prompt if CID cannot be loaded
     """
@@ -41,13 +41,15 @@ def _get_system_prompt_from_cid(cid: str) -> str:
     try:
         # Try importing from the app context
         from cid_storage import get_cid_content  # type: ignore
-        
+
         content = get_cid_content(cid)
         if content:
-            return content.decode('utf-8') if isinstance(content, bytes) else str(content)
+            return (
+                content.decode("utf-8") if isinstance(content, bytes) else str(content)
+            )
     except Exception:
         pass
-    
+
     # Fallback to default prompt
     return """You are a helpful AI assistant for a web application.
 Users will ask you to modify text content. Return ONLY the modified content
@@ -58,11 +60,11 @@ Just return the raw modified content exactly as it should appear."""
 
 def _lookup_system_prompt(context: dict, AI_SYSTEM_PROMPTS: str = None) -> str:
     """Lookup the appropriate system prompt based on request context.
-    
+
     Args:
         context: The context dictionary containing request information
         AI_SYSTEM_PROMPTS: JSON string mapping URL fragments to prompt CIDs
-        
+
     Returns:
         The system prompt to use for this request
     """
@@ -72,11 +74,11 @@ Users will ask you to modify text content. Return ONLY the modified content
 without any explanations, markdown formatting, or surrounding text.
 Do not add phrases like "Here is the modified version" or similar commentary.
 Just return the raw modified content exactly as it should appear."""
-    
+
     # If no AI_SYSTEM_PROMPTS configured, use default
     if not AI_SYSTEM_PROMPTS:
         return default_prompt
-    
+
     # Parse the AI_SYSTEM_PROMPTS JSON
     try:
         prompts_map = json.loads(AI_SYSTEM_PROMPTS)
@@ -84,34 +86,34 @@ Just return the raw modified content exactly as it should appear."""
             return default_prompt
     except (json.JSONDecodeError, TypeError):
         return default_prompt
-    
+
     # Extract request path from context
     request_path = None
     if isinstance(context, dict):
-        request_info = context.get('request')
+        request_info = context.get("request")
         if isinstance(request_info, dict):
-            request_path = request_info.get('path')
-    
+            request_path = request_info.get("path")
+
     # If no path found, use default from prompts_map
     if not request_path:
-        default_cid = prompts_map.get('default')
+        default_cid = prompts_map.get("default")
         if default_cid:
             return _get_system_prompt_from_cid(default_cid)
         return default_prompt
-    
+
     # Try to match URL fragments
     # Check for exact matches first, then prefix matches
     for fragment, cid in prompts_map.items():
-        if fragment == 'default':
+        if fragment == "default":
             continue
         if request_path.startswith(fragment):
             return _get_system_prompt_from_cid(cid)
-    
+
     # Fall back to default from prompts_map
-    default_cid = prompts_map.get('default')
+    default_cid = prompts_map.get("default")
     if default_cid:
         return _get_system_prompt_from_cid(default_cid)
-    
+
     return default_prompt
 
 
@@ -121,13 +123,13 @@ def _build_ai_prompt(
     target_label: str,
     context_data: dict,
     form_summary: dict,
-    system_prompt: str = None
+    system_prompt: str = None,
 ) -> tuple[str, str]:
     """Build a context-aware prompt for the AI model.
 
     The prompt is designed to guide the AI to return ONLY the modified
     content without explanations or markdown formatting.
-    
+
     Args:
         request_text: The user's requested change
         original_text: The original content to modify
@@ -135,7 +137,7 @@ def _build_ai_prompt(
         context_data: Additional context about the request
         form_summary: Summary of form fields
         system_prompt: Pre-determined system prompt to use
-        
+
     Returns:
         Tuple of (system_prompt, user_prompt)
     """
@@ -149,7 +151,7 @@ Just return the raw modified content exactly as it should appear."""
     # Build context description
     context_parts = []
     if context_data and isinstance(context_data, dict):
-        form_type = context_data.get('form', 'unknown')
+        form_type = context_data.get("form", "unknown")
         context_parts.append(f"This is from a {form_type} form")
 
     context_desc = ". ".join(context_parts) if context_parts else ""
@@ -179,7 +181,7 @@ def _call_openrouter(
     system_prompt: str,
     user_prompt: str,
     max_tokens: int,
-    temperature: float
+    temperature: float,
 ) -> str:
     """Make a request to OpenRouter API and return the response content."""
     url = "https://openrouter.ai/api/v1/chat/completions"
@@ -220,12 +222,12 @@ def _extract_code_if_wrapped(text: str) -> str:
     Some models may wrap code in ```python or ``` blocks despite instructions.
     This function extracts the actual content if that happens.
     """
-    lines = text.strip().split('\n')
+    lines = text.strip().split("\n")
 
     # Check if wrapped in code fence
-    if len(lines) > 2 and lines[0].startswith('```') and lines[-1] == '```':
+    if len(lines) > 2 and lines[0].startswith("```") and lines[-1] == "```":
         # Remove first and last lines (the fence markers)
-        return '\n'.join(lines[1:-1])
+        return "\n".join(lines[1:-1])
 
     return text
 
@@ -265,7 +267,10 @@ def _ensure_cid_editor_emails(
 
         name = user.get("name") or f"user{index + 1}"
         name_str = str(name).strip() or f"user{index + 1}"
-        local_part = "".join(ch for ch in name_str.lower() if ch.isalnum() or ch in {".", "_"}) or f"user{index + 1}"
+        local_part = (
+            "".join(ch for ch in name_str.lower() if ch.isalnum() or ch in {".", "_"})
+            or f"user{index + 1}"
+        )
         user["email"] = f"{local_part}@example.com"
 
     return json.dumps(payload)
@@ -283,7 +288,11 @@ def _ensure_logging_import(
     if "logging." not in updated_text:
         return updated_text
 
-    if re.search(r"^\s*(import\s+logging\b|from\s+logging\s+import\b)", updated_text, flags=re.MULTILINE):
+    if re.search(
+        r"^\s*(import\s+logging\b|from\s+logging\s+import\b)",
+        updated_text,
+        flags=re.MULTILINE,
+    ):
         return updated_text
 
     if (target_label or "").strip().lower() != "server definition":
@@ -297,7 +306,9 @@ def _ensure_logging_import(
     while insert_at < len(lines) and lines[insert_at].strip() == "":
         insert_at += 1
 
-    while insert_at < len(lines) and lines[insert_at].startswith("from __future__ import"):
+    while insert_at < len(lines) and lines[insert_at].startswith(
+        "from __future__ import"
+    ):
         insert_at += 1
 
     lines.insert(insert_at, "import logging")
@@ -354,7 +365,9 @@ def _ensure_server_definition_logging(
         if not candidate.strip():
             continue
         indent = candidate[: len(candidate) - len(candidate.lstrip())]
-        if len(indent) <= len(base_indent) and re.match(r"^\s*def\s+\w+\s*\(", candidate):
+        if len(indent) <= len(base_indent) and re.match(
+            r"^\s*def\s+\w+\s*\(", candidate
+        ):
             function_end = index
             break
 
@@ -387,9 +400,13 @@ def _ensure_server_definition_logging(
     if last_return_index is not None:
         if last_return_index >= insert_after:
             last_return_index += 1
-        lines.insert(last_return_index, f'{body_indent}logging.info("Finished processing")')
+        lines.insert(
+            last_return_index, f'{body_indent}logging.info("Finished processing")'
+        )
     else:
-        lines.insert(insert_after + 1, f'{body_indent}logging.info("Finished processing")')
+        lines.insert(
+            insert_after + 1, f'{body_indent}logging.info("Finished processing")'
+        )
 
     return "\n".join(lines)
 
@@ -407,7 +424,7 @@ def main(
     AI_MAX_TOKENS: str = None,
     AI_TEMPERATURE: str = None,
     AI_SYSTEM_PROMPTS: str = None,
-    context=None
+    context=None,
 ):
     """AI-powered text transformation using OpenRouter API.
 
@@ -435,24 +452,28 @@ def main(
     # Validate required parameters
     if not request_text:
         return {
-            "output": json.dumps({
-                "updated_text": original_text or "",
-                "message": "Error: No change requested",
-                "context_summary": "",
-                "error": "request_text is required"
-            }),
-            "content_type": "application/json"
+            "output": json.dumps(
+                {
+                    "updated_text": original_text or "",
+                    "message": "Error: No change requested",
+                    "context_summary": "",
+                    "error": "request_text is required",
+                }
+            ),
+            "content_type": "application/json",
         }
 
     if not OPENROUTER_API_KEY:
         return {
-            "output": json.dumps({
-                "updated_text": original_text or "",
-                "message": "Error: OPENROUTER_API_KEY not configured",
-                "context_summary": "",
-                "error": "OPENROUTER_API_KEY secret must be set"
-            }),
-            "content_type": "application/json"
+            "output": json.dumps(
+                {
+                    "updated_text": original_text or "",
+                    "message": "Error: OPENROUTER_API_KEY not configured",
+                    "context_summary": "",
+                    "error": "OPENROUTER_API_KEY secret must be set",
+                }
+            ),
+            "content_type": "application/json",
         }
 
     # Set defaults
@@ -471,7 +492,7 @@ def main(
     try:
         # Lookup the appropriate system prompt based on context
         system_prompt = _lookup_system_prompt(context, AI_SYSTEM_PROMPTS)
-        
+
         # Build prompts
         system_prompt, user_prompt = _build_ai_prompt(
             request_text=request_text,
@@ -479,7 +500,7 @@ def main(
             target_label=target_label,
             context_data=context_data,
             form_summary=form_summary,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
         )
 
         # Call OpenRouter API
@@ -489,7 +510,7 @@ def main(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             max_tokens=max_tokens,
-            temperature=temperature
+            temperature=temperature,
         )
 
         # Clean up any markdown code fences the AI may have added
@@ -519,24 +540,23 @@ def main(
             "message": f"Applied: {request_text}",
             "context_summary": _summarise_context(context_data, form_summary),
             "model_used": model,
-            "provider": provider
+            "provider": provider,
         }
 
-        return {
-            "output": json.dumps(result),
-            "content_type": "application/json"
-        }
+        return {"output": json.dumps(result), "content_type": "application/json"}
 
     except requests.exceptions.Timeout:
         # Timeout - return original text with error
         return {
-            "output": json.dumps({
-                "updated_text": original_text,
-                "message": "Error: AI request timed out (60s limit)",
-                "context_summary": _summarise_context(context_data, form_summary),
-                "error": "timeout"
-            }),
-            "content_type": "application/json"
+            "output": json.dumps(
+                {
+                    "updated_text": original_text,
+                    "message": "Error: AI request timed out (60s limit)",
+                    "context_summary": _summarise_context(context_data, form_summary),
+                    "error": "timeout",
+                }
+            ),
+            "content_type": "application/json",
         }
 
     except requests.exceptions.HTTPError as e:
@@ -548,23 +568,27 @@ def main(
             error_msg = "Rate limit exceeded - please try again later"
 
         return {
-            "output": json.dumps({
-                "updated_text": original_text,
-                "message": f"Error: {error_msg}",
-                "context_summary": _summarise_context(context_data, form_summary),
-                "error": "api_error"
-            }),
-            "content_type": "application/json"
+            "output": json.dumps(
+                {
+                    "updated_text": original_text,
+                    "message": f"Error: {error_msg}",
+                    "context_summary": _summarise_context(context_data, form_summary),
+                    "error": "api_error",
+                }
+            ),
+            "content_type": "application/json",
         }
 
     except Exception as e:
         # Unexpected error - return original text with generic error
         return {
-            "output": json.dumps({
-                "updated_text": original_text,
-                "message": f"Error: {str(e)}",
-                "context_summary": _summarise_context(context_data, form_summary),
-                "error": "unexpected_error"
-            }),
-            "content_type": "application/json"
+            "output": json.dumps(
+                {
+                    "updated_text": original_text,
+                    "message": f"Error: {str(e)}",
+                    "context_summary": _summarise_context(context_data, form_summary),
+                    "error": "unexpected_error",
+                }
+            ),
+            "content_type": "application/json",
         }

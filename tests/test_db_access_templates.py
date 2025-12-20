@@ -1,12 +1,13 @@
 """Tests for template retrieval through database access layer."""
+
 import json
 import os
 import unittest
 
 # Configure environment before importing app
-os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
-os.environ['SESSION_SECRET'] = 'test-secret-key'
-os.environ['TESTING'] = 'True'
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SESSION_SECRET"] = "test-secret-key"
+os.environ["TESTING"] = "True"
 
 from app import app
 from models import Variable, db
@@ -19,9 +20,9 @@ from db_access.secrets import get_template_secrets
 class TestDBAccessTemplates(unittest.TestCase):
     def setUp(self):
         self.app = app
-        self.app.config['TESTING'] = True
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["WTF_CSRF_ENABLED"] = False
 
         with self.app.app_context():
             db.create_all()
@@ -31,32 +32,32 @@ class TestDBAccessTemplates(unittest.TestCase):
 
         # Sample valid templates structure
         self.valid_templates = {
-            'aliases': {
-                'alias1': {
-                    'name': 'Test Alias 1',
+            "aliases": {
+                "alias1": {
+                    "name": "Test Alias 1",
                 },
-                'alias2': {
-                    'name': 'Test Alias 2',
-                }
-            },
-            'servers': {
-                'server1': {
-                    'name': 'Test Server 1',
-                }
-            },
-            'variables': {
-                'var1': {
-                    'name': 'Test Variable 1',
-                }
-            },
-            'secrets': {
-                'secret1': {
-                    'name': 'Test Secret 1',
+                "alias2": {
+                    "name": "Test Alias 2",
                 },
-                'secret2': {
-                    'name': 'Test Secret 2',
+            },
+            "servers": {
+                "server1": {
+                    "name": "Test Server 1",
                 }
-            }
+            },
+            "variables": {
+                "var1": {
+                    "name": "Test Variable 1",
+                }
+            },
+            "secrets": {
+                "secret1": {
+                    "name": "Test Secret 1",
+                },
+                "secret2": {
+                    "name": "Test Secret 2",
+                },
+            },
         }
 
     def tearDown(self):
@@ -72,10 +73,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_get_template_aliases_with_templates(self):
         """Test getting template aliases from templates variable."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -95,10 +93,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_get_template_servers_with_templates(self):
         """Test getting template servers from templates variable."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -106,7 +101,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
         self.assertEqual(len(servers), 1)
         self.assertTrue(all(s.template for s in servers))
-        self.assertEqual(servers[0].name, 'Test Server 1')
+        self.assertEqual(servers[0].name, "Test Server 1")
 
     def test_get_template_variables_empty(self):
         """Test getting template variables when no templates exist."""
@@ -116,10 +111,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_get_template_variables_with_templates(self):
         """Test getting template variables from templates variable."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -127,7 +119,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
         self.assertEqual(len(variables), 1)
         self.assertTrue(all(v.template for v in variables))
-        self.assertEqual(variables[0].name, 'Test Variable 1')
+        self.assertEqual(variables[0].name, "Test Variable 1")
 
     def test_get_template_secrets_empty(self):
         """Test getting template secrets when no templates exist."""
@@ -137,10 +129,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_get_template_secrets_with_templates(self):
         """Test getting template secrets from templates variable."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -154,10 +143,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_template_objects_have_no_id(self):
         """Test that template objects have None as ID since they're not in DB."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -169,10 +155,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_template_objects_marked_as_template(self):
         """Test that all template objects are marked with template=True."""
-        var = Variable(
-            name='templates',
-            definition=json.dumps(self.valid_templates)
-        )
+        var = Variable(name="templates", definition=json.dumps(self.valid_templates))
         db.session.add(var)
         db.session.commit()
 
@@ -188,10 +171,7 @@ class TestDBAccessTemplates(unittest.TestCase):
 
     def test_invalid_templates_variable(self):
         """Test handling of invalid templates variable."""
-        var = Variable(
-            name='templates',
-            definition='invalid json {{{'
-        )
+        var = Variable(name="templates", definition="invalid json {{{")
         db.session.add(var)
         db.session.commit()
 
@@ -203,5 +183,5 @@ class TestDBAccessTemplates(unittest.TestCase):
         self.assertEqual(len(servers), 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

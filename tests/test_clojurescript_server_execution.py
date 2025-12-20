@@ -60,16 +60,12 @@ def clojurescript_environment(monkeypatch):
     monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
     monkeypatch.setattr(db_access, "get_servers", return_servers)
 
-    def simple_success(
-        output, content_type, server_name, *, external_calls=None
-    ):  # pylint: disable=unused-argument
+    def simple_success(output, content_type, server_name, *, external_calls=None):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
 
     monkeypatch.setattr(code_execution, "_handle_successful_execution", simple_success)
 
-    def fake_run_clojurescript(
-        code, server_name, chained_input=None
-    ):  # pylint: disable=unused-argument
+    def fake_run_clojurescript(code, server_name, chained_input=None):  # pylint: disable=unused-argument
         payload = chained_input if chained_input is not None else "from-cljs"
         clojurescript_runs.append(
             {
@@ -81,9 +77,7 @@ def clojurescript_environment(monkeypatch):
         )
         return f"cljs:{payload}".encode(), 200, b""
 
-    def fake_run_bash(
-        code, server_name, chained_input=None, *, script_args=None
-    ):  # pylint: disable=unused-argument
+    def fake_run_bash(code, server_name, chained_input=None, *, script_args=None):  # pylint: disable=unused-argument
         if chained_input is not None:
             payload = chained_input
         else:
@@ -91,7 +85,9 @@ def clojurescript_environment(monkeypatch):
             payload = stripped.split()[-1] if stripped else ""
         return f"bash:{payload}".encode(), 200, b""
 
-    monkeypatch.setattr(code_execution, "_run_clojurescript_script", fake_run_clojurescript)
+    monkeypatch.setattr(
+        code_execution, "_run_clojurescript_script", fake_run_clojurescript
+    )
     monkeypatch.setattr(code_execution, "_run_bash_script", fake_run_bash)
 
     return SimpleNamespace(
@@ -106,7 +102,9 @@ def _store_python_server(cid_registry: dict[str, bytes], name: str, body: str):
 
 
 def _store_clojurescript_server(
-    cid_registry: dict[str, bytes], name: str, body: str = "(ns cljs.user)\n(defn main [])"
+    cid_registry: dict[str, bytes],
+    name: str,
+    body: str = "(ns cljs.user)\n(defn main [])",
 ):
     normalized = name.lstrip("/")
     if normalized.endswith(".cljs"):
@@ -157,7 +155,9 @@ def test_clojurescript_literal_chains_into_bash_literal(clojurescript_environmen
     assert response.get_data(as_text=True).strip() == "bash:cljs:from-cljs"
 
 
-def test_clojurescript_literal_chains_into_clojurescript_literal(clojurescript_environment):
+def test_clojurescript_literal_chains_into_clojurescript_literal(
+    clojurescript_environment,
+):
     left_cid = "cljs-left"
     right_cid = "cljs-right"
 
@@ -280,7 +280,7 @@ def test_clojurescript_literal_without_extension_executes(clojurescript_environm
     _store_clojurescript_server(
         clojurescript_environment.cid_registry,
         cljs_cid,
-        "(ns cljs.noext) (defn main [] (println \"noext\"))",
+        '(ns cljs.noext) (defn main [] (println "noext"))',
     )
 
     with app.test_request_context(f"/{cljs_cid}/next"):
@@ -295,13 +295,11 @@ def test_clojurescript_literal_with_extension_executes(clojurescript_environment
     _store_clojurescript_server(
         clojurescript_environment.cid_registry,
         f"{cljs_cid}.cljs",
-        "(ns cljs.ext) (defn main [] (println \"ext\"))",
+        '(ns cljs.ext) (defn main [] (println "ext"))',
     )
 
     with app.test_request_context(f"/{cljs_cid}.cljs/final"):
-        response = server_execution.try_server_execution(
-            f"/{cljs_cid}.cljs/final"
-        )
+        response = server_execution.try_server_execution(f"/{cljs_cid}.cljs/final")
 
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "cljs:from-cljs"

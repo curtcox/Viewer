@@ -1,4 +1,5 @@
 """Utilities for extracting cross-entity references from text content."""
+
 from __future__ import annotations
 
 import re
@@ -101,7 +102,9 @@ def _dedupe(entries: Iterable[Dict[str, str]], key: str) -> List[Dict[str, str]]
     return unique
 
 
-def _discover_alias_references(text: str, aliases: Sequence[str]) -> List[Dict[str, str]]:
+def _discover_alias_references(
+    text: str, aliases: Sequence[str]
+) -> List[Dict[str, str]]:
     matches: List[Dict[str, str]] = []
     for name in aliases:
         pattern = re.compile(rf"/{re.escape(name)}{_NAME_BOUNDARY}")
@@ -110,7 +113,9 @@ def _discover_alias_references(text: str, aliases: Sequence[str]) -> List[Dict[s
     return _dedupe(matches, "name")
 
 
-def _discover_server_references(text: str, servers: Sequence[str]) -> List[Dict[str, str]]:
+def _discover_server_references(
+    text: str, servers: Sequence[str]
+) -> List[Dict[str, str]]:
     matches: List[Dict[str, str]] = []
     for name in servers:
         patterns = [
@@ -137,7 +142,11 @@ def _discover_cid_references(text: str) -> List[Dict[str, str]]:
         return []
 
     records = get_cids_by_paths(paths)
-    matched = {format_cid(getattr(record, "path", "")) for record in records if getattr(record, "path", None)}
+    matched = {
+        format_cid(getattr(record, "path", ""))
+        for record in records
+        if getattr(record, "path", None)
+    }
     references = [_build_cid_reference(value) for value in matched if value]
     return _dedupe(references, "cid")
 

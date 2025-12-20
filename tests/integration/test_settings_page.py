@@ -1,4 +1,5 @@
 """Integration tests for the settings page."""
+
 from __future__ import annotations
 
 import pytest
@@ -38,7 +39,7 @@ def test_settings_page_displays_resource_counts_and_links(
         )
         server = Server(
             name="engine",
-            definition="print(\"ok\")",
+            definition='print("ok")',
         )
         variable = Variable(
             name="app-config",

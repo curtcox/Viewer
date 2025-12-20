@@ -1,4 +1,5 @@
 """Provide default application resources initialization."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -47,7 +48,9 @@ def _ensure_editor_servers() -> None:
     from models import Server  # pylint: disable=import-outside-toplevel
 
     editor_names = ("ai_editor", "urleditor")
-    definitions_dir = Path(__file__).parent / "reference_templates" / "servers" / "definitions"
+    definitions_dir = (
+        Path(__file__).parent / "reference_templates" / "servers" / "definitions"
+    )
 
     changed = False
 
@@ -86,7 +89,9 @@ def _ensure_cookie_editor_alias() -> None:
     from db_access import get_alias_by_name, save_entity  # pylint: disable=import-outside-toplevel
     from models import Alias  # pylint: disable=import-outside-toplevel
 
-    alias_path = Path(__file__).parent / "reference_templates" / "aliases" / "cookies.txt"
+    alias_path = (
+        Path(__file__).parent / "reference_templates" / "aliases" / "cookies.txt"
+    )
     if not alias_path.exists():
         return
 

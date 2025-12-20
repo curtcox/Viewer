@@ -1,4 +1,5 @@
 """Import orchestration and context management."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -12,7 +13,11 @@ from cid_utils import generate_cid
 from db_access import EntityInteractionRequest, record_entity_interaction, record_export
 from forms import ExportForm, ImportForm
 
-from .cid_utils import load_export_section, parse_cid_values_section, store_cid_from_bytes
+from .cid_utils import (
+    load_export_section,
+    parse_cid_values_section,
+    store_cid_from_bytes,
+)
 from .change_history import import_change_history
 from .export_engine import build_export_payload
 from .export_preview import build_export_preview
@@ -39,14 +44,16 @@ class ImportContext:
     warnings: list[str] = field(default_factory=list)
     info_messages: list[str] = field(default_factory=list)
     summaries: list[str] = field(default_factory=list)
-    secret_key: str = ''
+    secret_key: str = ""
     snapshot_export: dict[str, Any] | None = None
-    imported_names: dict[str, list[str]] = field(default_factory=lambda: {
-        'aliases': [],
-        'servers': [],
-        'variables': [],
-        'secrets': [],
-    })
+    imported_names: dict[str, list[str]] = field(
+        default_factory=lambda: {
+            "aliases": [],
+            "servers": [],
+            "variables": [],
+            "secrets": [],
+        }
+    )
 
 
 @dataclass(frozen=True)
@@ -66,7 +73,7 @@ def create_import_context(
     parsed_payload: ParsedImportPayload,
 ) -> ImportContext:
     """Create an import context from form and parsed payload."""
-    secret_key = (form.secret_key.data or '').strip()
+    secret_key = (form.secret_key.data or "").strip()
     return ImportContext(
         form=form,
         change_message=change_message,
@@ -78,11 +85,13 @@ def create_import_context(
 
 def ingest_import_cid_map(context: ImportContext) -> None:
     """Parse and optionally store CID values from the import payload."""
-    parsed_cids, cid_map_errors = parse_cid_values_section(context.data.get('cid_values'))
+    parsed_cids, cid_map_errors = parse_cid_values_section(
+        context.data.get("cid_values")
+    )
     context.errors.extend(cid_map_errors)
 
     for cid_value, content_bytes in parsed_cids.items():
-        expected_cid = format_cid(generate_cid(content_bytes)).lstrip('/')
+        expected_cid = format_cid(generate_cid(content_bytes)).lstrip("/")
         if expected_cid and cid_value != expected_cid:
             context.errors.append(
                 f'CID "{cid_value}" content did not match its hash and was skipped.'
@@ -116,7 +125,7 @@ def import_section(context: ImportContext, plan: SectionImportPlan) -> int:
     context.errors.extend(import_errors)
     if imported_count:
         label = plan.plural_label if imported_count != 1 else plan.singular_label
-        context.summaries.append(f'{imported_count} {label}')
+        context.summaries.append(f"{imported_count} {label}")
         if plan.section_key in context.imported_names:
             context.imported_names[plan.section_key].extend(imported_names)
 
@@ -128,38 +137,38 @@ def import_selected_sections(context: ImportContext) -> None:
     section_importers = [
         SectionImportPlan(
             include=context.form.include_aliases.data,
-            section_key='aliases',
+            section_key="aliases",
             importer=partial(import_aliases_with_names, cid_map=context.cid_lookup),
-            singular_label='alias',
-            plural_label='aliases',
+            singular_label="alias",
+            plural_label="aliases",
         ),
         SectionImportPlan(
             include=context.form.include_servers.data,
-            section_key='servers',
+            section_key="servers",
             importer=partial(import_servers_with_names, cid_map=context.cid_lookup),
-            singular_label='server',
-            plural_label='servers',
+            singular_label="server",
+            plural_label="servers",
         ),
         SectionImportPlan(
             include=context.form.include_variables.data,
-            section_key='variables',
+            section_key="variables",
             importer=partial(import_variables_with_names, cid_map=context.cid_lookup),
-            singular_label='variable',
-            plural_label='variables',
+            singular_label="variable",
+            plural_label="variables",
         ),
         SectionImportPlan(
             include=context.form.include_secrets.data,
-            section_key='secrets',
+            section_key="secrets",
             importer=partial(import_secrets_with_names, key=context.secret_key),
-            singular_label='secret',
-            plural_label='secrets',
+            singular_label="secret",
+            plural_label="secrets",
         ),
         SectionImportPlan(
             include=context.form.include_history.data,
-            section_key='change_history',
+            section_key="change_history",
             importer=import_change_history,
-            singular_label='history event',
-            plural_label='history events',
+            singular_label="history event",
+            plural_label="history events",
         ),
     ]
 
@@ -175,7 +184,7 @@ def handle_import_source_files(context: ImportContext) -> None:
     selected_source_categories = list(APP_SOURCE_CATEGORIES)
     app_source_section, app_source_errors, fatal = load_export_section(
         context.data,
-        'app_source',
+        "app_source",
         context.cid_lookup,
     )
     context.errors.extend(app_source_errors)
@@ -195,7 +204,7 @@ def generate_snapshot_export() -> dict[str, Any] | None:
     """Generate a snapshot export equivalent to the default export."""
     try:
         # Disable CSRF for programmatic export (may be called without request context)
-        form = ExportForm(meta={'csrf': False})
+        form = ExportForm(meta={"csrf": False})
         form.snapshot.data = True
         form.include_aliases.data = True
         form.include_servers.data = True
@@ -208,52 +217,55 @@ def generate_snapshot_export() -> dict[str, Any] | None:
 
         build_export_preview(form)
         export_result = build_export_payload(form, store_content=True)
-        record_export(export_result['cid_value'])
+        record_export(export_result["cid_value"])
         return export_result
     except RuntimeError as exc:
         import logging  # pylint: disable=import-outside-toplevel  # Lazy import for error path
+
         logger = logging.getLogger(__name__)
-        logger.warning("Failed to generate snapshot export after import: %s", exc, exc_info=True)
+        logger.warning(
+            "Failed to generate snapshot export after import: %s", exc, exc_info=True
+        )
         return None
 
 
 def finalise_import(context: ImportContext, render_form: Callable[[], Any]) -> Any:
     """Flash messages and finalize the import process."""
     for message in context.errors:
-        flash(message, 'danger')
+        flash(message, "danger")
 
     for message in context.warnings:
-        flash(message, 'warning')
+        flash(message, "warning")
 
     if context.summaries:
-        summary_text = ', '.join(context.summaries)
-        flash(f'Imported {summary_text}.', 'success')
+        summary_text = ", ".join(context.summaries)
+        flash(f"Imported {summary_text}.", "success")
 
     for message in context.info_messages:
-        flash(message, 'success')
+        flash(message, "success")
 
     snapshot_export = generate_snapshot_export()
     context.snapshot_export = snapshot_export
 
     if snapshot_export:
-        session['import_snapshot_export'] = {
-            'cid': snapshot_export['cid_value'],
+        session["import_snapshot_export"] = {
+            "cid": snapshot_export["cid_value"],
         }
     if any(context.imported_names.values()):
-        session['import_summary_names'] = context.imported_names
+        session["import_summary_names"] = context.imported_names
 
     if context.errors or context.warnings or context.summaries:
         record_entity_interaction(
             EntityInteractionRequest(
-                entity_type='import',
-                entity_name='json',
-                action='save',
+                entity_type="import",
+                entity_name="json",
+                action="save",
                 message=context.change_message,
                 content=context.raw_payload,
             )
         )
 
-        return redirect(url_for('main.import_data'))
+        return redirect(url_for("main.import_data"))
 
     return render_form(snapshot_export)
 

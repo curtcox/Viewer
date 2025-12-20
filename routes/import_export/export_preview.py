@@ -1,4 +1,5 @@
 """Export preview generation and selection management."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -25,36 +26,36 @@ def build_export_preview(
     secret_entries = preview_item_entries(get_secrets())
 
     return {
-        'aliases': _build_section(
+        "aliases": _build_section(
             alias_entries,
             include_collection=bool(form.include_aliases.data),
             include_disabled=bool(form.include_disabled_aliases.data),
             include_templates=bool(form.include_template_aliases.data),
-            label='aliases',
+            label="aliases",
             field=form.selected_aliases,
         ),
-        'servers': _build_section(
+        "servers": _build_section(
             server_entries,
             include_collection=bool(form.include_servers.data),
             include_disabled=bool(form.include_disabled_servers.data),
             include_templates=bool(form.include_template_servers.data),
-            label='servers',
+            label="servers",
             field=form.selected_servers,
         ),
-        'variables': _build_section(
+        "variables": _build_section(
             variable_entries,
             include_collection=bool(form.include_variables.data),
             include_disabled=bool(form.include_disabled_variables.data),
             include_templates=bool(form.include_template_variables.data),
-            label='variables',
+            label="variables",
             field=form.selected_variables,
         ),
-        'secrets': _build_section(
+        "secrets": _build_section(
             secret_entries,
             include_collection=bool(form.include_secrets.data),
             include_disabled=bool(form.include_disabled_secrets.data),
             include_templates=bool(form.include_template_secrets.data),
-            label='secrets',
+            label="secrets",
             field=form.selected_secrets,
         ),
     }
@@ -67,7 +68,7 @@ def _initialise_selection(
     """Initialize field choices and selection state."""
     available_names: list[str] = []
     for entry in entries:
-        name = entry.get('name')
+        name = entry.get("name")
         if not isinstance(name, str):
             continue
         cleaned = name.strip()
@@ -117,20 +118,20 @@ def _build_section(
         else []
     )
     filtered_names = {
-        item.get('name')
+        item.get("name")
         for item in filtered_items
-        if isinstance(item.get('name'), str) and item.get('name')
+        if isinstance(item.get("name"), str) and item.get("name")
     }
 
     return {
-        'label': label,
-        'include': include_collection,
-        'available': entries,
-        'selected': filtered_items,
-        'selected_names': sorted(selected_names & filtered_names, key=str.casefold),
-        'known_names': sorted(filtered_names, key=str.casefold),
-        'field_name': field.name,
-        'selection_sentinel': SELECTION_SENTINEL,
-        'empty_message': f'No {label} available for export.',
-        'not_selected_message': f'{capitalised_label} are not selected for export.',
+        "label": label,
+        "include": include_collection,
+        "available": entries,
+        "selected": filtered_items,
+        "selected_names": sorted(selected_names & filtered_names, key=str.casefold),
+        "known_names": sorted(filtered_names, key=str.casefold),
+        "field_name": field.name,
+        "selection_sentinel": SELECTION_SENTINEL,
+        "empty_message": f"No {label} available for export.",
+        "not_selected_message": f"{capitalised_label} are not selected for export.",
     }

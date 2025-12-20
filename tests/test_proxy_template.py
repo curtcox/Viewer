@@ -13,7 +13,7 @@ TEMPLATE_PATH = Path("reference_templates/servers/definitions/proxy.py")
 
 @pytest.fixture()
 def proxy_template_code():
-    return TEMPLATE_PATH.read_text(encoding='utf-8')
+    return TEMPLATE_PATH.read_text(encoding="utf-8")
 
 
 def _set_base_url(template_code: str, new_url: str) -> str:
@@ -28,7 +28,9 @@ def test_proxy_template_forwards_request(monkeypatch, proxy_template_code):
 
     captured = {}
 
-    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(
+        method, url, *, headers=None, data=None, allow_redirects=True, timeout=None
+    ):
         captured.update(
             {
                 "method": method,
@@ -39,14 +41,16 @@ def test_proxy_template_forwards_request(monkeypatch, proxy_template_code):
                 "timeout": timeout,
             }
         )
-        return SimpleNamespace(content=b"proxied", headers={"Content-Type": "application/json"})
+        return SimpleNamespace(
+            content=b"proxied", headers={"Content-Type": "application/json"}
+        )
 
     monkeypatch.setattr(requests, "request", fake_request)
 
     with app.test_request_context(
         "/servicenow/more/path/info?q=stuff",
         method="POST",
-        data=b"{\"hello\": \"world\"}",
+        data=b'{"hello": "world"}',
         headers={"Content-Type": "application/json", "X-Test": "abc"},
         base_url="https://viewer.example",
     ):
@@ -54,21 +58,21 @@ def test_proxy_template_forwards_request(monkeypatch, proxy_template_code):
         assert "Content-Length" in details["headers"]
         assert "Host" in details["headers"]
 
-        payload = {"context": {"variables": {}, "secrets": {}, "servers": {}}, "request": details}
+        payload = {
+            "context": {"variables": {}, "secrets": {}, "servers": {}},
+            "request": details,
+        }
         result = run_text_function(code, payload)
 
     assert captured["method"] == "POST"
-    assert (
-        captured["url"]
-        == "https://foo.service-now.com/api/more/path/info?q=stuff"
-    )
+    assert captured["url"] == "https://foo.service-now.com/api/more/path/info?q=stuff"
     assert captured["allow_redirects"] is False
     assert captured["timeout"] == 60
     assert captured["headers"]["Content-Type"] == "application/json"
     assert captured["headers"]["X-Test"] == "abc"
     assert "Host" not in captured["headers"]
     assert "Content-Length" not in captured["headers"]
-    assert captured["data"] == b"{\"hello\": \"world\"}"
+    assert captured["data"] == b'{"hello": "world"}'
     assert result["output"] == b"proxied"
     assert result["content_type"] == "application/json"
 
@@ -95,7 +99,9 @@ def test_proxy_template_handles_root_paths(monkeypatch, proxy_template_code):
 
     captured = {}
 
-    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(
+        method, url, *, headers=None, data=None, allow_redirects=True, timeout=None
+    ):
         captured["url"] = url
         return SimpleNamespace(content=b"root", headers={"Content-Type": "text/plain"})
 
@@ -113,12 +119,18 @@ def test_proxy_template_handles_root_paths(monkeypatch, proxy_template_code):
     assert result["content_type"] == "text/plain"
 
 
-def test_proxy_template_uses_global_variable_configuration(monkeypatch, proxy_template_code):
+def test_proxy_template_uses_global_variable_configuration(
+    monkeypatch, proxy_template_code
+):
     captured = {}
 
-    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(
+        method, url, *, headers=None, data=None, allow_redirects=True, timeout=None
+    ):
         captured.update({"method": method, "url": url})
-        return SimpleNamespace(content=b"configured", headers={"Content-Type": "application/json"})
+        return SimpleNamespace(
+            content=b"configured", headers={"Content-Type": "application/json"}
+        )
 
     monkeypatch.setattr(requests, "request", fake_request)
 
@@ -141,12 +153,18 @@ def test_proxy_template_uses_global_variable_configuration(monkeypatch, proxy_te
     assert result["content_type"] == "application/json"
 
 
-def test_proxy_template_supports_server_specific_variable(monkeypatch, proxy_template_code):
+def test_proxy_template_supports_server_specific_variable(
+    monkeypatch, proxy_template_code
+):
     captured = {}
 
-    def fake_request(method, url, *, headers=None, data=None, allow_redirects=True, timeout=None):
+    def fake_request(
+        method, url, *, headers=None, data=None, allow_redirects=True, timeout=None
+    ):
         captured["url"] = url
-        return SimpleNamespace(content=b"specific", headers={"Content-Type": "text/plain"})
+        return SimpleNamespace(
+            content=b"specific", headers={"Content-Type": "text/plain"}
+        )
 
     monkeypatch.setattr(requests, "request", fake_request)
 
@@ -155,7 +173,9 @@ def test_proxy_template_supports_server_specific_variable(monkeypatch, proxy_tem
     ):
         payload = {
             "context": {
-                "variables": {"SERVICE_NOW_BASE_TARGET_URL": "https://foo.service-now.com/api"},
+                "variables": {
+                    "SERVICE_NOW_BASE_TARGET_URL": "https://foo.service-now.com/api"
+                },
                 "secrets": {},
                 "servers": {},
             },

@@ -49,6 +49,7 @@ async def test_browser_launch(output_path: Path) -> bool:
     except Exception as e:  # pylint: disable=broad-exception-caught  # Test script needs to catch all errors
         print(f"✗ Browser launch failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -70,6 +71,7 @@ def main() -> int:
     except Exception as e:  # pylint: disable=broad-exception-caught  # Test script needs to catch all errors
         print(f"✗ Test failed with exception: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

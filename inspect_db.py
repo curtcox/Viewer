@@ -2,6 +2,7 @@
 """
 Database inspection script for the Viewer application
 """
+
 from __future__ import annotations
 
 import sys
@@ -9,7 +10,7 @@ from datetime import datetime
 
 # Add current directory to path to enable imports from the application
 # This must happen before importing app modules
-sys.path.insert(0, '.')
+sys.path.insert(0, ".")
 
 # pylint: disable=wrong-import-position
 # Rationale: sys.path manipulation required before app imports for standalone script
@@ -26,6 +27,7 @@ from db_access import (
 )
 
 app = create_app()
+
 
 def inspect_database():
     """Inspect the database and show summary information"""
@@ -72,14 +74,17 @@ def inspect_database():
         print("USER DIRECTORY:")
         print("-" * 30)
         print("User accounts are no longer stored in the local database.")
-        print("Viewer expects authentication and subscription details to be handled externally.")
+        print(
+            "Viewer expects authentication and subscription details to be handled externally."
+        )
         print()
+
 
 def show_cid_details(cid_path: str | None = None):
     """Show detailed information about a specific CID"""
     with app.app_context():
         if cid_path:
-            normalized_path = cid_path if cid_path.startswith('/') else f'/{cid_path}'
+            normalized_path = cid_path if cid_path.startswith("/") else f"/{cid_path}"
             cid = get_cid_by_path(normalized_path)
         else:
             cid = get_first_cid()
@@ -95,12 +100,13 @@ def show_cid_details(cid_path: str | None = None):
                 # Show first 100 bytes as preview
                 preview = cid.file_data[:100]
                 try:
-                    preview_text = preview.decode('utf-8', errors='replace')
+                    preview_text = preview.decode("utf-8", errors="replace")
                     print(f"Preview: {repr(preview_text)}")
                 except UnicodeDecodeError:
                     print(f"Preview (hex): {preview.hex()}")
         else:
             print("CID not found.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

@@ -1,4 +1,5 @@
 """Unit tests for server named value matrix helper."""
+
 from __future__ import annotations
 
 import unittest
@@ -13,7 +14,7 @@ class TestServerNamedValueMatrix(unittest.TestCase):
 
     def setUp(self) -> None:
         self.app = app
-        self.app.config['TESTING'] = True
+        self.app.config["TESTING"] = True
         self.app_context = self.app.app_context()
         self.app_context.push()
 
@@ -24,38 +25,34 @@ class TestServerNamedValueMatrix(unittest.TestCase):
         """Cookies should mark lower-priority sources as overridden."""
 
         server = Server(
-            name='svc',
-            definition=(
-                "def main(city, API_KEY):\n"
-                "    return {'output': city}\n"
-            ),
+            name="svc",
+            definition=("def main(city, API_KEY):\n    return {'output': city}\n"),
         )
 
-        with self.app.test_request_context('/servers/svc', headers={'Cookie': 'city=cookie-city'}):
+        with self.app.test_request_context(
+            "/servers/svc", headers={"Cookie": "city=cookie-city"}
+        ):
             matrix = _build_named_value_matrix(
                 server,
-                available_variables={'city'},
-                available_secrets={'API_KEY'},
+                available_variables={"city"},
+                available_secrets={"API_KEY"},
             )
 
-        rows = {row['name']: row for row in matrix['rows']}
-        self.assertEqual(rows['city']['sources']['cookies']['status'], 'defined')
-        self.assertEqual(rows['city']['sources']['variables']['status'], 'overridden')
-        self.assertEqual(rows['city']['sources']['secrets']['status'], 'none')
-        self.assertEqual(rows['API_KEY']['sources']['secrets']['status'], 'defined')
+        rows = {row["name"]: row for row in matrix["rows"]}
+        self.assertEqual(rows["city"]["sources"]["cookies"]["status"], "defined")
+        self.assertEqual(rows["city"]["sources"]["variables"]["status"], "overridden")
+        self.assertEqual(rows["city"]["sources"]["secrets"]["status"], "none")
+        self.assertEqual(rows["API_KEY"]["sources"]["secrets"]["status"], "defined")
 
     def test_missing_sources_are_marked_none(self):
         """Absent sources should be surfaced even when no data exists."""
 
         server = Server(
-            name='empty',
-            definition=(
-                "def main(user, TOKEN):\n"
-                "    return user\n"
-            ),
+            name="empty",
+            definition=("def main(user, TOKEN):\n    return user\n"),
         )
 
-        with self.app.test_request_context('/servers/empty'):
+        with self.app.test_request_context("/servers/empty"):
             matrix = _build_named_value_matrix(
                 server,
                 available_variables=set(),
@@ -63,11 +60,11 @@ class TestServerNamedValueMatrix(unittest.TestCase):
                 available_cookies=set(),
             )
 
-        rows = {row['name']: row for row in matrix['rows']}
-        self.assertEqual(rows['user']['sources']['variables']['status'], 'none')
-        self.assertEqual(rows['user']['sources']['secrets']['status'], 'none')
-        self.assertEqual(rows['TOKEN']['sources']['secrets']['status'], 'none')
+        rows = {row["name"]: row for row in matrix["rows"]}
+        self.assertEqual(rows["user"]["sources"]["variables"]["status"], "none")
+        self.assertEqual(rows["user"]["sources"]["secrets"]["status"], "none")
+        self.assertEqual(rows["TOKEN"]["sources"]["secrets"]["status"], "none")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -103,7 +103,9 @@ class TestReadOnlyModeArguments:
 
     def test_configure_max_cid_memory(self):
         """configure_from_args should set max CID memory."""
-        with patch.object(sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "512M"]):
+        with patch.object(
+            sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "512M"]
+        ):
             args = parse_arguments()
             configure_from_args(args)
 
@@ -111,7 +113,9 @@ class TestReadOnlyModeArguments:
 
     def test_configure_invalid_max_cid_memory(self):
         """configure_from_args should raise ValueError for invalid memory size."""
-        with patch.object(sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "invalid"]):
+        with patch.object(
+            sys, "argv", ["app.py", "--read-only", "--max-cid-memory", "invalid"]
+        ):
             args = parse_arguments()
 
             with pytest.raises(ValueError, match="Invalid --max-cid-memory value"):

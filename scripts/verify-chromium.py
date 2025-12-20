@@ -13,6 +13,7 @@ def main() -> int:
     print("=== Checking pyppeteer installation ===")
     try:
         import pyppeteer
+
         print(f"pyppeteer version: {pyppeteer.__version__}")
     except ImportError as e:
         print(f"✗ Failed to import pyppeteer: {e}")
@@ -40,6 +41,7 @@ def main() -> int:
     except Exception as e:  # pylint: disable=broad-exception-caught  # Diagnostic script needs to catch all errors
         print(f"✗ Error checking Chromium: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

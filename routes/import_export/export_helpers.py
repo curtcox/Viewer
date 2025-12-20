@@ -1,10 +1,11 @@
 """Helper functions for export operations."""
+
 from __future__ import annotations
 
 from typing import Any, Iterable
 
 
-SELECTION_SENTINEL = '__none__'
+SELECTION_SENTINEL = "__none__"
 
 
 def should_export_entry(
@@ -30,12 +31,12 @@ def preview_item_entries(records: Iterable[Any]) -> list[dict[str, Any]]:
     """Return serialisable preview entries for export-capable records."""
     entries: list[dict[str, Any]] = []
     for record in records:
-        name = getattr(record, 'name', '') or ''
-        enabled = bool(getattr(record, 'enabled', True))
-        template = bool(getattr(record, 'template', False))
-        entries.append({'name': name, 'enabled': enabled, 'template': template})
+        name = getattr(record, "name", "") or ""
+        enabled = bool(getattr(record, "enabled", True))
+        template = bool(getattr(record, "template", False))
+        entries.append({"name": name, "enabled": enabled, "template": template})
 
-    entries.sort(key=lambda entry: entry['name'].casefold())
+    entries.sort(key=lambda entry: entry["name"].casefold())
     return entries
 
 
@@ -62,8 +63,8 @@ def filter_preview_items(
     """Return preview entries that satisfy the current export filters."""
     filtered: list[dict[str, Any]] = []
     for item in items:
-        enabled = bool(item.get('enabled', True))
-        template = bool(item.get('template', False))
+        enabled = bool(item.get("enabled", True))
+        template = bool(item.get("template", False))
 
         if not should_export_entry(
             enabled,

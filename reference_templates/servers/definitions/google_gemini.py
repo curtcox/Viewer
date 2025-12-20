@@ -19,7 +19,9 @@ def main(message: str = "Hello from Viewer!", *, GEMINI_API_KEY: str, context=No
         ]
     }
 
-    response = requests.post(url, params={"key": GEMINI_API_KEY}, json=payload, timeout=60)
+    response = requests.post(
+        url, params={"key": GEMINI_API_KEY}, json=payload, timeout=60
+    )
     response.raise_for_status()
 
     data = response.json()

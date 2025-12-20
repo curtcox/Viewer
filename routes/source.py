@@ -1,4 +1,5 @@
 """Routes for browsing repository source files and database tables."""
+
 from __future__ import annotations
 
 import subprocess
@@ -43,7 +44,15 @@ def _get_all_project_files(root_path: str) -> frozenset[str]:
 
     try:
         # Get all source files recursively, excluding common non-source directories
-        exclude_dirs = {'.git', '__pycache__', '.pytest_cache', 'venv', '.venv', 'node_modules', '.tox'}
+        exclude_dirs = {
+            ".git",
+            "__pycache__",
+            ".pytest_cache",
+            "venv",
+            ".venv",
+            "node_modules",
+            ".tox",
+        }
 
         for pattern in [
             "*.py",
@@ -102,7 +111,9 @@ def get_current_commit_sha(root_path: str) -> str | None:
     return sha or None
 
 
-def _build_commit_context(root_path: str, repository_url: str | None) -> dict[str, str | None]:
+def _build_commit_context(
+    root_path: str, repository_url: str | None
+) -> dict[str, str | None]:
     """Return template context values for linking to the running commit."""
 
     sha = get_current_commit_sha(root_path)
@@ -137,7 +148,9 @@ def _build_breadcrumbs(path: str) -> List[Tuple[str, str]]:
     return breadcrumbs
 
 
-def _directory_listing(path: str, tracked_paths: Iterable[str]) -> Tuple[List[str], List[str]]:
+def _directory_listing(
+    path: str, tracked_paths: Iterable[str]
+) -> Tuple[List[str], List[str]]:
     """Return immediate subdirectories and files for a directory path."""
     prefix = f"{path}/" if path else ""
     directories: set[str] = set()
@@ -192,7 +205,11 @@ def _render_file(path: str, root_path: Path) -> Union[str, Response]:
 
     # Coverage and spec HTML reports already contain full HTML documents.
     # Serve them directly so the content is not wrapped in the source browser template.
-    html_passthrough_prefixes = ("htmlcov/", "reports/html-report/", "test-results/ai-eval-reports/")
+    html_passthrough_prefixes = (
+        "htmlcov/",
+        "reports/html-report/",
+        "test-results/ai-eval-reports/",
+    )
     if path.startswith(html_passthrough_prefixes):
         return send_file(file_path)
 

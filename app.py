@@ -8,18 +8,24 @@ from typing import Any, Optional
 try:
     import logfire
     from logfire.exceptions import LogfireConfigError
+
     LOGFIRE_AVAILABLE = True
 except ImportError:
     logfire = None  # type: ignore[assignment, misc]
+
     class LogfireConfigError(Exception):
         pass
+
     LOGFIRE_AVAILABLE = False
 
 try:
     from dotenv import load_dotenv
 except ImportError:
+
     def load_dotenv(*args: Any, **kwargs: Any) -> bool:  # type: ignore[no-redef]
         return False
+
+
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -86,9 +92,7 @@ def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
                 # inspect environment state; we tolerate any failure here to
                 # keep the application usable even when observability setup is
                 # partially misconfigured.
-                logger.warning(
-                    "Logfire %s instrumentation failed: %s", name, exc
-                )
+                logger.warning("Logfire %s instrumentation failed: %s", name, exc)
                 instrumentation_errors.append(f"{name} instrumentation failed: {exc}")
                 break
     except Exception as exc:  # pragma: no cover - defensive guard  # pylint: disable=broad-exception-caught
@@ -96,9 +100,7 @@ def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
         # inspect environment state; we tolerate any failure here to
         # keep the application usable even when observability setup is
         # partially misconfigured.
-        logger.warning(
-            "Logfire instrumentation failed: %s", exc
-        )
+        logger.warning("Logfire instrumentation failed: %s", exc)
         instrumentation_errors.append(f"instrumentation failed: {exc}")
 
     return instrumentation_errors
@@ -148,7 +150,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                 try:
                     logfire.configure(
                         code_source=logfire.CodeSource(
-                            repository='https://github.com/curtcox/Viewer',
+                            repository="https://github.com/curtcox/Viewer",
                             revision=getenv("REVISION"),
                         )
                     )
@@ -174,7 +176,6 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                         logfire_project_url = getenv("LOGFIRE_PROJECT_URL")
 
     else:
-
         logger.warning("Logfire is not enabled, skipping logfire instrumentation")
         logfire_reason = "LOGFIRE_SEND_TO_LOGFIRE not set"
 
@@ -214,20 +215,28 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         "GITHUB_REPOSITORY_URL",
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
-    flask_app.config.setdefault("CID_DIRECTORY", str(Path(flask_app.root_path) / "cids"))
+    flask_app.config.setdefault(
+        "CID_DIRECTORY", str(Path(flask_app.root_path) / "cids")
+    )
 
     # Set GIT_SHA from environment variable if provided (used in Vercel deployments)
     git_sha = os.environ.get("GIT_SHA")
     if git_sha:
         flask_app.config["GIT_SHA"] = git_sha
 
-    cid_directory_overridden = bool(config_override and "CID_DIRECTORY" in config_override)
-    load_cids_in_tests = bool(config_override and config_override.get("LOAD_CIDS_IN_TESTS"))
+    cid_directory_overridden = bool(
+        config_override and "CID_DIRECTORY" in config_override
+    )
+    load_cids_in_tests = bool(
+        config_override and config_override.get("LOAD_CIDS_IN_TESTS")
+    )
 
     if config_override:
         flask_app.config.update(config_override)
 
-    flask_app.wsgi_app = ProxyFix(flask_app.wsgi_app, x_proto=1, x_host=1)  # needed for url_for to generate with https
+    flask_app.wsgi_app = ProxyFix(
+        flask_app.wsgi_app, x_proto=1, x_host=1
+    )  # needed for url_for to generate with https
 
     flask_app.jinja_env.globals.update(
         alias_full_url=alias_full_url,
@@ -272,6 +281,7 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
 
         if ReadOnlyConfig.is_read_only_mode() and is_state_changing_request():
             from flask import abort
+
             abort(405, description="Operation not allowed in read-only mode")
 
     # Add authorization check for all requests
@@ -293,11 +303,14 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     @flask_app.context_processor
     def inject_template_helpers() -> dict[str, Any]:
         """Expose template management helpers to all templates."""
-        from template_status import get_template_link_info, generate_template_status_label
+        from template_status import (
+            get_template_link_info,
+            generate_template_status_label,
+        )
 
         return {
-            'get_template_link_info': get_template_link_info,
-            'generate_template_status_label': generate_template_status_label,
+            "get_template_link_info": get_template_link_info,
+            "generate_template_status_label": generate_template_status_label,
         }
 
     # Force registration of custom error handlers even in debug mode
@@ -309,9 +322,10 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
     # This is necessary because Flask's debug mode bypasses custom error handlers
     def force_custom_error_handling() -> None:
         """Force Flask to use our custom error handlers even in debug mode."""
+
         def enhanced_handle_exception(e: Exception) -> Any:
             # Always use our custom error handlers, even in debug mode
-            if hasattr(e, 'code') and e.code == 404:
+            if hasattr(e, "code") and e.code == 404:
                 return not_found_error(e)
             return internal_error(e)
 
@@ -338,15 +352,23 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             if not testing_mode or cid_directory_overridden or load_cids_in_tests:
                 # Try to load CIDs, but store error if it fails so we can show 500 page
                 # On Vercel/serverless, allow missing CID directory (it may not be deployed)
-                is_vercel = os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL_ENV")
-                allow_missing_cids = is_vercel or flask_app.config.get("ALLOW_MISSING_CID_DIRECTORY", False)
+                is_vercel = os.environ.get("VERCEL") == "1" or os.environ.get(
+                    "VERCEL_ENV"
+                )
+                allow_missing_cids = is_vercel or flask_app.config.get(
+                    "ALLOW_MISSING_CID_DIRECTORY", False
+                )
                 try:
-                    load_cids_from_directory(flask_app, allow_missing=allow_missing_cids)
+                    load_cids_from_directory(
+                        flask_app, allow_missing=allow_missing_cids
+                    )
                     flask_app.config["CID_LOAD_ERROR"] = None
                 except RuntimeError as e:
                     # Store the error so we can show it in a 500 error page
                     error_message = str(e)
-                    logging.error("Failed to load CIDs from directory: %s", error_message)
+                    logging.error(
+                        "Failed to load CIDs from directory: %s", error_message
+                    )
                     flask_app.config["CID_LOAD_ERROR"] = error_message
 
             if not testing_mode:
@@ -356,7 +378,11 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
                     ensure_default_resources()
                 except Exception as e:
                     # Log but don't fail - default resources are nice-to-have, not critical
-                    logging.warning("Failed to ensure default resources (non-fatal): %s", e, exc_info=True)
+                    logging.warning(
+                        "Failed to ensure default resources (non-fatal): %s",
+                        e,
+                        exc_info=True,
+                    )
 
         # Set up observability status for template context
         logfire_enabled = logfire_available
@@ -367,8 +393,12 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
             "logfire_project_url": logfire_project_url if logfire_enabled else None,
             "logfire_reason": logfire_reason,
             "langsmith_available": langsmith_enabled,
-            "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL") if langsmith_enabled else None,
-            "langsmith_reason": None if langsmith_enabled else "LANGSMITH_API_KEY not set",
+            "langsmith_project_url": getenv("LANGSMITH_PROJECT_URL")
+            if langsmith_enabled
+            else None,
+            "langsmith_reason": None
+            if langsmith_enabled
+            else "LANGSMITH_API_KEY not set",
         }
 
     return flask_app

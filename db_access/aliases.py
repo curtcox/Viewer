@@ -40,7 +40,11 @@ def get_aliases() -> List[Alias]:
 
 def get_template_aliases() -> List[Alias]:
     """Return template aliases from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES, resolve_cid_value
+    from template_manager import (
+        get_templates_for_type,
+        ENTITY_TYPE_ALIASES,
+        resolve_cid_value,
+    )
 
     templates = get_templates_for_type(ENTITY_TYPE_ALIASES)
 
@@ -52,22 +56,22 @@ def get_template_aliases() -> List[Alias]:
         # Templates are not persisted DB rows, so id remains None
         alias.id = None
         # Store the template key in a separate attribute for UI use
-        alias.template_key = template.get('key', '')
-        alias.name = template.get('name', template.get('key', ''))
+        alias.template_key = template.get("key", "")
+        alias.name = template.get("name", template.get("key", ""))
 
         # Try to get definition from various possible fields
-        definition = template.get('definition')
-        if not definition and template.get('definition_cid'):
-            definition = resolve_cid_value(template.get('definition_cid'))
-        if not definition and template.get('target_path_cid'):
-            definition = resolve_cid_value(template.get('target_path_cid'))
+        definition = template.get("definition")
+        if not definition and template.get("definition_cid"):
+            definition = resolve_cid_value(template.get("definition_cid"))
+        if not definition and template.get("target_path_cid"):
+            definition = resolve_cid_value(template.get("target_path_cid"))
 
-        alias.definition = definition or ''
+        alias.definition = definition or ""
         alias.enabled = True
         alias.template = True  # Mark as template for backwards compatibility
         alias_objects.append(alias)
 
-    return sorted(alias_objects, key=lambda a: a.name if a.name else '')
+    return sorted(alias_objects, key=lambda a: a.name if a.name else "")
 
 
 def get_alias_by_name(name: str) -> Optional[Alias]:
@@ -79,19 +83,16 @@ def get_first_alias_name() -> Optional[str]:
     """Return the first alias name ordered alphabetically."""
     # Prefer user-created aliases over the default AI helper when available.
     preferred = (
-        Alias.query
-        .filter(Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME]))
+        Alias.query.filter(
+            Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME])
+        )
         .order_by(Alias.name.asc())
         .first()
     )
     if preferred is not None:
         return preferred.name
 
-    fallback = (
-        Alias.query
-        .order_by(Alias.name.asc())
-        .first()
-    )
+    fallback = Alias.query.order_by(Alias.name.asc()).first()
     return fallback.name if fallback else None
 
 
@@ -120,11 +121,7 @@ def get_alias_by_target_path(target_path: str) -> Optional[Alias]:
     alternate = f"/{normalized.lstrip('/')}"
     candidates.add(alternate)
 
-    aliases = (
-        Alias.query
-        .order_by(Alias.id.asc())
-        .all()
-    )
+    aliases = Alias.query.order_by(Alias.id.asc()).all()
 
     variable_map = _get_variable_map()
 
@@ -224,7 +221,9 @@ def _update_existing_aliases(
             )
 
         desired_target_path = new_path
-        parsed_current = _safe_parse_definition(updated_definition, alias_name=alias.name)
+        parsed_current = _safe_parse_definition(
+            updated_definition, alias_name=alias.name
+        )
         if parsed_current:
             existing_ignore_case = parsed_current.ignore_case
             if parsed_current.target_path:

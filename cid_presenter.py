@@ -11,6 +11,7 @@ from cid import CID
 
 _CID_REFERENCE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,}$")
 
+
 def _normalize_value(value: Optional[Union[str, CID]]) -> str:
     """Return a normalized CID value without leading slashes or surrounding whitespace."""
     if value is None:
@@ -23,6 +24,7 @@ def _normalize_value(value: Optional[Union[str, CID]]) -> str:
     if stripped.startswith("/"):
         stripped = stripped.lstrip("/")
     return stripped
+
 
 def format_cid(value: Optional[Union[str, CID]]) -> str:
     """Return a canonical string representation of a CID for display."""
@@ -62,7 +64,10 @@ def is_probable_cid_path(value: Optional[str]) -> bool:
 
     return extract_cid_from_path(value) is not None
 
-def format_cid_short(value: Optional[Union[str, CID]], length: int = 6) -> Optional[str]:
+
+def format_cid_short(
+    value: Optional[Union[str, CID]], length: int = 6
+) -> Optional[str]:
     """Return a shortened CID label suitable for compact displays."""
     normalized = _normalize_value(value)
     if not normalized:
@@ -78,6 +83,7 @@ def _cid_label(normalized: str) -> str:
         return ""
     prefix = normalized[:9]
     return f"#{prefix}..."
+
 
 def render_cid_link(value: Optional[Union[str, CID]]) -> Markup:
     """Return markup for displaying a CID with navigation and quick actions."""
@@ -151,7 +157,10 @@ def render_cid_link(value: Optional[Union[str, CID]]) -> Markup:
         )
     )
 
-def cid_path(value: Optional[Union[str, CID]], extension: Optional[str] = None) -> Optional[str]:
+
+def cid_path(
+    value: Optional[Union[str, CID]], extension: Optional[str] = None
+) -> Optional[str]:
     """Return a relative path to CID content, optionally appending an extension."""
     normalized = _normalize_value(value)
     if not normalized:
@@ -165,7 +174,10 @@ def cid_path(value: Optional[Union[str, CID]], extension: Optional[str] = None) 
 
     return f"/{normalized}{suffix}"
 
-def cid_full_url(base_url: str, value: Optional[Union[str, CID]], extension: Optional[str] = None) -> Optional[str]:
+
+def cid_full_url(
+    base_url: str, value: Optional[Union[str, CID]], extension: Optional[str] = None
+) -> Optional[str]:
     """Return an absolute URL pointing at CID content using the provided base URL."""
     path = cid_path(value, extension)
     if not path:

@@ -40,13 +40,16 @@ artifacts = _load_artifacts_module()
 
 class _FakePage:  # pylint: disable=attribute-defined-outside-init
     """Mock page object that captures method calls as attributes for testing."""
+
     def __init__(self, *, allow_wait_until: bool = True) -> None:
         self._allow_wait_until = allow_wait_until
 
     async def setViewport(self, viewport: dict[str, int]) -> None:  # noqa: N802 - match pyppeteer API
         self.viewport = viewport
 
-    async def setContent(self, html_document: str, waitUntil: str | None = None) -> None:  # noqa: N802 - match pyppeteer API
+    async def setContent(
+        self, html_document: str, waitUntil: str | None = None
+    ) -> None:  # noqa: N802 - match pyppeteer API
         if not self._allow_wait_until and waitUntil is not None:
             raise TypeError("unexpected keyword argument 'waitUntil'")
         self.html_document = html_document
@@ -61,7 +64,9 @@ class _FakePage:  # pylint: disable=attribute-defined-outside-init
 
 
 class _FakeBrowser:
-    def __init__(self, captured: dict[str, object], *, page: _FakePage | None = None) -> None:
+    def __init__(
+        self, captured: dict[str, object], *, page: _FakePage | None = None
+    ) -> None:
         self._captured = captured
         self._page = page or _FakePage()
 
@@ -144,8 +149,10 @@ def test_render_browser_screenshot_falls_back_when_launch_fails(monkeypatch) -> 
     assert "chromium download failed" in error
 
 
-def test_attach_response_snapshot_generates_text_preview_for_non_html(tmp_path, monkeypatch) -> None:
-    response = _FakeResponse(body=b"{\"ok\": true}", mimetype="application/json")
+def test_attach_response_snapshot_generates_text_preview_for_non_html(
+    tmp_path, monkeypatch
+) -> None:
+    response = _FakeResponse(body=b'{"ok": true}', mimetype="application/json")
 
     attachments: list[tuple[str, str]] = []
 

@@ -1,4 +1,5 @@
 """Detailed routing explorer for individual request paths."""
+
 from __future__ import annotations
 
 import inspect
@@ -170,7 +171,9 @@ def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
     definition_url: Optional[str] = None
     if view_func is not None:
         code = getattr(view_func, "__code__", None)
-        source_path = Path(inspect.getsourcefile(view_func) or (code.co_filename if code else ""))
+        source_path = Path(
+            inspect.getsourcefile(view_func) or (code.co_filename if code else "")
+        )
         repository_root = Path(current_app.root_path)
         relative = _relative_path(source_path, repository_root)
         if relative:
@@ -191,7 +194,9 @@ def _describe_builtin_route(path: str) -> Optional[RouteResolution]:
         extra_details=definition_label,
     )
 
-    summary = f"Handled by Flask endpoint {endpoint}" if status_code == 200 else description
+    summary = (
+        f"Handled by Flask endpoint {endpoint}" if status_code == 200 else description
+    )
     return RouteResolution(
         normalized_path=path,
         final_status=status_code,
@@ -296,7 +301,9 @@ def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteReso
     function_part = segments[1] if len(segments) > 1 else None
 
     if function_part is None:
-        description = "Executes the server's main() function with the current request context."
+        description = (
+            "Executes the server's main() function with the current request context."
+        )
     elif len(segments) > 2:
         description = (
             "Extra path segments are treated as additional context. "
@@ -338,7 +345,9 @@ def _server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteReso
     )
 
 
-def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional[RouteResolution]:
+def _versioned_server_step_for(
+    path: str, existing_routes: set[str]
+) -> Optional[RouteResolution]:
     if not is_potential_versioned_server_path(path, existing_routes):
         return None
 
@@ -352,7 +361,9 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         return None
 
     try:
-        from .servers import get_server_definition_history  # lazy import to avoid cycles
+        from .servers import (
+            get_server_definition_history,
+        )  # lazy import to avoid cycles
     except ImportError:  # pragma: no cover - defensive guard
         get_server_definition_history = None  # type: ignore[assignment]
 
@@ -366,7 +377,9 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         ]
 
     if not matches:
-        description = "No server versions match this CID prefix. The request returns 404."
+        description = (
+            "No server versions match this CID prefix. The request returns 404."
+        )
         summary = "No historical server version matched the requested prefix."
         status = 404
         cid_markup = None
@@ -380,7 +393,9 @@ def _versioned_server_step_for(path: str, existing_routes: set[str]) -> Optional
         description = (
             "Loads historical server definition from uploaded snapshot and executes it."
         )
-        summary = "Executes a historical server definition matching the requested prefix."
+        summary = (
+            "Executes a historical server definition matching the requested prefix."
+        )
         status = 302
         snapshot_cid = format_cid(match.get("snapshot_cid"))
         cid_markup = render_cid_link(snapshot_cid) if snapshot_cid else None
@@ -427,7 +442,10 @@ def _cid_step_for(path: str) -> Optional[RouteResolution]:
     file_data = getattr(cid_record, "file_data", b"") or b""
     try:
         rendered = file_data.decode("utf-8", errors="replace")
-    except (AttributeError, UnicodeDecodeError):  # pragma: no cover - defensive decoding guard
+    except (
+        AttributeError,
+        UnicodeDecodeError,
+    ):  # pragma: no cover - defensive decoding guard
         rendered = ""
     first_line = rendered.splitlines()[0].strip() if rendered else ""
     definition_excerpt = _truncate_line(first_line) if first_line else None

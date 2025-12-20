@@ -1,4 +1,5 @@
 """Gauge steps for requesting pages."""
+
 from __future__ import annotations
 from getgauge.python import step
 from boot_cid_importer import import_boot_cid
@@ -13,8 +14,9 @@ from step_impl.http_helpers import (
     _perform_post_request,
     _require_app,
     _require_client,
-    _normalize_path
+    _normalize_path,
 )
+
 
 @step("When I request the page /")
 def when_i_request_home_page() -> None:
@@ -22,12 +24,10 @@ def when_i_request_home_page() -> None:
     _perform_get_request("/")
 
 
-
 @step("When I request the page /profile")
 def when_i_request_profile_page() -> None:
     """Request the profile page."""
     _perform_get_request("/profile")
-
 
 
 @step("When I request the page <path> without a user session")
@@ -38,12 +38,10 @@ def when_i_request_page_without_user(path: str) -> None:
     _perform_get_request(normalized_path)
 
 
-
 @step("When I request the page /routes")
 def when_i_request_routes_page() -> None:
     """Request the routes page."""
     _perform_get_request("/routes")
-
 
 
 @step("When I request the page /secrets")
@@ -52,12 +50,10 @@ def when_i_request_secrets_page() -> None:
     _perform_get_request("/secrets")
 
 
-
 @step("When I request the page /secrets/new")
 def when_i_request_new_secret_page() -> None:
     """Request the new secret form page."""
     _perform_get_request("/secrets/new")
-
 
 
 @step("When I request the page /server_events")
@@ -66,12 +62,10 @@ def when_i_request_server_events_page() -> None:
     _perform_get_request("/server_events")
 
 
-
 @step("When I request the page /settings")
 def when_i_request_settings_page() -> None:
     """Request the settings dashboard page."""
     _perform_get_request("/settings")
-
 
 
 @step("When I request the page /search")
@@ -80,19 +74,16 @@ def when_i_request_search_page() -> None:
     _perform_get_request("/search")
 
 
-
 @step("When I request the page /servers/new")
 def when_i_request_new_server_page() -> None:
     """Request the new server form page."""
     _perform_get_request("/servers/new")
 
 
-
-@step("When I request the page /servers/new as user \"alternate-user\"")
+@step('When I request the page /servers/new as user "alternate-user"')
 def when_i_request_servers_new_as_alternate_user() -> None:
     """Request the new server page as alternate-user."""
     _perform_get_request("/servers/new")
-
 
 
 @step("When I request the page /servers/new as user <alternate-user>")
@@ -101,12 +92,10 @@ def blvplz(arg1: str) -> None:
     _perform_get_request("/servers/new")
 
 
-
 @step("When I request the page /servers/new without a user session")
 def when_i_request_servers_new_without_user() -> None:
     """Request the new server page without a user session."""
     _perform_get_request("/servers/new")
-
 
 
 @step("When I request the page /aliases/ai")
@@ -115,19 +104,16 @@ def when_i_request_aliases_ai_page() -> None:
     _perform_get_request("/aliases/ai")
 
 
-
 @step("When I request the page /aliases")
 def when_i_request_aliases_index_page() -> None:
     """Request the aliases index page."""
     _perform_get_request("/aliases")
 
 
-
-@step("When I request the page /aliases/new as user \"alternate-user\"")
+@step('When I request the page /aliases/new as user "alternate-user"')
 def when_i_request_aliases_new_as_alternate_user() -> None:
     """Request the new alias page as alternate-user."""
     _perform_get_request("/aliases/new")
-
 
 
 @step("When I request the page /aliases/new as user <alternate-user>")
@@ -136,12 +122,10 @@ def lzzcif(arg1: str) -> None:
     _perform_get_request("/aliases/new")
 
 
-
 @step("When I request the page /aliases/new without a user session")
 def when_i_request_aliases_new_without_user() -> None:
     """Request the new alias page without a user session."""
     _perform_get_request("/aliases/new")
-
 
 
 @step("When I request the page <path>")
@@ -152,7 +136,6 @@ def when_i_request_generic_page(path: str) -> None:
     if not normalized.startswith("/"):
         normalized = f"/{normalized}"
     _perform_get_request(normalized)
-
 
 
 @step("Start the app with boot configuration")
@@ -173,13 +156,11 @@ def start_app_with_boot_configuration() -> None:
         ensure_default_resources()
 
 
-
 @step('Navigate to "<path>"')
 def navigate_to_path(path: str) -> None:
     """Navigate to the provided path using the shared client."""
 
     when_i_request_generic_page(path)
-
 
 
 @step("When I request the resource /aliases.json")
@@ -188,12 +169,10 @@ def when_i_request_aliases_json() -> None:
     _perform_get_request("/aliases.json")
 
 
-
 @step("When I request the resource /aliases.csv")
 def when_i_request_aliases_csv() -> None:
     """Request aliases as CSV."""
     _perform_get_request("/aliases.csv")
-
 
 
 @step("When I request the resource /aliases.xml")
@@ -202,12 +181,10 @@ def when_i_request_aliases_xml() -> None:
     _perform_get_request("/aliases.xml")
 
 
-
 @step("When I request the resource /servers/ai_stub.json")
 def when_i_request_servers_ai_stub_json() -> None:
     """Request ai_stub server as JSON."""
     _perform_get_request("/servers/ai_stub.json")
-
 
 
 @step("When I request the resource /servers/ai_stub.csv")
@@ -216,12 +193,10 @@ def when_i_request_servers_ai_stub_csv() -> None:
     _perform_get_request("/servers/ai_stub.csv")
 
 
-
 @step("When I request the resource /servers/ai_stub.xml")
 def when_i_request_servers_ai_stub_xml() -> None:
     """Request ai_stub server as XML."""
     _perform_get_request("/servers/ai_stub.xml")
-
 
 
 @step("When I request the resource <path> with accept header <accept_header>")
@@ -237,7 +212,6 @@ def when_i_request_resource_with_accept_header(path: str, accept_header: str) ->
     attach_response_snapshot(response)
 
 
-
 @step("When I request the resource /aliases with accept header text/plain")
 def when_i_request_aliases_with_accept_text_plain() -> None:
     """Request aliases with Accept header text/plain."""
@@ -245,7 +219,6 @@ def when_i_request_aliases_with_accept_text_plain() -> None:
     response = client.get("/aliases", headers={"Accept": "text/plain"})
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
-
 
 
 @step("When I request the resource <path>")
@@ -256,15 +229,13 @@ def when_i_request_resource(path: str) -> None:
     _perform_get_request(normalized_path)
 
 
-
 @step("When I submit a form post to <path> with payload <payload>")
 def when_i_submit_form_post(path: str, payload: str) -> None:
     """POST a payload string to the specified path."""
 
     normalized_path = _normalize_path(path)
-    payload_text = payload.strip().strip('"\'')
+    payload_text = payload.strip().strip("\"'")
     _perform_post_request(normalized_path, data={"payload": payload_text})
-
 
 
 @step("When I request the page /servers/<server_name>")
@@ -280,6 +251,7 @@ def when_i_request_server_detail_page(server_name: str) -> None:
 
 
 # Content verification steps
+
 
 @step("Given there is a server named <server_name> returning <message>")
 def given_server_exists(server_name: str, message: str) -> None:
@@ -301,13 +273,11 @@ def given_server_exists(server_name: str, message: str) -> None:
         db.session.commit()
 
 
-
 @step("Given there is a server named weather returning Weather forecast ready")
 def given_there_is_a_server_named_weather_returning_weather_forecast_ready() -> None:
     """Create a weather server fixture returning the expected message."""
 
     given_server_exists("weather", "Weather forecast ready")
-
 
 
 @step("When I request the page /servers/weather")
@@ -317,19 +287,20 @@ def pvipha() -> None:
     when_i_request_server_detail_page("weather")
 
 
-
 @step("Given the echo server is available")
 def given_echo_server_available() -> None:
     """Ensure the echo server is available in the workspace."""
-    _create_server_from_definition_file("echo", "reference_templates/servers/definitions/echo.py")
-
+    _create_server_from_definition_file(
+        "echo", "reference_templates/servers/definitions/echo.py"
+    )
 
 
 @step("Given the shell server is available")
 def given_shell_server_available() -> None:
     """Ensure the shell server is available in the workspace."""
-    _create_server_from_definition_file("shell", "reference_templates/servers/definitions/shell.py")
-
+    _create_server_from_definition_file(
+        "shell", "reference_templates/servers/definitions/shell.py"
+    )
 
 
 @step("When I request the resource /echo")
@@ -338,12 +309,10 @@ def when_i_request_echo_resource() -> None:
     _perform_get_request("/echo")
 
 
-
 @step("When I request the resource /shell")
 def when_i_request_shell_resource() -> None:
     """Request the shell resource."""
     _perform_get_request("/shell")
-
 
 
 @step("When I request the page /servers")
@@ -352,11 +321,11 @@ def when_i_request_servers_page() -> None:
     _perform_get_request("/servers")
 
 
-
 @step("When I request the page /api/routes")
 def when_i_request_api_routes_page() -> None:
     """Request the API routes page."""
     _perform_get_request("/api/routes")
+
 
 def _create_server_from_definition_file(server_name: str, definition_path: str) -> None:
     """Create a server using a definition file from reference_templates."""
@@ -365,7 +334,7 @@ def _create_server_from_definition_file(server_name: str, definition_path: str) 
     app = _require_app()
     base_dir = Path(__file__).parent.parent
     definition_file = base_dir / definition_path
-    definition = definition_file.read_text(encoding='utf-8')
+    definition = definition_file.read_text(encoding="utf-8")
 
     with app.app_context():
         existing = Server.query.filter_by(name=server_name).first()

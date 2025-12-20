@@ -1,4 +1,5 @@
 """Utility helpers for encrypting and decrypting secret values."""
+
 from __future__ import annotations
 
 import base64

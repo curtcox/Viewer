@@ -10,21 +10,23 @@ from routes.core import internal_error
 
 def debug_error_page() -> None:
     """Generate and examine error page HTML."""
-    app = create_app({
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-        'WTF_CSRF_ENABLED': False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "WTF_CSRF_ENABLED": False,
+        }
+    )
 
     with app.app_context():
         db.create_all()
 
-        with app.test_request_context('/debug-error'):
+        with app.test_request_context("/debug-error"):
             try:
                 # Import some project modules to get them in traceback
 
                 # Create an error with a good traceback
-                raise RuntimeError('Debug error for examining HTML output')
+                raise RuntimeError("Debug error for examining HTML output")
             except RuntimeError as exc:
                 html_content, status_code = internal_error(exc)
 
@@ -52,5 +54,6 @@ def debug_error_page() -> None:
                 for link in source_links:
                     print(f"  - /source/{link}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     debug_error_page()

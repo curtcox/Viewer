@@ -21,21 +21,19 @@ def configure_authorization_rejection(status_code: str):
             return AuthorizationResult(
                 allowed=False,
                 status_code=401,
-                message="Authentication required for testing"
+                message="Authentication required for testing",
             )
         if status == 403:
             return AuthorizationResult(
-                allowed=False,
-                status_code=403,
-                message="Access denied for testing"
+                allowed=False, status_code=403, message="Access denied for testing"
             )
 
         return AuthorizationResult(allowed=True)
 
     # Store the mock in scenario state so it can be used by request steps
     state = get_scenario_state()
-    state['auth_mock'] = mock_authorize
-    state['auth_status'] = status
+    state["auth_mock"] = mock_authorize
+    state["auth_status"] = status
 
 
 @step("When I request the page <path> with Accept header <accept_header>")
@@ -48,13 +46,13 @@ def request_page_with_accept_header(path: str, accept_header: str):
     state = get_scenario_state()
 
     # Check if we need to mock authorization
-    if 'auth_mock' in state:
-        with patch('app.authorize_request', side_effect=state['auth_mock']):
-            response = client.get(path, headers={'Accept': accept})
+    if "auth_mock" in state:
+        with patch("app.authorize_request", side_effect=state["auth_mock"]):
+            response = client.get(path, headers={"Accept": accept})
     else:
-        response = client.get(path, headers={'Accept': accept})
+        response = client.get(path, headers={"Accept": accept})
 
-    state['response'] = response
+    state["response"] = response
     attach_response_snapshot(response)
 
 
@@ -62,9 +60,11 @@ def request_page_with_accept_header(path: str, accept_header: str):
 def the_response_status_should_be(status_code: str):
     """Validate that the response has the expected status code."""
     expected_status = int(status_code)
-    response = get_scenario_state().get('response')
+    response = get_scenario_state().get("response")
 
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
     assert response.status_code == expected_status, (
         f"Expected HTTP {expected_status} but received {response.status_code} "
         f"for {response.request.path!r}."
@@ -74,7 +74,7 @@ def the_response_status_should_be(status_code: str):
 @step("The response should be valid JSON")
 def the_response_should_be_valid_json():
     """Validate that the response contains valid JSON."""
-    response = get_scenario_state().get('response')
+    response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
 
     try:
@@ -91,10 +91,10 @@ def post_form_data(path: str, name: str, target: str):
     target_value = target.strip().strip('"')
 
     client = get_shared_client()
-    response = client.post(path, data={'name': name_value, 'target': target_value})
+    response = client.post(path, data={"name": name_value, "target": target_value})
 
     state = get_scenario_state()
-    state['response'] = response
+    state["response"] = response
     attach_response_snapshot(response)
 
 
@@ -107,7 +107,7 @@ def post_to_aliases_new_with_test_alias():
 @step("The response status should be 401")
 def the_response_status_should_be_401():
     """Validate that the response has status code 401."""
-    response = get_scenario_state().get('response')
+    response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     assert response.status_code == 401, (
         f"Expected HTTP 401 but received {response.status_code}"
@@ -117,7 +117,7 @@ def the_response_status_should_be_401():
 @step("The response status should be 403")
 def the_response_status_should_be_403():
     """Validate that the response has status code 403."""
-    response = get_scenario_state().get('response')
+    response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     assert response.status_code == 403, (
         f"Expected HTTP 403 but received {response.status_code}"

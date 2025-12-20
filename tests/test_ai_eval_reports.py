@@ -11,7 +11,10 @@ import json
 
 import requests
 
-from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
+from server_execution.external_call_tracking import (
+    capture_external_calls,
+    sanitize_external_calls,
+)
 
 
 class TestAIInteractionTracker:
@@ -24,17 +27,17 @@ class TestAIInteractionTracker:
 
         tracker = AIInteractionTracker()
 
-        payload = {'request_text': 'test', 'original_text': 'original'}
-        response = {'updated_text': 'modified'}
+        payload = {"request_text": "test", "original_text": "original"}
+        response = {"updated_text": "modified"}
 
         tracker.record(payload, response, 200)
 
         assert len(tracker.interactions) == 1
-        assert tracker.interactions[0]['request'] == payload
-        assert tracker.interactions[0]['response'] == response
-        assert tracker.interactions[0]['status'] == 200
-        assert 'timestamp' in tracker.interactions[0]
-        assert tracker.interactions[0]['external_calls'] == []
+        assert tracker.interactions[0]["request"] == payload
+        assert tracker.interactions[0]["response"] == response
+        assert tracker.interactions[0]["status"] == 200
+        assert "timestamp" in tracker.interactions[0]
+        assert tracker.interactions[0]["external_calls"] == []
 
     def test_tracker_records_external_calls(self):
         """Test that tracker includes external calls when provided."""
@@ -42,24 +45,25 @@ class TestAIInteractionTracker:
 
         tracker = AIInteractionTracker()
 
-        external_calls = [{
-            'request': {
-                'method': 'POST',
-                'url': 'https://openrouter.ai/api/v1/chat/completions',
-                'headers': {'Authorization': 'Bearer <secret:OPENROUTER_API_KEY>'},
-                'json': {'model': 'test-model'}
-            },
-            'response': {
-                'status_code': 200,
-                'body': '{"choices": []}'
+        external_calls = [
+            {
+                "request": {
+                    "method": "POST",
+                    "url": "https://openrouter.ai/api/v1/chat/completions",
+                    "headers": {"Authorization": "Bearer <secret:OPENROUTER_API_KEY>"},
+                    "json": {"model": "test-model"},
+                },
+                "response": {"status_code": 200, "body": '{"choices": []}'},
             }
-        }]
+        ]
 
-        tracker.record({'test': 'payload'}, {'test': 'response'}, 200, external_calls)
+        tracker.record({"test": "payload"}, {"test": "response"}, 200, external_calls)
 
         assert len(tracker.interactions) == 1
-        assert len(tracker.interactions[0]['external_calls']) == 1
-        assert tracker.interactions[0]['external_calls'][0]['request']['method'] == 'POST'
+        assert len(tracker.interactions[0]["external_calls"]) == 1
+        assert (
+            tracker.interactions[0]["external_calls"][0]["request"]["method"] == "POST"
+        )
 
     def test_tracker_callable_uses_pending_calls(self):
         """Test that __call__ uses pending external calls from call_with_capture."""
@@ -68,14 +72,16 @@ class TestAIInteractionTracker:
         tracker = AIInteractionTracker()
 
         # Simulate pending calls (as would be set by call_with_capture)
-        pending_calls = [{'request': {'method': 'GET', 'url': 'http://test.com'}, 'response': {}}]
+        pending_calls = [
+            {"request": {"method": "GET", "url": "http://test.com"}, "response": {}}
+        ]
         tracker._pending_external_calls = pending_calls
 
         # Call tracker without explicit external_calls
-        tracker({'test': 'payload'}, {'test': 'response'}, 200)
+        tracker({"test": "payload"}, {"test": "response"}, 200)
 
         assert len(tracker.interactions) == 1
-        assert len(tracker.interactions[0]['external_calls']) == 1
+        assert len(tracker.interactions[0]["external_calls"]) == 1
         assert not tracker._pending_external_calls  # Should be cleared
 
     def test_tracker_callable_clears_pending_after_use(self):
@@ -83,9 +89,9 @@ class TestAIInteractionTracker:
         from tests.ai_use_cases.conftest import AIInteractionTracker
 
         tracker = AIInteractionTracker()
-        tracker._pending_external_calls = [{'test': 'call'}]
+        tracker._pending_external_calls = [{"test": "call"}]
 
-        tracker({'test': 'payload'}, {'test': 'response'}, 200)
+        tracker({"test": "payload"}, {"test": "response"}, 200)
 
         assert not tracker._pending_external_calls
 
@@ -94,7 +100,7 @@ class TestAIInteractionTracker:
         from tests.ai_use_cases.conftest import AIInteractionTracker
 
         tracker = AIInteractionTracker()
-        secrets = {'API_KEY': 'secret-value-123'}
+        secrets = {"API_KEY": "secret-value-123"}
         tracker.set_secrets(secrets)
 
         assert tracker._secrets == secrets
@@ -105,11 +111,12 @@ class TestExternalCallCapture:
 
     def test_capture_external_calls_basic(self, monkeypatch):
         """Test basic external call capture."""
+
         def fake_request(self, method, url, **kwargs):
             response = requests.Response()
             response.status_code = 200
             response._content = b'{"result": "ok"}'
-            response.headers = {'Content-Type': 'application/json'}
+            response.headers = {"Content-Type": "application/json"}
             response.url = url
             return response
 
@@ -120,13 +127,13 @@ class TestExternalCallCapture:
             session.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 json={"model": "test"},
-                headers={"Authorization": "Bearer test-key"}
+                headers={"Authorization": "Bearer test-key"},
             )
 
         assert len(call_log) == 1
-        assert call_log[0]['request']['method'] == 'POST'
-        assert 'openrouter.ai' in call_log[0]['request']['url']
-        assert call_log[0]['response']['status_code'] == 200
+        assert call_log[0]["request"]["method"] == "POST"
+        assert "openrouter.ai" in call_log[0]["request"]["url"]
+        assert call_log[0]["response"]["status_code"] == 200
 
     def test_sanitize_redacts_api_key(self, monkeypatch):
         """Test that API keys are properly redacted."""
@@ -146,15 +153,17 @@ class TestExternalCallCapture:
             session = requests.Session()
             session.post(
                 "https://openrouter.ai/api/v1/chat/completions",
-                headers={"Authorization": f"Bearer {secret_key}"}
+                headers={"Authorization": f"Bearer {secret_key}"},
             )
 
-        sanitized = sanitize_external_calls(call_log, {"OPENROUTER_API_KEY": secret_key})
+        sanitized = sanitize_external_calls(
+            call_log, {"OPENROUTER_API_KEY": secret_key}
+        )
 
         # API key should be redacted
-        auth_header = sanitized[0]['request']['headers'].get('Authorization', '')
+        auth_header = sanitized[0]["request"]["headers"].get("Authorization", "")
         assert secret_key not in auth_header
-        assert '<secret:OPENROUTER_API_KEY>' in auth_header
+        assert "<secret:OPENROUTER_API_KEY>" in auth_header
 
 
 class TestReportGeneration:
@@ -165,63 +174,60 @@ class TestReportGeneration:
         from scripts.generate_ai_eval_reports import format_external_call_html
 
         call = {
-            'request': {
-                'method': 'POST',
-                'url': 'https://openrouter.ai/api/v1/chat/completions',
-                'headers': {'Authorization': 'Bearer <secret:OPENROUTER_API_KEY>'},
-                'json': {'model': 'anthropic/claude-sonnet-4.5', 'messages': []},
-                'timeout': 60
+            "request": {
+                "method": "POST",
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "headers": {"Authorization": "Bearer <secret:OPENROUTER_API_KEY>"},
+                "json": {"model": "anthropic/claude-sonnet-4.5", "messages": []},
+                "timeout": 60,
             },
-            'response': {
-                'status_code': 200,
-                'headers': {'content-type': 'application/json'},
-                'body': '{"choices": [{"message": {"content": "Hello!"}}]}'
-            }
+            "response": {
+                "status_code": 200,
+                "headers": {"content-type": "application/json"},
+                "body": '{"choices": [{"message": {"content": "Hello!"}}]}',
+            },
         }
 
         html_output = format_external_call_html(call, 1)
 
         # Check that key elements are present
-        assert 'API Call 1' in html_output
-        assert 'POST' in html_output
-        assert 'openrouter.ai' in html_output
-        assert 'Authorization' in html_output
-        assert 'Status:' in html_output
-        assert '200' in html_output
+        assert "API Call 1" in html_output
+        assert "POST" in html_output
+        assert "openrouter.ai" in html_output
+        assert "Authorization" in html_output
+        assert "Status:" in html_output
+        assert "200" in html_output
 
     def test_format_external_call_html_redacted_key(self):
         """Test that redacted API keys appear correctly in HTML."""
         from scripts.generate_ai_eval_reports import format_external_call_html
 
         call = {
-            'request': {
-                'method': 'POST',
-                'url': 'https://openrouter.ai/api/v1/chat/completions',
-                'headers': {'Authorization': 'Bearer <secret:OPENROUTER_API_KEY>'},
-                'json': {}
+            "request": {
+                "method": "POST",
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "headers": {"Authorization": "Bearer <secret:OPENROUTER_API_KEY>"},
+                "json": {},
             },
-            'response': {
-                'status_code': 200,
-                'body': '{}'
-            }
+            "response": {"status_code": 200, "body": "{}"},
         }
 
         html_output = format_external_call_html(call, 1)
 
         # Verify Authorization header is rendered (format may vary based on redaction)
-        assert 'Authorization' in html_output
+        assert "Authorization" in html_output
         # Should not contain actual API key patterns
-        assert 'sk-or-' not in html_output
+        assert "sk-or-" not in html_output
 
     def test_format_external_calls_section_empty(self):
         """Test that empty external calls returns empty string."""
         from scripts.generate_ai_eval_reports import format_external_calls_section
 
         result = format_external_calls_section([])
-        assert result == ''
+        assert result == ""
 
         result = format_external_calls_section(None)
-        assert result == ''
+        assert result == ""
 
     def test_format_external_calls_section_with_calls(self):
         """Test formatting multiple external calls."""
@@ -229,34 +235,34 @@ class TestReportGeneration:
 
         calls = [
             {
-                'request': {'method': 'POST', 'url': 'https://api1.com'},
-                'response': {'status_code': 200, 'body': '{}'}
+                "request": {"method": "POST", "url": "https://api1.com"},
+                "response": {"status_code": 200, "body": "{}"},
             },
             {
-                'request': {'method': 'GET', 'url': 'https://api2.com'},
-                'response': {'status_code': 201, 'body': '{}'}
-            }
+                "request": {"method": "GET", "url": "https://api2.com"},
+                "response": {"status_code": 201, "body": "{}"},
+            },
         ]
 
         html = format_external_calls_section(calls)
 
-        assert 'OpenRouter API Details' in html
-        assert 'API Call 1' in html
-        assert 'API Call 2' in html
+        assert "OpenRouter API Details" in html
+        assert "API Call 1" in html
+        assert "API Call 2" in html
 
     def test_format_external_call_error_status(self):
         """Test formatting of error status codes."""
         from scripts.generate_ai_eval_reports import format_external_call_html
 
         call = {
-            'request': {'method': 'POST', 'url': 'https://api.example.com'},
-            'response': {'status_code': 401, 'body': '{"error": "unauthorized"}'}
+            "request": {"method": "POST", "url": "https://api.example.com"},
+            "response": {"status_code": 401, "body": '{"error": "unauthorized"}'},
         }
 
         html = format_external_call_html(call, 1)
 
-        assert '401' in html
-        assert 'api-status-error' in html
+        assert "401" in html
+        assert "api-status-error" in html
 
 
 class TestInteractionJSONOutput:
@@ -268,43 +274,42 @@ class TestInteractionJSONOutput:
 
         tracker = AIInteractionTracker()
 
-        external_calls = [{
-            'request': {
-                'method': 'POST',
-                'url': 'https://openrouter.ai/api/v1/chat/completions',
-                'headers': {'Authorization': 'Bearer <secret:OPENROUTER_API_KEY>'},
-                'json': {'model': 'test'}
-            },
-            'response': {
-                'status_code': 200,
-                'body': '{"choices": []}'
+        external_calls = [
+            {
+                "request": {
+                    "method": "POST",
+                    "url": "https://openrouter.ai/api/v1/chat/completions",
+                    "headers": {"Authorization": "Bearer <secret:OPENROUTER_API_KEY>"},
+                    "json": {"model": "test"},
+                },
+                "response": {"status_code": 200, "body": '{"choices": []}'},
             }
-        }]
+        ]
 
         tracker.record(
-            {'request_text': 'test'},
-            {'updated_text': 'result'},
-            200,
-            external_calls
+            {"request_text": "test"}, {"updated_text": "result"}, 200, external_calls
         )
 
         # Simulate saving to JSON (as done in the fixture)
-        output_file = tmp_path / 'test_interaction.json'
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump({
-                'test_name': 'test_example',
-                'interactions': tracker.interactions
-            }, f, indent=2)
+        output_file = tmp_path / "test_interaction.json"
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {"test_name": "test_example", "interactions": tracker.interactions},
+                f,
+                indent=2,
+            )
 
         # Read back and verify
-        with open(output_file, 'r', encoding='utf-8') as f:
+        with open(output_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        assert 'interactions' in data
-        assert len(data['interactions']) == 1
-        assert 'external_calls' in data['interactions'][0]
-        assert len(data['interactions'][0]['external_calls']) == 1
-        assert data['interactions'][0]['external_calls'][0]['request']['method'] == 'POST'
+        assert "interactions" in data
+        assert len(data["interactions"]) == 1
+        assert "external_calls" in data["interactions"][0]
+        assert len(data["interactions"][0]["external_calls"]) == 1
+        assert (
+            data["interactions"][0]["external_calls"][0]["request"]["method"] == "POST"
+        )
 
     def test_interaction_json_serializable(self):
         """Test that interaction data is JSON serializable."""
@@ -314,10 +319,15 @@ class TestInteractionJSONOutput:
 
         # Add complex data that should be JSON serializable
         tracker.record(
-            {'nested': {'data': [1, 2, 3]}, 'unicode': 'Hello 世界'},
-            {'result': True, 'items': ['a', 'b']},
+            {"nested": {"data": [1, 2, 3]}, "unicode": "Hello 世界"},
+            {"result": True, "items": ["a", "b"]},
             200,
-            [{'request': {'headers': {'X-Custom': 'value'}}, 'response': {'status_code': 200}}]
+            [
+                {
+                    "request": {"headers": {"X-Custom": "value"}},
+                    "response": {"status_code": 200},
+                }
+            ],
         )
 
         # Should not raise
@@ -326,7 +336,7 @@ class TestInteractionJSONOutput:
 
         # Round-trip should preserve data
         parsed = json.loads(json_str)
-        assert parsed[0]['request']['unicode'] == 'Hello 世界'
+        assert parsed[0]["request"]["unicode"] == "Hello 世界"
 
 
 class TestHighlightJson:
@@ -340,9 +350,9 @@ class TestHighlightJson:
         html = highlight_json(data)
 
         # Should contain the data
-        assert 'key' in html
-        assert 'value' in html
-        assert '42' in html
+        assert "key" in html
+        assert "value" in html
+        assert "42" in html
 
     def test_highlight_json_handles_non_serializable(self):
         """Test that non-serializable data falls back gracefully."""
@@ -355,4 +365,4 @@ class TestHighlightJson:
         result = highlight_json(NonSerializable())
 
         # Should fall back to escaped string representation
-        assert 'custom-object' in result
+        assert "custom-object" in result

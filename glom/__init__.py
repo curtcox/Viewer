@@ -1,4 +1,5 @@
 """Minimal glom-compatible helpers for template execution tests."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -13,7 +14,9 @@ def _coerce_sequence_index(key: str) -> int:
     try:
         return int(key)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
-        raise GlomError(f"Expected an integer index for sequence access, got {key!r}.") from exc
+        raise GlomError(
+            f"Expected an integer index for sequence access, got {key!r}."
+        ) from exc
 
 
 def _descend(target: Any, key: Any) -> Any:
@@ -32,7 +35,9 @@ def _descend(target: Any, key: Any) -> Any:
     if hasattr(target, key):
         return getattr(target, key)
 
-    raise GlomError(f"Cannot access key {key!r} on object of type {type(target).__name__}.")
+    raise GlomError(
+        f"Cannot access key {key!r} on object of type {type(target).__name__}."
+    )
 
 
 def _normalize_spec(spec: Any) -> list[Any]:

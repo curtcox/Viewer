@@ -6,7 +6,9 @@ from pathlib import Path
 
 def _load_build_report_module():
     module_name = "test_build_report_site"
-    module_path = Path(__file__).resolve().parents[1] / "scripts" / "build-report-site.py"
+    module_path = (
+        Path(__file__).resolve().parents[1] / "scripts" / "build-report-site.py"
+    )
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:  # pragma: no cover - defensive
         raise RuntimeError("Unable to load build-report-site module for testing")
@@ -91,7 +93,7 @@ def test_format_screenshot_notice_builds_section() -> None:
 
 
 def test_write_landing_page_includes_notice(tmp_path) -> None:
-    notice = "<section class=\"screenshot-status\">Example</section>"
+    notice = '<section class="screenshot-status">Example</section>'
     build_report._write_landing_page(tmp_path, screenshot_notice=notice)
 
     index_path = tmp_path / "index.html"
@@ -142,7 +144,9 @@ def test_build_linter_index_valid_summary(tmp_path) -> None:
     linter_dir.mkdir(parents=True)
 
     # Create summary.txt with valid content
-    (linter_dir / "summary.txt").write_text("Exit code: 1\nStatus: ✗ Issues found", encoding="utf-8")
+    (linter_dir / "summary.txt").write_text(
+        "Exit code: 1\nStatus: ✗ Issues found", encoding="utf-8"
+    )
     (linter_dir / "output.txt").write_text("Some pylint errors", encoding="utf-8")
 
     build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint")
@@ -163,7 +167,9 @@ def test_build_linter_index_failure_no_artifacts(tmp_path) -> None:
 
     # No summary.txt or output.txt files (simulating artifact download failure)
     # But job status is "failure"
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="failure"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -186,7 +192,9 @@ def test_build_linter_index_failure_empty_artifacts(tmp_path) -> None:
     (linter_dir / "summary.txt").write_text("", encoding="utf-8")
     (linter_dir / "output.txt").write_text("", encoding="utf-8")
 
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="failure"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -201,7 +209,9 @@ def test_build_linter_index_skipped(tmp_path) -> None:
     linter_dir = tmp_path / "pylint"
     linter_dir.mkdir(parents=True)
 
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="skipped")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="skipped"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -218,10 +228,16 @@ def test_build_linter_index_failure_with_valid_artifacts(tmp_path) -> None:
     linter_dir.mkdir(parents=True)
 
     # Create valid artifact files with error content
-    (linter_dir / "summary.txt").write_text("Exit code: 8\nStatus: ✗ Issues found", encoding="utf-8")
-    (linter_dir / "output.txt").write_text("some/file.py:10:5: E0001: Syntax error", encoding="utf-8")
+    (linter_dir / "summary.txt").write_text(
+        "Exit code: 8\nStatus: ✗ Issues found", encoding="utf-8"
+    )
+    (linter_dir / "output.txt").write_text(
+        "some/file.py:10:5: E0001: Syntax error", encoding="utf-8"
+    )
 
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="failure"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -240,7 +256,9 @@ def test_build_linter_index_success_no_artifacts(tmp_path) -> None:
     linter_dir.mkdir(parents=True)
 
     # No artifacts, but job succeeded
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="success")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="success"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -257,10 +275,14 @@ def test_build_linter_index_failure_with_summary_but_empty_output(tmp_path) -> N
     linter_dir.mkdir(parents=True)
 
     # Create summary showing failure, but empty output.txt
-    (linter_dir / "summary.txt").write_text("Exit code: 2\nStatus: ✗ Issues found", encoding="utf-8")
+    (linter_dir / "summary.txt").write_text(
+        "Exit code: 2\nStatus: ✗ Issues found", encoding="utf-8"
+    )
     (linter_dir / "output.txt").write_text("", encoding="utf-8")
 
-    build_report._build_linter_index(linter_dir, "Pylint Report", "Pylint", job_status="failure")
+    build_report._build_linter_index(
+        linter_dir, "Pylint Report", "Pylint", job_status="failure"
+    )
 
     index_path = linter_dir / "index.html"
     content = index_path.read_text(encoding="utf-8")
@@ -287,7 +309,12 @@ def test_count_failing_jobs() -> None:
     # One failure
     assert build_report._count_failing_jobs({"job1": "success", "job2": "failure"}) == 1
     # Multiple failures
-    assert build_report._count_failing_jobs({"job1": "failure", "job2": "failure", "job3": "success"}) == 2
+    assert (
+        build_report._count_failing_jobs(
+            {"job1": "failure", "job2": "failure", "job3": "success"}
+        )
+        == 2
+    )
     # Skipped jobs don't count as failures
     assert build_report._count_failing_jobs({"job1": "skipped", "job2": "success"}) == 0
     # Empty dict
@@ -314,13 +341,23 @@ def test_get_background_color_two_failures() -> None:
 
 def test_get_background_color_three_failures() -> None:
     """Test that 3 failing jobs get orange background."""
-    job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure", "job4": "success"}
+    job_statuses = {
+        "job1": "failure",
+        "job2": "failure",
+        "job3": "failure",
+        "job4": "success",
+    }
     assert build_report._get_background_color(job_statuses) == "#ffe0b2"
 
 
 def test_get_background_color_four_failures() -> None:
     """Test that 4 failing jobs get orange background."""
-    job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure", "job4": "failure"}
+    job_statuses = {
+        "job1": "failure",
+        "job2": "failure",
+        "job3": "failure",
+        "job4": "failure",
+    }
     assert build_report._get_background_color(job_statuses) == "#ffe0b2"
 
 
@@ -331,7 +368,7 @@ def test_get_background_color_five_failures() -> None:
         "job2": "failure",
         "job3": "failure",
         "job4": "failure",
-        "job5": "failure"
+        "job5": "failure",
     }
     assert build_report._get_background_color(job_statuses) == "#f8d7da"
 
@@ -342,22 +379,17 @@ def test_write_landing_page_applies_background_color(tmp_path) -> None:
     job_statuses = {"job1": "success", "job2": "success"}
     build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
 
-
     index_path = tmp_path / "index.html"
     content = index_path.read_text(encoding="utf-8")
 
-
     # Should have light green background
     assert "background-color: #d4edda" in content
-
 
     # Test with some failures
     job_statuses = {"job1": "failure", "job2": "failure", "job3": "failure"}
     build_report._write_landing_page(tmp_path, job_statuses=job_statuses)
 
-
     content = index_path.read_text(encoding="utf-8")
-
 
     # Should have orange background (3 failures)
     assert "background-color: #ffe0b2" in content

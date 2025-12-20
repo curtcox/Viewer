@@ -70,7 +70,11 @@ def detect_server_language(definition: str | None) -> str:
             return "python"
         if "bash" in first_line or first_line.endswith("/sh") or "/sh " in first_line:
             return "bash"
-        if "deno" in first_line or "ts-node" in first_line or "typescript" in first_line:
+        if (
+            "deno" in first_line
+            or "ts-node" in first_line
+            or "typescript" in first_line
+        ):
             return "typescript"
         if "clojurescript" in first_line or "nbb" in first_line:
             return "clojurescript"
@@ -130,7 +134,9 @@ def detect_server_language(definition: str | None) -> str:
 
     tokens = re.findall(r"[A-Za-z0-9_./-]+|\$\(|\|\||&&|>>|[|><;$(){}\[\]]", text)
     if tokens:
-        shell_token_count = sum(1 for token in tokens if token.lower() in COMMON_SHELL_TOKENS)
+        shell_token_count = sum(
+            1 for token in tokens if token.lower() in COMMON_SHELL_TOKENS
+        )
         if shell_token_count >= len(tokens) / 2:
             return "bash"
 

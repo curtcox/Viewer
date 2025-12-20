@@ -150,7 +150,9 @@ class TestSummarizeDefinitionLines(unittest.TestCase):
         self.assertEqual(len(summary), 2)
         self.assertTrue(summary[1].is_mapping)
         self.assertIsNotNone(summary[1].parse_error)
-        self.assertIn("does not contain an alias mapping", summary[1].parse_error.lower())
+        self.assertIn(
+            "does not contain an alias mapping", summary[1].parse_error.lower()
+        )
 
 
 class TestParseAliasDefinitionValidation(unittest.TestCase):
@@ -167,7 +169,7 @@ class TestParseAliasDefinitionValidation(unittest.TestCase):
                     parse_alias_definition(definition)
 
                 message = str(exc_info.exception).lower()
-                self.assertIn('pattern -> target', message)
+                self.assertIn("pattern -> target", message)
 
     def test_rejects_invalid_nested_mapping_lines(self):
         invalid_definitions = [
@@ -342,9 +344,15 @@ class TestDefinitionUtility(unittest.TestCase):
 
 class TestStripInlineComment(unittest.TestCase):
     def test_strips_inline_comment(self):
-        self.assertEqual(_strip_inline_comment("docs -> /docs # comment"), "docs -> /docs")
-        self.assertEqual(_strip_inline_comment("docs -> /docs  # comment"), "docs -> /docs")
-        self.assertEqual(_strip_inline_comment("docs -> /docs\t# comment"), "docs -> /docs")
+        self.assertEqual(
+            _strip_inline_comment("docs -> /docs # comment"), "docs -> /docs"
+        )
+        self.assertEqual(
+            _strip_inline_comment("docs -> /docs  # comment"), "docs -> /docs"
+        )
+        self.assertEqual(
+            _strip_inline_comment("docs -> /docs\t# comment"), "docs -> /docs"
+        )
 
     def test_preserves_line_without_comment(self):
         self.assertEqual(_strip_inline_comment("docs -> /docs"), "docs -> /docs")
@@ -381,7 +389,9 @@ class TestExtractPrimaryLine(unittest.TestCase):
 
     def test_preserves_inline_comment(self):
         definition = "docs -> /documentation # inline comment"
-        self.assertEqual(_extract_primary_line(definition), "docs -> /documentation # inline comment")
+        self.assertEqual(
+            _extract_primary_line(definition), "docs -> /documentation # inline comment"
+        )
 
 
 class TestNormalizeVariableMap(unittest.TestCase):
@@ -486,7 +496,9 @@ class TestSubstituteVariables(unittest.TestCase):
 
 class TestFormatPrimaryAliasLine(unittest.TestCase):
     def test_formats_literal_match_without_options(self):
-        result = format_primary_alias_line("literal", "/docs", "/documentation", alias_name="docs")
+        result = format_primary_alias_line(
+            "literal", "/docs", "/documentation", alias_name="docs"
+        )
         self.assertEqual(result, "docs -> /documentation")
 
     def test_formats_literal_match_with_pattern(self):
@@ -506,15 +518,21 @@ class TestFormatPrimaryAliasLine(unittest.TestCase):
         self.assertEqual(result, "/docs/<id> -> /documentation/<id> [flask]")
 
     def test_includes_ignore_case_option(self):
-        result = format_primary_alias_line("literal", "/docs", "/documentation", ignore_case=True, alias_name="docs")
+        result = format_primary_alias_line(
+            "literal", "/docs", "/documentation", ignore_case=True, alias_name="docs"
+        )
         self.assertEqual(result, "docs -> /documentation [ignore-case]")
 
     def test_includes_both_match_type_and_ignore_case(self):
-        result = format_primary_alias_line("glob", "/docs/*", "/documentation", ignore_case=True)
+        result = format_primary_alias_line(
+            "glob", "/docs/*", "/documentation", ignore_case=True
+        )
         self.assertEqual(result, "/docs/* -> /documentation [glob, ignore-case]")
 
     def test_handles_empty_pattern_with_alias_name(self):
-        result = format_primary_alias_line("literal", None, "/documentation", alias_name="docs")
+        result = format_primary_alias_line(
+            "literal", None, "/documentation", alias_name="docs"
+        )
         self.assertEqual(result, "docs -> /documentation")
 
     def test_handles_empty_pattern_without_alias_name(self):
@@ -605,9 +623,7 @@ class TestCollectAliasRoutesEdgeCases(unittest.TestCase):
     def test_resolves_variables_from_alias_attributes(self):
         definition = "docs -> /documentation/{var1}"
         alias = SimpleNamespace(
-            name="docs",
-            definition=definition,
-            resolved_variables={"var1": "value1"}
+            name="docs", definition=definition, resolved_variables={"var1": "value1"}
         )
         routes = collect_alias_routes(alias)
         self.assertEqual(len(routes), 1)
@@ -666,7 +682,9 @@ class TestParseAliasDefinitionEdgeCases(unittest.TestCase):
         self.assertEqual(parsed.target_path, "/path->with->arrows")
 
     def test_preserves_pattern_text(self):
-        parsed = parse_alias_definition("custom-pattern -> /documentation", alias_name="docs")
+        parsed = parse_alias_definition(
+            "custom-pattern -> /documentation", alias_name="docs"
+        )
         self.assertEqual(parsed.pattern_text, "custom-pattern")
 
     def test_uses_alias_name_for_empty_pattern(self):

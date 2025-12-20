@@ -2,7 +2,18 @@ import builtins
 import hashlib
 import textwrap
 import typing
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from cid_presenter import cid_path
 from cid_utils import store_cid_from_bytes
@@ -22,7 +33,9 @@ def _save_content(value: Any) -> str:
     return store_cid_from_bytes(content)
 
 
-def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict"):
+def _load_content(
+    cid_value: str, *, encoding: str | None = "utf-8", errors: str = "strict"
+):
     """Return the stored CID content, optionally decoding it as text."""
 
     if not isinstance(cid_value, str):
@@ -44,6 +57,7 @@ def _load_content(cid_value: str, *, encoding: str | None = "utf-8", errors: str
         return bytes(data)
 
     return bytes(data).decode(encoding, errors)
+
 
 _SAFE_TYPING_GLOBALS = {
     "typing": typing,

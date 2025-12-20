@@ -29,7 +29,6 @@ def _parse_request_path(info):
     return target.strip(), server_segment
 
 
-
 def _extract_query(info):
     data = info or {}
     args = data.get("args") or {}
@@ -175,12 +174,16 @@ else:
 
 raw_text = raw_text.strip()
 if not raw_text:
-    return _render_notice("Empty CID content", "The CID did not contain any JSON data to glom.")
+    return _render_notice(
+        "Empty CID content", "The CID did not contain any JSON data to glom."
+    )
 
 try:
     data = json.loads(raw_text)
 except json.JSONDecodeError as exc:
-    location = f"line {exc.lineno}, column {exc.colno}" if exc.lineno and exc.colno else ""
+    location = (
+        f"line {exc.lineno}, column {exc.colno}" if exc.lineno and exc.colno else ""
+    )
     details = f" at {location}" if location else ""
     message = f"Unable to parse CID as JSON{details}."
     return _render_notice("Invalid JSON", message)

@@ -24,11 +24,13 @@ class TestBootCidCLI:
     def setup(self, tmp_path):
         """Set up test environment."""
         # Create app with test configuration
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -52,20 +54,20 @@ class TestBootCidCLI:
             # Create alias content
             aliases_data = [
                 {
-                    'name': 'cli-test-alias',
-                    'definition': '/cli-test -> /cli-target',
+                    "name": "cli-test-alias",
+                    "definition": "/cli-test -> /cli-target",
                 }
             ]
-            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_content = json.dumps(aliases_data).encode("utf-8")
             aliases_cid = generate_cid(aliases_content)
             create_cid_record(aliases_cid, aliases_content)
 
             # Create boot CID
             payload_data = {
-                'version': 6,
-                'aliases': aliases_cid,
+                "version": 6,
+                "aliases": aliases_cid,
             }
-            content = json.dumps(payload_data).encode('utf-8')
+            content = json.dumps(payload_data).encode("utf-8")
             boot_cid = generate_cid(content)
             create_cid_record(boot_cid, content)
 
@@ -86,9 +88,9 @@ class TestBootCidCLI:
 
         # Verify the alias was imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='cli-test-alias').first()
+            alias = Alias.query.filter_by(name="cli-test-alias").first()
             assert alias is not None
-            assert alias.definition == '/cli-test -> /cli-target'
+            assert alias.definition == "/cli-test -> /cli-target"
 
     def test_handle_boot_cid_import_missing_dependency_exits(self):
         """Test that missing dependency causes SystemExit with helpful message."""
@@ -96,10 +98,10 @@ class TestBootCidCLI:
             # Create boot CID that references a non-existent CID
             missing_cid = generate_cid(b"missing content")
             payload_data = {
-                'version': 6,
-                'aliases': missing_cid,
+                "version": 6,
+                "aliases": missing_cid,
             }
-            content = json.dumps(payload_data).encode('utf-8')
+            content = json.dumps(payload_data).encode("utf-8")
             boot_cid = generate_cid(content)
             create_cid_record(boot_cid, content)
 
@@ -152,32 +154,32 @@ class TestBootCidCLI:
             # Create alias content
             aliases_data = [
                 {
-                    'name': 'multi-alias',
-                    'definition': '/multi -> /target',
+                    "name": "multi-alias",
+                    "definition": "/multi -> /target",
                 }
             ]
-            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_content = json.dumps(aliases_data).encode("utf-8")
             aliases_cid = generate_cid(aliases_content)
             create_cid_record(aliases_cid, aliases_content)
 
             # Create server content
             servers_data = [
                 {
-                    'name': 'multi-server',
-                    'definition': 'echo "multi"',
+                    "name": "multi-server",
+                    "definition": 'echo "multi"',
                 }
             ]
-            servers_content = json.dumps(servers_data).encode('utf-8')
+            servers_content = json.dumps(servers_data).encode("utf-8")
             servers_cid = generate_cid(servers_content)
             create_cid_record(servers_cid, servers_content)
 
             # Create boot CID with both
             payload_data = {
-                'version': 6,
-                'aliases': aliases_cid,
-                'servers': servers_cid,
+                "version": 6,
+                "aliases": aliases_cid,
+                "servers": servers_cid,
             }
-            content = json.dumps(payload_data).encode('utf-8')
+            content = json.dumps(payload_data).encode("utf-8")
             boot_cid = generate_cid(content)
             create_cid_record(boot_cid, content)
 
@@ -193,10 +195,10 @@ class TestBootCidCLI:
 
         # Verify both entities were imported
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='multi-alias').first()
+            alias = Alias.query.filter_by(name="multi-alias").first()
             assert alias is not None
 
-            server = Server.query.filter_by(name='multi-server').first()
+            server = Server.query.filter_by(name="multi-server").first()
             assert server is not None
 
     def test_handle_boot_cid_import_with_cid_values(self):
@@ -205,22 +207,22 @@ class TestBootCidCLI:
             # Create alias content (will be in cid_values, not separate CID in DB)
             aliases_data = [
                 {
-                    'name': 'embedded-alias',
-                    'definition': '/embedded -> /target',
+                    "name": "embedded-alias",
+                    "definition": "/embedded -> /target",
                 }
             ]
-            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_content = json.dumps(aliases_data).encode("utf-8")
             aliases_cid = generate_cid(aliases_content)
 
             # Create boot CID with cid_values section
             payload_data = {
-                'version': 6,
-                'aliases': aliases_cid,
-                'cid_values': {
-                    aliases_cid: aliases_content.decode('utf-8'),
+                "version": 6,
+                "aliases": aliases_cid,
+                "cid_values": {
+                    aliases_cid: aliases_content.decode("utf-8"),
                 },
             }
-            content = json.dumps(payload_data).encode('utf-8')
+            content = json.dumps(payload_data).encode("utf-8")
             boot_cid = generate_cid(content)
             create_cid_record(boot_cid, content)
 
@@ -236,5 +238,5 @@ class TestBootCidCLI:
 
         # Verify the alias was imported even though its CID wasn't in DB
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='embedded-alias').first()
+            alias = Alias.query.filter_by(name="embedded-alias").first()
             assert alias is not None

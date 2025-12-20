@@ -23,7 +23,9 @@ MAX_DISPLAYED_ITEMS = 20
 # Regex patterns for Gauge log parsing
 REGEX_SPEC_FILE = re.compile(r"^([a-zA-Z0-9_/.-]+\.spec)\s*::")
 REGEX_SCENARIO_NAME = re.compile(r"::\s*(.+?)(?:\s*->|\s*✖|$)")
-REGEX_MISSING_STEP = re.compile(r"no step implementation matches|No step implementation matches", re.IGNORECASE)
+REGEX_MISSING_STEP = re.compile(
+    r"no step implementation matches|No step implementation matches", re.IGNORECASE
+)
 REGEX_STEP_MATCH = re.compile(r"matches:\s*(.+)$", re.IGNORECASE)
 REGEX_TOTAL_SCENARIOS = re.compile(r"Total scenarios:\s*(\d+)")
 REGEX_PASSED_SCENARIOS = re.compile(r"Passed:\s*(\d+)")
@@ -32,7 +34,7 @@ REGEX_FAILED_SCENARIOS = re.compile(r"Failed:\s*(\d+)")
 # Regex pattern for Pylint output
 # Pattern: file.py:line:col: CODE: Message (symbolic-name)
 REGEX_PYLINT_LINE = re.compile(
-    r'^([^:]+):(\d+):(\d+):\s+([A-Z]\d{4}):\s+(.+?)\s+\(([a-z-]+)\)\s*$'
+    r"^([^:]+):(\d+):(\d+):\s+([A-Z]\d{4}):\s+(.+?)\s+\(([a-z-]+)\)\s*$"
 )
 
 # HTML/CSS templates
@@ -40,22 +42,30 @@ BASE_CSS = """    body { font-family: system-ui, sans-serif; margin: 2rem; line-
     a { color: #0366d6; text-decoration: none; }
     a:hover { text-decoration: underline; }"""
 
-COMMON_CSS = BASE_CSS + """
+COMMON_CSS = (
+    BASE_CSS
+    + """
     pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
     .pylint-output { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
     .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
     .warning strong { color: #856404; }
     .warning ul { margin-top: 0.5rem; margin-bottom: 0.5rem; }"""
+)
 
-GAUGE_CSS = BASE_CSS + """
+GAUGE_CSS = (
+    BASE_CSS
+    + """
     h1 { font-size: 2rem; margin-bottom: 1rem; }
     h2 { font-size: 1.5rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
     h3 { font-size: 1.2rem; margin-top: 1rem; margin-bottom: 0.5rem; }
     ul { list-style: disc; padding-left: 1.5rem; }
     li { margin: 0.25rem 0; }
     code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }"""
+)
 
-LANDING_CSS = BASE_CSS + """
+LANDING_CSS = (
+    BASE_CSS
+    + """
     h1 { font-size: 2rem; margin-bottom: 1rem; }
     h2 { font-size: 1.5rem; margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid #e1e4e8; padding-bottom: 0.5rem; }
     ul { list-style: disc; padding-left: 1.5rem; }
@@ -73,6 +83,7 @@ LANDING_CSS = BASE_CSS + """
     .screenshot-status { margin-top: 2rem; padding: 1rem; background: #fff8c5; border-left: 4px solid #9a6700; }
     .screenshot-status h2 { margin-top: 0; }
     .screenshot-status ul { margin-top: 0.5rem; }"""
+)
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -92,6 +103,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 @dataclass
 class GaugeSummary:
     """Structured data extracted from Gauge execution logs."""
+
     specs_run: list[str] = field(default_factory=list)
     specs_failed: list[str] = field(default_factory=list)
     missing_steps: list[str] = field(default_factory=list)
@@ -108,8 +120,7 @@ class EnhanceGaugeReport(Protocol):
         *,
         artifacts_subdir: str = ...,
         public_base_url: str | None = ...,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 def _load_enhance_gauge_report() -> EnhanceGaugeReport:
@@ -125,15 +136,16 @@ def _load_enhance_gauge_report() -> EnhanceGaugeReport:
 enhance_gauge_report = _load_enhance_gauge_report()
 
 
-def _html_list(items: list[str], limit: int = MAX_DISPLAYED_ITEMS, escape_items: bool = True) -> str:
+def _html_list(
+    items: list[str], limit: int = MAX_DISPLAYED_ITEMS, escape_items: bool = True
+) -> str:
     """Generate an HTML list from items, optionally limiting the display count."""
     if not items:
         return ""
 
     display_items = items[:limit]
     item_html = "".join(
-        f"<li>{escape(item) if escape_items else item}</li>"
-        for item in display_items
+        f"<li>{escape(item) if escape_items else item}</li>" for item in display_items
     )
 
     if len(items) > limit:
@@ -148,7 +160,9 @@ def _html_list_code(items: list[str], limit: int = MAX_DISPLAYED_ITEMS) -> str:
         return ""
 
     display_items = items[:limit]
-    item_html = "".join(f"<li><code>{escape(item)}</code></li>" for item in display_items)
+    item_html = "".join(
+        f"<li><code>{escape(item)}</code></li>" for item in display_items
+    )
 
     if len(items) > limit:
         item_html += f"<li>... and {len(items) - limit} more</li>"
@@ -165,8 +179,8 @@ def _compose_public_url(base: str | None, segment: str) -> str | None:
     if not base:
         return None
 
-    base = base.rstrip('/')
-    segment = segment.strip('/')
+    base = base.rstrip("/")
+    segment = segment.strip("/")
     if not segment:
         return base or None
     return f"{base}/{segment}"
@@ -213,7 +227,6 @@ def _format_size(byte_count: int) -> str:
     return f"{byte_count} bytes"
 
 
-
 def _flatten_htmlcov(unit_tests_dir: Path) -> None:
     htmlcov_dir = unit_tests_dir / "htmlcov"
     if not htmlcov_dir.is_dir():
@@ -229,7 +242,6 @@ def _flatten_htmlcov(unit_tests_dir: Path) -> None:
         shutil.move(str(item), target)
 
     htmlcov_dir.rmdir()
-
 
 
 def _flatten_gauge_reports(gauge_dir: Path) -> None:
@@ -249,7 +261,6 @@ def _flatten_gauge_reports(gauge_dir: Path) -> None:
         shutil.move(str(item), target)
 
     shutil.rmtree(reports_dir)
-
 
 
 def _build_integration_index(integration_dir: Path) -> None:
@@ -368,17 +379,23 @@ def _build_ai_eval_index(ai_eval_dir: Path) -> None:
     # Add links to available reports
     report_links = []
     if reports_index_path.exists():
-        report_links.append('<li><a href="ai-eval-reports/index.html">View AI interaction details</a></li>')
+        report_links.append(
+            '<li><a href="ai-eval-reports/index.html">View AI interaction details</a></li>'
+        )
     if pytest_html_path.exists():
-        report_links.append('<li><a href="ai-eval-report.html">View pytest HTML report</a></li>')
+        report_links.append(
+            '<li><a href="ai-eval-report.html">View pytest HTML report</a></li>'
+        )
     if coverage_index_path.exists():
-        report_links.append('<li><a href="ai-eval-coverage/index.html">View coverage report</a></li>')
+        report_links.append(
+            '<li><a href="ai-eval-coverage/index.html">View coverage report</a></li>'
+        )
 
     links_html = ""
     if report_links:
         links_html = f"""  <h2>Available Reports</h2>
   <ul>
-    {''.join(report_links)}
+    {"".join(report_links)}
   </ul>"""
 
     body = f"""  <h1>AI Evaluation Test Results</h1>
@@ -465,7 +482,9 @@ def _parse_gauge_log(log_path: Path) -> GaugeSummary:
     return summary
 
 
-def _extract_spec_from_line(line: str, summary: GaugeSummary, current_spec: str | None) -> str | None:
+def _extract_spec_from_line(
+    line: str, summary: GaugeSummary, current_spec: str | None
+) -> str | None:
     """Extract spec file path from a log line and update summary."""
     spec_match = REGEX_SPEC_FILE.match(line)
     if spec_match:
@@ -476,7 +495,9 @@ def _extract_spec_from_line(line: str, summary: GaugeSummary, current_spec: str 
     return current_spec
 
 
-def _detect_failed_scenario(line: str, summary: GaugeSummary, current_spec: str | None) -> None:
+def _detect_failed_scenario(
+    line: str, summary: GaugeSummary, current_spec: str | None
+) -> None:
     """Detect failed scenarios from a log line and update summary."""
     if current_spec and ("-> FAILED" in line or "✖" in line or "FAILED" in line):
         scenario_match = REGEX_SCENARIO_NAME.search(line)
@@ -518,30 +539,46 @@ def _format_gauge_summary_html(summary: GaugeSummary) -> str:
     """Format Gauge summary data as HTML."""
     summary_items = []
     if summary.specs_run:
-        summary_items.append(f"  <li>Total specifications: {len(summary.specs_run)}</li>")
+        summary_items.append(
+            f"  <li>Total specifications: {len(summary.specs_run)}</li>"
+        )
     if summary.total_scenarios > 0:
         summary_items.append(f"  <li>Total scenarios: {summary.total_scenarios}</li>")
         summary_items.append(f"  <li>Passed scenarios: {summary.passed_scenarios}</li>")
-        summary_items.append(f"  <li>Failed scenarios: {summary.failed_scenarios_count}</li>")
+        summary_items.append(
+            f"  <li>Failed scenarios: {summary.failed_scenarios_count}</li>"
+        )
 
-    summary_html = "<h2>Summary</h2><ul>\n" + "\n".join(summary_items) + "\n</ul>" if summary_items else ""
+    summary_html = (
+        "<h2>Summary</h2><ul>\n" + "\n".join(summary_items) + "\n</ul>"
+        if summary_items
+        else ""
+    )
 
     details = []
     if summary.specs_run:
         spec_list = _html_list(sorted(summary.specs_run))
-        details.append(f"<h3>Specifications executed ({len(summary.specs_run)})</h3><ul>{spec_list}</ul>")
+        details.append(
+            f"<h3>Specifications executed ({len(summary.specs_run)})</h3><ul>{spec_list}</ul>"
+        )
 
     if summary.specs_failed:
         failed_list = _html_list(sorted(set(summary.specs_failed)))
-        details.append(f"<h3>Failed specifications ({len(summary.specs_failed)})</h3><ul>{failed_list}</ul>")
+        details.append(
+            f"<h3>Failed specifications ({len(summary.specs_failed)})</h3><ul>{failed_list}</ul>"
+        )
 
     if summary.failed_scenarios:
         scenario_list = _html_list(summary.failed_scenarios)
-        details.append(f"<h3>Failed scenarios ({len(summary.failed_scenarios)})</h3><ul>{scenario_list}</ul>")
+        details.append(
+            f"<h3>Failed scenarios ({len(summary.failed_scenarios)})</h3><ul>{scenario_list}</ul>"
+        )
 
     if summary.missing_steps:
         step_list = _html_list_code(summary.missing_steps)
-        details.append(f"<h3>Missing step implementations ({len(summary.missing_steps)})</h3><ul>{step_list}</ul>")
+        details.append(
+            f"<h3>Missing step implementations ({len(summary.missing_steps)})</h3><ul>{step_list}</ul>"
+        )
 
     return summary_html + "\n" + "\n".join(details)
 
@@ -572,7 +609,9 @@ def _build_gauge_index(gauge_dir: Path) -> None:
         # Check if it's actually a Gauge HTML report (contains gauge-specific content)
         try:
             content = index_path.read_text(encoding="utf-8", errors="replace")
-            if "gauge" in content.lower() and ("executionResult" in content or "specs" in content.lower()):
+            if "gauge" in content.lower() and (
+                "executionResult" in content or "specs" in content.lower()
+            ):
                 shutil.move(index_path, original_index)
         except OSError:
             pass
@@ -582,7 +621,9 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     # Add link to original Gauge report if it exists
     original_link = ""
     if original_index.exists():
-        original_link = '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
+        original_link = (
+            '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
+        )
 
     body = f"""  <h1>Gauge specification results</h1>
   {original_link}
@@ -623,7 +664,9 @@ def _build_property_index(property_dir: Path) -> None:
     )
 
 
-def _enhance_pylint_output(output_text: str, github_repo: str = "curtcox/Viewer", github_branch: str = "main") -> str:
+def _enhance_pylint_output(
+    output_text: str, github_repo: str = "curtcox/Viewer", github_branch: str = "main"
+) -> str:
     """Enhance pylint output with links to rule documentation and source code.
 
     Args:
@@ -652,22 +695,26 @@ def _enhance_pylint_output(output_text: str, github_repo: str = "curtcox/Viewer"
 
             # Create GitHub source link
             github_url = f"https://github.com/{github_repo}/blob/{github_branch}/{file_path}#L{line_num}"
-            source_link = f'<a href="{github_url}">{escape(file_path)}:{line_num}:{col_num}</a>'
+            source_link = (
+                f'<a href="{github_url}">{escape(file_path)}:{line_num}:{col_num}</a>'
+            )
 
             # Create Pylint documentation link
             pylint_url = f"https://pylint.pycqa.org/en/latest/user_guide/messages/{symbolic_name}.html"
             rule_link = f'<a href="{pylint_url}">{escape(msg_code)}</a>'
 
-            enhanced_line = f'{source_link}: {rule_link}: {escape(message)} ({escape(symbolic_name)})'
+            enhanced_line = f"{source_link}: {rule_link}: {escape(message)} ({escape(symbolic_name)})"
             enhanced_lines.append(enhanced_line)
         else:
             # Not a pylint message line, just escape it
             enhanced_lines.append(escape(line))
 
-    return '<br>\n'.join(enhanced_lines)
+    return "<br>\n".join(enhanced_lines)
 
 
-def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_status: str | None = None) -> None:
+def _build_linter_index(
+    linter_dir: Path, title: str, linter_name: str, job_status: str | None = None
+) -> None:
     """Build an index page for linter reports (Pylint, ShellCheck, Hadolint).
 
     Args:
@@ -692,7 +739,9 @@ def _build_linter_index(linter_dir: Path, title: str, linter_name: str, job_stat
     if summary_exists:
         summary_content = summary_path.read_text(encoding="utf-8")
         summary_lines = summary_content.strip().split("\n")
-        summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
+        summary_items = "".join(
+            f"<li>{escape(line)}</li>" for line in summary_lines if line.strip()
+        )
         if summary_items:  # Only show summary if we have non-empty items
             summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
             has_summary_content = True
@@ -765,7 +814,9 @@ def _build_test_index_page(test_index_dir: Path) -> None:
     if summary_path.exists():
         summary_content = summary_path.read_text(encoding="utf-8")
         summary_lines = summary_content.strip().split("\n")
-        summary_items = "".join(f"<li>{escape(line)}</li>" for line in summary_lines if line.strip())
+        summary_items = "".join(
+            f"<li>{escape(line)}</li>" for line in summary_lines if line.strip()
+        )
         if summary_items:  # Only show summary if we have non-empty items
             summary_html = f"<h2>Summary</h2><ul>{summary_items}</ul>"
 
@@ -838,7 +889,7 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
 
     count_text = "capture" if count == 1 else "captures"
     intro = (
-        f"  <section class=\"screenshot-status\">\n"
+        f'  <section class="screenshot-status">\n'
         "    <h2>Gauge screenshot status</h2>\n"
         f"    <p>Browser screenshots were unavailable for {count} {count_text}. "
         "The shared placeholder image has been published in their place.</p>\n"
@@ -849,10 +900,7 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
             f"      <li>{escape(reason)}</li>" for reason in reasons
         )
         reason_block = (
-            "    <p>Reported reasons:</p>\n"
-            "    <ul>\n"
-            f"{reason_items}\n"
-            "    </ul>\n"
+            f"    <p>Reported reasons:</p>\n    <ul>\n{reason_items}\n    </ul>\n"
         )
     else:
         reason_block = "    <p>No specific error details were recorded.</p>\n"
@@ -876,7 +924,7 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
         "<code>apt-get install -y --no-install-recommends libnss3 libatk1.0-0 "
         "libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 "
         "libxrandr2 libgbm1 libgtk-3-0 libasound2 fonts-liberation</code>. "
-        "Missing these packages produces the \"Browser closed unexpectedly\" "
+        'Missing these packages produces the "Browser closed unexpectedly" '
         "error shown in the report.</li>\n"
         "      <li>Re-run <code>./test-gauge</code> locally (or rerun the GitHub "
         "Actions <code>gauge-specs</code> job) and confirm that new PNG files "
@@ -894,6 +942,7 @@ def _format_screenshot_notice(count: int, reasons: Sequence[str]) -> str | None:
 @dataclass
 class JobMetadata:
     """Metadata for a CI job."""
+
     name: str
     icon: str
     check_type: str
@@ -918,115 +967,106 @@ def _get_job_metadata() -> dict[str, JobMetadata]:
             name="Ruff",
             icon="⚡",
             check_type="Python Linter & Formatter",
-            report_link=None
+            report_link=None,
         ),
         "pylint": JobMetadata(
             name="Pylint",
             icon="🔍",
             check_type="Python Code Quality",
-            report_link="pylint/index.html"
+            report_link="pylint/index.html",
         ),
         "mypy": JobMetadata(
-            name="Mypy",
-            icon="📝",
-            check_type="Python Type Checker",
-            report_link=None
+            name="Mypy", icon="📝", check_type="Python Type Checker", report_link=None
         ),
         "pydoclint": JobMetadata(
             name="Pydoclint",
             icon="📖",
             check_type="Docstring Quality Checker",
-            report_link="pydoclint/index.html"
+            report_link="pydoclint/index.html",
         ),
         "radon": JobMetadata(
             name="Radon",
             icon="📊",
             check_type="Code Complexity Analysis",
-            report_link="radon/index.html"
+            report_link="radon/index.html",
         ),
         "vulture": JobMetadata(
             name="Vulture",
             icon="🦅",
             check_type="Dead Code Detection",
-            report_link="vulture/index.html"
+            report_link="vulture/index.html",
         ),
         "python-smells": JobMetadata(
             name="Python Smells",
             icon="👃",
             check_type="Code Smell Detection",
-            report_link="python-smells/index.html"
+            report_link="python-smells/index.html",
         ),
         "shellcheck": JobMetadata(
             name="ShellCheck",
             icon="🐚",
             check_type="Shell Script Linter",
-            report_link="shellcheck/index.html"
+            report_link="shellcheck/index.html",
         ),
         "hadolint": JobMetadata(
             name="Hadolint",
             icon="🐳",
             check_type="Dockerfile Linter",
-            report_link="hadolint/index.html"
+            report_link="hadolint/index.html",
         ),
         "eslint": JobMetadata(
             name="ESLint",
             icon="📜",
             check_type="JavaScript/TypeScript Linter",
-            report_link=None
+            report_link=None,
         ),
         "stylelint": JobMetadata(
-            name="Stylelint",
-            icon="🎨",
-            check_type="CSS Linter",
-            report_link=None
+            name="Stylelint", icon="🎨", check_type="CSS Linter", report_link=None
         ),
         "uncss": JobMetadata(
-            name="UNCSS",
-            icon="✂️",
-            check_type="Unused CSS Checker",
-            report_link=None
+            name="UNCSS", icon="✂️", check_type="Unused CSS Checker", report_link=None
         ),
         "test-index": JobMetadata(
             name="Test Index",
             icon="📑",
             check_type="Test Index Validation",
-            report_link="test-index/index.html"
+            report_link="test-index/index.html",
         ),
         "cid-validation": JobMetadata(
             name="CID Validation",
             icon="🧬",
             check_type="CID Consistency Check",
-            report_link="cid-validation/index.html"
+            report_link="cid-validation/index.html",
         ),
         "unit-tests": JobMetadata(
             name="Unit Tests",
             icon="🧪",
             check_type="Unit Tests & Coverage",
-            report_link="unit-tests/index.html"
+            report_link="unit-tests/index.html",
         ),
         "property-tests": JobMetadata(
             name="Property Tests",
             icon="🔬",
             check_type="Property-Based Testing",
-            report_link="property-tests/index.html"
+            report_link="property-tests/index.html",
         ),
         "integration-tests": JobMetadata(
             name="Integration Tests",
             icon="🔗",
             check_type="Integration Testing",
-            report_link="integration-tests/index.html"
+            report_link="integration-tests/index.html",
         ),
         "gauge-specs": JobMetadata(
             name="Gauge",
             icon="📏",
             check_type="BDD Specifications",
-            report_link="gauge-specs/index.html"
+            report_link="gauge-specs/index.html",
         ),
         "ai-eval": JobMetadata(
             name="AI Eval",
             icon="🤖",
             check_type="AI Evaluation Tests",
-            report_link="ai-eval/index.html"
+            report_link="ai-eval/index.html",
         ),
     }
 
@@ -1046,7 +1086,6 @@ def _get_background_color(job_statuses: dict[str, str]) -> str:
         - Red (#f8d7da) if there are 5 or more failing jobs
     """
     failing_count = _count_failing_jobs(job_statuses)
-
 
     if failing_count == 0:
         return "#d4edda"  # light green
@@ -1089,7 +1128,7 @@ def _format_job_list(job_statuses: dict[str, str]) -> str:
         if metadata.report_link:
             link_html = f'<div class="job-link"><a href="{metadata.report_link}">View Report →</a></div>'
 
-        html_parts.append(f'''  <li class="job-item">
+        html_parts.append(f"""  <li class="job-item">
     <span class="job-status {status_class}">{status_icon}</span>
     <span class="job-icon">{metadata.icon}</span>
     <div class="job-info">
@@ -1097,13 +1136,18 @@ def _format_job_list(job_statuses: dict[str, str]) -> str:
       <p class="job-type">{escape(metadata.check_type)}</p>
     </div>
     {link_html}
-  </li>''')
+  </li>""")
 
-    html_parts.append('</ul>')
-    return '\n'.join(html_parts)
+    html_parts.append("</ul>")
+    return "\n".join(html_parts)
 
 
-def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None, job_statuses: dict[str, str] | None = None) -> None:
+def _write_landing_page(
+    site_dir: Path,
+    *,
+    screenshot_notice: str | None = None,
+    job_statuses: dict[str, str] | None = None,
+) -> None:
     index_path = site_dir / "index.html"
     notice_html = (screenshot_notice + "\n") if screenshot_notice else ""
 
@@ -1113,9 +1157,10 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None,
     job_list_html = _format_job_list(job_statuses)
     background_color = _get_background_color(job_statuses)
 
-
     # Add background color to the CSS
-    css_with_bg = LANDING_CSS + f"\n    body {{ background-color: {background_color}; }}"
+    css_with_bg = (
+        LANDING_CSS + f"\n    body {{ background-color: {background_color}; }}"
+    )
 
     body = f"""  <h1>SecureApp Test Reports</h1>
   <h2>CI Check Results</h2>
@@ -1126,7 +1171,6 @@ def _write_landing_page(site_dir: Path, *, screenshot_notice: str | None = None,
         _render_html_page("SecureApp Test Reports", body, css_with_bg),
         encoding="utf-8",
     )
-
 
 
 def build_site(
@@ -1194,16 +1238,33 @@ def build_site(
     _build_gauge_index(gauge_dir)
     _build_integration_index(integration_dir)
     _build_property_index(property_dir)
-    _build_linter_index(pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint"))
-    _build_linter_index(pydoclint_dir, "Pydoclint Report", "Pydoclint", job_statuses.get("pydoclint"))
-    _build_linter_index(python_smells_dir, "Python Smells Report", "Python Smells", job_statuses.get("python-smells"))
-    _build_linter_index(shellcheck_dir, "ShellCheck Report", "ShellCheck", job_statuses.get("shellcheck"))
-    _build_linter_index(hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint"))
+    _build_linter_index(
+        pylint_dir, "Pylint Report", "Pylint", job_statuses.get("pylint")
+    )
+    _build_linter_index(
+        pydoclint_dir, "Pydoclint Report", "Pydoclint", job_statuses.get("pydoclint")
+    )
+    _build_linter_index(
+        python_smells_dir,
+        "Python Smells Report",
+        "Python Smells",
+        job_statuses.get("python-smells"),
+    )
+    _build_linter_index(
+        shellcheck_dir,
+        "ShellCheck Report",
+        "ShellCheck",
+        job_statuses.get("shellcheck"),
+    )
+    _build_linter_index(
+        hadolint_dir, "Hadolint Report", "Hadolint", job_statuses.get("hadolint")
+    )
     _build_test_index_page(test_index_dir)
     _build_cid_validation_index(cid_validation_dir)
     _build_ai_eval_index(ai_eval_dir)
-    _write_landing_page(output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses)
-
+    _write_landing_page(
+        output_dir, screenshot_notice=screenshot_notice, job_statuses=job_statuses
+    )
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -1310,7 +1371,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Directory where the site should be written.",
     )
     return parser.parse_args(argv)
-
 
 
 def main(argv: Sequence[str] | None = None) -> int:

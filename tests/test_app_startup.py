@@ -29,7 +29,9 @@ def app_config_factory(tmp_path: Path):
     return _make_config
 
 
-def test_create_app_serves_homepage(monkeypatch: pytest.MonkeyPatch, app_config_factory):
+def test_create_app_serves_homepage(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
     """The factory should create an app whose homepage can be rendered."""
 
     monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
@@ -72,9 +74,15 @@ def test_create_app_handles_logfire_configuration_errors(
         raise LogfireConfigError("logfire credentials missing")
 
     monkeypatch.setattr(app_module.logfire, "configure", fail_configure)
-    monkeypatch.setattr(app_module.logfire, "instrument_requests", lambda: calls.append("requests"))
-    monkeypatch.setattr(app_module.logfire, "instrument_aiohttp_client", lambda: calls.append("aiohttp"))
-    monkeypatch.setattr(app_module.logfire, "instrument_pydantic", lambda: calls.append("pydantic"))
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_requests", lambda: calls.append("requests")
+    )
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_aiohttp_client", lambda: calls.append("aiohttp")
+    )
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_pydantic", lambda: calls.append("pydantic")
+    )
 
     app_instance = app_module.create_app(app_config_factory("logfire"))
     client = app_instance.test_client()

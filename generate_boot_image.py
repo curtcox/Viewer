@@ -48,7 +48,7 @@ class BootImageGenerator:
         Returns:
             File content as bytes
         """
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             return f.read()
 
     def generate_and_store_cid(self, file_path: Path, relative_path: str) -> str:
@@ -73,7 +73,7 @@ class BootImageGenerator:
         if not is_literal_cid(cid):
             cid_file_path = self.cids_dir / cid
             if not cid_file_path.exists():
-                with open(cid_file_path, 'wb') as f:
+                with open(cid_file_path, "wb") as f:
                     f.write(content)
                 print(f"  Stored {relative_path} -> {cid}")
             else:
@@ -96,9 +96,11 @@ class BootImageGenerator:
         """
         if isinstance(data, dict):
             for key, value in data.items():
-                if key.endswith('_cid') or key.endswith('_file'):
+                if key.endswith("_cid") or key.endswith("_file"):
                     # This is a file reference
-                    if isinstance(value, str) and value.startswith('reference_templates/'):
+                    if isinstance(value, str) and value.startswith(
+                        "reference_templates/"
+                    ):
                         file_path = self.base_dir / value
                         if file_path.exists():
                             self.generate_and_store_cid(file_path, value)
@@ -126,7 +128,7 @@ class BootImageGenerator:
             return None
 
         # Read the server definition file
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Look for _load_resource_file calls with filename arguments
@@ -144,12 +146,16 @@ class BootImageGenerator:
         for filename in matches:
             resource_path = server_dir / filename
             if not resource_path.exists():
-                print(f"  WARNING: Referenced file not found: {filename} in {server_def_path}")
+                print(
+                    f"  WARNING: Referenced file not found: {filename} in {server_def_path}"
+                )
                 continue
 
             # Generate CID for the referenced file
             relative_resource_path = str(resource_path.relative_to(self.base_dir))
-            resource_cid = self.generate_and_store_cid(resource_path, relative_resource_path)
+            resource_cid = self.generate_and_store_cid(
+                resource_path, relative_resource_path
+            )
 
             # Replace the filename with CID in the content
             # Replace _load_resource_file("filename") with direct content loading via CID
@@ -171,8 +177,8 @@ class BootImageGenerator:
             The processed value (possibly replaced with a CID)
         """
         # Handle CID or file keys
-        if key.endswith('_cid') or key.endswith('_file'):
-            if isinstance(value, str) and value.startswith('reference_templates/'):
+        if key.endswith("_cid") or key.endswith("_file"):
+            if isinstance(value, str) and value.startswith("reference_templates/"):
                 if value in self.file_to_cid:
                     return self.file_to_cid[value]
                 print(f"  WARNING: No CID found for {value}")
@@ -180,8 +186,8 @@ class BootImageGenerator:
             return value
 
         # Special handling for server definitions
-        if key == 'definition_cid':
-            if isinstance(value, str) and value.endswith('.py'):
+        if key == "definition_cid":
+            if isinstance(value, str) and value.endswith(".py"):
                 # pylint: disable=assignment-from-none
                 modified_cid = self.process_server_definition_file(value)
                 if modified_cid:
@@ -224,7 +230,7 @@ class BootImageGenerator:
 
         # Read templates.source.json
         source_path = self.reference_templates_dir / "templates.source.json"
-        with open(source_path, 'r', encoding='utf-8') as f:
+        with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
         # Process all referenced files
@@ -237,18 +243,18 @@ class BootImageGenerator:
 
         # Write templates.json
         target_path = self.reference_templates_dir / "templates.json"
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             json.dump(templates_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
 
         # Generate CID for templates.json
-        templates_json_content = json.dumps(templates_data, indent=2).encode('utf-8')
+        templates_json_content = json.dumps(templates_data, indent=2).encode("utf-8")
         templates_cid = generate_cid(templates_json_content)
 
         # Store templates.json CID (skip literal CIDs)
         if not is_literal_cid(templates_cid):
             cid_file_path = self.cids_dir / templates_cid
-            with open(cid_file_path, 'wb') as f:
+            with open(cid_file_path, "wb") as f:
                 f.write(templates_json_content)
             print(f"Stored templates.json -> {templates_cid}")
         else:
@@ -267,7 +273,7 @@ class BootImageGenerator:
 
         # Read uis.source.json
         source_path = self.reference_templates_dir / "uis.source.json"
-        with open(source_path, 'r', encoding='utf-8') as f:
+        with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
         # Process all referenced files (if any)
@@ -280,18 +286,18 @@ class BootImageGenerator:
 
         # Write uis.json
         target_path = self.reference_templates_dir / "uis.json"
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             json.dump(uis_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
 
         # Generate CID for uis.json
-        uis_json_content = json.dumps(uis_data, indent=2).encode('utf-8')
+        uis_json_content = json.dumps(uis_data, indent=2).encode("utf-8")
         uis_cid = generate_cid(uis_json_content)
 
         # Store uis.json CID (skip literal CIDs)
         if not is_literal_cid(uis_cid):
             cid_file_path = self.cids_dir / uis_cid
-            with open(cid_file_path, 'wb') as f:
+            with open(cid_file_path, "wb") as f:
                 f.write(uis_json_content)
             print(f"Stored uis.json -> {uis_cid}")
         else:
@@ -299,8 +305,12 @@ class BootImageGenerator:
 
         return uis_cid
 
-    def generate_boot_json(self, templates_cid: str, source_name: str = "boot",
-                          uis_cid: Optional[str] = None) -> str:
+    def generate_boot_json(
+        self,
+        templates_cid: str,
+        source_name: str = "boot",
+        uis_cid: Optional[str] = None,
+    ) -> str:
         """Generate boot.json from a boot.source.json file.
 
         Args:
@@ -311,16 +321,24 @@ class BootImageGenerator:
         Returns:
             CID of the generated boot.json
         """
-        source_filename = f"{source_name}.boot.source.json" if source_name != "boot" else "boot.source.json"
-        target_filename = f"{source_name}.boot.json" if source_name != "boot" else "boot.json"
-        cid_filename = f"{source_name}.boot.cid" if source_name != "boot" else "boot.cid"
+        source_filename = (
+            f"{source_name}.boot.source.json"
+            if source_name != "boot"
+            else "boot.source.json"
+        )
+        target_filename = (
+            f"{source_name}.boot.json" if source_name != "boot" else "boot.json"
+        )
+        cid_filename = (
+            f"{source_name}.boot.cid" if source_name != "boot" else "boot.cid"
+        )
 
         print(f"\nStep 2: Processing {source_filename}")
         print("=" * 60)
 
         # Read boot.source.json
         source_path = self.reference_templates_dir / source_filename
-        with open(source_path, 'r', encoding='utf-8') as f:
+        with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
         # Process all referenced files (that weren't already processed)
@@ -333,29 +351,36 @@ class BootImageGenerator:
 
         # Replace GENERATED:templates.json marker with actual templates CID
         print(f"\nReplacing templates variable with CID: {templates_cid}")
-        if 'variables' in boot_data:
-            for var in boot_data['variables']:
-                if var.get('name') == 'templates' and var.get('definition') == 'GENERATED:templates.json':
-                    var['definition'] = templates_cid
+        if "variables" in boot_data:
+            for var in boot_data["variables"]:
+                if (
+                    var.get("name") == "templates"
+                    and var.get("definition") == "GENERATED:templates.json"
+                ):
+                    var["definition"] = templates_cid
                 # Replace GENERATED:uis.json marker with actual UIs CID
-                if uis_cid and var.get('name') == 'uis' and var.get('definition') == 'GENERATED:uis.json':
+                if (
+                    uis_cid
+                    and var.get("name") == "uis"
+                    and var.get("definition") == "GENERATED:uis.json"
+                ):
                     print(f"Replacing uis variable with CID: {uis_cid}")
-                    var['definition'] = uis_cid
+                    var["definition"] = uis_cid
 
         # Write boot.json
         target_path = self.reference_templates_dir / target_filename
-        with open(target_path, 'w', encoding='utf-8') as f:
+        with open(target_path, "w", encoding="utf-8") as f:
             json.dump(boot_data, f, indent=2)
         print(f"\nGenerated: {target_path}")
 
         # Generate CID for boot.json
-        boot_json_content = json.dumps(boot_data, indent=2).encode('utf-8')
+        boot_json_content = json.dumps(boot_data, indent=2).encode("utf-8")
         boot_cid = generate_cid(boot_json_content)
 
         # Store boot.json CID (skip literal CIDs)
         if not is_literal_cid(boot_cid):
             cid_file_path = self.cids_dir / boot_cid
-            with open(cid_file_path, 'wb') as f:
+            with open(cid_file_path, "wb") as f:
                 f.write(boot_json_content)
             print(f"Stored {target_filename} -> {boot_cid}")
         else:
@@ -363,7 +388,7 @@ class BootImageGenerator:
 
         # Save boot CID to boot.cid file
         boot_cid_file = self.reference_templates_dir / cid_filename
-        with open(boot_cid_file, 'w', encoding='utf-8') as f:
+        with open(boot_cid_file, "w", encoding="utf-8") as f:
             f.write(boot_cid)
         print(f"Saved boot CID to: {boot_cid_file}")
 
@@ -404,17 +429,23 @@ class BootImageGenerator:
         print(f"Boot CID (legacy): {boot_cid}")
         print(f"\nTotal files processed: {len(self.processed_files)}")
         print("\nTo boot with these images, run:")
-        print(f"  python main.py --boot-cid {minimal_boot_cid}  # Minimal boot (ai_stub only)")
-        print(f"  python main.py --boot-cid {default_boot_cid}  # Default boot (all servers)")
-        print(f"  python main.py --boot-cid {readonly_boot_cid}  # Readonly boot (no shell/file access)")
+        print(
+            f"  python main.py --boot-cid {minimal_boot_cid}  # Minimal boot (ai_stub only)"
+        )
+        print(
+            f"  python main.py --boot-cid {default_boot_cid}  # Default boot (all servers)"
+        )
+        print(
+            f"  python main.py --boot-cid {readonly_boot_cid}  # Readonly boot (no shell/file access)"
+        )
 
         return {
-            'templates_cid': templates_cid,
-            'uis_cid': uis_cid,
-            'boot_cid': boot_cid,
-            'minimal_boot_cid': minimal_boot_cid,
-            'default_boot_cid': default_boot_cid,
-            'readonly_boot_cid': readonly_boot_cid
+            "templates_cid": templates_cid,
+            "uis_cid": uis_cid,
+            "boot_cid": boot_cid,
+            "minimal_boot_cid": minimal_boot_cid,
+            "default_boot_cid": default_boot_cid,
+            "readonly_boot_cid": readonly_boot_cid,
         }
 
 
@@ -425,5 +456,5 @@ def main():
     return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

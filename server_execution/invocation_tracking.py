@@ -8,8 +8,19 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from cid import CID as ValidatedCID
 from cid_presenter import cid_path, format_cid
-from cid_utils import generate_cid, get_current_secret_definitions_cid, get_current_server_definitions_cid, get_current_variable_definitions_cid
-from db_access import ServerInvocationInput, create_cid_record, create_server_invocation, get_cid_by_path, save_entity
+from cid_utils import (
+    generate_cid,
+    get_current_secret_definitions_cid,
+    get_current_server_definitions_cid,
+    get_current_variable_definitions_cid,
+)
+from db_access import (
+    ServerInvocationInput,
+    create_cid_record,
+    create_server_invocation,
+    get_cid_by_path,
+    save_entity,
+)
 from models import ServerInvocation
 
 
@@ -22,7 +33,9 @@ def request_details():
 
     try:
         raw_body = request.get_data(cache=True)
-    except Exception:  # pragma: no cover - defensive fallback for unexpected request failures
+    except (
+        Exception
+    ):  # pragma: no cover - defensive fallback for unexpected request failures
         raw_body = b""
 
     body_text: Optional[str] = None
@@ -113,7 +126,9 @@ def create_server_invocation_record(
             "secrets_cid": secrets_cid,
             "request_details_cid": req_cid,
             "external_calls_cid": calls_cid,
-            "invoked_at": invocation.invoked_at.isoformat() if invocation.invoked_at else None,
+            "invoked_at": invocation.invoked_at.isoformat()
+            if invocation.invoked_at
+            else None,
         }
         inv_json = json.dumps(inv_payload, indent=2, sort_keys=True)
         inv_bytes = inv_json.encode("utf-8")

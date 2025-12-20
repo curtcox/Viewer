@@ -1,4 +1,5 @@
 """Workspace-wide search routes."""
+
 from __future__ import annotations
 
 import re
@@ -35,7 +36,7 @@ MAX_UPLOAD_HISTORY: int = 100
 PREVIEW_LENGTH: int = 20
 
 _ALIAS_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
-_FALSY_VALUES = frozenset({'0', 'false', 'off', 'no'})
+_FALSY_VALUES = frozenset({"0", "false", "off", "no"})
 
 
 AliasLookup = dict[str, dict[str, dict[str, str | None]]]
@@ -126,7 +127,9 @@ def _build_alias_lookup(aliases: list[Any]) -> AliasLookup:
     return lookup
 
 
-def _alias_matches_for(target_path: str | None, lookup: AliasLookup | None) -> list[dict[str, str | None]]:
+def _alias_matches_for(
+    target_path: str | None, lookup: AliasLookup | None
+) -> list[dict[str, str | None]]:
     """Return aliases referencing the provided target path."""
 
     if not lookup or target_path is None:
@@ -145,7 +148,9 @@ def _alias_matches_for(target_path: str | None, lookup: AliasLookup | None) -> l
     return sorted(matches.values(), key=lambda entry: (entry.get("name") or "").lower())
 
 
-def _alias_form_url(target_path: str | None, name_suggestion: str | None = None) -> str | None:
+def _alias_form_url(
+    target_path: str | None, name_suggestion: str | None = None
+) -> str | None:
     """Return the alias creation URL with helpful defaults when possible."""
 
     if not target_path:
@@ -191,13 +196,22 @@ def _alias_results(
         if not routes:
             continue
 
-        target_paths = [route.target_path or "" for route in routes if route.target_path]
-        match_patterns = [route.match_pattern or "" for route in routes if route.match_pattern]
+        target_paths = [
+            route.target_path or "" for route in routes if route.target_path
+        ]
+        match_patterns = [
+            route.match_pattern or "" for route in routes if route.match_pattern
+        ]
 
         if not (
             TextHighlighter.has_match(name_text, query_lower)
-            or any(TextHighlighter.has_match(path, query_lower) for path in target_paths)
-            or any(TextHighlighter.has_match(pattern, query_lower) for pattern in match_patterns)
+            or any(
+                TextHighlighter.has_match(path, query_lower) for path in target_paths
+            )
+            or any(
+                TextHighlighter.has_match(pattern, query_lower)
+                for pattern in match_patterns
+            )
         ):
             continue
 
@@ -218,8 +232,12 @@ def _alias_results(
             {
                 "id": getattr(alias, "id", None),
                 "name": name_text,
-                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
-                "url": url_for("main.view_alias", alias_name=name_text) if name_text else None,
+                "name_highlighted": TextHighlighter.highlight_full(
+                    name_text, query_lower
+                ),
+                "url": url_for("main.view_alias", alias_name=name_text)
+                if name_text
+                else None,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
                 "alias_form_url": _alias_form_url(canonical_path),
@@ -239,7 +257,10 @@ def _server_results(
         name_text = getattr(server, "name", "") or ""
         definition = getattr(server, "definition", "") or ""
 
-        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
+        if not (
+            TextHighlighter.has_match(name_text, query_lower)
+            or TextHighlighter.has_match(definition, query_lower)
+        ):
             continue
 
         details: list[dict[str, str]] = []
@@ -247,13 +268,17 @@ def _server_results(
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
-        canonical_path = url_for("main.view_server", server_name=name_text) if name_text else None
+        canonical_path = (
+            url_for("main.view_server", server_name=name_text) if name_text else None
+        )
 
         results.append(
             {
                 "id": getattr(server, "id", None),
                 "name": name_text,
-                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(
+                    name_text, query_lower
+                ),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -274,7 +299,10 @@ def _variable_results(
         name_text = getattr(variable, "name", "") or ""
         definition = getattr(variable, "definition", "") or ""
 
-        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
+        if not (
+            TextHighlighter.has_match(name_text, query_lower)
+            or TextHighlighter.has_match(definition, query_lower)
+        ):
             continue
 
         details: list[dict[str, str]] = []
@@ -282,13 +310,19 @@ def _variable_results(
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
-        canonical_path = url_for("main.view_variable", variable_name=name_text) if name_text else None
+        canonical_path = (
+            url_for("main.view_variable", variable_name=name_text)
+            if name_text
+            else None
+        )
 
         results.append(
             {
                 "id": getattr(variable, "id", None),
                 "name": name_text,
-                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(
+                    name_text, query_lower
+                ),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -309,7 +343,10 @@ def _secret_results(
         name_text = getattr(secret, "name", "") or ""
         definition = getattr(secret, "definition", "") or ""
 
-        if not (TextHighlighter.has_match(name_text, query_lower) or TextHighlighter.has_match(definition, query_lower)):
+        if not (
+            TextHighlighter.has_match(name_text, query_lower)
+            or TextHighlighter.has_match(definition, query_lower)
+        ):
             continue
 
         details: list[dict[str, str]] = []
@@ -317,13 +354,17 @@ def _secret_results(
         if snippet:
             details.append({"label": "Definition", "value": snippet})
 
-        canonical_path = url_for("main.view_secret", secret_name=name_text) if name_text else None
+        canonical_path = (
+            url_for("main.view_secret", secret_name=name_text) if name_text else None
+        )
 
         results.append(
             {
                 "id": getattr(secret, "id", None),
                 "name": name_text,
-                "name_highlighted": TextHighlighter.highlight_full(name_text, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(
+                    name_text, query_lower
+                ),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
@@ -379,17 +420,25 @@ def _cid_results(
             details.append({"label": "Content", "value": snippet})
 
         canonical_path = cid_path(cid_value) if cid_value else (display_name or None)
-        alias_name_suggestion = cid_value if cid_value and _ALIAS_NAME_PATTERN.fullmatch(cid_value) else None
+        alias_name_suggestion = (
+            cid_value
+            if cid_value and _ALIAS_NAME_PATTERN.fullmatch(cid_value)
+            else None
+        )
 
         results.append(
             {
                 "id": getattr(cid_record, "id", None),
                 "name": display_name,
-                "name_highlighted": TextHighlighter.highlight_full(display_name, query_lower),
+                "name_highlighted": TextHighlighter.highlight_full(
+                    display_name, query_lower
+                ),
                 "url": canonical_path,
                 "details": details,
                 "aliases": _alias_matches_for(canonical_path, alias_lookup),
-                "alias_form_url": _alias_form_url(canonical_path, alias_name_suggestion),
+                "alias_form_url": _alias_form_url(
+                    canonical_path, alias_name_suggestion
+                ),
             }
         )
     return results
@@ -428,9 +477,7 @@ def _parse_search_filters() -> dict[str, bool]:
     Returns:
         dict: Mapping of category keys to their enabled status
     """
-    return {
-        key: _parse_enabled(request.args.get(key)) for key in _CATEGORY_CONFIG
-    }
+    return {key: _parse_enabled(request.args.get(key)) for key in _CATEGORY_CONFIG}
 
 
 def _empty_search_response(applied_filters: dict[str, bool]) -> dict[str, Any]:
@@ -461,7 +508,7 @@ def _execute_search(
     query_lower: str,
     applied_filters: dict[str, bool],
     alias_lookup: AliasLookup,
-    alias_records: list[Any]
+    alias_records: list[Any],
 ) -> tuple[dict[str, dict[str, Any]], int]:
     """Execute search across all enabled categories.
 

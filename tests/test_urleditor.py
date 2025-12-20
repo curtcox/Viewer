@@ -9,8 +9,14 @@ def load_urleditor_module():
     from pathlib import Path
 
     # Read the urleditor.py file
-    urleditor_path = Path(__file__).parent.parent / "reference_templates" / "servers" / "definitions" / "urleditor.py"
-    with open(urleditor_path, 'r', encoding='utf-8') as f:
+    urleditor_path = (
+        Path(__file__).parent.parent
+        / "reference_templates"
+        / "servers"
+        / "definitions"
+        / "urleditor.py"
+    )
+    with open(urleditor_path, "r", encoding="utf-8") as f:
         code = f.read()
 
     # Create a module namespace
@@ -31,37 +37,37 @@ class TestURLEditorServerBasics:
 
     def test_main_function_exists(self):
         """Test that the main function exists."""
-        assert 'main' in self.module
-        assert callable(self.module['main'])
+        assert "main" in self.module
+        assert callable(self.module["main"])
 
     def test_main_returns_html_by_default(self):
         """Test that main returns HTML content."""
-        result = self.module['main']()
+        result = self.module["main"]()
 
         assert isinstance(result, dict)
-        assert 'output' in result
-        assert 'content_type' in result
-        assert result['content_type'] == 'text/html'
-        assert '<!DOCTYPE html>' in result['output']
+        assert "output" in result
+        assert "content_type" in result
+        assert result["content_type"] == "text/html"
+        assert "<!DOCTYPE html>" in result["output"]
 
     def test_main_rejects_chained_input(self):
         """Test that the server rejects being used in a chain."""
-        result = self.module['main'](input_data="some input from previous server")
+        result = self.module["main"](input_data="some input from previous server")
 
         assert isinstance(result, dict)
-        assert 'output' in result
-        assert 'status' in result
-        assert result['status'] == 400
-        assert 'does not support URL chaining' in result['output']
+        assert "output" in result
+        assert "status" in result
+        assert result["status"] == 400
+        assert "does not support URL chaining" in result["output"]
 
     def test_main_accepts_none_input(self):
         """Test that the server works when input_data is None."""
-        result = self.module['main'](input_data=None)
+        result = self.module["main"](input_data=None)
 
         assert isinstance(result, dict)
-        assert 'output' in result
-        assert result.get('content_type') == 'text/html'
-        assert result.get('status', 200) != 400
+        assert "output" in result
+        assert result.get("content_type") == "text/html"
+        assert result.get("status", 200) != 400
 
 
 class TestURLEditorHelperFunctions:
@@ -73,7 +79,7 @@ class TestURLEditorHelperFunctions:
 
     def test_should_redirect_returns_false_for_root(self):
         """Test that _should_redirect returns False for root path."""
-        redirect_func = self.module['_should_redirect']
+        redirect_func = self.module["_should_redirect"]
 
         should_redirect, redirect_url = redirect_func("/")
         assert should_redirect is False
@@ -81,7 +87,7 @@ class TestURLEditorHelperFunctions:
 
     def test_should_redirect_returns_false_for_empty(self):
         """Test that _should_redirect returns False for empty path."""
-        redirect_func = self.module['_should_redirect']
+        redirect_func = self.module["_should_redirect"]
 
         should_redirect, redirect_url = redirect_func("")
         assert should_redirect is False
@@ -89,7 +95,7 @@ class TestURLEditorHelperFunctions:
 
     def test_should_redirect_returns_true_for_subpath(self):
         """Test that _should_redirect returns True for subpath."""
-        redirect_func = self.module['_should_redirect']
+        redirect_func = self.module["_should_redirect"]
 
         should_redirect, redirect_url = redirect_func("/echo/test")
         assert should_redirect is True
@@ -97,23 +103,23 @@ class TestURLEditorHelperFunctions:
 
     def test_get_html_page_returns_html(self):
         """Test that _get_html_page returns HTML."""
-        html_func = self.module['_get_html_page']
+        html_func = self.module["_get_html_page"]
 
         html = html_func("")
-        assert '<!DOCTYPE html>' in html
-        assert '<title>URL Editor</title>' in html
+        assert "<!DOCTYPE html>" in html
+        assert "<title>URL Editor</title>" in html
 
     def test_get_html_page_includes_ace_editor(self):
         """Test that _get_html_page includes Ace editor."""
-        html_func = self.module['_get_html_page']
+        html_func = self.module["_get_html_page"]
 
         html = html_func("")
-        assert 'ace.edit' in html
-        assert 'url-editor' in html
+        assert "ace.edit" in html
+        assert "url-editor" in html
 
     def test_get_html_page_escapes_initial_url(self):
         """Test that _get_html_page escapes the initial URL."""
-        html_func = self.module['_get_html_page']
+        html_func = self.module["_get_html_page"]
 
         html = html_func("<script>alert('xss')</script>")
         # Should be HTML-escaped
@@ -132,34 +138,34 @@ class TestURLEditorWithRequest:
         request = Mock()
         request.path = "/urleditor"
 
-        result = self.module['main'](request=request)
+        result = self.module["main"](request=request)
 
         assert isinstance(result, dict)
-        assert 'output' in result
-        assert result['content_type'] == 'text/html'
+        assert "output" in result
+        assert result["content_type"] == "text/html"
 
     def test_main_with_subpath_redirects(self):
         """Test main with request path /urleditor/echo redirects."""
         request = Mock()
         request.path = "/urleditor/echo"
 
-        result = self.module['main'](request=request)
+        result = self.module["main"](request=request)
 
         assert isinstance(result, dict)
-        assert 'redirect' in result
-        assert result['redirect'] == "/urleditor#/echo"
-        assert result.get('status') == 302
+        assert "redirect" in result
+        assert result["redirect"] == "/urleditor#/echo"
+        assert result.get("status") == 302
 
     def test_main_with_complex_subpath_redirects(self):
         """Test main with complex subpath redirects correctly."""
         request = Mock()
         request.path = "/urleditor/markdown/echo/test"
 
-        result = self.module['main'](request=request)
+        result = self.module["main"](request=request)
 
         assert isinstance(result, dict)
-        assert 'redirect' in result
-        assert result['redirect'] == "/urleditor#/markdown/echo/test"
+        assert "redirect" in result
+        assert result["redirect"] == "/urleditor#/markdown/echo/test"
 
 
 class TestURLEditorMetaLinks:
@@ -180,14 +186,16 @@ class TestURLEditorMetaLinks:
         monkeypatch.setitem(
             self.module,
             "format_history_timestamp",
-            lambda dt: dt.replace(tzinfo=real_timezone.utc).isoformat(timespec="minutes"),
+            lambda dt: dt.replace(tzinfo=real_timezone.utc).isoformat(
+                timespec="minutes"
+            ),
         )
 
         request = Mock()
         request.path = "/urleditor"
 
-        result = self.module['main'](request=request)
+        result = self.module["main"](request=request)
 
-        assert "/meta/urleditor.html" in result['output']
-        assert "/history?start=2024-01-01T12%3A00%2B00%3A00" in result['output']
-        assert "/server_events?start=2024-01-01T12%3A00%2B00%3A00" in result['output']
+        assert "/meta/urleditor.html" in result["output"]
+        assert "/history?start=2024-01-01T12%3A00%2B00%3A00" in result["output"]
+        assert "/server_events?start=2024-01-01T12%3A00%2B00%3A00" in result["output"]

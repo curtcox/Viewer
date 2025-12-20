@@ -1,4 +1,5 @@
 """Integration coverage for secret management pages."""
+
 from __future__ import annotations
 
 import json
@@ -31,8 +32,8 @@ def test_new_secret_form_renders_in_single_user_mode(
     page = response.get_data(as_text=True)
     assert "Create New Secret" in page
     assert "Secret Configuration" in page
-    assert "name=\"name\"" in page
-    assert "name=\"definition\"" in page
+    assert 'name="name"' in page
+    assert 'name="definition"' in page
 
 
 def test_new_secret_form_includes_templates(
@@ -54,7 +55,7 @@ def test_new_secret_form_includes_templates(
                     "name": "templated-secret",
                     "definition": "return 'secret'",
                 }
-            }
+            },
         }
 
         templates_var = Variable(
@@ -90,7 +91,7 @@ def test_new_secret_form_includes_template_link(
                     "name": "secret1",
                     "definition": "secret-value-1",
                 }
-            }
+            },
         }
 
         templates_var = Variable(
@@ -208,10 +209,12 @@ def test_secrets_page_includes_enabled_toggle(
 
     page = response.get_data(as_text=True)
     assert 'action="/secrets/production-api-key/enabled"' in page
-    toggle_match = re.search(r'id="secret-enabled-toggle-production-api-key"[^>]*>', page)
+    toggle_match = re.search(
+        r'id="secret-enabled-toggle-production-api-key"[^>]*>', page
+    )
     assert toggle_match is not None
-    assert 'checked' not in toggle_match.group(0)
-    assert 'secret-enabled-label' in page
+    assert "checked" not in toggle_match.group(0)
+    assert "secret-enabled-label" in page
 
 
 def test_secret_enable_toggle_updates_state(
@@ -323,21 +326,17 @@ def test_bulk_secret_editor_prefills_existing_secrets(
     """The bulk editor should render the current secrets as JSON."""
 
     with integration_app.app_context():
-        db.session.add(
-            Secret(name="api_key", definition="super-secret")
-        )
-        db.session.add(
-            Secret(name="db_password", definition="hunter2")
-        )
+        db.session.add(Secret(name="api_key", definition="super-secret"))
+        db.session.add(Secret(name="db_password", definition="hunter2"))
         db.session.commit()
 
     response = client.get("/secrets/_/edit")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert 'api_key' in page
-    assert 'super-secret' in page
-    assert 'db_password' in page
+    assert "api_key" in page
+    assert "super-secret" in page
+    assert "db_password" in page
 
 
 def test_bulk_secret_editor_updates_and_deletes_secrets(
@@ -347,12 +346,8 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
     """Saving from the bulk editor should upsert provided secrets and remove omissions."""
 
     with integration_app.app_context():
-        db.session.add(
-            Secret(name="api_key", definition="super-secret")
-        )
-        db.session.add(
-            Secret(name="db_password", definition="hunter2")
-        )
+        db.session.add(Secret(name="api_key", definition="super-secret"))
+        db.session.add(Secret(name="db_password", definition="hunter2"))
         db.session.commit()
 
     payload = {"api_key": "rotate-me", "service_token": "abc123"}
@@ -370,12 +365,8 @@ def test_bulk_secret_editor_updates_and_deletes_secrets(
 
     with integration_app.app_context():
         api_key = Secret.query.filter_by(name="api_key").one()
-        service_token = Secret.query.filter_by(
-            name="service_token"
-        ).one()
-        db_password = Secret.query.filter_by(
-            name="db_password"
-        ).first()
+        service_token = Secret.query.filter_by(name="service_token").one()
+        db_password = Secret.query.filter_by(name="db_password").first()
 
         assert api_key.definition == "rotate-me"
         assert service_token.definition == "abc123"
@@ -390,9 +381,7 @@ def test_bulk_secret_editor_invalid_json_displays_errors(
     """Invalid JSON submissions should be rejected and show an error message."""
 
     with integration_app.app_context():
-        db.session.add(
-            Secret(name="api_key", definition="super-secret")
-        )
+        db.session.add(Secret(name="api_key", definition="super-secret"))
         db.session.commit()
 
     response = client.post(

@@ -1,4 +1,5 @@
 """Entity import functions for aliases, servers, variables, and secrets."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -75,29 +76,31 @@ def prepare_alias_import(
 ) -> AliasImport | None:
     """Return a normalized alias import entry when the payload entry is valid."""
     if not isinstance(entry, dict):
-        errors.append('Alias entries must be objects with name and definition details.')
+        errors.append("Alias entries must be objects with name and definition details.")
         return None
 
-    name_raw = entry.get('name')
+    name_raw = entry.get("name")
     if not isinstance(name_raw, str) or not name_raw.strip():
-        errors.append('Alias entry must include a valid name.')
+        errors.append("Alias entry must include a valid name.")
         return None
 
     name = name_raw.strip()
 
-    if f'/{name}' in reserved_routes:
-        errors.append(f'Alias "{name}" conflicts with an existing route and was skipped.')
+    if f"/{name}" in reserved_routes:
+        errors.append(
+            f'Alias "{name}" conflicts with an existing route and was skipped.'
+        )
         return None
 
     definition_text: Optional[str] = None
-    raw_definition = entry.get('definition')
+    raw_definition = entry.get("definition")
     if isinstance(raw_definition, str):
         definition_text = raw_definition
     elif raw_definition is not None:
         errors.append(f'Alias "{name}" definition must be text when provided.')
         return None
 
-    definition_cid = normalise_cid(entry.get('definition_cid'))
+    definition_cid = normalise_cid(entry.get("definition_cid"))
 
     if definition_text is None and definition_cid:
         cid_bytes = load_cid_bytes(definition_cid, cid_map)
@@ -107,7 +110,7 @@ def prepare_alias_import(
             )
             return None
         try:
-            definition_text = cid_bytes.decode('utf-8')
+            definition_text = cid_bytes.decode("utf-8")
         except UnicodeDecodeError:
             errors.append(
                 f'Alias "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
@@ -115,7 +118,9 @@ def prepare_alias_import(
             return None
 
     if definition_text is None:
-        errors.append(f'Alias "{name}" entry must include either a definition or a definition_cid.')
+        errors.append(
+            f'Alias "{name}" entry must include either a definition or a definition_cid.'
+        )
         return None
 
     try:
@@ -128,7 +133,7 @@ def prepare_alias_import(
     # Preserve the original definition format during import
     definition_value = definition_text
 
-    enabled = coerce_enabled_flag(entry.get('enabled'))
+    enabled = coerce_enabled_flag(entry.get("enabled"))
 
     return AliasImport(
         name=name,
@@ -151,7 +156,7 @@ def load_server_definition_from_cid(
         )
         return None
     try:
-        return cid_bytes.decode('utf-8')
+        return cid_bytes.decode("utf-8")
     except UnicodeDecodeError:
         errors.append(
             f'Server "{name}" definition for CID "{definition_cid}" must be UTF-8 text.'
@@ -166,26 +171,30 @@ def prepare_server_import(
 ) -> ServerImport | None:
     """Return a normalized server import entry when the payload entry is valid."""
     if not isinstance(entry, dict):
-        errors.append('Server entries must be objects with name and definition details.')
+        errors.append(
+            "Server entries must be objects with name and definition details."
+        )
         return None
 
-    name_raw = entry.get('name')
+    name_raw = entry.get("name")
     if not isinstance(name_raw, str) or not name_raw.strip():
-        errors.append('Server entry must include a valid name.')
+        errors.append("Server entry must include a valid name.")
         return None
 
     name = name_raw.strip()
     definition_text: str | None = None
-    raw_definition = entry.get('definition')
+    raw_definition = entry.get("definition")
     if isinstance(raw_definition, str):
         definition_text = raw_definition
     elif raw_definition is not None:
         errors.append(f'Server "{name}" definition must be text.')
         return None
 
-    definition_cid = normalise_cid(entry.get('definition_cid'))
+    definition_cid = normalise_cid(entry.get("definition_cid"))
     if definition_text is None and definition_cid:
-        definition_text = load_server_definition_from_cid(name, definition_cid, cid_map, errors)
+        definition_text = load_server_definition_from_cid(
+            name, definition_cid, cid_map, errors
+        )
 
     if definition_text is None:
         errors.append(
@@ -193,7 +202,7 @@ def prepare_server_import(
         )
         return None
 
-    enabled = coerce_enabled_flag(entry.get('enabled'))
+    enabled = coerce_enabled_flag(entry.get("enabled"))
 
     return ServerImport(
         name=name,
@@ -215,7 +224,7 @@ def prepare_variable_import(
         )
         return None
 
-    name_raw = entry.get('name')
+    name_raw = entry.get("name")
     if not isinstance(name_raw, str) or not name_raw.strip():
         errors.append(
             f"Variable entry at index {index} must include a valid name; keys={sorted(entry.keys())}."
@@ -225,15 +234,15 @@ def prepare_variable_import(
     name = name_raw.strip()
 
     definition_text: str | None = None
-    raw_definition = entry.get('definition')
+    raw_definition = entry.get("definition")
     if isinstance(raw_definition, str):
         definition_text = raw_definition
     elif raw_definition is not None:
         errors.append(f'Variable "{name}" definition must be text.')
         return None
 
-    definition_cid = normalise_cid(entry.get('definition_cid'))
-    definition_file = normalise_cid(entry.get('definition_file'))
+    definition_cid = normalise_cid(entry.get("definition_cid"))
+    definition_file = normalise_cid(entry.get("definition_file"))
     resolved_definition_cid = definition_cid or definition_file
 
     if definition_text is None and resolved_definition_cid:
@@ -242,12 +251,12 @@ def prepare_variable_import(
             errors.append(
                 (
                     f'Variable "{name}" definition with CID "{resolved_definition_cid}" '
-                    'was not included in the import.'
+                    "was not included in the import."
                 )
             )
             return None
         try:
-            definition_text = cid_bytes.decode('utf-8')
+            definition_text = cid_bytes.decode("utf-8")
         except UnicodeDecodeError:
             errors.append(
                 f'Variable "{name}" definition for CID "{resolved_definition_cid}" must be UTF-8 text.'
@@ -258,12 +267,12 @@ def prepare_variable_import(
         errors.append(
             (
                 f"Variable entry at index {index} must include a definition or a definition_cid/definition_file; "
-                f'name={name!r}, keys={sorted(entry.keys())}, entry={entry!r}'
+                f"name={name!r}, keys={sorted(entry.keys())}, entry={entry!r}"
             )
         )
         return None
 
-    enabled = coerce_enabled_flag(entry.get('enabled'))
+    enabled = coerce_enabled_flag(entry.get("enabled"))
 
     return VariableImport(
         name=name,
@@ -281,9 +290,9 @@ def impl_import_aliases(
     imported = 0
     names: list[str] = []
     if raw_aliases is None:
-        return 0, ['No alias data found in import file.'], []
+        return 0, ["No alias data found in import file."], []
     if not isinstance(raw_aliases, list):
-        return 0, ['Aliases in import file must be a list.'], []
+        return 0, ["Aliases in import file must be a list."], []
     reserved_routes = get_existing_routes_safe()
     cid_map = cid_map or {}
     for entry in raw_aliases:
@@ -334,9 +343,9 @@ def impl_import_servers(
     imported = 0
     names: list[str] = []
     if raw_servers is None:
-        return 0, ['No server data found in import file.'], []
+        return 0, ["No server data found in import file."], []
     if not isinstance(raw_servers, list):
-        return 0, ['Servers in import file must be a list.'], []
+        return 0, ["Servers in import file must be a list."], []
     cid_map = cid_map or {}
     for entry in raw_servers:
         prepared = prepare_server_import(entry, cid_map, errors)
@@ -392,9 +401,9 @@ def impl_import_variables(
     names: list[str] = []
     allow_persistence = _has_flask_app_context()
     if raw_variables is None:
-        return 0, ['No variable data found in import file.'], []
+        return 0, ["No variable data found in import file."], []
     if not isinstance(raw_variables, list):
-        return 0, ['Variables in import file must be a list.'], []
+        return 0, ["Variables in import file must be a list."], []
     cid_map = cid_map or {}
     for index, entry in enumerate(raw_variables):
         prepared = prepare_variable_import(entry, cid_map, errors, index)
@@ -446,7 +455,7 @@ def impl_import_secrets(raw_secrets: Any, key: str) -> tuple[int, list[str], lis
         if value is None:
             return None
         if isinstance(value, dict):
-            items = value.get('items')
+            items = value.get("items")
             return items if isinstance(items, list) else None
         if isinstance(value, list):
             return value
@@ -454,22 +463,24 @@ def impl_import_secrets(raw_secrets: Any, key: str) -> tuple[int, list[str], lis
 
     items = _normalise_secret_items(raw_secrets)
     if items is None:
-        return 0, ['No secret data found in import file.'], []
+        return 0, ["No secret data found in import file."], []
     errors: list[str] = []
     imported = 0
     names: list[str] = []
     try:
         for entry in items:
             if not isinstance(entry, dict):
-                errors.append('Secret entries must be objects with name and encrypted value.')
+                errors.append(
+                    "Secret entries must be objects with name and encrypted value."
+                )
                 continue
-            name = entry.get('name')
-            ciphertext = entry.get('ciphertext') or entry.get('definition')
+            name = entry.get("name")
+            ciphertext = entry.get("ciphertext") or entry.get("definition")
             if not name or not ciphertext:
-                errors.append('Secret entries must include name and encrypted value.')
+                errors.append("Secret entries must include name and encrypted value.")
                 continue
             plaintext = decrypt_secret_value(ciphertext, key)
-            enabled = coerce_enabled_flag(entry.get('enabled'))
+            enabled = coerce_enabled_flag(entry.get("enabled"))
             existing = get_secret_by_name(name)
             if existing:
                 existing.definition = plaintext
@@ -486,13 +497,15 @@ def impl_import_secrets(raw_secrets: Any, key: str) -> tuple[int, list[str], lis
             imported += 1
             names.append(name)
     except ValueError:
-        return 0, ['Invalid decryption key for secrets.'], []
+        return 0, ["Invalid decryption key for secrets."], []
     if imported:
         update_secret_definitions_cid_safe()
     return imported, errors, names
 
 
-def import_secrets_with_names(raw_secrets: Any, key: str) -> tuple[int, list[str], list[str]]:
+def import_secrets_with_names(
+    raw_secrets: Any, key: str
+) -> tuple[int, list[str], list[str]]:
     """Import secrets and return count, errors, and imported names."""
     return impl_import_secrets(raw_secrets, key)
 

@@ -99,14 +99,14 @@ def inject_template_helpers():
     from template_status import get_template_link_info, generate_template_status_label
 
     return {
-        'get_template_link_info': get_template_link_info,
-        'generate_template_status_label': generate_template_status_label,
+        "get_template_link_info": get_template_link_info,
+        "generate_template_status_label": generate_template_status_label,
     }
 
 
 __all__ = [
-    'inject_observability_info',
-    'inject_meta_inspector_link',
-    'inject_viewer_navigation',
-    'inject_template_helpers',
+    "inject_observability_info",
+    "inject_meta_inspector_link",
+    "inject_viewer_navigation",
+    "inject_template_helpers",
 ]

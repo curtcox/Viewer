@@ -3,24 +3,28 @@
 Simple test to demonstrate the variables and secrets serialization issue
 """
 
+
 class MockVariable:
     """Mock Variable model object"""
+
     def __init__(self, name, definition):
         self.name = name
         self.definition = definition
 
     def __repr__(self):
-        return f'<Variable {self.name}>'
+        return f"<Variable {self.name}>"
 
 
 class MockSecret:
     """Mock Secret model object"""
+
     def __init__(self, name, definition):
         self.name = name
         self.definition = definition
 
     def __repr__(self):
-        return f'<Secret {self.name}>'
+        return f"<Secret {self.name}>"
+
 
 def test_current_behavior():
     """Test what currently happens with variables and secrets"""
@@ -30,25 +34,23 @@ def test_current_behavior():
 
     # This mimics what the legacy list_variables()/list_secrets() helpers returned
     variables = [
-        MockVariable('test_var1', 'value1'),
-        MockVariable('test_var2', 'value2')
+        MockVariable("test_var1", "value1"),
+        MockVariable("test_var2", "value2"),
     ]
 
-    secrets = [
-        MockSecret('test_secret1', 'secret_value1')
-    ]
+    secrets = [MockSecret("test_secret1", "secret_value1")]
 
     # This is what gets passed to the echo1 server
     args = {
-        'path': '/echo1',
-        'query_string': '',
-        'form_data': {},
-        'args': {},
-        'endpoint': None,
-        'blueprint': None,
-        'scheme': 'http',
-        'variables': variables,
-        'secrets': secrets
+        "path": "/echo1",
+        "query_string": "",
+        "form_data": {},
+        "args": {},
+        "endpoint": None,
+        "blueprint": None,
+        "scheme": "http",
+        "variables": variables,
+        "secrets": secrets,
     }
 
     print(f"Variables: {variables}")
@@ -70,6 +72,7 @@ def test_current_behavior():
     assert len(secrets) == 1
     return args
 
+
 def test_expected_behavior():
     """Test what should happen with variables and secrets"""
     print("\n" + "=" * 60)
@@ -78,24 +81,22 @@ def test_expected_behavior():
 
     # This is what should be passed to servers
     variables = [
-        {'name': 'test_var1', 'definition': 'value1'},
-        {'name': 'test_var2', 'definition': 'value2'}
+        {"name": "test_var1", "definition": "value1"},
+        {"name": "test_var2", "definition": "value2"},
     ]
 
-    secrets = [
-        {'name': 'test_secret1', 'definition': 'secret_value1'}
-    ]
+    secrets = [{"name": "test_secret1", "definition": "secret_value1"}]
 
     args = {
-        'path': '/echo1',
-        'query_string': '',
-        'form_data': {},
-        'args': {},
-        'endpoint': None,
-        'blueprint': None,
-        'scheme': 'http',
-        'variables': variables,
-        'secrets': secrets
+        "path": "/echo1",
+        "query_string": "",
+        "form_data": {},
+        "args": {},
+        "endpoint": None,
+        "blueprint": None,
+        "scheme": "http",
+        "variables": variables,
+        "secrets": secrets,
     }
 
     print(f"Variables: {variables}")
@@ -116,6 +117,7 @@ def test_expected_behavior():
     assert len(variables) == 2
     assert len(secrets) == 1
     return args
+
 
 def demonstrate_issue():
     """Demonstrate the core issue"""
@@ -145,10 +147,19 @@ def demonstrate_issue():
     print("\n" + "=" * 60)
     print("ROOT CAUSE")
     print("=" * 60)
-    print("The list_variables() and list_secrets() helpers return SQLAlchemy model objects")
-    print("instead of serializable dictionaries. When the echo1 server calls str() on the")
-    print("arguments, it gets model object representations like '<Variable test_var1 by user123>'")
-    print("instead of the actual variable data like {'name': 'test_var1', 'definition': 'value1'}")
+    print(
+        "The list_variables() and list_secrets() helpers return SQLAlchemy model objects"
+    )
+    print(
+        "instead of serializable dictionaries. When the echo1 server calls str() on the"
+    )
+    print(
+        "arguments, it gets model object representations like '<Variable test_var1 by user123>'"
+    )
+    print(
+        "instead of the actual variable data like {'name': 'test_var1', 'definition': 'value1'}"
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     demonstrate_issue()

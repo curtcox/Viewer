@@ -45,8 +45,7 @@ class CIDMemoryManager:
         # Check if single CID exceeds limit
         if content_size > max_memory:
             logger.warning(
-                "CID size %d exceeds max memory limit %d",
-                content_size, max_memory
+                "CID size %d exceeds max memory limit %d", content_size, max_memory
             )
             abort(413, description="Content too large for read-only mode memory limit")
 
@@ -73,17 +72,15 @@ class CIDMemoryManager:
 
         logger.info(
             "Need to free %d bytes for new CID (current: %d, max: %d)",
-            needed, current_size, max_memory
+            needed,
+            current_size,
+            max_memory,
         )
 
         evicted = 0
         while freed < needed:
             # Find the largest CID
-            largest = (
-                CID.query
-                .order_by(CID.file_size.desc())
-                .first()
-            )
+            largest = CID.query.order_by(CID.file_size.desc()).first()
 
             if not largest:
                 # No more CIDs to delete
@@ -91,10 +88,7 @@ class CIDMemoryManager:
                 abort(413, description="Cannot free enough memory for new CID")
 
             freed_size = largest.file_size or 0
-            logger.info(
-                "Evicting CID %s (size: %d bytes)",
-                largest.path, freed_size
-            )
+            logger.info("Evicting CID %s (size: %d bytes)", largest.path, freed_size)
 
             db.session.delete(largest)
             freed += freed_size
@@ -129,5 +123,5 @@ class CIDMemoryManager:
         from db_access.cids import create_cid_record_raw  # pylint: disable=import-outside-toplevel
 
         # Extract CID from path (remove leading /)
-        cid_value = cid_path.lstrip('/')
+        cid_value = cid_path.lstrip("/")
         return create_cid_record_raw(cid_value, content)

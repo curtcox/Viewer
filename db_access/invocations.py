@@ -20,6 +20,7 @@ class ServerInvocationInput:
     ``server_name`` and ``result_cid`` arguments while all attributes on this
     helper remain optional.
     """
+
     # These fields may be supplied as either raw CID strings or validated
     # ``cid.CID`` instances.  The public helpers will normalize values before
     # persisting them to the database.
@@ -105,18 +106,15 @@ def get_server_invocations(
     if end:
         query = query.filter(ServerInvocation.invoked_at <= end)
 
-    return (
-        query
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
-    )
+    return query.order_by(
+        ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc()
+    ).all()
 
 
 def get_server_invocations_by_server(server_name: str) -> List[ServerInvocation]:
     """Return invocation events for a specific server ordered from newest to oldest."""
     return (
-        ServerInvocation.query
-        .filter(ServerInvocation.server_name == server_name)
+        ServerInvocation.query.filter(ServerInvocation.server_name == server_name)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
@@ -141,8 +139,7 @@ def get_server_invocations_by_result_cids(
         return []
 
     return (
-        ServerInvocation.query
-        .filter(ServerInvocation.result_cid.in_(cid_values))
+        ServerInvocation.query.filter(ServerInvocation.result_cid.in_(cid_values))
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
@@ -155,7 +152,9 @@ def find_server_invocations_by_cid(
     if not cid_value:
         return []
 
-    normalized_value = cid_value.value if isinstance(cid_value, ValidatedCID) else cid_value
+    normalized_value = (
+        cid_value.value if isinstance(cid_value, ValidatedCID) else cid_value
+    )
     if not normalized_value:
         return []
 

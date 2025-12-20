@@ -1,4 +1,5 @@
 """Common OpenAPI schemas used across multiple endpoints."""
+
 from __future__ import annotations
 
 from typing import Any, Dict

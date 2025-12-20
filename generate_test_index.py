@@ -118,10 +118,9 @@ class TestIndexer:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 # Check if this is a test class
-                is_test_class = (
-                    node.name.startswith("Test")
-                    or "TestCase" in [self._get_name(base) for base in node.bases]
-                )
+                is_test_class = node.name.startswith("Test") or "TestCase" in [
+                    self._get_name(base) for base in node.bases
+                ]
 
                 if is_test_class:
                     test_classes.append(node)
@@ -131,10 +130,7 @@ class TestIndexer:
             # Collect test methods within each class
             test_methods = []
             for item in node.body:
-                if (
-                    isinstance(item, ast.FunctionDef)
-                    and item.name.startswith("test_")
-                ):
+                if isinstance(item, ast.FunctionDef) and item.name.startswith("test_"):
                     test_methods.append(item)
 
             # Sort test methods by line number
@@ -291,7 +287,9 @@ class TestIndexer:
         """Run the indexer and return the markdown output."""
         print("Scanning for unit tests...")
         self.find_unit_tests()
-        print(f"Found {len([t for t in self.tests if t.test_type == 'unit'])} unit tests")
+        print(
+            f"Found {len([t for t in self.tests if t.test_type == 'unit'])} unit tests"
+        )
 
         print("Scanning for integration tests...")
         self.find_integration_tests()
@@ -307,7 +305,9 @@ class TestIndexer:
 
         print("Scanning for Gauge tests...")
         self.find_gauge_tests()
-        print(f"Found {len([t for t in self.tests if t.test_type == 'gauge'])} Gauge scenarios")
+        print(
+            f"Found {len([t for t in self.tests if t.test_type == 'gauge'])} Gauge scenarios"
+        )
 
         print(f"\nTotal tests found: {len(self.tests)}")
         return self.generate_markdown()

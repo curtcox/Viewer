@@ -24,7 +24,7 @@ class ReadOnlyConfig:
     @classmethod
     def set_read_only_mode(cls, enabled: bool) -> None:
         """Set the read-only mode.
-        
+
         Args:
             enabled: Whether to enable read-only mode
         """
@@ -40,7 +40,7 @@ class ReadOnlyConfig:
     @classmethod
     def set_max_cid_memory(cls, max_bytes: int) -> None:
         """Set the maximum CID memory size.
-        
+
         Args:
             max_bytes: Maximum bytes for CID storage
         """

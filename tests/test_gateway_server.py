@@ -52,7 +52,9 @@ def test_gateway_shows_examples_page_without_target_server():
     definition = gateway_template["definition"]
 
     with app.test_request_context("/gateway"):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     assert result["content_type"] == "text/html"
     assert "Gateway Server" in result["output"]
@@ -70,7 +72,9 @@ def test_gateway_includes_all_required_api_examples():
     definition = gateway_template["definition"]
 
     with app.test_request_context("/gateway"):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     output = result["output"]
     required_apis = [
@@ -108,7 +112,9 @@ def test_gateway_proxies_request_to_target_server(mock_request):
     with app.test_request_context(
         "/gateway/test?target_server=https://api.example.com"
     ):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     assert result["content_type"] == "text/html"
     assert "Hello from API" in result["output"]
@@ -134,7 +140,9 @@ def test_gateway_converts_json_to_html(mock_request):
     with app.test_request_context(
         "/gateway/endpoint?target_server=https://api.example.com"
     ):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     assert result["content_type"] == "text/html"
     assert "json-key" in result["output"]  # CSS class for JSON keys
@@ -159,10 +167,10 @@ def test_gateway_creates_links_for_api_urls(mock_request):
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
     definition = gateway_template["definition"]
 
-    with app.test_request_context(
-        "/gateway?target_server=https://api.example.com"
-    ):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+    with app.test_request_context("/gateway?target_server=https://api.example.com"):
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     assert result["content_type"] == "text/html"
     # The URL should be converted to a clickable link
@@ -176,7 +184,7 @@ def test_gateway_uses_path_after_mount_point():
 
     templates = get_server_templates()
     gateway_template = next(t for t in templates if t.get("id") == "gateway")
- 
+
     # Verify the definition contains path handling logic
     definition = gateway_template["definition"]
     assert "request_path" in definition
@@ -192,7 +200,9 @@ def test_gateway_handles_missing_target_server_gracefully():
     definition = gateway_template["definition"]
 
     with app.test_request_context("/gateway"):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     # Should show examples page, not error
     assert result["content_type"] == "text/html"
@@ -223,7 +233,9 @@ def test_gateway_examples_page_includes_instructions():
     definition = gateway_template["definition"]
 
     with app.test_request_context("/gateway"):
-        result = server_execution.execute_server_code_from_definition(definition, "gateway")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
 
     output = result["output"]
     assert "How it Works" in output

@@ -18,9 +18,7 @@ class TestAuthorizationResult:
     def test_rejected_result_with_401(self):
         """Test creating a rejected result with 401 status."""
         result = AuthorizationResult(
-            allowed=False,
-            status_code=401,
-            message="Authentication required"
+            allowed=False, status_code=401, message="Authentication required"
         )
         assert result.allowed is False
         assert result.status_code == 401
@@ -29,9 +27,7 @@ class TestAuthorizationResult:
     def test_rejected_result_with_403(self):
         """Test creating a rejected result with 403 status."""
         result = AuthorizationResult(
-            allowed=False,
-            status_code=403,
-            message="Access denied"
+            allowed=False, status_code=403, message="Access denied"
         )
         assert result.allowed is False
         assert result.status_code == 403
@@ -51,9 +47,7 @@ class TestAuthorizationResult:
         """Test that invalid status code raises ValueError."""
         with pytest.raises(ValueError, match="status_code must be"):
             AuthorizationResult(
-                allowed=False,
-                status_code=500,
-                message="Internal error"
+                allowed=False, status_code=500, message="Internal error"
             )
 
 
@@ -62,28 +56,32 @@ class TestAuthorizeRequest:
 
     def test_placeholder_allows_all_requests(self, memory_db_app):
         """Test that placeholder function allows all requests."""
-        with memory_db_app.test_request_context('/'):
+        with memory_db_app.test_request_context("/"):
             from flask import request
+
             result = authorize_request(request)
             assert result.allowed is True
 
     def test_placeholder_allows_authenticated_paths(self, memory_db_app):
         """Test that placeholder allows authenticated paths."""
-        with memory_db_app.test_request_context('/profile'):
+        with memory_db_app.test_request_context("/profile"):
             from flask import request
+
             result = authorize_request(request)
             assert result.allowed is True
 
     def test_placeholder_allows_api_requests(self, memory_db_app):
         """Test that placeholder allows API requests."""
-        with memory_db_app.test_request_context('/api/cid/check', method='POST'):
+        with memory_db_app.test_request_context("/api/cid/check", method="POST"):
             from flask import request
+
             result = authorize_request(request)
             assert result.allowed is True
 
     def test_placeholder_allows_admin_paths(self, memory_db_app):
         """Test that placeholder allows admin paths."""
-        with memory_db_app.test_request_context('/secrets'):
+        with memory_db_app.test_request_context("/secrets"):
             from flask import request
+
             result = authorize_request(request)
             assert result.allowed is True

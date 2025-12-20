@@ -36,7 +36,9 @@ def then_status_is(status_code: str) -> None:
     """Validate that the captured response returned the expected status code."""
 
     response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
 
     try:
         expected = int(status_code)
@@ -44,9 +46,9 @@ def then_status_is(status_code: str) -> None:
         raise AssertionError(f"Invalid status code value: {status_code!r}") from exc
 
     actual = int(response.status_code)
-    assert (
-        actual == expected
-    ), f"Expected HTTP {expected} for {response.request.path!r} but received {actual}."
+    assert actual == expected, (
+        f"Expected HTTP {expected} for {response.request.path!r} but received {actual}."
+    )
 
 
 @step("The response should contain <text>")
@@ -54,7 +56,9 @@ def then_response_contains(text: str) -> None:
     """Ensure the raw response body includes the provided text fragment."""
 
     response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
 
     body = response.get_data(as_text=True)
     assert text in body, f"Expected to find {text!r} in the response body."

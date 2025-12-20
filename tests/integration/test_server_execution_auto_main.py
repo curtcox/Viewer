@@ -25,9 +25,7 @@ def _store_server(app, name: str, definition: str) -> None:
 
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
-        db.session.add(
-            Server(name=name, definition=normalized)
-        )
+        db.session.add(Server(name=name, definition=normalized))
         db.session.commit()
 
 
@@ -36,9 +34,7 @@ def _store_alias(app, name: str, definition: str) -> None:
 
     normalized = textwrap.dedent(definition).strip() + "\n"
     with app.app_context():
-        db.session.add(
-            Alias(name=name, definition=normalized)
-        )
+        db.session.add(Alias(name=name, definition=normalized))
         db.session.commit()
 
 
@@ -71,9 +67,7 @@ def _extract_response_body(app, response) -> str:
     return response.get_data(as_text=True)
 
 
-def test_nested_server_chain_executes_in_order(
-    client, integration_app
-):
+def test_nested_server_chain_executes_in_order(client, integration_app):
     """Multiple nested servers should resolve sequentially for auto-main input."""
 
     _store_server(
@@ -111,9 +105,7 @@ def test_nested_server_chain_executes_in_order(
     assert payload == "inner-middle-outer"
 
 
-def test_nested_alias_provides_remaining_parameter(
-    client, integration_app
-):
+def test_nested_alias_provides_remaining_parameter(client, integration_app):
     """Alias targets should execute and feed their output into auto-main servers."""
 
     _store_server(
@@ -149,9 +141,7 @@ def test_nested_alias_provides_remaining_parameter(
     assert payload == "alias-value"
 
 
-def test_nested_cid_contents_feed_server_input(
-    client, integration_app
-):
+def test_nested_cid_contents_feed_server_input(client, integration_app):
     """CID path segments should supply their decoded contents to auto-main servers."""
 
     _store_server(
@@ -165,9 +155,7 @@ def test_nested_cid_contents_feed_server_input(
 
     cid_value = "bafytestcidvalue"
     with integration_app.app_context():
-        db.session.add(
-            CID(path=f"/{cid_value}", file_data=b"cid-payload")
-        )
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"cid-payload"))
         db.session.commit()
 
     response = client.get(f"/outer/{cid_value}")
@@ -177,9 +165,7 @@ def test_nested_cid_contents_feed_server_input(
     assert payload == "cid-payload"
 
 
-def test_query_and_nested_server_parameters_combine(
-    client, integration_app
-):
+def test_query_and_nested_server_parameters_combine(client, integration_app):
     """Auto-main should merge standard request parameters with nested server results."""
 
     _store_server(
@@ -216,9 +202,7 @@ def test_query_and_nested_server_parameters_combine(
 # - /s2/s1/CID translates into s2.main(s1.main(contents(CID)))
 
 
-def test_chaining_server_with_cid_content(
-    client, integration_app
-):
+def test_chaining_server_with_cid_content(client, integration_app):
     """Integration test for /s/CID: s.main(contents(CID))."""
 
     _store_server(
@@ -232,9 +216,7 @@ def test_chaining_server_with_cid_content(
 
     cid_value = "bafyintegrationcid"
     with integration_app.app_context():
-        db.session.add(
-            CID(path=f"/{cid_value}", file_data=b"raw-input")
-        )
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"raw-input"))
         db.session.commit()
 
     response = client.get(f"/processor/{cid_value}")
@@ -244,9 +226,7 @@ def test_chaining_server_with_cid_content(
     assert payload == "processed:raw-input"
 
 
-def test_chaining_two_servers(
-    client, integration_app
-):
+def test_chaining_two_servers(client, integration_app):
     """Integration test for /s2/s1: s2.main(s1.main())."""
 
     _store_server(
@@ -274,9 +254,7 @@ def test_chaining_two_servers(
     assert payload == "second(first-output)"
 
 
-def test_chaining_three_level_deep(
-    client, integration_app
-):
+def test_chaining_three_level_deep(client, integration_app):
     """Integration test for /s3/s2/s1/CID: s3.main(s2.main(s1.main(contents(CID))))."""
 
     _store_server(
@@ -308,9 +286,7 @@ def test_chaining_three_level_deep(
 
     cid_value = "bafydeepchaining"
     with integration_app.app_context():
-        db.session.add(
-            CID(path=f"/{cid_value}", file_data=b"base")
-        )
+        db.session.add(CID(path=f"/{cid_value}", file_data=b"base"))
         db.session.commit()
 
     response = client.get(f"/level3/level2/level1/{cid_value}")
@@ -320,9 +296,7 @@ def test_chaining_three_level_deep(
     assert payload == "L3(L2(L1(base)))"
 
 
-def test_chaining_server_with_alias_to_server(
-    client, integration_app
-):
+def test_chaining_server_with_alias_to_server(client, integration_app):
     """Integration test for /s2/alias: s2.main(alias->s1.main())."""
 
     _store_server(
@@ -613,9 +587,9 @@ def test_default_markdown_output_chains_left(client, integration_app):
 def test_default_shell_consumes_cid_path_segment(client, integration_app):
     """Shell server should receive input from chained CID content."""
 
-    shell_definition = Path("reference_templates/servers/definitions/shell.py").read_text(
-        encoding="utf-8"
-    )
+    shell_definition = Path(
+        "reference_templates/servers/definitions/shell.py"
+    ).read_text(encoding="utf-8")
     _store_server(integration_app, "shell", shell_definition)
 
     cid_value = "bafydefaultshell"
@@ -634,9 +608,9 @@ def test_default_shell_consumes_cid_path_segment(client, integration_app):
 def test_default_shell_output_chains_left(client, integration_app):
     """Shell output should feed into the next chained server."""
 
-    shell_definition = Path("reference_templates/servers/definitions/shell.py").read_text(
-        encoding="utf-8"
-    )
+    shell_definition = Path(
+        "reference_templates/servers/definitions/shell.py"
+    ).read_text(encoding="utf-8")
     _store_server(integration_app, "shell", shell_definition)
 
     _store_server(
@@ -743,14 +717,14 @@ def test_literal_bash_cid_executes_as_server(client, integration_app):
 
     bash_cid = "literalbashint"
     with integration_app.app_context():
-        db.session.add(
-            CID(path=f"/{bash_cid}", file_data=b"echo integration-bash")
-        )
+        db.session.add(CID(path=f"/{bash_cid}", file_data=b"echo integration-bash"))
         db.session.commit()
 
     response = client.get(f"/{bash_cid}.sh/extra")
     assert response.status_code == 200
-    assert _extract_response_body(integration_app, response).strip() == "integration-bash"
+    assert (
+        _extract_response_body(integration_app, response).strip() == "integration-bash"
+    )
 
 
 def test_literal_python_receives_path_parameter(client, integration_app):
@@ -845,6 +819,7 @@ def test_literal_bash_chains_into_python(client, integration_app):
     payload = _resolve_cid_payload(integration_app, response.headers["Location"])
     assert payload.strip() == "py::bash-into-python"
 
+
 def test_python_server_captures_external_calls(client, integration_app, monkeypatch):
     secret_value = "secret-token"
 
@@ -889,7 +864,9 @@ def main(request, context):
         assert invocation is not None
         assert invocation.external_calls_cid is not None
 
-        record = CID.query.filter_by(path=cid_path(invocation.external_calls_cid)).first()
+        record = CID.query.filter_by(
+            path=cid_path(invocation.external_calls_cid)
+        ).first()
         assert record is not None
 
         calls = json.loads(record.file_data)
@@ -946,7 +923,9 @@ def main(request, context):
         assert invocation is not None
         assert invocation.external_calls_cid is not None
 
-        record = CID.query.filter_by(path=cid_path(invocation.external_calls_cid)).first()
+        record = CID.query.filter_by(
+            path=cid_path(invocation.external_calls_cid)
+        ).first()
         assert record is not None
 
         calls = json.loads(record.file_data)

@@ -136,7 +136,9 @@ def _build_meta_links(request_path: str) -> Dict[str, str]:
     }
 
 
-def _get_html_page(payload: Dict[str, Any], *, target_endpoint: str, request_path: str) -> str:
+def _get_html_page(
+    payload: Dict[str, Any], *, target_endpoint: str, request_path: str
+) -> str:
     """Generate the AI editor HTML page with embedded resources."""
 
     html_template = _load_resource_file("ai_editor.html")
@@ -159,9 +161,15 @@ def _get_html_page(payload: Dict[str, Any], *, target_endpoint: str, request_pat
     html_output = html_output.replace("{{TARGET_ENDPOINT_JSON}}", target_json)
     html_output = html_output.replace("{{INITIAL_PAYLOAD_ATTR}}", payload_attr)
     html_output = html_output.replace("{{TARGET_ENDPOINT_ATTR}}", target_attr)
-    html_output = html_output.replace("{{META_INSPECTOR_URL}}", html.escape(meta_links["meta"]))
-    html_output = html_output.replace("{{HISTORY_SINCE_URL}}", html.escape(meta_links["history"]))
-    html_output = html_output.replace("{{SERVER_EVENTS_SINCE_URL}}", html.escape(meta_links["server_events"]))
+    html_output = html_output.replace(
+        "{{META_INSPECTOR_URL}}", html.escape(meta_links["meta"])
+    )
+    html_output = html_output.replace(
+        "{{HISTORY_SINCE_URL}}", html.escape(meta_links["history"])
+    )
+    html_output = html_output.replace(
+        "{{SERVER_EVENTS_SINCE_URL}}", html.escape(meta_links["server_events"])
+    )
 
     return html_output
 
@@ -180,7 +188,9 @@ def main(input_data=None, *, request=None, context=None):
         if isinstance(request, dict):
             request_path = request.get("path", "/ai_editor")
         else:
-            request_path = getattr(request, "path", "/ai_editor") if request else "/ai_editor"
+            request_path = (
+                getattr(request, "path", "/ai_editor") if request else "/ai_editor"
+            )
         payload, target_endpoint = _extract_payload(request)
 
         html_content = _get_html_page(

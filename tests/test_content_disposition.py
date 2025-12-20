@@ -19,15 +19,15 @@ def extract_filename_from_path(path):
     - /{CID}.{filename}.{ext} -> filename = {filename}.{ext}
     """
     # Remove leading slash
-    if path.startswith('/'):
+    if path.startswith("/"):
         path = path[1:]
 
     # Handle empty or invalid paths
-    if not path or path in ['.', '..']:
+    if not path or path in [".", ".."]:
         return None
 
     # Split by dots
-    parts = path.split('.')
+    parts = path.split(".")
 
     # Need at least 3 parts for filename: CID.filename.ext
     if len(parts) < 3:
@@ -35,7 +35,7 @@ def extract_filename_from_path(path):
 
     # First part is CID, rest form the filename
     filename_parts = parts[1:]
-    filename = '.'.join(filename_parts)
+    filename = ".".join(filename_parts)
 
     return filename
 
@@ -73,10 +73,22 @@ class TestContentDispositionLogic(unittest.TestCase):
     def test_cid_with_filename_returns_filename(self):
         """Test /{CID}.{filename}.{ext} - should return filename.ext"""
         test_cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.document.txt", "document.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.report.pdf", "report.pdf"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.data.json", "data.json"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.page.html", "page.html"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.document.txt",
+                "document.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.report.pdf",
+                "report.pdf",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.data.json",
+                "data.json",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.page.html",
+                "page.html",
+            ),
             ("/abc123.myfile.csv", "myfile.csv"),
         ]
 
@@ -88,8 +100,14 @@ class TestContentDispositionLogic(unittest.TestCase):
     def test_multiple_dots_in_filename(self):
         """Test /{CID}.{filename.with.dots}.{ext} - should handle multiple dots"""
         test_cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt", "my.data.file.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json", "version.1.2.3.json"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt",
+                "my.data.file.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json",
+                "version.1.2.3.json",
+            ),
             ("/abc123.backup.2024.01.15.sql", "backup.2024.01.15.sql"),
             ("/cid.a.b.c.d.e", "a.b.c.d.e"),
         ]
@@ -136,11 +154,11 @@ def mock_serve_cid_content_with_disposition(cid_content, path):
     # Extract filename for content disposition
     filename = extract_filename_from_path(path)
     if filename:
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     # Set other headers (simplified)
-    response.headers['Content-Type'] = content_type
-    response.headers['Content-Length'] = len(cid_content.file_data)
+    response.headers["Content-Type"] = content_type
+    response.headers["Content-Length"] = len(cid_content.file_data)
 
     return response
 
@@ -159,23 +177,25 @@ class TestMockServeFunction(unittest.TestCase):
         path = "/bafybeihelloworld123456789012345678901234567890123456"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
 
-        self.assertNotIn('Content-Disposition', result.headers)
+        self.assertNotIn("Content-Disposition", result.headers)
 
     def test_no_content_disposition_for_cid_with_extension(self):
         """Test that CID.ext paths don't get content disposition"""
         path = "/bafybeihelloworld123456789012345678901234567890123456.txt"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
 
-        self.assertNotIn('Content-Disposition', result.headers)
+        self.assertNotIn("Content-Disposition", result.headers)
 
     def test_content_disposition_for_cid_with_filename(self):
         """Test that CID.filename.ext paths get content disposition"""
         path = "/bafybeihelloworld123456789012345678901234567890123456.document.txt"
         result = mock_serve_cid_content_with_disposition(self.mock_cid_content, path)
 
-        self.assertIn('Content-Disposition', result.headers)
-        self.assertEqual(result.headers['Content-Disposition'], 'attachment; filename="document.txt"')
+        self.assertIn("Content-Disposition", result.headers)
+        self.assertEqual(
+            result.headers["Content-Disposition"], 'attachment; filename="document.txt"'
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

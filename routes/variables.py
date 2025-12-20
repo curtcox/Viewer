@@ -1,4 +1,5 @@
 """Variable management routes and helpers."""
+
 from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -43,7 +44,9 @@ def _build_variables_editor_payload(variables_list: List[Variable]) -> str:
     return _bulk_editor.build_payload(variables_list)
 
 
-def _parse_variables_editor_payload(raw_payload: str) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
+def _parse_variables_editor_payload(
+    raw_payload: str,
+) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
     """Validate and normalize the JSON payload supplied by the bulk editor."""
     return _bulk_editor.parse_payload(raw_payload)
 
@@ -53,6 +56,7 @@ def _apply_variables_editor_changes(
 ) -> None:
     """Persist the desired variables, replacing the current collection."""
     _bulk_editor.apply_changes(desired_values, existing)
+
 
 def _status_label(status: int) -> Optional[str]:
     try:
@@ -82,7 +86,9 @@ def _append_detail(details: List[Dict[str, str]], label: str, value: Any) -> Non
     details.append({"label": label, "value": rendered})
 
 
-def _describe_route_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_route_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     endpoint = resolution.get("endpoint")
     rule = resolution.get("rule")
@@ -103,7 +109,9 @@ def _describe_route_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Di
     return summary, details
 
 
-def _describe_alias_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_alias_redirect_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     alias_name = resolution.get("alias")
     target_path = resolution.get("target_path")
@@ -130,7 +138,9 @@ def _describe_alias_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str
     return summary, details
 
 
-def _describe_server_execution_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_server_execution_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     server_name = resolution.get("server_name")
     summary = f"Server {server_name}" if server_name else "Server execution"
@@ -145,7 +155,9 @@ def _describe_server_execution_resolution(resolution: Dict[str, Any]) -> Tuple[s
     return summary, details
 
 
-def _describe_versioned_server_execution_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_versioned_server_execution_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     server_name = resolution.get("server_name")
     partial = resolution.get("partial_cid")
@@ -155,7 +167,10 @@ def _describe_versioned_server_execution_resolution(resolution: Dict[str, Any]) 
     if partial:
         summary = f"{summary} @ {partial}"
     function_name = resolution.get("function_name")
-    if resolution.get("type") == "versioned_server_function_execution" and function_name:
+    if (
+        resolution.get("type") == "versioned_server_function_execution"
+        and function_name
+    ):
         summary = f"{summary}.{function_name}"
         _append_detail(details, "Function", function_name)
     _append_detail(details, "Server", server_name)
@@ -166,7 +181,9 @@ def _describe_versioned_server_execution_resolution(resolution: Dict[str, Any]) 
     return summary, details
 
 
-def _describe_cid_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_cid_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     cid_value = resolution.get("cid")
     summary = f"CID {cid_value}" if cid_value else "CID content"
@@ -175,7 +192,9 @@ def _describe_cid_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict
     return summary, details
 
 
-def _describe_method_not_allowed_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_method_not_allowed_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     allowed = resolution.get("allowed_methods") or []
     summary = "Method not allowed"
@@ -184,7 +203,9 @@ def _describe_method_not_allowed_resolution(resolution: Dict[str, Any]) -> Tuple
     return summary, details
 
 
-def _describe_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_redirect_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     details: List[Dict[str, str]] = []
     location = resolution.get("location")
     summary = f"Redirect to {location}" if location else "Redirect"
@@ -192,7 +213,9 @@ def _describe_redirect_resolution(resolution: Dict[str, Any]) -> Tuple[str, List
     return summary, details
 
 
-_RESOLUTION_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Tuple[str, List[Dict[str, str]]]]] = {
+_RESOLUTION_HANDLERS: Dict[
+    str, Callable[[Dict[str, Any]], Tuple[str, List[Dict[str, str]]]]
+] = {
     "route": _describe_route_resolution,
     "alias_redirect": _describe_alias_redirect_resolution,
     "server_execution": _describe_server_execution_resolution,
@@ -205,7 +228,9 @@ _RESOLUTION_HANDLERS: Dict[str, Callable[[Dict[str, Any]], Tuple[str, List[Dict[
 }
 
 
-def _describe_resolution(resolution: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+def _describe_resolution(
+    resolution: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     rtype = resolution.get("type") or ""
     handler = _RESOLUTION_HANDLERS.get(rtype)
     if handler:
@@ -219,24 +244,24 @@ def _build_variables_list_context(variables_list: list) -> Dict[str, Any]:
     """Build extra context for variables list view."""
     context = {}
     if variables_list:
-        context['variable_definitions_cid'] = get_current_variable_definitions_cid()
+        context["variable_definitions_cid"] = get_current_variable_definitions_cid()
     return context
 
 
 def _build_variable_view_context(variable: Variable) -> Dict[str, Any]:
     """Build extra context for variable view page."""
     # Get UI suggestions for this variable
-    ui_suggestions = get_ui_suggestions_info('variables', variable.name)
+    ui_suggestions = get_ui_suggestions_info("variables", variable.name)
 
     return {
-        'matching_route': build_matching_route_info(variable.definition),
-        'ui_suggestions': ui_suggestions,
+        "matching_route": build_matching_route_info(variable.definition),
+        "ui_suggestions": ui_suggestions,
     }
 
 
 def _build_variable_new_context(form: Any) -> Dict[str, Any]:
     """Build extra context for new variable form."""
-    return {'matching_route': None}
+    return {"matching_route": None}
 
 
 def _build_variable_edit_context(form: Any, variable: Variable) -> Dict[str, Any]:
@@ -244,7 +269,7 @@ def _build_variable_edit_context(form: Any, variable: Variable) -> Dict[str, Any
     current_definition = form.definition.data
     if current_definition is None:
         current_definition = variable.definition
-    return {'matching_route': build_matching_route_info(current_definition)}
+    return {"matching_route": build_matching_route_info(current_definition)}
 
 
 def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -288,8 +313,8 @@ def build_matching_route_info(value: Optional[str]) -> Optional[Dict[str, Any]]:
 # Configure and register standard CRUD routes using the factory
 _variable_config = EntityRouteConfig(
     entity_class=Variable,
-    entity_type='variable',
-    plural_name='variables',
+    entity_type="variable",
+    plural_name="variables",
     get_by_name_func=get_variable_by_name,
     get_entities_func=get_variables,
     form_class=VariableForm,
@@ -297,7 +322,7 @@ _variable_config = EntityRouteConfig(
     to_json_func=model_to_dict,
     build_list_context=_build_variables_list_context,
     build_view_context=_build_variable_view_context,
-    form_template='variable_form.html',
+    form_template="variable_form.html",
     get_templates_func=get_template_variables,
     build_new_context=_build_variable_new_context,
     build_edit_context=_build_variable_edit_context,
@@ -306,40 +331,40 @@ _variable_config = EntityRouteConfig(
 register_standard_crud_routes(main_bp, _variable_config)
 
 
-@main_bp.route('/variables/_/edit', methods=['GET', 'POST'])
+@main_bp.route("/variables/_/edit", methods=["GET", "POST"])
 def bulk_edit_variables():
     """Edit all variables at once using a JSON payload."""
 
     variables_list = list_variables()
     form = BulkVariablesForm()
 
-    if request.method == 'GET':
+    if request.method == "GET":
         form.variables_json.data = _build_variables_editor_payload(variables_list)
 
     if form.validate_on_submit():
-        payload = form.variables_json.data or ''
+        payload = form.variables_json.data or ""
         normalized, error = _parse_variables_editor_payload(payload)
         if error:
             form.variables_json.errors.append(error)
         else:
             _apply_variables_editor_changes(normalized, variables_list)
             update_variable_definitions_cid()
-            flash('Variables updated successfully!', 'success')
-            return redirect(url_for('main.variables'))
+            flash("Variables updated successfully!", "success")
+            return redirect(url_for("main.variables"))
 
     error_message = None
     if form.variables_json.errors:
         error_message = form.variables_json.errors[0]
 
     return render_template(
-        'variables_bulk_edit.html',
+        "variables_bulk_edit.html",
         form=form,
         error_message=error_message,
     )
 
 
 __all__ = [
-    'bulk_edit_variables',
-    'update_variable_definitions_cid',
-    'list_variables',
+    "bulk_edit_variables",
+    "update_variable_definitions_cid",
+    "list_variables",
 ]

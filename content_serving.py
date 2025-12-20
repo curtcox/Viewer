@@ -31,20 +31,20 @@ from mime_utils import extract_filename_from_cid_path, get_mime_type_from_extens
 # ============================================================================
 
 # File extension constants for special handling
-MARKDOWN_HTML_EXT = '.md.html'
-TEXT_EXT = '.txt'
-QR_EXT = '.qr'
+MARKDOWN_HTML_EXT = ".md.html"
+TEXT_EXT = ".txt"
+QR_EXT = ".qr"
 
 # HTTP header constants
-HEADER_IF_NONE_MATCH = 'If-None-Match'
-HEADER_IF_MODIFIED_SINCE = 'If-Modified-Since'
+HEADER_IF_NONE_MATCH = "If-None-Match"
+HEADER_IF_MODIFIED_SINCE = "If-Modified-Since"
 
 # Content type constants
-CONTENT_TYPE_HTML_UTF8 = 'text/html; charset=utf-8'
-CONTENT_TYPE_TEXT_UTF8 = 'text/plain; charset=utf-8'
-CONTENT_TYPE_HTML = 'text/html'
-CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'
-CONTENT_TYPE_TEXT_PLAIN = 'text/plain'
+CONTENT_TYPE_HTML_UTF8 = "text/html; charset=utf-8"
+CONTENT_TYPE_TEXT_UTF8 = "text/plain; charset=utf-8"
+CONTENT_TYPE_HTML = "text/html"
+CONTENT_TYPE_OCTET_STREAM = "application/octet-stream"
+CONTENT_TYPE_TEXT_PLAIN = "text/plain"
 
 # QR code configuration
 QR_CODE_BOX_SIZE = 12
@@ -52,13 +52,14 @@ QR_CODE_BORDER = 4
 
 # Caching configuration
 # CIDs are content-addressed (immutable), so we can cache them indefinitely
-CACHE_CONTROL_IMMUTABLE = 'public, max-age=31536000, immutable'
-CACHE_EXPIRES_HEADER = 'Thu, 31 Dec 2037 23:55:55 GMT'
+CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable"
+CACHE_EXPIRES_HEADER = "Thu, 31 Dec 2037 23:55:55 GMT"
 
 
 # ============================================================================
 # PATH ANALYSIS
 # ============================================================================
+
 
 @dataclass
 class PathInfo:
@@ -72,6 +73,7 @@ class PathInfo:
         normalized_cid: The stored CID path (without leading slash)
         target_cid: The CID to use for QR codes or etags
     """
+
     is_qr: bool
     is_markdown_html: bool
     is_text: bool
@@ -80,7 +82,7 @@ class PathInfo:
     target_cid: str
 
     @classmethod
-    def from_path(cls, path: str, cid_content) -> 'PathInfo':
+    def from_path(cls, path: str, cid_content) -> "PathInfo":
         """Parse request path and extract CID information.
 
         Args:
@@ -96,21 +98,21 @@ class PathInfo:
             True
         """
         # Extract CID from path
-        cid = path[1:] if path.startswith('/') else path
+        cid = path[1:] if path.startswith("/") else path
 
         # Get filename part for extension checks
-        filename_part = path.rsplit('/', 1)[-1]
+        filename_part = path.rsplit("/", 1)[-1]
         filename_lower = filename_part.lower()
 
         # Check for special rendering modes
         is_qr = filename_lower.endswith(QR_EXT)
         is_markdown_html = filename_lower.endswith(MARKDOWN_HTML_EXT)
         is_text = filename_lower.endswith(TEXT_EXT)
-        has_extension = '.' in filename_part
+        has_extension = "." in filename_part
 
         # Extract normalized CID for etag (from stored path)
-        stored_cid_path = getattr(cid_content, 'path', None)
-        normalized_cid = (stored_cid_path or '').lstrip('/')
+        stored_cid_path = getattr(cid_content, "path", None)
+        normalized_cid = (stored_cid_path or "").lstrip("/")
 
         # Determine target CID (for QR codes or etags)
         if normalized_cid:
@@ -118,7 +120,7 @@ class PathInfo:
         elif is_qr:
             target_cid = cid.rsplit(QR_EXT, 1)[0]
         else:
-            target_cid = cid.split('.')[0]
+            target_cid = cid.split(".")[0]
 
         return cls(
             is_qr=is_qr,
@@ -133,6 +135,7 @@ class PathInfo:
 # ============================================================================
 # QR CODE GENERATION
 # ============================================================================
+
 
 def generate_qr_data_url(target_url: str) -> str:
     """Generate a data URL representing a QR code that encodes target_url.
@@ -170,6 +173,7 @@ def generate_qr_data_url(target_url: str) -> str:
 # ============================================================================
 # CONTENT TYPE DETERMINATION
 # ============================================================================
+
 
 def _determine_content_type(path: str, path_info: PathInfo) -> str:
     """Determine the content type for a given path and request mode.
@@ -209,14 +213,12 @@ def _ensure_utf8_text(data: bytes) -> Optional[bytes]:
     """
     text = decode_text_safely(data)
     if text is not None:
-        return text.encode('utf-8')
+        return text.encode("utf-8")
     return None
 
 
 def _process_content_body(
-    response_body: bytes,
-    content_type: str,
-    path_info: PathInfo
+    response_body: bytes, content_type: str, path_info: PathInfo
 ) -> tuple[bytes, str]:
     """Process content body based on content type and request mode.
 
@@ -271,7 +273,7 @@ def _add_response_headers(
     etag: str,
     cid_content,
     filename: Optional[str],
-    path_info: PathInfo
+    path_info: PathInfo,
 ) -> None:
     """Add HTTP headers to the response.
 
@@ -288,16 +290,16 @@ def _add_response_headers(
     """
     # Add Content-Disposition for downloads (but not for rendered markdown)
     if filename and not path_info.is_markdown_html:
-        response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     # Add caching headers
     # Since CIDs are content-addressed, the content is immutable
-    response.headers['ETag'] = etag
-    response.headers['Last-Modified'] = cid_content.created_at.strftime(
-        '%a, %d %b %Y %H:%M:%S GMT'
+    response.headers["ETag"] = etag
+    response.headers["Last-Modified"] = cid_content.created_at.strftime(
+        "%a, %d %b %Y %H:%M:%S GMT"
     )
-    response.headers['Cache-Control'] = CACHE_CONTROL_IMMUTABLE
-    response.headers['Expires'] = CACHE_EXPIRES_HEADER
+    response.headers["Cache-Control"] = CACHE_CONTROL_IMMUTABLE
+    response.headers["Expires"] = CACHE_EXPIRES_HEADER
 
 
 def _parse_if_modified_since(header_value: str) -> Optional[datetime]:
@@ -323,6 +325,7 @@ def _parse_if_modified_since(header_value: str) -> Optional[datetime]:
 # ============================================================================
 # CONTENT SERVING
 # ============================================================================
+
 
 def serve_cid_content(cid_content, path: str) -> Optional[Response]:
     """Serve CID content with appropriate headers and caching.
@@ -362,9 +365,7 @@ def serve_cid_content(cid_content, path: str) -> Optional[Response]:
 
     # Process content body based on request mode
     response_body, final_content_type = _process_content_body(
-        cid_content.file_data,
-        content_type,
-        path_info
+        cid_content.file_data, content_type, path_info
     )
 
     # Handle conditional requests (304 Not Modified)
@@ -381,8 +382,8 @@ def serve_cid_content(cid_content, path: str) -> Optional[Response]:
 
     # Build full response
     response = make_response(response_body)
-    response.headers['Content-Type'] = final_content_type
-    response.headers['Content-Length'] = len(response_body)
+    response.headers["Content-Type"] = final_content_type
+    response.headers["Content-Length"] = len(response_body)
 
     # Add caching and download headers
     filename = extract_filename_from_cid_path(path)
@@ -403,14 +404,14 @@ def _serve_qr_code(target_cid: str) -> bytes:
     qr_target_url = f"https://256t.org/{target_cid}"
     qr_image_url = generate_qr_data_url(qr_target_url)
     html = render_template(
-        'cid_qr.html',
-        title='CID QR Code',
+        "cid_qr.html",
+        title="CID QR Code",
         cid=target_cid,
         qr_value=qr_target_url,
         qr_image_url=qr_image_url,
         cid_href=cid_path(target_cid),
     )
-    return html.encode('utf-8')
+    return html.encode("utf-8")
 
 
 def _serve_markdown_html(response_body: bytes) -> Optional[bytes]:
@@ -424,7 +425,7 @@ def _serve_markdown_html(response_body: bytes) -> Optional[bytes]:
     """
     text = decode_text_safely(response_body)
     if text is not None:
-        return render_markdown_document(text).encode('utf-8')
+        return render_markdown_document(text).encode("utf-8")
     return None
 
 
@@ -438,9 +439,9 @@ def _make_304_response(etag: str, cid_content) -> Response:
     Returns:
         Flask response with 304 status
     """
-    response = make_response('', 304)
-    response.headers['ETag'] = etag
-    response.headers['Last-Modified'] = cid_content.created_at.strftime(
-        '%a, %d %b %Y %H:%M:%S GMT'
+    response = make_response("", 304)
+    response.headers["ETag"] = etag
+    response.headers["Last-Modified"] = cid_content.created_at.strftime(
+        "%a, %d %b %Y %H:%M:%S GMT"
     )
     return response

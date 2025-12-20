@@ -53,9 +53,9 @@ def main(
     parts = [
         "<!DOCTYPE html>",
         "<html><body>",
-        f"<form method=\"post\" action=\"{escape(shell_endpoint, quote=True)}\">",
-        "<input type=\"text\" name=\"command\" autofocus>",
-        "<button type=\"submit\">Run</button>",
+        f'<form method="post" action="{escape(shell_endpoint, quote=True)}">',
+        '<input type="text" name="command" autofocus>',
+        '<button type="submit">Run</button>',
         "</form>",
     ]
 

@@ -38,17 +38,17 @@ class TestBashScriptUsesPositionalParams(unittest.TestCase):
 
     def test_ignores_dollar_zero(self):
         """$0 (script name) should not trigger detection."""
-        script = '#!/bin/bash\necho $0'
+        script = "#!/bin/bash\necho $0"
         assert _bash_script_uses_positional_params(script) is False
 
     def test_ignores_dollar_at(self):
         """$@ (all args) should not trigger detection."""
-        script = '#!/bin/bash\necho $@'
+        script = "#!/bin/bash\necho $@"
         assert _bash_script_uses_positional_params(script) is False
 
     def test_ignores_dollar_star(self):
         """$* (all args) should not trigger detection."""
-        script = '#!/bin/bash\necho $*'
+        script = "#!/bin/bash\necho $*"
         assert _bash_script_uses_positional_params(script) is False
 
     def test_detects_param_in_quotes(self):
@@ -60,7 +60,9 @@ class TestBashScriptUsesPositionalParams(unittest.TestCase):
         """$1 through $9 should all be detected."""
         for i in range(1, 10):
             script = f'#!/bin/bash\necho "${i}"'
-            assert _bash_script_uses_positional_params(script) is True, f"$${i} should be detected"
+            assert _bash_script_uses_positional_params(script) is True, (
+                f"$${i} should be detected"
+            )
 
 
 class TestResolveBashPathParameters(unittest.TestCase):
@@ -82,13 +84,14 @@ class TestResolveBashPathParameters(unittest.TestCase):
         from app import create_app
         from database import db
         from db_config import DatabaseConfig, DatabaseMode
+
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
         app = create_app({"TESTING": True})
         with app.app_context():
             db.create_all()
             with app.test_request_context("/awk/pattern"):
-                script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
-                    "awk", '#!/bin/bash\nawk "$1"'
+                script_arg, chained_input_path, remaining = (
+                    _resolve_bash_path_parameters("awk", '#!/bin/bash\nawk "$1"')
                 )
             assert script_arg == "pattern"
             assert chained_input_path is None
@@ -100,13 +103,14 @@ class TestResolveBashPathParameters(unittest.TestCase):
         from app import create_app
         from database import db
         from db_config import DatabaseConfig, DatabaseMode
+
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
         app = create_app({"TESTING": True})
         with app.app_context():
             db.create_all()
             with app.test_request_context("/sed/s/foo/bar/echo/hello"):
-                script_arg, chained_input_path, remaining = _resolve_bash_path_parameters(
-                    "sed", '#!/bin/bash\nsed "$1"'
+                script_arg, chained_input_path, remaining = (
+                    _resolve_bash_path_parameters("sed", '#!/bin/bash\nsed "$1"')
                 )
             assert script_arg == "s"
             assert chained_input_path == "/foo/bar/echo/hello"
@@ -131,7 +135,9 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         """Script args should be passed as positional arguments."""
         app = Flask(__name__)
         with app.test_request_context("/test"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "$1"',
                     "test",
@@ -146,7 +152,9 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         """Multiple script args should be passed."""
         app = Flask(__name__)
         with app.test_request_context("/test"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "$1 $2"',
                     "test",
@@ -161,7 +169,9 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         """Script args should work alongside stdin input."""
         app = Flask(__name__)
         with app.test_request_context("/test"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     '#!/bin/bash\necho "Pattern: $1"\necho "Input: $(cat)"',
                     "test",
@@ -186,7 +196,9 @@ class TestAwkServer(unittest.TestCase):
         app = Flask(__name__)
         script = '#!/bin/bash\nawk "$1"'
         with app.test_request_context("/awk"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     script,
                     "awk",
@@ -206,7 +218,9 @@ class TestSedServer(unittest.TestCase):
         app = Flask(__name__)
         script = '#!/bin/bash\nsed "$1"'
         with app.test_request_context("/sed"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     script,
                     "sed",
@@ -226,7 +240,9 @@ class TestGrepServer(unittest.TestCase):
         app = Flask(__name__)
         script = '#!/bin/bash\ngrep -E "$1" || true'
         with app.test_request_context("/grep"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     script,
                     "grep",
@@ -253,7 +269,9 @@ class TestJqServer(unittest.TestCase):
         app = Flask(__name__)
         script = '#!/bin/bash\njq "$1"'
         with app.test_request_context("/jq"):
-            with patch("server_execution.code_execution.build_request_args", return_value={}):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
                 stdout, status, _stderr = _run_bash_script(
                     script,
                     "jq",

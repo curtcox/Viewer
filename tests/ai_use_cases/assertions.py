@@ -43,8 +43,7 @@ def assert_original_content_preserved(result: str, original: str):
 
     # Extract words longer than 3 characters (likely identifiers/keywords)
     original_words = set(
-        word for word in original.split()
-        if len(word) > 3 and word.isalnum()
+        word for word in original.split() if len(word) > 3 and word.isalnum()
     )
 
     # Check that at least some original words are preserved
@@ -52,13 +51,13 @@ def assert_original_content_preserved(result: str, original: str):
     if original_words:
         result_lower = result.lower()
         preserved_count = sum(
-            1 for word in original_words
-            if word.lower() in result_lower
+            1 for word in original_words if word.lower() in result_lower
         )
 
         preservation_ratio = preserved_count / len(original_words)
-        assert preservation_ratio >= 0.3, \
+        assert preservation_ratio >= 0.3, (
             f"Too few original words preserved: {preserved_count}/{len(original_words)}"
+        )
 
 
 def assert_requested_change_applied(result: str, request: str):
@@ -75,15 +74,15 @@ def assert_requested_change_applied(result: str, request: str):
 
     # Common keywords that indicate the type of change
     change_indicators = {
-        'add': ['new', 'added', 'include'],
-        'remove': ['without', 'removed', 'deleted'],
-        'convert': ['to', 'into', 'as'],
-        'modify': ['changed', 'updated', 'modified'],
-        'validate': ['if', 'check', 'validate'],
-        'log': ['logging', 'log', 'info', 'debug'],
-        'retry': ['retry', 'attempt', 'backoff'],
-        'filter': ['filter', 'where', 'status'],
-        'sort': ['sort', 'order', 'by'],
+        "add": ["new", "added", "include"],
+        "remove": ["without", "removed", "deleted"],
+        "convert": ["to", "into", "as"],
+        "modify": ["changed", "updated", "modified"],
+        "validate": ["if", "check", "validate"],
+        "log": ["logging", "log", "info", "debug"],
+        "retry": ["retry", "attempt", "backoff"],
+        "filter": ["filter", "where", "status"],
+        "sort": ["sort", "order", "by"],
     }
 
     # Check if any change indicators appear
@@ -101,18 +100,19 @@ def assert_requested_change_applied(result: str, request: str):
     # that the result is different from what we might expect
     if not found_indicator:
         # At least verify result is reasonably longer (for add/convert operations)
-        if 'add' in request_lower or 'convert' in request_lower:
+        if "add" in request_lower or "convert" in request_lower:
             # Result should be longer than minimal length
-            assert len(result) > 20, \
-                "Result seems too short for the requested change"
+            assert len(result) > 20, "Result seems too short for the requested change"
 
 
 def assert_valid_query_string(qs: str):
     """Verify valid query string format."""
     # Query string might have a leading ? or not
-    if '?' in qs:
-        assert qs.count('?') == 1, f"Invalid query string: multiple ? characters in {qs}"
-        qs = qs.split('?', 1)[1]
+    if "?" in qs:
+        assert qs.count("?") == 1, (
+            f"Invalid query string: multiple ? characters in {qs}"
+        )
+        qs = qs.split("?", 1)[1]
 
     # Try to parse it
     try:
@@ -124,5 +124,6 @@ def assert_valid_query_string(qs: str):
 
 def assert_no_errors_in_response(data: dict):
     """Verify the AI response doesn't contain error fields."""
-    assert 'error' not in data, \
+    assert "error" not in data, (
         f"Response contains error: {data.get('error')}\nMessage: {data.get('message')}"
+    )

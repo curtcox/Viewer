@@ -76,6 +76,7 @@ def _load_server_from_reference(name: str) -> str:
 
 # Server availability steps
 
+
 @step("Given the awk server is available")
 def given_awk_server_available() -> None:
     """Load the awk server definition."""
@@ -116,6 +117,7 @@ cat
 
 # CID storage steps
 
+
 @step('And a CID containing "<content>" as pattern_cid')
 def and_cid_as_pattern(content: str) -> None:
     """Store a CID with the given content as pattern_cid."""
@@ -143,6 +145,7 @@ def and_json_cid(json_content: str) -> None:
 
 
 # Request steps for servers with path parameters
+
 
 @step('When I request the awk server with pattern "<pattern>" and the stored CID')
 def when_request_awk_with_pattern(pattern: str) -> None:
@@ -242,6 +245,7 @@ def when_request_path_with_stored_cid(path: str) -> None:
 
 # Generic request step for wrapper tests
 
+
 @step("When I request the resource /awk-wrapper/awk/{print $1}/{stored CID}")
 def when_request_awk_wrapper() -> None:
     """Request awk-wrapper with awk path parameter chain."""
@@ -311,7 +315,8 @@ def when_request_simple_bash() -> None:
 
 # Assertion steps
 
-@step("And the CID content should not contain \"<expected>\"")
+
+@step('And the CID content should not contain "<expected>"')
 def and_cid_content_should_not_contain(expected: str) -> None:
     """Assert the CID content does not include the expected substring."""
     state = get_scenario_state()

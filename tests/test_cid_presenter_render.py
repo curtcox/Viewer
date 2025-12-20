@@ -42,7 +42,10 @@ def test_render_cid_link_includes_expected_elements():
     assert f'href="/{cid}.qr"' in rendered
     assert f'href="/edit/{cid}"' in rendered
     assert f'href="/meta/{cid}"' in rendered
-    assert 'class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"' in rendered
+    assert (
+        'class="btn btn-sm btn-outline-secondary cid-menu-btn dropdown-toggle"'
+        in rendered
+    )
     assert 'data-bs-boundary="viewport"' in rendered
     assert 'data-bs-offset="0,8"' in rendered
     assert 'class="dropdown-menu dropdown-menu-end"' in rendered
@@ -64,7 +67,7 @@ def test_render_cid_link_strips_leading_slash():
     rendered = str(render_cid_link(cid))
 
     assert f'href="/{CID_SAMPLE_SHORT}.txt"' in rendered
-    assert f'>#{CID_SAMPLE_SHORT[:9]}...<' in rendered
+    assert f">#{CID_SAMPLE_SHORT[:9]}...<" in rendered
 
 
 def test_format_helpers_accept_cid_object():
@@ -88,7 +91,7 @@ def test_format_helpers_accept_cid_object():
         (None, None),
         ("", None),
         ("   ", None),
-        ("/" , None),
+        ("/", None),
         ("/alpha/beta", None),
         (f"/{CID_SAMPLE_STR}.txt", CID_SAMPLE_STR),
         (CID_SAMPLE_STR, CID_SAMPLE_STR),

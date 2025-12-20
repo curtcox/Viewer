@@ -1,4 +1,5 @@
 """Helpers for parsing and formatting alias definitions."""
+
 from __future__ import annotations
 
 import logging
@@ -45,6 +46,7 @@ def _resolve_get_variables() -> Optional[_GetVariables]:
 
     _import_state["resolver"] = resolved
     return resolved
+
 
 # ===== Constants =====
 
@@ -232,9 +234,7 @@ class DatabaseStrategy(VariableResolutionStrategy):
             return None
 
         if not has_app_context():
-            logger.debug(
-                "Skipping database variable resolution: no app context"
-            )
+            logger.debug("Skipping database variable resolution: no app context")
             return None
 
         try:
@@ -318,8 +318,8 @@ class DefinitionLineParser:
 
         # Try to parse the mapping
         try:
-            match_type, match_pattern, ignore_case, target_path = (
-                _parse_line_metadata(text, self.alias_name)
+            match_type, match_pattern, ignore_case, target_path = _parse_line_metadata(
+                text, self.alias_name
             )
         except AliasDefinitionError as exc:
             return DefinitionLineSummary(

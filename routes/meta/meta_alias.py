@@ -1,4 +1,5 @@
 """Alias resolution and metadata for meta route."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
@@ -52,7 +53,9 @@ def aliases_targeting_path(path: str) -> List[Dict[str, Any]]:
                 continue
 
             serialized = serialize_alias(alias, route=route)
-            serialized["meta_link"] = f"/meta/{serialized['name']}" if serialized.get("name") else None
+            serialized["meta_link"] = (
+                f"/meta/{serialized['name']}" if serialized.get("name") else None
+            )
             serialized["alias_path"] = route.alias_path
             aliases.append(serialized)
 
@@ -68,7 +71,9 @@ def attach_alias_targeting_metadata(metadata: Dict[str, Any], path: str) -> None
     metadata["aliases_targeting_path"] = aliases
 
 
-def resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> Optional[Dict[str, Any]]:
+def resolve_alias_path(
+    path: str, *, include_target_metadata: bool = True
+) -> Optional[Dict[str, Any]]:
     """Return metadata for alias-based routes if applicable."""
     # Import here to avoid circular dependency
     from .meta_core import gather_metadata
@@ -86,7 +91,9 @@ def resolve_alias_path(path: str, *, include_target_metadata: bool = True) -> Op
     if not alias_match:
         return None
 
-    alias_name = alias_match.route.alias_path or getattr(alias_match.alias, "name", None)
+    alias_name = alias_match.route.alias_path or getattr(
+        alias_match.alias, "name", None
+    )
     base_payload["resolution"]["alias"] = alias_name
 
     redirect_response = try_alias_redirect(path, alias_match=alias_match)

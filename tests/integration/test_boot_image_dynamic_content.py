@@ -35,11 +35,13 @@ class TestBootImageDynamicContent:
     def setup(self, tmp_path):
         """Set up test environment with isolated project directory."""
         # Create app with test configuration
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -83,9 +85,9 @@ class TestBootImageDynamicContent:
                 {
                     "name": "templates",
                     "definition": "GENERATED:templates.json",
-                    "enabled": True
+                    "enabled": True,
                 }
-            ]
+            ],
         }
         boot_source_json = json.dumps(boot_source, indent=2)
         (ref_templates / "boot.source.json").write_text(boot_source_json)
@@ -99,7 +101,7 @@ class TestBootImageDynamicContent:
             "servers": {},
             "variables": {},
             "secrets": {},
-            "uploads": {}
+            "uploads": {},
         }
         (ref_templates / "templates.source.json").write_text(
             json.dumps(templates_source, indent=2)
@@ -121,20 +123,14 @@ class TestBootImageDynamicContent:
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
         boot_source = json.loads(boot_source_file.read_text())
-        boot_source["aliases"].append({
-            "name": name,
-            "definition_cid": rel_path,
-            "enabled": True
-        })
+        boot_source["aliases"].append(
+            {"name": name, "definition_cid": rel_path, "enabled": True}
+        )
         boot_source_file.write_text(json.dumps(boot_source, indent=2))
 
         return rel_path
 
-    def _add_server_to_boot_source(
-        self,
-        name: str,
-        definition_content: str
-    ) -> str:
+    def _add_server_to_boot_source(self, name: str, definition_content: str) -> str:
         """Add a server to boot.source.json.
 
         Args:
@@ -154,20 +150,14 @@ class TestBootImageDynamicContent:
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
         boot_source = json.loads(boot_source_file.read_text())
-        boot_source["servers"].append({
-            "name": name,
-            "definition_cid": rel_path,
-            "enabled": True
-        })
+        boot_source["servers"].append(
+            {"name": name, "definition_cid": rel_path, "enabled": True}
+        )
         boot_source_file.write_text(json.dumps(boot_source, indent=2))
 
         return rel_path
 
-    def _add_variable_to_boot_source(
-        self,
-        name: str,
-        definition: str
-    ):
+    def _add_variable_to_boot_source(self, name: str, definition: str):
         """Add a variable to boot.source.json.
 
         Args:
@@ -179,19 +169,13 @@ class TestBootImageDynamicContent:
         # Update boot.source.json
         boot_source_file = ref_templates / "boot.source.json"
         boot_source = json.loads(boot_source_file.read_text())
-        boot_source["variables"].append({
-            "name": name,
-            "definition": definition,
-            "enabled": True
-        })
+        boot_source["variables"].append(
+            {"name": name, "definition": definition, "enabled": True}
+        )
         boot_source_file.write_text(json.dumps(boot_source, indent=2))
 
     def _add_alias_template_to_templates_source(
-        self,
-        key: str,
-        name: str,
-        description: str,
-        definition_content: str
+        self, key: str, name: str, description: str, definition_content: str
     ) -> str:
         """Add an alias template to templates.source.json.
 
@@ -217,18 +201,14 @@ class TestBootImageDynamicContent:
         templates_source["aliases"][key] = {
             "name": name,
             "description": description,
-            "definition_cid": rel_path
+            "definition_cid": rel_path,
         }
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
         return rel_path
 
     def _add_server_template_to_templates_source(
-        self,
-        key: str,
-        name: str,
-        description: str,
-        definition_content: str
+        self, key: str, name: str, description: str, definition_content: str
     ) -> str:
         """Add a server template to templates.source.json.
 
@@ -254,18 +234,14 @@ class TestBootImageDynamicContent:
         templates_source["servers"][key] = {
             "name": name,
             "description": description,
-            "definition_cid": rel_path
+            "definition_cid": rel_path,
         }
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
         return rel_path
 
     def _add_variable_template_to_templates_source(
-        self,
-        key: str,
-        name: str,
-        description: str,
-        definition_content: str
+        self, key: str, name: str, description: str, definition_content: str
     ) -> str:
         """Add a variable template to templates.source.json.
 
@@ -291,18 +267,14 @@ class TestBootImageDynamicContent:
         templates_source["variables"][key] = {
             "name": name,
             "description": description,
-            "definition_cid": rel_path
+            "definition_cid": rel_path,
         }
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
         return rel_path
 
     def _add_upload_template_to_templates_source(
-        self,
-        key: str,
-        name: str,
-        description: str,
-        content: str
+        self, key: str, name: str, description: str, content: str
     ) -> str:
         """Add an upload template to templates.source.json.
 
@@ -328,7 +300,7 @@ class TestBootImageDynamicContent:
         templates_source["uploads"][key] = {
             "name": name,
             "description": description,
-            "content_cid": rel_path
+            "content_cid": rel_path,
         }
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
@@ -361,9 +333,10 @@ class TestBootImageDynamicContent:
 
         # Import boot CID
         from contextlib import redirect_stdout
+
         captured_output = StringIO()
         with redirect_stdout(captured_output):
-            main.handle_boot_cid_import(result['boot_cid'])
+            main.handle_boot_cid_import(result["boot_cid"])
 
         return result
 
@@ -373,8 +346,7 @@ class TestBootImageDynamicContent:
         """Test that an alias added to boot.source.json is in the generated boot image."""
         # Add an alias to boot.source.json
         self._add_alias_to_boot_source(
-            "test-alias",
-            "literal /test-alias -> /test-target"
+            "test-alias", "literal /test-alias -> /test-target"
         )
 
         # Generate boot image
@@ -389,14 +361,15 @@ class TestBootImageDynamicContent:
         assert len(boot_data["aliases"]) == 1
         assert boot_data["aliases"][0]["name"] == "test-alias"
         # The definition_cid should now be a CID, not the file path
-        assert not boot_data["aliases"][0]["definition_cid"].startswith("reference_templates/")
+        assert not boot_data["aliases"][0]["definition_cid"].startswith(
+            "reference_templates/"
+        )
 
     def test_boot_cid_loads_added_alias(self):
         """Test that booting with CID shows the added alias in /aliases."""
         # Add an alias to boot.source.json
         self._add_alias_to_boot_source(
-            "dynamic-alias",
-            "literal /dynamic -> /dynamic-target"
+            "dynamic-alias", "literal /dynamic -> /dynamic-target"
         )
 
         # Generate and import
@@ -404,7 +377,7 @@ class TestBootImageDynamicContent:
 
         # Verify alias is accessible
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='dynamic-alias').first()
+            alias = Alias.query.filter_by(name="dynamic-alias").first()
             assert alias is not None, "Alias should be loaded from boot image"
             assert alias.enabled is True
 
@@ -412,8 +385,7 @@ class TestBootImageDynamicContent:
         """Test that the loaded alias works as expected."""
         # Add an alias to boot.source.json
         self._add_alias_to_boot_source(
-            "functional-alias",
-            "literal /func-alias -> /func-target"
+            "functional-alias", "literal /func-alias -> /func-target"
         )
 
         # Generate and import
@@ -421,7 +393,7 @@ class TestBootImageDynamicContent:
 
         # Verify alias definition is correct
         with self.app.app_context():
-            alias = Alias.query.filter_by(name='functional-alias').first()
+            alias = Alias.query.filter_by(name="functional-alias").first()
             assert alias is not None
             assert "literal /func-alias -> /func-target" in alias.definition
             assert alias.target_path == "/func-target"
@@ -432,8 +404,7 @@ class TestBootImageDynamicContent:
         """Test that a server added to boot.source.json is in the generated boot image."""
         # Add a server to boot.source.json
         self._add_server_to_boot_source(
-            "test-server",
-            "def main(context):\n    return 'Hello from test server'\n"
+            "test-server", "def main(context):\n    return 'Hello from test server'\n"
         )
 
         # Generate boot image
@@ -448,14 +419,16 @@ class TestBootImageDynamicContent:
         assert len(boot_data["servers"]) == 1
         assert boot_data["servers"][0]["name"] == "test-server"
         # The definition_cid should now be a CID, not the file path
-        assert not boot_data["servers"][0]["definition_cid"].startswith("reference_templates/")
+        assert not boot_data["servers"][0]["definition_cid"].startswith(
+            "reference_templates/"
+        )
 
     def test_boot_cid_loads_added_server(self):
         """Test that booting with CID shows the added server in /servers."""
         # Add a server to boot.source.json
         self._add_server_to_boot_source(
             "dynamic-server",
-            "def main(context):\n    return 'Dynamic server response'\n"
+            "def main(context):\n    return 'Dynamic server response'\n",
         )
 
         # Generate and import
@@ -463,7 +436,7 @@ class TestBootImageDynamicContent:
 
         # Verify server is accessible
         with self.app.app_context():
-            server = Server.query.filter_by(name='dynamic-server').first()
+            server = Server.query.filter_by(name="dynamic-server").first()
             assert server is not None, "Server should be loaded from boot image"
             assert server.enabled is True
 
@@ -478,7 +451,7 @@ class TestBootImageDynamicContent:
 
         # Verify server definition is correct
         with self.app.app_context():
-            server = Server.query.filter_by(name='functional-server').first()
+            server = Server.query.filter_by(name="functional-server").first()
             assert server is not None
             assert "def main(context):" in server.definition
             assert "Functional server output" in server.definition
@@ -515,7 +488,7 @@ class TestBootImageDynamicContent:
 
         # Verify variable is accessible
         with self.app.app_context():
-            var = Variable.query.filter_by(name='dynamic-var').first()
+            var = Variable.query.filter_by(name="dynamic-var").first()
             assert var is not None, "Variable should be loaded from boot image"
             assert var.enabled is True
 
@@ -529,7 +502,7 @@ class TestBootImageDynamicContent:
 
         # Verify variable definition is correct
         with self.app.app_context():
-            var = Variable.query.filter_by(name='functional-var').first()
+            var = Variable.query.filter_by(name="functional-var").first()
             assert var is not None
             assert var.definition == "functional-value-456"
 
@@ -542,7 +515,7 @@ class TestBootImageDynamicContent:
             "custom-alias-template",
             "Custom Alias Template",
             "A custom alias template for testing",
-            "literal /custom -> /custom-target"
+            "literal /custom -> /custom-target",
         )
 
         # Generate boot image
@@ -550,12 +523,17 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated templates.json
-        templates_json_path = self.project_dir / "reference_templates" / "templates.json"
+        templates_json_path = (
+            self.project_dir / "reference_templates" / "templates.json"
+        )
         templates_data = json.loads(templates_json_path.read_text())
 
         # Verify the alias template is in templates.json
         assert "custom-alias-template" in templates_data["aliases"]
-        assert templates_data["aliases"]["custom-alias-template"]["name"] == "Custom Alias Template"
+        assert (
+            templates_data["aliases"]["custom-alias-template"]["name"]
+            == "Custom Alias Template"
+        )
 
     def test_boot_cid_shows_alias_template_in_variables_templates(self):
         """Test that booting with CID includes the alias template in /variables/templates."""
@@ -564,7 +542,7 @@ class TestBootImageDynamicContent:
             "accessible-alias-template",
             "Accessible Alias",
             "An accessible alias template",
-            "literal /accessible -> /accessible-target"
+            "literal /accessible -> /accessible-target",
         )
 
         # Generate and import
@@ -583,7 +561,7 @@ class TestBootImageDynamicContent:
             "usable-alias-template",
             "Usable Alias Template",
             "A usable alias template",
-            "literal /usable -> /usable-target"
+            "literal /usable -> /usable-target",
         )
 
         # Generate and import
@@ -608,7 +586,7 @@ class TestBootImageDynamicContent:
             "working-alias-template",
             "Working Alias",
             "A working alias template",
-            "literal /working -> /working-result"
+            "literal /working -> /working-result",
         )
 
         # Generate and import
@@ -620,11 +598,7 @@ class TestBootImageDynamicContent:
             definition = resolve_cid_value(template["definition_cid"])
 
             # Create an alias using the template definition
-            alias = Alias(
-                name="from-template",
-                definition=definition,
-                enabled=True
-            )
+            alias = Alias(name="from-template", definition=definition, enabled=True)
             db.session.add(alias)
             db.session.commit()
 
@@ -642,7 +616,7 @@ class TestBootImageDynamicContent:
             "custom-server-template",
             "Custom Server Template",
             "A custom server template for testing",
-            "def main(context):\n    return 'Custom server response'\n"
+            "def main(context):\n    return 'Custom server response'\n",
         )
 
         # Generate boot image
@@ -650,12 +624,17 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated templates.json
-        templates_json_path = self.project_dir / "reference_templates" / "templates.json"
+        templates_json_path = (
+            self.project_dir / "reference_templates" / "templates.json"
+        )
         templates_data = json.loads(templates_json_path.read_text())
 
         # Verify the server template is in templates.json
         assert "custom-server-template" in templates_data["servers"]
-        assert templates_data["servers"]["custom-server-template"]["name"] == "Custom Server Template"
+        assert (
+            templates_data["servers"]["custom-server-template"]["name"]
+            == "Custom Server Template"
+        )
 
     def test_boot_cid_shows_server_template_in_variables_templates(self):
         """Test that booting with CID includes the server template in /variables/templates."""
@@ -664,7 +643,7 @@ class TestBootImageDynamicContent:
             "accessible-server-template",
             "Accessible Server",
             "An accessible server template",
-            "def main(context):\n    return 'Accessible'\n"
+            "def main(context):\n    return 'Accessible'\n",
         )
 
         # Generate and import
@@ -683,7 +662,7 @@ class TestBootImageDynamicContent:
             "usable-server-template",
             "Usable Server Template",
             "A usable server template",
-            "def main(context):\n    return 'Usable server'\n"
+            "def main(context):\n    return 'Usable server'\n",
         )
 
         # Generate and import
@@ -708,7 +687,7 @@ class TestBootImageDynamicContent:
             "working-server-template",
             "Working Server",
             "A working server template",
-            "def main(context):\n    return 'Working server output'\n"
+            "def main(context):\n    return 'Working server output'\n",
         )
 
         # Generate and import
@@ -721,9 +700,7 @@ class TestBootImageDynamicContent:
 
             # Create a server using the template definition
             server = Server(
-                name="from-server-template",
-                definition=definition,
-                enabled=True
+                name="from-server-template", definition=definition, enabled=True
             )
             db.session.add(server)
             db.session.commit()
@@ -742,7 +719,7 @@ class TestBootImageDynamicContent:
             "custom-var-template",
             "Custom Variable Template",
             "A custom variable template for testing",
-            "custom-variable-value"
+            "custom-variable-value",
         )
 
         # Generate boot image
@@ -750,12 +727,17 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated templates.json
-        templates_json_path = self.project_dir / "reference_templates" / "templates.json"
+        templates_json_path = (
+            self.project_dir / "reference_templates" / "templates.json"
+        )
         templates_data = json.loads(templates_json_path.read_text())
 
         # Verify the variable template is in templates.json
         assert "custom-var-template" in templates_data["variables"]
-        assert templates_data["variables"]["custom-var-template"]["name"] == "Custom Variable Template"
+        assert (
+            templates_data["variables"]["custom-var-template"]["name"]
+            == "Custom Variable Template"
+        )
 
     def test_boot_cid_shows_variable_template_in_variables_templates(self):
         """Test that booting with CID includes the variable template in /variables/templates."""
@@ -764,7 +746,7 @@ class TestBootImageDynamicContent:
             "accessible-var-template",
             "Accessible Variable",
             "An accessible variable template",
-            "accessible-var-value"
+            "accessible-var-value",
         )
 
         # Generate and import
@@ -783,7 +765,7 @@ class TestBootImageDynamicContent:
             "usable-var-template",
             "Usable Variable Template",
             "A usable variable template",
-            "usable-variable-value"
+            "usable-variable-value",
         )
 
         # Generate and import
@@ -808,7 +790,7 @@ class TestBootImageDynamicContent:
             "working-var-template",
             "Working Variable",
             "A working variable template",
-            "working-variable-content"
+            "working-variable-content",
         )
 
         # Generate and import
@@ -821,9 +803,7 @@ class TestBootImageDynamicContent:
 
             # Create a variable using the template definition
             var = Variable(
-                name="from-var-template",
-                definition=definition,
-                enabled=True
+                name="from-var-template", definition=definition, enabled=True
             )
             db.session.add(var)
             db.session.commit()
@@ -842,7 +822,7 @@ class TestBootImageDynamicContent:
             "custom-upload-template",
             "Custom Upload Template",
             "A custom upload template for testing",
-            "<html><body>Custom upload content</body></html>"
+            "<html><body>Custom upload content</body></html>",
         )
 
         # Generate boot image
@@ -850,12 +830,17 @@ class TestBootImageDynamicContent:
         generator.generate()
 
         # Read generated templates.json
-        templates_json_path = self.project_dir / "reference_templates" / "templates.json"
+        templates_json_path = (
+            self.project_dir / "reference_templates" / "templates.json"
+        )
         templates_data = json.loads(templates_json_path.read_text())
 
         # Verify the upload template is in templates.json
         assert "custom-upload-template" in templates_data["uploads"]
-        assert templates_data["uploads"]["custom-upload-template"]["name"] == "Custom Upload Template"
+        assert (
+            templates_data["uploads"]["custom-upload-template"]["name"]
+            == "Custom Upload Template"
+        )
 
     def test_boot_cid_shows_upload_template_in_variables_templates(self):
         """Test that booting with CID includes the upload template in /variables/templates."""
@@ -864,7 +849,7 @@ class TestBootImageDynamicContent:
             "accessible-upload-template",
             "Accessible Upload",
             "An accessible upload template",
-            "<html><body>Accessible content</body></html>"
+            "<html><body>Accessible content</body></html>",
         )
 
         # Generate and import
@@ -883,7 +868,7 @@ class TestBootImageDynamicContent:
             "usable-upload-template",
             "Usable Upload Template",
             "A usable upload template",
-            "<html><body>Usable upload content</body></html>"
+            "<html><body>Usable upload content</body></html>",
         )
 
         # Generate and import
@@ -905,7 +890,7 @@ class TestBootImageDynamicContent:
             "working-upload-template",
             "Working Upload",
             "A working upload template",
-            expected_content
+            expected_content,
         )
 
         # Generate and import
@@ -927,14 +912,12 @@ class TestBootImageDynamicContent:
         """Test a complete workflow adding all types of content at once."""
         # Add alias to boot
         self._add_alias_to_boot_source(
-            "complete-alias",
-            "literal /complete -> /complete-target"
+            "complete-alias", "literal /complete -> /complete-target"
         )
 
         # Add server to boot
         self._add_server_to_boot_source(
-            "complete-server",
-            "def main(context):\n    return 'Complete'\n"
+            "complete-server", "def main(context):\n    return 'Complete'\n"
         )
 
         # Add variable to boot
@@ -945,7 +928,7 @@ class TestBootImageDynamicContent:
             "complete-alias-template",
             "Complete Alias Template",
             "Complete alias template",
-            "literal /template -> /template-target"
+            "literal /template -> /template-target",
         )
 
         # Add server template
@@ -953,7 +936,7 @@ class TestBootImageDynamicContent:
             "complete-server-template",
             "Complete Server Template",
             "Complete server template",
-            "def main(context):\n    return 'Template server'\n"
+            "def main(context):\n    return 'Template server'\n",
         )
 
         # Add variable template
@@ -961,7 +944,7 @@ class TestBootImageDynamicContent:
             "complete-var-template",
             "Complete Variable Template",
             "Complete variable template",
-            "template-variable-value"
+            "template-variable-value",
         )
 
         # Add upload template
@@ -969,7 +952,7 @@ class TestBootImageDynamicContent:
             "complete-upload-template",
             "Complete Upload Template",
             "Complete upload template",
-            "<html>Complete</html>"
+            "<html>Complete</html>",
         )
 
         # Generate and import
@@ -978,13 +961,13 @@ class TestBootImageDynamicContent:
         # Verify all content
         with self.app.app_context():
             # Boot content
-            alias = Alias.query.filter_by(name='complete-alias').first()
+            alias = Alias.query.filter_by(name="complete-alias").first()
             assert alias is not None
 
-            server = Server.query.filter_by(name='complete-server').first()
+            server = Server.query.filter_by(name="complete-server").first()
             assert server is not None
 
-            var = Variable.query.filter_by(name='complete-var').first()
+            var = Variable.query.filter_by(name="complete-var").first()
             assert var is not None
 
             # Templates

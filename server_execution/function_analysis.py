@@ -25,7 +25,9 @@ class _FunctionAnalyzer(ast.NodeVisitor):
         self.target_node: Optional[ast.FunctionDef] = None
         self.has_outer_return = False
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:  # pragma: no cover - exercised indirectly
+    def visit_FunctionDef(
+        self, node: ast.FunctionDef
+    ) -> None:  # pragma: no cover - exercised indirectly
         self.function_depth += 1
         try:
             if self.function_depth == 2 and node.name == self.target_name:
@@ -36,7 +38,9 @@ class _FunctionAnalyzer(ast.NodeVisitor):
 
     visit_AsyncFunctionDef = visit_FunctionDef
 
-    def visit_Return(self, node: ast.Return) -> None:  # pragma: no cover - exercised indirectly
+    def visit_Return(
+        self, node: ast.Return
+    ) -> None:  # pragma: no cover - exercised indirectly
         if self.function_depth == 1:
             self.has_outer_return = True
         self.generic_visit(node)
@@ -119,8 +123,7 @@ def describe_function_parameters(
 
     required = set(details.required_parameters)
     parameters = [
-        {"name": name, "required": name in required}
-        for name in details.parameter_order
+        {"name": name, "required": name in required} for name in details.parameter_order
     ]
 
     return {
@@ -150,7 +153,9 @@ def analyze_server_definition(code: str) -> Dict[str, Any]:
         "language": "python",
     }
 
-    from server_execution.language_detection import detect_server_language  # Local import to avoid cycles
+    from server_execution.language_detection import (
+        detect_server_language,
+    )  # Local import to avoid cycles
 
     result["language"] = detect_server_language(code)
 

@@ -36,9 +36,7 @@ def _get_cid_links_definition():
     """Load the cid_links server definition."""
     from pathlib import Path
 
-    definition_path = Path(
-        "reference_templates/servers/definitions/cid_links.py"
-    )
+    definition_path = Path("reference_templates/servers/definitions/cid_links.py")
     return definition_path.read_text(encoding="utf-8")
 
 
@@ -158,7 +156,6 @@ def test_cid_links_empty_literal_cid():
     assert f">{empty_cid}</a>" in result["output"]
 
 
-
 # ============================================================================
 # EDGE CASES
 # ============================================================================
@@ -186,7 +183,7 @@ def test_cid_links_handles_no_cids():
             definition, "cid_links"
         )
 
-    assert result["output"] == '<html>' + content + '</html>'
+    assert result["output"] == "<html>" + content + "</html>"
 
 
 def test_cid_links_handles_bytes_input():

@@ -2,7 +2,14 @@
 
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from flask import Response, has_request_context, jsonify, make_response, render_template, request
+from flask import (
+    Response,
+    has_request_context,
+    jsonify,
+    make_response,
+    render_template,
+    request,
+)
 
 # pylint: disable=no-name-in-module  # False positive: function_analysis exists via lazy loading
 from server_execution.function_analysis import FunctionDetails, MissingParameterError
@@ -13,7 +20,10 @@ def _extract_request_body_values() -> Dict[str, Any]:
 
     try:
         json_payload = request.get_json(silent=True)
-    except (UnicodeDecodeError, ValueError):  # pragma: no cover - defensive guard for malformed requests
+    except (
+        UnicodeDecodeError,
+        ValueError,
+    ):  # pragma: no cover - defensive guard for malformed requests
         json_payload = None
 
     if isinstance(json_payload, dict):
@@ -25,7 +35,9 @@ def _extract_request_body_values() -> Dict[str, Any]:
     return body
 
 
-def _extract_context_dicts(base_args: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def _extract_context_dicts(
+    base_args: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Extract variables and secrets dictionaries from base_args context."""
     context = base_args.get("context") if isinstance(base_args, dict) else None
     if not isinstance(context, dict):
@@ -43,8 +55,10 @@ def _extract_context_dicts(base_args: Dict[str, Any]) -> Tuple[Dict[str, Any], D
 
 
 def _collect_parameter_sources(
-    base_args: Dict[str, Any]
-) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    base_args: Dict[str, Any],
+) -> Tuple[
+    Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any]
+]:
     """Collect all possible parameter sources from the request context."""
     query_values = request.args.to_dict(flat=True) if request.args else {}
     body_values = _extract_request_body_values()
@@ -54,7 +68,9 @@ def _collect_parameter_sources(
     return query_values, body_values, header_values, context_variables, context_secrets
 
 
-def _lookup_header_value(header_values: Dict[str, Any], param_name: str) -> Optional[Any]:
+def _lookup_header_value(
+    header_values: Dict[str, Any], param_name: str
+) -> Optional[Any]:
     """Look up a header value, trying both underscores and dashes."""
     lowered = param_name.lower()
     if lowered in header_values:
@@ -153,9 +169,7 @@ def _resolve_function_parameters(
     return (resolved, [], available) if allow_partial else resolved
 
 
-def _build_missing_parameter_response(
-    function_name: str, error: MissingParameterError
-):
+def _build_missing_parameter_response(function_name: str, error: MissingParameterError):
     payload = {
         "error": f"Missing required parameters for {function_name}()",
         "missing_parameters": [

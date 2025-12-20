@@ -1,4 +1,5 @@
 """Gauge step implementations for server dependencies (main parameters matching variables/secrets)."""
+
 from __future__ import annotations
 
 from getgauge.python import step
@@ -38,10 +39,12 @@ def _normalize_path(value: str) -> str:
     return value.strip().strip('"')
 
 
-@step([
-    "Given there is a variable named <name> with value <value>",
-    "And there is a variable named <name> with value <value>",
-])
+@step(
+    [
+        "Given there is a variable named <name> with value <value>",
+        "And there is a variable named <name> with value <value>",
+    ]
+)
 def given_variable_with_value(name: str, value: str) -> None:
     """Ensure a variable with the provided name and value exists in the workspace."""
     _ensure_clean_dependency_workspace()
@@ -61,10 +64,12 @@ def given_variable_with_value(name: str, value: str) -> None:
         db.session.commit()
 
 
-@step([
-    "Given there is a secret named <name> with value <value>",
-    "And there is a secret named <name> with value <value>",
-])
+@step(
+    [
+        "Given there is a secret named <name> with value <value>",
+        "And there is a secret named <name> with value <value>",
+    ]
+)
 def given_secret_with_value(name: str, value: str) -> None:
     """Ensure a secret with the provided name and value exists in the workspace."""
     _ensure_clean_dependency_workspace()
@@ -84,11 +89,15 @@ def given_secret_with_value(name: str, value: str) -> None:
         db.session.commit()
 
 
-@step([
-    "Given there is a server named <server_name> with main parameters <param1> and <param2>",
-    "And there is a server named <server_name> with main parameters <param1> and <param2>",
-])
-def given_server_with_two_main_parameters(server_name: str, param1: str, param2: str) -> None:
+@step(
+    [
+        "Given there is a server named <server_name> with main parameters <param1> and <param2>",
+        "And there is a server named <server_name> with main parameters <param1> and <param2>",
+    ]
+)
+def given_server_with_two_main_parameters(
+    server_name: str, param1: str, param2: str
+) -> None:
     """Ensure a server with the provided name and main parameters exists."""
     _ensure_clean_dependency_workspace()
     app = _require_app()
@@ -110,10 +119,12 @@ def given_server_with_two_main_parameters(server_name: str, param1: str, param2:
         db.session.commit()
 
 
-@step([
-    "Given there is a server named <server_name> with main parameter <param>",
-    "And there is a server named <server_name> with main parameter <param>",
-])
+@step(
+    [
+        "Given there is a server named <server_name> with main parameter <param>",
+        "And there is a server named <server_name> with main parameter <param>",
+    ]
+)
 def given_server_with_one_main_parameter(server_name: str, param: str) -> None:
     """Ensure a server with the provided name and single main parameter exists."""
     _ensure_clean_dependency_workspace()
@@ -139,8 +150,12 @@ def given_server_with_one_main_parameter(server_name: str, param: str) -> None:
 def then_page_should_not_contain(text: str) -> None:
     """Assert that the current page response does not contain the provided text."""
     response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
 
     text = _normalize_path(text)
     body = response.get_data(as_text=True)
-    assert text not in body, f"Expected NOT to find {text!r} in the response body, but it was present."
+    assert text not in body, (
+        f"Expected NOT to find {text!r} in the response body, but it was present."
+    )

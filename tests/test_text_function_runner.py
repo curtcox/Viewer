@@ -9,7 +9,7 @@ class TestRunTextFunction(unittest.TestCase):
 
     def setUp(self):
         """Ensure we're testing the actual run_text_function implementation."""
-        module = importlib.import_module('text_function_runner')
+        module = importlib.import_module("text_function_runner")
         self.run_text_function = importlib.reload(module).run_text_function
 
     def test_basic_functionality(self):
@@ -69,7 +69,9 @@ return z + w
         # to use builtins or skip this test case
         body = "import math; return math.sqrt(x) + 3.14159"  # Use hardcoded pi
         result = self.run_text_function(body, argmap)
-        self.assertAlmostEqual(result, 7.14159, places=4)  # sqrt(16) + 3.14159 = 4 + 3.14159
+        self.assertAlmostEqual(
+            result, 7.14159, places=4
+        )  # sqrt(16) + 3.14159 = 4 + 3.14159
 
     def test_hash_len_parameter(self):
         """Test that hash_len affects the generated function name length."""
@@ -163,90 +165,87 @@ return value["number"]
 
     def test_save_stores_message_bytes(self):
         """Ensure save() stores content using store_cid_from_bytes."""
-        body = (
-            "message = 'text of message'\n"
-            "return { 'output': save(message) }"
-        )
+        body = "message = 'text of message'\nreturn { 'output': save(message) }"
         argmap = {"context": {}, "request": {}}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-abc'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-abc"
             result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'text of message')
-        self.assertEqual(result, {'output': 'cid-abc'})
+        mock_store.assert_called_once_with(b"text of message")
+        self.assertEqual(result, {"output": "cid-abc"})
 
     def test_save_stores_content(self):
         """save() should store content using store_cid_from_bytes."""
         body = "return save(data)"
         argmap = {"data": "payload"}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-callable'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-callable"
             result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'payload')
-        self.assertEqual(result, 'cid-callable')
+        mock_store.assert_called_once_with(b"payload")
+        self.assertEqual(result, "cid-callable")
 
     def test_save_stores_content_directly(self):
         """save() stores content without requiring user context."""
         body = "return save(message)"
         argmap = {"message": "hello"}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-77'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-77"
             result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'hello')
-        self.assertEqual(result, 'cid-77')
+        mock_store.assert_called_once_with(b"hello")
+        self.assertEqual(result, "cid-77")
 
     def test_save_stores_content_successfully(self):
         """save() stores content successfully without user identifier."""
         body = "return save(payload)"
         argmap = {"payload": "test content"}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-test'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-test"
             result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'test content')
-        self.assertEqual(result, 'cid-test')
+        mock_store.assert_called_once_with(b"test content")
+        self.assertEqual(result, "cid-test")
 
     def test_save_coerces_non_text_values_to_bytes(self):
         """save() should coerce non-text values into UTF-8 bytes."""
         body = "return save(value)"
         argmap = {"value": 12345}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-numeric'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-numeric"
             result = self.run_text_function(body, argmap)
 
-        mock_store.assert_called_once_with(b'12345')
-        self.assertEqual(result, 'cid-numeric')
+        mock_store.assert_called_once_with(b"12345")
+        self.assertEqual(result, "cid-numeric")
 
     def test_save_allows_preencoded_bytes(self):
         """save() should pass bytes values to storage without re-encoding."""
         body = "return save(blob)"
-        payload = b'\xffbinary data'
+        payload = b"\xffbinary data"
         argmap = {"blob": payload}
 
-        with patch('text_function_runner.store_cid_from_bytes') as mock_store:
-            mock_store.return_value = 'cid-bytes'
+        with patch("text_function_runner.store_cid_from_bytes") as mock_store:
+            mock_store.return_value = "cid-bytes"
             result = self.run_text_function(body, argmap)
 
         mock_store.assert_called_once_with(payload)
-        self.assertEqual(result, 'cid-bytes')
+        self.assertEqual(result, "cid-bytes")
 
     def test_load_returns_text_content(self):
         """load() should retrieve CID content and decode to text by default."""
         body = "return load(cid)"
         argmap = {"cid": "bafy123"}
 
-        with patch('text_function_runner.get_cid_by_path') as mock_get:
-            mock_get.return_value = SimpleNamespace(file_data=b'print(\"hi\")')
+        with patch("text_function_runner.get_cid_by_path") as mock_get:
+            mock_get.return_value = SimpleNamespace(file_data=b'print("hi")')
             result = self.run_text_function(body, argmap)
 
-        mock_get.assert_called_once_with('/bafy123')
+        mock_get.assert_called_once_with("/bafy123")
         self.assertEqual(result, 'print("hi")')
 
     def test_load_supports_binary_mode(self):
@@ -255,11 +254,11 @@ return value["number"]
         blob = b"\x00\x01\x02"
         argmap = {"cid": "binary"}
 
-        with patch('text_function_runner.get_cid_by_path') as mock_get:
+        with patch("text_function_runner.get_cid_by_path") as mock_get:
             mock_get.return_value = SimpleNamespace(file_data=blob)
             result = self.run_text_function(body, argmap)
 
-        mock_get.assert_called_once_with('/binary')
+        mock_get.assert_called_once_with("/binary")
         self.assertEqual(result, blob)
 
     def test_load_raises_for_missing_records(self):
@@ -267,11 +266,11 @@ return value["number"]
         body = "return load(cid)"
         argmap = {"cid": "missing"}
 
-        with patch('text_function_runner.get_cid_by_path') as mock_get:
+        with patch("text_function_runner.get_cid_by_path") as mock_get:
             mock_get.return_value = None
             with self.assertRaises(ValueError):
                 self.run_text_function(body, argmap)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

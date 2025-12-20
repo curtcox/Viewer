@@ -139,7 +139,9 @@ def _collect_artifact_labels(png_files: Iterable[Path]) -> dict[str, str]:
         if json_path.exists():
             try:
                 metadata = json.loads(json_path.read_text(encoding="utf-8"))
-                candidate = metadata.get("label") if isinstance(metadata, dict) else None
+                candidate = (
+                    metadata.get("label") if isinstance(metadata, dict) else None
+                )
                 if candidate:
                     label = str(candidate)
             except json.JSONDecodeError:
@@ -233,18 +235,20 @@ def _build_gallery_items(
                 label = stem
 
         rel_png = png_path.relative_to(gauge_base).as_posix()
-        rel_json = json_path.relative_to(gauge_base).as_posix() if json_path.exists() else None
+        rel_json = (
+            json_path.relative_to(gauge_base).as_posix() if json_path.exists() else None
+        )
 
         png_href = _public_or_local_href(rel_png, public_base_url)
-        json_href = _public_or_local_href(rel_json, public_base_url) if rel_json else None
+        json_href = (
+            _public_or_local_href(rel_json, public_base_url) if rel_json else None
+        )
 
         caption = escape(label)
         json_link = ""
         if rel_json:
             json_link = (
-                " ("
-                f'<a href="{json_href}" target="_blank" rel="noopener">info</a>'
-                ")"
+                f' (<a href="{json_href}" target="_blank" rel="noopener">info</a>)'
             )
 
         item_html = (
@@ -307,8 +311,12 @@ def _strip_marked_block(html: str, start_marker: str, end_marker: str) -> str:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Enhance Gauge HTML reports with screenshots.")
-    parser.add_argument("gauge_base", type=Path, help="Directory containing the Gauge index.html file.")
+    parser = argparse.ArgumentParser(
+        description="Enhance Gauge HTML reports with screenshots."
+    )
+    parser.add_argument(
+        "gauge_base", type=Path, help="Directory containing the Gauge index.html file."
+    )
     parser.add_argument(
         "--artifacts-subdir",
         default="secureapp-artifacts",

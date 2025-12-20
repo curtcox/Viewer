@@ -29,7 +29,9 @@ class RouteFunctionInfo:
     end_line: int
     route_paths: list[str] = field(default_factory=list)
     templates: set[str] = field(default_factory=set)
-    tests_by_suite: dict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
+    tests_by_suite: dict[str, set[str]] = field(
+        default_factory=lambda: defaultdict(set)
+    )
     specs: set[str] = field(default_factory=set)
 
     @property
@@ -100,8 +102,10 @@ def _route_paths_from_decorators(decorator_list: Iterable[ast.expr]) -> list[str
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     paths.append(arg.value)
             for keyword in decorator.keywords or []:
-                if keyword.arg == "rule" and isinstance(keyword.value, ast.Constant) and isinstance(
-                    keyword.value.value, str
+                if (
+                    keyword.arg == "rule"
+                    and isinstance(keyword.value, ast.Constant)
+                    and isinstance(keyword.value.value, str)
                 ):
                     paths.append(keyword.value.value)
     return paths
@@ -197,11 +201,15 @@ def _apply_test_environment() -> contextlib.AbstractContextManager[None]:
     return _EnvGuard()
 
 
-def run_pytest_suite(name: str, pytest_args: list[str], data_file: Path) -> coverage.Coverage:
+def run_pytest_suite(
+    name: str, pytest_args: list[str], data_file: Path
+) -> coverage.Coverage:
     """Execute ``pytest`` under coverage for the given suite and return loaded data."""
 
     print(f"[crossref] Running {name} suite with coverage...")
-    cov = coverage.Coverage(config_file=str(ROOT_DIR / ".coveragerc"), data_file=str(data_file))
+    cov = coverage.Coverage(
+        config_file=str(ROOT_DIR / ".coveragerc"), data_file=str(data_file)
+    )
     cov.config.dynamic_context = "test_function"
     cov.erase()
 
@@ -312,7 +320,9 @@ def map_specs_by_route(spec_dir: Path) -> dict[str, set[str]]:
     return mapping
 
 
-def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]]) -> dict[str, dict[str, object]]:
+def aggregate_pages(
+    routes: RouteCollection, spec_mapping: Mapping[str, set[str]]
+) -> dict[str, dict[str, object]]:
     pages: dict[str, dict[str, object]] = {}
     for route in routes:
         route_specs = set()
@@ -337,7 +347,12 @@ def aggregate_pages(routes: RouteCollection, spec_mapping: Mapping[str, set[str]
 
 
 def generate_markdown(pages: Mapping[str, dict[str, object]]) -> str:
-    lines = ["# Page Test Cross Reference", "", "This document maps site pages to the automated checks that exercise them.", ""]
+    lines = [
+        "# Page Test Cross Reference",
+        "",
+        "This document maps site pages to the automated checks that exercise them.",
+        "",
+    ]
 
     for template in sorted(pages):
         info = pages[template]
@@ -352,7 +367,9 @@ def generate_markdown(pages: Mapping[str, dict[str, object]]) -> str:
         for route in routes:
             route_desc = f"- `{route.identifier}`"
             if route.route_paths:
-                route_desc += f" (paths: {', '.join(f'`{path}`' for path in route.route_paths)})"
+                route_desc += (
+                    f" (paths: {', '.join(f'`{path}`' for path in route.route_paths)})"
+                )
             lines.append(route_desc)
         lines.append("")
 

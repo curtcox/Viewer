@@ -1,4 +1,5 @@
 """Utilities for serving OpenAPI-documented routes in multiple formats."""
+
 from __future__ import annotations
 
 import csv
@@ -103,12 +104,16 @@ def register_response_format_handlers(app: Flask) -> None:
         if endpoint not in base:
             return
 
-        prefers_json = request.is_json or request.headers.get("Content-Type", "").startswith("application/json")
+        prefers_json = request.is_json or request.headers.get(
+            "Content-Type", ""
+        ).startswith("application/json")
         if not prefers_json and request.method in {"POST", "PUT", "PATCH"}:
             prefers_json = request.is_json
 
         default_format = "json" if prefers_json else "html"
-        g.response_format = resolve_format_from_accept(request.accept_mimetypes, default_format)
+        g.response_format = resolve_format_from_accept(
+            request.accept_mimetypes, default_format
+        )
 
     @app.after_request
     def _apply_response_format(response: Response) -> Response:
@@ -147,7 +152,9 @@ class _RuleDetails:
     provide_automatic_options: Optional[bool] = None
 
     @classmethod
-    def from_rule(cls, rule: Any) -> "_RuleDetails":  # pragma: no cover - exercised indirectly
+    def from_rule(
+        cls, rule: Any
+    ) -> "_RuleDetails":  # pragma: no cover - exercised indirectly
         methods = None
         if getattr(rule, "methods", None):
             methods = [m for m in rule.methods if m not in {"HEAD", "OPTIONS"}]
@@ -178,7 +185,9 @@ def resolve_format_from_accept(accept: MIMEAccept, default_format: str = "html")
         quality = accept[mimetype]
         if quality is None or quality <= 0:
             continue
-        if quality > best_quality or (quality == best_quality and _prefer(fmt, best_format)):
+        if quality > best_quality or (
+            quality == best_quality and _prefer(fmt, best_format)
+        ):
             best_quality = quality
             best_format = fmt
 
@@ -305,10 +314,14 @@ def _json_to_csv(payload: Any) -> str:
     writer = csv.writer(buffer)
 
     if isinstance(payload, Mapping):
-        _write_csv_row(writer, payload.keys(), [payload.get(key) for key in payload.keys()])
+        _write_csv_row(
+            writer, payload.keys(), [payload.get(key) for key in payload.keys()]
+        )
         return buffer.getvalue()
 
-    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+    if isinstance(payload, Sequence) and not isinstance(
+        payload, (str, bytes, bytearray)
+    ):
         rows = list(payload)
         if not rows:
             return ""
@@ -322,7 +335,9 @@ def _json_to_csv(payload: Any) -> str:
 
             writer.writerow(header)
             for item in rows:
-                writer.writerow([_stringify_csv_value(item.get(column)) for column in header])
+                writer.writerow(
+                    [_stringify_csv_value(item.get(column)) for column in header]
+                )
             return buffer.getvalue()
 
         writer.writerow(["value"])
@@ -335,7 +350,9 @@ def _json_to_csv(payload: Any) -> str:
     return buffer.getvalue()
 
 
-def _write_csv_row(writer: csv.writer, header: Iterable[str], values: Iterable[Any]) -> None:
+def _write_csv_row(
+    writer: csv.writer, header: Iterable[str], values: Iterable[Any]
+) -> None:
     header_list = [str(column) for column in header]
     writer.writerow(header_list)
     writer.writerow([_stringify_csv_value(value) for value in values])
@@ -380,7 +397,9 @@ def _sanitize_xml_tag(candidate: str) -> str:
 def _sanitize_xml_text(value: str) -> str:
     """Replace control characters that are not permitted in XML documents."""
 
-    return _XML_INVALID_CHAR_RE.sub(lambda match: f"\\x{ord(match.group(0)):02x}", value)
+    return _XML_INVALID_CHAR_RE.sub(
+        lambda match: f"\\x{ord(match.group(0)):02x}", value
+    )
 
 
 __all__ = [

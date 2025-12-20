@@ -1,10 +1,10 @@
-
 import pytest
 import textwrap
 from database import db
 from models import Server
 
 pytestmark = pytest.mark.integration
+
 
 def _store_server(app, name: str, definition: str) -> None:
     """Persist a server definition."""
@@ -17,6 +17,7 @@ def _store_server(app, name: str, definition: str) -> None:
             db.session.add(Server(name=name, definition=normalized, enabled=True))
         db.session.commit()
 
+
 def test_jq_availability(client, integration_app):
     """Verify jq is installed and functional."""
     _store_server(
@@ -27,7 +28,7 @@ def test_jq_availability(client, integration_app):
         which jq 2>&1
         jq --version 2>&1
         echo '{"a": 1}' | jq .a 2>&1
-        """
+        """,
     )
 
     _store_server(
@@ -36,7 +37,7 @@ def test_jq_availability(client, integration_app):
         """
         def main():
             return {"output": "dummy", "content_type": "text/plain"}
-        """
+        """,
     )
 
     response = client.get("/check_jq/dummy", follow_redirects=True)
@@ -44,6 +45,7 @@ def test_jq_availability(client, integration_app):
 
     assert "jq" in body, "jq command seems missing or failed"
     assert "1" in body
+
 
 def test_tools_availability(client, integration_app):
     """Verify awk, sed, grep are available."""
@@ -54,7 +56,7 @@ def test_tools_availability(client, integration_app):
         which awk 2>&1
         which sed 2>&1
         which grep 2>&1
-        """
+        """,
     )
 
     _store_server(
@@ -63,7 +65,7 @@ def test_tools_availability(client, integration_app):
         """
         def main():
             return {"output": "dummy", "content_type": "text/plain"}
-        """
+        """,
     )
 
     response = client.get("/check_tools/dummy", follow_redirects=True)

@@ -70,8 +70,13 @@ def _save_language_cid(
 
     return cid_value
 
-@step(['Given a server named "<server_name>" that echoes its input with prefix "<prefix>"',
-       'And a server named "<server_name>" that echoes its input with prefix "<prefix>"'])
+
+@step(
+    [
+        'Given a server named "<server_name>" that echoes its input with prefix "<prefix>"',
+        'And a server named "<server_name>" that echoes its input with prefix "<prefix>"',
+    ]
+)
 def given_echo_server(server_name: str, prefix: str) -> None:
     """Create a server that echoes input with a prefix."""
     definition = f'''
@@ -80,8 +85,13 @@ def main(input_data):
 '''
     _store_server(server_name, definition)
 
-@step(['Given a server named "<server_name>" that returns "<value>"',
-       'And a server named "<server_name>" that returns "<value>"'])
+
+@step(
+    [
+        'Given a server named "<server_name>" that returns "<value>"',
+        'And a server named "<server_name>" that returns "<value>"',
+    ]
+)
 def given_simple_server(server_name: str, value: str) -> None:
     """Create a server that returns a fixed value."""
     definition = f'''
@@ -89,6 +99,7 @@ def main():
     return {{"output": "{value}", "content_type": "text/plain"}}
 '''
     _store_server(server_name, definition)
+
 
 @step('And a CID containing "<content>"')
 def and_cid_containing(content: str) -> None:
@@ -189,7 +200,7 @@ def main(payload):
     _store_server(server_name, definition)
 
 
-@step('When I request the resource /<path_prefix>/{stored CID}')
+@step("When I request the resource /<path_prefix>/{stored CID}")
 def when_request_resource_with_cid(path_prefix: str) -> None:
     """Request a chained resource using the stored CID."""
 
@@ -203,8 +214,12 @@ def when_request_resource_with_cid(path_prefix: str) -> None:
     _request_path_and_store_response(request_path)
 
 
-@step(['Then the CID content should contain "<expected_content>"',
-       'And the CID content should contain "<expected_content>"'])
+@step(
+    [
+        'Then the CID content should contain "<expected_content>"',
+        'And the CID content should contain "<expected_content>"',
+    ]
+)
 def then_cid_content_contains(expected_content: str) -> None:
     """Assert the CID content includes the expected substring."""
 
@@ -227,7 +242,10 @@ def given_python_cid_literal(output: str) -> None:
     return {{"output": "{output}", "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
@@ -241,8 +259,12 @@ echo "{output}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step(['Given a python CID literal server that returns "<output>"',
-       'And a python CID literal server that returns "<output>"'])
+@step(
+    [
+        'Given a python CID literal server that returns "<output>"',
+        'And a python CID literal server that returns "<output>"',
+    ]
+)
 def python_literal_server(output: str) -> None:
     """Persist a Python CID server for chaining checks."""
 
@@ -250,12 +272,19 @@ def python_literal_server(output: str) -> None:
     return {{"output": "{output}", "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
-@step(['Given a python CID literal server that prefixes its payload with "<prefix>"',
-       'And a python CID literal server that prefixes its payload with "<prefix>"'])
+@step(
+    [
+        'Given a python CID literal server that prefixes its payload with "<prefix>"',
+        'And a python CID literal server that prefixes its payload with "<prefix>"',
+    ]
+)
 def python_literal_prefix(prefix: str) -> None:
     """Persist a Python CID server that prefixes chained payloads."""
 
@@ -264,12 +293,19 @@ def python_literal_prefix(prefix: str) -> None:
     return {{"output": f"{prefix}{{payload}}", "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
-@step(['Given a python CID literal server that wraps its payload with "<prefix>"',
-       'And a python CID literal server that wraps its payload with "<prefix>"'])
+@step(
+    [
+        'Given a python CID literal server that wraps its payload with "<prefix>"',
+        'And a python CID literal server that wraps its payload with "<prefix>"',
+    ]
+)
 def python_literal_wrap(prefix: str) -> None:
     """Persist a Python CID server that wraps chained payloads."""
 
@@ -278,14 +314,21 @@ def python_literal_wrap(prefix: str) -> None:
     return {{"output": f"{prefix}{{payload}}", "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
-@step(['Given a bash CID literal server that prefixes input with "<prefix>"',
-       'And a bash CID literal server that prefixes input with "<prefix>"',
-       'Given a bash CID literal server that prefixes its payload with "<prefix>"',
-       'And a bash CID literal server that prefixes its payload with "<prefix>"'])
+@step(
+    [
+        'Given a bash CID literal server that prefixes input with "<prefix>"',
+        'And a bash CID literal server that prefixes input with "<prefix>"',
+        'Given a bash CID literal server that prefixes its payload with "<prefix>"',
+        'And a bash CID literal server that prefixes its payload with "<prefix>"',
+    ]
+)
 def bash_literal_prefix(prefix: str) -> None:
     """Persist a Bash CID server that prefixes its input payload."""
 
@@ -296,8 +339,12 @@ echo "{prefix}${{input_payload}}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step(['Given a bash CID literal server that echoes "<output>"',
-       'And a bash CID literal server that echoes "<output>"'])
+@step(
+    [
+        'Given a bash CID literal server that echoes "<output>"',
+        'And a bash CID literal server that echoes "<output>"',
+    ]
+)
 def bash_literal_echo(output: str) -> None:
     """Persist a Bash CID server that echoes a constant string."""
 
@@ -307,8 +354,12 @@ echo "{output}"
     _save_language_cid("bash", script, keys=["bash server CID"], extension="sh")
 
 
-@step(['Given a clojure CID literal server that emits "<output>"',
-       'And a clojure CID literal server that emits "<output>"'])
+@step(
+    [
+        'Given a clojure CID literal server that emits "<output>"',
+        'And a clojure CID literal server that emits "<output>"',
+    ]
+)
 def clojure_literal_emit(output: str) -> None:
     """Persist a Clojure CID server with stubbed output."""
 
@@ -317,12 +368,19 @@ def clojure_literal_emit(output: str) -> None:
 (defn -main [] (println "{output}"))
 """
     _save_language_cid(
-        "clojure", script, keys=["clojure server CID", "right clojure server CID"], extension="clj"
+        "clojure",
+        script,
+        keys=["clojure server CID", "right clojure server CID"],
+        extension="clj",
     )
 
 
-@step(['Given a clojure CID literal server that prefixes its payload with "<prefix>"',
-       'And a clojure CID literal server that prefixes its payload with "<prefix>"'])
+@step(
+    [
+        'Given a clojure CID literal server that prefixes its payload with "<prefix>"',
+        'And a clojure CID literal server that prefixes its payload with "<prefix>"',
+    ]
+)
 def clojure_literal_prefix(prefix: str) -> None:
     """Persist a Clojure CID server that prefixes chained payloads."""
 
@@ -331,11 +389,16 @@ def clojure_literal_prefix(prefix: str) -> None:
 (defn -main [] (let [payload (slurp *in*)] (println (str "{prefix}" payload))))
 """
     _save_language_cid(
-        "clojure", script, keys=["clojure server CID", "left clojure server CID"], extension="clj"
+        "clojure",
+        script,
+        keys=["clojure server CID", "left clojure server CID"],
+        extension="clj",
     )
 
 
-@step('Given a clojure CID literal server stored without an extension that emits "<output>"')
+@step(
+    'Given a clojure CID literal server stored without an extension that emits "<output>"'
+)
 def clojure_literal_no_extension(output: str) -> None:
     """Persist a Clojure CID server without a file extension."""
 
@@ -345,8 +408,12 @@ def clojure_literal_no_extension(output: str) -> None:
     _save_language_cid("clojure", script, keys=["clojure CID"], extension=None)
 
 
-@step(['Given a clojurescript CID literal server that emits "<output>"',
-       'And a clojurescript CID literal server that emits "<output>"'])
+@step(
+    [
+        'Given a clojurescript CID literal server that emits "<output>"',
+        'And a clojurescript CID literal server that emits "<output>"',
+    ]
+)
 def clojurescript_literal_emit(output: str) -> None:
     """Persist a ClojureScript CID server with stubbed output."""
 
@@ -362,8 +429,12 @@ def clojurescript_literal_emit(output: str) -> None:
     )
 
 
-@step(['Given a clojurescript CID literal server that prefixes its payload with "<prefix>"',
-       'And a clojurescript CID literal server that prefixes its payload with "<prefix>"'])
+@step(
+    [
+        'Given a clojurescript CID literal server that prefixes its payload with "<prefix>"',
+        'And a clojurescript CID literal server that prefixes its payload with "<prefix>"',
+    ]
+)
 def clojurescript_literal_prefix(prefix: str) -> None:
     """Persist a ClojureScript CID server that prefixes chained payloads."""
 
@@ -379,18 +450,26 @@ def clojurescript_literal_prefix(prefix: str) -> None:
     )
 
 
-@step('Given a clojurescript CID literal server stored without an extension that emits "<output>"')
+@step(
+    'Given a clojurescript CID literal server stored without an extension that emits "<output>"'
+)
 def clojurescript_literal_no_extension(output: str) -> None:
     """Persist a ClojureScript CID server without a file extension."""
 
     script = f""";; OUTPUT: {output}
 (defn -main [] (println "{output}"))
 """
-    _save_language_cid("clojurescript", script, keys=["clojurescript CID"], extension=None)
+    _save_language_cid(
+        "clojurescript", script, keys=["clojurescript CID"], extension=None
+    )
 
 
-@step(['Given a TypeScript CID literal server that emits "<output>"',
-       'And a TypeScript CID literal server that emits "<output>"'])
+@step(
+    [
+        'Given a TypeScript CID literal server that emits "<output>"',
+        'And a TypeScript CID literal server that emits "<output>"',
+    ]
+)
 def typescript_literal_emit(output: str) -> None:
     """Persist a TypeScript CID server with stubbed output."""
 
@@ -400,12 +479,19 @@ export default function main(payload) {{
 }}
 """
     _save_language_cid(
-        "typescript", script, keys=["typescript server CID", "right typescript server CID"], extension="ts"
+        "typescript",
+        script,
+        keys=["typescript server CID", "right typescript server CID"],
+        extension="ts",
     )
 
 
-@step(['Given a TypeScript CID literal server that prefixes its payload with "<prefix>"',
-       'And a TypeScript CID literal server that prefixes its payload with "<prefix>"'])
+@step(
+    [
+        'Given a TypeScript CID literal server that prefixes its payload with "<prefix>"',
+        'And a TypeScript CID literal server that prefixes its payload with "<prefix>"',
+    ]
+)
 def typescript_literal_prefix(prefix: str) -> None:
     """Persist a TypeScript CID server that prefixes payloads."""
 
@@ -416,11 +502,16 @@ export default function main(payload) {{
 }}
 """
     _save_language_cid(
-        "typescript", script, keys=["typescript server CID", "left typescript server CID"], extension="ts"
+        "typescript",
+        script,
+        keys=["typescript server CID", "left typescript server CID"],
+        extension="ts",
     )
 
 
-@step('Given a TypeScript CID literal server stored without an extension that emits "<output>"')
+@step(
+    'Given a TypeScript CID literal server stored without an extension that emits "<output>"'
+)
 def typescript_literal_no_extension(output: str) -> None:
     """Persist a TypeScript CID server without a file extension."""
 
@@ -432,7 +523,9 @@ export default function main() {{
     _save_language_cid("typescript", script, keys=["typescript CID"], extension=None)
 
 
-@step('Given a TypeScript CID literal server stored with a .ts extension that emits "<output>"')
+@step(
+    'Given a TypeScript CID literal server stored with a .ts extension that emits "<output>"'
+)
 def typescript_literal_with_extension(output: str) -> None:
     """Persist a TypeScript CID server with an explicit .ts extension."""
 
@@ -481,7 +574,7 @@ def _request_path_and_store_response(path: str) -> None:
     _perform_get_request(resolved_path)
 
 
-@step('When I request the resource /{stored CID}.py/<suffix>')
+@step("When I request the resource /{stored CID}.py/<suffix>")
 def when_request_python_cid_literal(suffix: str) -> None:
     """Request a Python CID literal server with a suffix."""
     state = get_scenario_state()
@@ -491,7 +584,7 @@ def when_request_python_cid_literal(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}.py/{suffix}")
 
 
-@step('When I request the resource /{stored CID}.sh/<suffix>')
+@step("When I request the resource /{stored CID}.sh/<suffix>")
 def when_request_bash_cid_literal(suffix: str) -> None:
     """Request a Bash CID literal server with a suffix."""
     state = get_scenario_state()
@@ -501,7 +594,9 @@ def when_request_bash_cid_literal(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}.sh/{suffix}")
 
 
-@step('When I request the resource /{bash server CID}.sh/{python server CID}.py/<suffix>')
+@step(
+    "When I request the resource /{bash server CID}.sh/{python server CID}.py/<suffix>"
+)
 def when_request_bash_then_python(suffix: str) -> None:
     """Request bash CID chained into python CID."""
     state = get_scenario_state()
@@ -513,7 +608,9 @@ def when_request_bash_then_python(suffix: str) -> None:
     _request_path_and_store_response(f"/{bash_cid}.sh/{python_cid}.py/{suffix}")
 
 
-@step('When I request the resource /{python server CID}.py/{bash server CID}.sh/<suffix>')
+@step(
+    "When I request the resource /{python server CID}.py/{bash server CID}.sh/<suffix>"
+)
 def when_request_python_then_bash(suffix: str) -> None:
     """Request python CID chained into bash CID."""
     state = get_scenario_state()
@@ -525,7 +622,9 @@ def when_request_python_then_bash(suffix: str) -> None:
     _request_path_and_store_response(f"/{python_cid}.py/{bash_cid}.sh/{suffix}")
 
 
-@step('When I request the resource /{python server CID}.py/{clojure server CID}.clj/<suffix>')
+@step(
+    "When I request the resource /{python server CID}.py/{clojure server CID}.clj/<suffix>"
+)
 def when_request_python_then_clojure(suffix: str) -> None:
     """Request python CID chained into clojure CID."""
     state = get_scenario_state()
@@ -537,7 +636,9 @@ def when_request_python_then_clojure(suffix: str) -> None:
     _request_path_and_store_response(f"/{python_cid}.py/{clojure_cid}.clj/{suffix}")
 
 
-@step('When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/<suffix>')
+@step(
+    "When I request the resource /{bash server CID}.sh/{clojure server CID}.clj/<suffix>"
+)
 def when_request_bash_then_clojure(suffix: str) -> None:
     """Request bash CID chained into clojure CID."""
     state = get_scenario_state()
@@ -549,11 +650,13 @@ def when_request_bash_then_clojure(suffix: str) -> None:
     _request_path_and_store_response(f"/{bash_cid}.sh/{clojure_cid}.clj/{suffix}")
 
 
-@step('When I request the resource /{clojure server CID}.clj/{bash server CID}.sh')
+@step("When I request the resource /{clojure server CID}.clj/{bash server CID}.sh")
 def when_request_clojure_then_bash() -> None:
     """Request clojure CID chained into bash CID."""
     state = get_scenario_state()
-    clojure_cid = state.get("clojure server CID") or state.get("left clojure server CID")
+    clojure_cid = state.get("clojure server CID") or state.get(
+        "left clojure server CID"
+    )
     bash_cid = state.get("bash server CID")
     assert clojure_cid, "No Clojure CID stored."
     assert bash_cid, "No Bash CID stored."
@@ -561,11 +664,13 @@ def when_request_clojure_then_bash() -> None:
     _request_path_and_store_response(f"/{clojure_cid}.clj/{bash_cid}.sh")
 
 
-@step('When I request the resource /{clojure server CID}.clj/{python server CID}.py')
+@step("When I request the resource /{clojure server CID}.clj/{python server CID}.py")
 def when_request_clojure_then_python() -> None:
     """Request clojure CID chained into python CID."""
     state = get_scenario_state()
-    clojure_cid = state.get("clojure server CID") or state.get("left clojure server CID")
+    clojure_cid = state.get("clojure server CID") or state.get(
+        "left clojure server CID"
+    )
     python_cid = state.get("python server CID")
     assert clojure_cid, "No Clojure CID stored."
     assert python_cid, "No Python CID stored."
@@ -573,7 +678,9 @@ def when_request_clojure_then_python() -> None:
     _request_path_and_store_response(f"/{clojure_cid}.clj/{python_cid}.py")
 
 
-@step('When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj')
+@step(
+    "When I request the resource /{left clojure server CID}.clj/{right clojure server CID}.clj"
+)
 def when_request_clojure_chain() -> None:
     """Request left clojure CID chained into right clojure CID."""
     state = get_scenario_state()
@@ -585,7 +692,7 @@ def when_request_clojure_chain() -> None:
     _request_path_and_store_response(f"/{left_cid}.clj/{right_cid}.clj")
 
 
-@step('When I request the resource /{clojure CID}/<suffix>')
+@step("When I request the resource /{clojure CID}/<suffix>")
 def when_request_clojure_no_ext(suffix: str) -> None:
     """Request a clojure CID without extension."""
     state = get_scenario_state()
@@ -595,7 +702,9 @@ def when_request_clojure_no_ext(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}/{suffix}")
 
 
-@step('When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/<suffix>')
+@step(
+    "When I request the resource /{python server CID}.py/{clojurescript server CID}.cljs/<suffix>"
+)
 def when_request_python_then_clojurescript(suffix: str) -> None:
     """Request python CID chained into clojurescript CID."""
     state = get_scenario_state()
@@ -607,7 +716,9 @@ def when_request_python_then_clojurescript(suffix: str) -> None:
     _request_path_and_store_response(f"/{python_cid}.py/{cljs_cid}.cljs/{suffix}")
 
 
-@step('When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/<suffix>')
+@step(
+    "When I request the resource /{bash server CID}.sh/{clojurescript server CID}.cljs/<suffix>"
+)
 def when_request_bash_then_clojurescript(suffix: str) -> None:
     """Request bash CID chained into clojurescript CID."""
     state = get_scenario_state()
@@ -619,7 +730,9 @@ def when_request_bash_then_clojurescript(suffix: str) -> None:
     _request_path_and_store_response(f"/{bash_cid}.sh/{cljs_cid}.cljs/{suffix}")
 
 
-@step('When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs')
+@step(
+    "When I request the resource /{left clojurescript server CID}.cljs/{right clojurescript server CID}.cljs"
+)
 def when_request_clojurescript_chain() -> None:
     """Request left clojurescript CID chained into right clojurescript CID."""
     state = get_scenario_state()
@@ -631,11 +744,15 @@ def when_request_clojurescript_chain() -> None:
     _request_path_and_store_response(f"/{left_cid}.cljs/{right_cid}.cljs")
 
 
-@step('When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py')
+@step(
+    "When I request the resource /{clojurescript server CID}.cljs/{python server CID}.py"
+)
 def when_request_clojurescript_then_python() -> None:
     """Request clojurescript CID chained into python CID."""
     state = get_scenario_state()
-    cljs_cid = state.get("clojurescript server CID") or state.get("left clojurescript server CID")
+    cljs_cid = state.get("clojurescript server CID") or state.get(
+        "left clojurescript server CID"
+    )
     python_cid = state.get("python server CID")
     assert cljs_cid, "No ClojureScript CID stored."
     assert python_cid, "No Python CID stored."
@@ -643,11 +760,15 @@ def when_request_clojurescript_then_python() -> None:
     _request_path_and_store_response(f"/{cljs_cid}.cljs/{python_cid}.py")
 
 
-@step('When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh')
+@step(
+    "When I request the resource /{clojurescript server CID}.cljs/{bash server CID}.sh"
+)
 def when_request_clojurescript_then_bash() -> None:
     """Request clojurescript CID chained into bash CID."""
     state = get_scenario_state()
-    cljs_cid = state.get("clojurescript server CID") or state.get("left clojurescript server CID")
+    cljs_cid = state.get("clojurescript server CID") or state.get(
+        "left clojurescript server CID"
+    )
     bash_cid = state.get("bash server CID")
     assert cljs_cid, "No ClojureScript CID stored."
     assert bash_cid, "No Bash CID stored."
@@ -655,7 +776,7 @@ def when_request_clojurescript_then_bash() -> None:
     _request_path_and_store_response(f"/{cljs_cid}.cljs/{bash_cid}.sh")
 
 
-@step('When I request the resource /cljs-chain/{python server CID}.py/<suffix>')
+@step("When I request the resource /cljs-chain/{python server CID}.py/<suffix>")
 def when_request_cljs_chain_python(suffix: str) -> None:
     """Request named cljs-chain server with python CID input."""
     state = get_scenario_state()
@@ -665,7 +786,7 @@ def when_request_cljs_chain_python(suffix: str) -> None:
     _request_path_and_store_response(f"/cljs-chain/{python_cid}.py/{suffix}")
 
 
-@step('When I request the resource /{clojurescript CID}/<suffix>')
+@step("When I request the resource /{clojurescript CID}/<suffix>")
 def when_request_clojurescript_no_ext(suffix: str) -> None:
     """Request a clojurescript CID without extension."""
     state = get_scenario_state()
@@ -675,7 +796,9 @@ def when_request_clojurescript_no_ext(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}/{suffix}")
 
 
-@step('When I request the resource /{python server CID}.py/{typescript server CID}.ts/<suffix>')
+@step(
+    "When I request the resource /{python server CID}.py/{typescript server CID}.ts/<suffix>"
+)
 def when_request_python_then_typescript(suffix: str) -> None:
     """Request python CID chained into typescript CID."""
     state = get_scenario_state()
@@ -687,7 +810,9 @@ def when_request_python_then_typescript(suffix: str) -> None:
     _request_path_and_store_response(f"/{python_cid}.py/{ts_cid}.ts/{suffix}")
 
 
-@step('When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/<suffix>')
+@step(
+    "When I request the resource /{bash server CID}.sh/{typescript server CID}.ts/<suffix>"
+)
 def when_request_bash_then_typescript(suffix: str) -> None:
     """Request bash CID chained into typescript CID."""
     state = get_scenario_state()
@@ -699,7 +824,9 @@ def when_request_bash_then_typescript(suffix: str) -> None:
     _request_path_and_store_response(f"/{bash_cid}.sh/{ts_cid}.ts/{suffix}")
 
 
-@step('When I request the resource /{left typescript server CID}.ts/{right typescript server CID}.ts')
+@step(
+    "When I request the resource /{left typescript server CID}.ts/{right typescript server CID}.ts"
+)
 def when_request_typescript_chain() -> None:
     """Request left typescript CID chained into right typescript CID."""
     state = get_scenario_state()
@@ -711,11 +838,13 @@ def when_request_typescript_chain() -> None:
     _request_path_and_store_response(f"/{left_cid}.ts/{right_cid}.ts")
 
 
-@step('When I request the resource /{typescript server CID}.ts/{python server CID}.py')
+@step("When I request the resource /{typescript server CID}.ts/{python server CID}.py")
 def when_request_typescript_then_python() -> None:
     """Request typescript CID chained into python CID."""
     state = get_scenario_state()
-    ts_cid = state.get("typescript server CID") or state.get("left typescript server CID")
+    ts_cid = state.get("typescript server CID") or state.get(
+        "left typescript server CID"
+    )
     python_cid = state.get("python server CID")
     assert ts_cid, "No TypeScript CID stored."
     assert python_cid, "No Python CID stored."
@@ -723,11 +852,13 @@ def when_request_typescript_then_python() -> None:
     _request_path_and_store_response(f"/{ts_cid}.ts/{python_cid}.py")
 
 
-@step('When I request the resource /{typescript server CID}.ts/{bash server CID}.sh')
+@step("When I request the resource /{typescript server CID}.ts/{bash server CID}.sh")
 def when_request_typescript_then_bash() -> None:
     """Request typescript CID chained into bash CID."""
     state = get_scenario_state()
-    ts_cid = state.get("typescript server CID") or state.get("left typescript server CID")
+    ts_cid = state.get("typescript server CID") or state.get(
+        "left typescript server CID"
+    )
     bash_cid = state.get("bash server CID")
     assert ts_cid, "No TypeScript CID stored."
     assert bash_cid, "No Bash CID stored."
@@ -735,7 +866,7 @@ def when_request_typescript_then_bash() -> None:
     _request_path_and_store_response(f"/{ts_cid}.ts/{bash_cid}.sh")
 
 
-@step('When I request the resource /ts-chain/{python server CID}.py/<suffix>')
+@step("When I request the resource /ts-chain/{python server CID}.py/<suffix>")
 def when_request_ts_chain_python(suffix: str) -> None:
     """Request named ts-chain server with python CID input."""
     state = get_scenario_state()
@@ -745,7 +876,7 @@ def when_request_ts_chain_python(suffix: str) -> None:
     _request_path_and_store_response(f"/ts-chain/{python_cid}.py/{suffix}")
 
 
-@step('When I request the resource /{typescript CID}/<suffix>')
+@step("When I request the resource /{typescript CID}/<suffix>")
 def when_request_typescript_no_ext(suffix: str) -> None:
     """Request a typescript CID without extension."""
     state = get_scenario_state()
@@ -755,7 +886,7 @@ def when_request_typescript_no_ext(suffix: str) -> None:
     _request_path_and_store_response(f"/{cid_value}/{suffix}")
 
 
-@step('When I request the resource /{typescript CID}.ts/<suffix>')
+@step("When I request the resource /{typescript CID}.ts/<suffix>")
 def when_request_typescript_with_ext(suffix: str) -> None:
     """Request a typescript CID with .ts extension."""
     state = get_scenario_state()
@@ -773,7 +904,10 @@ def python_literal_wraps_payload(prefix: str) -> None:
     return {{"output": "{prefix}" + str(payload or ""), "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
@@ -785,7 +919,10 @@ def python_literal_prefix_payload(prefix: str) -> None:
     return {{"output": "{prefix}" + str(payload or ""), "content_type": "text/plain"}}
 '''
     _save_language_cid(
-        "python", textwrap.dedent(definition).strip() + "\n", keys=["python server CID"], extension="py"
+        "python",
+        textwrap.dedent(definition).strip() + "\n",
+        keys=["python server CID"],
+        extension="py",
     )
 
 
@@ -940,6 +1077,7 @@ def then_response_contains_bash_ts_bash() -> None:
     body = response.get_data(as_text=True)
     assert "bash:ts->bash" in body, "Expected 'bash:ts->bash' in response body"
 
+
 @step('Then the response should contain "ts:ts-right"')
 def then_response_contains_ts_ts_right() -> None:
     """Assert response contains ts:ts-right."""
@@ -948,6 +1086,7 @@ def then_response_contains_ts_ts_right() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts:ts-right" in body, "Expected 'ts:ts-right' in response body"
+
 
 @step('Then the response should contain "ts:py->ts"')
 def then_response_contains_ts_py_ts() -> None:
@@ -958,6 +1097,7 @@ def then_response_contains_ts_py_ts() -> None:
     body = response.get_data(as_text=True)
     assert "ts:py->ts" in body, "Expected 'ts:py->ts' in response body"
 
+
 @step('Then the response should contain "ts:bash->ts"')
 def then_response_contains_ts_bash_ts() -> None:
     """Assert response contains ts:bash->ts."""
@@ -966,6 +1106,7 @@ def then_response_contains_ts_bash_ts() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts:bash->ts" in body, "Expected 'ts:bash->ts' in response body"
+
 
 @step('Then the response should contain "ts:named->ts"')
 def then_response_contains_ts_named_ts() -> None:
@@ -976,6 +1117,7 @@ def then_response_contains_ts_named_ts() -> None:
     body = response.get_data(as_text=True)
     assert "ts:named->ts" in body, "Expected 'ts:named->ts' in response body"
 
+
 @step('Then the response should contain "ts-noext"')
 def then_response_contains_ts_noext() -> None:
     """Assert response contains ts-noext."""
@@ -984,6 +1126,7 @@ def then_response_contains_ts_noext() -> None:
     assert response is not None, "No response recorded."
     body = response.get_data(as_text=True)
     assert "ts-noext" in body, "Expected 'ts-noext' in response body"
+
 
 @step('Then the response should contain "ts-ext"')
 def then_response_contains_ts_ext() -> None:

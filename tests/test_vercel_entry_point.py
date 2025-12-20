@@ -1,4 +1,5 @@
 """Tests for api/index.py Vercel entry point."""
+
 import os
 import sys
 from pathlib import Path
@@ -34,6 +35,7 @@ class TestVercelEntryPoint:
             # Import and check read-only mode
             from readonly_config import ReadOnlyConfig
             from db_config import DatabaseConfig, DatabaseMode
+
             ReadOnlyConfig.reset()  # Reset first
             DatabaseConfig.reset()  # Reset database config too
 
@@ -71,6 +73,7 @@ class TestVercelEntryPoint:
             # Reset read-only config and database config
             from readonly_config import ReadOnlyConfig
             from db_config import DatabaseConfig
+
             ReadOnlyConfig.reset()
             DatabaseConfig.reset()
 
@@ -93,6 +96,7 @@ class TestVercelEntryPoint:
 
             from readonly_config import ReadOnlyConfig
             from db_config import DatabaseConfig, DatabaseMode
+
             ReadOnlyConfig.reset()
             DatabaseConfig.reset()
 
@@ -124,6 +128,7 @@ class TestVercelEntryPoint:
 
             from readonly_config import ReadOnlyConfig
             from db_config import DatabaseConfig
+
             ReadOnlyConfig.reset()
             DatabaseConfig.reset()
 
@@ -149,6 +154,7 @@ class TestVercelEntryPoint:
 
                 from readonly_config import ReadOnlyConfig
                 from db_config import DatabaseConfig, DatabaseMode
+
                 ReadOnlyConfig.reset()
                 DatabaseConfig.reset()
 
@@ -156,9 +162,13 @@ class TestVercelEntryPoint:
                 import index  # noqa: F401 - Import has side effect of enabling read-only mode
 
                 # Verify read-only mode is enabled
-                assert ReadOnlyConfig.is_read_only_mode() is True, f"Failed for value: {value}"
+                assert ReadOnlyConfig.is_read_only_mode() is True, (
+                    f"Failed for value: {value}"
+                )
                 # Verify database mode is set to memory
-                assert DatabaseConfig.get_mode() == DatabaseMode.MEMORY, f"Failed for value: {value}"
+                assert DatabaseConfig.get_mode() == DatabaseMode.MEMORY, (
+                    f"Failed for value: {value}"
+                )
 
             finally:
                 # Clean up for next iteration
@@ -182,5 +192,6 @@ class TestVercelEntryPoint:
 
         from readonly_config import ReadOnlyConfig
         from db_config import DatabaseConfig
+
         ReadOnlyConfig.reset()
         DatabaseConfig.reset()

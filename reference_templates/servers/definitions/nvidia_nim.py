@@ -3,13 +3,13 @@
 # This template executes inside the Viewer runtime where `request` and `context` are provided.
 import requests
 
-secrets = context.get('secrets') or {}
+secrets = context.get("secrets") or {}
 api_key = secrets.get("NVIDIA_API_KEY")
 if not api_key:
-    return {'output': 'Missing NVIDIA_API_KEY'}
+    return {"output": "Missing NVIDIA_API_KEY"}
 
-form_data = request.get('form_data') or {}
-message = form_data.get('message') or "Hello from Viewer!"
+form_data = request.get("form_data") or {}
+message = form_data.get("message") or "Hello from Viewer!"
 
 url = "https://integrate.api.nvidia.com/v1/chat/completions"
 headers = {
@@ -30,4 +30,4 @@ response.raise_for_status()
 
 data = response.json()
 
-return {'output': data}
+return {"output": data}

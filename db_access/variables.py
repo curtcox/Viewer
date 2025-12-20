@@ -16,7 +16,11 @@ def get_variables() -> List[Variable]:
 
 def get_template_variables() -> List[Variable]:
     """Return template variables from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_VARIABLES, resolve_cid_value
+    from template_manager import (
+        get_templates_for_type,
+        ENTITY_TYPE_VARIABLES,
+        resolve_cid_value,
+    )
 
     templates = get_templates_for_type(ENTITY_TYPE_VARIABLES)
 
@@ -28,20 +32,20 @@ def get_template_variables() -> List[Variable]:
         # Templates are not persisted DB rows, so id remains None
         variable.id = None
         # Store the template key in a separate attribute for UI use
-        variable.template_key = template.get('key', '')
-        variable.name = template.get('name', template.get('key', ''))
+        variable.template_key = template.get("key", "")
+        variable.name = template.get("name", template.get("key", ""))
 
         # Try to get definition from various possible fields
-        definition = template.get('definition')
-        if not definition and template.get('definition_cid'):
-            definition = resolve_cid_value(template.get('definition_cid'))
+        definition = template.get("definition")
+        if not definition and template.get("definition_cid"):
+            definition = resolve_cid_value(template.get("definition_cid"))
 
-        variable.definition = definition or ''
+        variable.definition = definition or ""
         variable.enabled = True
         variable.template = True  # Mark as template for backwards compatibility
         variable_objects.append(variable)
 
-    return sorted(variable_objects, key=lambda v: v.name if v.name else '')
+    return sorted(variable_objects, key=lambda v: v.name if v.name else "")
 
 
 def get_variable_by_name(name: str) -> Optional[Variable]:

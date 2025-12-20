@@ -6,7 +6,10 @@ from datetime import datetime
 
 import pytest
 
-from server_execution.external_call_tracking import capture_external_calls, sanitize_external_calls
+from server_execution.external_call_tracking import (
+    capture_external_calls,
+    sanitize_external_calls,
+)
 
 
 @pytest.fixture(scope="session")
@@ -28,68 +31,61 @@ def setup_ai_assist_server(memory_db_app):
         from models import Server, Variable, Secret
 
         # Create ai_assist server if not exists
-        ai_server = db.session.query(Server).filter_by(name='ai_assist').first()
+        ai_server = db.session.query(Server).filter_by(name="ai_assist").first()
         if not ai_server:
             # Read the server definition from file
-            definition_path = 'reference_templates/servers/definitions/ai_assist.py'
-            with open(definition_path, encoding='utf-8') as f:
+            definition_path = "reference_templates/servers/definitions/ai_assist.py"
+            with open(definition_path, encoding="utf-8") as f:
                 definition = f.read()
 
-            ai_server = Server(
-                name='ai_assist',
-                definition=definition,
-                enabled=True
-            )
+            ai_server = Server(name="ai_assist", definition=definition, enabled=True)
             db.session.add(ai_server)
 
         # Ensure OPENROUTER_API_KEY secret exists
-        api_key = os.getenv('OPENROUTER_API_KEY')
+        api_key = os.getenv("OPENROUTER_API_KEY")
         if api_key:
-            secret = db.session.query(Secret).filter_by(name='OPENROUTER_API_KEY').first()
+            secret = (
+                db.session.query(Secret).filter_by(name="OPENROUTER_API_KEY").first()
+            )
             if not secret:
-                secret = Secret(name='OPENROUTER_API_KEY', definition=api_key)
+                secret = Secret(name="OPENROUTER_API_KEY", definition=api_key)
                 db.session.add(secret)
 
         # Set default AI model variable
-        ai_model = db.session.query(Variable).filter_by(name='AI_MODEL').first()
+        ai_model = db.session.query(Variable).filter_by(name="AI_MODEL").first()
         if not ai_model:
             ai_model = Variable(
-                name='AI_MODEL',
-                definition=os.getenv('AI_MODEL', 'anthropic/claude-sonnet-4.5')
+                name="AI_MODEL",
+                definition=os.getenv("AI_MODEL", "anthropic/claude-sonnet-4.5"),
             )
             db.session.add(ai_model)
 
         # Set AI temperature variable
-        ai_temp = db.session.query(Variable).filter_by(name='AI_TEMPERATURE').first()
+        ai_temp = db.session.query(Variable).filter_by(name="AI_TEMPERATURE").first()
         if not ai_temp:
             ai_temp = Variable(
-                name='AI_TEMPERATURE',
-                definition=os.getenv('AI_TEMPERATURE', '0.3')
+                name="AI_TEMPERATURE", definition=os.getenv("AI_TEMPERATURE", "0.3")
             )
             db.session.add(ai_temp)
 
         # Set AI max tokens variable
-        ai_tokens = db.session.query(Variable).filter_by(name='AI_MAX_TOKENS').first()
+        ai_tokens = db.session.query(Variable).filter_by(name="AI_MAX_TOKENS").first()
         if not ai_tokens:
             ai_tokens = Variable(
-                name='AI_MAX_TOKENS',
-                definition=os.getenv('AI_MAX_TOKENS', '4096')
+                name="AI_MAX_TOKENS", definition=os.getenv("AI_MAX_TOKENS", "4096")
             )
             db.session.add(ai_tokens)
 
         # Create /ai alias pointing to ai_assist
         from models import Alias
-        ai_alias = db.session.query(Alias).filter_by(name='ai').first()
+
+        ai_alias = db.session.query(Alias).filter_by(name="ai").first()
         if not ai_alias:
-            ai_alias = Alias(
-                name='ai',
-                definition='ai -> /ai_assist',
-                enabled=True
-            )
+            ai_alias = Alias(name="ai", definition="ai -> /ai_assist", enabled=True)
             db.session.add(ai_alias)
-        elif '/ai_stub' in (ai_alias.definition or ''):
+        elif "/ai_stub" in (ai_alias.definition or ""):
             # Update existing alias to point to ai_assist
-            ai_alias.definition = 'ai -> /ai_assist'
+            ai_alias.definition = "ai -> /ai_assist"
 
         db.session.commit()
 
@@ -108,24 +104,32 @@ class AIInteractionTracker:
         """Set the secrets dict for redaction of external calls."""
         self._secrets = secrets or {}
 
-    def __call__(self, request_payload, response_data, status_code, external_calls=None):
+    def __call__(
+        self, request_payload, response_data, status_code, external_calls=None
+    ):
         """Make the tracker callable for backwards compatibility.
 
         If external_calls is not provided, uses any pending calls from call_with_capture.
         """
-        calls = external_calls if external_calls is not None else self._pending_external_calls
+        calls = (
+            external_calls
+            if external_calls is not None
+            else self._pending_external_calls
+        )
         self.record(request_payload, response_data, status_code, calls)
         self._pending_external_calls = []  # Clear pending calls after use
 
     def record(self, request_payload, response_data, status_code, external_calls=None):
         """Record an AI interaction with optional external calls."""
-        self.interactions.append({
-            'request': request_payload,
-            'response': response_data,
-            'status': status_code,
-            'timestamp': datetime.utcnow().isoformat(),
-            'external_calls': external_calls or []
-        })
+        self.interactions.append(
+            {
+                "request": request_payload,
+                "response": response_data,
+                "status": status_code,
+                "timestamp": datetime.utcnow().isoformat(),
+                "external_calls": external_calls or [],
+            }
+        )
 
     def call_with_capture(self, client, method, url, **kwargs):
         """Make an HTTP request while capturing external calls.
@@ -175,6 +179,7 @@ def ai_interaction_tracker(request, memory_db_app):
     with memory_db_app.app_context():
         from models import Secret
         from database import db
+
         secrets = {s.name: s.definition for s in db.session.query(Secret).all()}
         tracker.set_secrets(secrets)
 
@@ -187,24 +192,32 @@ def ai_interaction_tracker(request, memory_db_app):
     test_doc = request.node.function.__doc__ or ""
 
     # Determine test status - handle passed, failed, and other states (e.g., skipped)
-    passed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'passed', False)
-    failed = hasattr(request.node, 'rep_call') and getattr(request.node.rep_call, 'failed', False)
+    passed = hasattr(request.node, "rep_call") and getattr(
+        request.node.rep_call, "passed", False
+    )
+    failed = hasattr(request.node, "rep_call") and getattr(
+        request.node.rep_call, "failed", False
+    )
 
-    output_dir = 'test-results/ai-interactions'
+    output_dir = "test-results/ai-interactions"
     os.makedirs(output_dir, exist_ok=True)
 
-    output_file = os.path.join(output_dir, f'{test_name}.json')
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump({
-            'test_name': test_name,
-            'test_file': test_file,
-            'test_module': test_module,
-            'test_doc': test_doc.strip(),
-            'test_file_path': str(request.node.fspath),
-            'passed': passed,
-            'failed': failed,
-            'interactions': tracker.interactions
-        }, f, indent=2)
+    output_file = os.path.join(output_dir, f"{test_name}.json")
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "test_name": test_name,
+                "test_file": test_file,
+                "test_module": test_module,
+                "test_doc": test_doc.strip(),
+                "test_file_path": str(request.node.fspath),
+                "passed": passed,
+                "failed": failed,
+                "interactions": tracker.interactions,
+            },
+            f,
+            indent=2,
+        )
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

@@ -52,14 +52,14 @@ def get_ui_suggestions_info(
     has_uis = count > 0
 
     # URL to configure UIs
-    config_url = '/variables/uis'
+    config_url = "/variables/uis"
 
     return {
-        'has_uis': has_uis,
-        'count': count,
-        'uis': uis,
-        'config_url': config_url,
-        'label': _format_ui_count_label(count),
+        "has_uis": has_uis,
+        "count": count,
+        "uis": uis,
+        "config_url": config_url,
+        "label": _format_ui_count_label(count),
     }
 
 

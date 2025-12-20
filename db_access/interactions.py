@@ -45,17 +45,16 @@ def record_entity_interaction(
     if not request.entity_type or not request.entity_name:
         return None
 
-    action_value = (request.action or '').strip() or DEFAULT_ACTION
-    message_value = (request.message or '').strip()
+    action_value = (request.action or "").strip() or DEFAULT_ACTION
+    message_value = (request.message or "").strip()
     if len(message_value) > MAX_MESSAGE_LENGTH:
-        message_value = message_value[:MAX_MESSAGE_LENGTH - 3] + '…'
+        message_value = message_value[: MAX_MESSAGE_LENGTH - 3] + "…"
 
     created_at_value = ensure_utc_timestamp(request.created_at)
 
     if created_at_value is not None:
         existing = (
-            EntityInteraction.query
-            .filter_by(
+            EntityInteraction.query.filter_by(
                 entity_type=request.entity_type,
                 entity_name=request.entity_name,
                 action=action_value,
@@ -75,7 +74,7 @@ def record_entity_interaction(
         entity_name=request.entity_name,
         action=action_value,
         message=message_value,
-        content=request.content or '',
+        content=request.content or "",
         created_at=created_at_value,
     )
     db.session.add(interaction)
@@ -92,11 +91,9 @@ def get_recent_entity_interactions(
     if not entity_type or not entity_name:
         return []
 
-    query = (
-        EntityInteraction.query
-        .filter_by(entity_type=entity_type, entity_name=entity_name)
-        .order_by(EntityInteraction.created_at.desc(), EntityInteraction.id.desc())
-    )
+    query = EntityInteraction.query.filter_by(
+        entity_type=entity_type, entity_name=entity_name
+    ).order_by(EntityInteraction.created_at.desc(), EntityInteraction.id.desc())
 
     if limit:
         query = query.limit(limit)
@@ -104,7 +101,9 @@ def get_recent_entity_interactions(
     return query.all()
 
 
-def find_entity_interaction(lookup: EntityInteractionLookup) -> EntityInteraction | None:
+def find_entity_interaction(
+    lookup: EntityInteractionLookup,
+) -> EntityInteraction | None:
     """Return a single interaction matching the supplied criteria."""
     query = EntityInteraction.query.filter_by(
         entity_type=lookup.entity_type,
@@ -125,8 +124,9 @@ def get_entity_interactions(
 ) -> List[EntityInteraction]:
     """Return all stored interactions for an entity ordered from oldest to newest."""
     return (
-        EntityInteraction.query
-        .filter_by(entity_type=entity_type, entity_name=entity_name)
+        EntityInteraction.query.filter_by(
+            entity_type=entity_type, entity_name=entity_name
+        )
         .order_by(EntityInteraction.created_at.asc(), EntityInteraction.id.asc())
         .all()
     )

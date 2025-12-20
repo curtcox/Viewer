@@ -35,7 +35,9 @@ class StringNormalizer:
         return normalized if normalized else default
 
     @staticmethod
-    def normalize_path(value: Optional[str], *, remove_leading_slash: bool = True) -> str:
+    def normalize_path(
+        value: Optional[str], *, remove_leading_slash: bool = True
+    ) -> str:
         """Normalize path string by stripping and optionally removing leading slash.
 
         Args:
@@ -116,7 +118,9 @@ class StringNormalizer:
         return (value or "").strip()
 
     @staticmethod
-    def normalize_with_fallback(primary: Optional[str], fallback: Optional[str] = None) -> str:
+    def normalize_with_fallback(
+        primary: Optional[str], fallback: Optional[str] = None
+    ) -> str:
         """Normalize string with fallback to another value if primary is empty.
 
         Args:
@@ -173,4 +177,6 @@ def normalize_path(value: Optional[str], remove_leading_slash: bool = True) -> s
     Returns:
         Normalized path
     """
-    return StringNormalizer.normalize_path(value, remove_leading_slash=remove_leading_slash)
+    return StringNormalizer.normalize_path(
+        value, remove_leading_slash=remove_leading_slash
+    )

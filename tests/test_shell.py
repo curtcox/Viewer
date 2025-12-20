@@ -58,7 +58,9 @@ return shell_server.main(command=command)
 
 
 def test_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/shell.py").read_text(encoding='utf-8')
+    definition = Path("reference_templates/servers/definitions/shell.py").read_text(
+        encoding="utf-8"
+    )
 
     with app.test_request_context("/shell", json={"command": "echo server-execution"}):
         result = server_execution.execute_server_code_from_definition(

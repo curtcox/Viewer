@@ -12,7 +12,7 @@ from constants import Patterns
 from db_access import delete_entity, save_entity
 
 # TypeVar for generic entity type
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Validation result: (parsed_dict_or_none, error_message_or_none)
 ValidationResult = Tuple[Optional[Dict[str, str]], Optional[str]]
@@ -167,6 +167,7 @@ def create_variable_bulk_handler():
         Configured BulkEditorHandler for Variable entities
     """
     from models import Variable
+
     return BulkEditorHandler(Variable, "variable", Patterns.ENTITY_NAME)
 
 
@@ -177,4 +178,5 @@ def create_secret_bulk_handler():
         Configured BulkEditorHandler for Secret entities
     """
     from models import Secret
+
     return BulkEditorHandler(Secret, "secret", Patterns.ENTITY_NAME)

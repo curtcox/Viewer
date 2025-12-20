@@ -1,4 +1,5 @@
 """GitHub Pull Request integration for import/export functionality."""
+
 from __future__ import annotations
 
 import json
@@ -26,12 +27,14 @@ CIDS_DIR = Path("cids")
 
 
 def _safe_filename(value: str) -> str:
-    cleaned = ''.join(ch if (ch.isalnum() or ch in {'-', '_'}) else '_' for ch in value.strip())
-    return cleaned.strip('_') or 'unnamed'
+    cleaned = "".join(
+        ch if (ch.isalnum() or ch in {"-", "_"}) else "_" for ch in value.strip()
+    )
+    return cleaned.strip("_") or "unnamed"
 
 
 def _load_section_from_export(payload: dict[str, Any], section: str) -> Any:
-    cid_values = payload.get('cid_values', {})
+    cid_values = payload.get("cid_values", {})
     cid = payload.get(section)
     if not isinstance(cid, str):
         return None
@@ -54,16 +57,18 @@ def _ensure_cid_file(base_dir: Path, cid: str, content: bytes) -> None:
     cid_path.write_bytes(content)
 
 
-def _merge_named_entries(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _merge_named_entries(
+    existing: list[dict[str, Any]], incoming: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     by_name: dict[str, dict[str, Any]] = {}
     ordered: list[str] = []
     for entry in existing:
-        name = entry.get('name')
+        name = entry.get("name")
         if isinstance(name, str) and name not in by_name:
             by_name[name] = dict(entry)
             ordered.append(name)
     for entry in incoming:
-        name = entry.get('name')
+        name = entry.get("name")
         if not isinstance(name, str):
             continue
         if name in by_name:
@@ -83,22 +88,26 @@ def prepare_boot_image_update(
 ) -> dict[str, Any]:
     payload = json.loads(export_json)
     if not isinstance(payload, dict):
-        raise GitHubPRError('Export payload must be a JSON object.')
+        raise GitHubPRError("Export payload must be a JSON object.")
 
-    cid_values = payload.get('cid_values', {})
+    cid_values = payload.get("cid_values", {})
     if not isinstance(cid_values, dict):
         cid_values = {}
 
-    aliases = _load_section_from_export(payload, 'aliases') or []
-    servers = _load_section_from_export(payload, 'servers') or []
-    variables = _load_section_from_export(payload, 'variables') or []
+    aliases = _load_section_from_export(payload, "aliases") or []
+    servers = _load_section_from_export(payload, "servers") or []
+    variables = _load_section_from_export(payload, "variables") or []
 
-    if not isinstance(aliases, list) or not isinstance(servers, list) or not isinstance(variables, list):
-        raise GitHubPRError('Export payload sections were not in the expected format.')
+    if (
+        not isinstance(aliases, list)
+        or not isinstance(servers, list)
+        or not isinstance(variables, list)
+    ):
+        raise GitHubPRError("Export payload sections were not in the expected format.")
 
     ref_dir = base_dir / REFERENCE_TEMPLATES_DIR
-    aliases_dir = ref_dir / 'aliases'
-    servers_dir = ref_dir / 'servers' / 'definitions'
+    aliases_dir = ref_dir / "aliases"
+    servers_dir = ref_dir / "servers" / "definitions"
     aliases_dir.mkdir(parents=True, exist_ok=True)
     servers_dir.mkdir(parents=True, exist_ok=True)
 
@@ -108,27 +117,27 @@ def prepare_boot_image_update(
     for entry in aliases:
         if not isinstance(entry, dict):
             continue
-        name = entry.get('name')
-        definition_cid = entry.get('definition_cid')
-        enabled = entry.get('enabled', True)
+        name = entry.get("name")
+        definition_cid = entry.get("definition_cid")
+        enabled = entry.get("enabled", True)
         if not isinstance(name, str) or not isinstance(definition_cid, str):
             continue
         definition_text = cid_values.get(definition_cid)
         if not isinstance(definition_text, str):
             raise GitHubPRError(
                 f'Missing CID content for alias "{name}" ({definition_cid}).',
-                details={'missing_cid': definition_cid, 'entity': name},
+                details={"missing_cid": definition_cid, "entity": name},
             )
         filename = f"{_safe_filename(name)}.txt"
-        relative_path = REFERENCE_TEMPLATES_DIR / 'aliases' / filename
+        relative_path = REFERENCE_TEMPLATES_DIR / "aliases" / filename
         absolute_path = base_dir / relative_path
-        absolute_path.write_text(definition_text, encoding='utf-8')
+        absolute_path.write_text(definition_text, encoding="utf-8")
         changed_paths.add(str(relative_path.as_posix()))
         merged_alias_entries.append(
             {
-                'name': name,
-                'definition_cid': str(relative_path.as_posix()),
-                'enabled': bool(enabled),
+                "name": name,
+                "definition_cid": str(relative_path.as_posix()),
+                "enabled": bool(enabled),
             }
         )
 
@@ -136,73 +145,87 @@ def prepare_boot_image_update(
     for entry in servers:
         if not isinstance(entry, dict):
             continue
-        name = entry.get('name')
-        definition_cid = entry.get('definition_cid')
-        enabled = entry.get('enabled', True)
+        name = entry.get("name")
+        definition_cid = entry.get("definition_cid")
+        enabled = entry.get("enabled", True)
         if not isinstance(name, str) or not isinstance(definition_cid, str):
             continue
         definition_text = cid_values.get(definition_cid)
         if not isinstance(definition_text, str):
             raise GitHubPRError(
                 f'Missing CID content for server "{name}" ({definition_cid}).',
-                details={'missing_cid': definition_cid, 'entity': name},
+                details={"missing_cid": definition_cid, "entity": name},
             )
         filename = f"{_safe_filename(name)}.py"
-        relative_path = REFERENCE_TEMPLATES_DIR / 'servers' / 'definitions' / filename
+        relative_path = REFERENCE_TEMPLATES_DIR / "servers" / "definitions" / filename
         absolute_path = base_dir / relative_path
-        absolute_path.write_text(definition_text, encoding='utf-8')
+        absolute_path.write_text(definition_text, encoding="utf-8")
         changed_paths.add(str(relative_path.as_posix()))
         merged_server_entries.append(
             {
-                'name': name,
-                'definition_cid': str(relative_path.as_posix()),
-                'enabled': bool(enabled),
+                "name": name,
+                "definition_cid": str(relative_path.as_posix()),
+                "enabled": bool(enabled),
             }
         )
 
-    source_path = ref_dir / 'default.boot.source.json'
+    source_path = ref_dir / "default.boot.source.json"
     if source_path.exists():
-        existing_data = json.loads(source_path.read_text(encoding='utf-8'))
+        existing_data = json.loads(source_path.read_text(encoding="utf-8"))
         if isinstance(existing_data, dict):
             existing_aliases = (
-                existing_data.get('aliases') if isinstance(existing_data.get('aliases'), list) else []
+                existing_data.get("aliases")
+                if isinstance(existing_data.get("aliases"), list)
+                else []
             )
             existing_servers = (
-                existing_data.get('servers') if isinstance(existing_data.get('servers'), list) else []
+                existing_data.get("servers")
+                if isinstance(existing_data.get("servers"), list)
+                else []
             )
             existing_variables = (
-                existing_data.get('variables') if isinstance(existing_data.get('variables'), list) else []
+                existing_data.get("variables")
+                if isinstance(existing_data.get("variables"), list)
+                else []
             )
 
-            existing_data['aliases'] = _merge_named_entries(existing_aliases, merged_alias_entries)
-            existing_data['servers'] = _merge_named_entries(existing_servers, merged_server_entries)
+            existing_data["aliases"] = _merge_named_entries(
+                existing_aliases, merged_alias_entries
+            )
+            existing_data["servers"] = _merge_named_entries(
+                existing_servers, merged_server_entries
+            )
 
             incoming_variables: list[dict[str, Any]] = []
             for var in variables:
                 if not isinstance(var, dict):
                     continue
-                var_name = var.get('name')
+                var_name = var.get("name")
                 if not isinstance(var_name, str):
                     continue
-                if var_name in {'templates', 'uis'}:
+                if var_name in {"templates", "uis"}:
                     continue
                 incoming_variables.append(
                     {
-                        'name': var_name,
-                        'definition': var.get('definition'),
-                        'enabled': bool(var.get('enabled', True)),
+                        "name": var_name,
+                        "definition": var.get("definition"),
+                        "enabled": bool(var.get("enabled", True)),
                     }
                 )
 
-            existing_data['variables'] = _merge_named_entries(existing_variables, incoming_variables)
+            existing_data["variables"] = _merge_named_entries(
+                existing_variables, incoming_variables
+            )
 
-            source_path.write_text(json.dumps(existing_data, indent=2), encoding='utf-8')
+            source_path.write_text(
+                json.dumps(existing_data, indent=2), encoding="utf-8"
+            )
             changed_paths.add(str(source_path.relative_to(base_dir).as_posix()))
 
     for cid, value in cid_values.items():
         if not isinstance(cid, str) or not isinstance(value, str):
             continue
-        _ensure_cid_file(base_dir, cid, value.encode('utf-8'))
+        _ensure_cid_file(base_dir, cid, value.encode("utf-8"))
         if not is_literal_cid(cid):
             changed_paths.add(str((CIDS_DIR / cid).as_posix()))
 
@@ -210,17 +233,17 @@ def prepare_boot_image_update(
     generator.generate()
 
     for rel in generator.processed_files:
-        if rel.startswith('reference_templates/minimal.boot.'):
+        if rel.startswith("reference_templates/minimal.boot."):
             continue
         changed_paths.add(rel)
 
     for rel in (
-        'reference_templates/templates.json',
-        'reference_templates/uis.json',
-        'reference_templates/default.boot.json',
-        'reference_templates/boot.json',
-        'reference_templates/default.boot.cid',
-        'reference_templates/boot.cid',
+        "reference_templates/templates.json",
+        "reference_templates/uis.json",
+        "reference_templates/default.boot.json",
+        "reference_templates/boot.json",
+        "reference_templates/default.boot.cid",
+        "reference_templates/boot.cid",
     ):
         if (base_dir / rel).exists():
             changed_paths.add(rel)
@@ -232,8 +255,8 @@ def prepare_boot_image_update(
                 changed_paths.add(str((CIDS_DIR / cid_file.name).as_posix()))
 
     return {
-        'mode': 'prepared',
-        'changed_paths': sorted(changed_paths),
+        "mode": "prepared",
+        "changed_paths": sorted(changed_paths),
     }
 
 
@@ -259,11 +282,11 @@ def parse_github_pr_url(
     """
     try:
         parsed = urlparse(pr_url)
-        if parsed.hostname not in ('github.com', 'www.github.com'):
+        if parsed.hostname not in ("github.com", "www.github.com"):
             return None, None, None
 
-        parts = parsed.path.strip('/').split('/')
-        if len(parts) >= 4 and parts[2] == 'pull':
+        parts = parsed.path.strip("/").split("/")
+        if len(parts) >= 4 and parts[2] == "pull":
             owner = parts[0]
             repo = parts[1]
             try:
@@ -313,15 +336,13 @@ def get_repository(client: Github, owner: str, repo: str) -> Repository:
         raise GitHubPRError(
             f"Failed to access repository {owner}/{repo}",
             details={
-                'status': e.status,
-                'message': (
-                    e.data.get('message', str(e))
-                    if hasattr(e, 'data')
-                    else str(e)
+                "status": e.status,
+                "message": (
+                    e.data.get("message", str(e)) if hasattr(e, "data") else str(e)
                 ),
-                'owner': owner,
-                'repo': repo,
-            }
+                "owner": owner,
+                "repo": repo,
+            },
         ) from e
 
 
@@ -354,19 +375,24 @@ def create_export_pr(
 
     preparation = prepare_boot_image_update(export_json=export_json, base_dir=base_dir)
 
-    if not target_repo or not target_repo.strip() or not github_token or not github_token.strip():
+    if (
+        not target_repo
+        or not target_repo.strip()
+        or not github_token
+        or not github_token.strip()
+    ):
         return {
-            'mode': 'manual',
-            'target_repo': (target_repo or '').strip(),
-            'branch_name': (branch_name or '').strip(),
-            'prepared_paths': preparation['changed_paths'],
+            "mode": "manual",
+            "target_repo": (target_repo or "").strip(),
+            "branch_name": (branch_name or "").strip(),
+            "prepared_paths": preparation["changed_paths"],
         }
 
-    parts = target_repo.strip().split('/')
+    parts = target_repo.strip().split("/")
     if len(parts) != 2:
         raise GitHubPRError(
             f"Invalid repository format: {target_repo}. Expected 'owner/repo'",
-            details={'target_repo': target_repo, 'error': 'invalid_format'},
+            details={"target_repo": target_repo, "error": "invalid_format"},
         )
 
     owner, repo = parts
@@ -380,7 +406,7 @@ def create_export_pr(
 
         # Generate branch name if not provided
         if not branch_name:
-            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             branch_name = f"viewer-export-{timestamp}"
 
         # Get the latest commit on the default branch
@@ -395,16 +421,16 @@ def create_export_pr(
                 raise GitHubPRError(
                     f"Branch '{branch_name}' already exists",
                     details={
-                        'branch_name': branch_name,
-                        'error': 'branch_exists',
-                        'suggestion': 'Try again to auto-generate a new branch name'
-                    }
+                        "branch_name": branch_name,
+                        "error": "branch_exists",
+                        "suggestion": "Try again to auto-generate a new branch name",
+                    },
                 ) from e
             raise
 
         commit_message = f"Update boot image via Viewer export\n\n{pr_description or 'Exported definitions'}"
 
-        for rel_path in preparation['changed_paths']:
+        for rel_path in preparation["changed_paths"]:
             abs_path = base_dir / rel_path
             if not abs_path.exists() or not abs_path.is_file():
                 continue
@@ -414,7 +440,7 @@ def create_export_pr(
                 repository.update_file(
                     rel_path,
                     commit_message,
-                    file_bytes.decode('utf-8', errors='replace'),
+                    file_bytes.decode("utf-8", errors="replace"),
                     existing.sha,
                     branch=branch_name,
                 )
@@ -423,7 +449,7 @@ def create_export_pr(
                     repository.create_file(
                         rel_path,
                         commit_message,
-                        file_bytes.decode('utf-8', errors='replace'),
+                        file_bytes.decode("utf-8", errors="replace"),
                         branch=branch_name,
                     )
                 else:
@@ -431,45 +457,41 @@ def create_export_pr(
 
         # Create the pull request
         pr_title = pr_title or "Update boot image definitions via Viewer export"
-        pr_body = pr_description or "This PR updates the default boot image with exported definitions from Viewer."
+        pr_body = (
+            pr_description
+            or "This PR updates the default boot image with exported definitions from Viewer."
+        )
         pr_body += "\n\n---\nGenerated by Viewer import/export system"
 
         pull_request = repository.create_pull(
-            title=pr_title,
-            body=pr_body,
-            head=branch_name,
-            base=default_branch
+            title=pr_title, body=pr_body, head=branch_name, base=default_branch
         )
 
         return {
-            'url': pull_request.url,
-            'number': pull_request.number,
-            'html_url': pull_request.html_url,
-            'branch_name': branch_name,
-            'target_repo': target_repo,
-            'mode': 'github',
+            "url": pull_request.url,
+            "number": pull_request.number,
+            "html_url": pull_request.html_url,
+            "branch_name": branch_name,
+            "target_repo": target_repo,
+            "mode": "github",
         }
 
     except GitHubPRError:
         raise
     except GithubException as e:
-        error_msg = (
-            e.data.get('message', str(e))
-            if hasattr(e, 'data')
-            else str(e)
-        )
+        error_msg = e.data.get("message", str(e)) if hasattr(e, "data") else str(e)
         raise GitHubPRError(
             f"GitHub API error: {error_msg}",
             details={
-                'status': e.status,
-                'target_repo': target_repo,
-                'error': 'github_api_error',
-            }
+                "status": e.status,
+                "target_repo": target_repo,
+                "error": "github_api_error",
+            },
         ) from e
     except Exception as e:
         raise GitHubPRError(
             f"Unexpected error creating PR: {str(e)}",
-            details={'target_repo': target_repo, 'error': 'unexpected_error'}
+            details={"target_repo": target_repo, "error": "unexpected_error"},
         ) from e
 
 
@@ -491,7 +513,10 @@ def fetch_pr_export_data(
     # Parse the PR URL
     owner, repo, pr_number = parse_github_pr_url(pr_url)
     if not owner or not repo or pr_number is None:
-        return None, f"Invalid GitHub PR URL: {pr_url}. Expected format: https://github.com/owner/repo/pull/123"
+        return (
+            None,
+            f"Invalid GitHub PR URL: {pr_url}. Expected format: https://github.com/owner/repo/pull/123",
+        )
 
     try:
         client = get_github_client(github_token)
@@ -509,26 +534,27 @@ def fetch_pr_export_data(
             raise GitHubPRError(
                 f"Failed to access pull request #{pr_number}",
                 details={
-                    'status': e.status,
-                    'pr_number': pr_number,
-                    'owner': owner,
-                    'repo': repo,
-                }
+                    "status": e.status,
+                    "pr_number": pr_number,
+                    "owner": owner,
+                    "repo": repo,
+                },
             ) from e
 
         files = list(pull_request.get_files())
 
         allowed_markers = {
-            'reference_templates/default.boot.source.json',
-            'reference_templates/minimal.boot.source.json',
-            'reference_templates/boot.source.json',
-            'reference_templates/default.boot.cid',
-            'reference_templates/minimal.boot.cid',
-            'reference_templates/boot.cid',
+            "reference_templates/default.boot.source.json",
+            "reference_templates/minimal.boot.source.json",
+            "reference_templates/boot.source.json",
+            "reference_templates/default.boot.cid",
+            "reference_templates/minimal.boot.cid",
+            "reference_templates/boot.cid",
         }
 
         touches_boot_image = any(
-            getattr(file, 'filename', None) in allowed_markers or getattr(file, 'filename', None) == BOOT_IMAGE_PATH
+            getattr(file, "filename", None) in allowed_markers
+            or getattr(file, "filename", None) == BOOT_IMAGE_PATH
             for file in files
         )
 
@@ -542,7 +568,9 @@ def fetch_pr_export_data(
         # Import-from-PR remains a legacy mechanism that expects the export JSON
         # stored at the default boot image path.
         try:
-            file_content = repository.get_contents(BOOT_IMAGE_PATH, ref=pull_request.head.sha)
+            file_content = repository.get_contents(
+                BOOT_IMAGE_PATH, ref=pull_request.head.sha
+            )
         except GithubException as e:
             if e.status == 404:
                 return None, (
@@ -553,10 +581,10 @@ def fetch_pr_export_data(
                 f"Failed to read boot image file from PR: {e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)}"
             )
 
-        if not hasattr(file_content, 'decoded_content'):
+        if not hasattr(file_content, "decoded_content"):
             return None, "Failed to decode file content from PR"
 
-        json_data = file_content.decoded_content.decode('utf-8')
+        json_data = file_content.decoded_content.decode("utf-8")
         try:
             json.loads(json_data)
         except json.JSONDecodeError as exc:
@@ -566,9 +594,7 @@ def fetch_pr_export_data(
     except GitHubPRError as e:
         return None, f"{e.message}. Details: {e.details}"
     except GithubException as e:
-        error_msg = (
-            e.data.get('message', str(e)) if hasattr(e, 'data') else str(e)
-        )
+        error_msg = e.data.get("message", str(e)) if hasattr(e, "data") else str(e)
         return None, f"GitHub API error: {error_msg}"
     except Exception as e:
         LOGGER.exception("Unexpected error fetching PR data")
@@ -576,8 +602,8 @@ def fetch_pr_export_data(
 
 
 __all__ = [
-    'GitHubPRError',
-    'create_export_pr',
-    'fetch_pr_export_data',
-    'parse_github_pr_url',
+    "GitHubPRError",
+    "create_export_pr",
+    "fetch_pr_export_data",
+    "parse_github_pr_url",
 ]

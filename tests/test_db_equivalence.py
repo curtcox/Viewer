@@ -152,6 +152,7 @@ class TestAliasEquivalence:
         assert results["memory"] == results["disk"]
         assert results["memory"] == ["a-alias", "m-alias", "z-alias"]
 
+
 @pytest.mark.db_equivalence
 class TestVariableEquivalence:
     """Test Variable model behaves identically in both database modes."""

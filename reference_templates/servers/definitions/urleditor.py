@@ -52,7 +52,7 @@ def _load_resource_file(filename: str) -> str:
         server_dir = cwd / "reference_templates" / "servers" / "definitions"
 
     file_path = server_dir / filename
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -75,7 +75,9 @@ def _build_meta_links(request_path: str) -> dict[str, str]:
     }
 
 
-def _get_html_page(initial_url: str = "", *, meta_links: Optional[dict[str, str]] = None) -> str:
+def _get_html_page(
+    initial_url: str = "", *, meta_links: Optional[dict[str, str]] = None
+) -> str:
     """Generate the HTML page for the URL editor.
 
     Args:
@@ -155,7 +157,7 @@ def main(input_data=None, *, request=None, context=None):
         return {
             "output": "The urleditor server does not support URL chaining. Access it directly at /urleditor or /urleditor#<url-to-edit>",
             "content_type": "text/plain",
-            "status": 400
+            "status": 400,
         }
 
     # Get the request path
@@ -169,17 +171,14 @@ def main(input_data=None, *, request=None, context=None):
 
     # Extract the path after /urleditor
     if request_path.startswith("/urleditor"):
-        subpath = request_path[len("/urleditor"):]
+        subpath = request_path[len("/urleditor") :]
     else:
         subpath = ""
 
     # Check if we should redirect from subpath to fragment format
     should_redirect, redirect_url = _should_redirect(subpath)
     if should_redirect:
-        return {
-            "redirect": redirect_url,
-            "status": 302
-        }
+        return {"redirect": redirect_url, "status": 302}
 
     # Get initial URL from fragment (if any)
     # Note: Fragments are not sent to server, so we'll just serve the page
@@ -191,7 +190,4 @@ def main(input_data=None, *, request=None, context=None):
     # Generate and return the HTML page
     html_content = _get_html_page(initial_url, meta_links=meta_links)
 
-    return {
-        "output": html_content,
-        "content_type": "text/html"
-    }
+    return {"output": html_content, "content_type": "text/html"}

@@ -32,7 +32,11 @@ def _extract_server_error_lineno(exc: Exception) -> Optional[int]:
         if frame.filename == "<string>":
             server_frame = frame
 
-    if server_frame and isinstance(server_frame.lineno, int) and server_frame.lineno > 0:
+    if (
+        server_frame
+        and isinstance(server_frame.lineno, int)
+        and server_frame.lineno > 0
+    ):
         return server_frame.lineno
 
     return None
@@ -47,13 +51,15 @@ def _render_server_source_with_highlight(code_text: str, highlight_lineno: int) 
         if index == highlight_lineno:
             css_class += " highlight"
         output_lines.append(
-            f'<span class="{css_class}" data-line="{index}">' \
+            f'<span class="{css_class}" data-line="{index}">'
             f'<span class="server-source-lineno">{index:4d}</span> {escaped}</span>'
         )
     return "\n".join(output_lines)
 
 
-def _wrap_highlighted_lines(highlighted_html: str, highlight_lineno: Optional[int]) -> str:
+def _wrap_highlighted_lines(
+    highlighted_html: str, highlight_lineno: Optional[int]
+) -> str:
     lines = highlighted_html.splitlines()
     output_lines: list[str] = []
     for index, line in enumerate(lines, start=1):
@@ -100,7 +106,9 @@ def _render_execution_error_html(
     if code_text:
         highlight_lineno = _extract_server_error_lineno(exc)
         mapped_lineno = highlight_lineno - 1 if highlight_lineno is not None else None
-        if mapped_lineno is not None and not 1 <= mapped_lineno <= len(code_text.splitlines()):
+        if mapped_lineno is not None and not 1 <= mapped_lineno <= len(
+            code_text.splitlines()
+        ):
             mapped_lineno = None
 
         highlighted_inner, syntax_css = highlight_source(

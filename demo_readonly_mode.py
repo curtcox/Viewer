@@ -26,10 +26,9 @@ def demo_normal_mode():
     client = app.test_client()
 
     print("Testing POST request to create a server...")
-    response = client.post("/servers/new", data={
-        "name": "test_server",
-        "definition": "def main(): pass"
-    })
+    response = client.post(
+        "/servers/new", data={"name": "test_server", "definition": "def main(): pass"}
+    )
 
     print(f"Status code: {response.status_code}")
     if response.status_code == 405:
@@ -53,10 +52,9 @@ def demo_readonly_mode():
     client = app.test_client()
 
     print("Testing POST request to create a server...")
-    response = client.post("/servers/new", data={
-        "name": "test_server",
-        "definition": "def main(): pass"
-    })
+    response = client.post(
+        "/servers/new", data={"name": "test_server", "definition": "def main(): pass"}
+    )
 
     print(f"Status code: {response.status_code}")
     if response.status_code == 405:
@@ -151,6 +149,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Error during demo: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

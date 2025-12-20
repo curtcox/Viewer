@@ -1,4 +1,5 @@
 """OpenAPI schemas for interaction tracking endpoints."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -35,7 +36,7 @@ def interaction_request_schema() -> Dict[str, Any]:
             "content": {
                 "type": "string",
                 "description": "Associated content such as prompt or code snippets.",
-                "example": "print(\"hello world\")",
+                "example": 'print("hello world")',
             },
         },
         "additionalProperties": False,
@@ -97,7 +98,7 @@ def interaction_summary_schema() -> Dict[str, Any]:
             "content": {
                 "type": "string",
                 "description": "Stored content payload.",
-                "example": "print(\"hello world\")",
+                "example": 'print("hello world")',
             },
         },
     }

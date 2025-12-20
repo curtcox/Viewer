@@ -1,4 +1,5 @@
 """Integration coverage for upload-related pages."""
+
 from __future__ import annotations
 
 import pytest
@@ -109,8 +110,8 @@ def test_edit_cid_choices_page_prompts_for_selection(
 
     page = response.get_data(as_text=True)
     assert "Multiple Matches Found" in page
-    assert f"href=\"/{first_cid}" in page
-    assert f"href=\"/{second_cid}" in page
+    assert f'href="/{first_cid}' in page
+    assert f'href="/{second_cid}' in page
 
 
 def test_upload_page_displays_templates_when_configured(
@@ -122,25 +123,22 @@ def test_upload_page_displays_templates_when_configured(
     from models import Variable
 
     templates_config = {
-        'aliases': {},
-        'servers': {},
-        'variables': {},
-        'secrets': {},
-        'uploads': {
-            'hello_world': {
-                'name': 'Hello World',
-                'content': 'Hello, World!\n'
+        "aliases": {},
+        "servers": {},
+        "variables": {},
+        "secrets": {},
+        "uploads": {
+            "hello_world": {"name": "Hello World", "content": "Hello, World!\n"},
+            "json_example": {
+                "name": "JSON Example",
+                "content": '{\n  "key": "value"\n}',
             },
-            'json_example': {
-                'name': 'JSON Example',
-                'content': '{\n  "key": "value"\n}'
-            }
-        }
+        },
     }
 
     with integration_app.app_context():
         templates_var = Variable(
-            name='templates',
+            name="templates",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -166,21 +164,18 @@ def test_upload_page_shows_template_status_link(
     from models import Variable
 
     templates_config = {
-        'aliases': {},
-        'servers': {},
-        'variables': {},
-        'secrets': {},
-        'uploads': {
-            'test_template': {
-                'name': 'Test Template',
-                'content': 'Test content'
-            }
-        }
+        "aliases": {},
+        "servers": {},
+        "variables": {},
+        "secrets": {},
+        "uploads": {
+            "test_template": {"name": "Test Template", "content": "Test content"}
+        },
     }
 
     with integration_app.app_context():
         templates_var = Variable(
-            name='templates',
+            name="templates",
             definition=json.dumps(templates_config),
         )
         db.session.add(templates_var)
@@ -204,4 +199,4 @@ def test_upload_page_no_templates_shown_when_none_configured(
 
     page = response.get_data(as_text=True)
     # Should not show the template selection UI
-    assert "Start from a Template" not in page or 'data-upload-template-id' not in page
+    assert "Start from a Template" not in page or "data-upload-template-id" not in page

@@ -1,4 +1,5 @@
 """Helpers for serving named alias redirects."""
+
 from __future__ import annotations
 
 import re
@@ -87,7 +88,11 @@ def _variable_map() -> dict[str, str]:
 
     try:
         variables = get_variables()
-    except (SQLAlchemyError, AttributeError, RuntimeError):  # pragma: no cover - defensive guard for database errors and missing app context
+    except (
+        SQLAlchemyError,
+        AttributeError,
+        RuntimeError,
+    ):  # pragma: no cover - defensive guard for database errors and missing app context
         return {}
 
     result: dict[str, str] = {}
@@ -104,7 +109,9 @@ def _variable_map() -> dict[str, str]:
     return result
 
 
-def _alias_routes_in_declaration_order() -> Generator[tuple[Any, AliasRouteRule], None, None]:
+def _alias_routes_in_declaration_order() -> Generator[
+    tuple[Any, AliasRouteRule], None, None
+]:
     """Yield alias routes in the order they are declared."""
 
     aliases = get_aliases()
@@ -133,7 +140,9 @@ def find_matching_alias(path: str) -> Optional[AliasMatch]:
 
 
 @lru_cache(maxsize=128)
-def _cached_glob_pattern(pattern: str, ignore_case: bool) -> tuple[re.Pattern[str], tuple[str, ...]]:
+def _cached_glob_pattern(
+    pattern: str, ignore_case: bool
+) -> tuple[re.Pattern[str], tuple[str, ...]]:
     """Return a compiled regex and token order for the provided glob pattern.
 
     This custom implementation is used instead of fnmatch.translate (as used in
@@ -265,7 +274,12 @@ def _resolve_flask_target(route: AliasRouteRule, path: str) -> str:
         values = match_result[1]
     except (NotFound, MethodNotAllowed):
         return target
-    except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
+    except (
+        ValueError,
+        RuntimeError,
+        AttributeError,
+        RequestRedirect,
+    ):  # pragma: no cover - defensive guard for malformed patterns and redirects
         return target
 
     def _replace(match: re.Match[str]) -> str:
@@ -291,7 +305,9 @@ def _resolve_target_path(route: AliasRouteRule, path: str) -> str:
     return target
 
 
-def try_alias_redirect(path: str, *, alias_match: Optional[AliasMatch] = None) -> Optional[Response]:
+def try_alias_redirect(
+    path: str, *, alias_match: Optional[AliasMatch] = None
+) -> Optional[Response]:
     """Return a redirect response for an alias if one matches the path."""
 
     match = alias_match or find_matching_alias(path)
@@ -321,7 +337,9 @@ class AliasResolution:
     is_relative: bool
 
 
-def resolve_alias_target(path: str, *, alias_match: Optional[AliasMatch] = None) -> Optional[AliasResolution]:
+def resolve_alias_target(
+    path: str, *, alias_match: Optional[AliasMatch] = None
+) -> Optional[AliasResolution]:
     """Return alias resolution details without creating a redirect response."""
 
     match = alias_match or find_matching_alias(path)

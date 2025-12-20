@@ -1,4 +1,5 @@
 """OpenAPI schemas for server management endpoints."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -42,7 +43,10 @@ def server_record_schema() -> Dict[str, Any]:
                 "format": "date-time",
                 "description": "Last update timestamp in ISO-8601 format.",
             },
-            "enabled": {"type": "boolean", "description": "Whether the server is active."},
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the server is active.",
+            },
         },
         "additionalProperties": False,
     }

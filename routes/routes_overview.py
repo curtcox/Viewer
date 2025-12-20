@@ -1,4 +1,5 @@
 """Routes overview page with built-ins, aliases, and servers."""
+
 from __future__ import annotations
 
 import inspect
@@ -84,7 +85,9 @@ def _builtin_routes(root: Path) -> Iterable[RouteEntry]:
         if not relative:
             continue
 
-        methods = sorted(method for method in rule.methods if method not in {"HEAD", "OPTIONS"})
+        methods = sorted(
+            method for method in rule.methods if method not in {"HEAD", "OPTIONS"}
+        )
         extra_detail = ", ".join(methods)
         definition_url = url_for("main.source_browser", requested_path=relative)
 
@@ -166,7 +169,9 @@ def _not_found_entry(root: Path) -> RouteEntry:
 
     handler = inspect.unwrap(not_found_error)
     code = getattr(handler, "__code__", None)
-    handler_path = Path(inspect.getsourcefile(handler) or (code.co_filename if code else ""))
+    handler_path = Path(
+        inspect.getsourcefile(handler) or (code.co_filename if code else "")
+    )
     relative_handler = _relative_path(handler_path, root)
 
     definition_label = (
@@ -224,7 +229,9 @@ def _collect_routes() -> List[RouteEntry]:
 
     _mark_duplicates(entries)
 
-    entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
+    entries.sort(
+        key=lambda item: (item.is_catch_all, item.path, item.category, item.name)
+    )
 
     return entries
 

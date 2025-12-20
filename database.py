@@ -8,8 +8,10 @@ from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     pass
 
+
 # Create the database instance
 db = SQLAlchemy(model_class=Base)
+
 
 def init_db(app: Flask) -> SQLAlchemy:
     """Initialize the database with the Flask app."""

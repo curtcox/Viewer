@@ -23,6 +23,7 @@ import db_access
 
 class CidContentStatus(Enum):
     """Status of CID content resolution."""
+
     NOT_A_CID = "not_a_cid"
     CONTENT_EMBEDDED = "content_embedded"
     CONTENT_FOUND = "content_found"
@@ -32,6 +33,7 @@ class CidContentStatus(Enum):
 @dataclass
 class CidCheckResult:
     """Result of checking if content is a CID."""
+
     is_cid: bool
     status: CidContentStatus
     cid_value: Optional[str] = None
@@ -82,7 +84,7 @@ def check_cid_content(value: str) -> CidCheckResult:
     if content_length <= DIRECT_CONTENT_EMBED_LIMIT:
         # Content is embedded directly in the CID
         try:
-            content_text = payload.decode('utf-8')
+            content_text = payload.decode("utf-8")
         except UnicodeDecodeError:
             content_text = None
 
@@ -100,10 +102,10 @@ def check_cid_content(value: str) -> CidCheckResult:
     except RuntimeError:
         cid_record = None
 
-    if cid_record and hasattr(cid_record, 'file_data') and cid_record.file_data:
+    if cid_record and hasattr(cid_record, "file_data") and cid_record.file_data:
         content = cid_record.file_data
         try:
-            content_text = content.decode('utf-8')
+            content_text = content.decode("utf-8")
         except UnicodeDecodeError:
             content_text = None
 
@@ -132,7 +134,7 @@ def generate_cid_from_content(content: str) -> Tuple[str, bytes]:
     Returns:
         Tuple of (cid_value, content_bytes)
     """
-    content_bytes = content.encode('utf-8')
+    content_bytes = content.encode("utf-8")
     cid_value = format_cid(generate_cid(content_bytes))
     return cid_value, content_bytes
 
@@ -146,14 +148,14 @@ def store_content_as_cid(content: str) -> str:
     Returns:
         The CID value for the stored content
     """
-    content_bytes = content.encode('utf-8')
+    content_bytes = content.encode("utf-8")
     return store_cid_from_bytes(content_bytes)
 
 
 __all__ = [
-    'CidContentStatus',
-    'CidCheckResult',
-    'check_cid_content',
-    'generate_cid_from_content',
-    'store_content_as_cid',
+    "CidContentStatus",
+    "CidCheckResult",
+    "check_cid_content",
+    "generate_cid_from_content",
+    "store_content_as_cid",
 ]

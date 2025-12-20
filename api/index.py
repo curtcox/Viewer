@@ -7,6 +7,7 @@ Python runtime for deploying the Flask application.
 Vercel's Python runtime requires a module-level variable named 'app' that
 contains the WSGI application. This variable must be accessible at import time.
 """
+
 import logging
 import os
 import sys
@@ -14,8 +15,7 @@ from pathlib import Path
 
 # Configure logging early for debugging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ def _resolve_boot_cid(project_root: Path, read_only: bool) -> str | None:
         return None
 
     return (boot_cid_file.read_text(encoding="utf-8") or "").strip() or None
+
 
 # Add parent directory to path so we can import from the main app
 parent_dir = str(Path(__file__).parent.parent)
@@ -101,12 +102,16 @@ try:
                 logger.exception(error_message)
                 app.config["CID_LOAD_ERROR"] = error_message
         elif read_only_env:
-            logger.warning("READ_ONLY is enabled but no boot CID was configured/found; skipping boot import")
+            logger.warning(
+                "READ_ONLY is enabled but no boot CID was configured/found; skipping boot import"
+            )
 
         # Check if there was a CID loading error (app will still be created)
         cid_error = app.config.get("CID_LOAD_ERROR")
         if cid_error:
-            logger.warning("CID loading failed, app will show 500 error page: %s", cid_error)
+            logger.warning(
+                "CID loading failed, app will show 500 error page: %s", cid_error
+            )
         else:
             logger.info("Flask application initialized successfully")
     except SystemExit as e:
@@ -115,11 +120,14 @@ try:
         error_message = f"Application initialization failed: {e}"
         # Create a minimal error-handling app so Vercel has something to serve
         from flask import Flask
+
         error_app = Flask(__name__)
-        @error_app.route('/', defaults={'path': ''})
-        @error_app.route('/<path:path>')
+
+        @error_app.route("/", defaults={"path": ""})
+        @error_app.route("/<path:path>")
         def error_handler(path):  # pylint: disable=unused-argument
             return error_message, 500
+
         app = error_app
     except Exception as e:
         # Log any other exceptions during app creation (these are fatal)
@@ -127,11 +135,14 @@ try:
         error_message = f"Application initialization failed: {e}"
         # Create a minimal error-handling app so Vercel has something to serve
         from flask import Flask
+
         error_app = Flask(__name__)
-        @error_app.route('/', defaults={'path': ''})
-        @error_app.route('/<path:path>')
+
+        @error_app.route("/", defaults={"path": ""})
+        @error_app.route("/<path:path>")
         def error_handler(path):  # pylint: disable=unused-argument
             return error_message, 500
+
         app = error_app
 
 except ImportError as e:
@@ -139,29 +150,37 @@ except ImportError as e:
     logger.exception("Failed to import required modules: %s", e)
     error_message = f"Failed to import required modules: {e}"
     from flask import Flask
+
     error_app = Flask(__name__)
-    @error_app.route('/', defaults={'path': ''})
-    @error_app.route('/<path:path>')
+
+    @error_app.route("/", defaults={"path": ""})
+    @error_app.route("/<path:path>")
     def error_handler(path):  # pylint: disable=unused-argument
         return error_message, 500
+
     app = error_app
 except Exception as e:
     # Catch-all for any other initialization errors
     logger.exception("Unexpected error during Vercel function initialization: %s", e)
     error_message = f"Unexpected initialization error: {e}"
     from flask import Flask
+
     error_app = Flask(__name__)
-    @error_app.route('/', defaults={'path': ''})
-    @error_app.route('/<path:path>')
+
+    @error_app.route("/", defaults={"path": ""})
+    @error_app.route("/<path:path>")
     def error_handler(path):  # pylint: disable=unused-argument
         return error_message, 500
+
     app = error_app
 
 # Ensure app is always defined (Vercel requires this at module level)
 if app is None:
     from flask import Flask
+
     app = Flask(__name__)
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
+
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
     def fallback_handler(path):  # pylint: disable=unused-argument
         return "Application not initialized", 500

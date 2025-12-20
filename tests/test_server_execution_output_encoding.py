@@ -8,19 +8,32 @@ from unittest.mock import patch
 
 # Lightweight module mocks so importing server_execution doesn't require external deps
 mock_flask = types.ModuleType("flask")
-mock_flask.Response = type('Response', (), {})  # Mock Response class
+mock_flask.Response = type("Response", (), {})  # Mock Response class
 mock_flask.jsonify = lambda *a, **k: None
-mock_flask.make_response = lambda x: types.SimpleNamespace(headers={}, status_code=200, data=x)
+mock_flask.make_response = lambda x: types.SimpleNamespace(
+    headers={}, status_code=200, data=x
+)
 mock_flask.redirect = lambda url: ("redirect", url)
 mock_flask.render_template = lambda *a, **k: ""
 mock_flask.url_for = lambda *a, **k: "/mock/url"
 mock_flask.request = types.SimpleNamespace(
-    path="/", query_string=b"", remote_addr="127.0.0.1", user_agent=types.SimpleNamespace(string="UA"),
-    headers={}, form={}, args={}, endpoint="ep", scheme="http", host="localhost", method="GET",
+    path="/",
+    query_string=b"",
+    remote_addr="127.0.0.1",
+    user_agent=types.SimpleNamespace(string="UA"),
+    headers={},
+    form={},
+    args={},
+    endpoint="ep",
+    scheme="http",
+    host="localhost",
+    method="GET",
 )
 mock_flask.session = {}
 mock_flask.current_app = types.SimpleNamespace(
-    root_path="/mock/app", test_client=lambda: None, test_request_context=lambda **kw: None
+    root_path="/mock/app",
+    test_client=lambda: None,
+    test_request_context=lambda **kw: None,
 )
 mock_flask.has_app_context = lambda: False
 mock_flask.has_request_context = lambda: False
@@ -37,12 +50,16 @@ mock_cid_utils.generate_cid = lambda b: "deadbeef"
 mock_cid_utils.get_current_secret_definitions_cid = lambda *a, **k: "cid_s"
 mock_cid_utils.get_current_server_definitions_cid = lambda *a, **k: "cid_srv"
 mock_cid_utils.get_current_variable_definitions_cid = lambda *a, **k: "cid_v"
-mock_cid_utils.get_extension_from_mime_type = lambda ct: "html" if ct == "text/html" else ""
+mock_cid_utils.get_extension_from_mime_type = (
+    lambda ct: "html" if ct == "text/html" else ""
+)
 sys.modules.setdefault("cid_utils", mock_cid_utils)
 
 mock_db_access = types.ModuleType("db_access")
 mock_db_access.create_cid_record = lambda *a, **k: None
-mock_db_access.create_server_invocation = lambda *a, **k: types.SimpleNamespace(invoked_at=None, invocation_cid=None)
+mock_db_access.create_server_invocation = lambda *a, **k: types.SimpleNamespace(
+    invoked_at=None, invocation_cid=None
+)
 mock_db_access.get_cid_by_path = lambda *a, **k: None
 mock_db_access.get_server_by_name = lambda *a, **k: None
 mock_db_access.get_secrets = lambda *a, **k: []
@@ -74,12 +91,17 @@ mock_db_access.ServerInvocationInput = _ServerInvocationInput
 sys.modules.setdefault("db_access", mock_db_access)
 
 mock_runner = types.ModuleType("text_function_runner")
-mock_runner.run_text_function = lambda code, args: {"output": "", "content_type": "text/html"}
+mock_runner.run_text_function = lambda code, args: {
+    "output": "",
+    "content_type": "text/html",
+}
 sys.modules.setdefault("text_function_runner", mock_runner)
 
 # Additional mocks for new decomposed modules
 mock_cid_presenter = types.ModuleType("cid_presenter")
-mock_cid_presenter.cid_path = lambda cid, ext=None: f"/{cid}" if not ext else f"/{cid}.{ext}"
+mock_cid_presenter.cid_path = (
+    lambda cid, ext=None: f"/{cid}" if not ext else f"/{cid}.{ext}"
+)
 mock_cid_presenter.format_cid = lambda x: x
 sys.modules.setdefault("cid_presenter", mock_cid_presenter)
 
@@ -88,7 +110,7 @@ mock_alias_routing.find_matching_alias = lambda *a, **k: None
 sys.modules.setdefault("alias_routing", mock_alias_routing)
 
 mock_models = types.ModuleType("models")
-mock_models.ServerInvocation = type('ServerInvocation', (), {})
+mock_models.ServerInvocation = type("ServerInvocation", (), {})
 sys.modules.setdefault("models", mock_models)
 
 mock_syntax_highlighting = types.ModuleType("syntax_highlighting")
@@ -115,7 +137,9 @@ sys.modules.setdefault("utils", mock_utils)
 sys.modules.setdefault("utils.stack_trace", mock_utils.stack_trace)
 
 mock_logfire = types.ModuleType("logfire")
-mock_logfire.instrument = lambda *a, **k: lambda f: f  # Decorator that returns function unchanged
+mock_logfire.instrument = (
+    lambda *a, **k: lambda f: f
+)  # Decorator that returns function unchanged
 sys.modules.setdefault("logfire", mock_logfire)
 
 # Import the module under test after setting up mocks
@@ -148,7 +172,12 @@ class TestServerExecutionOutputEncoding(unittest.TestCase):
 class TestExecuteServerCodeSharedFlow(unittest.TestCase):
     def test_execute_functions_share_success_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
+        from server_execution import (
+            code_execution,
+            response_handling,
+            error_handling,
+            invocation_tracking,
+        )
 
         calls = []
 
@@ -177,21 +206,32 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
-             patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
-             patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
-             patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \
-             patch.object(response_handling, 'generate_cid', mock_generate_cid), \
-             patch.object(response_handling, 'get_extension_from_mime_type', mock_get_extension), \
-             patch.object(error_handling, 'make_response', mock_make_response), \
-             patch.object(response_handling, 'redirect', mock_redirect), \
-             patch.object(error_handling, '_render_execution_error_html', mock_render_error_html), \
-             patch.object(code_execution, 'run_text_function', fake_runner):
-
+        with (
+            patch.object(code_execution, "build_request_args", mock_build_request_args),
+            patch.object(
+                invocation_tracking,
+                "create_server_invocation_record",
+                lambda *a, **k: None,
+            ),
+            patch.object(response_handling, "create_cid_record", lambda *a, **k: None),
+            patch.object(response_handling, "get_cid_by_path", lambda *a, **k: None),
+            patch.object(response_handling, "generate_cid", mock_generate_cid),
+            patch.object(
+                response_handling, "get_extension_from_mime_type", mock_get_extension
+            ),
+            patch.object(error_handling, "make_response", mock_make_response),
+            patch.object(response_handling, "redirect", mock_redirect),
+            patch.object(
+                error_handling, "_render_execution_error_html", mock_render_error_html
+            ),
+            patch.object(code_execution, "run_text_function", fake_runner),
+        ):
             server = types.SimpleNamespace(definition="print('hello')")
 
             first_result = server_execution.execute_server_code(server, "greet")
-            second_result = server_execution.execute_server_code_from_definition("print('hello')", "greet")
+            second_result = server_execution.execute_server_code_from_definition(
+                "print('hello')", "greet"
+            )
 
             self.assertEqual(first_result, ("redirect", "/deadbeef"))
             self.assertEqual(second_result, first_result)
@@ -202,7 +242,12 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
 
     def test_execute_functions_share_error_flow(self):
         # Import submodules to patch where functions are used
-        from server_execution import code_execution, response_handling, error_handling, invocation_tracking
+        from server_execution import (
+            code_execution,
+            response_handling,
+            error_handling,
+            invocation_tracking,
+        )
 
         def failing_runner(code, args):
             raise ValueError("boom")
@@ -228,21 +273,32 @@ class TestExecuteServerCodeSharedFlow(unittest.TestCase):
         def mock_render_error_html(exc, code, args, server_name):
             return "<html>Error</html>"
 
-        with patch.object(code_execution, 'build_request_args', mock_build_request_args), \
-             patch.object(invocation_tracking, 'create_server_invocation_record', lambda *a, **k: None), \
-             patch.object(response_handling, 'create_cid_record', lambda *a, **k: None), \
-             patch.object(response_handling, 'get_cid_by_path', lambda *a, **k: None), \
-             patch.object(response_handling, 'generate_cid', mock_generate_cid), \
-             patch.object(response_handling, 'get_extension_from_mime_type', mock_get_extension), \
-             patch.object(error_handling, 'make_response', mock_make_response), \
-             patch.object(response_handling, 'redirect', mock_redirect), \
-             patch.object(error_handling, '_render_execution_error_html', mock_render_error_html), \
-             patch.object(code_execution, 'run_text_function', failing_runner):
-
+        with (
+            patch.object(code_execution, "build_request_args", mock_build_request_args),
+            patch.object(
+                invocation_tracking,
+                "create_server_invocation_record",
+                lambda *a, **k: None,
+            ),
+            patch.object(response_handling, "create_cid_record", lambda *a, **k: None),
+            patch.object(response_handling, "get_cid_by_path", lambda *a, **k: None),
+            patch.object(response_handling, "generate_cid", mock_generate_cid),
+            patch.object(
+                response_handling, "get_extension_from_mime_type", mock_get_extension
+            ),
+            patch.object(error_handling, "make_response", mock_make_response),
+            patch.object(response_handling, "redirect", mock_redirect),
+            patch.object(
+                error_handling, "_render_execution_error_html", mock_render_error_html
+            ),
+            patch.object(code_execution, "run_text_function", failing_runner),
+        ):
             server = types.SimpleNamespace(definition="print('fail')")
 
             first_response = server_execution.execute_server_code(server, "fail")
-            second_response = server_execution.execute_server_code_from_definition("print('fail')", "fail")
+            second_response = server_execution.execute_server_code_from_definition(
+                "print('fail')", "fail"
+            )
 
             self.assertEqual(first_response.status_code, 500)
             self.assertEqual(second_response.status_code, 500)

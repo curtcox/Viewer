@@ -186,5 +186,5 @@ class TestAliasModel(unittest.TestCase):
         self.assertFalse(alias.get_primary_ignore_case())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

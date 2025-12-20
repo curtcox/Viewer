@@ -35,7 +35,9 @@ def test_embedded_cid_template_contains_literals_and_examples():
     for name, cid in EXPECTED_LITERAL_CIDS.items():
         assert is_literal_cid(cid), f"Expected {name} CID to be literal"
         assert cid in content, f"CID for {name} should appear in the template"
-        assert f"/{cid}" in content, f"CID for {name} should be embedded as a path element"
+        assert f"/{cid}" in content, (
+            f"CID for {name} should be embedded as a path element"
+        )
 
     assert ".sh" in content
     assert ".jq" in content
@@ -44,8 +46,14 @@ def test_embedded_cid_template_contains_literals_and_examples():
 def test_embedded_cid_template_forms_chain_commands():
     content = TEMPLATE_PATH.read_text(encoding="utf-8")
 
-    assert "/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh" in content
-    assert "/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq" in content
+    assert (
+        "/AAAAAAARIyEvYmluL3NoCmxzIC1sYWg.sh/AAAAAAAiIyEvYmluL3NoCmdyZXAgLW4gLS1jb2xvcj1uZXZlciAnJw.sh/AAAAAAATIyEvYmluL3NoCmhlYWQgLW4gNQ.sh"
+        in content
+    )
+    assert (
+        "/AAAAAAASIyEvYmluL3NoCmN1cmwgLXNT.sh/https://api.example.com/data.json/AAAAAAAWIyEvdXNyL2Jpbi9lbnYganEgLXIgLg.jq"
+        in content
+    )
 
     for cid in (EXPECTED_LITERAL_CIDS["sed"], EXPECTED_LITERAL_CIDS["tail"]):
         assert f"{cid}.sh" in content

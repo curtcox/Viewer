@@ -58,7 +58,7 @@ class CID:
         ValueError: Invalid CID: 'invalid' is not a valid CID format
     """
 
-    __slots__ = ('_value', '_content_length', '_payload')
+    __slots__ = ("_value", "_content_length", "_payload")
 
     def __init__(self, cid_string: str):
         """Initialize a CID from a string.
@@ -78,14 +78,10 @@ class CID:
         # Normalize and validate
         normalized = normalize_component(cid_string)
         if not normalized:
-            raise ValueError(
-                f"Invalid CID: '{cid_string}' normalizes to empty string"
-            )
+            raise ValueError(f"Invalid CID: '{cid_string}' normalizes to empty string")
 
         if not is_normalized_cid(normalized):
-            raise ValueError(
-                f"Invalid CID: '{cid_string}' is not a valid CID format"
-            )
+            raise ValueError(f"Invalid CID: '{cid_string}' is not a valid CID format")
 
         # Parse components to cache them
         try:
@@ -101,7 +97,7 @@ class CID:
         self._payload = payload
 
     @classmethod
-    def from_bytes(cls, content: bytes) -> 'CID':
+    def from_bytes(cls, content: bytes) -> "CID":
         """Generate a CID from content bytes.
 
         Args:
@@ -126,7 +122,7 @@ class CID:
         return cls(cid_string)
 
     @classmethod
-    def try_from_string(cls, cid_string: Optional[str]) -> Optional['CID']:
+    def try_from_string(cls, cid_string: Optional[str]) -> Optional["CID"]:
         """Try to create a CID from a string, returning None if invalid.
 
         Args:
@@ -298,7 +294,8 @@ class CID:
 # HELPER FUNCTIONS FOR INTEGRATION
 # ============================================================================
 
-def ensure_cid(value) -> 'CID':
+
+def ensure_cid(value) -> "CID":
     """Convert a value to a CID, validating it if it's a string.
 
     This helper function makes it easy to write functions that accept
@@ -327,9 +324,7 @@ def ensure_cid(value) -> 'CID':
         return value
     if isinstance(value, str):
         return CID(value)
-    raise TypeError(
-        f"Expected CID or string, got {type(value).__name__}"
-    )
+    raise TypeError(f"Expected CID or string, got {type(value).__name__}")
 
 
 def to_cid_string(value) -> str:
@@ -359,6 +354,4 @@ def to_cid_string(value) -> str:
         return value.value
     if isinstance(value, str):
         return CID(value).value
-    raise TypeError(
-        f"Expected CID or string, got {type(value).__name__}"
-    )
+    raise TypeError(f"Expected CID or string, got {type(value).__name__}")

@@ -17,7 +17,11 @@ def get_servers() -> List[Server]:
 
 def get_template_servers() -> List[Server]:
     """Return template servers from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_SERVERS, resolve_cid_value
+    from template_manager import (
+        get_templates_for_type,
+        ENTITY_TYPE_SERVERS,
+        resolve_cid_value,
+    )
 
     templates = get_templates_for_type(ENTITY_TYPE_SERVERS)
 
@@ -29,20 +33,20 @@ def get_template_servers() -> List[Server]:
         # Templates are not persisted DB rows, so id remains None
         server.id = None
         # Store the template key in a separate attribute for UI use
-        server.template_key = template.get('key', '')
-        server.name = template.get('name', template.get('key', ''))
+        server.template_key = template.get("key", "")
+        server.name = template.get("name", template.get("key", ""))
 
         # Try to get definition from various possible fields
-        definition = template.get('definition')
-        if not definition and template.get('definition_cid'):
-            definition = resolve_cid_value(template.get('definition_cid'))
+        definition = template.get("definition")
+        if not definition and template.get("definition_cid"):
+            definition = resolve_cid_value(template.get("definition_cid"))
 
-        server.definition = definition or ''
+        server.definition = definition or ""
         server.enabled = True
         server.template = True  # Mark as template for backwards compatibility
         server_objects.append(server)
 
-    return sorted(server_objects, key=lambda s: s.name if s.name else '')
+    return sorted(server_objects, key=lambda s: s.name if s.name else "")
 
 
 def get_server_by_name(name: str) -> Optional[Server]:

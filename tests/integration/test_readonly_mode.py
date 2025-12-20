@@ -28,10 +28,10 @@ class TestReadOnlyModeIntegration:
         client = app.test_client()
 
         # Try to create a server (POST request)
-        response = client.post("/servers/new", data={
-            "name": "test_server",
-            "definition": "def main(): pass"
-        })
+        response = client.post(
+            "/servers/new",
+            data={"name": "test_server", "definition": "def main(): pass"},
+        )
 
         assert response.status_code == 405
         assert b"not allowed in read-only mode" in response.data.lower()
@@ -72,10 +72,10 @@ class TestReadOnlyModeIntegration:
         client = app.test_client()
 
         # POST should work (though may fail for other reasons like validation)
-        response = client.post("/servers/new", data={
-            "name": "test_server",
-            "definition": "def main(): pass"
-        })
+        response = client.post(
+            "/servers/new",
+            data={"name": "test_server", "definition": "def main(): pass"},
+        )
 
         # Should not be 405
         assert response.status_code != 405
@@ -94,6 +94,7 @@ class TestReadOnlyModeIntegration:
         # Check that no page views were recorded
         with app.app_context():
             from models import PageView
+
             page_views = PageView.query.count()
             assert page_views == 0
 
@@ -105,7 +106,10 @@ class TestReadOnlyModeIntegration:
         app = create_app({"TESTING": True})
 
         with app.app_context():
-            from db_access.interactions import record_entity_interaction, EntityInteractionRequest
+            from db_access.interactions import (
+                record_entity_interaction,
+                EntityInteractionRequest,
+            )
             from datetime import datetime, timezone
 
             # Try to record an interaction
@@ -115,7 +119,7 @@ class TestReadOnlyModeIntegration:
                 action="save",
                 message="test message",
                 content="test content",
-                created_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc),
             )
 
             result = record_entity_interaction(request)

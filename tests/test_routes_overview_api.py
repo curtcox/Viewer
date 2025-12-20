@@ -21,4 +21,11 @@ def test_routes_overview_api_returns_json(memory_client: FlaskClient):
     assert any(entry.get("path") == "/" for entry in routes)
 
     sample = routes[0]
-    assert {"category", "path", "name", "definition_label", "definition_url", "is_duplicate"} <= sample.keys()
+    assert {
+        "category",
+        "path",
+        "name",
+        "definition_label",
+        "definition_url",
+        "is_duplicate",
+    } <= sample.keys()

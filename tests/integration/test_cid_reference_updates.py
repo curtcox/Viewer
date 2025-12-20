@@ -21,27 +21,23 @@ def test_update_cid_references_refreshes_alias_and_server_state(integration_app)
             f"/{old_cid}?download=1",
             alias_name="latest",
         )
-        definition_text = (
-            f"{definition_text}\n# legacy pointer {old_cid}"
-        )
+        definition_text = f"{definition_text}\n# legacy pointer {old_cid}"
         alias = Alias(
             name="latest",
             definition=definition_text,
         )
         server = Server(
             name="docs",
-            definition=(
-                "def main(request):\n"
-                f"    return '{old_cid}'\n"
-            ),
+            definition=(f"def main(request):\n    return '{old_cid}'\n"),
             definition_cid=old_cid,
         )
         db.session.add_all([alias, server])
         db.session.commit()
 
-        with patch("cid_utils.save_server_definition_as_cid") as mock_save, patch(
-            "cid_utils.store_server_definitions_cid"
-        ) as mock_store:
+        with (
+            patch("cid_utils.save_server_definition_as_cid") as mock_save,
+            patch("cid_utils.store_server_definitions_cid") as mock_store,
+        ):
             mock_save.side_effect = lambda definition: "test-integration-cid"
             mock_store.side_effect = lambda: "bundle"
 
@@ -76,9 +72,7 @@ def test_update_alias_cid_reference_updates_existing_alias(integration_app):
             ignore_case=True,
             alias_name="integration-release",
         )
-        definition_text = (
-            f"{definition_text}\n# replace legacycid"
-        )
+        definition_text = f"{definition_text}\n# replace legacycid"
         alias = Alias(
             name="integration-release",
             definition=definition_text,

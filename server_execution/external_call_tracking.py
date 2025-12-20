@@ -11,7 +11,10 @@ import urllib.parse
 import requests
 
 _THREAD_STATE = threading.local()
-_PATCH_STATE: Dict[str, Any] = {"original_request": requests.Session.request, "depth": 0}
+_PATCH_STATE: Dict[str, Any] = {
+    "original_request": requests.Session.request,
+    "depth": 0,
+}
 
 
 def _make_json_safe(value: Any) -> Any:

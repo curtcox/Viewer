@@ -69,114 +69,129 @@ class TestProcessTextUpload(unittest.TestCase):
         content = process_text_upload(mock_form)
         self.assertIn(b"Hello", content)
         # Verify UTF-8 encoding
-        self.assertEqual(content.decode('utf-8'), "Hello 世界! 🌍")
+        self.assertEqual(content.decode("utf-8"), "Hello 世界! 🌍")
 
 
 class TestProcessURLUpload(unittest.TestCase):
     """Tests for process_url_upload function."""
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_success(self, mock_get):
         """Test successful URL upload."""
         # Mock response
         mock_response = Mock()
         mock_response.headers = {
-            'content-type': 'text/plain; charset=utf-8',
-            'content-length': '100'
+            "content-type": "text/plain; charset=utf-8",
+            "content-length": "100",
         }
         mock_response.iter_content.return_value = [b"test ", b"content"]
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/file.txt"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/file.txt")
+        )
 
         content, mime_type = process_url_upload(mock_form)
         self.assertEqual(content, b"test content")
-        self.assertEqual(mime_type, 'text/plain')
+        self.assertEqual(mime_type, "text/plain")
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_large_file_header(self, mock_get):
         """Test URL upload with content-length exceeding limit."""
         mock_response = Mock()
         mock_response.headers = {
-            'content-type': 'application/octet-stream',
-            'content-length': str(MAX_UPLOAD_SIZE_BYTES + 1)
+            "content-type": "application/octet-stream",
+            "content-length": str(MAX_UPLOAD_SIZE_BYTES + 1),
         }
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/large.bin"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/large.bin")
+        )
 
         with self.assertRaises(ValueError) as ctx:
             process_url_upload(mock_form)
         self.assertIn("too large", str(ctx.exception))
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_large_file_streaming(self, mock_get):
         """Test URL upload that exceeds size limit during streaming."""
         mock_response = Mock()
-        mock_response.headers = {'content-type': 'application/octet-stream'}
+        mock_response.headers = {"content-type": "application/octet-stream"}
         # Create chunks that exceed limit
         chunk_size = MAX_UPLOAD_SIZE_BYTES // 2 + 1
         mock_response.iter_content.return_value = [b"x" * chunk_size, b"x" * chunk_size]
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/huge.bin"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/huge.bin")
+        )
 
         with self.assertRaises(ValueError) as ctx:
             process_url_upload(mock_form)
         self.assertIn("too large", str(ctx.exception))
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_generates_filename(self, mock_get):
         """Test that filename is generated from URL."""
         mock_response = Mock()
-        mock_response.headers = {'content-type': 'image/png'}
+        mock_response.headers = {"content-type": "image/png"}
         mock_response.iter_content.return_value = [b"data"]
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/path/image.png"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/path/image.png")
+        )
 
         _, mime_type = process_url_upload(mock_form)
-        self.assertEqual(mime_type, 'image/png')
+        self.assertEqual(mime_type, "image/png")
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_without_filename(self, mock_get):
         """Test URL upload without filename in path."""
         mock_response = Mock()
-        mock_response.headers = {'content-type': 'application/json'}
+        mock_response.headers = {"content-type": "application/json"}
         mock_response.iter_content.return_value = [b"{}"]
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/api/"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/api/")
+        )
 
         _, mime_type = process_url_upload(mock_form)
-        self.assertEqual(mime_type, 'application/json')
+        self.assertEqual(mime_type, "application/json")
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_network_error(self, mock_get):
         """Test URL upload with network error."""
         import requests
+
         mock_get.side_effect = requests.exceptions.RequestException("Network error")
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="https://example.com/error"))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="https://example.com/error")
+        )
 
         with self.assertRaises(ValueError) as ctx:
             process_url_upload(mock_form)
         self.assertIn("Failed to download", str(ctx.exception))
 
-    @patch('upload_handlers.requests.get')
+    @patch("upload_handlers.requests.get")
     def test_process_url_upload_strips_url(self, mock_get):
         """Test that URL is stripped of whitespace."""
         mock_response = Mock()
-        mock_response.headers = {'content-type': 'text/plain'}
+        mock_response.headers = {"content-type": "text/plain"}
         mock_response.iter_content.return_value = [b"test"]
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
 
-        mock_form = SimpleNamespace(url=SimpleNamespace(data="  https://example.com/file.txt  "))
+        mock_form = SimpleNamespace(
+            url=SimpleNamespace(data="  https://example.com/file.txt  ")
+        )
 
         process_url_upload(mock_form)
         mock_get.assert_called_once()

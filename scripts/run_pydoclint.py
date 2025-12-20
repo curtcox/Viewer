@@ -15,6 +15,7 @@ from typing import Sequence
 @dataclass
 class DocstringIssue:
     """Represents a single docstring issue from pydoclint."""
+
     path: str
     line: int
     code: str
@@ -49,7 +50,7 @@ def _parse_pydoclint_output(output: str) -> list[DocstringIssue]:
     issues: list[DocstringIssue] = []
     current_file = ""
 
-    for line in output.strip().split('\n'):
+    for line in output.strip().split("\n"):
         if not line.strip():
             continue
 
@@ -59,10 +60,10 @@ def _parse_pydoclint_output(output: str) -> list[DocstringIssue]:
             continue
 
         # Parse issue line (has leading spaces)
-        if ':' in line and current_file:
+        if ":" in line and current_file:
             try:
                 # Format: "    123: DOC101: Message"
-                parts = line.strip().split(':', 3)
+                parts = line.strip().split(":", 3)
                 if len(parts) >= 3:
                     line_num = int(parts[0].strip())
                     code = parts[1].strip()
@@ -141,13 +142,15 @@ def _format_html_report(issues: list[DocstringIssue]) -> str:
 
     def _render_rows() -> str:
         if not issues:
-            return "      <tr><td colspan=\"4\">No docstring issues detected! 🎉</td></tr>"
+            return (
+                '      <tr><td colspan="4">No docstring issues detected! 🎉</td></tr>'
+            )
 
         rows: list[str] = []
         for issue in sorted(issues, key=lambda i: (i.path, i.line)):
             rows.append(
                 f"      <tr><td>{escape(issue.path)}</td>"
-                f"<td class=\"numeric\">{issue.line}</td>"
+                f'<td class="numeric">{issue.line}</td>'
                 f"<td>{escape(issue.code)}</td>"
                 f"<td>{escape(issue.message)}</td></tr>"
             )
@@ -158,8 +161,8 @@ def _format_html_report(issues: list[DocstringIssue]) -> str:
 
     summary_text = (
         f"Found {len(issues)} docstring issue(s) across {unique_files} file(s)."
-        if issues else
-        "No docstring issues detected!"
+        if issues
+        else "No docstring issues detected!"
     )
 
     categories_rows = ""
@@ -167,7 +170,9 @@ def _format_html_report(issues: list[DocstringIssue]) -> str:
         cat_rows = []
         for code in sorted(categories.keys()):
             count = len(categories[code])
-            cat_rows.append(f"      <tr><td>{escape(code)}</td><td class=\"numeric\">{count}</td></tr>")
+            cat_rows.append(
+                f'      <tr><td>{escape(code)}</td><td class="numeric">{count}</td></tr>'
+            )
         categories_rows = f"""
   <section>
     <h2>Summary by type</h2>
@@ -230,7 +235,9 @@ def _write_file(path: Path, content: str) -> None:
 
 def run(argv: Sequence[str] | None = None) -> int:
     """Run pydoclint and generate reports."""
-    parser = argparse.ArgumentParser(description="Run pydoclint and publish docstring quality reports.")
+    parser = argparse.ArgumentParser(
+        description="Run pydoclint and publish docstring quality reports."
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -270,7 +277,10 @@ def run(argv: Sequence[str] | None = None) -> int:
     # Check if it's a real error (not just findings)
     if exit_code != 0 and combined_output.strip():
         # Check if it's a real error
-        if any(indicator in combined_output.lower() for indicator in ["exception", "traceback", "usage:"]):
+        if any(
+            indicator in combined_output.lower()
+            for indicator in ["exception", "traceback", "usage:"]
+        ):
             error_msg = f"Pydoclint command failed with exit code {exit_code}."
             if combined_output.strip():
                 error_msg = f"{error_msg}\nOutput: {combined_output.strip()}"

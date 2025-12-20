@@ -19,24 +19,35 @@ def _encode_output(output: Any) -> bytes:
     # Dicts -> JSON for human-friendly output instead of concatenated keys
     if isinstance(output, dict):
         try:
-            return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            return json.dumps(
+                output, ensure_ascii=False, indent=2, sort_keys=True
+            ).encode("utf-8")
         except (TypeError, ValueError):
             # Fall back to string representation for non-JSON-serializable dicts
             return str(output).encode("utf-8")
     # If it's an iterable, try to handle common patterns gracefully
     try:
-        from collections.abc import Iterable as _Iterable  # local import to avoid top changes
+        from collections.abc import (
+            Iterable as _Iterable,
+        )  # local import to avoid top changes
+
         if isinstance(output, _Iterable):
             items = list(output)
             # If elements look JSON-serializable (e.g., list of dicts), prefer JSON
             try:
                 if items and any(isinstance(x, (dict, list, tuple)) for x in items):
-                    return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+                    return json.dumps(
+                        output, ensure_ascii=False, indent=2, sort_keys=True
+                    ).encode("utf-8")
             except Exception as json_err:  # pylint: disable=broad-exception-caught
                 # Log all JSON encoding failures for debugging user code output
-                print(f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}")
+                print(
+                    f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}"
+                )
                 print(f"[server_execution] Output type: {type(output).__name__}")
-                print(f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}...")
+                print(
+                    f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}..."
+                )
                 traceback.print_exc()
                 # Continue to try other encodings
             # List of ints -> bytes directly
@@ -56,7 +67,9 @@ def _encode_output(output: Any) -> bytes:
     return str(output).encode("utf-8")
 
 
-def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, content_type: str) -> None:
+def _log_server_output(
+    debug_prefix: str, error_suffix: str, output: Any, content_type: str
+) -> None:
     """Log execution details while tolerating logging failures."""
     try:
         sample = repr(output)
@@ -104,4 +117,4 @@ def _handle_successful_execution(
             return redirect(redirect_path)
     if cid_record_path:
         return redirect(cid_record_path)
-    return redirect('/')
+    return redirect("/")

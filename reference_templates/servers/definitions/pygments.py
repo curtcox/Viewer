@@ -71,14 +71,18 @@ filename = f"{cid}.{extension}" if extension else cid
 
 if not cid:
     expected = escape(server_hint or "this-server")
-    message = f"Provide a CID path such as /{expected}/CID.py to render highlighted source."
+    message = (
+        f"Provide a CID path such as /{expected}/CID.py to render highlighted source."
+    )
     raise_return = _build_error_page(message, "CID required")
     return raise_return
 
 try:
     source_text = load(cid)
 except Exception as exc:  # noqa: BLE001 - surface errors to the caller
-    return _build_error_page(str(exc) or "Unable to read CID content.", f"Error loading {escape(filename)}")
+    return _build_error_page(
+        str(exc) or "Unable to read CID content.", f"Error loading {escape(filename)}"
+    )
 
 highlighted_html, syntax_css = highlight_source(
     source_text,

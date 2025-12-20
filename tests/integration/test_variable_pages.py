@@ -1,4 +1,5 @@
 """Integration coverage for variable management pages."""
+
 from __future__ import annotations
 
 import json
@@ -64,8 +65,8 @@ def test_variables_page_includes_enabled_toggle(
     assert 'action="/variables/API_URL/enabled"' in page
     toggle_match = re.search(r'id="variable-enabled-toggle-API_URL"[^>]*>', page)
     assert toggle_match is not None
-    assert 'checked' not in toggle_match.group(0)
-    assert 'variable-enabled-label' in page
+    assert "checked" not in toggle_match.group(0)
+    assert "variable-enabled-label" in page
 
 
 def test_variable_enable_toggle_updates_state(
@@ -161,7 +162,7 @@ def test_new_variable_form_includes_templates(
                     "definition": "sample-value",
                 }
             },
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(
@@ -201,9 +202,9 @@ def test_new_variable_form_includes_template_link(
                 "VAR3": {
                     "name": "VAR3",
                     "definition": "value3",
-                }
+                },
             },
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(
@@ -313,21 +314,17 @@ def test_bulk_variable_editor_prefills_existing_variables(
     """The bulk editor should render the current variables as JSON."""
 
     with integration_app.app_context():
-        db.session.add(
-            Variable(name="city", definition="Paris")
-        )
-        db.session.add(
-            Variable(name="region", definition="Europe")
-        )
+        db.session.add(Variable(name="city", definition="Paris"))
+        db.session.add(Variable(name="region", definition="Europe"))
         db.session.commit()
 
     response = client.get("/variables/_/edit")
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert 'city' in page
-    assert 'Europe' in page
-    assert 'region' in page
+    assert "city" in page
+    assert "Europe" in page
+    assert "region" in page
 
 
 def test_bulk_variable_editor_updates_and_deletes_variables(
@@ -337,12 +334,8 @@ def test_bulk_variable_editor_updates_and_deletes_variables(
     """Saving from the bulk editor should upsert provided variables and remove omissions."""
 
     with integration_app.app_context():
-        db.session.add(
-            Variable(name="city", definition="Paris")
-        )
-        db.session.add(
-            Variable(name="country", definition="France")
-        )
+        db.session.add(Variable(name="city", definition="Paris"))
+        db.session.add(Variable(name="country", definition="France"))
         db.session.commit()
 
     payload = {"city": "Berlin", "timezone": "CET"}
@@ -376,9 +369,7 @@ def test_bulk_variable_editor_invalid_json_displays_errors(
     """Invalid JSON submissions should be rejected and show an error message."""
 
     with integration_app.app_context():
-        db.session.add(
-            Variable(name="city", definition="Paris")
-        )
+        db.session.add(Variable(name="city", definition="Paris"))
         db.session.commit()
 
     response = client.post(

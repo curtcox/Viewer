@@ -1,4 +1,5 @@
 """Integration tests for the routes overview page."""
+
 from __future__ import annotations
 
 import pytest

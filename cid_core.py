@@ -85,6 +85,7 @@ CID_PATH_CAPTURE_PATTERN = re.compile(
 # BASE64URL ENCODING HELPERS
 # ============================================================================
 
+
 def base64url_encode(data: bytes) -> str:
     """Encode bytes as URL-safe base64 without padding.
 
@@ -125,6 +126,7 @@ def base64url_decode(data: str) -> bytes:
 # CID COMPONENT NORMALIZATION
 # ============================================================================
 
+
 def normalize_component(value: Optional[str]) -> str:
     """Normalize a CID component by removing whitespace and leading slashes.
 
@@ -154,6 +156,7 @@ def normalize_component(value: Optional[str]) -> str:
 # ============================================================================
 # CID VALIDATION FUNCTIONS
 # ============================================================================
+
 
 def is_probable_cid_component(value: Optional[str]) -> bool:
     """Check if a value could be a CID or CID prefix.
@@ -281,6 +284,7 @@ def split_cid_path(value: Optional[str]) -> Optional[Tuple[str, Optional[str]]]:
 # ============================================================================
 # CID GENERATION AND PARSING
 # ============================================================================
+
 
 def encode_cid_length(length: int) -> str:
     """Encode the content length into the CID prefix.

@@ -61,9 +61,7 @@ def typescript_environment(monkeypatch):
     monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
     monkeypatch.setattr(db_access, "get_servers", return_servers)
 
-    def simple_success(
-        output, content_type, server_name, *, external_calls=None
-    ):  # pylint: disable=unused-argument
+    def simple_success(output, content_type, server_name, *, external_calls=None):  # pylint: disable=unused-argument
         return Response(output, mimetype=content_type or "text/html")
 
     monkeypatch.setattr(code_execution, "_handle_successful_execution", simple_success)
@@ -80,9 +78,7 @@ def typescript_environment(monkeypatch):
         )
         return f"ts:{payload}".encode(), 200, b""
 
-    def fake_run_bash(
-        code, server_name, chained_input=None, *, script_args=None
-    ):  # pylint: disable=unused-argument
+    def fake_run_bash(code, server_name, chained_input=None, *, script_args=None):  # pylint: disable=unused-argument
         if chained_input is not None:
             payload = chained_input
         else:
@@ -125,9 +121,7 @@ def test_typescript_literal_chains_into_python_literal(typescript_environment):
             return {"output": f"py:{payload}", "content_type": "text/plain"}
         """,
     )
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{ts_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{ts_cid}.ts")
 
     with app.test_request_context(f"/{python_cid}.py/{ts_cid}.ts/result"):
         response = server_execution.try_server_execution(
@@ -143,9 +137,7 @@ def test_typescript_literal_chains_into_bash_literal(typescript_environment):
     ts_cid = "ts-right"
 
     typescript_environment.cid_registry[f"/{bash_cid}"] = b"echo placeholder"
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{ts_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{ts_cid}.ts")
 
     with app.test_request_context(f"/{bash_cid}.sh/{ts_cid}.ts/final"):
         response = server_execution.try_server_execution(
@@ -160,12 +152,8 @@ def test_typescript_literal_chains_into_typescript_literal(typescript_environmen
     left_cid = "ts-left"
     right_cid = "ts-right"
 
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{left_cid}.ts"
-    )
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{right_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{left_cid}.ts")
+    _store_typescript_server(typescript_environment.cid_registry, f"{right_cid}.ts")
 
     with app.test_request_context(f"/{left_cid}.ts/{right_cid}.ts/final"):
         response = server_execution.try_server_execution(
@@ -180,9 +168,7 @@ def test_typescript_server_consumes_python_input(typescript_environment):
     ts_cid = "ts-consume"
     python_cid = "py-yield"
 
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{ts_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{ts_cid}.ts")
     _store_python_server(
         typescript_environment.cid_registry,
         python_cid,
@@ -200,8 +186,7 @@ def test_typescript_server_consumes_python_input(typescript_environment):
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "ts:python-into-ts"
     assert (
-        typescript_environment.typescript_runs[-1]["chained_input"]
-        == "python-into-ts"
+        typescript_environment.typescript_runs[-1]["chained_input"] == "python-into-ts"
     )
 
 
@@ -209,9 +194,7 @@ def test_typescript_server_consumes_bash_input(typescript_environment):
     ts_cid = "ts-target"
     bash_cid = "bash-source"
 
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{ts_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{ts_cid}.ts")
     typescript_environment.cid_registry[f"/{bash_cid}"] = b"echo bash-into-ts"
 
     with app.test_request_context(f"/{ts_cid}.ts/{bash_cid}.sh/run"):
@@ -227,12 +210,8 @@ def test_typescript_server_consumes_typescript_input(typescript_environment):
     left_cid = "ts-left"
     right_cid = "ts-right"
 
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{left_cid}.ts"
-    )
-    _store_typescript_server(
-        typescript_environment.cid_registry, f"{right_cid}.ts"
-    )
+    _store_typescript_server(typescript_environment.cid_registry, f"{left_cid}.ts")
+    _store_typescript_server(typescript_environment.cid_registry, f"{right_cid}.ts")
 
     with app.test_request_context(f"/{left_cid}.ts/{right_cid}.ts/run"):
         response = server_execution.try_server_execution(
@@ -266,10 +245,7 @@ def test_named_typescript_server_receives_python_input(typescript_environment):
 
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "ts:python->ts"
-    assert (
-        typescript_environment.typescript_runs[-1]["chained_input"]
-        == "python->ts"
-    )
+    assert typescript_environment.typescript_runs[-1]["chained_input"] == "python->ts"
 
 
 def test_python_literal_extracts_output_from_typescript_json(
@@ -329,9 +305,7 @@ def test_typescript_literal_with_extension_executes(typescript_environment):
     )
 
     with app.test_request_context(f"/{ts_cid}.ts/final"):
-        response = server_execution.try_server_execution(
-            f"/{ts_cid}.ts/final"
-        )
+        response = server_execution.try_server_execution(f"/{ts_cid}.ts/final")
 
     assert isinstance(response, Response)
     assert response.get_data(as_text=True).strip() == "ts:from-ts"

@@ -78,6 +78,7 @@ def _extract_response_body(app, response) -> str:
 
 # Tests for awk server
 
+
 def test_awk_server_accepts_pattern_from_path(client, integration_app):
     """Awk server should accept pattern from path segment and input from chained server."""
     _store_server(
@@ -153,6 +154,7 @@ def main(payload):
 
 # Tests for sed server
 
+
 def test_sed_server_accepts_expression_from_path(client, integration_app):
     """Sed server should accept expression from path segment."""
     _store_server(
@@ -172,7 +174,9 @@ def main():
 """,
     )
 
-    response = client.get("/sed/s%2Fworld%2Funiverse%2F/echo_text")  # URL-encoded s/world/universe/
+    response = client.get(
+        "/sed/s%2Fworld%2Funiverse%2F/echo_text"
+    )  # URL-encoded s/world/universe/
     body = _extract_response_body(integration_app, response)
 
     assert "hello universe" in body
@@ -225,6 +229,7 @@ def main(payload):
 
 # Tests for grep server
 
+
 def test_grep_server_accepts_pattern_from_path(client, integration_app):
     """Grep server should accept pattern from path segment."""
     _store_server(
@@ -263,7 +268,10 @@ grep -E "$1" || true
 """,
     )
 
-    cid = _store_cid(integration_app, b"error: something failed\ninfo: all good\nerror: another issue")
+    cid = _store_cid(
+        integration_app,
+        b"error: something failed\ninfo: all good\nerror: another issue",
+    )
 
     response = client.get(f"/grep/error/{cid}")
     body = _extract_response_body(integration_app, response)
@@ -377,6 +385,7 @@ def main(payload):
 
 # Tests for CID pattern resolution
 
+
 def test_path_parameter_resolves_cid_content(client, integration_app):
     """When path parameter is a CID, its contents should be used as $1."""
     _store_server(
@@ -430,6 +439,7 @@ awk "$1"
 
 
 # Test standard bash server without $1 still works
+
 
 def test_standard_bash_server_unchanged(client, integration_app):
     """Bash servers without $1 should continue to work as before."""

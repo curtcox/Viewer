@@ -1,4 +1,5 @@
 """Minimal Gauge compatibility layer used for executing specs offline."""
+
 from __future__ import annotations
 
 import os
@@ -120,7 +121,9 @@ def after_scenario() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     return decorator
 
 
-def step(pattern: Union[str, List[str]]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def step(
+    pattern: Union[str, List[str]],
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Register a Gauge step definition.
 
     Args:
@@ -168,6 +171,8 @@ def _parse_pattern(pattern: str) -> Tuple[re.Pattern[str], List[int], Dict[str, 
 
     regex = re.compile("^" + "".join(parts) + "$")
     return regex, positional_indices, named_indices
+
+
 class Messages:
     """Minimal Gauge Messages implementation used by the local stub."""
 

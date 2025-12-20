@@ -24,10 +24,10 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         self.db_fd, temp_db_path = tempfile.mkstemp()
         self.db_path = temp_db_path
         config = {
-            'DATABASE': temp_db_path,
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{temp_db_path}',
-            'WTF_CSRF_ENABLED': False,
+            "DATABASE": temp_db_path,
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{temp_db_path}",
+            "WTF_CSRF_ENABLED": False,
         }
 
         flask_app = create_app(config)
@@ -39,14 +39,8 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         db.create_all()
 
         # Create test variables
-        self.variable1 = Variable(
-            name='test_var1',
-            definition='value1'
-        )
-        self.variable2 = Variable(
-            name='test_var2',
-            definition='value2'
-        )
+        self.variable1 = Variable(name="test_var1", definition="value1")
+        self.variable2 = Variable(name="test_var2", definition="value2")
         db.session.add(self.variable1)
         db.session.add(self.variable2)
         db.session.commit()
@@ -68,16 +62,15 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         # Should contain both variables
         self.assertEqual(len(data), 2)
-        self.assertIn('test_var1', data)
-        self.assertIn('test_var2', data)
-        self.assertEqual(data['test_var1'], 'value1')
-        self.assertEqual(data['test_var2'], 'value2')
+        self.assertIn("test_var1", data)
+        self.assertIn("test_var2", data)
+        self.assertEqual(data["test_var1"], "value1")
+        self.assertEqual(data["test_var2"], "value2")
 
         # Verify JSON formatting (sorted keys, proper indentation)
-        expected_json = json.dumps({
-            'test_var1': 'value1',
-            'test_var2': 'value2'
-        }, indent=2, sort_keys=True)
+        expected_json = json.dumps(
+            {"test_var1": "value1", "test_var2": "value2"}, indent=2, sort_keys=True
+        )
         self.assertEqual(json_content, expected_json)
 
     def test_generate_all_variable_definitions_json_empty(self):
@@ -91,13 +84,13 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         # Should be empty dictionary
         self.assertEqual(data, {})
-        self.assertEqual(json_content, '{}')
+        self.assertEqual(json_content, "{}")
 
     def test_generate_all_variable_definitions_json_sorted(self):
         """Test that variables are sorted alphabetically in JSON"""
         # Add more variables in non-alphabetical order
-        var_z = Variable(name='z_var', definition='z_value')
-        var_a = Variable(name='a_var', definition='a_value')
+        var_z = Variable(name="z_var", definition="z_value")
+        var_a = Variable(name="a_var", definition="a_value")
         db.session.add(var_z)
         db.session.add(var_a)
         db.session.commit()
@@ -107,7 +100,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         # Keys should be in alphabetical order
         keys = list(data.keys())
-        self.assertEqual(keys, ['a_var', 'test_var1', 'test_var2', 'z_var'])
+        self.assertEqual(keys, ["a_var", "test_var1", "test_var2", "z_var"])
 
     def test_store_variable_definitions_cid(self):
         """Test storing variable definitions as CID"""
@@ -123,7 +116,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         # Verify the stored/embedded content matches expected JSON
         expected_json = generate_all_variable_definitions_json()
-        stored_content = cid_record.file_data.decode('utf-8')
+        stored_content = cid_record.file_data.decode("utf-8")
         self.assertEqual(stored_content, expected_json)
 
     def test_store_variable_definitions_cid_deduplication(self):
@@ -170,7 +163,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         original_cid = store_variable_definitions_cid()
 
         # Add a new variable
-        new_var = Variable(name='new_var', definition='new_value')
+        new_var = Variable(name="new_var", definition="new_value")
         db.session.add(new_var)
         db.session.commit()
 
@@ -182,16 +175,16 @@ class TestVariableDefinitionsCID(unittest.TestCase):
 
         # New CID should resolve correctly and contain the new variable
         cid_record = get_cid_by_path(f"/{updated_cid}")
-        stored_content = cid_record.file_data.decode('utf-8')
+        stored_content = cid_record.file_data.decode("utf-8")
         data = json.loads(stored_content)
-        self.assertIn('new_var', data)
-        self.assertEqual(data['new_var'], 'new_value')
+        self.assertIn("new_var", data)
+        self.assertEqual(data["new_var"], "new_value")
 
     def test_cid_content_deterministic(self):
         """Test that same variable content produces same CID"""
         # Create additional variables with same content
-        var1_copy = Variable(name='test_var1_copy', definition='value1')
-        var2_copy = Variable(name='test_var2_copy', definition='value2')
+        var1_copy = Variable(name="test_var1_copy", definition="value1")
+        var2_copy = Variable(name="test_var2_copy", definition="value2")
         db.session.add(var1_copy)
         db.session.add(var2_copy)
         db.session.commit()
@@ -208,7 +201,7 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         cid1 = store_variable_definitions_cid()
 
         # Modify a variable
-        self.variable1.definition = 'modified_value1'
+        self.variable1.definition = "modified_value1"
         db.session.commit()
 
         # Store CID again
@@ -217,5 +210,6 @@ class TestVariableDefinitionsCID(unittest.TestCase):
         # Should be different CIDs
         self.assertNotEqual(cid1, cid2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,5 @@
 """Integration tests for the source browser and instance pages."""
+
 from __future__ import annotations
 
 import pytest
@@ -96,9 +97,7 @@ def test_source_instance_table_view_displays_rows(
     """Viewing a specific table should render its rows in an HTML table."""
 
     with integration_app.app_context():
-        db.session.add(
-            Variable(name="example", definition="value")
-        )
+        db.session.add(Variable(name="example", definition="value"))
         db.session.commit()
 
     response = client.get("/source/instance/variable")

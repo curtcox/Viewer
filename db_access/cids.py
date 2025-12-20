@@ -21,13 +21,14 @@ class LiteralCIDRecord:
     This class provides an interface compatible with the CID model
     for content that doesn't need to be stored in the database.
     """
+
     path: str
     file_data: bytes
     file_size: int
     created_at: datetime
 
     def __repr__(self) -> str:
-        return f'<LiteralCID {self.path}>'
+        return f"<LiteralCID {self.path}>"
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
@@ -38,7 +39,11 @@ def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitio
             save_server_definition_as_cid,
             store_server_definitions_cid,
         )
-    except (ImportError, ModuleNotFoundError, RuntimeError) as exc:  # pragma: no cover - defensive
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        RuntimeError,
+    ) as exc:  # pragma: no cover - defensive
         raise RuntimeError("CID utilities are unavailable") from exc
 
     return save_server_definition_as_cid, store_server_definitions_cid
@@ -66,10 +71,12 @@ def _try_resolve_literal_cid(path: str) -> Optional[LiteralCIDRecord]:
         return None
 
     return LiteralCIDRecord(
-        path=path if path.startswith('/') else f"/{path}",
+        path=path if path.startswith("/") else f"/{path}",
         file_data=content,
         file_size=len(content),
-        created_at=datetime.fromtimestamp(0, timezone.utc),  # Epoch time for immutable content
+        created_at=datetime.fromtimestamp(
+            0, timezone.utc
+        ),  # Epoch time for immutable content
     )
 
 
@@ -101,17 +108,12 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
     if not prefix:
         return []
 
-    normalized = prefix.split('.')[0].lstrip('/')
+    normalized = prefix.split(".")[0].lstrip("/")
     if not normalized:
         return []
 
     pattern = f"/{normalized}%"
-    return (
-        CID.query
-        .filter(CID.path.like(pattern))
-        .order_by(CID.path.asc())
-        .all()
-    )
+    return CID.query.filter(CID.path.like(pattern)).order_by(CID.path.asc()).all()
 
 
 def create_cid_record_raw(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
@@ -194,11 +196,7 @@ def get_uploads() -> List[CID]:
     else:
         query = db.session.query
 
-    return (
-        query(CID)
-        .order_by(CID.created_at.desc())
-        .all()
-    )
+    return query(CID).order_by(CID.created_at.desc()).all()
 
 
 def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
@@ -212,12 +210,7 @@ def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
 
 def get_recent_cids(limit: int = 10) -> List[CID]:
     """Return the most recent CID records."""
-    return (
-        CID.query
-        .order_by(CID.created_at.desc())
-        .limit(limit)
-        .all()
-    )
+    return CID.query.order_by(CID.created_at.desc()).limit(limit).all()
 
 
 def get_first_cid() -> Optional[CID]:
@@ -237,7 +230,9 @@ def _normalize_cid_input(value: str | ValidatedCID | None) -> str:
     return normalize_cid_value(value)
 
 
-def update_cid_references(old_cid: str | ValidatedCID, new_cid: str | ValidatedCID) -> Dict[str, int]:
+def update_cid_references(
+    old_cid: str | ValidatedCID, new_cid: str | ValidatedCID
+) -> Dict[str, int]:
     """Replace CID references in alias and server definitions.
 
     Parameters

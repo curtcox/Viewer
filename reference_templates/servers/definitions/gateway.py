@@ -14,26 +14,28 @@ import requests
 from flask import request as flask_request
 
 
-def main(target_server=None, request_transform=None, response_transform=None, context=None):
+def main(
+    target_server=None, request_transform=None, response_transform=None, context=None
+):
     """Gateway server main function.
-    
+
     Parameters:
         target_server: Base URL of the target API server (e.g., 'https://api.github.com')
         request_transform: Optional server name to transform the request before sending
         response_transform: Optional server name to transform the response before returning
         context: Request context (automatically provided by the server execution framework)
-    
+
     When target_server is not provided, displays an examples/instructions page.
     When target_server is provided, proxies requests to that server.
     """
-    
+
     # If no target server is specified, show the examples page
     if not target_server:
         return _render_examples_page()
-    
+
     # Get the path after the gateway mount point
     request_path = flask_request.path or "/"
-    
+
     # Extract the path after /gateway (or whatever the mount point is)
     # The remaining path should be used as the request path to the target server
     path_parts = request_path.strip("/").split("/", 1)
@@ -41,10 +43,10 @@ def main(target_server=None, request_transform=None, response_transform=None, co
         target_path = "/" + path_parts[1]
     else:
         target_path = "/"
-    
+
     # Build the full target URL
     target_url = urljoin(target_server.rstrip("/") + "/", target_path.lstrip("/"))
-    
+
     # Prepare request details for transformation
     request_details = {
         "url": target_url,
@@ -55,14 +57,12 @@ def main(target_server=None, request_transform=None, response_transform=None, co
         "original_path": request_path,
         "target_server": target_server,
     }
-    
+
     # Apply request transformation if specified
     if request_transform:
         try:
             transform_result = _apply_transform(
-                request_transform, 
-                request_details,
-                context
+                request_transform, request_details, context
             )
             if isinstance(transform_result, dict) and "error" in transform_result:
                 return transform_result
@@ -71,11 +71,11 @@ def main(target_server=None, request_transform=None, response_transform=None, co
             return {
                 "output": _render_error_page(
                     "Request Transform Error",
-                    f"Failed to transform request: {escape(str(e))}"
+                    f"Failed to transform request: {escape(str(e))}",
                 ),
                 "content_type": "text/html",
             }
-    
+
     # Make the request to the target server
     try:
         response = _make_request(request_details)
@@ -83,11 +83,11 @@ def main(target_server=None, request_transform=None, response_transform=None, co
         return {
             "output": _render_error_page(
                 "Request Failed",
-                f"Failed to connect to target server: {escape(str(e))}"
+                f"Failed to connect to target server: {escape(str(e))}",
             ),
             "content_type": "text/html",
         }
-    
+
     # Prepare response details for transformation
     response_details = {
         "status_code": response.status_code,
@@ -96,14 +96,12 @@ def main(target_server=None, request_transform=None, response_transform=None, co
         "text": response.text if response.text else "",
         "request_details": request_details,
     }
-    
+
     # Apply response transformation if specified
     if response_transform:
         try:
             transform_result = _apply_transform(
-                response_transform,
-                response_details,
-                context
+                response_transform, response_details, context
             )
             if isinstance(transform_result, dict) and "output" in transform_result:
                 return transform_result
@@ -112,28 +110,24 @@ def main(target_server=None, request_transform=None, response_transform=None, co
             return {
                 "output": _render_error_page(
                     "Response Transform Error",
-                    f"Failed to transform response: {escape(str(e))}"
+                    f"Failed to transform response: {escape(str(e))}",
                 ),
                 "content_type": "text/html",
             }
-    
+
     # Default: Convert JSON responses to HTML
     content_type = response.headers.get("Content-Type", "")
     if "application/json" in content_type:
         try:
             json_data = response.json()
-            html_output = _render_json_as_html(
-                json_data,
-                target_server,
-                request_path
-            )
+            html_output = _render_json_as_html(json_data, target_server, request_path)
             return {
                 "output": html_output,
                 "content_type": "text/html",
             }
         except json.JSONDecodeError:
             pass
-    
+
     # Return raw response
     return {
         "output": response.content,
@@ -143,7 +137,7 @@ def main(target_server=None, request_transform=None, response_transform=None, co
 
 def _render_examples_page():
     """Render the examples and instructions page."""
-    
+
     examples = [
         {
             "name": "GitHub API",
@@ -194,7 +188,7 @@ def _render_examples_page():
             "requires_auth": False,
         },
     ]
-    
+
     html_parts = [
         "<!DOCTYPE html>",
         "<html>",
@@ -241,30 +235,34 @@ def _render_examples_page():
         "    ",
         "    <h2>API Examples</h2>",
     ]
-    
+
     for example in examples:
         auth_class = "auth-required" if example["requires_auth"] else "no-auth"
         auth_text = "API Key Required" if example["requires_auth"] else "No Auth"
-        
-        html_parts.extend([
-            "    <div class='example'>",
-            f"        <h3>{escape(example['name'])}<span class='auth-badge {auth_class}'>{auth_text}</span></h3>",
-            f"        <p>{escape(example['description'])}</p>",
-            f"        <a href='{escape(example['link'])}' class='link'>Browse API</a>",
-            "    </div>",
-        ])
-    
-    html_parts.extend([
-        "    ",
-        "    <h2>Usage Example</h2>",
-        "    <pre>",
-        "/gateway?target_server=https://api.github.com&response_transform=gateway_json_to_html",
-        "    </pre>",
-        "    <p>This will browse the GitHub API root and convert responses to HTML with clickable links.</p>",
-        "</body>",
-        "</html>",
-    ])
-    
+
+        html_parts.extend(
+            [
+                "    <div class='example'>",
+                f"        <h3>{escape(example['name'])}<span class='auth-badge {auth_class}'>{auth_text}</span></h3>",
+                f"        <p>{escape(example['description'])}</p>",
+                f"        <a href='{escape(example['link'])}' class='link'>Browse API</a>",
+                "    </div>",
+            ]
+        )
+
+    html_parts.extend(
+        [
+            "    ",
+            "    <h2>Usage Example</h2>",
+            "    <pre>",
+            "/gateway?target_server=https://api.github.com&response_transform=gateway_json_to_html",
+            "    </pre>",
+            "    <p>This will browse the GitHub API root and convert responses to HTML with clickable links.</p>",
+            "</body>",
+            "</html>",
+        ]
+    )
+
     return {
         "output": "\n".join(html_parts),
         "content_type": "text/html",
@@ -295,7 +293,7 @@ def _render_error_page(title, message):
 
 def _render_json_as_html(data, target_server, current_path):
     """Render JSON data as formatted HTML with embedded links."""
-    
+
     html_parts = [
         "<!DOCTYPE html>",
         "<html>",
@@ -323,62 +321,72 @@ def _render_json_as_html(data, target_server, current_path):
         "    <h1>API Response</h1>",
         "    <pre>",
     ]
-    
+
     # Format JSON with syntax highlighting and links
-    formatted_json = _format_json_with_links(data, target_server, current_path, indent=0)
+    formatted_json = _format_json_with_links(
+        data, target_server, current_path, indent=0
+    )
     html_parts.append(formatted_json)
-    
-    html_parts.extend([
-        "    </pre>",
-        "</body>",
-        "</html>",
-    ])
-    
+
+    html_parts.extend(
+        [
+            "    </pre>",
+            "</body>",
+            "</html>",
+        ]
+    )
+
     return "\n".join(html_parts)
 
 
 def _format_json_with_links(obj, target_server, current_path, indent=0):
     """Format JSON with syntax highlighting and convert URLs to gateway links."""
     indent_str = "  " * indent
-    
+
     if obj is None:
         return "<span class='json-null'>null</span>"
-    
+
     if isinstance(obj, bool):
         return f"<span class='json-boolean'>{str(obj).lower()}</span>"
-    
+
     if isinstance(obj, (int, float)):
         return f"<span class='json-number'>{obj}</span>"
-    
+
     if isinstance(obj, str):
         # Check if string looks like a URL for the target server
         if _is_api_url(obj, target_server):
             gateway_link = _convert_to_gateway_link(obj, target_server, current_path)
             return f"<a href='{escape(gateway_link)}' class='json-url'>\"<span class='json-string'>{escape(obj)}</span>\"</a>"
         return f"<span class='json-string'>\"{escape(obj)}\"</span>"
-    
+
     if isinstance(obj, list):
         if not obj:
             return "[]"
-        
+
         items = []
         for item in obj:
-            formatted_item = _format_json_with_links(item, target_server, current_path, indent + 1)
+            formatted_item = _format_json_with_links(
+                item, target_server, current_path, indent + 1
+            )
             items.append(f"{indent_str}  {formatted_item}")
-        
+
         return "[\n" + ",\n".join(items) + f"\n{indent_str}]"
-    
+
     if isinstance(obj, dict):
         if not obj:
             return "{}"
-        
+
         items = []
         for key, value in obj.items():
-            formatted_value = _format_json_with_links(value, target_server, current_path, indent + 1)
-            items.append(f"{indent_str}  <span class='json-key'>\"{escape(str(key))}\"</span>: {formatted_value}")
-        
+            formatted_value = _format_json_with_links(
+                value, target_server, current_path, indent + 1
+            )
+            items.append(
+                f"{indent_str}  <span class='json-key'>\"{escape(str(key))}\"</span>: {formatted_value}"
+            )
+
         return "{\n" + ",\n".join(items) + f"\n{indent_str}" + "}"
-    
+
     return f"<span class='json-string'>\"{escape(str(obj))}\"</span>"
 
 
@@ -386,20 +394,20 @@ def _is_api_url(value, target_server):
     """Check if a string value represents a URL for the target API."""
     if not isinstance(value, str):
         return False
-    
+
     # Parse the target server
     parsed_target = urlparse(target_server)
     target_domain = parsed_target.netloc
-    
+
     # Check if value is a full URL matching the target server
     if value.startswith("http://") or value.startswith("https://"):
         parsed_value = urlparse(value)
         return parsed_value.netloc == target_domain
-    
+
     # Check if value looks like an API path (starts with /)
     if value.startswith("/") and len(value) > 1:
         return True
-    
+
     return False
 
 
@@ -414,13 +422,13 @@ def _convert_to_gateway_link(url, target_server, current_path):
         # It's already a path
         api_path = url
         query = ""
-    
+
     # Extract the gateway mount point from current_path if present
     if "/gateway" in current_path:
         gateway_mount = current_path.split("/gateway")[0] + "/gateway"
     else:
         gateway_mount = "/gateway"
-    
+
     return f"{gateway_mount}{api_path}{query}?target_server={target_server}"
 
 
@@ -429,17 +437,17 @@ def _make_request(request_details):
     url = request_details["url"]
     method = request_details.get("method", "GET")
     headers = request_details.get("headers", {})
-    
+
     # Filter out problematic headers
     filtered_headers = {}
     for key, value in headers.items():
         lower_key = key.lower()
         if lower_key not in {"host", "content-length"}:
             filtered_headers[key] = value
-    
+
     # Get request body if present
     body = flask_request.get_data(cache=False) or None
-    
+
     response = requests.request(
         method,
         url,
@@ -448,13 +456,13 @@ def _make_request(request_details):
         allow_redirects=False,
         timeout=30,
     )
-    
+
     return response
 
 
 def _apply_transform(transform_server_name, data, context_info):
     """Apply a transformation server to the data.
-    
+
     This would execute the named server with the data as input.
     For now, this is a placeholder that would need to integrate with
     the server execution system.
@@ -463,6 +471,6 @@ def _apply_transform(transform_server_name, data, context_info):
     # 1. Look up the transform server by name
     # 2. Execute it with the data as input
     # 3. Return the transformed result
-    
+
     # For now, just return the data unchanged
     return data

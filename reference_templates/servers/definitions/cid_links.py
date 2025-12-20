@@ -17,7 +17,10 @@ from cid_core import (
 )
 
 # Pattern to find potential CIDs in text
-CID_PATTERN = re.compile(rf"\b([{CID_CHARACTER_CLASS}]{{{CID_MIN_LENGTH},{CID_LENGTH}}})\b")
+CID_PATTERN = re.compile(
+    rf"\b([{CID_CHARACTER_CLASS}]{{{CID_MIN_LENGTH},{CID_LENGTH}}})\b"
+)
+
 
 def _is_cid_in_link(text: str, cid: str, match_start: int) -> bool:
     """Check if a CID at the given position is already a link target in HTML.
@@ -101,7 +104,7 @@ def main(text: Any = "", *, context=None):
     # Convert newlines to HTML line breaks
     text = text.replace("\n", "<br>")
 
-    output = '<html>' + _process_html(text) + '</html>'
+    output = "<html>" + _process_html(text) + "</html>"
     content_type = "text/html"
 
     return {

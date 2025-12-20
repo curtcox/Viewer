@@ -18,6 +18,7 @@ def get_server_templates() -> list[dict[str, str]]:
     """
     return list(iter_server_templates())
 
+
 def iter_server_templates() -> Iterable[Dict[str, Any]]:
     """Yield templates one-by-one without exposing internal state.
 
@@ -30,7 +31,7 @@ def iter_server_templates() -> Iterable[Dict[str, Any]]:
     # Iterate over all JSON files in the templates directory
     template_dir = base_dir / "templates"
     for template_file in template_dir.glob("*.json"):
-        with open(template_file, 'r', encoding='utf-8') as f:
+        with open(template_file, "r", encoding="utf-8") as f:
             template = json.load(f)
 
             # Filter any embedded definitions before attaching file-based overrides
@@ -42,13 +43,17 @@ def iter_server_templates() -> Iterable[Dict[str, Any]]:
             template["suggested_name"] = template_file.stem
 
             # If the template has a definition file, load its content
-            if 'definition_file' in template:
-                definition_path = base_dir / template['definition_file']
+            if "definition_file" in template:
+                definition_path = base_dir / template["definition_file"]
                 try:
-                    with open(definition_path, 'r', encoding='utf-8') as def_file:
-                        template['definition'] = _strip_ruff_control_lines(def_file.read())
+                    with open(definition_path, "r", encoding="utf-8") as def_file:
+                        template["definition"] = _strip_ruff_control_lines(
+                            def_file.read()
+                        )
                 except IOError as e:
-                    print(f"Warning: Could not load definition file {definition_path}: {e}")
+                    print(
+                        f"Warning: Could not load definition file {definition_path}: {e}"
+                    )
                     continue
 
             # Ensure we return a copy to prevent modification of the original
