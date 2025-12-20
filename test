@@ -84,7 +84,8 @@ def run_integration_tests(env: dict[str, str]) -> int:
 
 
 def run_spec_tests(env: dict[str, str]) -> int:
-    command = [str(ROOT_DIR / "test-gauge")]
+    py = _venv_python()
+    command = [py, str(ROOT_DIR / "test-gauge")]
     result = run_command(command, env)
     if result == 0:
         try:

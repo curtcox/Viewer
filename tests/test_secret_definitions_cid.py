@@ -22,10 +22,10 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         self.db_fd, temp_db_path = tempfile.mkstemp()
         self.db_path = temp_db_path
         config = {
-            'DATABASE': temp_db_path,
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{temp_db_path}',
-            'WTF_CSRF_ENABLED': False,
+            "DATABASE": temp_db_path,
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": f"sqlite:///{temp_db_path}",
+            "WTF_CSRF_ENABLED": False,
         }
 
         flask_app = create_app(config)
@@ -37,14 +37,8 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         db.create_all()
 
         # Create test secrets
-        self.secret1 = Secret(
-            name='test_secret1',
-            definition='secret_value1'
-        )
-        self.secret2 = Secret(
-            name='test_secret2',
-            definition='secret_value2'
-        )
+        self.secret1 = Secret(name="test_secret1", definition="secret_value1")
+        self.secret2 = Secret(name="test_secret2", definition="secret_value2")
         db.session.add(self.secret1)
         db.session.add(self.secret2)
         db.session.commit()
@@ -66,16 +60,17 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         # Should contain both secrets
         self.assertEqual(len(data), 2)
-        self.assertIn('test_secret1', data)
-        self.assertIn('test_secret2', data)
-        self.assertEqual(data['test_secret1'], 'secret_value1')
-        self.assertEqual(data['test_secret2'], 'secret_value2')
+        self.assertIn("test_secret1", data)
+        self.assertIn("test_secret2", data)
+        self.assertEqual(data["test_secret1"], "secret_value1")
+        self.assertEqual(data["test_secret2"], "secret_value2")
 
         # Verify JSON formatting (sorted keys, proper indentation)
-        expected_json = json.dumps({
-            'test_secret1': 'secret_value1',
-            'test_secret2': 'secret_value2'
-        }, indent=2, sort_keys=True)
+        expected_json = json.dumps(
+            {"test_secret1": "secret_value1", "test_secret2": "secret_value2"},
+            indent=2,
+            sort_keys=True,
+        )
         self.assertEqual(json_content, expected_json)
 
     def test_generate_all_secret_definitions_json_empty(self):
@@ -89,13 +84,13 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         # Should be empty dictionary
         self.assertEqual(data, {})
-        self.assertEqual(json_content, '{}')
+        self.assertEqual(json_content, "{}")
 
     def test_generate_all_secret_definitions_json_sorted(self):
         """Test that secrets are sorted alphabetically in JSON"""
         # Add more secrets in non-alphabetical order
-        secret_z = Secret(name='z_secret', definition='z_value')
-        secret_a = Secret(name='a_secret', definition='a_value')
+        secret_z = Secret(name="z_secret", definition="z_value")
+        secret_a = Secret(name="a_secret", definition="a_value")
         db.session.add(secret_z)
         db.session.add(secret_a)
         db.session.commit()
@@ -105,7 +100,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         # Keys should be in alphabetical order
         keys = list(data.keys())
-        self.assertEqual(keys, ['a_secret', 'test_secret1', 'test_secret2', 'z_secret'])
+        self.assertEqual(keys, ["a_secret", "test_secret1", "test_secret2", "z_secret"])
 
     def test_store_secret_definitions_cid(self):
         """Test storing secret definitions as CID"""
@@ -121,7 +116,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         # Verify the stored content matches expected JSON
         expected_json = generate_all_secret_definitions_json()
-        stored_content = cid_record.file_data.decode('utf-8')
+        stored_content = cid_record.file_data.decode("utf-8")
         self.assertEqual(stored_content, expected_json)
 
     def test_store_secret_definitions_cid_deduplication(self):
@@ -167,7 +162,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         original_cid = store_secret_definitions_cid()
 
         # Add a new secret
-        new_secret = Secret(name='new_secret', definition='new_value')
+        new_secret = Secret(name="new_secret", definition="new_value")
         db.session.add(new_secret)
         db.session.commit()
 
@@ -179,16 +174,16 @@ class TestSecretDefinitionsCID(unittest.TestCase):
 
         # New CID should contain the new secret
         cid_record = CID.query.filter_by(path=f"/{updated_cid}").first()
-        stored_content = cid_record.file_data.decode('utf-8')
+        stored_content = cid_record.file_data.decode("utf-8")
         data = json.loads(stored_content)
-        self.assertIn('new_secret', data)
-        self.assertEqual(data['new_secret'], 'new_value')
+        self.assertIn("new_secret", data)
+        self.assertEqual(data["new_secret"], "new_value")
 
     def test_cid_content_deterministic(self):
         """Test that same secret content produces same CID"""
         # Create additional secrets with same content
-        secret1_copy = Secret(name='test_secret1_copy', definition='secret_value1')
-        secret2_copy = Secret(name='test_secret2_copy', definition='secret_value2')
+        secret1_copy = Secret(name="test_secret1_copy", definition="secret_value1")
+        secret2_copy = Secret(name="test_secret2_copy", definition="secret_value2")
         db.session.add(secret1_copy)
         db.session.add(secret2_copy)
         db.session.commit()
@@ -205,7 +200,7 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         cid1 = store_secret_definitions_cid()
 
         # Modify a secret
-        self.secret1.definition = 'modified_secret_value1'
+        self.secret1.definition = "modified_secret_value1"
         db.session.commit()
 
         # Store CID again
@@ -214,5 +209,6 @@ class TestSecretDefinitionsCID(unittest.TestCase):
         # Should be different CIDs
         self.assertNotEqual(cid1, cid2)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

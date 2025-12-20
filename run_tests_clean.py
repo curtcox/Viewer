@@ -19,15 +19,19 @@ env = {
     "DATABASE_URL": "sqlite:///:memory:",
     "SESSION_SECRET": "test-secret-key",
     "TESTING": "True",
-    "GAUGE_ARTIFACT_DIR": str(root_dir / "reports" / "html-report" / "secureapp-artifacts"),
+    "GAUGE_ARTIFACT_DIR": str(
+        root_dir / "reports" / "html-report" / "secureapp-artifacts"
+    ),
 }
 
 # Add PYTHONPATH for step_impl and tests
-env["PYTHONPATH"] = os.pathsep.join([
-    str(root_dir),
-    str(root_dir / "step_impl"),
-    str(root_dir / "tests"),
-])
+env["PYTHONPATH"] = os.pathsep.join(
+    [
+        str(root_dir),
+        str(root_dir / "step_impl"),
+        str(root_dir / "tests"),
+    ]
+)
 
 # Run pytest
 cmd = [str(venv_python), "-m", "pytest", "tests/", "-m", "not integration", "-v"]

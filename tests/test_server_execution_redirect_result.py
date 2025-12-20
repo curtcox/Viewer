@@ -31,7 +31,9 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def _create_server(self, name: str, definition: str, *, enabled: bool = True) -> Server:
+    def _create_server(
+        self, name: str, definition: str, *, enabled: bool = True
+    ) -> Server:
         server = Server(
             id=None,
             name=name,
@@ -51,7 +53,7 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
             "markdown",
             (
                 "def main():\n"
-                "    return \"\"\"<html><body><h1>Preview</h1></body></html>\"\"\"\n"
+                '    return """<html><body><h1>Preview</h1></body></html>"""\n'
             ),
         )
 
@@ -75,7 +77,7 @@ class TestServerExecutionRedirectResult(unittest.TestCase):
             "markdown",
             (
                 "def main():\n"
-                "    return \"\"\"<html><body><h1>Preview</h1></body></html>\"\"\"\n"
+                '    return """<html><body><h1>Preview</h1></body></html>"""\n'
             ),
         )
 

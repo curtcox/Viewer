@@ -1,4 +1,5 @@
 """Core application routes and helpers."""
+
 from __future__ import annotations
 
 import re
@@ -76,115 +77,115 @@ main_bp.app_context_processor(inject_meta_inspector_link)
 main_bp.app_context_processor(inject_viewer_navigation)
 
 
-@main_bp.route('/')
+@main_bp.route("/")
 def index():
     """Landing page with marketing and observability information."""
     cross_reference = build_cross_reference_data()
 
-    return render_template('index.html', cross_reference=cross_reference)
+    return render_template("index.html", cross_reference=cross_reference)
 
 
-@main_bp.route('/dashboard')
+@main_bp.route("/dashboard")
 def dashboard():
     """User dashboard - directs members to their profile overview."""
-    return redirect(url_for('main.profile'))
+    return redirect(url_for("main.profile"))
 
 
-@main_bp.route('/profile')
+@main_bp.route("/profile")
 def profile():
     """User profile placeholder for future external account management."""
-    return render_template('profile.html')
+    return render_template("profile.html")
 
 
-@main_bp.route('/subscribe', methods=['GET', 'POST'])
+@main_bp.route("/subscribe", methods=["GET", "POST"])
 def subscribe():
     abort(404)
 
 
-@main_bp.route('/accept-terms', methods=['GET', 'POST'])
+@main_bp.route("/accept-terms", methods=["GET", "POST"])
 def accept_terms():
     abort(404)
 
 
-@main_bp.route('/plans')
+@main_bp.route("/plans")
 def plans():
     abort(404)
 
 
-@main_bp.route('/terms')
+@main_bp.route("/terms")
 def terms():
     abort(404)
 
 
-@main_bp.route('/privacy')
+@main_bp.route("/privacy")
 def privacy():
     abort(404)
 
 
-@main_bp.route('/invitations')
+@main_bp.route("/invitations")
 def invitations():
     abort(404)
 
 
-@main_bp.route('/create-invitation', methods=['GET', 'POST'])
+@main_bp.route("/create-invitation", methods=["GET", "POST"])
 def create_invitation():
     abort(404)
 
 
-@main_bp.route('/require-invitation', methods=['GET', 'POST'])
+@main_bp.route("/require-invitation", methods=["GET", "POST"])
 def require_invitation():
     abort(404)
 
 
-@main_bp.route('/invite/<invitation_code>')
+@main_bp.route("/invite/<invitation_code>")
 def accept_invitation(invitation_code):  # pylint: disable=unused-argument
     """Accept invitation route (placeholder - returns 404)."""
     abort(404)
 
 
-@main_bp.route('/_screenshot/cid-demo')
+@main_bp.route("/_screenshot/cid-demo")
 def screenshot_cid_demo():
     abort(404)
 
 
-@main_bp.route('/settings')
+@main_bp.route("/settings")
 def settings():
     """Settings page with links to servers, variables, aliases, and secrets."""
     counts = get_settings_counts()
-    return render_template('settings.html', **counts)
+    return render_template("settings.html", **counts)
 
 
 def get_settings_counts():
     """Return counts of globally saved resources for settings display."""
     return {
-        'alias_count': count_aliases(),
-        'server_count': count_servers(),
-        'variable_count': count_variables(),
-        'secret_count': count_secrets(),
-        'alias_example_name': get_first_alias_name(),
-        'server_example_name': get_first_server_name(),
-        'variable_example_name': get_first_variable_name(),
-        'secret_example_name': get_first_secret_name(),
+        "alias_count": count_aliases(),
+        "server_count": count_servers(),
+        "variable_count": count_variables(),
+        "secret_count": count_secrets(),
+        "alias_example_name": get_first_alias_name(),
+        "server_example_name": get_first_server_name(),
+        "variable_example_name": get_first_variable_name(),
+        "secret_example_name": get_first_secret_name(),
     }
 
 
 __all__ = [
-    'dashboard',
-    'get_existing_routes',
-    'get_settings_counts',
-    'index',
-    'inject_observability_info',
-    'inject_meta_inspector_link',
-    'inject_viewer_navigation',
-    'not_found_error',
-    'internal_error',
-    'profile',
-    'settings',
+    "dashboard",
+    "get_existing_routes",
+    "get_settings_counts",
+    "index",
+    "inject_observability_info",
+    "inject_meta_inspector_link",
+    "inject_viewer_navigation",
+    "not_found_error",
+    "internal_error",
+    "profile",
+    "settings",
     # Backward compatibility exports
-    '_build_cross_reference_data',
+    "_build_cross_reference_data",
     # Re-exported functions for backward compatibility
-    'get_primary_alias_route',
-    'extract_references_from_bytes',
-    'extract_references_from_target',
-    'extract_references_from_text',
+    "get_primary_alias_route",
+    "extract_references_from_bytes",
+    "extract_references_from_target",
+    "extract_references_from_text",
 ]

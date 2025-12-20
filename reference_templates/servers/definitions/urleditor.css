@@ -33,15 +33,22 @@ body {
     align-items: center;
 }
 
+.meta-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
 .main-content {
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 2fr 2fr;
     gap: 1rem;
     flex: 1;
     overflow: hidden;
 }
 
-.editor-section, .indicators-section {
+.editor-section, .indicators-section, .preview-section {
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -101,7 +108,7 @@ body {
 
 .indicator-row {
     display: grid;
-    grid-template-columns: 30px 30px 30px 30px 30px 60px 50px 50px 1fr;
+    grid-template-columns: 30px 30px 30px 30px 30px 40px 60px 50px 50px 1fr;
     gap: 0.25rem;
     padding: 0.5rem;
     border-bottom: 1px solid #eee;
@@ -133,6 +140,43 @@ body {
 .indicator.unknown {
     background: #e2e3e5;
     color: #383d41;
+}
+
+.indicator.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.indicator-status {
+    text-align: center;
+    padding: 0.25rem;
+    border-radius: 3px;
+    cursor: help;
+    font-size: 0.75rem;
+}
+
+.indicator-status.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.indicator-status.invalid {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.indicator-status.unknown {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.indicator-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.error-text {
+    color: #721c24;
 }
 
 .indicator-info {

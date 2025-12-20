@@ -29,12 +29,12 @@ def should_track_page_view(response: Response) -> bool:
         return False
 
     # Skip tracking for static files, API calls, and certain paths
-    skip_paths = ['/static/', '/favicon.ico', '/robots.txt', '/api/', '/_']
+    skip_paths = ["/static/", "/favicon.ico", "/robots.txt", "/api/", "/_"]
     if any(request.path.startswith(skip) for skip in skip_paths):
         return False
 
     # Skip tracking AJAX requests
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return False
 
     return True
@@ -45,13 +45,19 @@ def create_page_view_record() -> PageView:
     return PageView(
         path=request.path,
         method=request.method,
-        user_agent=request.headers.get('User-Agent', '')[:500],
+        user_agent=request.headers.get("User-Agent", "")[:500],
         ip_address=request.remote_addr,
     )
 
 
 def track_page_view(response: Response) -> Response:
     """Track page views."""
+    # Skip tracking in read-only mode
+    from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+
+    if ReadOnlyConfig.is_read_only_mode():
+        return response
+
     try:
         if should_track_page_view(response):
             page_view = create_page_view_record()
@@ -78,9 +84,9 @@ def get_history_statistics(
     popular_paths = get_popular_page_paths(start=start, end=end)
 
     return {
-        'total_views': total_views,
-        'unique_paths': unique_paths,
-        'popular_paths': popular_paths,
+        "total_views": total_views,
+        "unique_paths": unique_paths,
+        "popular_paths": popular_paths,
     }
 
 
@@ -95,10 +101,10 @@ def get_paginated_page_views(
 
 
 __all__ = [
-    'make_session_permanent',
-    'should_track_page_view',
-    'create_page_view_record',
-    'track_page_view',
-    'get_history_statistics',
-    'get_paginated_page_views',
+    "make_session_permanent",
+    "should_track_page_view",
+    "create_page_view_record",
+    "track_page_view",
+    "get_history_statistics",
+    "get_paginated_page_views",
 ]

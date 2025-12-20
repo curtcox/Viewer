@@ -14,7 +14,7 @@ class TestServeCidContent(unittest.TestCase):
 
     def setUp(self):
         self.app = Flask(__name__)
-        self.app.config['TESTING'] = True
+        self.app.config["TESTING"] = True
         self.cid_content = SimpleNamespace(
             file_data=b"test content",
             created_at=datetime.now(timezone.utc),
@@ -45,12 +45,30 @@ class TestServeCidContent(unittest.TestCase):
 
     def test_cid_with_filename_sets_content_disposition(self):
         cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.document.txt", "document.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.report.pdf", "report.pdf"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.data.json", "data.json"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.page.html", "page.html"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.my-file.csv", "my-file.csv"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.test_file.py", "test_file.py"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.document.txt",
+                "document.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.report.pdf",
+                "report.pdf",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.data.json",
+                "data.json",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.page.html",
+                "page.html",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.my-file.csv",
+                "my-file.csv",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.test_file.py",
+                "test_file.py",
+            ),
         ]
 
         for path, expected_filename in cases:
@@ -58,13 +76,24 @@ class TestServeCidContent(unittest.TestCase):
                 response = self._serve(path)
                 self.assertIsNotNone(response)
                 expected_header = f'attachment; filename="{expected_filename}"'
-                self.assertEqual(response.headers.get("Content-Disposition"), expected_header)
+                self.assertEqual(
+                    response.headers.get("Content-Disposition"), expected_header
+                )
 
     def test_cid_with_multiple_dots_in_filename(self):
         cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt", "my.data.file.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json", "version.1.2.3.json"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.backup.2024.01.15.sql", "backup.2024.01.15.sql"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt",
+                "my.data.file.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json",
+                "version.1.2.3.json",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.backup.2024.01.15.sql",
+                "backup.2024.01.15.sql",
+            ),
         ]
 
         for path, expected_filename in cases:
@@ -72,7 +101,9 @@ class TestServeCidContent(unittest.TestCase):
                 response = self._serve(path)
                 self.assertIsNotNone(response)
                 expected_header = f'attachment; filename="{expected_filename}"'
-                self.assertEqual(response.headers.get("Content-Disposition"), expected_header)
+                self.assertEqual(
+                    response.headers.get("Content-Disposition"), expected_header
+                )
 
     def test_edge_cases(self):
         cases = [
@@ -87,15 +118,26 @@ class TestServeCidContent(unittest.TestCase):
                 self.assertIsNotNone(response)
                 if expected_filename:
                     expected_header = f'attachment; filename="{expected_filename}"'
-                    self.assertEqual(response.headers.get("Content-Disposition"), expected_header)
+                    self.assertEqual(
+                        response.headers.get("Content-Disposition"), expected_header
+                    )
                 else:
                     self.assertNotIn("Content-Disposition", response.headers)
 
     def test_filename_with_special_characters(self):
         cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.file with spaces.txt", "file with spaces.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.file-with-dashes.txt", "file-with-dashes.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.file_with_underscores.txt", "file_with_underscores.txt"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.file with spaces.txt",
+                "file with spaces.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.file-with-dashes.txt",
+                "file-with-dashes.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.file_with_underscores.txt",
+                "file_with_underscores.txt",
+            ),
         ]
 
         for path, expected_filename in cases:
@@ -103,7 +145,9 @@ class TestServeCidContent(unittest.TestCase):
                 response = self._serve(path)
                 self.assertIsNotNone(response)
                 expected_header = f'attachment; filename="{expected_filename}"'
-                self.assertEqual(response.headers.get("Content-Disposition"), expected_header)
+                self.assertEqual(
+                    response.headers.get("Content-Disposition"), expected_header
+                )
 
     def test_none_content_returns_none(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.txt"
@@ -127,7 +171,7 @@ class TestServeCidContent(unittest.TestCase):
         path = "/bafybeihelloworld123456789012345678901234567890123456.document.txt"
         cid = path.lstrip("/").split(".", maxsplit=1)[0]
         etag_value = f'"{cid}"'
-        response = self._serve(path, headers={'If-None-Match': etag_value})
+        response = self._serve(path, headers={"If-None-Match": etag_value})
         self.assertIsNotNone(response)
         self.assertEqual(response.status_code, 304)
         self.assertEqual(response.headers.get("ETag"), etag_value)
@@ -135,16 +179,20 @@ class TestServeCidContent(unittest.TestCase):
     def test_conditional_request_uses_if_modified_since_header(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.note"
         # Use a future date to ensure it's >= the resource's created_at time
-        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2099 07:28:00 GMT'})
+        response = self._serve(
+            path, headers={"If-Modified-Since": "Wed, 21 Oct 2099 07:28:00 GMT"}
+        )
         self.assertIsNotNone(response)
         self.assertEqual(response.status_code, 304)
-        self.assertIn('Last-Modified', response.headers)
-        self.assertIn('ETag', response.headers)
+        self.assertIn("Last-Modified", response.headers)
+        self.assertIn("ETag", response.headers)
 
     def test_conditional_request_with_old_if_modified_since_returns_full_response(self):
         path = "/bafybeihelloworld123456789012345678901234567890123456.note"
         # Use an old date - resource is newer, so should return full content (200)
-        response = self._serve(path, headers={'If-Modified-Since': 'Wed, 21 Oct 2015 07:28:00 GMT'})
+        response = self._serve(
+            path, headers={"If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT"}
+        )
         self.assertIsNotNone(response)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_data(), b"test content")
@@ -158,7 +206,9 @@ class TestServeCidContent(unittest.TestCase):
 
         response = self._serve(path, content=markdown_content)
         self.assertIsNotNone(response)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/plain; charset=utf-8')
+        self.assertEqual(
+            response.headers.get("Content-Type"), "text/plain; charset=utf-8"
+        )
         body = response.get_data(as_text=True)
         self.assertEqual(body, "# Heading\n\n- item one\n- item two\n")
 
@@ -171,11 +221,11 @@ class TestServeCidContent(unittest.TestCase):
 
         response = self._serve(path, content=markdown_content)
         self.assertIsNotNone(response)
-        self.assertEqual(response.headers.get('Content-Type'), 'text/html')
-        self.assertNotIn('Content-Disposition', response.headers)
+        self.assertEqual(response.headers.get("Content-Type"), "text/html")
+        self.assertNotIn("Content-Disposition", response.headers)
         body = response.get_data(as_text=True)
         self.assertIn('<main class="markdown-body">', body)
-        self.assertIn('Plain text rendered as markdown', body)
+        self.assertIn("Plain text rendered as markdown", body)
 
 
 if __name__ == "__main__":

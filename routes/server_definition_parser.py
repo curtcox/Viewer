@@ -32,7 +32,7 @@ class ServerDefinitionParser:
 
         Returns a mapping of context sources ('variables', 'secrets') to their aliases.
         """
-        aliases: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
+        aliases: Dict[str, Set[str]] = {"variables": set(), "secrets": set()}
 
         for pattern in self._ALIAS_ASSIGNMENT_PATTERNS:
             for alias, source in pattern.findall(definition):
@@ -52,7 +52,7 @@ class ServerDefinitionParser:
 
     def find_direct_references(self, definition: str) -> Dict[str, Set[str]]:
         """Find direct access like: context['variables']['name']"""
-        matches: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
+        matches: Dict[str, Set[str]] = {"variables": set(), "secrets": set()}
 
         for pattern in (self._INDEX_ACCESS_PATTERN, self._GET_ACCESS_PATTERN):
             for source, name in pattern.findall(definition):
@@ -62,12 +62,10 @@ class ServerDefinitionParser:
         return matches
 
     def find_aliased_references(
-        self,
-        definition: str,
-        aliases: Dict[str, Set[str]]
+        self, definition: str, aliases: Dict[str, Set[str]]
     ) -> Dict[str, Set[str]]:
         """Find usage through aliases like: vars['name']"""
-        matches: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
+        matches: Dict[str, Set[str]] = {"variables": set(), "secrets": set()}
 
         for source, alias_names in aliases.items():
             for alias in alias_names:
@@ -103,25 +101,43 @@ class ServerDefinitionParser:
         Returns:
             Dict mapping 'variables' and 'secrets' to sets of matched names
         """
-        matches: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
+        matches: Dict[str, Set[str]] = {"variables": set(), "secrets": set()}
+
+        # Filter out 'context' which is a special parameter
+        parameter_names = {name for name in parameter_names if name != "context"}
 
         normalized = {
-            'variables': {
-                str(name) for name in (known_variables or [])
+            "variables": {
+                str(name)
+                for name in (known_variables or [])
                 if isinstance(name, str) and name
             },
-            'secrets': {
-                str(name) for name in (known_secrets or [])
+            "secrets": {
+                str(name)
+                for name in (known_secrets or [])
                 if isinstance(name, str) and name
             },
         }
 
-        if not normalized['variables'] and not normalized['secrets']:
-            return matches
-
-        for source in ('variables', 'secrets'):
+        # First, match parameters against known variables and secrets
+        matched_params = set()
+        for source in ("variables", "secrets"):
             for name in parameter_names & normalized[source]:
                 matches[source].add(name)
+                matched_params.add(name)
+
+        # Then categorize unmatched parameters by naming convention:
+        # - ALL_UPPERCASE names (with optional underscores and digits) are likely secrets
+        # - Other names are likely variables
+        unmatched_params = parameter_names - matched_params
+        for name in unmatched_params:
+            # Check if the name is all uppercase (allowing underscores and digits)
+            # by removing underscores and digits and checking if remaining chars are uppercase
+            chars_only = "".join(c for c in name if c.isalpha())
+            if chars_only and chars_only.isupper():
+                matches["secrets"].add(name)
+            else:
+                matches["variables"].add(name)
 
         return matches
 
@@ -144,22 +160,20 @@ class ServerDefinitionParser:
             Dict with 'variables' and 'secrets' keys mapping to sorted lists of referenced names
         """
         if not definition:
-            return {'variables': [], 'secrets': []}
+            return {"variables": [], "secrets": []}
 
         aliases = self.find_variable_aliases(definition)
         direct_refs = self.find_direct_references(definition)
         alias_refs = self.find_aliased_references(definition, aliases)
 
-        combined: Dict[str, Set[str]] = {'variables': set(), 'secrets': set()}
+        combined: Dict[str, Set[str]] = {"variables": set(), "secrets": set()}
         for source, values in combined.items():
             values.update(direct_refs.get(source, set()))
             values.update(alias_refs.get(source, set()))
 
         if parameter_names:
             param_refs = self.find_parameter_references(
-                parameter_names,
-                known_variables,
-                known_secrets
+                parameter_names, known_variables, known_secrets
             )
             for source, values in combined.items():
                 values.update(param_refs.get(source, set()))
@@ -176,9 +190,9 @@ class ServerDefinitionParser:
             value = match.group(1)
             if not value or value in {"/", "//"}:
                 continue
-            if value.startswith('//'):
+            if value.startswith("//"):
                 continue
-            if value.startswith('/http') or value.startswith('/https'):
+            if value.startswith("/http") or value.startswith("/https"):
                 continue
             if not re.search(r"[A-Za-z]", value):
                 continue

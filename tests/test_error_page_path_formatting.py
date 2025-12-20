@@ -1,4 +1,5 @@
 """Tests for error page path formatting and source link labels."""
+
 from __future__ import annotations
 
 import traceback
@@ -22,19 +23,19 @@ class _SourceLinkParser(HTMLParser):
         self.links: list[tuple[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == 'a':
-            href = dict(attrs).get('href')
-            if href and href.startswith('/source/'):
+        if tag == "a":
+            href = dict(attrs).get("href")
+            if href and href.startswith("/source/"):
                 self._in_source_anchor = True
                 self._current_href = href
-        elif tag == 'code' and self._in_source_anchor:
+        elif tag == "code" and self._in_source_anchor:
             self._collect_code_text = True
 
     def handle_endtag(self, tag: str) -> None:
-        if tag == 'code' and self._collect_code_text:
+        if tag == "code" and self._collect_code_text:
             self._collect_code_text = False
-        elif tag == 'a' and self._in_source_anchor:
-            label = ''.join(self._code_parts).strip()
+        elif tag == "a" and self._in_source_anchor:
+            label = "".join(self._code_parts).strip()
             if self._current_href is not None and label:
                 self.links.append((self._current_href, label))
             self._in_source_anchor = False
@@ -48,7 +49,7 @@ class _SourceLinkParser(HTMLParser):
 
 def _raise_path_formatting_error():
     """Helper that raises an error to populate the traceback."""
-    raise RuntimeError('Test error for path formatting')
+    raise RuntimeError("Test error for path formatting")
 
 
 def _trigger_error_chain():
@@ -60,7 +61,7 @@ class TestErrorPagePathFormatting(unittest.TestCase):
     """Verify enhanced error page formatting for stack trace paths."""
 
     def setUp(self) -> None:
-        self.app = create_app({'TESTING': True, 'WTF_CSRF_ENABLED': False})
+        self.app = create_app({"TESTING": True, "WTF_CSRF_ENABLED": False})
         with self.app.app_context():
             db.create_all()
 
@@ -76,7 +77,7 @@ class TestErrorPagePathFormatting(unittest.TestCase):
         html_content = None
         status_code = None
         with self.app.app_context():
-            with self.app.test_request_context('/path-formatting-test'):
+            with self.app.test_request_context("/path-formatting-test"):
                 try:
                     _trigger_error_chain()
                 except RuntimeError as exc:
@@ -84,63 +85,67 @@ class TestErrorPagePathFormatting(unittest.TestCase):
 
         self.assertEqual(status_code, 500)
 
-        normalized_html = html_content.replace('\\', '/')
-        root_fragment = self.app.root_path.replace('\\', '/')
+        normalized_html = html_content.replace("\\", "/")
+        root_fragment = self.app.root_path.replace("\\", "/")
         self.assertNotIn(
             root_fragment,
             normalized_html,
-            msg='Stack trace should not include redundant project root prefixes',
+            msg="Stack trace should not include redundant project root prefixes",
         )
 
         parser = _SourceLinkParser()
         parser.feed(html_content)
         source_links = parser.links
 
-        self.assertGreater(len(source_links), 0, 'Should collect source links from stack trace')
+        self.assertGreater(
+            len(source_links), 0, "Should collect source links from stack trace"
+        )
         for href, label in source_links:
-            self.assertTrue(href.startswith('/source/'))
-            expected_label = href[len('/source/'):]
+            self.assertTrue(href.startswith("/source/"))
+            expected_label = href[len("/source/") :]
             self.assertEqual(
                 label,
                 expected_label,
-                msg='Link label should match the relative path used in the /source URL',
+                msg="Link label should match the relative path used in the /source URL",
             )
 
     def test_removes_project_root_from_unmatched_paths(self) -> None:
         """Even when relative resolution fails, redundant project roots should be stripped."""
         from routes.core import internal_error
 
-        project_root = self.app.root_path.replace('\\', '/')
+        project_root = self.app.root_path.replace("\\", "/")
         problematic_path = f"{project_root}/../external/server_execution.py"
 
         fake_frame = traceback.FrameSummary(
             problematic_path,
             123,
-            'fake_function',
+            "fake_function",
             line='raise RuntimeError("boom")',
         )
 
         html_content = None
         status_code = None
         with self.app.app_context():
-            with self.app.test_request_context('/path-formatting-test'):
-                with patch('traceback.extract_tb', return_value=[fake_frame]):
-                    with patch('pathlib.Path.relative_to', side_effect=ValueError):
-                        with patch('routes.source._get_tracked_paths', return_value=frozenset()):
-                            with patch('pathlib.Path.rglob', return_value=iter(())):
+            with self.app.test_request_context("/path-formatting-test"):
+                with patch("traceback.extract_tb", return_value=[fake_frame]):
+                    with patch("pathlib.Path.relative_to", side_effect=ValueError):
+                        with patch(
+                            "routes.source._get_tracked_paths", return_value=frozenset()
+                        ):
+                            with patch("pathlib.Path.rglob", return_value=iter(())):
                                 try:
-                                    raise RuntimeError('boom')
+                                    raise RuntimeError("boom")
                                 except RuntimeError as exc:
                                     html_content, status_code = internal_error(exc)
 
         self.assertEqual(status_code, 500)
-        normalized_html = html_content.replace('\\', '/')
+        normalized_html = html_content.replace("\\", "/")
         self.assertNotIn(
             project_root,
             normalized_html,
-            msg='Stack trace should not expose redundant absolute project prefixes',
+            msg="Stack trace should not expose redundant absolute project prefixes",
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

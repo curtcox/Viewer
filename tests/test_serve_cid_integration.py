@@ -23,7 +23,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             "/bafybeihelloworld123456789012345678901234567890123456",
             "/abc123",
             "/short",
-            "/bafybeiverylongcidthatrepresentscontentaddressablestorage"
+            "/bafybeiverylongcidthatrepresentscontentaddressablestorage",
         ]
 
         for path in test_cases:
@@ -39,7 +39,7 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             "/bafybeihelloworld123456789012345678901234567890123456.json",
             "/bafybeihelloworld123456789012345678901234567890123456.pdf",
             "/abc123.csv",
-            "/short.py"
+            "/short.py",
         ]
 
         for path in test_cases:
@@ -50,12 +50,24 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
     def test_cid_with_filename_returns_filename(self):
         """Test /{CID}.{filename}.{ext} - should return filename.ext"""
         test_cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.document.txt", "document.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.report.pdf", "report.pdf"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.data.json", "data.json"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.page.html", "page.html"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.document.txt",
+                "document.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.report.pdf",
+                "report.pdf",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.data.json",
+                "data.json",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.page.html",
+                "page.html",
+            ),
             ("/abc123.myfile.csv", "myfile.csv"),
-            ("/cid.test.py", "test.py")
+            ("/cid.test.py", "test.py"),
         ]
 
         for path, expected_filename in test_cases:
@@ -66,10 +78,16 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
     def test_filename_with_multiple_dots(self):
         """Test filenames with multiple dots are handled correctly"""
         test_cases = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt", "my.data.file.txt"),
-            ("/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json", "version.1.2.3.json"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.my.data.file.txt",
+                "my.data.file.txt",
+            ),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.version.1.2.3.json",
+                "version.1.2.3.json",
+            ),
             ("/abc123.backup.2024.01.15.sql", "backup.2024.01.15.sql"),
-            ("/cid.file.name.with.many.dots.ext", "file.name.with.many.dots.ext")
+            ("/cid.file.name.with.many.dots.ext", "file.name.with.many.dots.ext"),
         ]
 
         for path, expected_filename in test_cases:
@@ -84,8 +102,14 @@ class TestExtractFilenameFromCidPath(unittest.TestCase):
             ("/", None),  # Bare slash should yield no filename component
             ("/.", None),  # Single dot path is treated as no filename
             ("/..", None),  # Parent directory path should not expose a filename
-            ("/a.b.c", "b.c"),  # Minimal CID stub with filename should return just the filename
-            ("no-leading-slash.file.txt", "file.txt"),  # Missing leading slash still extracts the terminal filename
+            (
+                "/a.b.c",
+                "b.c",
+            ),  # Minimal CID stub with filename should return just the filename
+            (
+                "no-leading-slash.file.txt",
+                "file.txt",
+            ),  # Missing leading slash still extracts the terminal filename
         ]
 
         for path, expected in test_cases:
@@ -122,7 +146,9 @@ class TestContentDispositionBehavior(unittest.TestCase):
 
         for path in cid_only_paths:
             filename = extract_filename_from_cid_path(path)
-            self.assertIsNone(filename, f"CID-only path {path} should not have content disposition")
+            self.assertIsNone(
+                filename, f"CID-only path {path} should not have content disposition"
+            )
 
         # Rule 2: /{CID}.{ext} - no content disposition
         cid_ext_paths = [
@@ -132,36 +158,40 @@ class TestContentDispositionBehavior(unittest.TestCase):
 
         for path in cid_ext_paths:
             filename = extract_filename_from_cid_path(path)
-            self.assertIsNone(filename, f"CID.ext path {path} should not have content disposition")
+            self.assertIsNone(
+                filename, f"CID.ext path {path} should not have content disposition"
+            )
 
         # Rule 3: /{CID}.{filename}.{ext} - set content disposition
         cid_filename_paths = [
-            ("/bafybeihelloworld123456789012345678901234567890123456.document.txt", "document.txt"),
+            (
+                "/bafybeihelloworld123456789012345678901234567890123456.document.txt",
+                "document.txt",
+            ),
             ("/abc123def456.report.pdf", "report.pdf"),
         ]
 
         for path, expected_filename in cid_filename_paths:
             filename = extract_filename_from_cid_path(path)
-            self.assertEqual(filename, expected_filename, f"CID.filename.ext path {path} should return filename {expected_filename}")
+            self.assertEqual(
+                filename,
+                expected_filename,
+                f"CID.filename.ext path {path} should return filename {expected_filename}",
+            )
 
     def test_realistic_scenarios(self):
         """Test realistic usage scenarios"""
         scenarios = [
             # User uploads a file called "resume.pdf"
             ("/bafybeiabcdef123456789.resume.pdf", "resume.pdf"),
-
             # User uploads "data-export-2024.csv"
             ("/bafybei987654321.data-export-2024.csv", "data-export-2024.csv"),
-
             # User uploads "my presentation.pptx"
             ("/bafybeixyz789.my presentation.pptx", "my presentation.pptx"),
-
             # Server generates HTML content (no filename)
             ("/bafybeiserver123.html", None),
-
             # Server generates JSON API response (no filename)
             ("/bafybeiapi456.json", None),
-
             # Direct CID access (no filename)
             ("/bafybeidirect789", None),
         ]
@@ -172,5 +202,5 @@ class TestContentDispositionBehavior(unittest.TestCase):
                 self.assertEqual(result, expected_filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

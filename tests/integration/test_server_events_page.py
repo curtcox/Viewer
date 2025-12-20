@@ -1,4 +1,5 @@
 """Integration coverage for the server events history page."""
+
 from __future__ import annotations
 
 import json

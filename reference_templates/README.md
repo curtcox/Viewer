@@ -114,6 +114,11 @@ This file uses the import/export format (see `/docs/import-export-json-format.md
       "name": "ai",
       "definition_cid": "reference_templates/aliases/ai.txt",
       "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "reference_templates/aliases/ai_about.txt",
+      "enabled": true
     }
   ],
   "servers": [

@@ -1,4 +1,5 @@
 """Property-based tests for response format transformations."""
+
 from __future__ import annotations
 
 import csv
@@ -35,11 +36,15 @@ def _csv_scalar_strategy() -> st.SearchStrategy[object]:
 
 
 def _csv_record_strategy() -> st.SearchStrategy[dict[str, object]]:
-    return st.dictionaries(st.text(min_size=1, max_size=6), _csv_scalar_strategy(), min_size=1, max_size=5)
+    return st.dictionaries(
+        st.text(min_size=1, max_size=6), _csv_scalar_strategy(), min_size=1, max_size=5
+    )
 
 
 @given(st.lists(_csv_record_strategy(), min_size=1, max_size=5))
-def test_convert_response_json_to_csv_preserves_rows(records: list[dict[str, object]]) -> None:
+def test_convert_response_json_to_csv_preserves_rows(
+    records: list[dict[str, object]],
+) -> None:
     response = Response(json.dumps(records), mimetype="application/json")
 
     converted = _convert_response(response, "csv")

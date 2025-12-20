@@ -1,4 +1,5 @@
 """Routes overview page with built-ins, aliases, and servers."""
+
 from __future__ import annotations
 
 import inspect
@@ -6,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from flask import current_app, render_template, url_for
+from flask import current_app, jsonify, render_template, url_for
 
 from alias_definition import collect_alias_routes
 from db_access import get_aliases, get_servers
@@ -84,7 +85,9 @@ def _builtin_routes(root: Path) -> Iterable[RouteEntry]:
         if not relative:
             continue
 
-        methods = sorted(method for method in rule.methods if method not in {"HEAD", "OPTIONS"})
+        methods = sorted(
+            method for method in rule.methods if method not in {"HEAD", "OPTIONS"}
+        )
         extra_detail = ", ".join(methods)
         definition_url = url_for("main.source_browser", requested_path=relative)
 
@@ -166,7 +169,9 @@ def _not_found_entry(root: Path) -> RouteEntry:
 
     handler = inspect.unwrap(not_found_error)
     code = getattr(handler, "__code__", None)
-    handler_path = Path(inspect.getsourcefile(handler) or (code.co_filename if code else ""))
+    handler_path = Path(
+        inspect.getsourcefile(handler) or (code.co_filename if code else "")
+    )
     relative_handler = _relative_path(handler_path, root)
 
     definition_label = (
@@ -211,9 +216,8 @@ def _mark_duplicates(entries: List[RouteEntry]) -> None:
                 entry.is_duplicate = True
 
 
-@main_bp.route("/routes")
-def routes_overview():
-    """Render a comprehensive list of routes, aliases, and servers."""
+def _collect_routes() -> List[RouteEntry]:
+    """Collect all routes, mark duplicates, and return a sorted list."""
 
     repository_root = Path(current_app.root_path)
 
@@ -225,7 +229,18 @@ def routes_overview():
 
     _mark_duplicates(entries)
 
-    entries.sort(key=lambda item: (item.is_catch_all, item.path, item.category, item.name))
+    entries.sort(
+        key=lambda item: (item.is_catch_all, item.path, item.category, item.name)
+    )
+
+    return entries
+
+
+@main_bp.route("/routes")
+def routes_overview():
+    """Render a comprehensive list of routes, aliases, and servers."""
+
+    entries = _collect_routes()
 
     return render_template(
         "routes_overview.html",
@@ -233,4 +248,28 @@ def routes_overview():
     )
 
 
-__all__ = ["routes_overview"]
+def _serialize_entry(entry: RouteEntry) -> dict[str, object]:
+    """Convert a RouteEntry to a JSON-serializable dictionary."""
+
+    return {
+        "category": entry.category,
+        "path": entry.path,
+        "name": entry.name,
+        "definition_label": entry.definition_label,
+        "definition_url": entry.definition_url,
+        "extra_detail": entry.extra_detail,
+        "is_duplicate": entry.is_duplicate,
+        "is_catch_all": entry.is_catch_all,
+    }
+
+
+@main_bp.route("/api/routes")
+def routes_overview_api():
+    """Expose the routes overview as JSON for API consumers."""
+
+    entries = _collect_routes()
+
+    return jsonify({"routes": [_serialize_entry(entry) for entry in entries]})
+
+
+__all__ = ["routes_overview", "routes_overview_api"]

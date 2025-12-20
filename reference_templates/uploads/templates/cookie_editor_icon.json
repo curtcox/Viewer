@@ -1,0 +1,7 @@
+{
+  "id": "cookie-editor-icon",
+  "name": "Cookie Editor Icon",
+  "description": "Accent illustration for the cookie editor header.",
+  "content_file": "contents/cookie_editor_icon.svg",
+  "suggested_filename": "cookie-editor-icon.svg"
+}

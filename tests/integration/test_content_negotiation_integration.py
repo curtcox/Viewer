@@ -1,4 +1,5 @@
 """Integration tests for content negotiation across documented endpoints."""
+
 from __future__ import annotations
 
 import csv
@@ -150,7 +151,11 @@ def test_interactions_endpoint_supports_xml_extension(client) -> None:
         "content": "print('hello world')",
     }
 
-    response = client.post("/api/interactions.xml", data=json.dumps(payload), content_type="application/json")
+    response = client.post(
+        "/api/interactions.xml",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
 
     assert response.status_code == 200
     assert response.mimetype == "application/xml"
@@ -273,7 +278,9 @@ def test_variable_detail_endpoint_returns_record(client, sample_entities) -> Non
 
 
 @pytest.mark.integration
-def test_variable_detail_endpoint_supports_csv_extension(client, sample_entities) -> None:
+def test_variable_detail_endpoint_supports_csv_extension(
+    client, sample_entities
+) -> None:
     response = client.get(f"/variables/{sample_entities['variable']}.csv")
 
     assert response.status_code == 200
@@ -300,7 +307,9 @@ def test_variables_endpoint_supports_xml_extension(client, sample_entities) -> N
 
 
 @pytest.mark.integration
-def test_variable_detail_endpoint_supports_xml_extension(client, sample_entities) -> None:
+def test_variable_detail_endpoint_supports_xml_extension(
+    client, sample_entities
+) -> None:
     response = client.get(f"/variables/{sample_entities['variable']}.xml")
 
     assert response.status_code == 200

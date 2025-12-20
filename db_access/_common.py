@@ -6,7 +6,7 @@ from typing import TypeVar
 from database import db
 
 # Type variable for entity operations
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Constants
 DEFAULT_AI_SERVER_NAME = "ai_stub"

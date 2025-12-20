@@ -1,4 +1,5 @@
 """Utilities for validating and matching alias patterns."""
+
 from __future__ import annotations
 
 import fnmatch
@@ -37,7 +38,9 @@ def _normalize_literal_path(value: str) -> str:
     return value.rstrip("/") or "/"
 
 
-def normalise_pattern(match_type: str, pattern: str | None, fallback_name: str | None = None) -> str:
+def normalise_pattern(
+    match_type: str, pattern: str | None, fallback_name: str | None = None
+) -> str:
     """Return a cleaned version of the provided pattern or raise PatternError."""
 
     match_type = (match_type or "literal").lower()
@@ -75,14 +78,19 @@ def normalise_pattern(match_type: str, pattern: str | None, fallback_name: str |
         cleaned = _ensure_leading_slash(raw_pattern)
         try:
             Rule(cleaned)
-        except (ValueError, TypeError) as exc:  # pragma: no cover - werkzeug provides descriptive errors
+        except (
+            ValueError,
+            TypeError,
+        ) as exc:  # pragma: no cover - werkzeug provides descriptive errors
             raise PatternError(f"Invalid Flask pattern: {exc}") from exc
         return cleaned
 
     raise PatternError(f"Unknown match type: {match_type}")
 
 
-def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = False) -> bool:
+def matches_path(
+    match_type: str, pattern: str, path: str, ignore_case: bool = False
+) -> bool:
     """Return True when the given path satisfies the pattern for the match type."""
 
     if not path:
@@ -104,7 +112,9 @@ def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = F
             )
         if candidate == cleaned_pattern:
             return True
-        return _normalize_literal_path(candidate) == _normalize_literal_path(cleaned_pattern)
+        return _normalize_literal_path(candidate) == _normalize_literal_path(
+            cleaned_pattern
+        )
 
     if match_type == "glob":
         cleaned_pattern = _ensure_leading_slash(pattern)
@@ -129,7 +139,12 @@ def matches_path(match_type: str, pattern: str, path: str, ignore_case: bool = F
             adapter.match(candidate, method="GET")
         except (NotFound, MethodNotAllowed):
             return False
-        except (ValueError, RuntimeError, AttributeError, RequestRedirect):  # pragma: no cover - defensive guard for malformed patterns and redirects
+        except (
+            ValueError,
+            RuntimeError,
+            AttributeError,
+            RequestRedirect,
+        ):  # pragma: no cover - defensive guard for malformed patterns and redirects
             return False
         return True
 

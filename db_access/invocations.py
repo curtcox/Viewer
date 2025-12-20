@@ -6,6 +6,7 @@ from typing import Dict, Iterable, List, Optional, Union
 
 from sqlalchemy import or_
 
+from cid import CID as ValidatedCID
 from models import ServerInvocation
 from db_access._common import save_entity
 
@@ -20,18 +21,24 @@ class ServerInvocationInput:
     helper remain optional.
     """
 
-    servers_cid: Optional[str] = None
-    variables_cid: Optional[str] = None
-    secrets_cid: Optional[str] = None
-    request_details_cid: Optional[str] = None
-    invocation_cid: Optional[str] = None
+    # These fields may be supplied as either raw CID strings or validated
+    # ``cid.CID`` instances.  The public helpers will normalize values before
+    # persisting them to the database.
+    servers_cid: Optional[Union[str, ValidatedCID]] = None
+    variables_cid: Optional[Union[str, ValidatedCID]] = None
+    secrets_cid: Optional[Union[str, ValidatedCID]] = None
+    request_details_cid: Optional[Union[str, ValidatedCID]] = None
+    invocation_cid: Optional[Union[str, ValidatedCID]] = None
+    external_calls_cid: Optional[Union[str, ValidatedCID]] = None
 
 
 def create_server_invocation(
     server_name: str,
-    result_cid: str,
-    cid_metadata: Optional[Union[ServerInvocationInput, Dict[str, Optional[str]]]] = None,
-    **legacy_kwargs: Optional[str],
+    result_cid: Union[str, ValidatedCID],
+    cid_metadata: Optional[
+        Union[ServerInvocationInput, Dict[str, Optional[Union[str, ValidatedCID]]]]
+    ] = None,
+    **legacy_kwargs: Optional[Union[str, ValidatedCID]],
 ) -> ServerInvocation:
     """Persist a ``ServerInvocation`` record.
 
@@ -50,7 +57,7 @@ def create_server_invocation(
             a mapping of optional CID values.
     """
     field_names = set(ServerInvocationInput.__annotations__)
-    merged: Dict[str, Optional[str]] = {}
+    merged: Dict[str, Optional[Union[str, ValidatedCID]]] = {}
 
     if isinstance(cid_metadata, ServerInvocationInput):
         merged.update(asdict(cid_metadata))
@@ -65,14 +72,22 @@ def create_server_invocation(
 
     cid_data = ServerInvocationInput(**merged)
 
+    def _normalize_optional(value: Optional[Union[str, ValidatedCID]]) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, ValidatedCID):
+            return value.value
+        return value
+
     invocation = ServerInvocation(
         server_name=server_name,
-        result_cid=result_cid,
-        servers_cid=cid_data.servers_cid,
-        variables_cid=cid_data.variables_cid,
-        secrets_cid=cid_data.secrets_cid,
-        request_details_cid=cid_data.request_details_cid,
-        invocation_cid=cid_data.invocation_cid,
+        result_cid=_normalize_optional(result_cid),
+        servers_cid=_normalize_optional(cid_data.servers_cid),
+        variables_cid=_normalize_optional(cid_data.variables_cid),
+        secrets_cid=_normalize_optional(cid_data.secrets_cid),
+        request_details_cid=_normalize_optional(cid_data.request_details_cid),
+        invocation_cid=_normalize_optional(cid_data.invocation_cid),
+        external_calls_cid=_normalize_optional(cid_data.external_calls_cid),
     )
     save_entity(invocation)
     return invocation
@@ -91,51 +106,66 @@ def get_server_invocations(
     if end:
         query = query.filter(ServerInvocation.invoked_at <= end)
 
-    return (
-        query
-        .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
-        .all()
-    )
+    return query.order_by(
+        ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc()
+    ).all()
 
 
 def get_server_invocations_by_server(server_name: str) -> List[ServerInvocation]:
     """Return invocation events for a specific server ordered from newest to oldest."""
     return (
-        ServerInvocation.query
-        .filter(ServerInvocation.server_name == server_name)
+        ServerInvocation.query.filter(ServerInvocation.server_name == server_name)
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
 
 
 def get_server_invocations_by_result_cids(
-    result_cids: Iterable[str],
+    result_cids: Iterable[Union[str, ValidatedCID]],
 ) -> List[ServerInvocation]:
     """Return invocation events matching any of the provided result CIDs."""
-    cid_values = {cid for cid in result_cids if cid}
+
+    normalized_values = set()
+    for cid in result_cids:
+        if not cid:
+            continue
+        if isinstance(cid, ValidatedCID):
+            normalized_values.add(cid.value)
+        else:
+            normalized_values.add(cid)
+
+    cid_values = normalized_values
     if not cid_values:
         return []
 
     return (
-        ServerInvocation.query
-        .filter(ServerInvocation.result_cid.in_(cid_values))
+        ServerInvocation.query.filter(ServerInvocation.result_cid.in_(cid_values))
         .order_by(ServerInvocation.invoked_at.desc(), ServerInvocation.id.desc())
         .all()
     )
 
 
-def find_server_invocations_by_cid(cid_value: str) -> List[ServerInvocation]:
+def find_server_invocations_by_cid(
+    cid_value: Union[str, ValidatedCID],
+) -> List[ServerInvocation]:
     """Return invocation events that reference a CID in any tracked column."""
     if not cid_value:
         return []
 
+    normalized_value = (
+        cid_value.value if isinstance(cid_value, ValidatedCID) else cid_value
+    )
+    if not normalized_value:
+        return []
+
     filters = [
-        ServerInvocation.result_cid == cid_value,
-        ServerInvocation.invocation_cid == cid_value,
-        ServerInvocation.request_details_cid == cid_value,
-        ServerInvocation.servers_cid == cid_value,
-        ServerInvocation.variables_cid == cid_value,
-        ServerInvocation.secrets_cid == cid_value,
+        ServerInvocation.result_cid == normalized_value,
+        ServerInvocation.invocation_cid == normalized_value,
+        ServerInvocation.request_details_cid == normalized_value,
+        ServerInvocation.servers_cid == normalized_value,
+        ServerInvocation.variables_cid == normalized_value,
+        ServerInvocation.secrets_cid == normalized_value,
+        ServerInvocation.external_calls_cid == normalized_value,
     ]
 
     return ServerInvocation.query.filter(or_(*filters)).all()

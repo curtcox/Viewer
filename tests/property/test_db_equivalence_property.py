@@ -14,7 +14,9 @@ from tests.property.strategies import binary_cid_data, server_records
 class TestPropertyBasedEquivalence:
     """Property-based checks that memory and disk databases stay equivalent."""
 
-    @settings(max_examples=25, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=25, suppress_health_check=[HealthCheck.function_scoped_fixture]
+    )
     @given(record=server_records)
     def test_server_roundtrip_equivalence(self, memory_db_app, disk_db_app, record):
         results = {}
@@ -37,7 +39,9 @@ class TestPropertyBasedEquivalence:
 
         assert results["memory"] == results["disk"]
 
-    @settings(max_examples=25, suppress_health_check=[HealthCheck.function_scoped_fixture])
+    @settings(
+        max_examples=25, suppress_health_check=[HealthCheck.function_scoped_fixture]
+    )
     @given(blob=binary_cid_data)
     def test_cid_binary_storage_equivalence(self, memory_db_app, disk_db_app, blob):
         target_path = "/cid/hypothesis"

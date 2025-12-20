@@ -33,14 +33,15 @@ URL_DOWNLOAD_TIMEOUT_SECONDS = 30
 # ============================================================================
 
 DEFAULT_USER_AGENT = (
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-    '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 )
 
 
 # ============================================================================
 # FILE UPLOAD HANDLERS
 # ============================================================================
+
 
 def process_file_upload(form: Any) -> Tuple[bytes, str]:
     """Process file upload from form and return file content and filename.
@@ -59,7 +60,7 @@ def process_file_upload(form: Any) -> Tuple[bytes, str]:
     """
     uploaded_file = form.file.data
     file_content = uploaded_file.read()
-    filename = uploaded_file.filename or 'upload'
+    filename = uploaded_file.filename or "upload"
     return file_content, filename
 
 
@@ -79,7 +80,7 @@ def process_text_upload(form: Any) -> bytes:
         True
     """
     text_content = form.text_content.data
-    file_content = text_content.encode('utf-8')
+    file_content = text_content.encode("utf-8")
     return file_content
 
 
@@ -108,27 +109,26 @@ def process_url_upload(form: Any) -> Tuple[bytes, str]:
     url = form.url.data.strip()
 
     try:
-        headers = {'User-Agent': DEFAULT_USER_AGENT}
+        headers = {"User-Agent": DEFAULT_USER_AGENT}
 
         response = requests.get(
-            url,
-            timeout=URL_DOWNLOAD_TIMEOUT_SECONDS,
-            headers=headers,
-            stream=True
+            url, timeout=URL_DOWNLOAD_TIMEOUT_SECONDS, headers=headers, stream=True
         )
         response.raise_for_status()
 
         # Extract MIME type from response
-        content_type = response.headers.get('content-type', 'application/octet-stream')
-        mime_type = content_type.split(';')[0].strip().lower()
+        content_type = response.headers.get("content-type", "application/octet-stream")
+        mime_type = content_type.split(";")[0].strip().lower()
 
         # Check content length if provided
-        content_length = response.headers.get('content-length')
+        content_length = response.headers.get("content-length")
         if content_length and int(content_length) > MAX_UPLOAD_SIZE_BYTES:
-            raise ValueError(f"File too large (>{MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)}MB)")
+            raise ValueError(
+                f"File too large (>{MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)}MB)"
+            )
 
         # Download content with streaming and size checking
-        file_content = b''
+        file_content = b""
         downloaded_size = 0
 
         for chunk in response.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE_BYTES):
@@ -142,9 +142,9 @@ def process_url_upload(form: Any) -> Tuple[bytes, str]:
 
         # Generate filename from URL if needed
         parsed_url = urlparse(url)
-        filename = parsed_url.path.split('/')[-1]
+        filename = parsed_url.path.split("/")[-1]
 
-        if not filename or '.' not in filename:
+        if not filename or "." not in filename:
             extension = get_extension_from_mime_type(mime_type)
             if extension:
                 filename = f"download.{extension}"

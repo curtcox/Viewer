@@ -1,4 +1,5 @@
 """Integration tests for the history page."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -9,7 +10,6 @@ from database import db
 from models import PageView
 
 pytestmark = pytest.mark.integration
-
 
 
 def test_history_page_displays_recent_activity(

@@ -1,11 +1,21 @@
 {
   "version": 6,
-  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [
     {
       "name": "ai",
       "definition_cid": "reference_templates/aliases/ai.txt",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "reference_templates/aliases/ai_about.txt",
+      "enabled": true
+    },
+    {
+      "name": "cookies",
+      "definition_cid": "reference_templates/aliases/cookies.txt",
       "enabled": true
     }
   ],
@@ -46,6 +56,11 @@
       "enabled": true
     },
     {
+      "name": "gateway",
+      "definition_cid": "reference_templates/servers/definitions/gateway.py",
+      "enabled": true
+    },
+    {
       "name": "google_gemini",
       "definition_cid": "reference_templates/servers/definitions/google_gemini.py",
       "enabled": true
@@ -53,6 +68,11 @@
     {
       "name": "jinja",
       "definition_cid": "reference_templates/servers/definitions/jinja_renderer.py",
+      "enabled": true
+    },
+    {
+      "name": "file",
+      "definition_cid": "reference_templates/servers/definitions/file.py",
       "enabled": true
     },
     {
@@ -83,6 +103,31 @@
     {
       "name": "urleditor",
       "definition_cid": "reference_templates/servers/definitions/urleditor.py",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
+      "enabled": true
+    },
+    {
+      "name": "awk",
+      "definition_cid": "reference_templates/servers/definitions/awk.sh",
+      "enabled": true
+    },
+    {
+      "name": "sed",
+      "definition_cid": "reference_templates/servers/definitions/sed.sh",
+      "enabled": true
+    },
+    {
+      "name": "grep",
+      "definition_cid": "reference_templates/servers/definitions/grep.sh",
+      "enabled": true
+    },
+    {
+      "name": "jq",
+      "definition_cid": "reference_templates/servers/definitions/jq.sh",
       "enabled": true
     }
   ],

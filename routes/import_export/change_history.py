@@ -1,4 +1,5 @@
 """Change history serialization, gathering, and import operations."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,7 +19,9 @@ from db_access import (
 )
 
 
-def serialise_interaction_history(entity_type: str, entity_name: str) -> list[dict[str, str]]:
+def serialise_interaction_history(
+    entity_type: str, entity_name: str
+) -> list[dict[str, str]]:
     """Serialize interaction history for a single entity."""
     interactions = get_entity_interactions(entity_type, entity_name)
 
@@ -27,13 +30,15 @@ def serialise_interaction_history(entity_type: str, entity_name: str) -> list[di
         timestamp = interaction.created_at
         if timestamp is None:
             continue
-        aware = timestamp if timestamp.tzinfo else timestamp.replace(tzinfo=timezone.utc)
+        aware = (
+            timestamp if timestamp.tzinfo else timestamp.replace(tzinfo=timezone.utc)
+        )
         aware = aware.astimezone(timezone.utc)
         history.append(
             {
-                'timestamp': aware.isoformat(),
-                'message': (interaction.message or '').strip(),
-                'action': (interaction.action or '').strip() or 'save',
+                "timestamp": aware.isoformat(),
+                "message": (interaction.message or "").strip(),
+                "action": (interaction.action or "").strip() or "save",
             }
         )
 
@@ -43,10 +48,10 @@ def serialise_interaction_history(entity_type: str, entity_name: str) -> list[di
 def gather_change_history() -> dict[str, dict[str, list[dict[str, str]]]]:
     """Return change history grouped by entity collection."""
     collections: dict[str, tuple[str, Iterable[str]]] = {
-        'aliases': ('alias', (alias.name for alias in get_aliases())),
-        'servers': ('server', (server.name for server in get_servers())),
-        'variables': ('variable', (variable.name for variable in get_variables())),
-        'secrets': ('secret', (secret.name for secret in get_secrets())),
+        "aliases": ("alias", (alias.name for alias in get_aliases())),
+        "servers": ("server", (server.name for server in get_servers())),
+        "variables": ("variable", (variable.name for variable in get_variables())),
+        "secrets": ("secret", (secret.name for secret in get_secrets())),
     }
 
     history_payload: dict[str, dict[str, list[dict[str, str]]]] = {}
@@ -68,7 +73,7 @@ def parse_history_timestamp(value: str) -> datetime | None:
     if not value:
         return None
     cleaned = value.strip()
-    if cleaned.endswith('Z'):
+    if cleaned.endswith("Z"):
         cleaned = f"{cleaned[:-1]}+00:00"
     try:
         parsed = datetime.fromisoformat(cleaned)
@@ -96,7 +101,9 @@ def normalise_history_name(
 ) -> str | None:
     """Normalize and validate a history entry name."""
     if not isinstance(raw_name, str) or not raw_name.strip():
-        errors.append(f'{collection_key.title()} history entry must include a valid item name.')
+        errors.append(
+            f"{collection_key.title()} history entry must include a valid item name."
+        )
         return None
     return raw_name.strip()
 
@@ -111,20 +118,20 @@ def prepare_history_event(
         errors.append(f'History events for "{name}" must be objects.')
         return None
 
-    timestamp_raw = raw_event.get('timestamp')
-    timestamp = parse_history_timestamp(timestamp_raw or '')
+    timestamp_raw = raw_event.get("timestamp")
+    timestamp = parse_history_timestamp(timestamp_raw or "")
     if timestamp is None:
         errors.append(f'History event for "{name}" has an invalid timestamp.')
         return None
 
-    action_raw = raw_event.get('action')
-    action = (action_raw if isinstance(action_raw, str) else '').strip() or 'save'
-    message_raw = raw_event.get('message')
-    message = (message_raw if isinstance(message_raw, str) else '').strip()
+    action_raw = raw_event.get("action")
+    action = (action_raw if isinstance(action_raw, str) else "").strip() or "save"
+    message_raw = raw_event.get("message")
+    message = (message_raw if isinstance(message_raw, str) else "").strip()
     if len(message) > 500:
-        message = message[:497] + '…'
-    content_raw = raw_event.get('content')
-    content = (content_raw if isinstance(content_raw, str) else '').strip()
+        message = message[:497] + "…"
+    content_raw = raw_event.get("content")
+    content = (content_raw if isinstance(content_raw, str) else "").strip()
 
     return HistoryEvent(
         timestamp=timestamp,
@@ -144,7 +151,9 @@ def iter_history_events(
     if entries is None:
         return
     if not isinstance(entries, dict):
-        errors.append(f'{collection_key.title()} history must map item names to event lists.')
+        errors.append(
+            f"{collection_key.title()} history must map item names to event lists."
+        )
         return
 
     for raw_name, raw_events in entries.items():
@@ -163,15 +172,17 @@ def iter_history_events(
 def import_change_history(raw_history: Any) -> Tuple[int, list[str]]:
     """Import change history events."""
     if raw_history is None:
-        return 0, ['No change history data found in import file.']
+        return 0, ["No change history data found in import file."]
     if not isinstance(raw_history, dict):
-        return 0, ['Change history in import file must be an object mapping collections to events.']
+        return 0, [
+            "Change history in import file must be an object mapping collections to events."
+        ]
 
     collection_map = {
-        'aliases': 'alias',
-        'servers': 'server',
-        'variables': 'variable',
-        'secrets': 'secret',
+        "aliases": "alias",
+        "servers": "server",
+        "variables": "variable",
+        "secrets": "secret",
     }
 
     errors: list[str] = []

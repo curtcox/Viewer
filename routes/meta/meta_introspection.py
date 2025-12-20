@@ -1,4 +1,5 @@
 """Source code introspection and route metadata building for meta route."""
+
 from __future__ import annotations
 
 import ast
@@ -62,7 +63,9 @@ def collect_template_links(obj: Any) -> List[str]:
     template_names: List[str] = []
 
     class TemplateVisitor(ast.NodeVisitor):
-        def visit_Call(self, node: ast.Call) -> None:  # pragma: no cover - simple traversal
+        def visit_Call(
+            self, node: ast.Call
+        ) -> None:  # pragma: no cover - simple traversal
             func = node.func
             func_name: Optional[str] = None
             if isinstance(func, ast.Name):
@@ -72,7 +75,9 @@ def collect_template_links(obj: Any) -> List[str]:
 
             if func_name == "render_template" and node.args:
                 first_arg = node.args[0]
-                if isinstance(first_arg, ast.Constant) and isinstance(first_arg.value, str):
+                if isinstance(first_arg, ast.Constant) and isinstance(
+                    first_arg.value, str
+                ):
                     template_names.append(first_arg.value)
 
             self.generic_visit(node)
@@ -115,10 +120,20 @@ def collect_template_links(obj: Any) -> List[str]:
     return dedupe_links(links)
 
 
-def build_route_resolution(path: str, rule, values: Dict[str, Any], status_code: int = 200, meta_source_link: str = "/source/routes/meta.py") -> Dict[str, Any]:
+def build_route_resolution(
+    path: str,
+    rule,
+    values: Dict[str, Any],
+    status_code: int = 200,
+    meta_source_link: str = "/source/routes/meta.py",
+) -> Dict[str, Any]:
     """Return metadata for a matched Flask route."""
     endpoint = getattr(rule, "endpoint", None)
-    methods = sorted(m for m in (getattr(rule, "methods", None) or []) if m not in {"HEAD", "OPTIONS"})
+    methods = sorted(
+        m
+        for m in (getattr(rule, "methods", None) or [])
+        if m not in {"HEAD", "OPTIONS"}
+    )
     view_func = current_app.view_functions.get(endpoint) if endpoint else None
     unwrapped = inspect.unwrap(view_func) if view_func else None
 
@@ -131,8 +146,12 @@ def build_route_resolution(path: str, rule, values: Dict[str, Any], status_code:
             "rule": getattr(rule, "rule", None),
             "arguments": values,
             "methods": methods,
-            "blueprint": endpoint.split(".", 1)[0] if endpoint and "." in endpoint else None,
-            "callable": f"{unwrapped.__module__}.{unwrapped.__name__}" if unwrapped else None,
+            "blueprint": endpoint.split(".", 1)[0]
+            if endpoint and "." in endpoint
+            else None,
+            "callable": f"{unwrapped.__module__}.{unwrapped.__name__}"
+            if unwrapped
+            else None,
             "docstring": inspect.getdoc(unwrapped) if unwrapped else None,
         },
         "source_links": dedupe_links(

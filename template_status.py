@@ -9,9 +9,7 @@ from typing import Dict, Optional
 from template_manager import get_template_status
 
 
-def generate_template_status_label(
-    entity_type: Optional[str] = None
-) -> str:
+def generate_template_status_label(entity_type: Optional[str] = None) -> str:
     """Generate a human-readable status label for templates.
 
     Args:
@@ -29,18 +27,18 @@ def generate_template_status_label(
     status = get_template_status()
 
     # Check if templates are invalid
-    if not status['is_valid'] and status['count_total'] == 0:
+    if not status["is_valid"] and status["count_total"] == 0:
         # No templates defined
         return "No templates"
 
-    if status.get('error'):
+    if status.get("error"):
         return "Invalid template definition"
 
     # Get count
     if entity_type:
-        count = status['count_by_type'].get(entity_type, 0)
+        count = status["count_by_type"].get(entity_type, 0)
     else:
-        count = status['count_total']
+        count = status["count_total"]
 
     # Format label
     if count == 0:
@@ -50,9 +48,7 @@ def generate_template_status_label(
     return f"{count} templates"
 
 
-def get_template_link_info(
-    entity_type: Optional[str] = None
-) -> Dict[str, str]:
+def get_template_link_info(entity_type: Optional[str] = None) -> Dict[str, str]:
     """Get template status link information for rendering in templates.
 
     Args:
@@ -68,19 +64,19 @@ def get_template_link_info(
     label = generate_template_status_label(entity_type)
 
     # Determine URL
-    url = '/variables/templates'
+    url = "/variables/templates"
     if entity_type:
-        url = f'/variables/templates?type={entity_type}'
+        url = f"/variables/templates?type={entity_type}"
 
     # Determine CSS class
-    css_class = 'template-status-empty'
-    if status.get('error'):
-        css_class = 'template-status-error'
-    elif status['is_valid'] and status['count_total'] > 0:
-        css_class = 'template-status-active'
+    css_class = "template-status-empty"
+    if status.get("error"):
+        css_class = "template-status-error"
+    elif status["is_valid"] and status["count_total"] > 0:
+        css_class = "template-status-active"
 
     return {
-        'label': label,
-        'url': url,
-        'css_class': css_class,
+        "label": label,
+        "url": url,
+        "css_class": css_class,
     }

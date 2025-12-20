@@ -107,7 +107,10 @@ from upload_handlers import (
 )
 
 # Content serving
-from content_serving import generate_qr_data_url as _generate_qr_data_url, serve_cid_content
+from content_serving import (
+    generate_qr_data_url as _generate_qr_data_url,
+    serve_cid_content,
+)
 
 # Create a singleton Mermaid renderer for backward compatibility
 _mermaid_renderer = MermaidRenderer()
@@ -157,4 +160,4 @@ def save_server_definition_as_cid(definition: str) -> str:
     Returns:
         CID string
     """
-    return store_cid_from_bytes(definition.encode('utf-8'))
+    return store_cid_from_bytes(definition.encode("utf-8"))

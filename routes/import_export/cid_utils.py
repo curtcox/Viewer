@@ -1,4 +1,5 @@
 """CID normalization, serialization, and content encoding utilities."""
+
 from __future__ import annotations
 
 import base64
@@ -15,12 +16,12 @@ from db_access import get_cid_by_path
 def normalise_cid(value: Any) -> str:
     """Normalize a CID value to a clean string format."""
     if not isinstance(value, str):
-        return ''
+        return ""
     cleaned = value.strip()
     if not cleaned:
-        return ''
-    cleaned = cleaned.split('.')[0]
-    return cleaned.lstrip('/')
+        return ""
+    cleaned = cleaned.split(".")[0]
+    return cleaned.lstrip("/")
 
 
 def coerce_enabled_flag(value: Any) -> bool:
@@ -30,9 +31,9 @@ def coerce_enabled_flag(value: Any) -> bool:
 
     if isinstance(value, str):
         normalized = value.strip().lower()
-        if normalized in {'false', '0', 'off', 'no'}:
+        if normalized in {"false", "0", "off", "no"}:
             return False
-        if normalized in {'true', '1', 'on', 'yes'}:
+        if normalized in {"true", "1", "on", "yes"}:
             return True
 
     if isinstance(value, (int, float)):
@@ -47,20 +48,20 @@ def serialise_cid_value(content: bytes) -> str:
     Always decodes content as UTF-8. If the content contains invalid UTF-8
     sequences, they are replaced with the Unicode replacement character.
     """
-    return content.decode('utf-8', errors='replace')
+    return content.decode("utf-8", errors="replace")
 
 
 def format_size(num_bytes: int) -> str:
     """Format a byte count as a human-readable string."""
-    units = ['bytes', 'KB', 'MB', 'GB', 'TB']
+    units = ["bytes", "KB", "MB", "GB", "TB"]
     size = float(num_bytes)
     for unit in units:
         if size < 1024 or unit == units[-1]:
-            if unit == 'bytes':
-                return f'{int(size)} bytes'
-            return f'{size:.1f} {unit}'
+            if unit == "bytes":
+                return f"{int(size)} bytes"
+            return f"{size:.1f} {unit}"
         size /= 1024
-    return f'{int(num_bytes)} bytes'
+    return f"{int(num_bytes)} bytes"
 
 
 @dataclass
@@ -99,23 +100,23 @@ class CidWriter:
 def deserialise_cid_value(raw_value: Any) -> tuple[bytes | None, str | None]:
     """Deserialize a CID value from import payload format."""
     if isinstance(raw_value, dict):
-        encoding = (raw_value.get('encoding') or 'utf-8').strip().lower()
-        value = raw_value.get('value')
+        encoding = (raw_value.get("encoding") or "utf-8").strip().lower()
+        value = raw_value.get("value")
     else:
-        encoding = 'utf-8'
+        encoding = "utf-8"
         value = raw_value
 
     if not isinstance(value, str):
         return None, 'CID map values must be strings or objects with a "value" field.'
 
-    if encoding in ('utf-8', 'text', 'utf8'):
-        return value.encode('utf-8'), None
+    if encoding in ("utf-8", "text", "utf8"):
+        return value.encode("utf-8"), None
 
-    if encoding == 'base64':
+    if encoding == "base64":
         try:
-            return base64.b64decode(value.encode('ascii')), None
+            return base64.b64decode(value.encode("ascii")), None
         except (binascii.Error, ValueError):
-            return None, 'CID map entry used invalid base64 encoding.'
+            return None, "CID map entry used invalid base64 encoding."
 
     try:
         return value.encode(encoding), None
@@ -128,7 +129,7 @@ def parse_cid_values_section(raw_map: Any) -> tuple[dict[str, bytes], list[str]]
     if raw_map is None:
         return {}, []
     if not isinstance(raw_map, dict):
-        return {}, ['CID map must be an object mapping CID values to content.']
+        return {}, ["CID map must be an object mapping CID values to content."]
 
     cid_values: dict[str, bytes] = {}
     errors: list[str] = []
@@ -136,7 +137,7 @@ def parse_cid_values_section(raw_map: Any) -> tuple[dict[str, bytes], list[str]]
     for raw_key, raw_value in raw_map.items():
         cid_value = normalise_cid(raw_key)
         if not cid_value:
-            errors.append('CID map entries must use non-empty string keys.')
+            errors.append("CID map entries must use non-empty string keys.")
             continue
 
         content_bytes, error = deserialise_cid_value(raw_value)
@@ -174,7 +175,7 @@ def load_cid_bytes(cid_value: str, cid_map: dict[str, bytes]) -> bytes | None:
 
 def encode_section_content(value: Any) -> bytes:
     """Encode a section value as JSON bytes."""
-    return json.dumps(value, indent=2, sort_keys=True).encode('utf-8')
+    return json.dumps(value, indent=2, sort_keys=True).encode("utf-8")
 
 
 def load_export_section(
@@ -193,21 +194,33 @@ def load_export_section(
             return None, [f'Section "{key}" referenced an invalid CID value.'], True
         content_bytes = load_cid_bytes(cid_value, cid_map)
         if content_bytes is None:
-            return None, [
-                f'Section "{key}" referenced CID "{cid_value}" but the content was not provided.'
-            ], True
+            return (
+                None,
+                [
+                    f'Section "{key}" referenced CID "{cid_value}" but the content was not provided.'
+                ],
+                True,
+            )
         try:
-            decoded_text = content_bytes.decode('utf-8')
+            decoded_text = content_bytes.decode("utf-8")
         except UnicodeDecodeError:
-            return None, [
-                f'Section "{key}" referenced CID "{cid_value}" that was not UTF-8 encoded.'
-            ], True
+            return (
+                None,
+                [
+                    f'Section "{key}" referenced CID "{cid_value}" that was not UTF-8 encoded.'
+                ],
+                True,
+            )
         try:
             return json.loads(decoded_text), [], False
         except json.JSONDecodeError:
-            return None, [
-                f'Section "{key}" referenced CID "{cid_value}" with invalid JSON content.'
-            ], True
+            return (
+                None,
+                [
+                    f'Section "{key}" referenced CID "{cid_value}" with invalid JSON content.'
+                ],
+                True,
+            )
 
     return raw_value, [], False
 

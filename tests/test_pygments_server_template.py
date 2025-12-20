@@ -72,7 +72,9 @@ class TestPygmentsServerTemplate(unittest.TestCase):
         self.server.name = "syntax_viewer"
         db.session.commit()
 
-        response = self.client.get(f"/syntax_viewer/{cid_value}.py", follow_redirects=True)
+        response = self.client.get(
+            f"/syntax_viewer/{cid_value}.py", follow_redirects=True
+        )
 
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)

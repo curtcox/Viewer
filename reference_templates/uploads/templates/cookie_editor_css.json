@@ -1,0 +1,7 @@
+{
+  "id": "cookie-editor-style",
+  "name": "Cookie Editor CSS",
+  "description": "Theme-aware stylesheet used by the cookie editor page.",
+  "content_file": "contents/cookie_editor.css",
+  "suggested_filename": "cookie-editor.css"
+}

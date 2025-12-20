@@ -66,7 +66,9 @@ def _load_section(payload: dict[str, Any], key: str):
     if isinstance(entry, dict):
         encoding = (entry.get("encoding") or "utf-8").lower()
         value = entry.get("value")
-        assert isinstance(value, str), f"CID {section_cid} for {key} must include string content"
+        assert isinstance(value, str), (
+            f"CID {section_cid} for {key} must include string content"
+        )
         if encoding == "base64":
             content_bytes = base64.b64decode(value.encode("ascii"))
         else:
@@ -84,12 +86,12 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
 
     origin_app = app_factory()
     server_name = "shared-tool"
-    server_definition = 'return {"output": "Hello from origin", "content_type": "text/plain"}'
+    server_definition = (
+        'return {"output": "Hello from origin", "content_type": "text/plain"}'
+    )
 
     with origin_app.app_context():
-        db.session.add(
-            Server(name=server_name, definition=server_definition)
-        )
+        db.session.add(Server(name=server_name, definition=server_definition))
         db.session.commit()
 
     origin_client = origin_app.test_client()
@@ -143,7 +145,9 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
             (entry for entry in servers_section if entry.get("name") == server_name),
             None,
         )
-        assert exported_entry is not None, "Export payload should include the created server."
+        assert exported_entry is not None, (
+            "Export payload should include the created server."
+        )
 
         expected_cid = exported_entry["definition_cid"]
         assert expected_cid in parsed_payload.get("cid_values", {})
@@ -155,7 +159,9 @@ def test_user_can_transport_server_between_sites(app_factory) -> None:
         assert cid_record is not None
         assert cid_record.file_data.decode("utf-8") == server_definition
 
-    execution_response = destination_client.get(f"/{server_name}", follow_redirects=False)
+    execution_response = destination_client.get(
+        f"/{server_name}", follow_redirects=False
+    )
     assert execution_response.status_code == 302
 
     redirect_location = execution_response.headers.get("Location")

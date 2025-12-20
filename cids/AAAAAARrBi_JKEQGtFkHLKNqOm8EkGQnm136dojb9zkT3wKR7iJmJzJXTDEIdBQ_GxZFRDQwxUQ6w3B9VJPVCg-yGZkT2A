@@ -1,0 +1,41 @@
+{
+  "version": 6,
+  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "AAAAAAAPYWkgLT4gL2FpX3N0dWIK",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "AAAAABpH7h4igbiwbtqVBlamcVkKc6-W_39YXqmgugITz5etsjSj-z5pKZoHLrkxhPVp1e8jBJPhqxpcdgJnUN_y-HzPTA",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "AAAAABQIuUROlC-0GY8T1vLCoHWcVhXN6TkHr2pEXMwEB-kHoOBw6UUIiRqtp9YyQcrjZa-uJ-_0LqRB3a_341IeXePQ3A",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+      "enabled": true
+    }
+  ]
+}

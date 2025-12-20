@@ -1,4 +1,5 @@
 """Unit tests for the testmon conftest patch."""
+
 from __future__ import annotations
 
 import importlib.metadata
@@ -45,7 +46,7 @@ def test_patched_get_system_packages_raw_handles_none_metadata():
 
         # Patch importlib.metadata.distributions to return our mocks
         with patch.object(
-            importlib.metadata, 'distributions', return_value=iter(mock_distributions)
+            importlib.metadata, "distributions", return_value=iter(mock_distributions)
         ):
             # Call the patched function
             result = list(patched_fn())
@@ -92,7 +93,7 @@ def test_patched_get_system_packages_raw_handles_missing_name():
         mock_distributions.append(valid_pkg)
 
         with patch.object(
-            importlib.metadata, 'distributions', return_value=iter(mock_distributions)
+            importlib.metadata, "distributions", return_value=iter(mock_distributions)
         ):
             result = list(patched_fn())
 
@@ -139,7 +140,7 @@ def test_patched_get_system_packages_raw_handles_attribute_error():
         mock_distributions.append(valid_pkg)
 
         with patch.object(
-            importlib.metadata, 'distributions', return_value=iter(mock_distributions)
+            importlib.metadata, "distributions", return_value=iter(mock_distributions)
         ):
             result = list(patched_fn())
 

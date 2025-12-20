@@ -66,7 +66,7 @@ def _compute_definition_cid(definition: str | None) -> str | None:
 
     if not isinstance(definition, str):
         return None
-    return generate_cid(definition.encode('utf-8'))
+    return generate_cid(definition.encode("utf-8"))
 
 
 def _definitions_match(
@@ -85,19 +85,19 @@ def _definitions_match(
 def _entry_definition(entry: dict[str, Any]) -> str:
     """Return the definition text from an entry (empty string when absent)."""
 
-    value = entry.get('definition')
+    value = entry.get("definition")
     if isinstance(value, str):
         return value
-    return ''
+    return ""
 
 
 def _entry_boot_cid(entry: dict[str, Any]) -> str | None:
     """Return the CID supplied by the boot entry or one derived from its text."""
 
-    entry_cid = _normalize_db_cid(entry.get('definition_cid'))
+    entry_cid = _normalize_db_cid(entry.get("definition_cid"))
     if entry_cid:
         return entry_cid
-    definition = entry.get('definition')
+    definition = entry.get("definition")
     if isinstance(definition, str):
         return _compute_definition_cid(definition)
     return None
@@ -108,7 +108,7 @@ def _compare_alias(entry: dict[str, Any]) -> BootEntityDifference | None:
 
     Returns the alias name if there's a difference, None otherwise.
     """
-    name = entry.get('name')
+    name = entry.get("name")
     if not isinstance(name, str) or not name.strip():
         return None
 
@@ -117,7 +117,7 @@ def _compare_alias(entry: dict[str, Any]) -> BootEntityDifference | None:
     # Get boot image definition
     boot_definition = _entry_definition(entry)
 
-    boot_enabled = coerce_enabled_flag(entry.get('enabled'))
+    boot_enabled = coerce_enabled_flag(entry.get("enabled"))
     boot_cid = _entry_boot_cid(entry)
 
     # Check if alias exists in DB
@@ -127,7 +127,7 @@ def _compare_alias(entry: dict[str, Any]) -> BootEntityDifference | None:
         return None
 
     # Compare definitions
-    db_definition = db_alias.definition or ''
+    db_definition = db_alias.definition or ""
     db_enabled = db_alias.enabled
     db_cid = _compute_definition_cid(db_alias.definition)
 
@@ -153,7 +153,7 @@ def _compare_server(entry: dict[str, Any]) -> BootEntityDifference | None:
 
     Returns the server name if there's a difference, None otherwise.
     """
-    name = entry.get('name')
+    name = entry.get("name")
     if not isinstance(name, str) or not name.strip():
         return None
 
@@ -162,7 +162,7 @@ def _compare_server(entry: dict[str, Any]) -> BootEntityDifference | None:
     # Get boot image definition
     boot_definition = _entry_definition(entry)
 
-    boot_enabled = coerce_enabled_flag(entry.get('enabled'))
+    boot_enabled = coerce_enabled_flag(entry.get("enabled"))
     boot_cid = _entry_boot_cid(entry)
 
     # Check if server exists in DB
@@ -172,10 +172,10 @@ def _compare_server(entry: dict[str, Any]) -> BootEntityDifference | None:
         return None
 
     # Compare definitions
-    db_definition = db_server.definition or ''
+    db_definition = db_server.definition or ""
     db_enabled = db_server.enabled
 
-    db_cid = _normalize_db_cid(getattr(db_server, 'definition_cid', None))
+    db_cid = _normalize_db_cid(getattr(db_server, "definition_cid", None))
     if not db_cid:
         db_cid = _compute_definition_cid(db_definition)
 
@@ -201,7 +201,7 @@ def _compare_variable(entry: dict[str, Any]) -> BootEntityDifference | None:
 
     Returns the variable name if there's a difference, None otherwise.
     """
-    name = entry.get('name')
+    name = entry.get("name")
     if not isinstance(name, str) or not name.strip():
         return None
 
@@ -210,7 +210,7 @@ def _compare_variable(entry: dict[str, Any]) -> BootEntityDifference | None:
     # Get boot image definition
     boot_definition = _entry_definition(entry)
 
-    boot_enabled = coerce_enabled_flag(entry.get('enabled'))
+    boot_enabled = coerce_enabled_flag(entry.get("enabled"))
     boot_cid = _entry_boot_cid(entry)
 
     # Check if variable exists in DB
@@ -220,7 +220,7 @@ def _compare_variable(entry: dict[str, Any]) -> BootEntityDifference | None:
         return None
 
     # Compare definitions
-    db_definition = db_variable.definition or ''
+    db_definition = db_variable.definition or ""
     db_enabled = db_variable.enabled
     db_cid = _compute_definition_cid(db_definition)
 
@@ -249,13 +249,13 @@ def _compare_secret(entry: dict[str, Any]) -> BootEntityDifference | None:
 
     Returns the secret name if there's a difference, None otherwise.
     """
-    name = entry.get('name')
+    name = entry.get("name")
     if not isinstance(name, str) or not name.strip():
         return None
 
     name = name.strip()
 
-    boot_enabled = coerce_enabled_flag(entry.get('enabled'))
+    boot_enabled = coerce_enabled_flag(entry.get("enabled"))
 
     # Check if secret exists in DB
     db_secret = get_secret_by_name(name)
@@ -277,7 +277,7 @@ def _normalise_secret_items(value: Any) -> list[dict[str, Any]] | None:
     if value is None:
         return None
     if isinstance(value, dict):
-        items = value.get('items')
+        items = value.get("items")
         return items if isinstance(items, list) else None
     if isinstance(value, list):
         return value
@@ -327,9 +327,9 @@ def compare_boot_image_to_db(
     result = BootImageDiffResult()
 
     # Compare aliases
-    if 'aliases' in payload:
+    if "aliases" in payload:
         aliases_section, load_errors, fatal = load_export_section(
-            payload, 'aliases', cid_lookup
+            payload, "aliases", cid_lookup
         )
         result.errors.extend(load_errors)
         if not fatal:
@@ -338,9 +338,9 @@ def compare_boot_image_to_db(
             )
 
     # Compare servers
-    if 'servers' in payload:
+    if "servers" in payload:
         servers_section, load_errors, fatal = load_export_section(
-            payload, 'servers', cid_lookup
+            payload, "servers", cid_lookup
         )
         result.errors.extend(load_errors)
         if not fatal:
@@ -349,9 +349,9 @@ def compare_boot_image_to_db(
             )
 
     # Compare variables
-    if 'variables' in payload:
+    if "variables" in payload:
         variables_section, load_errors, fatal = load_export_section(
-            payload, 'variables', cid_lookup
+            payload, "variables", cid_lookup
         )
         result.errors.extend(load_errors)
         if not fatal:
@@ -360,9 +360,9 @@ def compare_boot_image_to_db(
             )
 
     # Compare secrets
-    if 'secrets' in payload:
+    if "secrets" in payload:
         secrets_section, load_errors, fatal = load_export_section(
-            payload, 'secrets', cid_lookup
+            payload, "secrets", cid_lookup
         )
         result.errors.extend(load_errors)
         if not fatal:
@@ -378,8 +378,8 @@ def _print_difference_entries(entries: list[BootEntityDifference]) -> None:
     """Print each entry with its boot and DB CIDs."""
 
     for entry in sorted(entries, key=lambda item: item.name):
-        boot_cid = entry.boot_cid or 'unknown'
-        db_cid = entry.db_cid or 'unknown'
+        boot_cid = entry.boot_cid or "unknown"
+        db_cid = entry.db_cid or "unknown"
         print(f"  - {entry.name}")
         print(f"      boot CID: {boot_cid}")
         print(f"      db CID:   {db_cid}")
@@ -399,19 +399,27 @@ def print_boot_image_differences(result: BootImageDiffResult) -> None:
     print("=" * 70)
 
     if result.aliases_different:
-        print(f"\nAliases with different definitions ({len(result.aliases_different)}):")
+        print(
+            f"\nAliases with different definitions ({len(result.aliases_different)}):"
+        )
         _print_difference_entries(result.aliases_different)
 
     if result.servers_different:
-        print(f"\nServers with different definitions ({len(result.servers_different)}):")
+        print(
+            f"\nServers with different definitions ({len(result.servers_different)}):"
+        )
         _print_difference_entries(result.servers_different)
 
     if result.variables_different:
-        print(f"\nVariables with different definitions ({len(result.variables_different)}):")
+        print(
+            f"\nVariables with different definitions ({len(result.variables_different)}):"
+        )
         _print_difference_entries(result.variables_different)
 
     if result.secrets_different:
-        print(f"\nSecrets with different definitions ({len(result.secrets_different)}):")
+        print(
+            f"\nSecrets with different definitions ({len(result.secrets_different)}):"
+        )
         _print_difference_entries(result.secrets_different)
 
     print("\nNote: The boot image values will overwrite the database values.")
@@ -419,8 +427,8 @@ def print_boot_image_differences(result: BootImageDiffResult) -> None:
 
 
 __all__ = [
-    'BootEntityDifference',
-    'BootImageDiffResult',
-    'compare_boot_image_to_db',
-    'print_boot_image_differences',
+    "BootEntityDifference",
+    "BootImageDiffResult",
+    "compare_boot_image_to_db",
+    "print_boot_image_differences",
 ]

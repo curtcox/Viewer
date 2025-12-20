@@ -35,9 +35,9 @@ from db_access.cids import get_cid_by_path
 logger = logging.getLogger(__name__)
 
 # UI entity types
-ENTITY_TYPE_ALIASES = 'aliases'
-ENTITY_TYPE_SERVERS = 'servers'
-ENTITY_TYPE_VARIABLES = 'variables'
+ENTITY_TYPE_ALIASES = "aliases"
+ENTITY_TYPE_SERVERS = "servers"
+ENTITY_TYPE_VARIABLES = "variables"
 
 VALID_ENTITY_TYPES = {
     ENTITY_TYPE_ALIASES,
@@ -57,7 +57,7 @@ def get_uis_config() -> Optional[Dict[str, Any]]:
     - CID Reference: A CID string pointing to stored JSON
     """
     # Get the uis variable
-    uis_var = get_variable_by_name('uis')
+    uis_var = get_variable_by_name("uis")
     if not uis_var or not uis_var.definition:
         return None
 
@@ -75,12 +75,12 @@ def get_uis_config() -> Optional[Dict[str, Any]]:
 
     # Try to resolve as CID reference
     # CID format: can be "/CID_VALUE" or just "CID_VALUE"
-    cid_path = definition if definition.startswith('/') else f'/{definition}'
+    cid_path = definition if definition.startswith("/") else f"/{definition}"
 
     try:
         cid_record = get_cid_by_path(cid_path)
         if cid_record and cid_record.file_data:
-            json_data = cid_record.file_data.decode('utf-8')
+            json_data = cid_record.file_data.decode("utf-8")
             uis_dict = json.loads(json_data)
             if isinstance(uis_dict, dict):
                 return uis_dict
@@ -127,19 +127,22 @@ def validate_uis_json(json_data: str) -> Tuple[bool, Optional[str]]:
         # Validate each entity's UIs
         for entity_name, uis in data[entity_type].items():
             if not isinstance(uis, list):
-                return False, f"UIs for '{entity_name}' in '{entity_type}' must be an array"
+                return (
+                    False,
+                    f"UIs for '{entity_name}' in '{entity_type}' must be an array",
+                )
 
             for i, ui in enumerate(uis):
                 if not isinstance(ui, dict):
                     return False, (
                         f"UI at index {i} for '{entity_name}' in '{entity_type}' must be an object"
                     )
-                if 'name' not in ui:
+                if "name" not in ui:
                     return False, (
                         f"UI at index {i} for '{entity_name}' in '{entity_type}' "
                         f"missing 'name' field"
                     )
-                if 'path' not in ui:
+                if "path" not in ui:
                     return False, (
                         f"UI at index {i} for '{entity_name}' in '{entity_type}' "
                         f"missing 'path' field"
@@ -178,11 +181,13 @@ def get_uis_for_entity(entity_type: str, entity_name: str) -> List[Dict[str, str
     # Filter to only include valid UI entries
     result = []
     for ui in entity_uis:
-        if isinstance(ui, dict) and 'name' in ui and 'path' in ui:
-            result.append({
-                'name': str(ui['name']),
-                'path': str(ui['path']),
-            })
+        if isinstance(ui, dict) and "name" in ui and "path" in ui:
+            result.append(
+                {
+                    "name": str(ui["name"]),
+                    "path": str(ui["path"]),
+                }
+            )
 
     return result
 
@@ -214,10 +219,10 @@ def get_uis_status() -> Dict[str, Any]:
 
     if uis_config is None:
         return {
-            'is_valid': False,
-            'error': None,
-            'count_total': 0,
-            'count_by_type': {
+            "is_valid": False,
+            "error": None,
+            "count_total": 0,
+            "count_by_type": {
                 ENTITY_TYPE_ALIASES: 0,
                 ENTITY_TYPE_SERVERS: 0,
                 ENTITY_TYPE_VARIABLES: 0,
@@ -235,8 +240,8 @@ def get_uis_status() -> Dict[str, Any]:
         count_total += count
 
     return {
-        'is_valid': True,
-        'error': None,
-        'count_total': count_total,
-        'count_by_type': count_by_type,
+        "is_valid": True,
+        "error": None,
+        "count_total": count_total,
+        "count_by_type": count_by_type,
     }

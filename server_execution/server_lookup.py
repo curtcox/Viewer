@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, Iterable, Optional
 from flask import Response, jsonify, render_template
 
 from db_access import get_server_by_name
+
 # pylint: disable=no-name-in-module  # False positive: submodules exist
 from server_execution.code_execution import (
     _auto_main_accepts_additional_path,
@@ -16,11 +17,14 @@ from server_execution.code_execution import (
     execute_server_function,
     execute_server_function_from_definition,
 )
+from server_execution.function_analysis import _analyze_server_definition_for_function
 from server_execution.language_detection import detect_server_language
 # pylint: enable=no-name-in-module
 
 
-def is_potential_versioned_server_path(path: str, existing_routes: Iterable[str]) -> bool:
+def is_potential_versioned_server_path(
+    path: str, existing_routes: Iterable[str]
+) -> bool:
     """Return True if path could represent /{server}/{partial_cid}[/function]."""
     if not path or not path.startswith("/"):
         return False
@@ -64,7 +68,9 @@ def try_server_execution_with_partial(
                 {
                     "definition_cid": m.get("definition_cid"),
                     "snapshot_cid": m.get("snapshot_cid"),
-                    "created_at": m.get("created_at").isoformat() if m.get("created_at") else None,
+                    "created_at": m.get("created_at").isoformat()
+                    if m.get("created_at")
+                    else None,
                 }
                 for m in matches
             ],
@@ -130,6 +136,23 @@ def try_server_execution(path: str) -> Optional[Response]:
         if detect_server_language(getattr(server, "definition", "")) != "python":
             return execute_server_code(server, server_name)
 
+        helper_details = _analyze_server_definition_for_function(
+            server.definition, function_name
+        )
+        if helper_details is None:
+            main_details = _analyze_server_definition_for_function(
+                server.definition, "main"
+            )
+            if main_details is None:
+                return execute_server_code(server, server_name)
+
+            if _auto_main_accepts_additional_path(server):
+                return execute_server_code(server, server_name)
+
+            # Preserve existing behavior for "normal" servers: when a helper
+            # is requested but missing, allow a 404 rather than running main.
+            return None
+
         result = execute_server_function(server, server_name, function_name)
         if result is None:
             if _auto_main_accepts_additional_path(server):
@@ -160,6 +183,34 @@ def try_server_execution(path: str) -> Optional[Response]:
             allow_fallback=True,
             language_override=literal_language,
         )
+
+    helper_details = _analyze_server_definition_for_function(
+        definition_text, function_name
+    )
+    if helper_details is None:
+        main_details = _analyze_server_definition_for_function(definition_text, "main")
+        if main_details is None:
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
+
+        placeholder_server = SimpleNamespace(definition=definition_text)
+        if _auto_main_accepts_additional_path(placeholder_server):
+            return _execute_server_code_common(
+                definition_text,
+                literal_server_name,
+                "execute_literal_server",
+                "",
+                allow_fallback=True,
+                language_override=literal_language,
+            )
+
+        return None
 
     result = _execute_server_code_common(
         definition_text,

@@ -5,7 +5,10 @@ from routes.import_export.change_history import (
     prepare_history_event,
 )
 from routes.import_export.import_sources import parse_import_payload
-from routes.import_export.import_entities import prepare_server_import
+from routes.import_export.import_entities import (
+    import_variables_with_names,
+    prepare_server_import,
+)
 
 
 def test_parse_import_payload_success():
@@ -66,6 +69,37 @@ def test_prepare_server_import_reports_missing_data():
     assert errors == [
         'Server "demo" entry must include either a definition or a definition_cid.'
     ]
+
+
+def test_import_variables_supports_definition_file_via_cid_map():
+    raw_variables = [
+        {
+            "name": "AI_SYSTEM_PROMPTS",
+            "definition_file": "cid-prompts",
+            "enabled": True,
+        }
+    ]
+
+    imported, errors, names = import_variables_with_names(
+        raw_variables,
+        cid_map={"cid-prompts": b'{"prompts": []}'},
+    )
+
+    assert imported == 1
+    assert not errors
+    assert names == ["AI_SYSTEM_PROMPTS"]
+
+
+def test_import_variables_reports_index_and_entry_details_on_missing_definition():
+    raw_variables = [{"name": "broken", "enabled": True}]
+
+    imported, errors, names = import_variables_with_names(raw_variables, cid_map={})
+
+    assert imported == 0
+    assert not names
+    assert len(errors) == 1
+    assert "index 0" in errors[0]
+    assert "keys=" in errors[0]
 
 
 def test_prepare_history_event_truncates_long_messages():

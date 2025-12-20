@@ -16,8 +16,8 @@ import sys
 from datetime import datetime, timezone
 
 # Configure environment before importing app
-os.environ.setdefault('DATABASE_URL', 'sqlite:///instance/viewer.db')
-os.environ.setdefault('SESSION_SECRET', 'migration-secret-key')
+os.environ.setdefault("DATABASE_URL", "sqlite:///instance/viewer.db")
+os.environ.setdefault("SESSION_SECRET", "migration-secret-key")
 
 from app import app
 from database import db
@@ -33,12 +33,7 @@ def query_template_entities():
     """
     print("Querying existing template entities...")
 
-    templates = {
-        'aliases': {},
-        'servers': {},
-        'variables': {},
-        'secrets': {}
-    }
+    templates = {"aliases": {}, "servers": {}, "variables": {}, "secrets": {}}
 
     # Query each entity type for templates
     # Note: We query directly with SQL since the models no longer have template column
@@ -46,19 +41,23 @@ def query_template_entities():
     # Aliases
     try:
         result = db.session.execute(
-            text("SELECT id, name, definition, created_at FROM alias WHERE template = 1")
+            text(
+                "SELECT id, name, definition, created_at FROM alias WHERE template = 1"
+            )
         )
         rows = list(result)
         for row in rows:
-            templates['aliases'][row.name] = {
-                'name': row.name,
-                'description': 'Migrated from database template',
-                'target_path': row.definition or '',
-                'metadata': {
-                    'created': row.created_at.isoformat() if row.created_at else datetime.now(timezone.utc).isoformat(),
-                    'migrated': True,
-                    'original_id': row.id
-                }
+            templates["aliases"][row.name] = {
+                "name": row.name,
+                "description": "Migrated from database template",
+                "target_path": row.definition or "",
+                "metadata": {
+                    "created": row.created_at.isoformat()
+                    if row.created_at
+                    else datetime.now(timezone.utc).isoformat(),
+                    "migrated": True,
+                    "original_id": row.id,
+                },
             }
         print(f"  Found {len(rows)} template aliases")
     except Exception as e:
@@ -67,19 +66,23 @@ def query_template_entities():
     # Servers
     try:
         result = db.session.execute(
-            text("SELECT id, name, definition, created_at FROM server WHERE template = 1")
+            text(
+                "SELECT id, name, definition, created_at FROM server WHERE template = 1"
+            )
         )
         rows = list(result)
         for row in rows:
-            templates['servers'][row.name] = {
-                'name': row.name,
-                'description': 'Migrated from database template',
-                'definition': row.definition or '',
-                'metadata': {
-                    'created': row.created_at.isoformat() if row.created_at else datetime.now(timezone.utc).isoformat(),
-                    'migrated': True,
-                    'original_id': row.id
-                }
+            templates["servers"][row.name] = {
+                "name": row.name,
+                "description": "Migrated from database template",
+                "definition": row.definition or "",
+                "metadata": {
+                    "created": row.created_at.isoformat()
+                    if row.created_at
+                    else datetime.now(timezone.utc).isoformat(),
+                    "migrated": True,
+                    "original_id": row.id,
+                },
             }
         print(f"  Found {len(rows)} template servers")
     except Exception as e:
@@ -88,22 +91,26 @@ def query_template_entities():
     # Variables
     try:
         result = db.session.execute(
-            text("SELECT id, name, definition, created_at FROM variable WHERE template = 1")
+            text(
+                "SELECT id, name, definition, created_at FROM variable WHERE template = 1"
+            )
         )
         rows = list(result)
         for row in rows:
             # Skip the templates variable itself
-            if row.name == 'templates':
+            if row.name == "templates":
                 continue
-            templates['variables'][row.name] = {
-                'name': row.name,
-                'description': 'Migrated from database template',
-                'definition': row.definition or '',
-                'metadata': {
-                    'created': row.created_at.isoformat() if row.created_at else datetime.now(timezone.utc).isoformat(),
-                    'migrated': True,
-                    'original_id': row.id
-                }
+            templates["variables"][row.name] = {
+                "name": row.name,
+                "description": "Migrated from database template",
+                "definition": row.definition or "",
+                "metadata": {
+                    "created": row.created_at.isoformat()
+                    if row.created_at
+                    else datetime.now(timezone.utc).isoformat(),
+                    "migrated": True,
+                    "original_id": row.id,
+                },
             }
         print(f"  Found {len(rows)} template variables")
     except Exception as e:
@@ -112,19 +119,23 @@ def query_template_entities():
     # Secrets
     try:
         result = db.session.execute(
-            text("SELECT id, name, definition, created_at FROM secret WHERE template = 1")
+            text(
+                "SELECT id, name, definition, created_at FROM secret WHERE template = 1"
+            )
         )
         rows = list(result)
         for row in rows:
-            templates['secrets'][row.name] = {
-                'name': row.name,
-                'description': 'Migrated from database template',
-                'value': row.definition or '',
-                'metadata': {
-                    'created': row.created_at.isoformat() if row.created_at else datetime.now(timezone.utc).isoformat(),
-                    'migrated': True,
-                    'original_id': row.id
-                }
+            templates["secrets"][row.name] = {
+                "name": row.name,
+                "description": "Migrated from database template",
+                "value": row.definition or "",
+                "metadata": {
+                    "created": row.created_at.isoformat()
+                    if row.created_at
+                    else datetime.now(timezone.utc).isoformat(),
+                    "migrated": True,
+                    "original_id": row.id,
+                },
             }
         print(f"  Found {len(rows)} template secrets")
     except Exception as e:
@@ -140,7 +151,7 @@ def create_templates_variable(templates):
     # Check if any templates exist
     total_templates = sum(
         len(templates[entity_type])
-        for entity_type in ['aliases', 'servers', 'variables', 'secrets']
+        for entity_type in ["aliases", "servers", "variables", "secrets"]
     )
 
     if total_templates == 0:
@@ -151,7 +162,7 @@ def create_templates_variable(templates):
     templates_json = json.dumps(templates, indent=2)
 
     # Check if templates variable already exists
-    existing = Variable.query.filter_by(name='templates').first()
+    existing = Variable.query.filter_by(name="templates").first()
 
     if existing:
         print(f"  Updating existing templates variable ({total_templates} templates)")
@@ -159,11 +170,7 @@ def create_templates_variable(templates):
         existing.updated_at = datetime.now(timezone.utc)
     else:
         print(f"  Creating new templates variable ({total_templates} templates)")
-        new_var = Variable(
-            name='templates',
-            definition=templates_json,
-            enabled=True
-        )
+        new_var = Variable(name="templates", definition=templates_json, enabled=True)
         db.session.add(new_var)
 
     db.session.commit()
@@ -177,18 +184,16 @@ def drop_template_columns():
     """
     print("\nDropping template columns from tables...")
 
-    tables = ['alias', 'server', 'variable', 'secret']
+    tables = ["alias", "server", "variable", "secret"]
 
     for table in tables:
         try:
             # Check if column exists first
-            result = db.session.execute(
-                text(f"PRAGMA table_info({table})")
-            )
+            result = db.session.execute(text(f"PRAGMA table_info({table})"))
             rows = list(result)
             columns = [row[1] for row in rows]
 
-            if 'template' in columns:
+            if "template" in columns:
                 # SQLite doesn't support DROP COLUMN directly in older versions
                 # We need to use the ALTER TABLE ... DROP COLUMN syntax (SQLite 3.35.0+)
                 try:
@@ -198,8 +203,12 @@ def drop_template_columns():
                     db.session.commit()
                     print(f"  Dropped template column from {table} table")
                 except Exception as e:
-                    print(f"  Warning: Could not drop template column from {table}: {e}")
-                    print("  This is expected for SQLite < 3.35.0. Column will remain but is unused.")
+                    print(
+                        f"  Warning: Could not drop template column from {table}: {e}"
+                    )
+                    print(
+                        "  This is expected for SQLite < 3.35.0. Column will remain but is unused."
+                    )
                     db.session.rollback()
             else:
                 print(f"  Template column already removed from {table} table")
@@ -222,7 +231,7 @@ def main():
     print("=" * 70)
 
     response = input("\nProceed with migration? (yes/no): ")
-    if response.lower() not in ['yes', 'y']:
+    if response.lower() not in ["yes", "y"]:
         print("Migration cancelled.")
         return 1
 
@@ -245,10 +254,11 @@ def main():
         except Exception as e:
             print(f"\nError during migration: {e}")
             import traceback
+
             traceback.print_exc()
             db.session.rollback()
             return 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

@@ -29,7 +29,9 @@ def _mutated_token(plaintext: str, key: str, offset: int) -> tuple[str, str]:
         offset=st.integers(min_value=0, max_value=2**16),
     )
 )
-def test_decrypt_rejects_modified_payload(mutated_token_with_key: tuple[str, str]) -> None:
+def test_decrypt_rejects_modified_payload(
+    mutated_token_with_key: tuple[str, str],
+) -> None:
     mutated_token, key = mutated_token_with_key
     with pytest.raises(ValueError):
         decrypt_secret_value(mutated_token, key)

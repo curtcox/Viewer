@@ -1,4 +1,5 @@
 """Application source file collection and traversal."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,36 +10,42 @@ from flask import current_app
 
 # Template directories to include in exports
 APP_SOURCE_TEMPLATE_DIRECTORIES: tuple[str, ...] = (
-    'templates',
-    'reference_templates',
+    "templates",
+    "reference_templates",
 )
 
 # Static asset directories to include in exports
-APP_SOURCE_STATIC_DIRECTORIES: tuple[str, ...] = ('static',)
+APP_SOURCE_STATIC_DIRECTORIES: tuple[str, ...] = ("static",)
 
 # Other important application files to include
 APP_SOURCE_OTHER_FILES: tuple[Path, ...] = (
-    Path('pyproject.toml'),
-    Path('requirements.txt'),
-    Path('uv.lock'),
-    Path('.env.sample'),
-    Path('run'),
-    Path('install'),
-    Path('doctor'),
-    Path('README.md'),
-    Path('replit.md'),
+    Path("pyproject.toml"),
+    Path("requirements.txt"),
+    Path("uv.lock"),
+    Path(".env.sample"),
+    Path("run"),
+    Path("install"),
+    Path("doctor"),
+    Path("README.md"),
+    Path("replit.md"),
 )
 
 # Python source exclusions
-PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {'test', 'tests', '__pycache__', 'venv', '.venv'}
-PYTHON_SOURCE_EXCLUDED_FILENAMES: set[str] = {'run_coverage.py', 'run_auth_tests.py'}
+PYTHON_SOURCE_EXCLUDED_DIRS: set[str] = {
+    "test",
+    "tests",
+    "__pycache__",
+    "venv",
+    ".venv",
+}
+PYTHON_SOURCE_EXCLUDED_FILENAMES: set[str] = {"run_coverage.py", "run_auth_tests.py"}
 
 # Categories for organizing source files
 APP_SOURCE_CATEGORIES: tuple[tuple[str, str], ...] = (
-    ('python', 'Python Source Files'),
-    ('templates', 'Templates'),
-    ('static', 'Static Files'),
-    ('other', 'Other App Files'),
+    ("python", "Python Source Files"),
+    ("templates", "Templates"),
+    ("static", "Static Files"),
+    ("other", "Other App Files"),
 )
 
 
@@ -49,13 +56,13 @@ def app_root_path() -> Path:
 
 def should_include_python_source(relative_path: Path) -> bool:
     """Determine if a Python file should be included in exports."""
-    if relative_path.suffix != '.py':
+    if relative_path.suffix != ".py":
         return False
 
     if any(part in PYTHON_SOURCE_EXCLUDED_DIRS for part in relative_path.parts):
         return False
 
-    if relative_path.name.startswith('test_'):
+    if relative_path.name.startswith("test_"):
         return False
 
     if relative_path.name in PYTHON_SOURCE_EXCLUDED_FILENAMES:
@@ -69,7 +76,7 @@ def gather_python_source_paths() -> list[Path]:
     base_path = app_root_path()
     python_files: list[Path] = []
 
-    for path in base_path.rglob('*.py'):
+    for path in base_path.rglob("*.py"):
         try:
             relative_path = path.relative_to(base_path)
         except ValueError:
@@ -92,7 +99,7 @@ def gather_files_from_directories(relative_directories: Iterable[str]) -> list[P
         if not directory_path.exists() or not directory_path.is_dir():
             continue
 
-        for file_path in directory_path.rglob('*'):
+        for file_path in directory_path.rglob("*"):
             if file_path.is_file():
                 collected.append(file_path.relative_to(base_path))
 
@@ -126,8 +133,8 @@ def gather_other_app_files() -> list[Path]:
 
 # Map of category keys to their collection functions
 APP_SOURCE_COLLECTORS: dict[str, Callable[[], list[Path]]] = {
-    'python': gather_python_source_paths,
-    'templates': gather_template_paths,
-    'static': gather_static_paths,
-    'other': gather_other_app_files,
+    "python": gather_python_source_paths,
+    "templates": gather_template_paths,
+    "static": gather_static_paths,
+    "other": gather_other_app_files,
 }

@@ -1,4 +1,5 @@
 """Integration coverage for server management pages."""
+
 from __future__ import annotations
 
 import re
@@ -29,8 +30,7 @@ def test_servers_page_lists_saved_servers(
         server = Server(
             name="weather",
             definition=(
-                "def main(city: str) -> str:\n"
-                "    return f\"Forecast for {city}\"\n"
+                'def main(city: str) -> str:\n    return f"Forecast for {city}"\n'
             ),
             definition_cid="bafyweatherdefinition",
         )
@@ -55,10 +55,7 @@ def test_server_pages_show_implementation_language(
     with integration_app.app_context():
         server = Server(
             name="script-server",
-            definition=(
-                "#!/usr/bin/env bash\n"
-                "echo 'hello'\n"
-            ),
+            definition=("#!/usr/bin/env bash\necho 'hello'\n"),
         )
         db.session.add(server)
         db.session.commit()
@@ -98,8 +95,8 @@ def test_servers_page_includes_enabled_toggle(
     assert 'action="/servers/weather/enabled"' in page
     toggle_match = re.search(r'id="server-enabled-toggle-weather"[^>]*>', page)
     assert toggle_match is not None
-    assert 'checked' not in toggle_match.group(0)
-    assert 'server-enabled-label' in page
+    assert "checked" not in toggle_match.group(0)
+    assert "server-enabled-label" in page
 
 
 def test_server_enable_toggle_updates_state(
@@ -199,7 +196,7 @@ def test_servers_page_links_auto_main_context_matches(
                 name="auto-main",
                 definition=(
                     "def main(city, api_token):\n"
-                    "    return {\"output\": city + api_token}\n"
+                    '    return {"output": city + api_token}\n'
                 ),
             )
         )
@@ -213,6 +210,59 @@ def test_servers_page_links_auto_main_context_matches(
     assert "/secrets/api_token" in page
 
 
+def test_servers_page_shows_keyword_only_parameter_secrets(
+    client,
+    integration_app,
+):
+    """Servers with keyword-only secret parameters should list those secrets even if they don't exist."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name="test-api-server",
+                definition=(
+                    "def main(message: str = 'Hello!', *, API_KEY: str, context=None):\n"
+                    "    return {'output': f'{message} with {API_KEY}'}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should show API_KEY as a potential secret parameter
+    assert "API_KEY" in page
+
+
+def test_servers_page_shows_lowercase_parameters_as_variables(
+    client,
+    integration_app,
+):
+    """Servers with lowercase main parameters should list them as variables even if they don't exist."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name="test-var-server",
+                definition=(
+                    "def main(city, temperature):\n"
+                    "    return {'output': f'{city}: {temperature}'}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    response = client.get("/servers")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    # Should show city and temperature as potential variables
+    assert "city" in page
+    assert "temperature" in page
+
+
 def test_new_server_form_renders_in_single_user_mode(
     client,
 ):
@@ -224,8 +274,8 @@ def test_new_server_form_renders_in_single_user_mode(
     page = response.get_data(as_text=True)
     assert "Create New Server" in page
     assert "Server Configuration" in page
-    assert "name=\"name\"" in page
-    assert "name=\"definition\"" in page
+    assert 'name="name"' in page
+    assert 'name="definition"' in page
 
 
 def test_new_server_form_includes_saved_templates(
@@ -244,8 +294,7 @@ def test_new_server_form_includes_saved_templates(
                 "templated-server": {
                     "name": "templated-server",
                     "definition": (
-                        "def main(city: str) -> str:\n"
-                        "    return  {\"output\": city}\n"
+                        'def main(city: str) -> str:\n    return  {"output": city}\n'
                     ),
                 }
             },
@@ -316,8 +365,7 @@ def test_server_detail_page_displays_server_information(
         server = Server(
             name="weather",
             definition=(
-                "def main(city: str) -> str:\n"
-                "    return f\"Forecast for {city}\"\n"
+                'def main(city: str) -> str:\n    return f"Forecast for {city}"\n'
             ),
             definition_cid="bafyweatherdefinition",
         )
@@ -335,6 +383,57 @@ def test_server_detail_page_displays_server_information(
     assert "Run Test" in page
 
 
+def test_server_config_tab_surfaces_named_values(
+    client,
+    integration_app,
+):
+    """The config tab should summarize pre-request named values."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Variable(
+                name="city",
+                definition="return 'London'",
+            )
+        )
+        db.session.add(
+            Secret(
+                name="API_KEY",
+                definition="return 'secret'",
+            )
+        )
+        db.session.add(
+            Server(
+                name="configurable",
+                definition=(
+                    "def main(city, API_KEY, units='metric'):\n"
+                    "    return {'output': city}\n"
+                ),
+            )
+        )
+        db.session.commit()
+
+    client.set_cookie("city", "cookie-value")
+
+    response = client.get("/servers/configurable")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Config" in page
+    assert "Named value configuration" in page
+
+    def _extract_status(name: str, source: str) -> str:
+        pattern = rf'data-named-value-name="{name}" data-named-value-source="{source}">\s*<a[^>]*>([^<]+)'
+        match = re.search(pattern, page, re.DOTALL)
+        assert match, f"Missing status for {name} from {source}"
+        return match.group(1).strip()
+
+    assert _extract_status("city", "cookies") == "Defined"
+    assert _extract_status("city", "variables") == "Overridden"
+    assert _extract_status("API_KEY", "secrets") == "Defined"
+    assert _extract_status("units", "variables") == "None"
+
+
 def test_edit_server_updates_definition_snapshots(
     client,
     integration_app,
@@ -343,8 +442,7 @@ def test_edit_server_updates_definition_snapshots(
 
     with integration_app.app_context():
         original_definition = (
-            "def main(city: str) -> str:\n"
-            "    return f\"Response for {city}\"\n"
+            'def main(city: str) -> str:\n    return f"Response for {city}"\n'
         )
         original_cid = save_server_definition_as_cid(
             original_definition,
@@ -360,8 +458,7 @@ def test_edit_server_updates_definition_snapshots(
         initial_snapshot_cid = store_server_definitions_cid()
 
     updated_definition = (
-        "def main(city: str) -> str:\n"
-        "    return f\"Updated forecast for {city}\"\n"
+        'def main(city: str) -> str:\n    return f"Updated forecast for {city}"\n'
     )
 
     response = client.post(

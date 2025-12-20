@@ -14,7 +14,7 @@ def _alias_definition(
     name: str,
     target: str,
     *,
-    match_type: str = 'literal',
+    match_type: str = "literal",
     pattern: str | None = None,
     ignore_case: bool = False,
 ) -> str:
@@ -32,10 +32,10 @@ def _alias_definition(
         Formatted alias definition string
     """
     pattern_value = pattern
-    if match_type == 'literal' and not pattern_value:
+    if match_type == "literal" and not pattern_value:
         pattern_value = None
     elif pattern_value is None:
-        pattern_value = f'/{name}'
+        pattern_value = f"/{name}"
     return format_primary_alias_line(
         match_type,
         pattern_value,
@@ -53,7 +53,7 @@ class TestDataFactory:
         name: str,
         target: str,
         *,
-        match_type: str = 'literal',
+        match_type: str = "literal",
         pattern: str | None = None,
         ignore_case: bool = False,
         commit: bool = True,
@@ -73,7 +73,11 @@ class TestDataFactory:
             Created Alias instance
         """
         definition = _alias_definition(
-            name, target, match_type=match_type, pattern=pattern, ignore_case=ignore_case
+            name,
+            target,
+            match_type=match_type,
+            pattern=pattern,
+            ignore_case=ignore_case,
         )
         alias = Alias(
             name=name,
@@ -103,11 +107,11 @@ class TestDataFactory:
             Created CID instance
         """
         if isinstance(content, str):
-            content = content.encode('utf-8')
+            content = content.encode("utf-8")
 
         if path is None:
             cid_value = generate_cid(content)
-            path = f'/{cid_value}'
+            path = f"/{cid_value}"
 
         cid = CID(
             path=path,
@@ -196,7 +200,9 @@ class TestDataFactory:
         """
         secret = Secret(
             name=name,
-            definition=encrypted_value.decode('utf-8') if isinstance(encrypted_value, bytes) else encrypted_value,
+            definition=encrypted_value.decode("utf-8")
+            if isinstance(encrypted_value, bytes)
+            else encrypted_value,
         )
         db.session.add(secret)
         if commit:
@@ -221,11 +227,13 @@ class CrossReferenceAssertions:
         pattern = rf'<div[^>]*data-entity-key="{re.escape(entity_key)}"[^>]*>'
         test_case.assertIsNotNone(
             re.search(pattern, page),
-            f"{entity_type} with key '{entity_key}' not found in page"
+            f"{entity_type} with key '{entity_key}' not found in page",
         )
 
     @staticmethod
-    def assert_reference_in_page(test_case, page: str, ref_key: str, source: str, target: str):
+    def assert_reference_in_page(
+        test_case, page: str, ref_key: str, source: str, target: str
+    ):
         """
         Assert that a reference appears in the page.
 
@@ -239,7 +247,7 @@ class CrossReferenceAssertions:
         pattern = rf'<div[^>]*data-reference-key="{re.escape(ref_key)}"[^>]*>'
         test_case.assertIsNotNone(
             re.search(pattern, page),
-            f"Reference from '{source}' to '{target}' (key: {ref_key}) not found in page"
+            f"Reference from '{source}' to '{target}' (key: {ref_key}) not found in page",
         )
 
 
@@ -266,23 +274,23 @@ class SearchAssertions:
         """
         test_case.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        test_case.assertIn('categories', payload)
-        test_case.assertIn(category, payload['categories'])
+        test_case.assertIn("categories", payload)
+        test_case.assertIn(category, payload["categories"])
 
-        category_data = payload['categories'][category]
+        category_data = payload["categories"][category]
         test_case.assertEqual(
-            category_data['count'],
+            category_data["count"],
             expected_count,
-            f"Expected {expected_count} {category} results, got {category_data['count']}"
+            f"Expected {expected_count} {category} results, got {category_data['count']}",
         )
 
         if expected_items is not None:
-            actual_names = [item['name'] for item in category_data.get('items', [])]
+            actual_names = [item["name"] for item in category_data.get("items", [])]
             for expected_name in expected_items:
                 test_case.assertIn(
                     expected_name,
                     actual_names,
-                    f"Expected '{expected_name}' in {category} results"
+                    f"Expected '{expected_name}' in {category} results",
                 )
 
     @staticmethod
@@ -296,13 +304,13 @@ class SearchAssertions:
         """
         test_case.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        test_case.assertIn('categories', payload)
+        test_case.assertIn("categories", payload)
 
-        for category, data in payload['categories'].items():
+        for category, data in payload["categories"].items():
             test_case.assertEqual(
-                data['count'],
+                data["count"],
                 0,
-                f"Expected no results in {category}, got {data['count']}"
+                f"Expected no results in {category}, got {data['count']}",
             )
 
 
@@ -323,7 +331,9 @@ class RouteAssertions:
         test_case.assertEqual(response.location, expected_path)
 
     @staticmethod
-    def assert_contains_text(test_case, response, expected_text: str, status_code: int = 200):
+    def assert_contains_text(
+        test_case, response, expected_text: str, status_code: int = 200
+    ):
         """
         Assert that a response contains the expected text.
 
@@ -338,7 +348,9 @@ class RouteAssertions:
         test_case.assertIn(expected_text, page)
 
     @staticmethod
-    def assert_json_response(test_case, response, expected_data: dict, status_code: int = 200):
+    def assert_json_response(
+        test_case, response, expected_data: dict, status_code: int = 200
+    ):
         """
         Assert that a JSON response matches expected data.
 
@@ -356,9 +368,9 @@ class RouteAssertions:
 
 
 __all__ = [
-    'TestDataFactory',
-    'CrossReferenceAssertions',
-    'SearchAssertions',
-    'RouteAssertions',
-    '_alias_definition',
+    "TestDataFactory",
+    "CrossReferenceAssertions",
+    "SearchAssertions",
+    "RouteAssertions",
+    "_alias_definition",
 ]

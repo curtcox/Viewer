@@ -40,11 +40,13 @@ class TestBootCidOverride:
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path):
         """Set up test environment with isolated database."""
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -64,15 +66,15 @@ class TestBootCidOverride:
         Returns:
             The generated boot CID value
         """
-        aliases_content = json.dumps(aliases_data).encode('utf-8')
+        aliases_content = json.dumps(aliases_data).encode("utf-8")
         aliases_cid = generate_cid(aliases_content)
         create_cid_record(aliases_cid, aliases_content)
 
         payload_data = {
-            'version': 6,
-            'aliases': aliases_cid,
+            "version": 6,
+            "aliases": aliases_cid,
         }
-        content = json.dumps(payload_data).encode('utf-8')
+        content = json.dumps(payload_data).encode("utf-8")
         boot_cid = generate_cid(content)
         create_cid_record(boot_cid, content)
 
@@ -87,15 +89,15 @@ class TestBootCidOverride:
         Returns:
             The generated boot CID value
         """
-        servers_content = json.dumps(servers_data).encode('utf-8')
+        servers_content = json.dumps(servers_data).encode("utf-8")
         servers_cid = generate_cid(servers_content)
         create_cid_record(servers_cid, servers_content)
 
         payload_data = {
-            'version': 6,
-            'servers': servers_cid,
+            "version": 6,
+            "servers": servers_cid,
         }
-        content = json.dumps(payload_data).encode('utf-8')
+        content = json.dumps(payload_data).encode("utf-8")
         boot_cid = generate_cid(content)
         create_cid_record(boot_cid, content)
 
@@ -110,15 +112,15 @@ class TestBootCidOverride:
         Returns:
             The generated boot CID value
         """
-        variables_content = json.dumps(variables_data).encode('utf-8')
+        variables_content = json.dumps(variables_data).encode("utf-8")
         variables_cid = generate_cid(variables_content)
         create_cid_record(variables_cid, variables_content)
 
         payload_data = {
-            'version': 6,
-            'variables': variables_cid,
+            "version": 6,
+            "variables": variables_cid,
         }
-        content = json.dumps(payload_data).encode('utf-8')
+        content = json.dumps(payload_data).encode("utf-8")
         boot_cid = generate_cid(content)
         create_cid_record(boot_cid, content)
 
@@ -140,27 +142,27 @@ class TestBootCidOverride:
         Returns:
             The generated boot CID value
         """
-        payload_data: dict = {'version': 6}
+        payload_data: dict = {"version": 6}
 
         if aliases_data:
-            aliases_content = json.dumps(aliases_data).encode('utf-8')
+            aliases_content = json.dumps(aliases_data).encode("utf-8")
             aliases_cid = generate_cid(aliases_content)
             create_cid_record(aliases_cid, aliases_content)
-            payload_data['aliases'] = aliases_cid
+            payload_data["aliases"] = aliases_cid
 
         if servers_data:
-            servers_content = json.dumps(servers_data).encode('utf-8')
+            servers_content = json.dumps(servers_data).encode("utf-8")
             servers_cid = generate_cid(servers_content)
             create_cid_record(servers_cid, servers_content)
-            payload_data['servers'] = servers_cid
+            payload_data["servers"] = servers_cid
 
         if variables_data:
-            variables_content = json.dumps(variables_data).encode('utf-8')
+            variables_content = json.dumps(variables_data).encode("utf-8")
             variables_cid = generate_cid(variables_content)
             create_cid_record(variables_cid, variables_content)
-            payload_data['variables'] = variables_cid
+            payload_data["variables"] = variables_cid
 
-        content = json.dumps(payload_data).encode('utf-8')
+        content = json.dumps(payload_data).encode("utf-8")
         boot_cid = generate_cid(content)
         create_cid_record(boot_cid, content)
 
@@ -179,7 +181,7 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing server in database
             original_server = Server(
-                name='test-server',
+                name="test-server",
                 definition='def main():\n    return "original response"',
                 enabled=True,
             )
@@ -187,15 +189,15 @@ class TestBootCidOverride:
             db.session.commit()
 
             # Verify the original server exists
-            server = Server.query.filter_by(name='test-server').first()
+            server = Server.query.filter_by(name="test-server").first()
             assert server is not None
-            assert 'original response' in server.definition
+            assert "original response" in server.definition
 
             # Step 2: Create boot CID with conflicting server definition
             servers_data = [
                 {
-                    'name': 'test-server',
-                    'definition': 'def main():\n    return "overridden response"',
+                    "name": "test-server",
+                    "definition": 'def main():\n    return "overridden response"',
                 }
             ]
             boot_cid = self._create_boot_cid_with_servers(servers_data)
@@ -205,12 +207,14 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify the server definition was overridden
-            server = Server.query.filter_by(name='test-server').first()
+            server = Server.query.filter_by(name="test-server").first()
             assert server is not None, "Server should still exist after import"
-            assert 'overridden response' in server.definition, \
+            assert "overridden response" in server.definition, (
                 f"Server definition should be overridden. Got: {server.definition}"
-            assert 'original response' not in server.definition, \
+            )
+            assert "original response" not in server.definition, (
                 "Original definition should be replaced"
+            )
 
     def test_boot_cid_overrides_existing_alias(self):
         """Test that boot CID data overrides a pre-existing alias with the same name.
@@ -225,23 +229,23 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing alias in database
             original_alias = Alias(
-                name='test-alias',
-                definition='/test-alias -> /original-target',
+                name="test-alias",
+                definition="/test-alias -> /original-target",
                 enabled=True,
             )
             db.session.add(original_alias)
             db.session.commit()
 
             # Verify the original alias exists
-            alias = Alias.query.filter_by(name='test-alias').first()
+            alias = Alias.query.filter_by(name="test-alias").first()
             assert alias is not None
-            assert '/original-target' in alias.definition
+            assert "/original-target" in alias.definition
 
             # Step 2: Create boot CID with conflicting alias definition
             aliases_data = [
                 {
-                    'name': 'test-alias',
-                    'definition': '/test-alias -> /overridden-target',
+                    "name": "test-alias",
+                    "definition": "/test-alias -> /overridden-target",
                 }
             ]
             boot_cid = self._create_boot_cid_with_aliases(aliases_data)
@@ -251,12 +255,14 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify the alias definition was overridden
-            alias = Alias.query.filter_by(name='test-alias').first()
+            alias = Alias.query.filter_by(name="test-alias").first()
             assert alias is not None, "Alias should still exist after import"
-            assert '/overridden-target' in alias.definition, \
+            assert "/overridden-target" in alias.definition, (
                 f"Alias definition should be overridden. Got: {alias.definition}"
-            assert '/original-target' not in alias.definition, \
+            )
+            assert "/original-target" not in alias.definition, (
                 "Original definition should be replaced"
+            )
 
     def test_boot_cid_overrides_existing_variable(self):
         """Test that boot CID data overrides a pre-existing variable with the same name.
@@ -271,22 +277,22 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing variable in database
             original_variable = Variable(
-                name='test-variable',
-                definition='original_value',
+                name="test-variable",
+                definition="original_value",
             )
             db.session.add(original_variable)
             db.session.commit()
 
             # Verify the original variable exists
-            variable = Variable.query.filter_by(name='test-variable').first()
+            variable = Variable.query.filter_by(name="test-variable").first()
             assert variable is not None
-            assert variable.definition == 'original_value'
+            assert variable.definition == "original_value"
 
             # Step 2: Create boot CID with conflicting variable definition
             variables_data = [
                 {
-                    'name': 'test-variable',
-                    'definition': 'overridden_value',
+                    "name": "test-variable",
+                    "definition": "overridden_value",
                 }
             ]
             boot_cid = self._create_boot_cid_with_variables(variables_data)
@@ -296,10 +302,11 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify the variable definition was overridden
-            variable = Variable.query.filter_by(name='test-variable').first()
+            variable = Variable.query.filter_by(name="test-variable").first()
             assert variable is not None, "Variable should still exist after import"
-            assert variable.definition == 'overridden_value', \
+            assert variable.definition == "overridden_value", (
                 f"Variable definition should be overridden. Got: {variable.definition}"
+            )
 
     def test_boot_cid_overrides_multiple_entity_types(self):
         """Test that boot CID can override multiple entity types simultaneously.
@@ -314,18 +321,18 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing entities in database
             original_server = Server(
-                name='multi-test-server',
+                name="multi-test-server",
                 definition='def main():\n    return "original server"',
                 enabled=True,
             )
             original_alias = Alias(
-                name='multi-test-alias',
-                definition='/multi-test-alias -> /original-alias-target',
+                name="multi-test-alias",
+                definition="/multi-test-alias -> /original-alias-target",
                 enabled=True,
             )
             original_variable = Variable(
-                name='multi-test-variable',
-                definition='original_variable_value',
+                name="multi-test-variable",
+                definition="original_variable_value",
             )
             db.session.add(original_server)
             db.session.add(original_alias)
@@ -333,28 +340,30 @@ class TestBootCidOverride:
             db.session.commit()
 
             # Verify originals exist
-            assert Server.query.filter_by(name='multi-test-server').first() is not None
-            assert Alias.query.filter_by(name='multi-test-alias').first() is not None
-            assert Variable.query.filter_by(name='multi-test-variable').first() is not None
+            assert Server.query.filter_by(name="multi-test-server").first() is not None
+            assert Alias.query.filter_by(name="multi-test-alias").first() is not None
+            assert (
+                Variable.query.filter_by(name="multi-test-variable").first() is not None
+            )
 
             # Step 2: Create boot CID with conflicting definitions for all types
             boot_cid = self._create_boot_cid_with_multiple_entities(
                 aliases_data=[
                     {
-                        'name': 'multi-test-alias',
-                        'definition': '/multi-test-alias -> /overridden-alias-target',
+                        "name": "multi-test-alias",
+                        "definition": "/multi-test-alias -> /overridden-alias-target",
                     }
                 ],
                 servers_data=[
                     {
-                        'name': 'multi-test-server',
-                        'definition': 'def main():\n    return "overridden server"',
+                        "name": "multi-test-server",
+                        "definition": 'def main():\n    return "overridden server"',
                     }
                 ],
                 variables_data=[
                     {
-                        'name': 'multi-test-variable',
-                        'definition': 'overridden_variable_value',
+                        "name": "multi-test-variable",
+                        "definition": "overridden_variable_value",
                     }
                 ],
             )
@@ -364,20 +373,23 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify all entities were overridden
-            server = Server.query.filter_by(name='multi-test-server').first()
+            server = Server.query.filter_by(name="multi-test-server").first()
             assert server is not None
-            assert 'overridden server' in server.definition, \
+            assert "overridden server" in server.definition, (
                 f"Server should be overridden. Got: {server.definition}"
+            )
 
-            alias = Alias.query.filter_by(name='multi-test-alias').first()
+            alias = Alias.query.filter_by(name="multi-test-alias").first()
             assert alias is not None
-            assert '/overridden-alias-target' in alias.definition, \
+            assert "/overridden-alias-target" in alias.definition, (
                 f"Alias should be overridden. Got: {alias.definition}"
+            )
 
-            variable = Variable.query.filter_by(name='multi-test-variable').first()
+            variable = Variable.query.filter_by(name="multi-test-variable").first()
             assert variable is not None
-            assert variable.definition == 'overridden_variable_value', \
+            assert variable.definition == "overridden_variable_value", (
                 f"Variable should be overridden. Got: {variable.definition}"
+            )
 
     def test_boot_cid_override_preserves_non_conflicting_entities(self):
         """Test that boot CID import does not affect entities with different names.
@@ -393,18 +405,18 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing entities that should NOT be affected
             preserved_server = Server(
-                name='preserved-server',
+                name="preserved-server",
                 definition='def main():\n    return "preserved server response"',
                 enabled=True,
             )
             preserved_alias = Alias(
-                name='preserved-alias',
-                definition='/preserved-alias -> /preserved-target',
+                name="preserved-alias",
+                definition="/preserved-alias -> /preserved-target",
                 enabled=True,
             )
             preserved_variable = Variable(
-                name='preserved-variable',
-                definition='preserved_value',
+                name="preserved-variable",
+                definition="preserved_value",
             )
             db.session.add(preserved_server)
             db.session.add(preserved_alias)
@@ -415,20 +427,20 @@ class TestBootCidOverride:
             boot_cid = self._create_boot_cid_with_multiple_entities(
                 aliases_data=[
                     {
-                        'name': 'new-boot-alias',
-                        'definition': '/new-boot-alias -> /new-target',
+                        "name": "new-boot-alias",
+                        "definition": "/new-boot-alias -> /new-target",
                     }
                 ],
                 servers_data=[
                     {
-                        'name': 'new-boot-server',
-                        'definition': 'def main():\n    return "new boot server"',
+                        "name": "new-boot-server",
+                        "definition": 'def main():\n    return "new boot server"',
                     }
                 ],
                 variables_data=[
                     {
-                        'name': 'new-boot-variable',
-                        'definition': 'new_boot_value',
+                        "name": "new-boot-variable",
+                        "definition": "new_boot_value",
                     }
                 ],
             )
@@ -438,33 +450,36 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify original entities are PRESERVED (unchanged)
-            server = Server.query.filter_by(name='preserved-server').first()
+            server = Server.query.filter_by(name="preserved-server").first()
             assert server is not None, "Preserved server should still exist"
-            assert 'preserved server response' in server.definition, \
+            assert "preserved server response" in server.definition, (
                 "Preserved server definition should not change"
+            )
 
-            alias = Alias.query.filter_by(name='preserved-alias').first()
+            alias = Alias.query.filter_by(name="preserved-alias").first()
             assert alias is not None, "Preserved alias should still exist"
-            assert '/preserved-target' in alias.definition, \
+            assert "/preserved-target" in alias.definition, (
                 "Preserved alias definition should not change"
+            )
 
-            variable = Variable.query.filter_by(name='preserved-variable').first()
+            variable = Variable.query.filter_by(name="preserved-variable").first()
             assert variable is not None, "Preserved variable should still exist"
-            assert variable.definition == 'preserved_value', \
+            assert variable.definition == "preserved_value", (
                 "Preserved variable definition should not change"
+            )
 
             # Step 5: Verify new entities from boot CID were CREATED
-            new_server = Server.query.filter_by(name='new-boot-server').first()
+            new_server = Server.query.filter_by(name="new-boot-server").first()
             assert new_server is not None, "New boot server should be created"
-            assert 'new boot server' in new_server.definition
+            assert "new boot server" in new_server.definition
 
-            new_alias = Alias.query.filter_by(name='new-boot-alias').first()
+            new_alias = Alias.query.filter_by(name="new-boot-alias").first()
             assert new_alias is not None, "New boot alias should be created"
-            assert '/new-target' in new_alias.definition
+            assert "/new-target" in new_alias.definition
 
-            new_variable = Variable.query.filter_by(name='new-boot-variable').first()
+            new_variable = Variable.query.filter_by(name="new-boot-variable").first()
             assert new_variable is not None, "New boot variable should be created"
-            assert new_variable.definition == 'new_boot_value'
+            assert new_variable.definition == "new_boot_value"
 
     def test_boot_cid_override_updates_enabled_status(self):
         """Test that boot CID can override the enabled status of entities.
@@ -479,7 +494,7 @@ class TestBootCidOverride:
         with self.app.app_context():
             # Step 1: Create pre-existing ENABLED server
             original_server = Server(
-                name='enabled-status-server',
+                name="enabled-status-server",
                 definition='def main():\n    return "status test"',
                 enabled=True,
             )
@@ -487,25 +502,27 @@ class TestBootCidOverride:
             db.session.commit()
 
             # Verify it's enabled
-            server = Server.query.filter_by(name='enabled-status-server').first()
+            server = Server.query.filter_by(name="enabled-status-server").first()
             assert server.enabled is True
 
             # Step 2: Create boot CID with server set to DISABLED
-            servers_content = json.dumps([
-                {
-                    'name': 'enabled-status-server',
-                    'definition': 'def main():\n    return "status test updated"',
-                    'enabled': False,
-                }
-            ]).encode('utf-8')
+            servers_content = json.dumps(
+                [
+                    {
+                        "name": "enabled-status-server",
+                        "definition": 'def main():\n    return "status test updated"',
+                        "enabled": False,
+                    }
+                ]
+            ).encode("utf-8")
             servers_cid = generate_cid(servers_content)
             create_cid_record(servers_cid, servers_content)
 
             payload_data = {
-                'version': 6,
-                'servers': servers_cid,
+                "version": 6,
+                "servers": servers_cid,
             }
-            content = json.dumps(payload_data).encode('utf-8')
+            content = json.dumps(payload_data).encode("utf-8")
             boot_cid = generate_cid(content)
             create_cid_record(boot_cid, content)
 
@@ -514,10 +531,11 @@ class TestBootCidOverride:
             assert success, f"Boot CID import failed: {error}"
 
             # Step 4: Verify the enabled status was overridden
-            server = Server.query.filter_by(name='enabled-status-server').first()
+            server = Server.query.filter_by(name="enabled-status-server").first()
             assert server is not None
-            assert server.enabled is False, \
+            assert server.enabled is False, (
                 f"Server enabled status should be overridden to False. Got: {server.enabled}"
+            )
 
 
 class TestBootCidOverrideCLI:
@@ -533,11 +551,13 @@ class TestBootCidOverrideCLI:
     def setup(self, tmp_path):
         """Set up test environment with isolated database."""
         self.tmp_path = tmp_path  # pylint: disable=attribute-defined-outside-init
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             db.create_all()
@@ -561,37 +581,43 @@ class TestBootCidOverrideCLI:
         # Create server content for boot CID
         servers_data = [
             {
-                'name': 'cli-override-test-server',
-                'definition': 'def main():\n    return "cli override test"',
+                "name": "cli-override-test-server",
+                "definition": 'def main():\n    return "cli override test"',
             }
         ]
-        servers_content = json.dumps(servers_data).encode('utf-8')
+        servers_content = json.dumps(servers_data).encode("utf-8")
         servers_cid = generate_cid(servers_content)
 
         # Store in cids directory
-        servers_cid_file = self.CLI_ROOT / 'cids' / servers_cid
+        servers_cid_file = self.CLI_ROOT / "cids" / servers_cid
         servers_cid_file.write_bytes(servers_content)
 
         try:
             # Create boot CID
             boot_payload = {
-                'version': 6,
-                'servers': servers_cid,
+                "version": 6,
+                "servers": servers_cid,
             }
-            boot_content = json.dumps(boot_payload).encode('utf-8')
+            boot_content = json.dumps(boot_payload).encode("utf-8")
             boot_cid = generate_cid(boot_content)
 
             # Store boot CID in cids directory
-            boot_cid_file = self.CLI_ROOT / 'cids' / boot_cid
+            boot_cid_file = self.CLI_ROOT / "cids" / boot_cid
             boot_cid_file.write_bytes(boot_content)
 
             try:
                 # Run CLI with boot CID and query servers
                 env = os.environ.copy()
-                env.pop('TESTING', None)
+                env.pop("TESTING", None)
 
                 result = subprocess.run(
-                    [sys.executable, 'main.py', '--in-memory-db', '/servers.json', boot_cid],
+                    [
+                        sys.executable,
+                        "main.py",
+                        "--in-memory-db",
+                        "/servers.json",
+                        boot_cid,
+                    ],
                     cwd=self.CLI_ROOT,
                     capture_output=True,
                     text=True,
@@ -601,20 +627,24 @@ class TestBootCidOverrideCLI:
                 )
 
                 # Should succeed
-                assert 'Status: 200' in result.stdout, \
+                assert "Status: 200" in result.stdout, (
                     f"Expected 200 status. stdout: {result.stdout}, stderr: {result.stderr}"
+                )
 
                 # Parse response
                 lines = result.stdout.splitlines()
-                json_start = next(i for i, line in enumerate(lines) if line.startswith('['))
-                json_text = '\n'.join(lines[json_start:])
+                json_start = next(
+                    i for i, line in enumerate(lines) if line.startswith("[")
+                )
+                json_text = "\n".join(lines[json_start:])
 
                 servers = json.loads(json_text)
 
                 # Should include the server from boot CID
-                server_names = [s['name'] for s in servers]
-                assert 'cli-override-test-server' in server_names, \
+                server_names = [s["name"] for s in servers]
+                assert "cli-override-test-server" in server_names, (
                     f"Boot server not found in: {server_names}"
+                )
 
             finally:
                 if boot_cid_file.exists():
@@ -625,5 +655,5 @@ class TestBootCidOverrideCLI:
                 servers_cid_file.unlink()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

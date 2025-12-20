@@ -3,15 +3,28 @@
 Test to validate that the CID path mismatch fix works correctly.
 """
 
+
 def test_base_path_extraction():
     """Test the base path extraction logic that was added to not_found_error"""
 
     test_cases = [
         # (input_path, expected_base_path)
-        ("/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.html", "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"),
-        ("/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.txt", "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"),
-        ("/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.json", "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"),
-        ("/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa", "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"),  # No extension
+        (
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.html",
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+        ),
+        (
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.txt",
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+        ),
+        (
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa.json",
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+        ),
+        (
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+        ),  # No extension
         ("/echo", "/echo"),  # Server path, no extension
         ("/some/nested/path.html", "/some/nested/path"),  # Nested path with extension
     ]
@@ -20,15 +33,20 @@ def test_base_path_extraction():
 
     for input_path, expected_base_path in test_cases:
         # This is the logic added to not_found_error()
-        base_path = input_path.split('.', maxsplit=1)[0] if '.' in input_path else input_path
+        base_path = (
+            input_path.split(".", maxsplit=1)[0] if "." in input_path else input_path
+        )
 
         print(f"Input: {input_path}")
         print(f"Expected: {expected_base_path}")
         print(f"Actual: {base_path}")
         print(f"Match: {base_path == expected_base_path}")
 
-        assert base_path == expected_base_path, f"Failed for {input_path}: expected {expected_base_path}, got {base_path}"
+        assert base_path == expected_base_path, (
+            f"Failed for {input_path}: expected {expected_base_path}, got {base_path}"
+        )
         print("✓ Passed\n")
+
 
 def test_cid_lookup_simulation():
     """Simulate the CID lookup with the fix"""
@@ -37,7 +55,10 @@ def test_cid_lookup_simulation():
 
     # Simulate database records (how they're stored)
     stored_cid_records = [
-        {"path": "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa", "file_data": b"<h1>Hello World</h1>"},
+        {
+            "path": "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa",
+            "file_data": b"<h1>Hello World</h1>",
+        },
         {"path": "/bafybeiother123456789", "file_data": b"Some other content"},
     ]
 
@@ -53,7 +74,7 @@ def test_cid_lookup_simulation():
     def simulate_cid_lookup(path, records):
         """Simulate the fixed CID lookup logic"""
         # Apply the fix: strip extension for lookup
-        base_path = path.split('.')[0] if '.' in path else path
+        base_path = path.split(".")[0] if "." in path else path
 
         # Search in records
         for record in records:
@@ -78,7 +99,9 @@ def test_cid_lookup_simulation():
         print(f"  New logic result: {'Found' if new_result else 'Not found'}")
 
         # The fix should find records for paths with extensions that match stored base paths
-        if request_path.startswith("/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"):
+        if request_path.startswith(
+            "/bafybeivuvtmn7tdudola5day36gxpos653lmk5duwxlgikg3xy6akai4aa"
+        ):
             assert new_result is not None, f"Should find record for {request_path}"
             print("  ✓ Fix works correctly")
         elif request_path.startswith("/bafybeiother123456789"):
@@ -89,6 +112,7 @@ def test_cid_lookup_simulation():
             print("  ✓ Correctly returns not found")
 
         print()
+
 
 def test_echo_flow_simulation():
     """Simulate the complete echo flow with the fix"""
@@ -118,7 +142,11 @@ def test_echo_flow_simulation():
     print(f"6. User requests: {requested_path}")
 
     # Step 4: Apply the fix in not_found_error
-    base_path = requested_path.split('.', maxsplit=1)[0] if '.' in requested_path else requested_path
+    base_path = (
+        requested_path.split(".", maxsplit=1)[0]
+        if "." in requested_path
+        else requested_path
+    )
 
     print(f"7. Base path extracted: {base_path}")
     print(f"8. Lookup path matches stored path: {base_path == stored_path}")
@@ -133,6 +161,7 @@ def test_echo_flow_simulation():
 
     assert base_path == stored_path, "Fix should make paths match"
 
+
 if __name__ == "__main__":
     try:
         test_base_path_extraction()
@@ -145,4 +174,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
+
         traceback.print_exc()

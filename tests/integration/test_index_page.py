@@ -1,4 +1,5 @@
 """Integration tests for the index (homepage) view."""
+
 from __future__ import annotations
 
 import pytest
@@ -35,8 +36,7 @@ def test_index_page_displays_cross_reference_dashboard(
         server = Server(
             name="sample-server",
             definition=(
-                "def main(request):\n"
-                "    return \"Visit /aliases/sample-alias\"\n"
+                'def main(request):\n    return "Visit /aliases/sample-alias"\n'
             ),
             definition_cid=f"/{cid_value}",
         )
@@ -90,7 +90,7 @@ def test_viewer_menu_lists_user_entities(
     assert response.status_code == 200
 
     page = response.get_data(as_text=True)
-    assert 'data-viewer-menu' in page
+    assert "data-viewer-menu" in page
     assert 'href="/aliases/menu-alias"' in page
     assert 'href="/servers/menu-server"' in page
     assert 'href="/variables/menu-variable"' in page

@@ -2,12 +2,13 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Dict, Iterable, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional, Union
 
 from database import db
 import models
 from models import Alias, CID, Server
 from db_access._common import save_entity, normalize_cid_value
+from cid import CID as ValidatedCID, to_cid_string
 
 SaveServerDefinition = Callable[[str, int], str]
 StoreServerDefinitions = Callable[[int], str]
@@ -20,13 +21,14 @@ class LiteralCIDRecord:
     This class provides an interface compatible with the CID model
     for content that doesn't need to be stored in the database.
     """
+
     path: str
     file_data: bytes
     file_size: int
     created_at: datetime
 
     def __repr__(self) -> str:
-        return f'<LiteralCID {self.path}>'
+        return f"<LiteralCID {self.path}>"
 
 
 def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitions]:
@@ -37,7 +39,11 @@ def _require_cid_utilities() -> tuple[SaveServerDefinition, StoreServerDefinitio
             save_server_definition_as_cid,
             store_server_definitions_cid,
         )
-    except (ImportError, ModuleNotFoundError, RuntimeError) as exc:  # pragma: no cover - defensive
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        RuntimeError,
+    ) as exc:  # pragma: no cover - defensive
         raise RuntimeError("CID utilities are unavailable") from exc
 
     return save_server_definition_as_cid, store_server_definitions_cid
@@ -65,10 +71,12 @@ def _try_resolve_literal_cid(path: str) -> Optional[LiteralCIDRecord]:
         return None
 
     return LiteralCIDRecord(
-        path=path if path.startswith('/') else f"/{path}",
+        path=path if path.startswith("/") else f"/{path}",
         file_data=content,
         file_size=len(content),
-        created_at=datetime.fromtimestamp(0, timezone.utc),  # Epoch time for immutable content
+        created_at=datetime.fromtimestamp(
+            0, timezone.utc
+        ),  # Epoch time for immutable content
     )
 
 
@@ -100,23 +108,79 @@ def find_cids_by_prefix(prefix: str) -> List[CID]:
     if not prefix:
         return []
 
-    normalized = prefix.split('.')[0].lstrip('/')
+    normalized = prefix.split(".")[0].lstrip("/")
     if not normalized:
         return []
 
     pattern = f"/{normalized}%"
-    return (
-        CID.query
-        .filter(CID.path.like(pattern))
-        .order_by(CID.path.asc())
-        .all()
-    )
+    return CID.query.filter(CID.path.like(pattern)).order_by(CID.path.asc()).all()
 
 
-def create_cid_record(cid: str, file_content: bytes) -> CID:
-    """Create a new CID record."""
+def create_cid_record_raw(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
+    """Create a new CID record without memory checks (for internal use).
+
+    This is a low-level function that bypasses memory checks. Use create_cid_record
+    for normal operations, which includes read-only mode memory management.
+
+    Args:
+        cid: CID string or ValidatedCID object (will be validated)
+        file_content: Content to store
+
+    Returns:
+        CID database model instance
+
+    Raises:
+        ValueError: If cid is not a valid CID string
+
+    Example:
+        >>> record = create_cid_record_raw("AAAAAAAA", b"")
+        >>> record = create_cid_record_raw(ValidatedCID("AAAAAAAA"), b"")
+    """
+    # Validate and normalize the CID
+    cid_str = to_cid_string(cid)
+
     record = CID(
-        path=f"/{cid}",
+        path=f"/{cid_str}",
+        file_data=file_content,
+        file_size=len(file_content),
+    )
+    save_entity(record)
+    return record
+
+
+def create_cid_record(cid: Union[str, ValidatedCID], file_content: bytes) -> CID:
+    """Create a new CID record.
+
+    Args:
+        cid: CID string or ValidatedCID object (will be validated)
+        file_content: Content to store
+
+    Returns:
+        CID database model instance
+
+    Raises:
+        ValueError: If cid is not a valid CID string
+        Aborts with 413 if content is too large in read-only mode
+
+    Example:
+        >>> record = create_cid_record("AAAAAAAA", b"")
+        >>> record = create_cid_record(ValidatedCID("AAAAAAAA"), b"")
+    """
+    # Validate and normalize the CID
+    cid_str = to_cid_string(cid)
+
+    # Check memory limits in read-only mode
+    from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+
+    if ReadOnlyConfig.is_read_only_mode():
+        from cid_memory_manager import CIDMemoryManager  # pylint: disable=import-outside-toplevel
+
+        content_size = len(file_content)
+        CIDMemoryManager.check_cid_size(content_size)
+        CIDMemoryManager.ensure_memory_available(content_size)
+
+    record = CID(
+        path=f"/{cid_str}",
         file_data=file_content,
         file_size=len(file_content),
     )
@@ -132,11 +196,7 @@ def get_uploads() -> List[CID]:
     else:
         query = db.session.query
 
-    return (
-        query(CID)
-        .order_by(CID.created_at.desc())
-        .all()
-    )
+    return query(CID).order_by(CID.created_at.desc()).all()
 
 
 def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
@@ -150,12 +210,7 @@ def get_cids_by_paths(paths: Iterable[str]) -> List[CID]:
 
 def get_recent_cids(limit: int = 10) -> List[CID]:
     """Return the most recent CID records."""
-    return (
-        CID.query
-        .order_by(CID.created_at.desc())
-        .limit(limit)
-        .all()
-    )
+    return CID.query.order_by(CID.created_at.desc()).limit(limit).all()
 
 
 def get_first_cid() -> Optional[CID]:
@@ -168,15 +223,26 @@ def count_cids() -> int:
     return CID.query.count()
 
 
-def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
+def _normalize_cid_input(value: str | ValidatedCID | None) -> str:
+    """Return a normalized CID component from string or ValidatedCID input."""
+    if isinstance(value, ValidatedCID):
+        return value.value
+    return normalize_cid_value(value)
+
+
+def update_cid_references(
+    old_cid: str | ValidatedCID, new_cid: str | ValidatedCID
+) -> Dict[str, int]:
     """Replace CID references in alias and server definitions.
 
     Parameters
     ----------
     old_cid:
-        The previous CID value. Leading slashes are ignored.
+        The previous CID value, supplied as a string or :class:`cid.CID`.
+        Leading slashes are ignored for string values.
     new_cid:
-        The CID that should replace the previous value. Leading slashes are ignored.
+        The CID that should replace the previous value, supplied as a string
+        or :class:`cid.CID`. Leading slashes are ignored for string values.
 
     Returns
     -------
@@ -191,8 +257,8 @@ def update_cid_references(old_cid: str, new_cid: str) -> Dict[str, int]:
 
     save_definition, store_definitions = _require_cid_utilities()
 
-    normalized_old = normalize_cid_value(old_cid)
-    normalized_new = normalize_cid_value(new_cid)
+    normalized_old = _normalize_cid_input(old_cid)
+    normalized_new = _normalize_cid_input(new_cid)
 
     if not normalized_old or not normalized_new or normalized_old == normalized_new:
         return {"aliases": 0, "servers": 0}

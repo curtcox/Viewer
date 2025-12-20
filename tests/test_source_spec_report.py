@@ -1,4 +1,5 @@
 """Ensure the source browser can stream Gauge spec reports."""
+
 from __future__ import annotations
 
 import shutil
@@ -15,7 +16,9 @@ def test_source_serves_gauge_report():
     reports_root = Path(app.root_path) / "reports" / "html-report"
     reports_root.mkdir(parents=True, exist_ok=True)
     report_file = reports_root / "index.html"
-    report_file.write_text("<html><body>Gauge spec report</body></html>", encoding="utf-8")
+    report_file.write_text(
+        "<html><body>Gauge spec report</body></html>", encoding="utf-8"
+    )
 
     try:
         source_module._get_tracked_paths.cache_clear()

@@ -30,7 +30,7 @@ def test_markdown_main_normalizes_input(monkeypatch):
 
 
 def test_markdown_supports_mermaid_and_formdown():
-    svg_bytes = b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+    svg_bytes = b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'
     markdown_text = """
     # Release planning
 
@@ -57,7 +57,7 @@ def test_markdown_supports_mermaid_and_formdown():
     assert result["content_type"] == "text/html"
     assert "mermaid-diagram" in result["output"]
     assert "/diagramcid123.svg" in result["output"]
-    assert "<div class=\"formdown-document\"" in result["output"]
+    assert '<div class="formdown-document"' in result["output"]
     assert "Notify me" in result["output"]
 
 
@@ -72,7 +72,7 @@ def patched_server_execution(monkeypatch):
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
 
-    def fake_success(output, content_type, server_name):
+    def fake_success(output, content_type, server_name, *, external_calls=None):
         return {
             "output": output,
             "content_type": content_type,
@@ -93,13 +93,17 @@ return markdown_server.main(markdown=markdown)
 
     assert result["content_type"] == "text/html"
     assert "Hello from text runner" in result["output"]
-    assert "<main class=\"markdown-body\"" in result["output"]
+    assert '<main class="markdown-body"' in result["output"]
 
 
 def test_markdown_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/markdown.py").read_text(encoding='utf-8')
+    definition = Path("reference_templates/servers/definitions/markdown.py").read_text(
+        encoding="utf-8"
+    )
 
-    with app.test_request_context("/markdown", json={"markdown": "Hello from server execution"}):
+    with app.test_request_context(
+        "/markdown", json={"markdown": "Hello from server execution"}
+    ):
         result = server_execution.execute_server_code_from_definition(
             definition, "markdown-renderer"
         )
@@ -107,13 +111,17 @@ def test_markdown_executes_via_server_execution(patched_server_execution):
     assert result["server_name"] == "markdown-renderer"
     assert result["content_type"] == "text/html"
     assert "Hello from server execution" in result["output"]
-    assert "<main class=\"markdown-body\"" in result["output"]
+    assert '<main class="markdown-body"' in result["output"]
 
 
 def test_markdown_matches_markdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     markdown_sample = (
-        repo_root / "reference_templates" / "uploads" / "contents" / "markdown_showcase.md"
+        repo_root
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "markdown_showcase.md"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(markdown_sample)
@@ -126,7 +134,11 @@ def test_markdown_matches_markdown_showcase_template():
 def test_markdown_matches_formdown_showcase_template():
     repo_root = Path(__file__).resolve().parent.parent
     formdown_sample = (
-        repo_root / "reference_templates" / "uploads" / "contents" / "formdown_showcase.formdown"
+        repo_root
+        / "reference_templates"
+        / "uploads"
+        / "contents"
+        / "formdown_showcase.formdown"
     ).read_text(encoding="utf-8")
 
     expected_html = _render_markdown_document(formdown_sample)
@@ -134,4 +146,4 @@ def test_markdown_matches_formdown_showcase_template():
 
     assert rendered["content_type"] == "text/html"
     assert rendered["output"] == expected_html
-    assert "<div class=\"formdown-document\"" in rendered["output"]
+    assert '<div class="formdown-document"' in rendered["output"]

@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from tests.test_support import ROOT_DIR, build_test_environment
 
@@ -64,7 +66,26 @@ def run_pytest(env: dict[str, str], args: argparse.Namespace) -> int:
     return subprocess.call(command, cwd=str(ROOT_DIR), env=env)
 
 
+def maybe_reexec_with_venv_python() -> None:
+    venv_python = ROOT_DIR / "venv" / "bin" / "python"
+    if not venv_python.exists():
+        return
+
+    venv_root = (ROOT_DIR / "venv").resolve()
+    try:
+        running_prefix = Path(sys.prefix).resolve()
+    except FileNotFoundError:
+        running_prefix = Path(sys.prefix)
+
+    if running_prefix == venv_root:
+        return
+
+    script_path = Path(__file__).resolve()
+    os.execv(str(venv_python), [str(venv_python), str(script_path), *sys.argv[1:]])
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    maybe_reexec_with_venv_python()
     if argv is None:
         argv = sys.argv[1:]
 

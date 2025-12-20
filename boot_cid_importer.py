@@ -35,7 +35,7 @@ def extract_cid_references_from_payload(payload: dict[str, Any]) -> set[str]:
 
     # Get CIDs that are already provided in cid_values
     provided_cids = set()
-    cid_values = payload.get('cid_values', {})
+    cid_values = payload.get("cid_values", {})
     if isinstance(cid_values, dict):
         for cid_key in cid_values.keys():
             normalized = format_cid(cid_key)
@@ -46,8 +46,13 @@ def extract_cid_references_from_payload(payload: dict[str, Any]) -> set[str]:
 
     # Extract CID references from section keys
     section_keys = [
-        'aliases', 'servers', 'variables', 'secrets', 'change_history',
-        'app_source', 'metadata'
+        "aliases",
+        "servers",
+        "variables",
+        "secrets",
+        "change_history",
+        "app_source",
+        "metadata",
     ]
 
     for section_key in section_keys:
@@ -78,7 +83,9 @@ def find_missing_cids(required_cids: set[str]) -> list[str]:
     return sorted(missing)
 
 
-def load_and_validate_boot_cid(boot_cid: str) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+def load_and_validate_boot_cid(
+    boot_cid: str,
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
     """Load boot CID from database and validate it's a valid JSON payload.
 
     Args:
@@ -102,14 +109,17 @@ def load_and_validate_boot_cid(boot_cid: str) -> tuple[Optional[dict[str, Any]],
     # Load from database
     cid_record = get_cid_by_path(path)
     if not cid_record:
-        return None, f"Boot CID not found in database: {normalized}\nMake sure the CID file exists in the cids directory."
+        return (
+            None,
+            f"Boot CID not found in database: {normalized}\nMake sure the CID file exists in the cids directory.",
+        )
 
     # Decode content
     if not cid_record.file_data:
         return None, f"Boot CID has no content: {normalized}"
 
     try:
-        content = cid_record.file_data.decode('utf-8')
+        content = cid_record.file_data.decode("utf-8")
     except UnicodeDecodeError as e:
         return None, f"Boot CID content is not valid UTF-8: {normalized}\nError: {e}"
 
@@ -120,7 +130,10 @@ def load_and_validate_boot_cid(boot_cid: str) -> tuple[Optional[dict[str, Any]],
         return None, f"Boot CID content is not valid JSON: {normalized}\nError: {e}"
 
     if not isinstance(payload, dict):
-        return None, f"Boot CID content must be a JSON object, got {type(payload).__name__}"
+        return (
+            None,
+            f"Boot CID content must be a JSON object, got {type(payload).__name__}",
+        )
 
     return payload, None
 
@@ -154,7 +167,7 @@ def verify_boot_cid_dependencies(boot_cid: str) -> tuple[bool, Optional[str]]:
     missing = find_missing_cids(required_cids)
 
     if missing:
-        missing_list = '\n  '.join(missing)
+        missing_list = "\n  ".join(missing)
         error_msg = (
             f"Boot CID import failed: The following referenced CIDs are missing from the database:\n"
             f"  {missing_list}\n\n"
@@ -207,13 +220,13 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
 
     # Create a form with only the sections that exist in the payload enabled
     # Disable CSRF for boot import (no request context during boot)
-    form = ImportForm(meta={'csrf': False})
-    form.include_aliases.data = 'aliases' in payload
-    form.include_servers.data = 'servers' in payload
-    form.include_variables.data = 'variables' in payload
-    form.include_secrets.data = 'secrets' in payload
-    form.include_history.data = 'change_history' in payload
-    form.process_cid_map.data = 'cid_values' in payload
+    form = ImportForm(meta={"csrf": False})
+    form.include_aliases.data = "aliases" in payload
+    form.include_servers.data = "servers" in payload
+    form.include_variables.data = "variables" in payload
+    form.include_secrets.data = "secrets" in payload
+    form.include_history.data = "change_history" in payload
+    form.process_cid_map.data = "cid_values" in payload
     form.include_source.data = False  # Don't verify source files on boot
 
     # Create import context
@@ -224,7 +237,7 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
         change_message=f"Boot import from CID {boot_cid}",
         raw_payload=raw_payload,
         data=payload,
-        secret_key='',  # Empty secret key for boot import
+        secret_key="",  # Empty secret key for boot import
     )
 
     # Ingest CID map
@@ -232,7 +245,7 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
 
     # Check for CID map errors
     if context.errors:
-        error_msg = '\n'.join(context.errors)
+        error_msg = "\n".join(context.errors)
         return False, f"Boot CID import failed during CID map ingestion:\n{error_msg}"
 
     # Check for differences between boot image and database before importing
@@ -240,6 +253,7 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
         compare_boot_image_to_db,
         print_boot_image_differences,
     )
+
     diff_result = compare_boot_image_to_db(payload, context.cid_lookup)
     print_boot_image_differences(diff_result)
 
@@ -248,18 +262,19 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
 
     # Check for import errors
     if context.errors:
-        error_msg = '\n'.join(context.errors)
+        error_msg = "\n".join(context.errors)
         return False, f"Boot CID import failed:\n{error_msg}"
 
     # Generate snapshot export after import completes
     from routes.import_export.import_engine import (  # pylint: disable=import-outside-toplevel
         generate_snapshot_export,
     )
+
     snapshot_export = generate_snapshot_export()
 
     # Log success
     if context.summaries:
-        summary_text = ', '.join(context.summaries)
+        summary_text = ", ".join(context.summaries)
         LOGGER.info("Boot CID import successful: Imported %s", summary_text)
     else:
         LOGGER.info("Boot CID import completed (no changes)")
@@ -279,10 +294,10 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
 
 
 __all__ = [
-    'get_all_cid_paths_from_db',
-    'extract_cid_references_from_payload',
-    'find_missing_cids',
-    'load_and_validate_boot_cid',
-    'verify_boot_cid_dependencies',
-    'import_boot_cid',
+    "get_all_cid_paths_from_db",
+    "extract_cid_references_from_payload",
+    "find_missing_cids",
+    "load_and_validate_boot_cid",
+    "verify_boot_cid_dependencies",
+    "import_boot_cid",
 ]

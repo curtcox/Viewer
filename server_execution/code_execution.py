@@ -4,38 +4,208 @@
 
 import json
 import os
+import re
+import textwrap
+from urllib.parse import unquote
 import shutil
 import subprocess
 import tempfile
-import textwrap
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-import logfire
-from flask import Response, current_app, has_app_context, has_request_context, jsonify, request
+import db_access
+
+from logfire_utils import instrument as logfire_instrument
+from flask import (
+    Response,
+    current_app,
+    has_app_context,
+    has_request_context,
+    jsonify,
+    redirect,
+    request,
+)
 
 from alias_routing import find_matching_alias
 from cid_presenter import cid_path, format_cid
 from cid_core import extract_literal_content, split_cid_path
-from cid_utils import generate_cid
-from db_access import create_cid_record, get_cid_by_path, get_secrets, get_server_by_name, get_servers, get_variables
+from db_access import (
+    get_cid_by_path,
+    get_secrets,
+    get_server_by_name,
+    get_servers,
+    get_variables,
+)
+
 # pylint: disable=no-name-in-module  # False positive: submodules exist but pylint doesn't recognize them
 from server_execution.error_handling import _handle_execution_exception
-from server_execution.function_analysis import FunctionDetails, MissingParameterError, _analyze_server_definition_for_function
+from server_execution.function_analysis import (
+    FunctionDetails,
+    MissingParameterError,
+    _analyze_server_definition_for_function,
+)
 from server_execution.language_detection import detect_server_language
 from server_execution.invocation_tracking import request_details
+from server_execution.external_call_tracking import (
+    capture_external_calls,
+    sanitize_external_calls,
+)
 from server_execution.request_parsing import (
     _build_missing_parameter_response,
     _build_multi_parameter_error_page,
     _resolve_function_parameters,
 )
-from server_execution.response_handling import _encode_output, _handle_successful_execution, _log_server_output
-from server_execution.variable_resolution import _resolve_variable_values, _should_skip_variable_prefetch
+from server_execution.response_handling import (
+    _encode_output,
+    _handle_successful_execution,
+    _log_server_output,
+)
+from server_execution.variable_resolution import (
+    _resolve_variable_values,
+    _should_skip_variable_prefetch,
+)
+
 # pylint: enable=no-name-in-module
 from text_function_runner import run_text_function
 
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 _SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
+
+
+def create_cid_record(*args, **kwargs):
+    return db_access.create_cid_record(*args, **kwargs)
+
+
+# Pattern to detect positional parameters in bash scripts (e.g., $1, $2)
+_BASH_POSITIONAL_PARAM_PATTERN = r"\$[1-9]"
+
+
+def _bash_script_uses_positional_params(code: str) -> bool:
+    """Check if a bash script uses positional parameters like $1, $2, etc.
+
+    Args:
+        code: The bash script code
+
+    Returns:
+        True if the script uses positional parameters, False otherwise
+    """
+    return bool(re.search(_BASH_POSITIONAL_PARAM_PATTERN, code))
+
+
+def _resolve_cid_content(cid_segment: str) -> Optional[str]:
+    """Resolve CID content from a path segment.
+
+    If the segment is a valid CID, returns its contents.
+    Otherwise, returns None.
+
+    Args:
+        cid_segment: A path segment that may be a CID
+
+    Returns:
+        The CID content as a string, or None if not a valid CID
+    """
+    # Try to extract CID components
+    cid_components = split_cid_path(cid_segment) or split_cid_path(f"/{cid_segment}")
+    if not cid_components:
+        return None
+
+    cid_value, _ = cid_components
+    normalized_cid = format_cid(cid_value)
+
+    # Try literal CID content first
+    literal_bytes = extract_literal_content(normalized_cid)
+    if literal_bytes is not None:
+        try:
+            return literal_bytes.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            return literal_bytes.decode("utf-8", errors="replace")
+
+    # Try database CID lookup
+    cid_record_path = cid_path(normalized_cid)
+    if cid_record_path:
+        cid_record = get_cid_by_path(cid_record_path)
+        if cid_record and getattr(cid_record, "file_data", None) is not None:
+            try:
+                return cid_record.file_data.decode("utf-8")
+            except (UnicodeDecodeError, AttributeError):
+                return cid_record.file_data.decode("utf-8", errors="replace")
+
+    return None
+
+
+def _resolve_bash_path_parameters(
+    server_name: str,
+    code: str,
+) -> tuple[Optional[str], Optional[str], list[str]]:
+    """Resolve path parameters for bash scripts that use $1.
+
+    When a bash script contains $1, this function extracts path parameters:
+    - The first path segment after the server name becomes $1
+    - If that segment is a valid CID, its contents are used instead
+    - The remaining path segments are returned for chained input resolution
+
+    Args:
+        server_name: The name of the bash server
+        code: The bash script code
+
+    Returns:
+        A tuple of (script_arg, chained_input_path, remaining_segments):
+        - script_arg: The value to pass as $1 to the script (or None)
+        - chained_input_path: Path to resolve for stdin input (or None)
+        - remaining_segments: List of remaining path segments
+    """
+    if not _bash_script_uses_positional_params(code):
+        return None, None, []
+
+    remainder_segments = _remaining_path_segments(server_name)
+    if not remainder_segments:
+        return None, None, []
+
+    if len(remainder_segments) == 1:
+        cid_content = _resolve_cid_content(remainder_segments[0])
+        script_arg = cid_content if cid_content is not None else remainder_segments[0]
+        return script_arg, None, []
+
+    # When Werkzeug/Flask decodes %2F into '/', the intended $1 argument may be
+    # split across multiple path segments. We recover by finding the earliest
+    # tail segment that appears to be a resolvable input source (CID, server,
+    # alias, or literal). Everything before that is treated as the $1 value.
+    split_index: Optional[int] = None
+    for index in range(1, len(remainder_segments)):
+        candidate = remainder_segments[index]
+        if not candidate:
+            continue
+
+        if split_cid_path(candidate) or split_cid_path(f"/{candidate}"):
+            split_index = index
+            break
+
+        if get_server_by_name(candidate) is not None:
+            split_index = index
+            break
+
+        alias_match = find_matching_alias("/" + "/".join(remainder_segments[index:]))
+        if alias_match and getattr(alias_match, "route", None):
+            split_index = index
+            break
+
+        literal_definition, _, _ = _load_server_literal(candidate)
+        if literal_definition is not None:
+            split_index = index
+            break
+
+    if split_index is None:
+        split_index = 1
+
+    arg_segments = remainder_segments[:split_index]
+    input_segments = remainder_segments[split_index:]
+
+    raw_arg = "/".join(arg_segments)
+    cid_content = _resolve_cid_content(raw_arg)
+    script_arg = cid_content if cid_content is not None else raw_arg
+
+    chained_input_path = "/" + "/".join(input_segments) if input_segments else None
+    return script_arg, chained_input_path, input_segments
 
 
 def _normalize_execution_result(result: Any) -> Tuple[Any, str]:
@@ -86,13 +256,35 @@ def _split_path_segments(path: Optional[str]) -> List[str]:
     return [segment for segment in path.split("/") if segment]
 
 
+def _split_request_path_segments() -> List[str]:
+    if not has_request_context():
+        return []
+
+    raw_uri = request.environ.get("RAW_URI") or request.environ.get("REQUEST_URI")
+    raw_path = (
+        raw_uri.split("?", 1)[0]
+        if isinstance(raw_uri, str) and raw_uri
+        else request.path
+    )
+
+    segments = _split_path_segments(raw_path)
+    return [unquote(segment) for segment in segments]
+
+
 def _remaining_path_segments(server_name: Optional[str]) -> List[str]:
     if not server_name or not has_request_context():
         return []
-    segments = _split_path_segments(request.path)
-    if not segments or segments[0] != server_name:
+
+    segments = _split_request_path_segments()
+    if not segments:
         return []
-    return segments[1:]
+
+    try:
+        server_index = segments.index(server_name)
+    except ValueError:
+        return []
+
+    return segments[server_index + 1 :]
 
 
 def _auto_main_accepts_additional_path(server: Any) -> bool:
@@ -127,7 +319,9 @@ def _is_supported_literal_extension(extension: Optional[str]) -> bool:
     return bool(extension and extension.lower() in _SUPPORTED_LITERAL_EXTENSIONS)
 
 
-def _clone_request_context_kwargs(path: str, data_override: bytes | None = None) -> Dict[str, Any]:
+def _clone_request_context_kwargs(
+    path: str, data_override: bytes | None = None
+) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"path": path}
     if has_request_context():
         kwargs["method"] = request.method
@@ -199,7 +393,9 @@ def _execute_python_code_to_value(
             result = run_text_function(code_to_run, args_to_use)
         except Exception as exc:  # pylint: disable=broad-exception-caught
             # Catch all exceptions from user code execution
-            return _handle_execution_exception(exc, code_to_run, args_to_use, server_name)
+            return _handle_execution_exception(
+                exc, code_to_run, args_to_use, server_name
+            )
 
         output, _ = _normalize_execution_result(result)
         output_bytes = _encode_output(output)
@@ -211,19 +407,23 @@ def _execute_python_code_to_value(
 
 
 def _execute_bash_code_to_value(
-    code: str, server_name: str, chained_input: Optional[str]
+    code: str,
+    server_name: str,
+    chained_input: Optional[str],
+    *,
+    script_args: Optional[List[str]] = None,
 ) -> Any:
     stdout, status_code, stderr = _run_bash_script(
-        code, server_name, chained_input=chained_input
+        code, server_name, chained_input=chained_input, script_args=script_args
     )
     combined_output = stdout or b""
     if status_code >= 400 and stderr:
         combined_output = (
-            combined_output + (b"" if combined_output.endswith(b"\n") or not combined_output else b"\n") + stderr
+            combined_output
+            + (b"" if combined_output.endswith(b"\n") or not combined_output else b"\n")
+            + stderr
         )
-    _log_server_output(
-        "execute_bash_code", "", combined_output, "text/plain"
-    )
+    _log_server_output("execute_bash_code", "", combined_output, "text/plain")
 
     if status_code >= 400:
         return Response(combined_output, status=status_code, mimetype="text/plain")
@@ -248,9 +448,7 @@ def _execute_clojure_code_to_value(
             + stderr
         )
 
-    _log_server_output(
-        "execute_clojure_code", "", combined_output, "text/plain"
-    )
+    _log_server_output("execute_clojure_code", "", combined_output, "text/plain")
 
     if status_code >= 400:
         return Response(combined_output, status=status_code, mimetype="text/plain")
@@ -275,9 +473,7 @@ def _execute_clojurescript_code_to_value(
             + stderr
         )
 
-    _log_server_output(
-        "execute_clojurescript_code", "", combined_output, "text/plain"
-    )
+    _log_server_output("execute_clojurescript_code", "", combined_output, "text/plain")
 
     if status_code >= 400:
         return Response(combined_output, status=status_code, mimetype="text/plain")
@@ -302,9 +498,7 @@ def _execute_typescript_code_to_value(
             + stderr
         )
 
-    _log_server_output(
-        "execute_typescript_code", "", combined_output, "text/plain"
-    )
+    _log_server_output("execute_typescript_code", "", combined_output, "text/plain")
 
     if status_code >= 400:
         return Response(combined_output, status=status_code, mimetype="text/plain")
@@ -315,6 +509,29 @@ def _execute_typescript_code_to_value(
         return combined_output.decode("utf-8", errors="replace")
 
 
+def _resolve_chained_input_for_bash_arg(
+    chained_input_path: Optional[str],
+    visited: Optional[Set[str]] = None,
+) -> tuple[Optional[str], Optional[Response]]:
+    """Resolve input for bash scripts with arguments ($1)."""
+    if not chained_input_path:
+        return None, None
+
+    segments = _split_path_segments(chained_input_path)
+    if len(segments) == 1:
+        cid_content = _resolve_cid_content(segments[0])
+        if cid_content is not None:
+            return cid_content, None
+
+    nested_value = _evaluate_nested_path_to_value(chained_input_path, visited)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is not None:
+        return str(_extract_chained_output(nested_value)), None
+
+    return None, None
+
+
 def _execute_nested_server_to_value(
     server: Any,
     server_name: str,
@@ -323,27 +540,64 @@ def _execute_nested_server_to_value(
     *,
     language_override: Optional[str] = None,
 ) -> Any:
-    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
-    if early_response:
-        return early_response
-
-    language = language_override or detect_server_language(getattr(server, "definition", ""))
+    language = language_override or detect_server_language(
+        getattr(server, "definition", "")
+    )
     if language == "bash":
-        return _execute_bash_code_to_value(server.definition, server_name, chained_input)
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(
+            server_name, server.definition
+        )
+
+        if script_arg is not None:
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
+
+            return _execute_bash_code_to_value(
+                server.definition,
+                server_name,
+                chained_input,
+                script_args=[script_arg],
+            )
+
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
+
+        return _execute_bash_code_to_value(
+            server.definition, server_name, chained_input
+        )
     if language == "clojure":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojure_code_to_value(
             server.definition, server_name, chained_input
         )
     if language == "clojurescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojurescript_code_to_value(
             server.definition, server_name, chained_input
         )
     if language == "typescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_typescript_code_to_value(
             server.definition, server_name, chained_input
         )
 
-    return _execute_python_code_to_value(server.definition, server_name, path, chained_input=chained_input)
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
+
+    return _execute_python_code_to_value(
+        server.definition, server_name, path, chained_input=chained_input
+    )
 
 
 def _execute_literal_definition_to_value(
@@ -354,32 +608,65 @@ def _execute_literal_definition_to_value(
     *,
     language_override: Optional[str],
 ) -> Any:
-    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
-    if early_response:
-        return early_response
-
     language = language_override or detect_server_language(definition_text)
     if language == "bash":
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(
+            server_name, definition_text
+        )
+
+        if script_arg is not None:
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
+
+            return _execute_bash_code_to_value(
+                definition_text,
+                server_name,
+                chained_input,
+                script_args=[script_arg],
+            )
+
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
+
         return _execute_bash_code_to_value(definition_text, server_name, chained_input)
     if language == "clojure":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojure_code_to_value(
             definition_text, server_name, chained_input
         )
     if language == "clojurescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_clojurescript_code_to_value(
             definition_text, server_name, chained_input
         )
     if language == "typescript":
+        chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+        if early_response:
+            return early_response
         return _execute_typescript_code_to_value(
             definition_text, server_name, chained_input
         )
+
+    chained_input, early_response = _resolve_chained_input_from_path(path, visited)
+    if early_response:
+        return early_response
 
     return _execute_python_code_to_value(
         definition_text, server_name, path, chained_input=chained_input
     )
 
 
-def _load_server_literal(segment: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def _load_server_literal(
+    segment: str,
+) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """Return (definition, language, normalized_cid) for CID path segments."""
 
     cid_components = split_cid_path(segment) or split_cid_path(f"/{segment}")
@@ -416,7 +703,9 @@ def _load_server_literal(segment: str) -> tuple[Optional[str], Optional[str], Op
     return definition_text, language_override, normalized_cid
 
 
-def _evaluate_nested_path_to_value(path: str, visited: Optional[Set[str]] = None) -> Any:
+def _evaluate_nested_path_to_value(
+    path: str, visited: Optional[Set[str]] = None
+) -> Any:
     """Recursively evaluate a path to produce a value, following servers/aliases/CIDs."""
     normalized = (path or "").strip()
     if not normalized:
@@ -541,10 +830,20 @@ def _inject_optional_parameter_from_path(
     if not server_name or not details.parameter_order:
         return None, None
 
+    if server_name == "gateway":
+        return None, None
+
     for name in details.parameter_order:
         if name not in resolved:
             remainder_segments = _remaining_path_segments(server_name)
             if not remainder_segments:
+                return None, None
+
+            # The urleditor server uses additional path segments as an editor
+            # input encoded into the URL fragment (e.g. /urleditor/echo/test ->
+            # /urleditor#/echo/test). Treat multi-segment subpaths as direct
+            # navigation rather than chained-input injection.
+            if server_name == "urleditor" and len(remainder_segments) > 1:
                 return None, None
 
             nested_path = "/" + "/".join(remainder_segments)
@@ -569,11 +868,13 @@ def _resolve_chained_input_for_server(
     nested_path = "/" + "/".join(remainder_segments)
     visited: Set[str] = set()
     first_segment = remainder_segments[0]
-    cid_components = split_cid_path(first_segment) or split_cid_path(f"/{first_segment}")
-    extension = (cid_components or (None, None))[1]
-    executes_as_terminal_literal = (
-        len(remainder_segments) == 1 and _is_supported_literal_extension(extension)
+    cid_components = split_cid_path(first_segment) or split_cid_path(
+        f"/{first_segment}"
     )
+    extension = (cid_components or (None, None))[1]
+    executes_as_terminal_literal = len(
+        remainder_segments
+    ) == 1 and _is_supported_literal_extension(extension)
 
     if executes_as_terminal_literal:
         literal_definition, language_override, normalized_cid = _load_server_literal(
@@ -607,33 +908,30 @@ def _execute_bash_server_response(
     debug_prefix: str,
     *,
     chained_input: Optional[str],
+    script_args: Optional[List[str]] = None,
 ) -> Response:
     stdout, status_code, stderr = _run_bash_script(
-        code, server_name, chained_input=chained_input
+        code, server_name, chained_input=chained_input, script_args=script_args
     )
 
-    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    output_bytes = (
+        stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    )
     if status_code >= 400 and stderr:
-        output_bytes = output_bytes + (
-            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
-        ) + stderr
-
-    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
+        output_bytes = (
+            output_bytes
+            + (b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n")
+            + stderr
         )
 
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if status_code != 200:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_clojure_server_response(
@@ -647,28 +945,22 @@ def _execute_clojure_server_response(
         code, server_name, chained_input=chained_input
     )
 
-    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    output_bytes = (
+        stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    )
     if status_code >= 400 and stderr:
-        output_bytes = output_bytes + (
-            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
-        ) + stderr
-
-    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
+        output_bytes = (
+            output_bytes
+            + (b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n")
+            + stderr
         )
 
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_clojurescript_server_response(
@@ -682,28 +974,22 @@ def _execute_clojurescript_server_response(
         code, server_name, chained_input=chained_input
     )
 
-    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    output_bytes = (
+        stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    )
     if status_code >= 400 and stderr:
-        output_bytes = output_bytes + (
-            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
-        ) + stderr
-
-    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
+        output_bytes = (
+            output_bytes
+            + (b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n")
+            + stderr
         )
 
-        create_server_invocation_record(server_name, cid_value)
-
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
 def _execute_typescript_server_response(
@@ -717,33 +1003,23 @@ def _execute_typescript_server_response(
         code, server_name, chained_input=chained_input
     )
 
-    output_bytes = stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    output_bytes = (
+        stdout if isinstance(stdout, (bytes, bytearray)) else _encode_output(stdout)
+    )
     if status_code >= 400 and stderr:
-        output_bytes = output_bytes + (
-            b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n"
-        ) + stderr
-
-    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
-
-    cid_value = format_cid(generate_cid(output_bytes))
-    cid_record_path = cid_path(cid_value)
-    existing = get_cid_by_path(cid_record_path) if cid_record_path else None
-    if not existing and cid_record_path:
-        create_cid_record(cid_value, output_bytes)
-
-    if has_app_context():
-        from server_execution.invocation_tracking import (  # pylint: disable=no-name-in-module
-            create_server_invocation_record,
+        output_bytes = (
+            output_bytes
+            + (b"" if output_bytes.endswith(b"\n") or not output_bytes else b"\n")
+            + stderr
         )
 
-        create_server_invocation_record(server_name, cid_value)
+    _log_server_output(debug_prefix, "", output_bytes, "text/plain")
+    if status_code >= 400:
+        return Response(output_bytes, status=status_code, mimetype="text/plain")
+    return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
-    return Response(output_bytes, status=status_code, mimetype="text/plain")
 
-
-def _build_unsupported_signature_response(
-    function_name: str, details: FunctionDetails
-):
+def _build_unsupported_signature_response(function_name: str, details: FunctionDetails):
     payload = {
         "error": f"Unsupported {function_name}() signature for automatic request mapping",
         "reasons": details.unsupported_reasons,
@@ -792,7 +1068,9 @@ def _handle_missing_parameters_for_main(
     resolved: Dict[str, Any],
     missing: List[str],
     available: Dict[str, List[str]],
-) -> Tuple[Dict[str, Any], Dict[str, Any], List[str], Dict[str, List[str]], Optional[Response]]:
+) -> Tuple[
+    Dict[str, Any], Dict[str, Any], List[str], Dict[str, List[str]], Optional[Response]
+]:
     """Try to resolve missing main() parameters via nested path evaluation.
 
     Returns (updated_args, resolved, missing, available, early_response) tuple.
@@ -859,14 +1137,16 @@ def _prepare_invocation(
             )
 
         # For main(), try nested path injection
-        working_args, working_resolved, missing, available, early_response = _handle_missing_parameters_for_main(
-            function_name,
-            server_name=server_name,
-            base_args=base_args,
-            details=details,
-            resolved=resolved,
-            missing=missing,
-            available=available,
+        working_args, working_resolved, missing, available, early_response = (
+            _handle_missing_parameters_for_main(
+                function_name,
+                server_name=server_name,
+                base_args=base_args,
+                details=details,
+                resolved=resolved,
+                missing=missing,
+                available=available,
+            )
         )
 
         if early_response:
@@ -968,17 +1248,37 @@ def _build_bash_stdin_payload(chained_input: Optional[str]) -> bytes:
 
 
 def _run_bash_script(
-    code: str, server_name: str, *, chained_input: Optional[str] = None
+    code: str,
+    server_name: str,
+    *,
+    chained_input: Optional[str] = None,
+    script_args: Optional[List[str]] = None,
 ) -> tuple[bytes, int, bytes]:
+    """Execute a bash script with optional positional arguments and stdin input.
+
+    Args:
+        code: The bash script code
+        server_name: Name of the server (for logging)
+        chained_input: Optional content to pass as stdin
+        script_args: Optional list of positional arguments ($1, $2, etc.)
+
+    Returns:
+        Tuple of (stdout, status_code, stderr)
+    """
     stdin_payload = _build_bash_stdin_payload(chained_input)
 
     with tempfile.NamedTemporaryFile("w", delete=False, suffix=".sh") as script_file:
         script_file.write(code)
         script_path = script_file.name
 
+    # Build the command with optional script arguments
+    cmd = ["bash", script_path]
+    if script_args:
+        cmd.extend(script_args)
+
     try:
         result = subprocess.run(
-            ["bash", script_path],
+            cmd,
             input=stdin_payload,
             capture_output=True,
             check=False,
@@ -1024,12 +1324,27 @@ def _select_typescript_command() -> Optional[list[str]]:
     return None
 
 
+def _extract_stubbed_output(code: str, markers: tuple[str, ...]) -> Optional[bytes]:
+    """Extract a stubbed output marker if present in the code block."""
+
+    for line in code.splitlines():
+        stripped = line.strip()
+        for marker in markers:
+            if stripped.startswith(marker):
+                return stripped.split(marker, 1)[1].strip().encode("utf-8")
+
+    return None
+
+
 def _run_clojure_script(
     code: str, server_name: str, *, chained_input: Optional[str] = None
 ) -> tuple[bytes, int, bytes]:
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_clojure_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"Clojure runtime is not available for this server",
             500,
@@ -1072,6 +1387,9 @@ def _run_clojurescript_script(
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_clojurescript_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, (";; OUTPUT:",))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"ClojureScript runtime is not available for this server",
             500,
@@ -1114,6 +1432,9 @@ def _run_typescript_script(
     stdin_payload = _build_bash_stdin_payload(chained_input)
     runner = _select_typescript_command()
     if not runner:
+        stubbed = _extract_stubbed_output(code, ("// OUTPUT:", "//OUTPUT:"))
+        if stubbed is not None:
+            return stubbed, 200, b""
         return (
             b"Deno runtime is not available for this server",
             500,
@@ -1163,6 +1484,30 @@ def _execute_server_code_common(
     language = language_override or detect_server_language(code)
 
     if language == "bash":
+        # Check if script uses positional parameters ($1, $2, etc.)
+        script_arg, chained_input_path, _ = _resolve_bash_path_parameters(
+            server_name, code
+        )
+
+        if script_arg is not None:
+            # Script uses $1 - use path parameter logic
+            # Use a fresh visited set for top-level execution
+            visited: Set[str] = set()
+            chained_input, early_response = _resolve_chained_input_for_bash_arg(
+                chained_input_path, visited
+            )
+            if early_response:
+                return early_response
+
+            return _execute_bash_server_response(
+                code,
+                server_name,
+                debug_prefix,
+                chained_input=chained_input,
+                script_args=[script_arg],
+            )
+
+        # Standard bash execution (no $1 in script)
         chained_input, early_response = _resolve_chained_input_for_server(server_name)
         if early_response:
             return early_response
@@ -1211,6 +1556,7 @@ def _execute_server_code_common(
         )
 
     args = build_request_args()
+    external_calls: Optional[List[Dict[str, Any]]] = None
 
     prepared = _prepare_invocation(
         code,
@@ -1227,24 +1573,73 @@ def _execute_server_code_common(
     else:
         return prepared
 
+    secrets_context = (
+        args.get("context", {}).get("secrets") if isinstance(args, dict) else None
+    )
+
     try:
-        result = run_text_function(code_to_run, args_to_use)
+        with capture_external_calls() as call_log:
+            try:
+                result = run_text_function(code_to_run, args_to_use)
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                external_calls = sanitize_external_calls(call_log, secrets_context)
+                return _handle_execution_exception(
+                    exc, code, args, server_name, external_calls=external_calls
+                )
+
+        external_calls = sanitize_external_calls(call_log, secrets_context)
+
         if isinstance(result, dict):
+            redirect_target = result.get("redirect")
+            if isinstance(redirect_target, str) and redirect_target.strip():
+                status = result.get("status")
+                try:
+                    code = int(status) if status is not None else 302
+                except (TypeError, ValueError):
+                    code = 302
+                return redirect(redirect_target, code=code)
+
             output = result.get("output", "")
             content_type = result.get("content_type", "text/html")
+
+            status = result.get("status")
+            try:
+                status_code = int(status) if status is not None else None
+            except (TypeError, ValueError):
+                status_code = None
+
+            if status_code is not None and status_code >= 400:
+                if content_type in {"text/plain", "text/html"}:
+                    _log_server_output(debug_prefix, error_suffix, output, content_type)
+                    return _handle_successful_execution(
+                        output,
+                        content_type,
+                        server_name,
+                        external_calls=external_calls,
+                    )
+                output_bytes = _encode_output(output)
+                return Response(output_bytes, status=status_code, mimetype=content_type)
         elif isinstance(result, tuple) and len(result) == 2:
             output, content_type = result
         else:
             output = result
             content_type = "text/html"
         _log_server_output(debug_prefix, error_suffix, output, content_type)
-        return _handle_successful_execution(output, content_type, server_name)
+        return _handle_successful_execution(
+            output, content_type, server_name, external_calls=external_calls
+        )
     except Exception as exc:  # pylint: disable=broad-exception-caught
         # Top-level exception handler for all user code execution errors
-        return _handle_execution_exception(exc, code, args, server_name)
+        return _handle_execution_exception(
+            exc, code, args, server_name, external_calls=external_calls
+        )
 
 
-@logfire.instrument("server_execution.execute_server_code({server=}, {server_name=})", extract_args=True, record_return=True)
+@logfire_instrument(
+    "server_execution.execute_server_code({server=}, {server_name=})",
+    extract_args=True,
+    record_return=True,
+)
 def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     """Execute server code and return a redirect to the resulting CID."""
     return _execute_server_code_common(
@@ -1257,8 +1652,14 @@ def execute_server_code(server: Any, server_name: str) -> Optional[Response]:
     )
 
 
-@logfire.instrument("server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})", extract_args=True, record_return=True)
-def execute_server_code_from_definition(definition_text: str, server_name: str) -> Optional[Response]:
+@logfire_instrument(
+    "server_execution.execute_server_code_from_definition({definition_text=}, {server_name=})",
+    extract_args=True,
+    record_return=True,
+)
+def execute_server_code_from_definition(
+    definition_text: str, server_name: str
+) -> Optional[Response]:
     """Execute server code from a supplied historical definition."""
     return _execute_server_code_common(
         definition_text,
@@ -1270,8 +1671,14 @@ def execute_server_code_from_definition(definition_text: str, server_name: str) 
     )
 
 
-@logfire.instrument("server_execution.execute_server_function({server=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
-def execute_server_function(server: Any, server_name: str, function_name: str) -> Optional[Response]:
+@logfire_instrument(
+    "server_execution.execute_server_function({server=}, {server_name=}, {function_name=})",
+    extract_args=True,
+    record_return=True,
+)
+def execute_server_function(
+    server: Any, server_name: str, function_name: str
+) -> Optional[Response]:
     """Execute a named helper function within a server definition."""
     if detect_server_language(getattr(server, "definition", "")) != "python":
         return None
@@ -1286,7 +1693,11 @@ def execute_server_function(server: Any, server_name: str, function_name: str) -
     )
 
 
-@logfire.instrument("server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})", extract_args=True, record_return=True)
+@logfire_instrument(
+    "server_execution.execute_server_function_from_definition({definition_text=}, {server_name=}, {function_name=})",
+    extract_args=True,
+    record_return=True,
+)
 def execute_server_function_from_definition(
     definition_text: str, server_name: str, function_name: str
 ) -> Optional[Response]:

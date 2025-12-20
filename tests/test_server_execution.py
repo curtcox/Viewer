@@ -87,7 +87,10 @@ class TestExtractChainedOutput(unittest.TestCase):
     """Test _extract_chained_output helper."""
 
     def test_extracts_from_dict(self):
-        assert _extract_chained_output({"output": "value", "content_type": "text/plain"}) == "value"
+        assert (
+            _extract_chained_output({"output": "value", "content_type": "text/plain"})
+            == "value"
+        )
 
     def test_extracts_from_json_string(self):
         payload = json.dumps({"output": "json-value", "content_type": "text/plain"})
@@ -133,7 +136,10 @@ class TestParseFunctionDetails(unittest.TestCase):
         func_node = tree.body[0]
         details = _parse_function_details(func_node)
 
-        assert "var positional parameters (*args) are not supported" in details.unsupported_reasons
+        assert (
+            "var positional parameters (*args) are not supported"
+            in details.unsupported_reasons
+        )
 
     def test_detects_kwarg(self):
         import ast
@@ -143,7 +149,10 @@ class TestParseFunctionDetails(unittest.TestCase):
         func_node = tree.body[0]
         details = _parse_function_details(func_node)
 
-        assert "arbitrary keyword parameters (**kwargs) are not supported" in details.unsupported_reasons
+        assert (
+            "arbitrary keyword parameters (**kwargs) are not supported"
+            in details.unsupported_reasons
+        )
 
 
 class TestAnalyzeServerDefinitionForFunction(unittest.TestCase):
@@ -259,17 +268,13 @@ def main(*args):
 
     def test_detects_language_for_python_and_bash(self):
         assert detect_server_language("def main():\n    return 'ok'\n") == "python"
+        assert detect_server_language("#!/usr/bin/env bash\necho 'ok'\n") == "bash"
         assert (
-            detect_server_language("#!/usr/bin/env bash\necho 'ok'\n")
-            == "bash"
-        )
-        assert (
-            detect_server_language("#!/usr/bin/env bb\n(println \"ok\")\n")
-            == "clojure"
+            detect_server_language('#!/usr/bin/env bb\n(println "ok")\n') == "clojure"
         )
         assert (
             detect_server_language(
-                "(ns cljs.demo (:require [cljs.core :as c]))\n(defn main [] (println \"hi\"))"
+                '(ns cljs.demo (:require [cljs.core :as c]))\n(defn main [] (println "hi"))'
             )
             == "clojurescript"
         )
@@ -282,7 +287,7 @@ def main(*args):
 
     def test_typescript_imports_do_not_match_python(self):
         deno_script = (
-            "import { serve } from \"https://deno.land/std/http/server.ts\"\n"
+            'import { serve } from "https://deno.land/std/http/server.ts"\n'
             "export async function main() {\n"
             "  await serve(() => new Response('ok'));\n"
             "}"
@@ -300,17 +305,13 @@ class TestExtractRequestBodyValues(unittest.TestCase):
 
     def test_extracts_json_payload(self):
         app = Flask(__name__)
-        with app.test_request_context(
-            "/test", method="POST", json={"key": "value"}
-        ):
+        with app.test_request_context("/test", method="POST", json={"key": "value"}):
             result = _extract_request_body_values()
         assert result == {"key": "value"}
 
     def test_extracts_form_data(self):
         app = Flask(__name__)
-        with app.test_request_context(
-            "/test", method="POST", data={"field": "data"}
-        ):
+        with app.test_request_context("/test", method="POST", data={"field": "data"}):
             result = _extract_request_body_values()
         assert result == {"field": "data"}
 
@@ -425,7 +426,9 @@ class TestBuildMultiParameterErrorPage(unittest.TestCase):
         app.config["TESTING"] = True
 
         with app.test_request_context("/test?a=1"):
-            with patch("server_execution.request_parsing.render_template") as mock_render:
+            with patch(
+                "server_execution.request_parsing.render_template"
+            ) as mock_render:
                 mock_render.return_value = "<html>error</html>"
                 response = _build_multi_parameter_error_page(
                     "server",
@@ -516,7 +519,9 @@ class TestBuildRequestArgs(unittest.TestCase):
 
         with patch("server_execution.code_execution.get_variables", return_value=[]):
             with patch("server_execution.code_execution.get_secrets", return_value=[]):
-                with patch("server_execution.code_execution.get_servers", return_value=[]):
+                with patch(
+                    "server_execution.code_execution.get_servers", return_value=[]
+                ):
                     with app.test_request_context("/test"):
                         result = build_request_args()
 
@@ -596,9 +601,7 @@ class TestCloneRequestContextKwargs(unittest.TestCase):
 
     def test_clones_post_request_with_json(self):
         app = Flask(__name__)
-        with app.test_request_context(
-            "/test", method="POST", json={"key": "value"}
-        ):
+        with app.test_request_context("/test", method="POST", json={"key": "value"}):
             result = _clone_request_context_kwargs("/new-path")
 
         assert result["method"] == "POST"
@@ -695,16 +698,42 @@ def test_run_bash_script_times_out(monkeypatch):
     def empty_request_args():
         return {}
 
-    monkeypatch.setattr("server_execution.code_execution.build_request_args", empty_request_args)
+    monkeypatch.setattr(
+        "server_execution.code_execution.build_request_args", empty_request_args
+    )
 
     app = Flask(__name__)
     with app.test_request_context("/bash-server"):
-        stdout, status_code, stderr = _run_bash_script("#!/usr/bin/env bash\n", "bash-server")
+        stdout, status_code, stderr = _run_bash_script(
+            "#!/usr/bin/env bash\n", "bash-server"
+        )
 
     assert status_code == 504
     assert b"timed out" in stdout
     assert stderr == b""
     assert removed_paths
+
+
+def test_execute_bash_server_response_returns_non_200_success(monkeypatch):
+    from server_execution.code_execution import _execute_bash_server_response
+
+    def fake_run(code, server_name, *, chained_input=None, script_args=None):
+        return b'{"input": "body-text"}', 201, b""
+
+    monkeypatch.setattr("server_execution.code_execution._run_bash_script", fake_run)
+
+    app = Flask(__name__)
+    with app.test_request_context("/bash-echo", method="POST", data="body-text"):
+        response = _execute_bash_server_response(
+            "#!/usr/bin/env bash\ncat\nexit 201\n",
+            "bash-echo",
+            "test_execute_bash_server_response",
+            chained_input=None,
+        )
+
+    assert response.status_code == 201
+    assert response.headers["Content-Type"].startswith("text/plain")
+    assert "body-text" in response.get_data(as_text=True)
 
 
 if __name__ == "__main__":

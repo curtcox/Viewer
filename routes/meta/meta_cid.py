@@ -1,10 +1,12 @@
 """CID path resolution and metadata for meta route."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
 from flask import url_for
 
+from cid import CID as ValidatedCID
 from cid_presenter import cid_path, format_cid
 from db_access import find_server_invocations_by_cid, get_cid_by_path, get_servers
 from entity_references import extract_references_from_bytes
@@ -15,7 +17,7 @@ from .meta_path_utils import dedupe_links, split_extension
 META_SOURCE_LINK = "/source/routes/meta.py"
 
 
-def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
+def server_events_for_cid(cid_value: str | ValidatedCID) -> List[Dict[str, Any]]:
     """Return server invocation metadata for the supplied CID."""
     if not cid_value:
         return []
@@ -32,6 +34,7 @@ def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
         "servers_cid": "servers",
         "variables_cid": "variables",
         "secrets_cid": "secrets",
+        "external_calls_cid": "external_calls",
     }
 
     for invocation in invocations:
@@ -41,7 +44,25 @@ def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
             value = getattr(invocation, field, None)
             if not value:
                 continue
-            formatted_value = format_cid(value)
+            cids = getattr(invocation, "cids", None)
+            if cids and label == "result" and getattr(cids, "result", None):
+                formatted_value = format_cid(getattr(cids, "result"))
+            elif cids and label == "servers" and getattr(cids, "servers", None):
+                formatted_value = format_cid(getattr(cids, "servers"))
+            elif cids and label == "variables" and getattr(cids, "variables", None):
+                formatted_value = format_cid(getattr(cids, "variables"))
+            elif cids and label == "secrets" and getattr(cids, "secrets", None):
+                formatted_value = format_cid(getattr(cids, "secrets"))
+            elif (
+                cids
+                and label == "request_details"
+                and getattr(cids, "request_details", None)
+            ):
+                formatted_value = format_cid(getattr(cids, "request_details"))
+            elif cids and label == "invocation" and getattr(cids, "invocation", None):
+                formatted_value = format_cid(getattr(cids, "invocation"))
+            else:
+                formatted_value = format_cid(value)
             if not formatted_value:
                 continue
             related_cids[label] = formatted_value
@@ -53,7 +74,9 @@ def server_events_for_cid(cid_value: str) -> List[Dict[str, Any]]:
             {
                 "server_name": invocation.server_name,
                 "event_page": url_for("main.server_events"),
-                "invoked_at": invocation.invoked_at.isoformat() if invocation.invoked_at else None,
+                "invoked_at": invocation.invoked_at.isoformat()
+                if invocation.invoked_at
+                else None,
                 "related_cids": related_cids,
                 "related_cid_meta_links": dedupe_links(related_meta_links),
             }
@@ -81,7 +104,9 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         "cid": cid_value,
         "path": cid_record_path,
         "file_size": cid_record.file_size,
-        "created_at": cid_record.created_at.isoformat() if cid_record.created_at else None,
+        "created_at": cid_record.created_at.isoformat()
+        if cid_record.created_at
+        else None,
     }
 
     metadata: Dict[str, Any] = {
@@ -93,11 +118,13 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
             "extension": extension,
             "record": record,
         },
-        "source_links": dedupe_links([
-            "/source/routes/core.py",
-            "/source/cid_utils.py",
-            META_SOURCE_LINK,
-        ]),
+        "source_links": dedupe_links(
+            [
+                "/source/routes/core.py",
+                "/source/cid_utils.py",
+                META_SOURCE_LINK,
+            ]
+        ),
     }
 
     # Check if this CID is associated with any named server definitions
@@ -114,25 +141,25 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
                 "language": language,
             }
             break
-    
+
     # If not a named server, check if the CID content is a server definition
     if not server_info and cid_record and cid_record.file_data:
         try:
-            content = cid_record.file_data.decode('utf-8', errors='ignore')
+            content = cid_record.file_data.decode("utf-8", errors="ignore")
             language = detect_server_language(content)
-            
-            # Heuristic: if language is detected as bash or python (not default), 
+
+            # Heuristic: if language is detected as bash or python (not default),
             # and content looks like executable code, treat it as a server
-            if language in ('bash', 'python', 'typescript', 'clojure', 'clojurescript'):
+            if language in ("bash", "python", "typescript", "clojure", "clojurescript"):
                 # Check if content appears to be executable (has def main, shebang, or common patterns)
                 is_server = (
-                    'def main(' in content or 
-                    content.strip().startswith('#!') or
-                    'echo ' in content or
-                    'grep ' in content or
-                    'function main' in content
+                    "def main(" in content
+                    or content.strip().startswith("#!")
+                    or "echo " in content
+                    or "grep " in content
+                    or "function main" in content
                 )
-                
+
                 if is_server:
                     server_info = {
                         "name": None,  # Anonymous server
@@ -143,14 +170,16 @@ def resolve_cid_path(path: str) -> Optional[Dict[str, Any]]:
         except Exception:
             # If we can't decode or analyze, skip server detection
             pass
-    
+
     if server_info:
         metadata["resolution"]["server"] = server_info
 
     server_events = server_events_for_cid(cid_value)
     if server_events:
         metadata["server_events"] = server_events
-        metadata["source_links"] = dedupe_links(metadata["source_links"] + ["/source/server_execution.py"])
+        metadata["source_links"] = dedupe_links(
+            metadata["source_links"] + ["/source/server_execution.py"]
+        )
 
     references = extract_references_from_bytes(
         getattr(cid_record, "file_data", None),

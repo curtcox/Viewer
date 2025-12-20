@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cookie Editor</title>
+  <link rel="stylesheet" href="/AAAAAABN_tVWucYpuFZNwXJCRdm_-1-OCCQRaqqLOqPLHQs_YxqHCPEBbggRWUf8pR0GUTpxeGlJuj2mcQVfhLGmyJM2wYA.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="header__icon" aria-hidden="true">
+        <img src="/AAAAAAOxMPGis0qb8iUrpYXqc1tSV6VVxJrOaGU0WnwgrMd9lNumOB9uSydGZr1oTyrJKet9jTgBxN73HHUu56JYasu4FA.svg" alt="" width="36" height="36" />
+      </div>
+      <div>
+        <h1>Cookie Editor</h1>
+        <p class="header__meta">Review, edit, create, and delete cookies stored for this site. Changes take effect immediately.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="cookie-list-title">
+        <div class="panel__header">
+          <h2 class="panel__title" id="cookie-list-title">Current cookies</h2>
+          <button class="button button--ghost" id="refresh-btn">Refresh</button>
+        </div>
+        <p class="panel__hint">Values update in real time so you can quickly verify authentication, preferences, and experiments.</p>
+        <div id="empty-state" class="empty-state" hidden>No cookies are currently stored for this site.</div>
+        <table class="table" aria-describedby="cookie-list-title">
+          <thead>
+            <tr><th scope="col">Name</th><th scope="col">Value</th><th scope="col">Actions</th></tr>
+          </thead>
+          <tbody id="cookie-rows"></tbody>
+        </table>
+
+        <template id="cookie-row-template">
+          <tr>
+            <td class="cookie-name"></td>
+            <td class="cookie-value"></td>
+            <td class="cookie-actions">
+              <button class="button button--ghost" type="button">Delete</button>
+            </td>
+          </tr>
+        </template>
+      </section>
+
+      <section class="panel" aria-labelledby="new-cookie-title">
+        <div class="panel__header">
+          <h2 class="panel__title" id="new-cookie-title">Add or update</h2>
+          <span class="badge">Live</span>
+        </div>
+        <form class="form" id="add-cookie-form">
+          <div class="form__field">
+            <label class="label" for="new-name">Cookie name</label>
+            <input class="input" id="new-name" name="name" autocomplete="off" required />
+            <p class="helper">Case-sensitive. Using the same name will overwrite the existing cookie.</p>
+          </div>
+          <div class="form__field">
+            <label class="label" for="new-value">Value</label>
+            <input class="input" id="new-value" name="value" />
+          </div>
+          <div class="form__field">
+            <label class="label" for="cookie-expiry">Keep for</label>
+            <select class="select" id="cookie-expiry">
+              <option value="30">30 days</option>
+              <option value="7">7 days</option>
+              <option value="1">1 day</option>
+              <option value="0">Until the browser closes</option>
+            </select>
+          </div>
+          <div class="form__field">
+            <label class="label" for="cookie-path">Path</label>
+            <input class="input" id="cookie-path" name="path" value="/" />
+            <p class="helper">Cookies set on a more specific path will only be visible to matching routes.</p>
+          </div>
+          <div class="form__field">
+            <button class="button" type="submit">Save cookie</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/AAAAAA-FehO9NXb4-Fs9MzAWXQL_dkm3uEUYH2on75s0n09sBJr1KOk6OGWeHGem642hAkugH_e-wDKjG4QASq8KaoTKzQ.js" defer></script>
+</body>
+</html>

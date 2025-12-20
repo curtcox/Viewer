@@ -3,6 +3,7 @@
 Test to validate that the model object serialization fix works correctly
 """
 
+
 class MockVariable:
     """Mock Variable model object"""
 
@@ -11,7 +12,7 @@ class MockVariable:
         self.definition = definition
 
     def __repr__(self):
-        return f'<Variable {self.name}>'
+        return f"<Variable {self.name}>"
 
 
 class MockSecret:
@@ -22,7 +23,7 @@ class MockSecret:
         self.definition = definition
 
     def __repr__(self):
-        return f'<Secret {self.name}>'
+        return f"<Secret {self.name}>"
 
 
 class MockServer:
@@ -33,7 +34,8 @@ class MockServer:
         self.definition = definition
 
     def __repr__(self):
-        return f'<Server {self.name}>'
+        return f"<Server {self.name}>"
+
 
 def serialize_model_objects(model_objects):
     """Convert SQLAlchemy model objects to serializable dictionaries"""
@@ -42,17 +44,15 @@ def serialize_model_objects(model_objects):
 
     serialized = []
     for obj in model_objects:
-        if hasattr(obj, 'name') and hasattr(obj, 'definition'):
+        if hasattr(obj, "name") and hasattr(obj, "definition"):
             # For Variable, Secret, and Server objects
-            serialized.append({
-                'name': obj.name,
-                'definition': obj.definition
-            })
+            serialized.append({"name": obj.name, "definition": obj.definition})
         else:
             # Fallback for other object types
             serialized.append(str(obj))
 
     return serialized
+
 
 def test_serialize_model_objects():
     """Test the serialize_model_objects function"""
@@ -62,8 +62,8 @@ def test_serialize_model_objects():
 
     # Test with variables
     variables = [
-        MockVariable('test_var1', 'value1'),
-        MockVariable('test_var2', 'value2')
+        MockVariable("test_var1", "value1"),
+        MockVariable("test_var2", "value2"),
     ]
 
     serialized_vars = serialize_model_objects(variables)
@@ -72,14 +72,12 @@ def test_serialize_model_objects():
     print(f"Type of serialized[0]: {type(serialized_vars[0])}")
 
     assert len(serialized_vars) == 2
-    assert serialized_vars[0] == {'name': 'test_var1', 'definition': 'value1'}
-    assert serialized_vars[1] == {'name': 'test_var2', 'definition': 'value2'}
+    assert serialized_vars[0] == {"name": "test_var1", "definition": "value1"}
+    assert serialized_vars[1] == {"name": "test_var2", "definition": "value2"}
     print("✓ Variables serialization works correctly\n")
 
     # Test with secrets
-    secrets = [
-        MockSecret('test_secret1', 'secret_value1')
-    ]
+    secrets = [MockSecret("test_secret1", "secret_value1")]
 
     serialized_secrets = serialize_model_objects(secrets)
     print(f"Original secrets: {secrets}")
@@ -87,13 +85,14 @@ def test_serialize_model_objects():
     print(f"Type of serialized[0]: {type(serialized_secrets[0])}")
 
     assert len(serialized_secrets) == 1
-    assert serialized_secrets[0] == {'name': 'test_secret1', 'definition': 'secret_value1'}
+    assert serialized_secrets[0] == {
+        "name": "test_secret1",
+        "definition": "secret_value1",
+    }
     print("✓ Secrets serialization works correctly\n")
 
     # Test with servers
-    servers = [
-        MockServer('echo1', 'return {"output": "hello"}')
-    ]
+    servers = [MockServer("echo1", 'return {"output": "hello"}')]
 
     serialized_servers = serialize_model_objects(servers)
     print(f"Original servers: {servers}")
@@ -101,7 +100,10 @@ def test_serialize_model_objects():
     print(f"Type of serialized[0]: {type(serialized_servers[0])}")
 
     assert len(serialized_servers) == 1
-    assert serialized_servers[0] == {'name': 'echo1', 'definition': 'return {"output": "hello"}'}
+    assert serialized_servers[0] == {
+        "name": "echo1",
+        "definition": 'return {"output": "hello"}',
+    }
     print("✓ Servers serialization works correctly\n")
 
     # Test with empty list
@@ -114,6 +116,7 @@ def test_serialize_model_objects():
     assert not none_result
     print("✓ None handling works correctly\n")
 
+
 def test_fixed_build_request_args():
     """Test the fixed build_request_args behavior"""
     print("=" * 60)
@@ -122,30 +125,26 @@ def test_fixed_build_request_args():
 
     # Mock the model objects that would be returned by list_variables(), list_secrets(), list_servers()
     mock_variables = [
-        MockVariable('test_var1', 'value1'),
-        MockVariable('test_var2', 'value2')
+        MockVariable("test_var1", "value1"),
+        MockVariable("test_var2", "value2"),
     ]
 
-    mock_secrets = [
-        MockSecret('test_secret1', 'secret_value1')
-    ]
+    mock_secrets = [MockSecret("test_secret1", "secret_value1")]
 
-    mock_servers = [
-        MockServer('echo1', 'return {"output": "hello"}')
-    ]
+    mock_servers = [MockServer("echo1", 'return {"output": "hello"}')]
 
     # Simulate what the fixed build_request_args would produce
     args = {
-        'path': '/echo1',
-        'query_string': '',
-        'form_data': {},
-        'args': {},
-        'endpoint': None,
-        'blueprint': None,
-        'scheme': 'http',
-        'variables': serialize_model_objects(mock_variables),
-        'secrets': serialize_model_objects(mock_secrets),
-        'servers': serialize_model_objects(mock_servers),
+        "path": "/echo1",
+        "query_string": "",
+        "form_data": {},
+        "args": {},
+        "endpoint": None,
+        "blueprint": None,
+        "scheme": "http",
+        "variables": serialize_model_objects(mock_variables),
+        "secrets": serialize_model_objects(mock_secrets),
+        "servers": serialize_model_objects(mock_servers),
     }
 
     print("Fixed args structure:")
@@ -159,14 +158,17 @@ def test_fixed_build_request_args():
     print(args_str)
 
     # Verify the actual data is present in the string
-    assert 'test_var1' in args_str
-    assert 'value1' in args_str
-    assert 'test_secret1' in args_str
-    assert 'secret_value1' in args_str
-    assert 'echo1' in args_str
+    assert "test_var1" in args_str
+    assert "value1" in args_str
+    assert "test_secret1" in args_str
+    assert "secret_value1" in args_str
+    assert "echo1" in args_str
 
     print("\n✓ Variables, secrets, and servers are now properly serialized!")
-    print("✓ The echo1 server will now see the actual data instead of model object representations!")
+    print(
+        "✓ The echo1 server will now see the actual data instead of model object representations!"
+    )
+
 
 def test_echo1_output_comparison():
     """Compare what echo1 would see before and after the fix"""
@@ -175,36 +177,32 @@ def test_echo1_output_comparison():
     print("=" * 60)
 
     # Before fix (model objects)
-    mock_variables_before = [
-        MockVariable('test_var1', 'value1')
-    ]
-    mock_secrets_before = [
-        MockSecret('test_secret1', 'secret_value1')
-    ]
+    mock_variables_before = [MockVariable("test_var1", "value1")]
+    mock_secrets_before = [MockSecret("test_secret1", "secret_value1")]
 
     args_before = {
-        'path': '/echo1',
-        'query_string': '',
-        'form_data': {},
-        'args': {},
-        'endpoint': None,
-        'blueprint': None,
-        'scheme': 'http',
-        'variables': mock_variables_before,
-        'secrets': mock_secrets_before
+        "path": "/echo1",
+        "query_string": "",
+        "form_data": {},
+        "args": {},
+        "endpoint": None,
+        "blueprint": None,
+        "scheme": "http",
+        "variables": mock_variables_before,
+        "secrets": mock_secrets_before,
     }
 
     # After fix (serialized objects)
     args_after = {
-        'path': '/echo1',
-        'query_string': '',
-        'form_data': {},
-        'args': {},
-        'endpoint': None,
-        'blueprint': None,
-        'scheme': 'http',
-        'variables': serialize_model_objects(mock_variables_before),
-        'secrets': serialize_model_objects(mock_secrets_before)
+        "path": "/echo1",
+        "query_string": "",
+        "form_data": {},
+        "args": {},
+        "endpoint": None,
+        "blueprint": None,
+        "scheme": "http",
+        "variables": serialize_model_objects(mock_variables_before),
+        "secrets": serialize_model_objects(mock_secrets_before),
     }
 
     print("BEFORE FIX (what echo1 currently sees):")
@@ -219,20 +217,21 @@ def test_echo1_output_comparison():
     print(f"\nAFTER - Full output: {str(args_after)}")
 
     # The key difference: after the fix, actual data is visible
-    before_str = str(args_before['variables'])
-    after_str = str(args_after['variables'])
+    before_str = str(args_before["variables"])
+    after_str = str(args_after["variables"])
 
     print("\nVariables comparison:")
     print(f"  Before: {before_str}")
     print(f"  After:  {after_str}")
 
     # Before shows model representation, after shows actual data
-    assert '<Variable' in before_str  # Model representation
-    assert 'test_var1' in after_str and 'value1' in after_str  # Actual data
+    assert "<Variable" in before_str  # Model representation
+    assert "test_var1" in after_str and "value1" in after_str  # Actual data
 
     print("\n✓ Fix successfully converts model objects to readable data!")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         test_serialize_model_objects()
         test_fixed_build_request_args()
@@ -242,9 +241,12 @@ if __name__ == '__main__':
         print("ALL TESTS PASSED!")
         print("=" * 60)
         print("The serialization fix should resolve the echo1 variables/secrets issue!")
-        print("Variables and secrets will now appear as proper data instead of empty lists.")
+        print(
+            "Variables and secrets will now appear as proper data instead of empty lists."
+        )
 
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
+
         traceback.print_exc()

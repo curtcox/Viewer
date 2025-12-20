@@ -1,4 +1,5 @@
 """History-related routes."""
+
 import json
 from types import SimpleNamespace
 from typing import Dict, Iterable, List, Optional
@@ -18,15 +19,15 @@ from history_filters import parse_date_range
 from . import main_bp
 
 
-@main_bp.route('/history')
+@main_bp.route("/history")
 def history():
     """Display page view history."""
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get("page", 1, type=int)
     per_page = 50
 
     date_range = parse_date_range(
-        request.args.get('start', '', type=str),
-        request.args.get('end', '', type=str),
+        request.args.get("start", "", type=str),
+        request.args.get("end", "", type=str),
     )
 
     page_views = get_paginated_page_views(
@@ -38,10 +39,10 @@ def history():
     _attach_server_event_links(page_views)
     _attach_cid_links(page_views)
     stats = get_history_statistics(start=date_range.start_at, end=date_range.end_at)
-    stats['popular_paths'] = _normalize_popular_paths(stats.get('popular_paths'))
+    stats["popular_paths"] = _normalize_popular_paths(stats.get("popular_paths"))
 
     return render_template(
-        'history.html',
+        "history.html",
         page_views=page_views,
         start_value=date_range.start_value,
         end_value=date_range.end_value,
@@ -78,7 +79,7 @@ def _get_page_view_items(page_views: object) -> List:
     if page_views is None:
         return []
 
-    items = getattr(page_views, 'items', None)
+    items = getattr(page_views, "items", None)
     if items is None:
         if isinstance(page_views, (list, tuple)):
             return list(page_views)
@@ -99,7 +100,9 @@ def _build_cid_link_details(path: Optional[str]) -> Optional[SimpleNamespace]:
     if not link_markup:
         return None
 
-    normalized_href = cid_path(cid_value, extension) if extension else cid_path(cid_value)
+    normalized_href = (
+        cid_path(cid_value, extension) if extension else cid_path(cid_value)
+    )
 
     fallback_path = normalized_href or f"/{cid_value}"
     visited_href = path or fallback_path
@@ -122,7 +125,7 @@ def _attach_cid_links(page_views: object) -> None:
         return
 
     for view in page_view_items:
-        cid_link = _build_cid_link_details(getattr(view, 'path', None))
+        cid_link = _build_cid_link_details(getattr(view, "path", None))
         if cid_link:
             view.cid_link = cid_link
 
@@ -149,8 +152,8 @@ def _normalize_popular_paths(popular_paths: object) -> List[SimpleNamespace]:
                 except (TypeError, ValueError):
                     count_value = 0
         else:
-            path_value = getattr(entry, 'path', None)
-            count_raw = getattr(entry, 'count', None)
+            path_value = getattr(entry, "path", None)
+            count_raw = getattr(entry, "count", None)
             if isinstance(count_raw, int):
                 count_value = count_raw
             elif count_raw is not None:
@@ -163,11 +166,13 @@ def _normalize_popular_paths(popular_paths: object) -> List[SimpleNamespace]:
             continue
 
         cid_link = _build_cid_link_details(path_value)
-        normalized.append(SimpleNamespace(
-            path=path_value,
-            count=count_value,
-            cid_link=cid_link,
-        ))
+        normalized.append(
+            SimpleNamespace(
+                path=path_value,
+                count=count_value,
+                cid_link=cid_link,
+            )
+        )
 
     return normalized
 
@@ -192,7 +197,7 @@ def _extract_referer_from_headers(headers: object) -> str | None:
     """Return the Referer value from a headers collection."""
     if isinstance(headers, dict):
         for key, value in headers.items():
-            if isinstance(key, str) and key.lower() == 'referer':
+            if isinstance(key, str) and key.lower() == "referer":
                 return _normalize_header_value(value)
         return None
 
@@ -201,7 +206,7 @@ def _extract_referer_from_headers(headers: object) -> str | None:
             if not isinstance(item, (list, tuple)) or len(item) < 2:
                 continue
             key, value = item[0], item[1]
-            if isinstance(key, str) and key.lower() == 'referer':
+            if isinstance(key, str) and key.lower() == "referer":
                 return _normalize_header_value(value)
 
     return None
@@ -212,7 +217,7 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
     request_cids = {
         invocation.request_details_cid
         for invocation in invocations
-        if getattr(invocation, 'request_details_cid', None)
+        if getattr(invocation, "request_details_cid", None)
     }
 
     if not request_cids:
@@ -227,16 +232,20 @@ def _load_request_referers(invocations: Iterable[ServerInvocation]) -> Dict[str,
 
     referer_by_cid: Dict[str, str] = {}
     for record in cid_records:
-        raw = getattr(record, 'file_data', None)
+        raw = getattr(record, "file_data", None)
         if not raw:
             continue
 
         try:
-            payload = json.loads(raw.decode('utf-8'))
+            payload = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
             continue
 
-        referer = _extract_referer_from_headers(payload.get('headers')) if isinstance(payload, dict) else None
+        referer = (
+            _extract_referer_from_headers(payload.get("headers"))
+            if isinstance(payload, dict)
+            else None
+        )
         if referer:
             referer_by_cid[format_cid(record.path)] = referer
 
@@ -267,7 +276,7 @@ def _attach_server_event_links(page_views: object) -> None:
     for invocation in invocations:
         if not invocation.invocation_cid:
             continue
-        cid_key = format_cid(getattr(invocation, 'result_cid', None))
+        cid_key = format_cid(getattr(invocation, "result_cid", None))
         if cid_key and cid_key not in invocation_by_result:
             invocation_by_result[cid_key] = invocation
 
@@ -287,15 +296,21 @@ def _attach_server_event_links(page_views: object) -> None:
 
         # Attach both the invocation object and helpful links for templates.
         view.server_invocation = invocation
-        view.server_invocation_link = cid_path(invocation.invocation_cid, 'json')
+        invocation_cid = getattr(invocation, "cids", None)
+        invocation_cid_value = (
+            getattr(invocation_cid, "invocation", None) if invocation_cid else None
+        )
+        view.server_invocation_link = cid_path(
+            invocation_cid_value or invocation.invocation_cid, "json"
+        )
 
         referer = None
-        request_cid = getattr(invocation, 'request_details_cid', None)
+        request_cid = getattr(invocation, "request_details_cid", None)
         if request_cid:
-            referer = referer_by_request_cid.get(request_cid)
+            referer = referer_by_request_cid.get(format_cid(request_cid))
 
         if referer:
             view.server_invocation_referer = referer
 
 
-__all__ = ['history']
+__all__ = ["history"]

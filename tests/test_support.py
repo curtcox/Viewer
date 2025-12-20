@@ -48,13 +48,19 @@ def build_test_environment() -> dict[str, str]:
 def locate_gauge() -> str:
     """Return the path to the Gauge CLI or raise ``FileNotFoundError``."""
 
+    stub_path = ROOT_DIR / "gauge"
+    use_system = os.environ.get("USE_SYSTEM_GAUGE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if stub_path.exists() and not use_system:
+        return str(stub_path)
+
     gauge_cmd = shutil.which("gauge")
     if gauge_cmd is not None:
         return gauge_cmd
-
-    stub_path = ROOT_DIR / "gauge"
-    if stub_path.exists():
-        return str(stub_path)
 
     msg = (
         "Gauge CLI not found. Install Gauge from "

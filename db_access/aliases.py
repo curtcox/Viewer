@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from models import Alias
 from database import db
+from cid import CID as ValidatedCID
 from alias_definition import (
     AliasDefinitionError,
     ParsedAliasDefinition,
@@ -39,7 +40,11 @@ def get_aliases() -> List[Alias]:
 
 def get_template_aliases() -> List[Alias]:
     """Return template aliases from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_ALIASES, resolve_cid_value
+    from template_manager import (
+        get_templates_for_type,
+        ENTITY_TYPE_ALIASES,
+        resolve_cid_value,
+    )
 
     templates = get_templates_for_type(ENTITY_TYPE_ALIASES)
 
@@ -51,22 +56,22 @@ def get_template_aliases() -> List[Alias]:
         # Templates are not persisted DB rows, so id remains None
         alias.id = None
         # Store the template key in a separate attribute for UI use
-        alias.template_key = template.get('key', '')
-        alias.name = template.get('name', template.get('key', ''))
+        alias.template_key = template.get("key", "")
+        alias.name = template.get("name", template.get("key", ""))
 
         # Try to get definition from various possible fields
-        definition = template.get('definition')
-        if not definition and template.get('definition_cid'):
-            definition = resolve_cid_value(template.get('definition_cid'))
-        if not definition and template.get('target_path_cid'):
-            definition = resolve_cid_value(template.get('target_path_cid'))
+        definition = template.get("definition")
+        if not definition and template.get("definition_cid"):
+            definition = resolve_cid_value(template.get("definition_cid"))
+        if not definition and template.get("target_path_cid"):
+            definition = resolve_cid_value(template.get("target_path_cid"))
 
-        alias.definition = definition or ''
+        alias.definition = definition or ""
         alias.enabled = True
         alias.template = True  # Mark as template for backwards compatibility
         alias_objects.append(alias)
 
-    return sorted(alias_objects, key=lambda a: a.name if a.name else '')
+    return sorted(alias_objects, key=lambda a: a.name if a.name else "")
 
 
 def get_alias_by_name(name: str) -> Optional[Alias]:
@@ -78,19 +83,16 @@ def get_first_alias_name() -> Optional[str]:
     """Return the first alias name ordered alphabetically."""
     # Prefer user-created aliases over the default AI helper when available.
     preferred = (
-        Alias.query
-        .filter(Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME]))
+        Alias.query.filter(
+            Alias.name.notin_([DEFAULT_AI_ALIAS_NAME, DEFAULT_CSS_ALIAS_NAME])
+        )
         .order_by(Alias.name.asc())
         .first()
     )
     if preferred is not None:
         return preferred.name
 
-    fallback = (
-        Alias.query
-        .order_by(Alias.name.asc())
-        .first()
-    )
+    fallback = Alias.query.order_by(Alias.name.asc()).first()
     return fallback.name if fallback else None
 
 
@@ -119,11 +121,7 @@ def get_alias_by_target_path(target_path: str) -> Optional[Alias]:
     alternate = f"/{normalized.lstrip('/')}"
     candidates.add(alternate)
 
-    aliases = (
-        Alias.query
-        .order_by(Alias.id.asc())
-        .all()
-    )
+    aliases = Alias.query.order_by(Alias.id.asc()).all()
 
     variable_map = _get_variable_map()
 
@@ -223,7 +221,9 @@ def _update_existing_aliases(
             )
 
         desired_target_path = new_path
-        parsed_current = _safe_parse_definition(updated_definition, alias_name=alias.name)
+        parsed_current = _safe_parse_definition(
+            updated_definition, alias_name=alias.name
+        )
         if parsed_current:
             existing_ignore_case = parsed_current.ignore_case
             if parsed_current.target_path:
@@ -260,8 +260,8 @@ def _update_existing_aliases(
 
 
 def update_alias_cid_reference(
-    old_cid: str,
-    new_cid: str,
+    old_cid: str | ValidatedCID,
+    new_cid: str | ValidatedCID,
     alias_name: str,
 ) -> Dict[str, int]:
     """Ensure an alias points to the supplied CID and update its definition.
@@ -285,7 +285,13 @@ def update_alias_cid_reference(
         aliases were updated.
     """
     normalized_alias = (alias_name or "").strip()
-    normalized_new = normalize_cid_value(new_cid)
+
+    def _normalize_cid_input(value: str | ValidatedCID | None) -> str:
+        if isinstance(value, ValidatedCID):
+            return value.value
+        return normalize_cid_value(value)
+
+    normalized_new = _normalize_cid_input(new_cid)
 
     if not normalized_alias or not normalized_new:
         return AliasUpdateResult(created=False, updated=0).to_dict()
@@ -295,7 +301,7 @@ def update_alias_cid_reference(
     if not aliases:
         return _create_new_alias(normalized_alias, normalized_new).to_dict()
 
-    normalized_old = normalize_cid_value(old_cid)
+    normalized_old = _normalize_cid_input(old_cid)
     return _update_existing_aliases(aliases, normalized_old, normalized_new).to_dict()
 
 

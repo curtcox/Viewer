@@ -19,7 +19,9 @@ def tail_lines(path: Path, limit: int) -> Iterable[str]:
     return lines[-limit:]
 
 
-def build_summary(log_path: Path | None, junit_path: Path | None, tail_count: int) -> str:
+def build_summary(
+    log_path: Path | None, junit_path: Path | None, tail_count: int
+) -> str:
     lines: list[str] = ["### Integration tests", ""]
 
     if log_path and log_path.is_file():

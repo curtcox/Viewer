@@ -21,23 +21,25 @@ from models import Alias, Server
 def test_boot_cid_import():
     """Test the boot CID import functionality."""
     print("Creating test app...")
-    app = create_app({
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-        'WTF_CSRF_ENABLED': False,
-    })
+    app = create_app(
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            "WTF_CSRF_ENABLED": False,
+        }
+    )
 
     with app.app_context():
         db.create_all()
 
         print("\n1. Testing CID reference extraction...")
         test_payload = {
-            'version': 6,
-            'aliases': 'test_cid_1',
-            'servers': 'test_cid_2',
-            'cid_values': {
-                'test_cid_3': 'content3',
-            }
+            "version": 6,
+            "aliases": "test_cid_1",
+            "servers": "test_cid_2",
+            "cid_values": {
+                "test_cid_3": "content3",
+            },
         }
         refs = extract_cid_references_from_payload(test_payload)
         print(f"   Found {len(refs)} CID references")
@@ -45,19 +47,19 @@ def test_boot_cid_import():
 
         print("\n2. Testing missing CID detection...")
         # Create alias content
-        aliases_data = [{'name': 'test-alias', 'target': '/test'}]
-        aliases_content = json.dumps(aliases_data).encode('utf-8')
+        aliases_data = [{"name": "test-alias", "target": "/test"}]
+        aliases_content = json.dumps(aliases_data).encode("utf-8")
         aliases_cid = generate_cid(aliases_content)
         create_cid_record(aliases_cid, aliases_content)
 
         # Create boot CID that references a missing CID
         missing_cid = generate_cid(b"missing")
         boot_payload = {
-            'version': 6,
-            'aliases': aliases_cid,
-            'servers': missing_cid,  # This one is missing
+            "version": 6,
+            "aliases": aliases_cid,
+            "servers": missing_cid,  # This one is missing
         }
-        boot_content = json.dumps(boot_payload).encode('utf-8')
+        boot_content = json.dumps(boot_payload).encode("utf-8")
         boot_cid = generate_cid(boot_content)
         create_cid_record(boot_cid, boot_content)
 
@@ -68,18 +70,18 @@ def test_boot_cid_import():
 
         print("\n3. Testing successful import...")
         # Create server content
-        servers_data = [{'name': 'test-server', 'definition': 'echo test'}]
-        servers_content = json.dumps(servers_data).encode('utf-8')
+        servers_data = [{"name": "test-server", "definition": "echo test"}]
+        servers_content = json.dumps(servers_data).encode("utf-8")
         servers_cid = generate_cid(servers_content)
         create_cid_record(servers_cid, servers_content)
 
         # Create complete boot CID with all dependencies
         complete_payload = {
-            'version': 6,
-            'aliases': aliases_cid,
-            'servers': servers_cid,
+            "version": 6,
+            "aliases": aliases_cid,
+            "servers": servers_cid,
         }
-        complete_content = json.dumps(complete_payload).encode('utf-8')
+        complete_content = json.dumps(complete_payload).encode("utf-8")
         complete_boot_cid = generate_cid(complete_content)
         create_cid_record(complete_boot_cid, complete_content)
 
@@ -88,11 +90,11 @@ def test_boot_cid_import():
         print("   ✓ Successfully imported boot CID")
 
         # Verify imports
-        alias = Alias.query.filter_by(name='test-alias').first()
+        alias = Alias.query.filter_by(name="test-alias").first()
         assert alias is not None, "Alias should be imported"
         print(f"   ✓ Alias '{alias.name}' imported")
 
-        server = Server.query.filter_by(name='test-server').first()
+        server = Server.query.filter_by(name="test-server").first()
         assert server is not None, "Server should be imported"
         print(f"   ✓ Server '{server.name}' imported")
 
@@ -114,7 +116,7 @@ def test_boot_cid_import():
         print("\n✅ All manual tests passed!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         test_boot_cid_import()
     except AssertionError as e:
@@ -123,5 +125,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

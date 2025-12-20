@@ -29,9 +29,9 @@ class TestCIDFunctionality(unittest.TestCase):
     def setUp(self):
         """Set up test environment"""
         self.app = app
-        self.app.config['TESTING'] = True
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["WTF_CSRF_ENABLED"] = False
 
         with self.app.app_context():
             db.create_all()
@@ -85,55 +85,48 @@ class TestCIDFunctionality(unittest.TestCase):
         """Test MIME type detection from file extensions"""
         test_cases = [
             # No extension should return default
-            ('/bafybei123', 'application/octet-stream'),
-
+            ("/bafybei123", "application/octet-stream"),
             # Common text types
-            ('/bafybei123.txt', 'text/plain'),
-            ('/bafybei123.html', 'text/html'),
-            ('/bafybei123.htm', 'text/html'),
-            ('/bafybei123.css', 'text/css'),
-            ('/bafybei123.js', 'application/javascript'),
-            ('/bafybei123.json', 'application/json'),
-            ('/bafybei123.xml', 'application/xml'),
-            ('/bafybei123.md', 'text/markdown'),
-            ('/bafybei123.csv', 'text/csv'),
-
+            ("/bafybei123.txt", "text/plain"),
+            ("/bafybei123.html", "text/html"),
+            ("/bafybei123.htm", "text/html"),
+            ("/bafybei123.css", "text/css"),
+            ("/bafybei123.js", "application/javascript"),
+            ("/bafybei123.json", "application/json"),
+            ("/bafybei123.xml", "application/xml"),
+            ("/bafybei123.md", "text/markdown"),
+            ("/bafybei123.csv", "text/csv"),
             # Images
-            ('/bafybei123.jpg', 'image/jpeg'),
-            ('/bafybei123.jpeg', 'image/jpeg'),
-            ('/bafybei123.png', 'image/png'),
-            ('/bafybei123.gif', 'image/gif'),
-            ('/bafybei123.svg', 'image/svg+xml'),
-            ('/bafybei123.webp', 'image/webp'),
-            ('/bafybei123.ico', 'image/x-icon'),
-
+            ("/bafybei123.jpg", "image/jpeg"),
+            ("/bafybei123.jpeg", "image/jpeg"),
+            ("/bafybei123.png", "image/png"),
+            ("/bafybei123.gif", "image/gif"),
+            ("/bafybei123.svg", "image/svg+xml"),
+            ("/bafybei123.webp", "image/webp"),
+            ("/bafybei123.ico", "image/x-icon"),
             # Audio/Video
-            ('/bafybei123.mp3', 'audio/mpeg'),
-            ('/bafybei123.wav', 'audio/wav'),
-            ('/bafybei123.mp4', 'video/mp4'),
-            ('/bafybei123.webm', 'video/webm'),
-
+            ("/bafybei123.mp3", "audio/mpeg"),
+            ("/bafybei123.wav", "audio/wav"),
+            ("/bafybei123.mp4", "video/mp4"),
+            ("/bafybei123.webm", "video/webm"),
             # Archives
-            ('/bafybei123.zip', 'application/zip'),
-            ('/bafybei123.tar', 'application/x-tar'),
-            ('/bafybei123.gz', 'application/gzip'),
-            ('/bafybei123.pdf', 'application/pdf'),
-
+            ("/bafybei123.zip", "application/zip"),
+            ("/bafybei123.tar", "application/x-tar"),
+            ("/bafybei123.gz", "application/gzip"),
+            ("/bafybei123.pdf", "application/pdf"),
             # Programming languages
-            ('/bafybei123.py', 'text/x-python'),
-            ('/bafybei123.java', 'text/x-java-source'),
-            ('/bafybei123.c', 'text/x-c'),
-            ('/bafybei123.cpp', 'text/x-c++'),
-            ('/bafybei123.h', 'text/x-c'),
-            ('/bafybei123.hpp', 'text/x-c++'),
-
+            ("/bafybei123.py", "text/x-python"),
+            ("/bafybei123.java", "text/x-java-source"),
+            ("/bafybei123.c", "text/x-c"),
+            ("/bafybei123.cpp", "text/x-c++"),
+            ("/bafybei123.h", "text/x-c"),
+            ("/bafybei123.hpp", "text/x-c++"),
             # Case insensitive
-            ('/bafybei123.HTML', 'text/html'),
-            ('/bafybei123.PNG', 'image/png'),
-            ('/bafybei123.PDF', 'application/pdf'),
-
+            ("/bafybei123.HTML", "text/html"),
+            ("/bafybei123.PNG", "image/png"),
+            ("/bafybei123.PDF", "application/pdf"),
             # Unknown extension should return default
-            ('/bafybei123.unknown', 'application/octet-stream'),
+            ("/bafybei123.unknown", "application/octet-stream"),
         ]
 
         for path, expected_mime in test_cases:
@@ -158,12 +151,12 @@ class TestCIDFunctionality(unittest.TestCase):
             self.assertEqual(cid_record.file_size, len(file_content))
 
             # Verify fields that should NOT exist
-            self.assertFalse(hasattr(cid_record, 'content'))
-            self.assertFalse(hasattr(cid_record, 'title'))
-            self.assertFalse(hasattr(cid_record, 'content_type'))
-            self.assertFalse(hasattr(cid_record, 'updated_at'))
+            self.assertFalse(hasattr(cid_record, "content"))
+            self.assertFalse(hasattr(cid_record, "title"))
+            self.assertFalse(hasattr(cid_record, "content_type"))
+            self.assertFalse(hasattr(cid_record, "updated_at"))
 
-    @patch('content_serving.make_response')
+    @patch("content_serving.make_response")
     def test_serve_cid_content_with_extension(self, mock_make_response):
         """Test serving CID content with file extension for MIME type detection"""
         with self.app.app_context():
@@ -176,7 +169,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -192,13 +185,19 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_make_response.assert_called_once_with(file_content)
 
                 # Verify correct MIME type was set
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html')
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/html"
+                )
 
                 # Verify other headers
-                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(file_content))
-                mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Length", len(file_content)
+                )
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Cache-Control", "public, max-age=31536000, immutable"
+                )
 
-    @patch('content_serving.make_response')
+    @patch("content_serving.make_response")
     def test_serve_cid_content_without_extension(self, mock_make_response):
         """Test serving CID content without extension defaults to UTF-8 text when possible."""
         with self.app.app_context():
@@ -211,7 +210,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -227,21 +226,23 @@ class TestCIDFunctionality(unittest.TestCase):
                 mock_make_response.assert_called_once_with(file_content)
 
                 # Verify default MIME type was set for decoded text
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/plain; charset=utf-8"
+                )
 
-    @patch('content_serving.make_response')
+    @patch("content_serving.make_response")
     def test_serve_cid_content_with_txt_extension(self, mock_make_response):
         """CID content requested with .txt extension should render as UTF-8 text when possible."""
         with self.app.app_context():
             with self.app.test_request_context():
-                file_content = "Line one\nLine two".encode('utf-8')
+                file_content = "Line one\nLine two".encode("utf-8")
                 cid = generate_cid(file_content)
 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -252,24 +253,27 @@ class TestCIDFunctionality(unittest.TestCase):
                 serve_cid_content(cid_record, path_with_txt)
 
                 mock_make_response.assert_called_once_with(file_content)
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/plain; charset=utf-8"
+                )
 
-    @patch('content_serving.make_response')
-    def test_serve_cid_content_without_extension_plain_python_not_rendered(self, mock_make_response):
+    @patch("content_serving.make_response")
+    def test_serve_cid_content_without_extension_plain_python_not_rendered(
+        self, mock_make_response
+    ):
         """Plain source files without Markdown cues should not be rendered."""
         with self.app.app_context():
             with self.app.test_request_context():
                 file_content = (
-                    "if __name__ == '__main__':\n"
-                    "    print('hello world')\n"
-                ).encode('utf-8')
+                    "if __name__ == '__main__':\n    print('hello world')\n"
+                ).encode("utf-8")
                 cid = generate_cid(file_content)
 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -279,10 +283,14 @@ class TestCIDFunctionality(unittest.TestCase):
                 serve_cid_content(cid_record, f"/{cid}")
 
                 mock_make_response.assert_called_once_with(file_content)
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/plain; charset=utf-8"
+                )
 
-    @patch('content_serving.make_response')
-    def test_serve_cid_content_without_extension_serves_raw_markdown(self, mock_make_response):
+    @patch("content_serving.make_response")
+    def test_serve_cid_content_without_extension_serves_raw_markdown(
+        self, mock_make_response
+    ):
         """Markdown content without an extension should be served without rendering."""
         with self.app.app_context():
             with self.app.test_request_context():
@@ -292,14 +300,14 @@ class TestCIDFunctionality(unittest.TestCase):
                     "- item one\n"
                     "- item two\n\n"
                     "```python\nprint('hello world')\n```\n"
-                ).encode('utf-8')
+                ).encode("utf-8")
                 cid = generate_cid(markdown_body)
 
                 cid_record = CID(
                     path=f"/{cid}",
                     file_data=markdown_body,
                     file_size=len(markdown_body),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -311,12 +319,18 @@ class TestCIDFunctionality(unittest.TestCase):
 
                 mock_make_response.assert_called_once_with(markdown_body)
 
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/plain; charset=utf-8')
-                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(markdown_body))
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/plain; charset=utf-8"
+                )
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Length", len(markdown_body)
+                )
 
-    @patch('content_serving.generate_qr_data_url')
-    @patch('content_serving.make_response')
-    def test_serve_cid_content_qr_request_renders_qr_page(self, mock_make_response, mock_generate_qr_data_url):
+    @patch("content_serving.generate_qr_data_url")
+    @patch("content_serving.make_response")
+    def test_serve_cid_content_qr_request_renders_qr_page(
+        self, mock_make_response, mock_generate_qr_data_url
+    ):
         """Requests with a .qr extension should render a QR code landing page."""
         with self.app.app_context():
             with self.app.test_request_context():
@@ -327,62 +341,66 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
                 mock_response = MagicMock()
                 mock_make_response.return_value = mock_response
-                sample_png_base64 = (
-                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+                sample_png_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+                mock_generate_qr_data_url.return_value = (
+                    f"data:image/png;base64,{sample_png_base64}"
                 )
-                mock_generate_qr_data_url.return_value = f"data:image/png;base64,{sample_png_base64}"
 
                 serve_cid_content(cid_record, f"/{cid}.qr")
 
                 mock_make_response.assert_called_once()
                 rendered_payload = mock_make_response.call_args[0][0]
                 self.assertIsInstance(rendered_payload, (bytes, bytearray))
-                rendered_html = rendered_payload.decode('utf-8')
+                rendered_html = rendered_payload.decode("utf-8")
 
-                self.assertIn('View CID as QR Code', rendered_html)
-                self.assertIn('<img', rendered_html)
-                self.assertIn('data:image/png;base64,', rendered_html)
-                data_url_match = re.search(r'src=\"(data:image/png;base64,[^\"]+)\"', rendered_html)
+                self.assertIn("View CID as QR Code", rendered_html)
+                self.assertIn("<img", rendered_html)
+                self.assertIn("data:image/png;base64,", rendered_html)
+                data_url_match = re.search(
+                    r"src=\"(data:image/png;base64,[^\"]+)\"", rendered_html
+                )
                 self.assertIsNotNone(data_url_match)
-                _, encoded = data_url_match.group(1).split(',', 1)
+                _, encoded = data_url_match.group(1).split(",", 1)
                 image_bytes = base64.b64decode(encoded)
-                self.assertTrue(image_bytes.startswith(b'\x89PNG\r\n\x1a\n'))
+                self.assertTrue(image_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
 
-                mock_response.headers.__setitem__.assert_any_call('Content-Type', 'text/html; charset=utf-8')
-                mock_response.headers.__setitem__.assert_any_call('Content-Length', len(rendered_payload))
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Type", "text/html; charset=utf-8"
+                )
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Content-Length", len(rendered_payload)
+                )
 
     def test_generate_qr_data_url_uses_qrcode_module(self):
         """The QR code helper should build PNG data using the qrcode library API."""
 
-        sample_png_base64 = (
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
-        )
+        sample_png_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
         sample_png_bytes = base64.b64decode(sample_png_base64)
         call_log = {}
 
         class FakeImage:
             def save(self, buffer, format=None):  # pylint: disable=redefined-builtin  # Mock matches PIL API
-                call_log['format'] = format
+                call_log["format"] = format
                 buffer.write(sample_png_bytes)
 
         class FakeQRCode:
             def __init__(self, *, box_size=12, border=4):
-                call_log['init'] = {'box_size': box_size, 'border': border}
+                call_log["init"] = {"box_size": box_size, "border": border}
 
             def add_data(self, value):
-                call_log['data'] = value
+                call_log["data"] = value
 
             def make(self, fit=True):
-                call_log['fit'] = fit
+                call_log["fit"] = fit
 
             def make_image(self, *, fill_color="black", back_color="white"):
-                call_log['colors'] = {'fill': fill_color, 'back': back_color}
+                call_log["colors"] = {"fill": fill_color, "back": back_color}
                 return FakeImage()
 
         class FakeModule:
@@ -390,29 +408,33 @@ class TestCIDFunctionality(unittest.TestCase):
 
         fake_module = FakeModule()
 
-        target_url = 'https://256t.org/example'
+        target_url = "https://256t.org/example"
 
-        with patch('content_serving.qrcode', fake_module), patch('content_serving._qrcode_import_error', None):
+        with (
+            patch("content_serving.qrcode", fake_module),
+            patch("content_serving._qrcode_import_error", None),
+        ):
             from content_serving import generate_qr_data_url
+
             data_url = generate_qr_data_url(target_url)
 
         self.assertEqual(
-            call_log['init'],
-            {'box_size': 12, 'border': 4},
+            call_log["init"],
+            {"box_size": 12, "border": 4},
         )
-        self.assertEqual(call_log['data'], target_url)
-        self.assertTrue(call_log['fit'])
+        self.assertEqual(call_log["data"], target_url)
+        self.assertTrue(call_log["fit"])
         self.assertEqual(
-            call_log['colors'],
-            {'fill': 'black', 'back': 'white'},
+            call_log["colors"],
+            {"fill": "black", "back": "white"},
         )
-        self.assertEqual(call_log['format'], 'PNG')
+        self.assertEqual(call_log["format"], "PNG")
         self.assertEqual(
             data_url,
-            f'data:image/png;base64,{sample_png_base64}',
+            f"data:image/png;base64,{sample_png_base64}",
         )
 
-    @patch('content_serving.make_response')
+    @patch("content_serving.make_response")
     def test_serve_cid_content_caching_headers(self, mock_make_response):
         """Test that proper caching headers are set for CID content"""
         with self.app.app_context():
@@ -425,7 +447,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -438,15 +460,21 @@ class TestCIDFunctionality(unittest.TestCase):
 
                 # Verify caching headers are set
                 expected_etag = f'"{cid}"'
-                mock_response.headers.__setitem__.assert_any_call('ETag', expected_etag)
-                mock_response.headers.__setitem__.assert_any_call('Cache-Control', 'public, max-age=31536000, immutable')
-                mock_response.headers.__setitem__.assert_any_call('Expires', 'Thu, 31 Dec 2037 23:55:55 GMT')
+                mock_response.headers.__setitem__.assert_any_call("ETag", expected_etag)
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Cache-Control", "public, max-age=31536000, immutable"
+                )
+                mock_response.headers.__setitem__.assert_any_call(
+                    "Expires", "Thu, 31 Dec 2037 23:55:55 GMT"
+                )
 
-    @patch('content_serving.make_response')
+    @patch("content_serving.make_response")
     def test_serve_cid_content_etag_caching(self, mock_make_response):
         """Test ETag-based caching returns 304 when content hasn't changed"""
         with self.app.app_context():
-            with self.app.test_request_context(headers={'If-None-Match': '"test_etag"'}):
+            with self.app.test_request_context(
+                headers={"If-None-Match": '"test_etag"'}
+            ):
                 # Create test CID record
                 file_content = b"Cached content"
                 cid = generate_cid(file_content)
@@ -455,7 +483,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path=f"/{cid}",
                     file_data=file_content,
                     file_size=len(file_content),
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -465,12 +493,16 @@ class TestCIDFunctionality(unittest.TestCase):
 
                 # Test serving content with matching ETag (use the actual CID as ETag)
                 expected_etag = f'"{cid}"'
-                with self.app.test_request_context(headers={'If-None-Match': expected_etag}):
+                with self.app.test_request_context(
+                    headers={"If-None-Match": expected_etag}
+                ):
                     serve_cid_content(cid_record, f"/{cid}.txt")
 
                     # Verify 304 response was created
-                    mock_make_response.assert_called_once_with('', 304)
-                    mock_304_response.headers.__setitem__.assert_any_call('ETag', expected_etag)
+                    mock_make_response.assert_called_once_with("", 304)
+                    mock_304_response.headers.__setitem__.assert_any_call(
+                        "ETag", expected_etag
+                    )
 
     def test_cid_model_simplified_fields(self):
         """Test that CID model only has the required fields"""
@@ -516,7 +548,7 @@ class TestCIDFunctionality(unittest.TestCase):
                     path="/bafybei123",
                     file_data=b"test content",  # Valid data initially
                     file_size=12,
-                    )
+                )
                 db.session.add(cid_record)
                 db.session.commit()
 
@@ -544,5 +576,5 @@ class TestCIDFunctionality(unittest.TestCase):
         self.assertFalse(_looks_like_markdown(text))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -153,6 +153,7 @@ class TestDatabaseSnapshot:
     def test_dump_to_sqlite(self, memory_db_app, tmp_path):
         """Test dumping in-memory DB to SQLite file."""
         import sqlite3
+
         snapshot_path = tmp_path / "snapshot.db"
 
         with memory_db_app.app_context():
@@ -185,5 +186,7 @@ class TestDatabaseSnapshot:
         snapshot_path = tmp_path / "snapshot.db"
 
         with disk_db_app.app_context():
-            with pytest.raises(RuntimeError, match="Snapshots are only supported in memory mode"):
+            with pytest.raises(
+                RuntimeError, match="Snapshots are only supported in memory mode"
+            ):
                 DatabaseSnapshot.dump_to_sqlite(snapshot_path)

@@ -8,7 +8,7 @@ from typing import Generic, List, Optional, Type, TypeVar
 from sqlalchemy.orm import Query
 
 # TypeVar for generic entity type
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class GenericEntityRepository(Generic[T]):
@@ -44,11 +44,7 @@ class GenericEntityRepository(Generic[T]):
         Returns:
             List of template entities ordered alphabetically by name
         """
-        return (
-            self.model.query.filter_by(template=True)
-            .order_by(self.model.name)
-            .all()
-        )
+        return self.model.query.filter_by(template=True).order_by(self.model.name).all()
 
     def get_by_name(self, name: str) -> Optional[T]:
         """Get entity by name.

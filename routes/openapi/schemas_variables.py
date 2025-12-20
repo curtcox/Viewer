@@ -1,4 +1,5 @@
 """OpenAPI schemas for variable management endpoints."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -38,7 +39,10 @@ def variable_record_schema() -> Dict[str, Any]:
                 "format": "date-time",
                 "description": "Last update timestamp in ISO-8601 format.",
             },
-            "enabled": {"type": "boolean", "description": "Whether the variable is active."},
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the variable is active.",
+            },
         },
         "additionalProperties": False,
     }

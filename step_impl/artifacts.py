@@ -113,7 +113,9 @@ def attach_response_snapshot(response: Any, label: str | None = None) -> None:
     )
     metadata["screenshot"] = screenshot_details
     json_path = artifact_dir / f"{base_name}.json"
-    json_path.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     _attach_file(png_path, "image/png")
     _attach_file(json_path, "application/json")
@@ -440,8 +442,7 @@ def _load_placeholder_image() -> tuple[bytes, str | None]:
     except OSError as exc:
         message = (
             "Unable to read the shared placeholder image. Generated a textual "
-            "fallback instead. "
-            + _summarize_exception(exc)
+            "fallback instead. " + _summarize_exception(exc)
         )
         fallback = _render_text_image(
             "Screenshot unavailable",

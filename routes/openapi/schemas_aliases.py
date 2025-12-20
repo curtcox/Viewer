@@ -1,4 +1,5 @@
 """OpenAPI schemas for alias management endpoints."""
+
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -38,7 +39,10 @@ def alias_record_schema() -> Dict[str, Any]:
                 "format": "date-time",
                 "description": "Last update timestamp in ISO-8601 format.",
             },
-            "enabled": {"type": "boolean", "description": "Whether the alias is active."},
+            "enabled": {
+                "type": "boolean",
+                "description": "Whether the alias is active.",
+            },
             "match_type": {
                 "type": "string",
                 "description": "Primary route match type.",

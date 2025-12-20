@@ -17,17 +17,19 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
         self.client = self.app.test_client()
 
         # Create a temporary directory for CID files
         self.temp_dir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
         self.cid_dir = Path(self.temp_dir.name)
-        self.app.config['CID_DIRECTORY'] = str(self.cid_dir)
+        self.app.config["CID_DIRECTORY"] = str(self.cid_dir)
 
         with self.app.app_context():
             db.create_all()
@@ -62,7 +64,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             load_cids_from_directory(self.app)
 
             # Verify the CID was loaded
-            cid_path = f'/{cid_value}'
+            cid_path = f"/{cid_value}"
             cid_record = get_cid_by_path(cid_path)
             self.assertIsNotNone(cid_record)
             self.assertEqual(bytes(cid_record.file_data), content)
@@ -89,7 +91,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
 
             # Verify all CIDs were loaded
             for i, cid_value in enumerate(cid_values):
-                cid_path = f'/{cid_value}'
+                cid_path = f"/{cid_value}"
                 cid_record = get_cid_by_path(cid_path)
                 self.assertIsNotNone(cid_record, f"CID {cid_value} should be loaded")
                 self.assertEqual(bytes(cid_record.file_data), test_contents[i])
@@ -111,8 +113,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             # Verify hidden files were not loaded
             all_cids = CID.query.all()
             for cid in all_cids:
-                self.assertFalse(cid.path.endswith('.hidden_file'))
-                self.assertFalse(cid.path.endswith('.gitignore'))
+                self.assertFalse(cid.path.endswith(".hidden_file"))
+                self.assertFalse(cid.path.endswith(".gitignore"))
 
     def test_invalid_cid_filename_causes_exit(self):
         """Test that an invalid CID filename causes SystemExit."""
@@ -121,8 +123,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             invalid_file = self.cid_dir / "not-a-valid-cid.txt"
             invalid_file.write_bytes(b"some content")
 
-            # Should raise SystemExit with helpful message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with helpful message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message mentions the invalid filename
@@ -141,8 +143,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file = self.cid_dir / correct_cid
             cid_file.write_bytes(wrong_content)
 
-            # Should raise SystemExit with helpful message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with helpful message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message shows the mismatch
@@ -164,7 +166,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             load_cids_from_directory(self.app)
 
             # Get the CID record
-            cid_path = f'/{cid_value}'
+            cid_path = f"/{cid_value}"
             first_load = get_cid_by_path(cid_path)
             self.assertIsNotNone(first_load)
 
@@ -185,6 +187,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             # Manually insert the CID into database with WRONG content
             # This simulates database corruption
             from db_access import create_cid_record
+
             wrong_content = b"corrupted database content - also needs to be longer than 64 bytes to ensure it gets stored in the database"
             create_cid_record(cid_value, wrong_content)
 
@@ -192,8 +195,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             cid_file = self.cid_dir / cid_value
             cid_file.write_bytes(correct_content)
 
-            # Should raise SystemExit because DB has different content for this CID
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError because DB has different content for this CID
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message
@@ -206,16 +209,17 @@ class TestCidDirectoryLoader(unittest.TestCase):
         with self.app.app_context():
             # Create a path that doesn't exist yet
             new_dir = self.cid_dir / "new_subdir"
-            self.app.config['CID_DIRECTORY'] = str(new_dir)
+            self.app.config["CID_DIRECTORY"] = str(new_dir)
 
             self.assertFalse(new_dir.exists())
 
-            # Load CIDs - should create the directory
-            load_cids_from_directory(self.app)
+            # Load CIDs - should fail because CID directory must already exist
+            with self.assertRaises(RuntimeError) as context:
+                load_cids_from_directory(self.app)
 
-            # Verify directory was created
-            self.assertTrue(new_dir.exists())
-            self.assertTrue(new_dir.is_dir())
+            error_message = str(context.exception)
+            self.assertIn("No CID directory", error_message)
+            self.assertIn(str(new_dir), error_message)
 
     def test_non_file_entries_are_skipped(self):
         """Test that subdirectories and other non-file entries are skipped."""
@@ -238,7 +242,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             load_cids_from_directory(self.app)
 
             # Verify only the valid CID was loaded
-            cid_path = f'/{cid_value}'
+            cid_path = f"/{cid_value}"
             cid_record = get_cid_by_path(cid_path)
             self.assertIsNotNone(cid_record)
 
@@ -247,12 +251,12 @@ class TestCidDirectoryLoader(unittest.TestCase):
         with self.app.app_context():
             # Create a JSON export payload
             payload = {
-                'version': 6,
-                'aliases': [],
-                'servers': [],
-                'variables': [],
+                "version": 6,
+                "aliases": [],
+                "servers": [],
+                "variables": [],
             }
-            content = json.dumps(payload, indent=2).encode('utf-8')
+            content = json.dumps(payload, indent=2).encode("utf-8")
             cid_value = generate_cid(content)
             cid_file = self.cid_dir / cid_value
             cid_file.write_bytes(content)
@@ -261,27 +265,29 @@ class TestCidDirectoryLoader(unittest.TestCase):
             load_cids_from_directory(self.app)
 
             # Verify the CID was loaded correctly
-            cid_path = f'/{cid_value}'
+            cid_path = f"/{cid_value}"
             cid_record = get_cid_by_path(cid_path)
             self.assertIsNotNone(cid_record)
 
             # Verify content can be decoded and parsed
-            loaded_content = bytes(cid_record.file_data).decode('utf-8')
+            loaded_content = bytes(cid_record.file_data).decode("utf-8")
             loaded_payload = json.loads(loaded_content)
             self.assertEqual(loaded_payload, payload)
 
     def test_default_directory_location(self):
         """Test that default directory is app.root_path/cids when not configured."""
         # Create a new app without CID_DIRECTORY configured
-        app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         # Don't set CID_DIRECTORY config
-        if 'CID_DIRECTORY' in app.config:
-            del app.config['CID_DIRECTORY']
+        if "CID_DIRECTORY" in app.config:
+            del app.config["CID_DIRECTORY"]
 
         with app.app_context():
             db.create_all()
@@ -293,7 +299,7 @@ class TestCidDirectoryLoader(unittest.TestCase):
             # We're just verifying it doesn't crash when CID_DIRECTORY is not set
             try:
                 load_cids_from_directory(app)
-            except SystemExit:
+            except RuntimeError:
                 # May exit if there are CID validation issues in the real directory
                 # but we're mainly testing that it uses the correct default path
                 pass
@@ -305,8 +311,8 @@ class TestCidDirectoryLoader(unittest.TestCase):
             invalid_file = self.cid_dir / "invalid-cid"
             invalid_file.write_bytes(b"content")
 
-            # Should raise SystemExit with directory path in message
-            with self.assertRaises(SystemExit) as context:
+            # Should raise RuntimeError with directory path in message
+            with self.assertRaises(RuntimeError) as context:
                 load_cids_from_directory(self.app)
 
             # Verify the error message includes the directory path
@@ -314,5 +320,5 @@ class TestCidDirectoryLoader(unittest.TestCase):
             self.assertIn(str(self.cid_dir), error_message)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

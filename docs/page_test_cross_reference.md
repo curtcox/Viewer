@@ -22,12 +22,15 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestAliasRoutes::test_new_alias_form_includes_ai_controls`
 
 **Integration tests:**
+- `tests/integration/test_alias_pages.py::test_new_alias_form_includes_template_link`
 - `tests/integration/test_alias_pages.py::test_new_alias_form_includes_template_options`
-- `tests/integration/test_alias_pages.py::test_new_alias_form_renders_for_authenticated_user`
+- `tests/integration/test_alias_pages.py::test_new_alias_form_renders_in_single_user_mode`
 
 **Specs:**
 - alias_management.spec — Alias form responds the same for all users
 - alias_management.spec — Users can create aliases through the form
+- authorization.spec — Authorization allows POST requests
+- template_creation.spec — New alias form is accessible
 
 ## templates/edit_cid.html
 
@@ -90,9 +93,11 @@ This document maps site pages to the automated checks that exercise them.
 
 **Unit tests:**
 - `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_page_displays_invocation_and_referer_details`
+- `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_page_supports_time_filters`
 - `tests/test_routes_comprehensive.py::TestHistoryRoutes::test_history_pagination_second_page_empty_results`
 
 **Integration tests:**
+- `tests/integration/test_history_page.py::test_history_page_applies_query_time_filters`
 - `tests/integration/test_history_page.py::test_history_page_displays_recent_activity`
 
 **Specs:**
@@ -108,6 +113,12 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_app_startup.py::test_create_app_handles_logfire_configuration_errors`
 - `tests/test_app_startup.py::test_create_app_handles_logfire_instrumentation_errors`
 - `tests/test_app_startup.py::test_create_app_serves_homepage`
+- `tests/test_authorization_integration.py::TestAuthorizationIntegration::test_mixed_authorized_and_rejected_requests`
+- `tests/test_authorization_integration.py::TestAuthorizationIntegration::test_multiple_successful_requests`
+- `tests/test_authorization_integration.py::TestAuthorizationIntegration::test_successful_request_returns_200`
+- `tests/test_cli.py::TestMakeHttpGetRequest::test_make_http_get_request_full_url`
+- `tests/test_cli.py::TestMakeHttpGetRequest::test_make_http_get_request_valid_path`
+- `tests/test_cli.py::TestMakeHttpGetRequest::test_make_http_get_request_with_query_params`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_alias_target_displays_cid_link_for_cid_path`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_authenticated_shows_cross_reference_dashboard`
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_index_cross_reference_alias_and_server_highlight_metadata`
@@ -122,10 +133,15 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_index_page.py::test_index_page_displays_cross_reference_dashboard`
 - `tests/integration/test_index_page.py::test_viewer_menu_lists_user_entities`
+- `tests/integration/test_one_shot_equivalence.py::TestOneShotEquivalence::test_root_path_equivalence`
 - `tests/integration/test_route_details_page.py::test_route_details_for_builtin_index`
 
 **Specs:**
-- meta_navigation.spec — Info icon links to metadata
+- authorization.spec — All requests pass through authorization check
+- authorization.spec — Authorization returns HTML errors for web pages
+- authorization.spec — Source link in footer points to authorization module
+- meta_navigation.spec — Info icon opens navigation shortcuts
+- template_creation.spec — Template creation specs point to integration tests
 
 ## templates/profile.html
 
@@ -168,6 +184,7 @@ This document maps site pages to the automated checks that exercise them.
 - `routes/routes_overview.py::routes_overview` (paths: `/routes`)
 
 **Unit tests:**
+- `tests/test_authorization_integration.py::TestAuthorizationIntegration::test_successful_api_request`
 - `tests/test_routes_overview.py::TestRoutesOverview::test_frontend_filtering_orders_exact_partial_and_not_found`
 - `tests/test_routes_overview.py::TestRoutesOverview::test_lists_builtin_alias_and_server_routes`
 - `tests/test_routes_overview.py::TestRoutesOverview::test_requires_login`
@@ -187,9 +204,11 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestPublicRoutes::test_search_page_renders_with_filters`
 
 **Integration tests:**
+- `tests/integration/test_one_shot_equivalence.py::TestOneShotEquivalence::test_search_page_equivalence`
 - `tests/integration/test_search_page.py::test_search_page_displays_filters_and_status`
 
 **Specs:**
+- ai_editor.spec — Navigation and information menu are present
 - search.spec — Search page is accessible with filters
 
 ## templates/secret_form.html
@@ -205,8 +224,9 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_secret_pages.py::test_edit_secret_form_displays_existing_secret`
 - `tests/integration/test_secret_pages.py::test_edit_secret_updates_definition_snapshot`
+- `tests/integration/test_secret_pages.py::test_new_secret_form_includes_template_link`
 - `tests/integration/test_secret_pages.py::test_new_secret_form_includes_templates`
-- `tests/integration/test_secret_pages.py::test_new_secret_form_renders_for_authenticated_user`
+- `tests/integration/test_secret_pages.py::test_new_secret_form_renders_in_single_user_mode`
 
 **Specs:**
 - secret_form.spec — Secret form is accessible
@@ -236,6 +256,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_server_events_page_shows_invocations`
 
 **Integration tests:**
+- `tests/integration/test_server_events_page.py::test_server_events_page_filters_by_time`
 - `tests/integration/test_server_events_page.py::test_server_events_page_lists_recent_invocations`
 
 **Specs:**
@@ -261,11 +282,14 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_server_pages.py::test_edit_server_updates_definition_snapshots`
 - `tests/integration/test_server_pages.py::test_new_server_form_includes_saved_templates`
-- `tests/integration/test_server_pages.py::test_new_server_form_renders_for_authenticated_user`
+- `tests/integration/test_server_pages.py::test_new_server_form_includes_template_link`
+- `tests/integration/test_server_pages.py::test_new_server_form_renders_in_single_user_mode`
+- `tests/integration/test_server_pages.py::test_server_pages_show_implementation_language`
 
 **Specs:**
 - server_form.spec — New server form is accessible
-- server_form.spec — Server form stays available without a login requirement
+- server_form.spec — Server form stays available without a user session
+- template_creation.spec — New server form is accessible
 
 ## templates/settings.html
 
@@ -353,10 +377,20 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
+- `tests/integration/test_ai_actions_menu.py::test_upload_page_includes_ai_action_menu`
 - `tests/integration/test_upload_pages.py::test_upload_page_allows_user_to_choose_upload_method`
+- `tests/integration/test_upload_pages.py::test_upload_page_displays_templates_when_configured`
+- `tests/integration/test_upload_pages.py::test_upload_page_no_templates_shown_when_none_configured`
+- `tests/integration/test_upload_pages.py::test_upload_page_shows_template_status_link`
 
 **Specs:**
-- _None_
+- ai_actions_menu.spec — AI menu links are available alongside AI actions
+- upload_templates.spec — Embedded CID execution guide is listed
+- upload_templates.spec — Template content populates text field when selected
+- upload_templates.spec — Upload page displays template options when configured
+- upload_templates.spec — Upload page hides templates when none configured
+- upload_templates.spec — Upload page shows template status link
+- upload_templates.spec — Upload templates support CID references
 
 ## templates/upload_success.html
 
@@ -390,12 +424,22 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_upload_extensions.py::TestUploadExtensions::test_upload_text_gets_txt_extension`
 
 **Integration tests:**
+- `tests/integration/test_ai_actions_menu.py::test_upload_page_includes_ai_action_menu`
 - `tests/integration/test_upload_pages.py::test_edit_cid_choices_page_prompts_for_selection`
 - `tests/integration/test_upload_pages.py::test_edit_cid_page_prefills_existing_content`
 - `tests/integration/test_upload_pages.py::test_upload_page_allows_user_to_choose_upload_method`
+- `tests/integration/test_upload_pages.py::test_upload_page_displays_templates_when_configured`
+- `tests/integration/test_upload_pages.py::test_upload_page_no_templates_shown_when_none_configured`
+- `tests/integration/test_upload_pages.py::test_upload_page_shows_template_status_link`
 
 **Specs:**
-- _None_
+- ai_actions_menu.spec — AI menu links are available alongside AI actions
+- upload_templates.spec — Embedded CID execution guide is listed
+- upload_templates.spec — Template content populates text field when selected
+- upload_templates.spec — Upload page displays template options when configured
+- upload_templates.spec — Upload page hides templates when none configured
+- upload_templates.spec — Upload page shows template status link
+- upload_templates.spec — Upload templates support CID references
 
 ## templates/uploads.html
 
@@ -407,7 +451,7 @@ This document maps site pages to the automated checks that exercise them.
 - `tests/test_routes_comprehensive.py::TestFileUploadRoutes::test_uploads_list_excludes_server_events`
 
 **Integration tests:**
-- `tests/integration/test_upload_pages.py::test_uploads_page_displays_user_uploads`
+- `tests/integration/test_upload_pages.py::test_uploads_page_displays_saved_uploads`
 
 **Specs:**
 - _None_
@@ -426,11 +470,13 @@ This document maps site pages to the automated checks that exercise them.
 **Integration tests:**
 - `tests/integration/test_variable_pages.py::test_edit_variable_form_displays_existing_variable_details`
 - `tests/integration/test_variable_pages.py::test_edit_variable_updates_definition_snapshot`
+- `tests/integration/test_variable_pages.py::test_new_variable_form_includes_template_link`
 - `tests/integration/test_variable_pages.py::test_new_variable_form_includes_templates`
-- `tests/integration/test_variable_pages.py::test_new_variable_form_renders_for_authenticated_user`
+- `tests/integration/test_variable_pages.py::test_new_variable_form_renders_in_single_user_mode`
 
 **Specs:**
-- _None_
+- cid_editor.spec — Editor shows convert to CID button for regular content
+- template_creation.spec — New variable form is accessible
 
 ## templates/variables_bulk_edit.html
 

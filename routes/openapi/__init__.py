@@ -1,4 +1,5 @@
 """Routes that expose the application's OpenAPI schema and Swagger UI."""
+
 from __future__ import annotations
 
 from typing import Set

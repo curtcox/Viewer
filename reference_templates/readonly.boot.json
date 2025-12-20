@@ -1,0 +1,116 @@
+{
+  "version": 6,
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "AAAAAAARYWkgLT4gL2FpX2Fzc2lzdAo",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
+      "enabled": true
+    },
+    {
+      "name": "cookies",
+      "definition_cid": "AAAAAABwT5wpsj5DSheNKHonqPEoD6dBhqwmGJHWwCeDvje7WhhC64I5jJCWzdorCkW19vkdi1LLePQzB6pFNcr1HkPjeQ",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "enabled": true
+    },
+    {
+      "name": "anthropic_claude",
+      "definition_cid": "AAAAAAR1K4NxeXNfbO--2jYloChZBEAn_FaPZzvIhHrcKDojjk2ong1aFMh1Dxpwc7P1NBm3XhhkSmFtaFRtmMEZuoNkYg",
+      "enabled": true
+    },
+    {
+      "name": "auto_main",
+      "definition_cid": "AAAAAAUAzUNEGmF8SGCkh8152c3H1wrxIMha6WEE0a_OeHb-Enr8vcrspwGutk8a_dGjCVNj4AFhc4MmLlYE045-egEHMw",
+      "enabled": true
+    },
+    {
+      "name": "markdown",
+      "definition_cid": "AAAAAANlCGrLM1BcFmv6LErO8aEV2AU4L3OcHg_U47eGIAmhupMoKQkLBDyhIisiCf5czzVRecc3AikQG54OT26fjsXmUw",
+      "enabled": true
+    },
+    {
+      "name": "echo",
+      "definition_cid": "AAAAAAMkkcPitd37JNb9j8Bfwy7uAzi8Rti5gC-E5VpSiF1P9-NLPNQYlWd7LQgj1o1_hGiYcvTw8XZItswuoIQE8zsiWQ",
+      "enabled": true
+    },
+    {
+      "name": "glom",
+      "definition_cid": "AAAAABTWb1akxzL_bpFix54IqmDtWDOa3BBb0xY15kpSijDUDAc_KxvcQs-Bvxys5RJS2Uf9IBA4h6bSwkamY4rg2BF-2g",
+      "enabled": true
+    },
+    {
+      "name": "gateway",
+      "definition_cid": "AAAAAEYoitd5gfBP6Yj3HgfpR_gSXatHWHa5K3D9mBgCgX0OSmj5Np2TYEfzO-vBIqVpXP8zWqLEK9ozspnDoWiDRZRNhA",
+      "enabled": true
+    },
+    {
+      "name": "google_gemini",
+      "definition_cid": "AAAAAALpGaX8UPOcTsJrWgt-yp6TjAPjytk1SJzQAUbTr7YXWPfECCHmfiZ4_0olrl_k2CRhHcTBLqHHRi04GfUmR9pj3g",
+      "enabled": true
+    },
+    {
+      "name": "jinja",
+      "definition_cid": "AAAAAAK1ttKQW9DZJ9DP4kP9utIdkZvDzMimLIb8Q2x_b79V-NoClpr9W6WwoPIcFFO6Mf_YvDQ5EBs_-wj_lYVPdMd2xA",
+      "enabled": true
+    },
+    {
+      "name": "nvidia_nim",
+      "definition_cid": "AAAAAAOgwPEIyUAZHwXZMg6jINbgLpDR6AQQwH6eE2YZxIfeSeOojoFVc_MgkyEmBCgVPuTBFSTKqJ6IhQQt--Q_EzkLrA",
+      "enabled": true
+    },
+    {
+      "name": "openai_chat",
+      "definition_cid": "AAAAAAMWrWv-WBhDECY9jCTmF0_7an1vY81fmwJA_uMsBxs5kK6hXRAcGenL3M3HkRO-2kSsrH6b6EUI6Um8mL4WqIG9wQ",
+      "enabled": true
+    },
+    {
+      "name": "openrouter",
+      "definition_cid": "AAAAAANUOuanh8hUFyX6AozQDYoWYCncqXyvoX_5vWNXqtyMN5TDgI0ghksSqjTzyDxpESgJFv0PXWCQ3cNRth_V_fUqGQ",
+      "enabled": true
+    },
+    {
+      "name": "proxy",
+      "definition_cid": "AAAAABYgQKvttnJmQ20KtX5pQdGTwgZaGAcJa51NgczBBYGvjDPTmsKCtOt2U0eSp954MYAUz7X5ksj2iN6v2JcBsr2iRA",
+      "enabled": true
+    },
+    {
+      "name": "pygments",
+      "definition_cid": "AAAAABBsWm4-28FQ5b-m-C_7jrYxfMTa6ylOcYIctIE0N8De_3_05IaW3zyGl5ha8UVdmSWIFWvH4md0rPjjoBeswuxIiA",
+      "enabled": true
+    },
+    {
+      "name": "urleditor",
+      "definition_cid": "AAAAABmg9dxt5NvhsIEdylINFExca-wDSz4UDgtzvO_1i0D72ookD1urZq0341pljrr7fUHjH1FKxiND6T-osvwcSV4eKA",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "AAAAABu8a62uw4-FzFgiMz5s4lCxcIddOJ1P1yMposLYgbJ6MKEeNBIOCyPp16LXljDuaxqK9t-EyklnGqPaQFSJSZ96Lw",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "AAAAABkNWuFTx9OkpHBBNGxrYa0bixEk4PRkqIQe-XqdKVp4HWJ19C4soHWG2eBHwYTi8f3Di4IyAQ6BqRMLw9JHF1_99g",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+      "enabled": true
+    }
+  ]
+}

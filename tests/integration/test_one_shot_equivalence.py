@@ -31,14 +31,17 @@ class TestOneShotEquivalence:
     def setup(self, tmp_path):
         """Set up test environment with isolated database."""
         # Create app with test configuration
-        self.app = create_app({  # pylint: disable=attribute-defined-outside-init
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': f'sqlite:///{tmp_path}/test.db',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {  # pylint: disable=attribute-defined-outside-init
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
 
         with self.app.app_context():
             from database import db
+
             db.create_all()
 
             # Create test servers for testing
@@ -48,6 +51,7 @@ class TestOneShotEquivalence:
 
         with self.app.app_context():
             from database import db
+
             db.session.remove()
             db.drop_all()
 
@@ -57,7 +61,7 @@ class TestOneShotEquivalence:
 
         # Create a test server
         test_server = Server(
-            name='test_equivalence_server',
+            name="test_equivalence_server",
             definition='def main():\n    return {"output": "test response"}',
             enabled=True,
         )
@@ -65,23 +69,23 @@ class TestOneShotEquivalence:
 
         # Create test aliases
         test_alias = Alias(
-            name='test_alias',
-            definition='/test-path',
+            name="test_alias",
+            definition="/test-path",
             enabled=True,
         )
         db.session.add(test_alias)
 
         # Create test variables
         test_variable = Variable(
-            name='test_variable',
-            definition='test_value',
+            name="test_variable",
+            definition="test_value",
         )
         db.session.add(test_variable)
 
         # Create test secrets
         test_secret = Secret(
-            name='test_secret',
-            definition='secret_value',
+            name="test_secret",
+            definition="secret_value",
         )
         db.session.add(test_secret)
 
@@ -98,9 +102,11 @@ class TestOneShotEquivalence:
         """
         with self.app.test_client() as client:
             response = client.get(path)
-            return response.status_code, response.data.decode('utf-8')
+            return response.status_code, response.data.decode("utf-8")
 
-    def _get_cli_response(self, path: str, extra_args: list[str] = None) -> tuple[int | None, str]:
+    def _get_cli_response(
+        self, path: str, extra_args: list[str] = None
+    ) -> tuple[int | None, str]:
         """Get response from CLI one-shot mode.
 
         Args:
@@ -111,13 +117,13 @@ class TestOneShotEquivalence:
             Tuple of (status_code, response_text) where status_code is parsed from CLI output
         """
         # Use environment variable to point CLI to the test database
-        test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
+        test_db_uri = self.app.config["SQLALCHEMY_DATABASE_URI"]
 
         # Set environment variable for the CLI to use the test database
         env = os.environ.copy()
-        env['DATABASE_URL'] = test_db_uri
+        env["DATABASE_URL"] = test_db_uri
 
-        args = [sys.executable, 'main.py', path]
+        args = [sys.executable, "main.py", path]
         if extra_args:
             args.extend(extra_args)
 
@@ -149,9 +155,9 @@ class TestOneShotEquivalence:
         # Find and extract the status line
         status_line_index = None
         for i, line in enumerate(lines):
-            if line.startswith('Status:'):
+            if line.startswith("Status:"):
                 try:
-                    status_code = int(line.split(':')[1].strip())
+                    status_code = int(line.split(":")[1].strip())
                     status_line_index = i
                     break
                 except (ValueError, IndexError):
@@ -159,15 +165,15 @@ class TestOneShotEquivalence:
 
         # Remove status line from output if found
         if status_line_index is not None:
-            lines = lines[:status_line_index] + lines[status_line_index + 1:]
+            lines = lines[:status_line_index] + lines[status_line_index + 1 :]
 
-        output = '\n'.join(lines)
+        output = "\n".join(lines)
         return status_code, output
 
     def test_servers_json_equivalence(self):
         """Test that /servers.json returns same content via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/servers.json')
-        cli_status, cli_response = self._get_cli_response('/servers.json')
+        http_status, http_response = self._get_http_response("/servers.json")
+        cli_status, cli_response = self._get_cli_response("/servers.json")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
@@ -178,20 +184,24 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Compare servers by name (order might differ)
-        http_servers = {s['name']: s for s in http_data}
-        cli_servers = {s['name']: s for s in cli_data}
+        http_servers = {s["name"]: s for s in http_data}
+        cli_servers = {s["name"]: s for s in cli_data}
 
         # The test server we created should exist in both
-        assert 'test_equivalence_server' in http_servers, "Test server not in HTTP response"
-        assert 'test_equivalence_server' in cli_servers, "Test server not in CLI response"
+        assert "test_equivalence_server" in http_servers, (
+            "Test server not in HTTP response"
+        )
+        assert "test_equivalence_server" in cli_servers, (
+            "Test server not in CLI response"
+        )
 
         # Compare the test server's essential fields
-        http_test = http_servers['test_equivalence_server']
-        cli_test = cli_servers['test_equivalence_server']
+        http_test = http_servers["test_equivalence_server"]
+        cli_test = cli_servers["test_equivalence_server"]
 
-        assert http_test['name'] == cli_test['name']
-        assert http_test['definition'] == cli_test['definition']
-        assert http_test['enabled'] == cli_test['enabled']
+        assert http_test["name"] == cli_test["name"]
+        assert http_test["definition"] == cli_test["definition"]
+        assert http_test["enabled"] == cli_test["enabled"]
 
     def test_cid_from_boot_image_equivalence(self):
         """Test that a CID from boot image returns same content via HTTP and CLI.
@@ -204,7 +214,7 @@ class TestOneShotEquivalence:
         if not boot_cid_file.exists():
             pytest.skip("No default boot.cid file found")
 
-        boot_cid = boot_cid_file.read_text(encoding='utf-8').strip()
+        boot_cid = boot_cid_file.read_text(encoding="utf-8").strip()
 
         # Load the boot CID into the test database so HTTP can access it
         boot_cid_content_file = self.CLI_ROOT / "cids" / boot_cid
@@ -218,13 +228,15 @@ class TestOneShotEquivalence:
             create_cid_record(boot_cid, boot_cid_content)
 
         # Test getting the CID content
-        path = f'/{boot_cid}'
+        path = f"/{boot_cid}"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
 
         # Both should succeed with same status
-        assert http_status == cli_status, f"Different status codes: HTTP={http_status}, CLI={cli_status}"
+        assert http_status == cli_status, (
+            f"Different status codes: HTTP={http_status}, CLI={cli_status}"
+        )
 
         # If successful, content should be identical
         if http_status == 200:
@@ -239,25 +251,25 @@ class TestOneShotEquivalence:
 
     def test_root_path_equivalence(self):
         """Test that / returns same response via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/')
-        cli_status, cli_response = self._get_cli_response('/')
+        http_status, http_response = self._get_http_response("/")
+        cli_status, cli_response = self._get_cli_response("/")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
         assert cli_status == 200, f"CLI failed with status {cli_status}"
 
         # Both should return HTML (basic check)
-        assert 'html' in http_response.lower(), "HTTP response should be HTML"
-        assert 'html' in cli_response.lower(), "CLI response should be HTML"
+        assert "html" in http_response.lower(), "HTTP response should be HTML"
+        assert "html" in cli_response.lower(), "CLI response should be HTML"
 
         # Both should have similar structure (same title)
-        assert '<title>' in http_response and '</title>' in http_response
-        assert '<title>' in cli_response and '</title>' in cli_response
+        assert "<title>" in http_response and "</title>" in http_response
+        assert "<title>" in cli_response and "</title>" in cli_response
 
     def test_404_equivalence(self):
         """Test that 404 responses are same via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/nonexistent-path-12345')
-        cli_status, cli_response = self._get_cli_response('/nonexistent-path-12345')
+        http_status, http_response = self._get_http_response("/nonexistent-path-12345")
+        cli_status, cli_response = self._get_cli_response("/nonexistent-path-12345")
 
         # Both should return 404
         assert http_status == 404, f"HTTP should be 404, got {http_status}"
@@ -269,13 +281,15 @@ class TestOneShotEquivalence:
     def test_json_endpoint_with_query_params(self):
         """Test JSON endpoint with query parameters for equivalence."""
         # Query for our test server specifically
-        path = '/servers.json?name=test_equivalence_server'
+        path = "/servers.json?name=test_equivalence_server"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
 
         # Status codes should match
-        assert http_status == cli_status, f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        assert http_status == cli_status, (
+            f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        )
 
         # Content should match
         if http_status == 200:
@@ -284,20 +298,22 @@ class TestOneShotEquivalence:
                 cli_data = json.loads(cli_response)
 
                 # Both should have filtered to just our test server (or similar results)
-                http_names = [s['name'] for s in http_data]
-                cli_names = [s['name'] for s in cli_data]
+                http_names = [s["name"] for s in http_data]
+                cli_names = [s["name"] for s in cli_data]
 
                 # Our test server should be in both
-                assert 'test_equivalence_server' in http_names
-                assert 'test_equivalence_server' in cli_names
+                assert "test_equivalence_server" in http_names
+                assert "test_equivalence_server" in cli_names
 
             except json.JSONDecodeError:
-                assert http_response == cli_response, "Query param text responses differ"
+                assert http_response == cli_response, (
+                    "Query param text responses differ"
+                )
 
     def test_aliases_json_equivalence(self):
         """Test that /aliases.json returns identical content via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/aliases.json')
-        cli_status, cli_response = self._get_cli_response('/aliases.json')
+        http_status, http_response = self._get_http_response("/aliases.json")
+        cli_status, cli_response = self._get_cli_response("/aliases.json")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
@@ -308,24 +324,24 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Compare aliases by name
-        http_aliases = {a['name']: a for a in http_data}
-        cli_aliases = {a['name']: a for a in cli_data}
+        http_aliases = {a["name"]: a for a in http_data}
+        cli_aliases = {a["name"]: a for a in cli_data}
 
         # The test alias we created should exist in both
-        assert 'test_alias' in http_aliases, "Test alias not in HTTP response"
-        assert 'test_alias' in cli_aliases, "Test alias not in CLI response"
+        assert "test_alias" in http_aliases, "Test alias not in HTTP response"
+        assert "test_alias" in cli_aliases, "Test alias not in CLI response"
 
         # Compare essential fields
-        http_test = http_aliases['test_alias']
-        cli_test = cli_aliases['test_alias']
-        assert http_test['name'] == cli_test['name']
-        assert http_test['definition'] == cli_test['definition']
-        assert http_test['enabled'] == cli_test['enabled']
+        http_test = http_aliases["test_alias"]
+        cli_test = cli_aliases["test_alias"]
+        assert http_test["name"] == cli_test["name"]
+        assert http_test["definition"] == cli_test["definition"]
+        assert http_test["enabled"] == cli_test["enabled"]
 
     def test_variables_json_equivalence(self):
         """Test that /variables.json returns identical content via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/variables.json')
-        cli_status, cli_response = self._get_cli_response('/variables.json')
+        http_status, http_response = self._get_http_response("/variables.json")
+        cli_status, cli_response = self._get_cli_response("/variables.json")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
@@ -336,24 +352,29 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Compare variables by name
-        http_vars = {v['name']: v for v in http_data}
-        cli_vars = {v['name']: v for v in cli_data}
+        http_vars = {v["name"]: v for v in http_data}
+        cli_vars = {v["name"]: v for v in cli_data}
 
         # The test variable we created should exist in both
-        assert 'test_variable' in http_vars, "Test variable not in HTTP response"
-        assert 'test_variable' in cli_vars, "Test variable not in CLI response"
+        assert "test_variable" in http_vars, "Test variable not in HTTP response"
+        assert "test_variable" in cli_vars, "Test variable not in CLI response"
 
         # Compare essential fields
-        assert http_vars['test_variable']['name'] == cli_vars['test_variable']['name']
-        assert http_vars['test_variable']['definition'] == cli_vars['test_variable']['definition']
+        assert http_vars["test_variable"]["name"] == cli_vars["test_variable"]["name"]
+        assert (
+            http_vars["test_variable"]["definition"]
+            == cli_vars["test_variable"]["definition"]
+        )
 
     def test_secrets_json_equivalence(self):
         """Test that /secrets.json returns same response via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/secrets.json')
-        cli_status, cli_response = self._get_cli_response('/secrets.json')
+        http_status, http_response = self._get_http_response("/secrets.json")
+        cli_status, cli_response = self._get_cli_response("/secrets.json")
 
         # Status codes should match (likely 200)
-        assert http_status == cli_status, f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        assert http_status == cli_status, (
+            f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        )
 
         if http_status == 200:
             # Parse JSON to compare content
@@ -361,45 +382,47 @@ class TestOneShotEquivalence:
             cli_data = json.loads(cli_response)
 
             # Compare secrets by name
-            http_secrets = {s['name']: s for s in http_data}
-            cli_secrets = {s['name']: s for s in cli_data}
+            http_secrets = {s["name"]: s for s in http_data}
+            cli_secrets = {s["name"]: s for s in cli_data}
 
             # The test secret should exist in both
-            assert 'test_secret' in http_secrets, "Test secret not in HTTP response"
-            assert 'test_secret' in cli_secrets, "Test secret not in CLI response"
+            assert "test_secret" in http_secrets, "Test secret not in HTTP response"
+            assert "test_secret" in cli_secrets, "Test secret not in CLI response"
 
     def test_html_format_equivalence(self):
         """Test that /servers (no extension) returns HTML via both methods."""
-        http_status, http_response = self._get_http_response('/servers')
-        cli_status, cli_response = self._get_cli_response('/servers')
+        http_status, http_response = self._get_http_response("/servers")
+        cli_status, cli_response = self._get_cli_response("/servers")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
         assert cli_status == 200, f"CLI failed with status {cli_status}"
 
         # Both should return HTML
-        assert 'html' in http_response.lower(), "HTTP response should be HTML"
-        assert 'html' in cli_response.lower(), "CLI response should be HTML"
+        assert "html" in http_response.lower(), "HTTP response should be HTML"
+        assert "html" in cli_response.lower(), "CLI response should be HTML"
 
         # Both should have similar structure
-        assert '<html' in http_response.lower() or '<!doctype' in http_response.lower()
-        assert '<html' in cli_response.lower() or '<!doctype' in cli_response.lower()
+        assert "<html" in http_response.lower() or "<!doctype" in http_response.lower()
+        assert "<html" in cli_response.lower() or "<!doctype" in cli_response.lower()
 
     def test_invalid_cid_format_error(self):
         """Test that requesting invalid CID format returns same error."""
-        path = '/invalid-cid-format-!!!'
+        path = "/invalid-cid-format-!!!"
 
         http_status, _ = self._get_http_response(path)
         cli_status, _ = self._get_cli_response(path)
 
         # Both should return 404 or similar error
-        assert http_status == cli_status, f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        assert http_status == cli_status, (
+            f"Status codes differ: HTTP={http_status}, CLI={cli_status}"
+        )
         assert http_status >= 400, f"Should be error status, got {http_status}"
 
     def test_openapi_json_equivalence(self):
         """Test that /openapi.json returns identical OpenAPI specification."""
-        http_status, http_response = self._get_http_response('/openapi.json')
-        cli_status, cli_response = self._get_cli_response('/openapi.json')
+        http_status, http_response = self._get_http_response("/openapi.json")
+        cli_status, cli_response = self._get_cli_response("/openapi.json")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
@@ -410,19 +433,21 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Compare OpenAPI structure
-        assert http_data.get('openapi') == cli_data.get('openapi'), "OpenAPI version differs"
-        assert http_data.get('info') == cli_data.get('info'), "API info differs"
+        assert http_data.get("openapi") == cli_data.get("openapi"), (
+            "OpenAPI version differs"
+        )
+        assert http_data.get("info") == cli_data.get("info"), "API info differs"
 
     def test_exit_code_success(self):
         """Test that exit code 0 for successful 2xx responses."""
         # Use environment variable to point CLI to the test database
-        test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
+        test_db_uri = self.app.config["SQLALCHEMY_DATABASE_URI"]
 
         env = os.environ.copy()
-        env['DATABASE_URL'] = test_db_uri
+        env["DATABASE_URL"] = test_db_uri
 
         result = subprocess.run(
-            [sys.executable, 'main.py', '/'],
+            [sys.executable, "main.py", "/"],
             cwd=self.CLI_ROOT,
             capture_output=True,
             text=True,
@@ -433,18 +458,18 @@ class TestOneShotEquivalence:
 
         # Should exit with 0 for successful request
         assert result.returncode == 0, f"Expected exit code 0, got {result.returncode}"
-        assert 'Status: 200' in result.stdout
+        assert "Status: 200" in result.stdout
 
     def test_exit_code_error(self):
         """Test that exit code 1 for 4xx/5xx responses."""
         # Use environment variable to point CLI to the test database
-        test_db_uri = self.app.config['SQLALCHEMY_DATABASE_URI']
+        test_db_uri = self.app.config["SQLALCHEMY_DATABASE_URI"]
 
         env = os.environ.copy()
-        env['DATABASE_URL'] = test_db_uri
+        env["DATABASE_URL"] = test_db_uri
 
         result = subprocess.run(
-            [sys.executable, 'main.py', '/nonexistent-path-12345'],
+            [sys.executable, "main.py", "/nonexistent-path-12345"],
             cwd=self.CLI_ROOT,
             capture_output=True,
             text=True,
@@ -455,7 +480,7 @@ class TestOneShotEquivalence:
 
         # Should exit with 1 for error
         assert result.returncode == 1, f"Expected exit code 1, got {result.returncode}"
-        assert 'Status: 404' in result.stdout
+        assert "Status: 404" in result.stdout
 
     def test_cid_text_format_equivalence(self):
         """Test that CID with .txt extension returns same text via HTTP and CLI."""
@@ -468,11 +493,11 @@ class TestOneShotEquivalence:
             create_cid_record(test_cid, test_content)
 
         # Also store in cids directory for CLI access
-        cid_file = self.CLI_ROOT / 'cids' / test_cid
+        cid_file = self.CLI_ROOT / "cids" / test_cid
         cid_file.write_bytes(test_content)
 
         try:
-            path = f'/{test_cid}.txt'
+            path = f"/{test_cid}.txt"
 
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
@@ -491,7 +516,7 @@ class TestOneShotEquivalence:
     def test_unicode_content_equivalence(self):
         """Test that content with unicode characters renders identically."""
         # Create test content with unicode
-        test_content = "Hello 世界 🌍 Здравствуй мир".encode('utf-8')
+        test_content = "Hello 世界 🌍 Здравствуй мир".encode("utf-8")
         test_cid = generate_cid(test_content)
 
         # Store the CID content
@@ -499,11 +524,11 @@ class TestOneShotEquivalence:
             create_cid_record(test_cid, test_content)
 
         # Also store in cids directory for CLI access
-        cid_file = self.CLI_ROOT / 'cids' / test_cid
+        cid_file = self.CLI_ROOT / "cids" / test_cid
         cid_file.write_bytes(test_content)
 
         try:
-            path = f'/{test_cid}'
+            path = f"/{test_cid}"
 
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
@@ -523,7 +548,7 @@ class TestOneShotEquivalence:
         """Test that CID with .json extension returns JSON format."""
         # Create JSON test content
         test_data = {"message": "test json", "value": 42}
-        test_content = json.dumps(test_data).encode('utf-8')
+        test_content = json.dumps(test_data).encode("utf-8")
         test_cid = generate_cid(test_content)
 
         # Store the CID content
@@ -531,11 +556,11 @@ class TestOneShotEquivalence:
             create_cid_record(test_cid, test_content)
 
         # Also store in cids directory for CLI access
-        cid_file = self.CLI_ROOT / 'cids' / test_cid
+        cid_file = self.CLI_ROOT / "cids" / test_cid
         cid_file.write_bytes(test_content)
 
         try:
-            path = f'/{test_cid}.json'
+            path = f"/{test_cid}.json"
 
             http_status, http_response = self._get_http_response(path)
             cli_status, cli_response = self._get_cli_response(path)
@@ -558,8 +583,9 @@ class TestOneShotEquivalence:
         # Create an additional disabled server
         with self.app.app_context():
             from database import db
+
             disabled_server = Server(
-                name='disabled_test_server',
+                name="disabled_test_server",
                 definition='def main():\n    return "disabled"',
                 enabled=False,
             )
@@ -567,7 +593,7 @@ class TestOneShotEquivalence:
             db.session.commit()
 
         # Test filtering for enabled servers only
-        path = '/servers.json?enabled=true'
+        path = "/servers.json?enabled=true"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
@@ -581,39 +607,39 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Get server names
-        http_names = [s['name'] for s in http_data]
-        cli_names = [s['name'] for s in cli_data]
+        http_names = [s["name"] for s in http_data]
+        cli_names = [s["name"] for s in cli_data]
 
         # Both should have the enabled server
-        assert 'test_equivalence_server' in http_names
-        assert 'test_equivalence_server' in cli_names
+        assert "test_equivalence_server" in http_names
+        assert "test_equivalence_server" in cli_names
 
         # Disabled server should not be in either (if filtering works)
         # Note: This may depend on how the filtering is implemented
 
     def test_search_page_equivalence(self):
         """Test that /search returns same HTML page via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/search')
-        cli_status, cli_response = self._get_cli_response('/search')
+        http_status, http_response = self._get_http_response("/search")
+        cli_status, cli_response = self._get_cli_response("/search")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
         assert cli_status == 200, f"CLI failed with status {cli_status}"
 
         # Both should return HTML
-        assert 'html' in http_response.lower(), "HTTP response should be HTML"
-        assert 'html' in cli_response.lower(), "CLI response should be HTML"
+        assert "html" in http_response.lower(), "HTTP response should be HTML"
+        assert "html" in cli_response.lower(), "CLI response should be HTML"
 
         # Both should contain search page elements
-        assert 'Workspace Search' in http_response, "HTTP missing search title"
-        assert 'Workspace Search' in cli_response, "CLI missing search title"
-        assert 'search-query' in http_response, "HTTP missing search input"
-        assert 'search-query' in cli_response, "CLI missing search input"
+        assert "Workspace Search" in http_response, "HTTP missing search title"
+        assert "Workspace Search" in cli_response, "CLI missing search title"
+        assert "search-query" in http_response, "HTTP missing search input"
+        assert "search-query" in cli_response, "CLI missing search input"
 
     def test_search_results_empty_query_equivalence(self):
         """Test that /search/results returns same JSON with empty query via HTTP and CLI."""
-        http_status, http_response = self._get_http_response('/search/results')
-        cli_status, cli_response = self._get_cli_response('/search/results')
+        http_status, http_response = self._get_http_response("/search/results")
+        cli_status, cli_response = self._get_cli_response("/search/results")
 
         # Both should succeed
         assert http_status == 200, f"HTTP failed with status {http_status}"
@@ -624,18 +650,20 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Both should return empty results structure
-        assert http_data['query'] == '', "HTTP should have empty query"
-        assert cli_data['query'] == '', "CLI should have empty query"
-        assert http_data['total_count'] == 0, "HTTP should have zero total count"
-        assert cli_data['total_count'] == 0, "CLI should have zero total count"
+        assert http_data["query"] == "", "HTTP should have empty query"
+        assert cli_data["query"] == "", "CLI should have empty query"
+        assert http_data["total_count"] == 0, "HTTP should have zero total count"
+        assert cli_data["total_count"] == 0, "CLI should have zero total count"
 
         # Both should have same categories structure
-        assert set(http_data['categories'].keys()) == set(cli_data['categories'].keys())
-        assert set(http_data['applied_filters'].keys()) == set(cli_data['applied_filters'].keys())
+        assert set(http_data["categories"].keys()) == set(cli_data["categories"].keys())
+        assert set(http_data["applied_filters"].keys()) == set(
+            cli_data["applied_filters"].keys()
+        )
 
     def test_search_results_with_query_equivalence(self):
         """Test that /search/results?q=test returns same JSON via HTTP and CLI."""
-        path = '/search/results?q=test'
+        path = "/search/results?q=test"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
@@ -649,27 +677,29 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Both should have the same query
-        assert http_data['query'] == 'test', "HTTP query mismatch"
-        assert cli_data['query'] == 'test', "CLI query mismatch"
+        assert http_data["query"] == "test", "HTTP query mismatch"
+        assert cli_data["query"] == "test", "CLI query mismatch"
 
         # Both should have same result structure (ignoring specific counts which depend on data)
-        assert set(http_data['categories'].keys()) == set(cli_data['categories'].keys())
-        assert http_data['applied_filters'] == cli_data['applied_filters']
+        assert set(http_data["categories"].keys()) == set(cli_data["categories"].keys())
+        assert http_data["applied_filters"] == cli_data["applied_filters"]
 
         # Test server should be found in both since its name contains 'test'
-        http_servers = http_data['categories']['servers']['items']
-        cli_servers = cli_data['categories']['servers']['items']
+        http_servers = http_data["categories"]["servers"]["items"]
+        cli_servers = cli_data["categories"]["servers"]["items"]
 
-        http_server_names = [s['name'] for s in http_servers]
-        cli_server_names = [s['name'] for s in cli_servers]
+        http_server_names = [s["name"] for s in http_servers]
+        cli_server_names = [s["name"] for s in cli_servers]
 
-        assert 'test_equivalence_server' in http_server_names, "HTTP missing test server"
-        assert 'test_equivalence_server' in cli_server_names, "CLI missing test server"
+        assert "test_equivalence_server" in http_server_names, (
+            "HTTP missing test server"
+        )
+        assert "test_equivalence_server" in cli_server_names, "CLI missing test server"
 
     def test_search_results_with_category_filter_equivalence(self):
         """Test that /search/results with category filter works identically."""
         # Disable servers category, search for 'test'
-        path = '/search/results?q=test&servers=false'
+        path = "/search/results?q=test&servers=false"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
@@ -683,17 +713,25 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Both should have servers filter disabled
-        assert http_data['applied_filters']['servers'] is False, "HTTP servers filter should be false"
-        assert cli_data['applied_filters']['servers'] is False, "CLI servers filter should be false"
+        assert http_data["applied_filters"]["servers"] is False, (
+            "HTTP servers filter should be false"
+        )
+        assert cli_data["applied_filters"]["servers"] is False, (
+            "CLI servers filter should be false"
+        )
 
         # Servers category should have 0 items since it's disabled
-        assert http_data['categories']['servers']['count'] == 0, "HTTP servers should have 0 items"
-        assert cli_data['categories']['servers']['count'] == 0, "CLI servers should have 0 items"
+        assert http_data["categories"]["servers"]["count"] == 0, (
+            "HTTP servers should have 0 items"
+        )
+        assert cli_data["categories"]["servers"]["count"] == 0, (
+            "CLI servers should have 0 items"
+        )
 
     def test_search_results_multiple_filters_equivalence(self):
         """Test that /search/results with multiple category filters works identically."""
         # Enable only aliases and servers, search for 'test'
-        path = '/search/results?q=test&aliases=true&servers=true&variables=false&secrets=false&cids=false'
+        path = "/search/results?q=test&aliases=true&servers=true&variables=false&secrets=false&cids=false"
 
         http_status, http_response = self._get_http_response(path)
         cli_status, cli_response = self._get_cli_response(path)
@@ -707,15 +745,19 @@ class TestOneShotEquivalence:
         cli_data = json.loads(cli_response)
 
         # Verify filters are applied identically
-        assert http_data['applied_filters'] == cli_data['applied_filters']
+        assert http_data["applied_filters"] == cli_data["applied_filters"]
 
         # Disabled categories (derived from applied_filters) should have 0 items
         disabled_categories = [
-            cat for cat, enabled in http_data['applied_filters'].items() if not enabled
+            cat for cat, enabled in http_data["applied_filters"].items() if not enabled
         ]
         for category in disabled_categories:
-            assert http_data['categories'][category]['count'] == 0, f"HTTP {category} should be 0"
-            assert cli_data['categories'][category]['count'] == 0, f"CLI {category} should be 0"
+            assert http_data["categories"][category]["count"] == 0, (
+                f"HTTP {category} should be 0"
+            )
+            assert cli_data["categories"][category]["count"] == 0, (
+                f"CLI {category} should be 0"
+            )
 
 
 class TestOneShotWithBootCID:
@@ -728,38 +770,44 @@ class TestOneShotWithBootCID:
         # Create a test boot CID with server data
         servers_data = [
             {
-                'name': 'boot-test-server',
-                'definition': 'def main():\n    return "boot test"',
+                "name": "boot-test-server",
+                "definition": 'def main():\n    return "boot test"',
             }
         ]
-        servers_content = json.dumps(servers_data).encode('utf-8')
+        servers_content = json.dumps(servers_data).encode("utf-8")
         servers_cid = generate_cid(servers_content)
 
         # Store the servers CID in the cids directory
-        servers_cid_file = self.CLI_ROOT / 'cids' / servers_cid
+        servers_cid_file = self.CLI_ROOT / "cids" / servers_cid
         servers_cid_file.write_bytes(servers_content)
 
         try:
             # Create boot CID that references the servers
             boot_payload = {
-                'version': 6,
-                'servers': servers_cid,
+                "version": 6,
+                "servers": servers_cid,
             }
-            boot_content = json.dumps(boot_payload).encode('utf-8')
+            boot_content = json.dumps(boot_payload).encode("utf-8")
             boot_cid = generate_cid(boot_content)
 
             # Store the boot CID in the cids directory
-            boot_cid_file = self.CLI_ROOT / 'cids' / boot_cid
+            boot_cid_file = self.CLI_ROOT / "cids" / boot_cid
             boot_cid_file.write_bytes(boot_content)
 
             try:
                 # Run one-shot mode with boot CID
                 # Remove TESTING env var so CIDs are loaded from directory
                 env = os.environ.copy()
-                env.pop('TESTING', None)
+                env.pop("TESTING", None)
 
                 result = subprocess.run(
-                    [sys.executable, 'main.py', '--in-memory-db', '/servers.json', boot_cid],
+                    [
+                        sys.executable,
+                        "main.py",
+                        "--in-memory-db",
+                        "/servers.json",
+                        boot_cid,
+                    ],
                     cwd=self.CLI_ROOT,
                     capture_output=True,
                     text=True,
@@ -769,18 +817,24 @@ class TestOneShotWithBootCID:
                 )
 
                 # Should succeed
-                assert 'Status: 200' in result.stdout, f"Expected 200, got: {result.stdout}"
+                assert "Status: 200" in result.stdout, (
+                    f"Expected 200, got: {result.stdout}"
+                )
 
                 # Parse response
                 lines = result.stdout.splitlines()
-                json_start = next(i for i, line in enumerate(lines) if line.startswith('['))
-                json_text = '\n'.join(lines[json_start:])
+                json_start = next(
+                    i for i, line in enumerate(lines) if line.startswith("[")
+                )
+                json_text = "\n".join(lines[json_start:])
 
                 servers = json.loads(json_text)
 
                 # Should include the server from boot CID
-                server_names = [s['name'] for s in servers]
-                assert 'boot-test-server' in server_names, f"Boot server not found in: {server_names}"
+                server_names = [s["name"] for s in servers]
+                assert "boot-test-server" in server_names, (
+                    f"Boot server not found in: {server_names}"
+                )
 
             finally:
                 # Clean up boot CID file
@@ -793,5 +847,5 @@ class TestOneShotWithBootCID:
                 servers_cid_file.unlink()
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

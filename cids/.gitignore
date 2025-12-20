@@ -1,2 +1,0 @@
-# Keep the cids directory in version control without shipping fixtures.
-.gitignore

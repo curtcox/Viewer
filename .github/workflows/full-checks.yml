@@ -257,6 +257,25 @@ jobs:
           path: test-index-report
           if-no-files-found: error
 
+  cid-validation:
+    name: CID Validation
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Validate CID files
+        id: validate_cids
+        run: ./scripts/ci/validate_cids_with_report.sh
+      - name: Upload CID validation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cid-validation-report
+          path: cid-validation-report
+          if-no-files-found: error
+
   dead-fixtures:
     name: Dead Fixtures Check
     runs-on: ubuntu-latest
@@ -489,6 +508,7 @@ jobs:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
       TESTING: "True"
+      USE_SYSTEM_GAUGE: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -536,6 +556,43 @@ jobs:
         if: steps.run_gauge.outcome == 'failure'
         run: exit 1
 
+  ai-eval:
+    name: AI Eval Tests
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository_owner }}/viewer-ci:latest
+    env:
+      DATABASE_URL: sqlite:////tmp/secureapp-ci.db
+      SESSION_SECRET: test-secret-key
+      TESTING: "True"
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run AI eval tests
+        id: run_ai_eval
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is not set, skipping AI eval tests"
+            mkdir -p test-results
+            echo "Skipped: OPENROUTER_API_KEY not configured" > test-results/ai-eval-skipped.txt
+            exit 0
+          fi
+          ./run_ai_eval_tests.sh
+        continue-on-error: true
+      - name: Upload AI eval artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-eval-results
+          path: test-results
+          if-no-files-found: warn
+      - name: Fail if AI eval tests failed
+        if: steps.run_ai_eval.outcome == 'failure'
+        run: exit 1
+
   deploy-reports:
     name: Publish Test Reports
     needs:
@@ -552,11 +609,13 @@ jobs:
       - stylelint
       - uncss
       - test-index
+      - cid-validation
       - dead-fixtures
       - unit-tests
       - property-tests
       - integration-tests
       - gauge-specs
+      - ai-eval
     if: ${{ always() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     container:
@@ -582,11 +641,13 @@ jobs:
           STYLELINT_STATUS: ${{ needs.stylelint.result }}
           UNCSS_STATUS: ${{ needs.uncss.result }}
           TEST_INDEX_STATUS: ${{ needs.test-index.result }}
+          CID_VALIDATION_STATUS: ${{ needs['cid-validation'].result }}
           DEAD_FIXTURES_STATUS: ${{ needs.dead-fixtures.result }}
           UNIT_TESTS_STATUS: ${{ needs.unit-tests.result }}
           PROPERTY_TESTS_STATUS: ${{ needs.property-tests.result }}
           INTEGRATION_TESTS_STATUS: ${{ needs.integration-tests.result }}
           GAUGE_SPECS_STATUS: ${{ needs.gauge-specs.result }}
+          AI_EVAL_STATUS: ${{ needs.ai-eval.result }}
         run: ./scripts/ci/capture_job_statuses.sh
       - name: Download unit test report
         uses: actions/download-artifact@v4
@@ -660,12 +721,24 @@ jobs:
         with:
           name: test-index-report
           path: site/test-index
+      - name: Download CID validation report
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: cid-validation-report
+          path: site/cid-validation
       - name: Download Dead Fixtures report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: dead-fixtures-report
           path: site/dead-fixtures
+      - name: Download AI eval results
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ai-eval-results
+          path: site/ai-eval
       - name: Prepare site content
         run: ./scripts/ci/prepare_report_site.sh
       - name: Upload artifact for GitHub Pages

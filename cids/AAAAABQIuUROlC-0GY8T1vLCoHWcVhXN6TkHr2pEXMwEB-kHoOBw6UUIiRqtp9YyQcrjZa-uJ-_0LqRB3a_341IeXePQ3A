@@ -1,0 +1,116 @@
+{
+  "aliases": {
+    "ai-shortcut": {
+      "name": "AI Alias",
+      "description": "Shortcut alias to AI stub server",
+      "definition_cid": "AAAAAAAPYWkgLT4gL2FpX3N0dWIK"
+    }
+  },
+  "servers": {
+    "echo": {
+      "name": "Echo request context",
+      "description": "Render the incoming request and context as HTML for debugging",
+      "definition_cid": "AAAAAAOM7D-P3dEuDpwBFfsHRBk5r278G6Q7j246JFM_W6O764z7qVDFF1KvEUj06XfhP8UWltG5UrMdKTMkB4pTlxV4Xw"
+    },
+    "auto-main": {
+      "name": "Auto main",
+      "description": "Automatically render main() output with appropriate content type",
+      "definition_cid": "AAAAAAUAzUNEGmF8SGCkh8152c3H1wrxIMha6WEE0a_OeHb-Enr8vcrspwGutk8a_dGjCVNj4AFhc4MmLlYE045-egEHMw"
+    },
+    "auto-main-markdown": {
+      "name": "Markdown",
+      "description": "Automatically render main() output as markdown",
+      "definition_cid": "AAAAAANlCGrLM1BcFmv6LErO8aEV2AU4L3OcHg_U47eGIAmhupMoKQkLBDyhIisiCf5czzVRecc3AikQG54OT26fjsXmUw"
+    },
+    "auto-main-shell": {
+      "name": "Shell",
+      "description": "Automatically execute shell command from main() and render output",
+      "definition_cid": "AAAAAAgtwBtwa6VeHRHBWwDQuW0ROARRuIA7xSC0cQXHz3KG7o-Yo2AyNiIAA8wJCyb5oeprfuqpRb8L2ZHzch2gachQhg"
+    },
+    "ai-stub": {
+      "name": "AI Stub",
+      "description": "Stub AI server for testing",
+      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg"
+    },
+    "glom": {
+      "name": "Glom",
+      "description": "JSON/data transformation using glom",
+      "definition_cid": "AAAAABS5kb9TNUM3wKqdTVCLFEVfIhr_YNvRKadC8saiM2QxFGG_jzi5enghH_02ThF6XCzPeUNkEkz26EZn1HYlwWFjSQ"
+    },
+    "openai-chat": {
+      "name": "OpenAI Chat",
+      "description": "OpenAI chat completion API interface",
+      "definition_cid": "AAAAAANwu7HyR3gM2sJssPHr6JPJpWI4zcQO_fT58onKSbXA79Zp1CyaCHrDDEdfP26bjCb8LWUdI0Gwi8znLfDGWvhCsg"
+    },
+    "google-gemini": {
+      "name": "Google Gemini",
+      "description": "Google Gemini API interface",
+      "definition_cid": "AAAAAANHnPRv0PYSzE3knrTnnEG5yTioLZ4g6ltuauU72c7hfINdn-xoDNNWHnm32LHDHby3KAvhjb9-wLDRTxr2AeZAEw"
+    },
+    "nvidia-nim": {
+      "name": "NVIDIA NIM",
+      "description": "NVIDIA NIM API interface",
+      "definition_cid": "AAAAAAOg-mV6JeAUpcGkW5mp_hjvcUFExHUji2L0-7mVuBYgrHPBVxp4NekjMpJPRkIgOMxWVSnRLS43tOwKCZoXoD2c0Q"
+    }
+  },
+  "variables": {
+    "example-variable": {
+      "name": "Example Variable",
+      "description": "An example variable for demonstration",
+      "definition_cid": "AAAAAAANZXhhbXBsZSB2YWx1ZQ"
+    }
+  },
+  "secrets": {},
+  "uploads": {
+    "hello-world": {
+      "name": "Hello World HTML page",
+      "description": "A minimal HTML page that renders a friendly greeting",
+      "content_cid": "AAAAAAEGCNtY-F-bCUuFU4rtFCNQRXe4h1h5oyQ_koYNJ-ehCjtPZxvmHEt6ViTfUlDVDiIlijhPxPdOdbHk-oOSXJVs1w"
+    },
+    "echo-form": {
+      "name": "Echo Form",
+      "description": "Interactive form that echoes user input",
+      "content_cid": "AAAAAAINSgf51xrK1qS5Gis_DiHb-OKRRAthjdPSDLNQ7TXAHRJOdSw1Ax-WAEES2A9_Km0fRh5CQ3PTyR3WYKJ96FcCDA"
+    },
+    "markdown-showcase": {
+      "name": "Markdown Showcase",
+      "description": "Examples of markdown formatting",
+      "content_cid": "AAAAAAcXbQDQjYYWidERDfdPU5YfXClwenI_KWlxP67-A_2osC862sasaVf5uBL7tBgKDVtZHkX5VaB-UAfsNgSDhJj2Xg"
+    },
+    "css-light-mode": {
+      "name": "CSS Light Mode",
+      "description": "Light mode CSS stylesheet",
+      "content_cid": "AAAAABk3fYLOIfhwnEpQv9OafSNjbUg0I5LBsfmCYLA9SFYm7du-8u61iqFmedyU5Sd65X85qM-5nEhL0Y-K6OJ4JYH8bQ"
+    },
+    "css-dark-mode": {
+      "name": "CSS Dark Mode",
+      "description": "Dark mode CSS stylesheet",
+      "content_cid": "AAAAABSuBYgklEFG1bQfS1Uys_WENeQbaOc9teSPlEuym0alWAFITIIkg_8NbxDlRDAar7HcFYqH6mSyrF6sI9j1dHWb_Q"
+    },
+    "jinja-template": {
+      "name": "Jinja Template",
+      "description": "Example Jinja2 template",
+      "content_cid": "AAAAAAFau1E-BpHYDyHEfGYEmrrnymkIfZ97gihvTQY44PaVXtxQQBK0wfxhp0d6cSDb5jm97jDKRBtL1Er4UBj0N1CacA"
+    },
+    "formdown-showcase": {
+      "name": "Formdown Showcase",
+      "description": "Examples of formdown format",
+      "content_cid": "AAAAAAZyh2borGMAG1WLnqonZ8aeDEDOoCM3Zf0_1kyI5SpzXsy3PO2FOwkTvEfZPnExa9SADcegWQRlxbpSpw0rLnoY7g"
+    },
+    "https-request-builder": {
+      "name": "HTTPS Request Builder",
+      "description": "Build and send HTTPS requests",
+      "content_cid": "AAAAABA6XuD8eZ2EioDdMGhuE-ciaw3OUuh42gcd11TyxBX8HVrCoFtTIsZ15-ZuDS7U1Yyizh0AipU1gJnFYE_5QVSwgA"
+    },
+    "html-theme-mode-comparison": {
+      "name": "HTML Theme Mode Comparison",
+      "description": "Side-by-side comparison of light and dark themes",
+      "content_cid": "AAAAABz_zUaD4BDEcOh4Jk84-gL6EBNYc1q-z0mZi1gRKu91vf3G72Zw_g1HMk1ZsN1c_rdTYZYbpgD9IBm1-ZsDxaDovg"
+    },
+    "embedded-cid-execution": {
+      "name": "Embedded CID execution guide",
+      "description": "Demonstrates chaining embedded CID path elements for Unix-style tools.",
+      "content_cid": "AAAAAA06vm2SSR7meTeh4FSPbzKsxe6fwH_KuhooPdw2KuNL3UoSgmwyy8miYKLix5-o7fZOkm09dMgr4QwRk_4QbHlpyA"
+    }
+  }
+}

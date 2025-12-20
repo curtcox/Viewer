@@ -68,10 +68,33 @@
     {% if 'btn' not in classes %}
         {% set classes = ['btn'] + classes %}
     {% endif %}
-    <button type="button"
-            class="{{ classes | join(' ') }}"
-            data-ai-trigger
-            data-ai-target-id="{{ target_id }}">
-        <i class="fas fa-robot me-1"></i>{{ button_label }}
-    </button>
+    {% set button_classes = classes | join(' ') %}
+    <div class="btn-group" role="group">
+        <button type="button"
+                class="{{ button_classes }}"
+                data-ai-trigger
+                data-ai-target-id="{{ target_id }}">
+            <i class="fas fa-robot me-1"></i>{{ button_label }}
+        </button>
+        <button type="button"
+                class="{{ button_classes }} dropdown-toggle dropdown-toggle-split"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label="AI options">
+            <span class="visually-hidden">AI options</span>
+        </button>
+        <ul class="dropdown-menu">
+            <li>
+                <a class="dropdown-item"
+                   href="#"
+                   data-ai-request-editor
+                   data-ai-target-id="{{ target_id }}">
+                    AI request editor
+                </a>
+            </li>
+            <li><a class="dropdown-item" href="/aliases/ai">AI action editor</a></li>
+            <li><a class="dropdown-item" href="/servers/ai_stub">Sample AI server</a></li>
+            <li><a class="dropdown-item" href="/ai_about">About AI</a></li>
+        </ul>
+    </div>
 {% endmacro %}

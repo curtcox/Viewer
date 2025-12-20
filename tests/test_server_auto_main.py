@@ -22,7 +22,7 @@ def patch_execution_environment(monkeypatch):
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
 
-    def fake_success(output, content_type, server_name):
+    def fake_success(output, content_type, server_name, *, external_calls=None):
         return {
             "output": output,
             "content_type": content_type,
@@ -44,7 +44,9 @@ def test_auto_main_uses_query_parameters_over_other_sources():
         json={"name": "Body", "greeting": "Body"},
         headers={"Name": "Header"},
     ):
-        result = server_execution.execute_server_code_from_definition(definition, "welcome")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "welcome"
+        )
 
     assert result["output"] == "Hi, Query"
     assert result["content_type"] == "text/plain"
@@ -58,7 +60,9 @@ def test_auto_main_reads_request_body_when_query_missing():
  """
 
     with app.test_request_context("/topic", json={"topic": "Body topic"}):
-        result = server_execution.execute_server_code_from_definition(definition, "topic")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "topic"
+        )
 
     assert result["output"] == "Body topic"
 
@@ -72,7 +76,9 @@ def test_auto_main_prefers_body_over_headers():
     with app.test_request_context(
         "/body", json={"token": "from-body"}, headers={"Token": "from-header"}
     ):
-        result = server_execution.execute_server_code_from_definition(definition, "body")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "body"
+        )
 
     assert result["output"] == "from-body"
 
@@ -96,14 +102,17 @@ def test_auto_main_error_page_includes_debug_details():
  """
 
     with app.test_request_context("/boom?name=Auto"):
-        response = server_execution.execute_server_code_from_definition(definition, "boom")
+        response = server_execution.execute_server_code_from_definition(
+            definition, "boom"
+        )
 
     assert response.status_code == 500
 
     html = response.get_data(as_text=True)
 
     assert "failure for Auto" in html
-    assert "Traceback" in html
+    assert "Stack trace with source links" in html
+    assert "Server source code" in html
 
 
 def test_auto_main_matches_hyphenated_headers():
@@ -113,7 +122,9 @@ def test_auto_main_matches_hyphenated_headers():
  """
 
     with app.test_request_context("/token", headers={"X-Custom-Token": "header-value"}):
-        result = server_execution.execute_server_code_from_definition(definition, "token")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "token"
+        )
 
     assert result["output"] == "header-value"
 
@@ -125,7 +136,9 @@ def test_auto_main_missing_required_parameter_returns_detailed_error():
  """
 
     with app.test_request_context("/missing"):
-        response = server_execution.execute_server_code_from_definition(definition, "missing")
+        response = server_execution.execute_server_code_from_definition(
+            definition, "missing"
+        )
 
     assert response.status_code == 400
     payload = response.get_json()
@@ -151,7 +164,9 @@ def test_auto_main_falls_back_to_context_variables(monkeypatch):
     )
 
     with app.test_request_context("/variable"):
-        result = server_execution.execute_server_code_from_definition(definition, "variable")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "variable"
+        )
 
     assert result["output"] == "Variable Name"
     assert result["content_type"] == "text/plain"
@@ -170,9 +185,32 @@ def test_auto_main_uses_secrets_when_variables_missing(monkeypatch):
     )
 
     with app.test_request_context("/secret"):
-        result = server_execution.execute_server_code_from_definition(definition, "secret")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "secret"
+        )
 
     assert result["output"] == "secret-token"
+    assert result["content_type"] == "text/plain"
+
+
+def test_auto_main_uses_secrets_for_keyword_only_parameters(monkeypatch):
+    definition = """
+ def main(*, api_key):
+     return {"output": api_key, "content_type": "text/plain"}
+ """
+
+    monkeypatch.setattr(
+        server_execution.code_execution,
+        "_load_user_context",
+        lambda: {"variables": {}, "secrets": {"api_key": "secret-key"}, "servers": {}},
+    )
+
+    with app.test_request_context("/secret-kwonly"):
+        result = server_execution.execute_server_code_from_definition(
+            definition, "secret-kwonly"
+        )
+
+    assert result["output"] == "secret-key"
     assert result["content_type"] == "text/plain"
 
 
@@ -183,7 +221,9 @@ def test_auto_main_honors_optional_defaults():
  """
 
     with app.test_request_context("/optional"):
-        result = server_execution.execute_server_code_from_definition(definition, "optional")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "optional"
+        )
 
     assert result["output"] == "World"
 
@@ -195,7 +235,9 @@ def test_auto_main_supports_keyword_only_parameters():
  """
 
     with app.test_request_context("/kwonly", json={"token": "kw"}):
-        result = server_execution.execute_server_code_from_definition(definition, "kwonly")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "kwonly"
+        )
 
     assert result["output"] == "kw"
 
@@ -217,6 +259,7 @@ def test_auto_main_uses_nested_server_response(monkeypatch):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -249,6 +292,7 @@ def test_auto_main_accepts_alias_result_for_remaining_parameter(monkeypatch):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -282,6 +326,7 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
     cid_bytes = b"payload-from-cid"
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -291,7 +336,9 @@ def test_auto_main_reads_cid_content_for_remaining_parameter(monkeypatch):
     monkeypatch.setattr(
         code_execution,
         "get_cid_by_path",
-        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+        lambda path: SimpleNamespace(file_data=cid_bytes)
+        if path == f"/{cid_value}"
+        else None,
     )
 
     # Patch find_matching_alias where it's used (in code_execution)
@@ -322,6 +369,7 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -330,8 +378,8 @@ def test_auto_main_handles_mixed_sources_with_single_remaining_parameter(monkeyp
 
     with app.test_request_context("/outer/inner?prefix=start"):
         result = server_execution.execute_server_code_from_definition(
-        outer_definition, "outer"
-    )
+            outer_definition, "outer"
+        )
 
     assert result["output"] == "start:value"
 
@@ -345,12 +393,18 @@ def test_auto_main_skips_chained_evaluation_when_all_parameters_resolved(monkeyp
     from server_execution import code_execution
 
     def fail_if_called(_path):
-        raise AssertionError("Nested path should not be evaluated when parameters are resolved")
+        raise AssertionError(
+            "Nested path should not be evaluated when parameters are resolved"
+        )
 
-    monkeypatch.setattr(code_execution, "_evaluate_nested_path_to_value", fail_if_called)
+    monkeypatch.setattr(
+        code_execution, "_evaluate_nested_path_to_value", fail_if_called
+    )
 
     with app.test_request_context("/outer/inner?message=explicit"):
-        result = server_execution.execute_server_code_from_definition(definition, "outer")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "outer"
+        )
 
     assert result["output"] == "explicit"
 
@@ -382,6 +436,7 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
  """
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -391,6 +446,7 @@ def test_auto_main_multiple_missing_parameters_render_error_page(monkeypatch):
     monkeypatch.setattr(server_execution, "find_matching_alias", lambda path: None)
 
     from server_execution import request_parsing
+
     monkeypatch.setattr(
         request_parsing,
         "render_template",
@@ -424,7 +480,9 @@ def test_auto_main_allows_request_context_parameter():
  """
 
     with app.test_request_context("/context?value=1"):
-        result = server_execution.execute_server_code_from_definition(definition, "context")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "context"
+        )
 
     assert result["output"] == "/context"
 
@@ -438,7 +496,9 @@ def test_auto_main_skips_when_explicit_return_present():
  """
 
     with app.test_request_context("/manual?name=Query"):
-        result = server_execution.execute_server_code_from_definition(definition, "manual")
+        result = server_execution.execute_server_code_from_definition(
+            definition, "manual"
+        )
 
     assert result["output"] == "manual"
 
@@ -450,7 +510,9 @@ def test_auto_main_rejects_unsupported_signatures():
  """
 
     with app.test_request_context("/unsupported?name=value"):
-        response = server_execution.execute_server_code_from_definition(definition, "unsupported")
+        response = server_execution.execute_server_code_from_definition(
+            definition, "unsupported"
+        )
 
     assert response.status_code == 400
     payload = response.get_json()
@@ -507,6 +569,7 @@ def test_try_server_execution_handles_helper_routes(monkeypatch):
     server = SimpleNamespace(definition=definition)
 
     from server_execution import server_lookup
+
     monkeypatch.setattr(
         server_lookup,
         "get_server_by_name",
@@ -529,6 +592,7 @@ def test_try_server_execution_returns_none_for_unknown_helper(monkeypatch):
     server = SimpleNamespace(definition=definition)
 
     from server_execution import server_lookup
+
     monkeypatch.setattr(
         server_lookup,
         "get_server_by_name",
@@ -549,7 +613,9 @@ def test_server_templates_strip_internal_ruff_controls():
         definition = template.get("definition", "")
         assert "# ruff" not in definition
 
-    auto_templates = [template for template in templates if template["id"] == "auto-main"]
+    auto_templates = [
+        template for template in templates if template["id"] == "auto-main"
+    ]
     assert auto_templates, "auto-main template should be registered"
     definition = auto_templates[0]["definition"]
     assert "def main(" in definition
@@ -567,10 +633,12 @@ def test_server_templates_include_suggested_name_field():
 
     for template in templates:
         suggested_name = template.get("suggested_name")
-        assert suggested_name, f"Template {template.get('id')} should expose a suggested_name"
-        assert (
-            suggested_name in available_template_stems
-        ), f"suggested_name {suggested_name} should match a template file"
+        assert suggested_name, (
+            f"Template {template.get('id')} should expose a suggested_name"
+        )
+        assert suggested_name in available_template_stems, (
+            f"suggested_name {suggested_name} should match a template file"
+        )
 
 
 def test_server_template_sources_retain_ruff_controls():
@@ -582,9 +650,9 @@ def test_server_template_sources_retain_ruff_controls():
 
     for definition_path in definition_files:
         content = definition_path.read_text(encoding="utf-8")
-        assert any(line.lstrip().startswith("# ruff") for line in content.splitlines()), (
-            f"Expected {definition_path.name} to keep ruff control comments"
-        )
+        assert any(
+            line.lstrip().startswith("# ruff") for line in content.splitlines()
+        ), f"Expected {definition_path.name} to keep ruff control comments"
 
 
 # =============================================================================
@@ -607,16 +675,21 @@ def main(input_data):
     cid_bytes = b"cid-content"
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
-        lambda name: SimpleNamespace(definition=server_definition, enabled=True) if name == "s" else None,
+        lambda name: SimpleNamespace(definition=server_definition, enabled=True)
+        if name == "s"
+        else None,
     )
 
     monkeypatch.setattr(
         code_execution,
         "get_cid_by_path",
-        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+        lambda path: SimpleNamespace(file_data=cid_bytes)
+        if path == f"/{cid_value}"
+        else None,
     )
 
     monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
@@ -648,6 +721,7 @@ def main(input_data):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -687,6 +761,7 @@ def main(input_data):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -696,7 +771,9 @@ def main(input_data):
     monkeypatch.setattr(
         code_execution,
         "get_cid_by_path",
-        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+        lambda path: SimpleNamespace(file_data=cid_bytes)
+        if path == f"/{cid_value}"
+        else None,
     )
 
     monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
@@ -734,6 +811,7 @@ def main(input_data):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -770,6 +848,7 @@ def main(input_data):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -806,6 +885,7 @@ def main(input_data):
     }
 
     from server_execution import code_execution
+
     monkeypatch.setattr(
         code_execution,
         "get_server_by_name",
@@ -852,7 +932,9 @@ def main(optional_value=""):
     monkeypatch.setattr(
         code_execution,
         "get_cid_by_path",
-        lambda path: SimpleNamespace(file_data=cid_bytes) if path == f"/{cid_value}" else None,
+        lambda path: SimpleNamespace(file_data=cid_bytes)
+        if path == f"/{cid_value}"
+        else None,
     )
     monkeypatch.setattr(code_execution, "find_matching_alias", lambda path: None)
 

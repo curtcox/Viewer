@@ -14,7 +14,11 @@ from formdown_renderer import render_formdown_html
 # Test resources live in the repository root outside of ``tests/``.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FORMDOWN_SHOWCASE_PATH = (
-    REPO_ROOT / "reference_templates" / "uploads" / "contents" / "formdown_showcase.formdown"
+    REPO_ROOT
+    / "reference_templates"
+    / "uploads"
+    / "contents"
+    / "formdown_showcase.formdown"
 )
 
 
@@ -180,7 +184,9 @@ def test_formdown_showcase_excludes_non_serializable_controls():
     parsed = parse_qs(query_string, keep_blank_values=True)
 
     excluded_names = {
-        field.name for field in fields if field.is_file_input or field.is_submission_control
+        field.name
+        for field in fields
+        if field.is_file_input or field.is_submission_control
     }
     assert excluded_names == {"resume", "portfolio", "submit_form", "reset_form"}
 
@@ -215,6 +221,6 @@ def test_formdown_showcase_renders_text_and_textarea_inputs():
 
     assert 'type="text"' in html
     assert 'name="name"' in html
-    assert '<textarea' in html
+    assert "<textarea" in html
     assert 'name="bio"' in html
     assert 'enctype="multipart/form-data"' in html

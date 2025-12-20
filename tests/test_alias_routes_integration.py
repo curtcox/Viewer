@@ -197,7 +197,9 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         self.assertEqual(primary_route.alias_path, "test")
         self.assertEqual(primary_route.match_type, "literal")
         self.assertEqual(primary_route.match_pattern, "/test")
-        self.assertEqual(primary_route.target_path, "/test")  # Fallback to name-based path
+        self.assertEqual(
+            primary_route.target_path, "/test"
+        )  # Fallback to name-based path
         self.assertFalse(primary_route.ignore_case)
 
     def test_collect_routes_empty_definition(self):
@@ -230,5 +232,5 @@ class TestAliasRoutesIntegration(unittest.TestCase):
         self.assertEqual(routes, [])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

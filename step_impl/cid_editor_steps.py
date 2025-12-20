@@ -1,4 +1,5 @@
 """Gauge step implementations for CID editor functionality."""
+
 from __future__ import annotations
 
 from getgauge.python import step
@@ -41,21 +42,27 @@ def record_variables_new_path_coverage() -> None:
 def then_page_should_contain_convert_to_cid() -> None:
     """Verify the page contains Convert to CID button."""
     response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
     body = response.get_data(as_text=True)
-    assert "Convert to CID" in body, "Expected to find Convert to CID in the response body."
+    assert "Convert to CID" in body, (
+        "Expected to find Convert to CID in the response body."
+    )
 
 
 @step("The page should contain Expand CID")
 def then_page_should_contain_expand_cid() -> None:
     """Verify the page contains Expand CID button."""
     response = get_scenario_state().get("response")
-    assert response is not None, "No response recorded. Call `When I request ...` first."
+    assert response is not None, (
+        "No response recorded. Call `When I request ...` first."
+    )
     body = response.get_data(as_text=True)
     assert "Expand CID" in body, "Expected to find Expand CID in the response body."
 
 
-@step('Given there is a variable named <name> with definition <definition>')
+@step("Given there is a variable named <name> with definition <definition>")
 def given_variable_exists(name: str, definition: str) -> None:
     """Ensure a variable with the provided name exists in the workspace."""
     app = _require_app()
@@ -83,29 +90,27 @@ def when_i_request_variable_edit_page(name: str) -> None:
     attach_response_snapshot(response)
 
 
-@step('When I POST to /api/cid/check with JSON content <content>')
+@step("When I POST to /api/cid/check with JSON content <content>")
 def when_i_post_to_cid_check(content: str) -> None:
     """POST to the CID check API with the given content."""
     client = _require_client()
     content = _normalize_path(content)
     response = client.post(
-        '/api/cid/check',
-        json={'content': content},
-        content_type='application/json'
+        "/api/cid/check", json={"content": content}, content_type="application/json"
     )
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
 
 
-@step('When I POST to /api/cid/generate with JSON content <content>')
+@step("When I POST to /api/cid/generate with JSON content <content>")
 def when_i_post_to_cid_generate(content: str) -> None:
     """POST to the CID generate API with the given content."""
     client = _require_client()
     content = _normalize_path(content)
     response = client.post(
-        '/api/cid/generate',
-        json={'content': content, 'store': False},
-        content_type='application/json'
+        "/api/cid/generate",
+        json={"content": content, "store": False},
+        content_type="application/json",
     )
     get_scenario_state()["response"] = response
     attach_response_snapshot(response)
@@ -117,7 +122,9 @@ def then_response_contains_is_cid_false() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert data.get('is_cid') is False, f"Expected is_cid to be false, got {data.get('is_cid')}"
+    assert data.get("is_cid") is False, (
+        f"Expected is_cid to be false, got {data.get('is_cid')}"
+    )
 
 
 @step("The response should contain is_cid true")
@@ -126,7 +133,9 @@ def then_response_contains_is_cid_true() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert data.get('is_cid') is True, f"Expected is_cid to be true, got {data.get('is_cid')}"
+    assert data.get("is_cid") is True, (
+        f"Expected is_cid to be true, got {data.get('is_cid')}"
+    )
 
 
 @step("The response should contain status not_a_cid")
@@ -135,7 +144,9 @@ def then_response_contains_status_not_a_cid() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert data.get('status') == 'not_a_cid', f"Expected status not_a_cid, got {data.get('status')}"
+    assert data.get("status") == "not_a_cid", (
+        f"Expected status not_a_cid, got {data.get('status')}"
+    )
 
 
 @step("The response should contain status content_embedded")
@@ -144,7 +155,9 @@ def then_response_contains_status_content_embedded() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert data.get('status') == 'content_embedded', f"Expected status content_embedded, got {data.get('status')}"
+    assert data.get("status") == "content_embedded", (
+        f"Expected status content_embedded, got {data.get('status')}"
+    )
 
 
 @step("The response should contain has_content true")
@@ -153,7 +166,9 @@ def then_response_contains_has_content_true() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert data.get('has_content') is True, f"Expected has_content to be true, got {data.get('has_content')}"
+    assert data.get("has_content") is True, (
+        f"Expected has_content to be true, got {data.get('has_content')}"
+    )
 
 
 @step("The response should contain cid_value")
@@ -162,8 +177,8 @@ def then_response_contains_cid_value() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert 'cid_value' in data, "Expected response to contain cid_value field."
-    assert data['cid_value'], "Expected cid_value to be non-empty."
+    assert "cid_value" in data, "Expected response to contain cid_value field."
+    assert data["cid_value"], "Expected cid_value to be non-empty."
 
 
 @step("The response should contain cid_link_html")
@@ -172,5 +187,5 @@ def then_response_contains_cid_link_html() -> None:
     response = get_scenario_state().get("response")
     assert response is not None, "No response recorded."
     data = response.get_json()
-    assert 'cid_link_html' in data, "Expected response to contain cid_link_html field."
-    assert data['cid_link_html'], "Expected cid_link_html to be non-empty."
+    assert "cid_link_html" in data, "Expected response to contain cid_link_html field."
+    assert data["cid_link_html"], "Expected cid_link_html to be non-empty."

@@ -29,7 +29,9 @@ def app_config_factory(tmp_path: Path):
     return _make_config
 
 
-def test_create_app_serves_homepage(monkeypatch: pytest.MonkeyPatch, app_config_factory):
+def test_create_app_serves_homepage(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
     """The factory should create an app whose homepage can be rendered."""
 
     monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
@@ -48,6 +50,17 @@ def test_create_app_serves_homepage(monkeypatch: pytest.MonkeyPatch, app_config_
         assert status["logfire_reason"] == "LOGFIRE_SEND_TO_LOGFIRE not set"
 
 
+def test_create_app_uses_fallback_secret_key_when_session_secret_empty(
+    monkeypatch: pytest.MonkeyPatch, app_config_factory
+):
+    monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
+    monkeypatch.setenv("SESSION_SECRET", "")
+
+    app_instance = app_module.create_app(app_config_factory("empty-session-secret"))
+
+    assert app_instance.config.get("SECRET_KEY")
+
+
 def test_create_app_handles_logfire_configuration_errors(
     monkeypatch: pytest.MonkeyPatch, app_config_factory
 ):
@@ -61,9 +74,15 @@ def test_create_app_handles_logfire_configuration_errors(
         raise LogfireConfigError("logfire credentials missing")
 
     monkeypatch.setattr(app_module.logfire, "configure", fail_configure)
-    monkeypatch.setattr(app_module.logfire, "instrument_requests", lambda: calls.append("requests"))
-    monkeypatch.setattr(app_module.logfire, "instrument_aiohttp_client", lambda: calls.append("aiohttp"))
-    monkeypatch.setattr(app_module.logfire, "instrument_pydantic", lambda: calls.append("pydantic"))
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_requests", lambda: calls.append("requests")
+    )
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_aiohttp_client", lambda: calls.append("aiohttp")
+    )
+    monkeypatch.setattr(
+        app_module.logfire, "instrument_pydantic", lambda: calls.append("pydantic")
+    )
 
     app_instance = app_module.create_app(app_config_factory("logfire"))
     client = app_instance.test_client()
@@ -167,7 +186,7 @@ def test_create_app_loads_cids_from_directory(
 def test_create_app_exits_on_cid_mismatch(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, app_config_factory
 ) -> None:
-    """Startup should abort if a CID filename does not match its contents."""
+    """Startup should store error in config and show 500 page if CID filename is invalid or doesn't match contents."""
 
     monkeypatch.delenv("LOGFIRE_SEND_TO_LOGFIRE", raising=False)
 
@@ -178,7 +197,21 @@ def test_create_app_exits_on_cid_mismatch(
     config = app_config_factory("cid-mismatch")
     config["CID_DIRECTORY"] = str(cid_dir)
 
-    with pytest.raises(SystemExit) as excinfo:
-        app_module.create_app(config)
+    # App should be created successfully, but with error stored in config
+    app_instance = app_module.create_app(config)
 
-    assert "not-a-cid" in str(excinfo.value)
+    # Check that the error is stored in config
+    with app_instance.app_context():
+        cid_error = app_instance.config.get("CID_LOAD_ERROR")
+        assert cid_error is not None
+        assert "not-a-cid" in cid_error
+        assert "not a valid normalized CID" in cid_error
+
+    # Check that requests return 500 error page with the error message
+    client = app_instance.test_client()
+    response = client.get("/")
+    assert response.status_code == 500
+    response_text = response.get_data(as_text=True)
+    # The error message should contain information about the invalid CID
+    assert "not-a-cid" in response_text
+    assert "not a valid normalized CID" in response_text

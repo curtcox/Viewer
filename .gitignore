@@ -61,7 +61,9 @@ coverage.xml
 .gauge/
 reports/
 gauge-artifacts/
+tmp_gauge_artifacts/
 .testmondata*
+test-results/
 
 # Translations
 *.mo

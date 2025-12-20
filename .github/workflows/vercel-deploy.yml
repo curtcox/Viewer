@@ -13,14 +13,123 @@ jobs:
   deploy:
     name: Deploy to Vercel
     runs-on: ubuntu-latest
+    outputs:
+      deployment-url: ${{ steps.determine-url.outputs.deployment-url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get git SHA
+        id: git-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Deploy to Vercel
+        id: deploy
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+          vercel-args: "--prod --env GIT_SHA=${{ steps.git-sha.outputs.sha }} --env READ_ONLY=true --env SESSION_SECRET=${{ secrets.SESSION_SECRET }}"
+
+      - name: Capture and determine deployment URL
+        id: determine-url
+        run: |
+          echo "Debug: Capturing deployment URL from Vercel action..."
+          
+          # The amondnet/vercel-action provides the deployment URL through different outputs:
+          # - url: Typically set for production deployments (when using --prod flag)
+          # - preview-url: Always set, contains the unique deployment URL
+          # We try 'url' first (for production), then fall back to 'preview-url'
+          
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.url }}"
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            DEPLOYMENT_URL="${{ steps.deploy.outputs.preview-url }}"
+            echo "Using preview-url output"
+          else
+            echo "Using url output"
+          fi
+          
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: No deployment URL was captured from Vercel deployment"
+            echo "Debug: Both 'url' and 'preview-url' outputs are empty"
+            exit 1
+          fi
+          
+          # Set the output for use in subsequent jobs
+          echo "deployment-url=${DEPLOYMENT_URL}" >> $GITHUB_OUTPUT
+          echo "✅ Deployment URL captured successfully"
+
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get git SHA
+        id: git-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting 30 seconds for deployment to stabilize..."
+          # Vercel deployments typically stabilize within 30 seconds after the action completes
+          # This ensures the deployment is fully propagated before validation
+          sleep 30
+
+      - name: Validate deployment is serving responses
+        id: health-check
+        run: |
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
+          VERCEL_PROTECTION_BYPASS="${{ secrets.VERCEL_PROTECTION_BYPASS }}"
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Error: Deployment URL is empty"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_PROTECTION_BYPASS" ]; then
+            echo "Error: VERCEL_PROTECTION_BYPASS secret is not set"
+            exit 1
+          fi
+          
+          echo "Testing deployment at: $DEPLOYMENT_URL"
+          
+          HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" -H "x-vercel-protection-bypass: $VERCEL_PROTECTION_BYPASS" "$DEPLOYMENT_URL" || echo "000")
+          echo "HTTP response code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Deployment is serving responses successfully"
+          else
+            echo "❌ Deployment failed to return HTTP 200 (got $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Verify embedded SHA matches deployed version
+        id: sha-check
+        run: |
+          DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
+          EXPECTED_SHA="${{ steps.git-sha.outputs.sha }}"
+          VERCEL_PROTECTION_BYPASS="${{ secrets.VERCEL_PROTECTION_BYPASS }}"
+
+          if [ -z "$VERCEL_PROTECTION_BYPASS" ]; then
+            echo "Error: VERCEL_PROTECTION_BYPASS secret is not set"
+            exit 1
+          fi
+          
+          echo "Expected SHA: $EXPECTED_SHA"
+          echo "Fetching deployed page from: $DEPLOYMENT_URL"
+          
+          # Fetch the page and look for the SHA in either meta tag or HTML comment
+          RESPONSE=$(curl -s -L -H "x-vercel-protection-bypass: $VERCEL_PROTECTION_BYPASS" "$DEPLOYMENT_URL")
+          
+          # Check for SHA in meta tag or HTML comment
+          if echo "$RESPONSE" | grep -q "$EXPECTED_SHA"; then
+            echo "✅ SHA verification successful: Found $EXPECTED_SHA in deployed app"
+          else
+            echo "❌ SHA verification failed: Expected SHA $EXPECTED_SHA not found in deployed app"
+            echo "Searching for any git-sha meta tag or comment..."
+            echo "$RESPONSE" | grep -i "git.sha\|GIT_SHA" || echo "No SHA information found"
+            exit 1
+          fi

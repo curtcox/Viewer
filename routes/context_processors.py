@@ -1,10 +1,7 @@
 """Context processors for injecting variables into all templates."""
 
-from datetime import datetime, timezone
-
 from flask import current_app, has_request_context, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
-from history_filters import format_history_timestamp
 
 from db_access import (
     get_aliases,
@@ -52,10 +49,8 @@ def inject_meta_inspector_link():
         requested_path = ".html"
 
     meta_url = url_for("main.meta_route", requested_path=requested_path)
-    loaded_at = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-    timestamp_param = format_history_timestamp(loaded_at)
-    history_since_url = url_for("main.history", start=timestamp_param)
-    server_events_since_url = url_for("main.server_events", start=timestamp_param)
+    history_since_url = url_for("main.history")
+    server_events_since_url = url_for("main.server_events")
 
     return {
         "meta_inspector_url": meta_url,
@@ -104,14 +99,14 @@ def inject_template_helpers():
     from template_status import get_template_link_info, generate_template_status_label
 
     return {
-        'get_template_link_info': get_template_link_info,
-        'generate_template_status_label': generate_template_status_label,
+        "get_template_link_info": get_template_link_info,
+        "generate_template_status_label": generate_template_status_label,
     }
 
 
 __all__ = [
-    'inject_observability_info',
-    'inject_meta_inspector_link',
-    'inject_viewer_navigation',
-    'inject_template_helpers',
+    "inject_observability_info",
+    "inject_meta_inspector_link",
+    "inject_viewer_navigation",
+    "inject_template_helpers",
 ]

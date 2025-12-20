@@ -1,8 +1,9 @@
 """Shared CRUD helper utilities for route modules."""
+
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Type
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from flask import flash
 from markupsafe import Markup, escape
 
@@ -19,6 +20,7 @@ from db_access import (
 
 # Type-based dispatch for entity operations
 # This eliminates fragile string-based type checking
+
 
 class EntityTypeRegistry:
     """Registry for entity type-specific operations.
@@ -101,6 +103,7 @@ class EntityTypeRegistry:
             True if entity needs definition CID
         """
         from models import Server
+
         return entity_class is Server
 
 
@@ -108,16 +111,22 @@ class EntityTypeRegistry:
 _entity_registry = EntityTypeRegistry()
 
 
-def check_name_exists(model_class: Type[Any], name: str, exclude_id: Any = None) -> bool:
+def check_name_exists(
+    model_class: Type[Any], name: str, exclude_id: Any = None
+) -> bool:
     """Check if a name already exists for a user, optionally excluding a specific record."""
     entity = _entity_registry.get_by_name(model_class, name)
 
-    if entity and exclude_id and getattr(entity, 'id', None) == exclude_id:
+    if entity and exclude_id and getattr(entity, "id", None) == exclude_id:
         return False
     return entity is not None
 
 
-@logfire.instrument("entities.create_entity({model_class=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire_instrument(
+    "entities.create_entity({model_class=}, {form=}, {entity_type=})",
+    extract_args=True,
+    record_return=True,
+)
 def create_entity(
     model_class: Type[Any],
     form,
@@ -133,39 +142,39 @@ def create_entity(
                 entity=escape(entity_type),
                 name=escape(form.name.data),
             ),
-            'danger',
+            "danger",
         )
         return False
 
     entity_data = {
-        'name': form.name.data,
-        'definition': form.definition.data,
+        "name": form.name.data,
+        "definition": form.definition.data,
     }
 
-    enabled_field = getattr(form, 'enabled', None)
+    enabled_field = getattr(form, "enabled", None)
     if enabled_field is not None:
-        entity_data['enabled'] = bool(enabled_field.data)
+        entity_data["enabled"] = bool(enabled_field.data)
 
     if _entity_registry.requires_definition_cid(model_class):
         definition_cid = save_server_definition_as_cid(form.definition.data)
-        entity_data['definition_cid'] = definition_cid
+        entity_data["definition_cid"] = definition_cid
 
     entity = model_class(**entity_data)
     save_entity(entity)
 
     if content_text is None:
-        content_text = getattr(form, 'definition', None)
+        content_text = getattr(form, "definition", None)
         if content_text is not None:
-            content_text = content_text.data or ''
+            content_text = content_text.data or ""
         else:
-            content_text = ''
+            content_text = ""
 
     record_entity_interaction(
         EntityInteractionRequest(
             entity_type=entity_type,
             entity_name=form.name.data,
-            action='save',
-            message=change_message or '',
+            action="save",
+            message=change_message or "",
             content=content_text,
         )
     )
@@ -177,12 +186,16 @@ def create_entity(
             entity=escape(entity_type.title()),
             name=escape(form.name.data),
         ),
-        'success',
+        "success",
     )
     return True
 
 
-@logfire.instrument("entities.update_entity({entity=}, {form=}, {entity_type=})", extract_args=True, record_return=True)
+@logfire_instrument(
+    "entities.update_entity({entity=}, {form=}, {entity_type=})",
+    extract_args=True,
+    record_return=True,
+)
 def update_entity(
     entity,
     form,
@@ -198,7 +211,7 @@ def update_entity(
                     entity=escape(entity_type),
                     name=escape(form.name.data),
                 ),
-                'danger',
+                "danger",
             )
             return False
 
@@ -211,25 +224,25 @@ def update_entity(
     entity.definition = form.definition.data
     entity.updated_at = datetime.now(timezone.utc)
 
-    enabled_field = getattr(form, 'enabled', None)
+    enabled_field = getattr(form, "enabled", None)
     if enabled_field is not None:
         entity.enabled = bool(enabled_field.data)
 
     save_entity(entity)
 
     if content_text is None:
-        content_text = getattr(form, 'definition', None)
+        content_text = getattr(form, "definition", None)
         if content_text is not None:
-            content_text = content_text.data or ''
+            content_text = content_text.data or ""
         else:
-            content_text = ''
+            content_text = ""
 
     record_entity_interaction(
         EntityInteractionRequest(
             entity_type=entity_type,
             entity_name=entity.name,
-            action='save',
-            message=change_message or '',
+            action="save",
+            message=change_message or "",
             content=content_text,
         )
     )
@@ -241,9 +254,9 @@ def update_entity(
             entity=escape(entity_type.title()),
             name=escape(entity.name),
         ),
-        'success',
+        "success",
     )
     return True
 
 
-__all__ = ['check_name_exists', 'create_entity', 'update_entity']
+__all__ = ["check_name_exists", "create_entity", "update_entity"]

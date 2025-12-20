@@ -30,7 +30,9 @@ def _css_alias_needs_upgrade(definition: str | None) -> bool:
 
     has_light = any(line.startswith("css/lightmode ->") for line in lines)
     has_dark = any(line.startswith("css/darkmode ->") for line in lines)
-    outdated_default = any(line == "css/default -> /static/css/custom.css" for line in lines)
+    outdated_default = any(
+        line == "css/default -> /static/css/custom.css" for line in lines
+    )
 
     if outdated_default:
         return True

@@ -1,4 +1,5 @@
 """Integration coverage for alias management pages."""
+
 from __future__ import annotations
 
 import re
@@ -66,8 +67,8 @@ def test_aliases_page_includes_enabled_toggle(
     assert 'action="/aliases/docs/enabled"' in page
     toggle_match = re.search(r'id="alias-enabled-toggle-docs"[^>]*>', page)
     assert toggle_match is not None
-    assert 'checked' not in toggle_match.group(0)
-    assert 'alias-enabled-label' in page
+    assert "checked" not in toggle_match.group(0)
+    assert "alias-enabled-label" in page
 
 
 def test_alias_enable_toggle_updates_state(
@@ -123,8 +124,8 @@ def test_new_alias_form_renders_in_single_user_mode(
 
     page = response.get_data(as_text=True)
     assert "Create New Alias" in page
-    assert "name=\"name\"" in page
-    assert "name=\"definition\"" in page
+    assert 'name="name"' in page
+    assert 'name="definition"' in page
     assert "pattern -&gt; /target" in page
 
 
@@ -172,16 +173,16 @@ def test_new_alias_form_includes_template_options(
                 "template-source": {
                     "name": "template-source",
                     "definition": format_primary_alias_line(
-                        'literal',
-                        '/template-source',
-                        '/target',
-                        alias_name='template-source',
+                        "literal",
+                        "/template-source",
+                        "/target",
+                        alias_name="template-source",
                     ),
                 }
             },
             "servers": {},
             "variables": {},
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(
@@ -219,11 +220,11 @@ def test_new_alias_form_includes_template_link(
                 "template2": {
                     "name": "template2",
                     "definition": "test2 -> /test2",
-                }
+                },
             },
             "servers": {},
             "variables": {},
-            "secrets": {}
+            "secrets": {},
         }
 
         templates_var = Variable(

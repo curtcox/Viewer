@@ -1,4 +1,5 @@
 """Core metadata gathering and coordination for meta route."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
@@ -43,7 +44,9 @@ def handle_not_found(
     existing_routes = get_existing_routes()
 
     if is_potential_alias_path(path, existing_routes):
-        alias_metadata = resolve_alias_path(path, include_target_metadata=include_alias_target_metadata)
+        alias_metadata = resolve_alias_path(
+            path, include_target_metadata=include_alias_target_metadata
+        )
         if alias_metadata:
             return alias_metadata, metadata_status(alias_metadata)
 
@@ -100,15 +103,21 @@ def gather_metadata(
         }
         if allowed:
             rule, values = adapter.match(path, method=allowed[0], return_rule=True)
-            route_metadata = build_route_resolution(path, rule, values, status_code=405, meta_source_link=META_SOURCE_LINK)
-            metadata.update({
-                "resolution": {
-                    **route_metadata["resolution"],
-                    "type": "method_not_allowed",
-                    "allowed_methods": allowed,
-                },
-                "source_links": dedupe_links(metadata["source_links"] + route_metadata["source_links"]),
-            })
+            route_metadata = build_route_resolution(
+                path, rule, values, status_code=405, meta_source_link=META_SOURCE_LINK
+            )
+            metadata.update(
+                {
+                    "resolution": {
+                        **route_metadata["resolution"],
+                        "type": "method_not_allowed",
+                        "allowed_methods": allowed,
+                    },
+                    "source_links": dedupe_links(
+                        metadata["source_links"] + route_metadata["source_links"]
+                    ),
+                }
+            )
         if include_alias_relations:
             attach_alias_targeting_metadata(metadata, metadata.get("path", path))
         return metadata, 200
@@ -121,7 +130,9 @@ def gather_metadata(
             attach_alias_targeting_metadata(metadata, metadata.get("path", path))
         return metadata, status
 
-    metadata = build_route_resolution(path, rule, values, meta_source_link=META_SOURCE_LINK)
+    metadata = build_route_resolution(
+        path, rule, values, meta_source_link=META_SOURCE_LINK
+    )
     if metadata and include_alias_relations:
         attach_alias_targeting_metadata(metadata, metadata.get("path", path))
     return metadata, 200

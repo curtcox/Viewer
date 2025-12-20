@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from constants import ActionType, EntityType, UploadType
 from flask import abort, flash, redirect, render_template, request, url_for
 from markupsafe import Markup
@@ -75,7 +75,7 @@ def _validate_alias_name(alias_name: str) -> tuple[str | None, str | None]:
 
     existing = get_alias_by_name(alias_name)
     if existing:
-        return None, 'Alias with this name already exists.'
+        return None, "Alias with this name already exists."
 
     return alias_name, None
 
@@ -89,7 +89,7 @@ def _save_cid_content(text_content: str) -> str:
     Returns:
         str: CID value (formatted)
     """
-    file_content = text_content.encode('utf-8')
+    file_content = text_content.encode("utf-8")
     return _store_or_find_content(file_content)
 
 
@@ -98,7 +98,9 @@ def _shorten_cid(cid: str | None, length: int = 6) -> str:
     return format_cid_short(cid, length)
 
 
-def _collect_variable_assignment(cid_value: str) -> tuple[list[Variable], Variable | None]:
+def _collect_variable_assignment(
+    cid_value: str,
+) -> tuple[list[Variable], Variable | None]:
     """Return the user's variables and the one currently pointing at ``cid_value``.
 
     Args:
@@ -138,11 +140,13 @@ def _render_upload_success(
 
     normalized = CidHelper.normalize(cid_value)
     record = CidHelper.get_record(cid_value)
-    resolved_size = CidHelper.resolve_size(record, file_size if file_size is not None else 0)
+    resolved_size = CidHelper.resolve_size(
+        record, file_size if file_size is not None else 0
+    )
     variables, assigned_variable = _collect_variable_assignment(normalized)
 
     return render_template(
-        'upload_success.html',
+        "upload_success.html",
         cid=normalized,
         file_size=resolved_size,
         detected_mime_type=detected_mime_type,
@@ -150,11 +154,15 @@ def _render_upload_success(
         filename=filename,
         variables=variables,
         assigned_variable=assigned_variable,
-        assignment_variable_name=assignment_variable_name or '',
+        assignment_variable_name=assignment_variable_name or "",
     )
 
 
-@logfire.instrument("uploads._persist_alias_from_upload({alias=})", extract_args=True, record_return=True)
+@logfire_instrument(
+    "uploads._persist_alias_from_upload({alias=})",
+    extract_args=True,
+    record_return=True,
+)
 def _persist_alias_from_upload(alias: Alias) -> Alias:
     """Persist alias changes that originate from upload workflows.
 
@@ -196,9 +204,7 @@ def _process_upload_by_type(form) -> tuple[bytes, str | None, str | None]:
 
 
 def _determine_view_extension(
-    upload_type: str,
-    original_filename: str | None,
-    detected_mime_type: str | None
+    upload_type: str, original_filename: str | None, detected_mime_type: str | None
 ) -> str:
     """Determine the view URL extension based on upload type and metadata.
 
@@ -213,18 +219,24 @@ def _determine_view_extension(
     if upload_type == UploadType.TEXT.value:
         return "txt"
 
-    if upload_type == UploadType.FILE.value and original_filename and '.' in original_filename:
-        return original_filename.rsplit('.', 1)[1].lower()
+    if (
+        upload_type == UploadType.FILE.value
+        and original_filename
+        and "." in original_filename
+    ):
+        return original_filename.rsplit(".", 1)[1].lower()
 
     if detected_mime_type:
         extension = get_extension_from_mime_type(detected_mime_type)
         if extension:
-            return extension.lstrip('.')
+            return extension.lstrip(".")
 
     return ""
 
 
-def _determine_filename(upload_type: str, original_filename: str | None, form: Any) -> str | None:
+def _determine_filename(
+    upload_type: str, original_filename: str | None, form: Any
+) -> str | None:
     """Determine the filename based on upload type.
 
     Args:
@@ -257,14 +269,16 @@ def _store_or_find_content(file_content: bytes) -> str:
 
     if existing:
         flash(
-            Markup(f"Content with this hash already exists! {render_cid_link(cid_value)}"),
-            'warning',
+            Markup(
+                f"Content with this hash already exists! {render_cid_link(cid_value)}"
+            ),
+            "warning",
         )
     else:
         create_cid_record(cid_value, file_content)
         flash(
             Markup(f"Content uploaded successfully! {render_cid_link(cid_value)}"),
-            'success',
+            "success",
         )
 
     return cid_value
@@ -284,7 +298,7 @@ def _record_upload_interaction(form: Any, change_message: str) -> None:
                 entity_name=UploadType.TEXT.value,
                 action=ActionType.SAVE.value,
                 message=change_message,
-                content=form.text_content.data or '',
+                content=form.text_content.data or "",
             )
         )
 
@@ -301,9 +315,11 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
     """
     # Process upload
     try:
-        file_content, detected_mime_type, original_filename = _process_upload_by_type(form)
+        file_content, detected_mime_type, original_filename = _process_upload_by_type(
+            form
+        )
     except ValueError as exc:
-        flash(str(exc), 'error')
+        flash(str(exc), "error")
         return None  # Signal to render form
 
     # Generate CID and store/find
@@ -314,9 +330,7 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
 
     # Determine metadata
     view_url_extension = _determine_view_extension(
-        form.upload_type.data,
-        original_filename,
-        detected_mime_type
+        form.upload_type.data, original_filename, detected_mime_type
     )
     filename = _determine_filename(form.upload_type.data, original_filename, form)
 
@@ -329,18 +343,20 @@ def _process_upload_submission(form: Any, change_message: str) -> Any:
     )
 
 
-@main_bp.route('/upload', methods=['GET', 'POST'])
+@main_bp.route("/upload", methods=["GET", "POST"])
 def upload():
     """File upload page with CID storage."""
     form = FileUploadForm()
-    change_message = (request.form.get('change_message') or '').strip()
+    change_message = (request.form.get("change_message") or "").strip()
 
     def _render_form():
-        interactions = load_interaction_history(EntityType.UPLOAD.value, UploadType.TEXT.value)
+        interactions = load_interaction_history(
+            EntityType.UPLOAD.value, UploadType.TEXT.value
+        )
         upload_templates = get_template_uploads()
-        template_link_info = get_template_link_info('uploads')
+        template_link_info = get_template_link_info("uploads")
         return render_template(
-            'upload.html',
+            "upload.html",
             form=form,
             upload_interactions=interactions,
             upload_templates=upload_templates,
@@ -356,7 +372,7 @@ def upload():
     return _render_form()
 
 
-@main_bp.route('/uploads')
+@main_bp.route("/uploads")
 def uploads():
     """Display uploaded files."""
     uploads_list = get_uploads()
@@ -366,53 +382,56 @@ def uploads():
     uploads_list = [
         upload
         for upload in uploads_list
-        if getattr(upload, 'creation_method', EntityType.UPLOAD.value) != EntityType.SERVER_EVENT.value
+        if getattr(upload, "creation_method", EntityType.UPLOAD.value)
+        != EntityType.SERVER_EVENT.value
     ]
 
     for upload_record in uploads_list:
         if upload_record.file_data:
             try:
-                content_text = upload_record.file_data.decode('utf-8', errors='replace')
-                upload_record.content_preview = content_text[:CONTENT_PREVIEW_LENGTH].replace('\n', ' ').replace('\r', ' ')
+                content_text = upload_record.file_data.decode("utf-8", errors="replace")
+                upload_record.content_preview = (
+                    content_text[:CONTENT_PREVIEW_LENGTH]
+                    .replace("\n", " ")
+                    .replace("\r", " ")
+                )
             except (AttributeError, UnicodeDecodeError):
                 upload_record.content_preview = upload_record.file_data[:10].hex()
         else:
             upload_record.content_preview = ""
 
         upload_record.referenced_entities = extract_references_from_bytes(
-            getattr(upload_record, 'file_data', None),
+            getattr(upload_record, "file_data", None),
         )
 
     total_storage = sum(upload.file_size or 0 for upload in uploads_list)
 
     return render_template(
-        'uploads.html',
+        "uploads.html",
         uploads=uploads_list,
         total_uploads=len(uploads_list),
         total_storage=total_storage,
     )
 
 
-@main_bp.route('/_screenshot/uploads')
+@main_bp.route("/_screenshot/uploads")
 def screenshot_uploads_demo():
     abort(404)
 
 
-@main_bp.route('/edit/<cid_prefix>', methods=['GET', 'POST'])
+@main_bp.route("/edit/<cid_prefix>", methods=["GET", "POST"])
 def edit_cid(cid_prefix):
     """Allow users to edit existing CID content as text."""
-    normalized_prefix = format_cid(cid_prefix.split('.')[0] if cid_prefix else cid_prefix)
+    normalized_prefix = format_cid(
+        cid_prefix.split(".")[0] if cid_prefix else cid_prefix
+    )
     matches = find_cids_by_prefix(normalized_prefix)
 
     if not matches:
         abort(404)
 
     exact_match = next(
-        (
-            match
-            for match in matches
-            if format_cid(match.path) == normalized_prefix
-        ),
+        (match for match in matches if format_cid(match.path) == normalized_prefix),
         None,
     )
     if exact_match:
@@ -421,7 +440,7 @@ def edit_cid(cid_prefix):
     if len(matches) > 1:
         match_values = [format_cid(match.path) for match in matches]
         return render_template(
-            'edit_cid_choices.html',
+            "edit_cid_choices.html",
             cid_prefix=normalized_prefix,
             matches=match_values,
         )
@@ -430,34 +449,34 @@ def edit_cid(cid_prefix):
     full_cid = format_cid(cid_record.path)
     alias_for_cid = get_alias_by_target_path(cid_record.path)
     form = EditCidForm()
-    submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else 'Save Changes'
+    submit_label = f"Save {alias_for_cid.name}" if alias_for_cid else "Save Changes"
 
     interaction_history = load_interaction_history(EntityType.CID.value, full_cid)
     content_references = extract_references_from_bytes(
-        getattr(cid_record, 'file_data', None),
+        getattr(cid_record, "file_data", None),
     )
 
     if form.validate_on_submit():
-        alias_name_input = ''
+        alias_name_input = ""
         if not alias_for_cid:
-            alias_name_input = form.alias_name.data or ''
+            alias_name_input = form.alias_name.data or ""
             validated_alias, error_message = _validate_alias_name(alias_name_input)
             if alias_name_input and error_message:
                 form.alias_name.errors.append(error_message)
                 return render_template(
-                    'edit_cid.html',
+                    "edit_cid.html",
                     form=form,
                     cid=full_cid,
                     submit_label=submit_label,
-                    current_alias_name=getattr(alias_for_cid, 'name', None),
+                    current_alias_name=getattr(alias_for_cid, "name", None),
                     show_alias_field=alias_for_cid is None,
                     interaction_history=interaction_history,
                     content_references=content_references,
                 )
-            alias_name_input = validated_alias or ''
+            alias_name_input = validated_alias or ""
 
-        text_content = form.text_content.data or ''
-        change_message = (request.form.get('change_message') or '').strip()
+        text_content = form.text_content.data or ""
+        change_message = (request.form.get("change_message") or "").strip()
         cid_value = _save_cid_content(text_content)
 
         new_target_path = cid_path(cid_value)
@@ -508,52 +527,54 @@ def edit_cid(cid_prefix):
 
         return _render_upload_success(
             cid_value,
-            file_size=len(text_content.encode('utf-8')),
-            detected_mime_type='text/plain',
-            view_url_extension='txt',
+            file_size=len(text_content.encode("utf-8")),
+            detected_mime_type="text/plain",
+            view_url_extension="txt",
             filename=None,
         )
 
-    if request.method == 'GET':
-        existing_text = cid_record.file_data.decode('utf-8', errors='replace')
+    if request.method == "GET":
+        existing_text = cid_record.file_data.decode("utf-8", errors="replace")
         form.text_content.data = existing_text
 
     return render_template(
-        'edit_cid.html',
+        "edit_cid.html",
         form=form,
         cid=full_cid,
         submit_label=submit_label,
-        current_alias_name=getattr(alias_for_cid, 'name', None),
+        current_alias_name=getattr(alias_for_cid, "name", None),
         show_alias_field=alias_for_cid is None,
         interaction_history=interaction_history,
         content_references=content_references,
     )
 
 
-@main_bp.route('/upload/assign-variable', methods=['POST'])
+@main_bp.route("/upload/assign-variable", methods=["POST"])
 def assign_cid_variable():
     """Assign the supplied CID to an existing or new variable."""
 
-    cid_value = format_cid(request.form.get('cid'))
-    variable_name = (request.form.get('variable_name') or '').strip()
-    view_url_extension = (request.form.get('view_url_extension') or '').strip() or None
-    filename = (request.form.get('filename') or '').strip() or None
-    detected_mime_type = (request.form.get('detected_mime_type') or '').strip() or None
+    cid_value = format_cid(request.form.get("cid"))
+    variable_name = (request.form.get("variable_name") or "").strip()
+    view_url_extension = (request.form.get("view_url_extension") or "").strip() or None
+    filename = (request.form.get("filename") or "").strip() or None
+    detected_mime_type = (request.form.get("detected_mime_type") or "").strip() or None
 
     if not cid_value:
-        flash('A CID is required to assign it to a variable.', 'error')
-        return redirect(url_for('main.upload'))
+        flash("A CID is required to assign it to a variable.", "error")
+        return redirect(url_for("main.upload"))
 
     cid_record = get_cid_by_path(cid_path(cid_value))
     if not cid_record:
-        flash('CID not found. Upload content before assigning it to a variable.', 'error')
-        return redirect(url_for('main.upload'))
+        flash(
+            "CID not found. Upload content before assigning it to a variable.", "error"
+        )
+        return redirect(url_for("main.upload"))
 
     file_size = CidHelper.resolve_size(cid_record)
     assignment_value = cid_path(cid_value) or cid_value
 
     if not variable_name:
-        flash('Enter a variable name to assign this CID.', 'error')
+        flash("Enter a variable name to assign this CID.", "error")
         return _render_upload_success(
             cid_value,
             file_size=file_size,
@@ -565,8 +586,8 @@ def assign_cid_variable():
 
     if not _VARIABLE_NAME_PATTERN.fullmatch(variable_name):
         flash(
-            'Variable names may only contain letters, numbers, dots, hyphens, and underscores.',
-            'error',
+            "Variable names may only contain letters, numbers, dots, hyphens, and underscores.",
+            "error",
         )
         return _render_upload_success(
             cid_value,
@@ -581,9 +602,9 @@ def assign_cid_variable():
     assignment_message = None
 
     if existing_variable:
-        current_value = (existing_variable.definition or '').strip()
+        current_value = (existing_variable.definition or "").strip()
         if current_value == assignment_value:
-            flash(f'CID already assigned to variable "{variable_name}".', 'info')
+            flash(f'CID already assigned to variable "{variable_name}".', "info")
         else:
             existing_variable.definition = assignment_value
             existing_variable.updated_at = datetime.now(timezone.utc)
@@ -606,11 +627,11 @@ def assign_cid_variable():
                 entity_type=EntityType.VARIABLE.value,
                 entity_name=variable_name,
                 action=ActionType.SAVE.value,
-                message='Assigned CID from upload page',
+                message="Assigned CID from upload page",
                 content=assignment_value,
             )
         )
-        flash(assignment_message, 'success')
+        flash(assignment_message, "success")
 
     return _render_upload_success(
         cid_value,
@@ -621,13 +642,13 @@ def assign_cid_variable():
     )
 
 
-@main_bp.route('/server_events')
+@main_bp.route("/server_events")
 def server_events():
     """Display server invocation events."""
 
     date_range = parse_date_range(
-        request.args.get('start', '', type=str),
-        request.args.get('end', '', type=str),
+        request.args.get("start", "", type=str),
+        request.args.get("end", "", type=str),
     )
 
     invocations = get_server_invocations(
@@ -640,14 +661,16 @@ def server_events():
     for invocation in invocations:
         enrich_invocation_with_links(invocation)
         invocation.server_link = url_for(
-            'main.view_server',
+            "main.view_server",
             server_name=invocation.server_name,
         )
-        request_cid = getattr(invocation, 'request_details_cid', None)
-        invocation.request_referer = referer_by_request.get(request_cid) if request_cid else None
+        request_cid = getattr(invocation, "request_details_cid", None)
+        invocation.request_referer = (
+            referer_by_request.get(request_cid) if request_cid else None
+        )
 
     return render_template(
-        'server_events.html',
+        "server_events.html",
         events=invocations,
         total_events=len(invocations),
         start_value=date_range.start_value,
@@ -658,7 +681,7 @@ def server_events():
     )
 
 
-@main_bp.route('/_screenshot/server-events')
+@main_bp.route("/_screenshot/server-events")
 def screenshot_server_events_demo():
     abort(404)
 
@@ -677,10 +700,10 @@ def _attach_creation_sources(uploads_list: list[Any]) -> None:
     invocation_by_cid = {}
     for invocation in invocations:
         for attr in (
-            'result_cid',
-            'invocation_cid',
-            'request_details_cid',
-            'servers_cid',
+            "result_cid",
+            "invocation_cid",
+            "request_details_cid",
+            "servers_cid",
         ):
             cid_value = getattr(invocation, attr, None)
             cid_key = format_cid(cid_value)
@@ -692,7 +715,11 @@ def _attach_creation_sources(uploads_list: list[Any]) -> None:
         upload_record.server_invocation_link = None
         upload_record.server_invocation_server_name = None
 
-        cid = format_cid(getattr(upload_record, 'path', None)) if getattr(upload_record, 'path', None) else None
+        cid = (
+            format_cid(getattr(upload_record, "path", None))
+            if getattr(upload_record, "path", None)
+            else None
+        )
         if not cid:
             continue
 
@@ -703,14 +730,14 @@ def _attach_creation_sources(uploads_list: list[Any]) -> None:
             if invocation.invocation_cid:
                 upload_record.server_invocation_link = cid_path(
                     invocation.invocation_cid,
-                    'json',
+                    "json",
                 )
 
 
 __all__ = [
-    'server_events',
-    'upload',
-    'uploads',
-    'screenshot_server_events_demo',
-    'screenshot_uploads_demo',
+    "server_events",
+    "upload",
+    "uploads",
+    "screenshot_server_events_demo",
+    "screenshot_uploads_demo",
 ]

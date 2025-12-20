@@ -1,0 +1,17 @@
+[
+  {
+    "definition_cid": "AAAAAACLo_MRZQ2EM409frs_eH_4gIG5P2m90LjEkARFwXQr0a0uU9xIcMqRrcEnVJ6s31RFKByb1YV6rrCvlAFlokg7DQ",
+    "enabled": true,
+    "name": "CSS"
+  },
+  {
+    "definition_cid": "AAAAAAARYWkgLT4gL2FpX2Fzc2lzdAo",
+    "enabled": true,
+    "name": "ai"
+  },
+  {
+    "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
+    "enabled": true,
+    "name": "ai_about"
+  }
+]

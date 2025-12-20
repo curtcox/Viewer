@@ -22,7 +22,7 @@ def patched_server_execution(monkeypatch):
         lambda: {"variables": {}, "secrets": {}, "servers": {}},
     )
 
-    def fake_success(output, content_type, server_name):
+    def fake_success(output, content_type, server_name, *, external_calls=None):
         return {
             "output": output,
             "content_type": content_type,
@@ -58,7 +58,9 @@ return shell_server.main(command=command)
 
 
 def test_shell_executes_via_server_execution(patched_server_execution):
-    definition = Path("reference_templates/servers/definitions/shell.py").read_text(encoding='utf-8')
+    definition = Path("reference_templates/servers/definitions/shell.py").read_text(
+        encoding="utf-8"
+    )
 
     with app.test_request_context("/shell", json={"command": "echo server-execution"}):
         result = server_execution.execute_server_code_from_definition(

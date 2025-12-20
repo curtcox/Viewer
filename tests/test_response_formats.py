@@ -1,4 +1,5 @@
 """Unit tests for response format negotiation utilities."""
+
 from __future__ import annotations
 
 import csv

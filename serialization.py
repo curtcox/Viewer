@@ -1,11 +1,14 @@
 """Helpers for serializing SQLAlchemy models into simple dictionaries."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Optional
 
 
-def model_to_dict(instance: Any, extras: Optional[Mapping[str, Any]] = None) -> MutableMapping[str, Any]:
+def model_to_dict(
+    instance: Any, extras: Optional[Mapping[str, Any]] = None
+) -> MutableMapping[str, Any]:
     """Return a dictionary of column values for a SQLAlchemy model instance."""
 
     table = getattr(instance, "__table__", None)

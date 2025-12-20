@@ -8,7 +8,9 @@ from typing import Any, Dict, List, Optional
 class StackTraceBuilder:
     """Build comprehensive stack trace metadata with source links for project files."""
 
-    def __init__(self, error: Exception, root_path: Path, tracked_paths: frozenset[str]):
+    def __init__(
+        self, error: Exception, root_path: Path, tracked_paths: frozenset[str]
+    ):
         """
         Initialize the stack trace builder.
 
@@ -60,7 +62,9 @@ class StackTraceBuilder:
             exceptions.append(current)
 
             # Follow __cause__ first (explicit chaining), then __context__ (implicit)
-            current = getattr(current, '__cause__', None) or getattr(current, '__context__', None)
+            current = getattr(current, "__cause__", None) or getattr(
+                current, "__context__", None
+            )
 
         return exceptions
 
@@ -82,7 +86,16 @@ class StackTraceBuilder:
                     continue
 
             # Also add other common source files
-            for pattern in ["*.html", "*.js", "*.css", "*.json", "*.md", "*.txt", "*.yml", "*.yaml"]:
+            for pattern in [
+                "*.html",
+                "*.js",
+                "*.css",
+                "*.json",
+                "*.md",
+                "*.txt",
+                "*.yml",
+                "*.yaml",
+            ]:
                 for file in self.root_path.rglob(pattern):
                     try:
                         relative = file.relative_to(self.root_path).as_posix()
@@ -187,7 +200,9 @@ class StackTraceBuilder:
 
         return updated
 
-    def _get_code_context(self, frame: traceback.FrameSummary, absolute_path: Path) -> str:
+    def _get_code_context(
+        self, frame: traceback.FrameSummary, absolute_path: Path
+    ) -> str:
         """
         Get code context around the error line.
 
@@ -202,7 +217,7 @@ class StackTraceBuilder:
         try:
             if frame.line and absolute_path.exists():
                 # Try to get more lines of context around the error
-                with open(absolute_path, 'r', encoding='utf-8') as f:
+                with open(absolute_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()
                     if 0 < frame.lineno <= len(lines):
                         # Get 5 lines before and after for better context
@@ -213,7 +228,9 @@ class StackTraceBuilder:
                             line_num = i + 1
                             line_content = lines[i].rstrip()
                             marker = ">>> " if line_num == frame.lineno else "    "
-                            context_lines.append(f"{marker}{line_num:4d}: {line_content}")
+                            context_lines.append(
+                                f"{marker}{line_num:4d}: {line_content}"
+                            )
                         code_context = "\n".join(context_lines)
         except (OSError, UnicodeDecodeError, IndexError):
             # Fall back to the original line if we can't read context
@@ -221,7 +238,9 @@ class StackTraceBuilder:
 
         return code_context
 
-    def _process_exception_chain(self, exception_chain: List[Exception]) -> List[Dict[str, Any]]:
+    def _process_exception_chain(
+        self, exception_chain: List[Exception]
+    ) -> List[Dict[str, Any]]:
         """
         Process all exceptions in the chain and build frame metadata.
 
@@ -241,14 +260,16 @@ class StackTraceBuilder:
 
             # Add separator for chained exceptions (except for the first one)
             if exc_index > 0:
-                frames.append({
-                    "display_path": "--- Exception Chain ---",
-                    "lineno": 0,
-                    "function": f"Caused by: {type(exc).__name__}",
-                    "code": str(exc) if str(exc) else None,
-                    "source_link": None,
-                    "is_separator": True,
-                })
+                frames.append(
+                    {
+                        "display_path": "--- Exception Chain ---",
+                        "lineno": 0,
+                        "function": f"Caused by: {type(exc).__name__}",
+                        "code": str(exc) if str(exc) else None,
+                        "source_link": None,
+                        "is_separator": True,
+                    }
+                )
 
             # Extract frames from this exception's traceback
             for frame in traceback.extract_tb(traceback_obj):
@@ -302,7 +323,9 @@ def extract_exception(error: Exception) -> Exception:
     return error
 
 
-def build_stack_trace(error: Exception, root_path: Path, tracked_paths: frozenset[str]) -> List[Dict[str, Any]]:
+def build_stack_trace(
+    error: Exception, root_path: Path, tracked_paths: frozenset[str]
+) -> List[Dict[str, Any]]:
     """
     Build comprehensive stack trace metadata with source links.
 

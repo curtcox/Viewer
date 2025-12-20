@@ -19,14 +19,20 @@ from unittest.mock import patch
 from flask import current_app
 
 # Set up test environment before importing app
-os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
-os.environ['SESSION_SECRET'] = 'test-secret-key'
-os.environ['TESTING'] = 'True'
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SESSION_SECRET"] = "test-secret-key"
+os.environ["TESTING"] = "True"
 
 import server_execution
 from alias_definition import format_primary_alias_line
 from app import create_app
-from cid_utils import CID_LENGTH, CID_MIN_LENGTH, _base64url_encode, encode_cid_length, generate_cid
+from cid_utils import (
+    CID_LENGTH,
+    CID_MIN_LENGTH,
+    _base64url_encode,
+    encode_cid_length,
+    generate_cid,
+)
 from database import db
 from db_access import get_cid_by_path
 from history_filters import format_history_timestamp
@@ -46,15 +52,15 @@ def _alias_definition(
     name: str,
     target: str,
     *,
-    match_type: str = 'literal',
+    match_type: str = "literal",
     pattern: str | None = None,
     ignore_case: bool = False,
 ) -> str:
     pattern_value = pattern
-    if match_type == 'literal' and not pattern_value:
+    if match_type == "literal" and not pattern_value:
         pattern_value = None
     elif pattern_value is None:
-        pattern_value = f'/{name}'
+        pattern_value = f"/{name}"
     return format_primary_alias_line(
         match_type,
         pattern_value,
@@ -69,11 +75,13 @@ class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.app = create_app({
-            'TESTING': True,
-            'WTF_CSRF_ENABLED': False,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:'
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "WTF_CSRF_ENABLED": False,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+            }
+        )
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -89,7 +97,8 @@ class BaseTestCase(unittest.TestCase):
     def authenticate(self):
         """Mark the test client session as authenticated in single-user mode."""
         with self.client.session_transaction() as session:
-            session['_fresh'] = True
+            session["_fresh"] = True
+
 
 class TestUtilityFunctions(BaseTestCase):
     """Test utility functions."""
@@ -150,11 +159,21 @@ class TestContextProcessors(BaseTestCase):
 
         from routes.core import inject_meta_inspector_link
 
-        with self.app.test_request_context('/servers/example'):
+        with self.app.test_request_context("/servers/example"):
             context = inject_meta_inspector_link()
 
         self.assertEqual(context["meta_inspector_url"], "/meta/servers/example.html")
-        self.assertIn("/history?start=", context["history_since_url"])
+        self.assertEqual(context["history_since_url"], "/history")
+        self.assertEqual(context["server_events_since_url"], "/server_events")
+
+    def test_inject_meta_inspector_link_is_deterministic(self):
+        from routes.core import inject_meta_inspector_link
+
+        with self.app.test_request_context("/servers/example"):
+            context = inject_meta_inspector_link()
+
+        self.assertNotIn("?start=", context["history_since_url"])
+        self.assertNotIn("?start=", context["server_events_since_url"])
 
 
 class TestPublicRoutes(BaseTestCase):
@@ -162,22 +181,22 @@ class TestPublicRoutes(BaseTestCase):
 
     def test_index_unauthenticated(self):
         """Test index page for unauthenticated users."""
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
     def test_index_authenticated_shows_cross_reference_dashboard(self):
         """Authenticated users should see the workspace cross reference overview."""
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Workspace Cross Reference', page)
-        self.assertIn('data-crossref-container', page)
+        self.assertIn("Workspace Cross Reference", page)
+        self.assertIn("data-crossref-container", page)
 
     def test_index_cross_reference_shortcuts_link_to_entity_lists(self):
         """The dashboard shortcut badges should link to the list views."""
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         page = response.get_data(as_text=True)
 
         self.assertIn('href="/aliases"', page)
@@ -187,245 +206,302 @@ class TestPublicRoutes(BaseTestCase):
     def test_search_page_renders_with_filters(self):
         """The search page should render the filter checkboxes and status helper."""
 
-        response = self.client.get('/search')
+        response = self.client.get("/search")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Workspace Search', page)
+        self.assertIn("Workspace Search", page)
         self.assertIn('data-search-category="aliases"', page)
-        self.assertIn('Start typing to search the workspace.', page)
+        self.assertIn("Start typing to search the workspace.", page)
 
     def test_index_cross_reference_lists_entities_and_relationships(self):
         """Cross reference dashboard should include aliases, servers, CIDs, and references."""
 
-        cid_value = generate_cid(b'CID: /alpha -> /servers/beta')
+        cid_value = generate_cid(b"CID: /alpha -> /servers/beta")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'CID: /alpha -> /servers/beta',
+            path=f"/{cid_value}",
+            file_data=b"CID: /alpha -> /servers/beta",
         )
         alias_server = Alias(
-            name='alpha',
-            definition=_alias_definition('alpha', '/servers/beta'),
+            name="alpha",
+            definition=_alias_definition("alpha", "/servers/beta"),
         )
         alias_cid = Alias(
-            name='bravo',
-            definition=_alias_definition('bravo', f'/{cid_value}'),
+            name="bravo",
+            definition=_alias_definition("bravo", f"/{cid_value}"),
         )
         server_definition = f"""
 def main(request):
     return "Use /bravo and /{cid_value}"
 """.strip()
         server = Server(
-            name='beta',
+            name="beta",
             definition=server_definition,
-            definition_cid=f'/{cid_value}',
+            definition_cid=f"/{cid_value}",
         )
 
         db.session.add_all([cid_record, alias_server, alias_cid, server])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Workspace Cross Reference', page)
-        self.assertIn('/aliases/alpha', page)
-        self.assertIn('/aliases/bravo', page)
-        self.assertIn('/servers/beta', page)
-        self.assertIn(f'#{cid_value[:9]}', page)
-        self.assertIn('CID: /alpha', page)
-        self.assertNotIn('No aliases yet', page)
-        self.assertNotIn('No CIDs referenced', page)
-        self.assertNotIn('No references detected', page)
-        self.assertIn('crossref-reference', page)
+        self.assertIn("Workspace Cross Reference", page)
+        self.assertIn("/aliases/alpha", page)
+        self.assertIn("/aliases/bravo", page)
+        self.assertIn("/servers/beta", page)
+        self.assertIn(f"#{cid_value[:9]}", page)
+        self.assertIn("CID: /alpha", page)
+        self.assertNotIn("No aliases yet", page)
+        self.assertNotIn("No CIDs referenced", page)
+        self.assertNotIn("No references detected", page)
+        self.assertIn("crossref-reference", page)
 
     def test_index_alias_target_displays_cid_link_for_cid_path(self):
         """Alias entries on the dashboard should use the CID link component when targeting CIDs."""
 
-        cid_value = generate_cid(b'Alias target CID render check')
+        cid_value = generate_cid(b"Alias target CID render check")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'alias target content',
+            path=f"/{cid_value}",
+            file_data=b"alias target content",
         )
         alias_cid = Alias(
-            name='cid-alias',
-            definition=_alias_definition('cid-alias', f'/{cid_value}'),
+            name="cid-alias",
+            definition=_alias_definition("cid-alias", f"/{cid_value}"),
         )
 
         db.session.add_all([cid_record, alias_cid])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         page = response.get_data(as_text=True)
 
         pattern = rf'(?s)crossref-alias.*?{alias_cid.name}.*?<div class="small text-muted mt-1">\s*<span class="cid-display dropdown">'
         self.assertRegex(page, pattern)
-        self.assertNotIn(f'<code>/{cid_value}</code>', page)
-
+        self.assertNotIn(f"<code>/{cid_value}</code>", page)
 
     def test_index_cross_reference_cids_include_incoming_highlight_metadata(self):
         """CID entries should carry metadata linking back to referencing aliases or servers."""
 
-        cid_value = generate_cid(b'CID referenced by alias and server')
+        cid_value = generate_cid(b"CID referenced by alias and server")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'Use /aliases/linked and /servers/linked',
+            path=f"/{cid_value}",
+            file_data=b"Use /aliases/linked and /servers/linked",
         )
         alias_to_cid = Alias(
-            name='linked',
-            definition=_alias_definition('linked', f'/{cid_value}'),
+            name="linked",
+            definition=_alias_definition("linked", f"/{cid_value}"),
         )
         server_definition = """
 def main(request):
     return "See /aliases/linked"
 """.strip()
         server = Server(
-            name='linked',
+            name="linked",
             definition=server_definition,
-            definition_cid=f'/{cid_value}',
+            definition_cid=f"/{cid_value}",
         )
 
         db.session.add_all([cid_record, alias_to_cid, server])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         page = response.get_data(as_text=True)
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             cross_reference = _build_cross_reference_data()
-        cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
-        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'linked')
-        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'linked')
+        cid_entry = next(
+            item for item in cross_reference["cids"] if item["cid"] == cid_value
+        )
+        alias_entry = next(
+            item for item in cross_reference["aliases"] if item["name"] == "linked"
+        )
+        server_entry = next(
+            item for item in cross_reference["servers"] if item["name"] == "linked"
+        )
 
-        cid_key = cid_entry['entity_key']
-        alias_key = alias_entry['entity_key']
-        server_key = server_entry['entity_key']
+        cid_key = cid_entry["entity_key"]
+        alias_key = alias_entry["entity_key"]
+        server_key = server_entry["entity_key"]
 
-        incoming_reference_keys = set(cid_entry['incoming_refs'])
-        self.assertTrue(incoming_reference_keys, 'CID should report at least one incoming reference key')
+        incoming_reference_keys = set(cid_entry["incoming_refs"])
+        self.assertTrue(
+            incoming_reference_keys,
+            "CID should report at least one incoming reference key",
+        )
 
-        element_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(cid_key)}"[^>]*>')
+        element_pattern = re.compile(
+            rf'<div[^>]*data-entity-key="{re.escape(cid_key)}"[^>]*>'
+        )
         cid_match = element_pattern.search(page)
-        self.assertIsNotNone(cid_match, 'CID entry should be rendered with a data-entity-key attribute')
+        self.assertIsNotNone(
+            cid_match, "CID entry should be rendered with a data-entity-key attribute"
+        )
 
         cid_tag = cid_match.group(0)
 
         implies_match = re.search(r'data-implies="([^"]*)"', cid_tag)
-        self.assertIsNotNone(implies_match, 'CID entry should expose implied entity keys')
+        self.assertIsNotNone(
+            implies_match, "CID entry should expose implied entity keys"
+        )
         implies_values = implies_match.group(1).split()
         self.assertIn(alias_key, implies_values)
         self.assertIn(server_key, implies_values)
 
         incoming_match = re.search(r'data-incoming-refs="([^"]*)"', cid_tag)
-        self.assertIsNotNone(incoming_match, 'CID entry should expose incoming reference keys')
+        self.assertIsNotNone(
+            incoming_match, "CID entry should expose incoming reference keys"
+        )
         incoming_values = set(incoming_match.group(1).split())
         self.assertTrue(incoming_values >= incoming_reference_keys)
 
     def test_index_cross_reference_alias_and_server_highlight_metadata(self):
         """Alias and server entries should expose highlight metadata for related entities."""
 
-        cid_value = generate_cid(b'Highlight metadata for alias and server entries')
+        cid_value = generate_cid(b"Highlight metadata for alias and server entries")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'Content used to link alias, server, and CID',
+            path=f"/{cid_value}",
+            file_data=b"Content used to link alias, server, and CID",
         )
         alias_to_server = Alias(
-            name='relay-server',
-            definition=_alias_definition('relay-server', '/servers/highlighted'),
+            name="relay-server",
+            definition=_alias_definition("relay-server", "/servers/highlighted"),
         )
         alias_to_cid = Alias(
-            name='relay-cid',
-            definition=_alias_definition('relay-cid', f'/{cid_value}'),
+            name="relay-cid",
+            definition=_alias_definition("relay-cid", f"/{cid_value}"),
         )
         server_definition = """
 def main(request):
     return "See /aliases/relay-cid for details"
 """.strip()
         server = Server(
-            name='highlighted',
+            name="highlighted",
             definition=server_definition,
-            definition_cid=f'/{cid_value}',
+            definition_cid=f"/{cid_value}",
         )
 
         db.session.add_all([cid_record, alias_to_server, alias_to_cid, server])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             cross_reference = _build_cross_reference_data()
 
-        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-server')
-        relay_cid_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'relay-cid')
-        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'highlighted')
-        cid_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value)
+        alias_entry = next(
+            item
+            for item in cross_reference["aliases"]
+            if item["name"] == "relay-server"
+        )
+        relay_cid_entry = next(
+            item for item in cross_reference["aliases"] if item["name"] == "relay-cid"
+        )
+        server_entry = next(
+            item for item in cross_reference["servers"] if item["name"] == "highlighted"
+        )
+        cid_entry = next(
+            item for item in cross_reference["cids"] if item["cid"] == cid_value
+        )
 
-        alias_key = alias_entry['entity_key']
-        relay_cid_key = relay_cid_entry['entity_key']
-        server_key = server_entry['entity_key']
-        cid_key = cid_entry['entity_key']
+        alias_key = alias_entry["entity_key"]
+        relay_cid_key = relay_cid_entry["entity_key"]
+        server_key = server_entry["entity_key"]
+        cid_key = cid_entry["entity_key"]
 
-        alias_outgoing_keys = set(alias_entry['outgoing_refs'])
-        server_outgoing_keys = set(server_entry['outgoing_refs'])
-        self.assertTrue(alias_outgoing_keys, 'Alias should expose outgoing reference keys')
-        self.assertTrue(server_outgoing_keys, 'Server should expose outgoing reference keys')
+        alias_outgoing_keys = set(alias_entry["outgoing_refs"])
+        server_outgoing_keys = set(server_entry["outgoing_refs"])
+        self.assertTrue(
+            alias_outgoing_keys, "Alias should expose outgoing reference keys"
+        )
+        self.assertTrue(
+            server_outgoing_keys, "Server should expose outgoing reference keys"
+        )
 
-        alias_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(alias_key)}"[^>]*>')
+        alias_pattern = re.compile(
+            rf'<div[^>]*data-entity-key="{re.escape(alias_key)}"[^>]*>'
+        )
         alias_match = alias_pattern.search(page)
-        self.assertIsNotNone(alias_match, 'Alias entry should render data attributes for highlighting')
+        self.assertIsNotNone(
+            alias_match, "Alias entry should render data attributes for highlighting"
+        )
         alias_tag = alias_match.group(0)
 
         alias_implies_match = re.search(r'data-implies="([^"]*)"', alias_tag)
-        self.assertIsNotNone(alias_implies_match, 'Alias entry should list implied entity keys')
+        self.assertIsNotNone(
+            alias_implies_match, "Alias entry should list implied entity keys"
+        )
         alias_implies_values = set(filter(None, alias_implies_match.group(1).split()))
         self.assertIn(server_key, alias_implies_values)
 
         alias_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', alias_tag)
-        self.assertIsNotNone(alias_outgoing_match, 'Alias entry should list outgoing reference keys')
+        self.assertIsNotNone(
+            alias_outgoing_match, "Alias entry should list outgoing reference keys"
+        )
         alias_outgoing_values = set(filter(None, alias_outgoing_match.group(1).split()))
         self.assertTrue(alias_outgoing_keys <= alias_outgoing_values)
 
-        server_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(server_key)}"[^>]*>')
+        server_pattern = re.compile(
+            rf'<div[^>]*data-entity-key="{re.escape(server_key)}"[^>]*>'
+        )
         server_match = server_pattern.search(page)
-        self.assertIsNotNone(server_match, 'Server entry should render data attributes for highlighting')
+        self.assertIsNotNone(
+            server_match, "Server entry should render data attributes for highlighting"
+        )
         server_tag = server_match.group(0)
 
         server_implies_match = re.search(r'data-implies="([^"]*)"', server_tag)
-        self.assertIsNotNone(server_implies_match, 'Server entry should list implied entity keys')
+        self.assertIsNotNone(
+            server_implies_match, "Server entry should list implied entity keys"
+        )
         server_implies_values = set(filter(None, server_implies_match.group(1).split()))
         self.assertIn(alias_key, server_implies_values)
         self.assertIn(relay_cid_key, server_implies_values)
 
         server_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', server_tag)
-        self.assertIsNotNone(server_outgoing_match, 'Server entry should list outgoing reference keys')
-        server_outgoing_values = set(filter(None, server_outgoing_match.group(1).split()))
+        self.assertIsNotNone(
+            server_outgoing_match, "Server entry should list outgoing reference keys"
+        )
+        server_outgoing_values = set(
+            filter(None, server_outgoing_match.group(1).split())
+        )
         self.assertTrue(server_outgoing_keys <= server_outgoing_values)
 
         alias_server_reference = next(
             ref
-            for ref in cross_reference['references']
-            if ref['source_key'] == alias_entry['entity_key']
-            and ref['target_key'] == server_entry['entity_key']
+            for ref in cross_reference["references"]
+            if ref["source_key"] == alias_entry["entity_key"]
+            and ref["target_key"] == server_entry["entity_key"]
         )
 
-        reference_key = alias_server_reference['key']
-        reference_pattern = re.compile(rf'<div[^>]*data-reference-key="{re.escape(reference_key)}"[^>]*>')
+        reference_key = alias_server_reference["key"]
+        reference_pattern = re.compile(
+            rf'<div[^>]*data-reference-key="{re.escape(reference_key)}"[^>]*>'
+        )
         reference_match = reference_pattern.search(page)
-        self.assertIsNotNone(reference_match, 'Reference entry should render data attributes for highlighting')
+        self.assertIsNotNone(
+            reference_match,
+            "Reference entry should render data attributes for highlighting",
+        )
         reference_tag = reference_match.group(0)
 
-        self.assertIn(f'data-source-key="{alias_server_reference["source_key"]}"', reference_tag)
-        self.assertIn(f'data-target-key="{alias_server_reference["target_key"]}"', reference_tag)
+        self.assertIn(
+            f'data-source-key="{alias_server_reference["source_key"]}"', reference_tag
+        )
+        self.assertIn(
+            f'data-target-key="{alias_server_reference["target_key"]}"', reference_tag
+        )
 
         server_cid_reference = next(
             ref
-            for ref in cross_reference['references']
-            if ref['source_key'] == server_entry['entity_key']
-            and ref['target_key'] == cid_key
+            for ref in cross_reference["references"]
+            if ref["source_key"] == server_entry["entity_key"]
+            and ref["target_key"] == cid_key
         )
-        self.assertIn(server_cid_reference['key'], server_outgoing_values)
+        self.assertIn(server_cid_reference["key"], server_outgoing_values)
 
     def test_index_cross_reference_alias_to_alias_highlight_metadata(self):
         """Alias entries should expose highlight metadata when targeting another alias."""
@@ -436,110 +512,141 @@ def main(request):
     return "alias target"
 """.strip()
         server = Server(
-            name='alias-target-backend',
+            name="alias-target-backend",
             definition=server_definition,
         )
 
         alias_target = Alias(
-            name='alias-target',
-            definition=_alias_definition('alias-target', '/servers/alias-target-backend'),
+            name="alias-target",
+            definition=_alias_definition(
+                "alias-target", "/servers/alias-target-backend"
+            ),
         )
         alias_source = Alias(
-            name='alias-source',
-            definition=_alias_definition('alias-source', '/aliases/alias-target'),
+            name="alias-source",
+            definition=_alias_definition("alias-source", "/aliases/alias-target"),
         )
 
         db.session.add_all([server, alias_target, alias_source])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             cross_reference = _build_cross_reference_data()
 
-        source_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-source')
-        target_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alias-target')
+        source_entry = next(
+            item
+            for item in cross_reference["aliases"]
+            if item["name"] == "alias-source"
+        )
+        target_entry = next(
+            item
+            for item in cross_reference["aliases"]
+            if item["name"] == "alias-target"
+        )
         reference_entry = next(
             item
-            for item in cross_reference['references']
-            if item['source_name'] == 'alias-source' and item['target_name'] == 'alias-target'
+            for item in cross_reference["references"]
+            if item["source_name"] == "alias-source"
+            and item["target_name"] == "alias-target"
         )
 
-        source_key = source_entry['entity_key']
-        target_key = target_entry['entity_key']
-        reference_key = reference_entry['key']
+        source_key = source_entry["entity_key"]
+        target_key = target_entry["entity_key"]
+        reference_key = reference_entry["key"]
 
-        self.assertIn(target_key, source_entry['implied_keys'])
-        self.assertIn(source_key, target_entry['implied_keys'])
+        self.assertIn(target_key, source_entry["implied_keys"])
+        self.assertIn(source_key, target_entry["implied_keys"])
 
-        source_outgoing = set(filter(None, source_entry['outgoing_refs']))
-        target_incoming = set(filter(None, target_entry['incoming_refs']))
+        source_outgoing = set(filter(None, source_entry["outgoing_refs"]))
+        target_incoming = set(filter(None, target_entry["incoming_refs"]))
         self.assertIn(reference_key, source_outgoing)
         self.assertIn(reference_key, target_incoming)
 
-        source_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(source_key)}"[^>]*>')
+        source_pattern = re.compile(
+            rf'<div[^>]*data-entity-key="{re.escape(source_key)}"[^>]*>'
+        )
         source_match = source_pattern.search(page)
-        self.assertIsNotNone(source_match, 'Source alias entry should include data attributes for highlighting')
+        self.assertIsNotNone(
+            source_match,
+            "Source alias entry should include data attributes for highlighting",
+        )
         source_tag = source_match.group(0)
 
         source_implies_match = re.search(r'data-implies="([^"]*)"', source_tag)
-        self.assertIsNotNone(source_implies_match, 'Source alias should expose implied entity keys')
+        self.assertIsNotNone(
+            source_implies_match, "Source alias should expose implied entity keys"
+        )
         self.assertIn(target_key, source_implies_match.group(1).split())
 
         source_outgoing_match = re.search(r'data-outgoing-refs="([^"]*)"', source_tag)
-        self.assertIsNotNone(source_outgoing_match, 'Source alias should list outgoing reference keys')
+        self.assertIsNotNone(
+            source_outgoing_match, "Source alias should list outgoing reference keys"
+        )
         self.assertIn(reference_key, source_outgoing_match.group(1).split())
 
-        target_pattern = re.compile(rf'<div[^>]*data-entity-key="{re.escape(target_key)}"[^>]*>')
+        target_pattern = re.compile(
+            rf'<div[^>]*data-entity-key="{re.escape(target_key)}"[^>]*>'
+        )
         target_match = target_pattern.search(page)
-        self.assertIsNotNone(target_match, 'Target alias entry should include data attributes for highlighting')
+        self.assertIsNotNone(
+            target_match,
+            "Target alias entry should include data attributes for highlighting",
+        )
         target_tag = target_match.group(0)
 
         target_implies_match = re.search(r'data-implies="([^"]*)"', target_tag)
-        self.assertIsNotNone(target_implies_match, 'Target alias should expose implied entity keys')
+        self.assertIsNotNone(
+            target_implies_match, "Target alias should expose implied entity keys"
+        )
         self.assertIn(source_key, target_implies_match.group(1).split())
 
         target_incoming_match = re.search(r'data-incoming-refs="([^"]*)"', target_tag)
-        self.assertIsNotNone(target_incoming_match, 'Target alias should list incoming reference keys')
+        self.assertIsNotNone(
+            target_incoming_match, "Target alias should list incoming reference keys"
+        )
         self.assertIn(reference_key, target_incoming_match.group(1).split())
 
     def test_index_cross_reference_skips_cids_without_named_alias(self):
         """Orphaned CIDs from aliases without names should not appear in the dashboard."""
         self.authenticate()
 
-        cid_value = generate_cid(b'Alias without a name referencing this CID')
+        cid_value = generate_cid(b"Alias without a name referencing this CID")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'nameless alias content',
+            path=f"/{cid_value}",
+            file_data=b"nameless alias content",
         )
         nameless_alias = Alias(
-            name='',
-            definition=_alias_definition('', f'/{cid_value}'),
+            name="",
+            definition=_alias_definition("", f"/{cid_value}"),
         )
 
         db.session.add_all([cid_record, nameless_alias])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         page = response.get_data(as_text=True)
 
-        self.assertIn('No CIDs referenced by the workspace aliases or servers yet.', page)
+        self.assertIn(
+            "No CIDs referenced by the workspace aliases or servers yet.", page
+        )
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             cross_reference = _build_cross_reference_data()
 
         self.assertFalse(
-            any(entry['cid'] == cid_value for entry in cross_reference['cids']),
-            'CID referenced only by a nameless alias should be filtered out',
+            any(entry["cid"] == cid_value for entry in cross_reference["cids"]),
+            "CID referenced only by a nameless alias should be filtered out",
         )
         self.assertFalse(
             any(
-                ref['target_type'] == 'cid' and ref['target_name'] == cid_value
-                for ref in cross_reference['references']
+                ref["target_type"] == "cid" and ref["target_name"] == cid_value
+                for ref in cross_reference["references"]
             ),
-            'References column should not include entries for the filtered CID',
+            "References column should not include entries for the filtered CID",
         )
 
     def test_index_cross_reference_includes_cid_file_relationships(self):
@@ -547,26 +654,26 @@ def main(request):
 
         self.authenticate()
 
-        cid_value_main = generate_cid(b'main cid payload')
-        cid_value_target = generate_cid(b'target cid payload')
+        cid_value_main = generate_cid(b"main cid payload")
+        cid_value_target = generate_cid(b"target cid payload")
 
         cid_record = CID(
-            path=f'/{cid_value_main}',
-            file_data=b'main references payload',
+            path=f"/{cid_value_main}",
+            file_data=b"main references payload",
         )
 
         alias_alpha = Alias(
-            name='alpha',
-            definition=_alias_definition('alpha', '/servers/bravo'),
+            name="alpha",
+            definition=_alias_definition("alpha", "/servers/bravo"),
         )
 
         alias_beta = Alias(
-            name='beta',
-            definition=_alias_definition('beta', '/servers/bravo'),
+            name="beta",
+            definition=_alias_definition("beta", "/servers/bravo"),
         )
 
         server_bravo = Server(
-            name='bravo',
+            name="bravo",
             definition="""
 def main(request):
     return "alpha"
@@ -577,8 +684,8 @@ def main(request):
         db.session.commit()
 
         alias_target_map = {
-            'alpha': f'/{cid_value_main}',
-            'beta': f'/{cid_value_target}',
+            "alpha": f"/{cid_value_main}",
+            "beta": f"/{cid_value_target}",
         }
 
         def fake_primary_route(alias_obj):
@@ -588,70 +695,95 @@ def main(request):
             return SimpleNamespace(target_path=target)
 
         def fake_target_refs(path):
-            if path == f'/{cid_value_main}':
-                return {'aliases': [], 'servers': [], 'cids': [{'cid': cid_value_main}]}
-            if path == f'/{cid_value_target}':
-                return {'aliases': [], 'servers': [], 'cids': [{'cid': cid_value_target}]}
-            return {'aliases': [], 'servers': [], 'cids': []}
+            if path == f"/{cid_value_main}":
+                return {"aliases": [], "servers": [], "cids": [{"cid": cid_value_main}]}
+            if path == f"/{cid_value_target}":
+                return {
+                    "aliases": [],
+                    "servers": [],
+                    "cids": [{"cid": cid_value_target}],
+                }
+            return {"aliases": [], "servers": [], "cids": []}
 
-        fake_server_refs = {'aliases': [{'name': 'alpha'}], 'servers': [], 'cids': []}
+        fake_server_refs = {"aliases": [{"name": "alpha"}], "servers": [], "cids": []}
 
         fake_cid_refs = {
-            'aliases': [{'name': 'alpha'}, {'name': 'alpha'}],
-            'servers': [{'name': 'bravo'}],
-            'cids': [{'cid': cid_value_target}, {'cid': cid_value_target}],
+            "aliases": [{"name": "alpha"}, {"name": "alpha"}],
+            "servers": [{"name": "bravo"}],
+            "cids": [{"cid": cid_value_target}, {"cid": cid_value_target}],
         }
 
-        with patch('routes.core.get_primary_alias_route', side_effect=fake_primary_route), \
-            patch('routes.core.extract_references_from_target', side_effect=fake_target_refs), \
-            patch('routes.core.extract_references_from_text', return_value=fake_server_refs), \
-            patch('routes.core.extract_references_from_bytes', return_value=fake_cid_refs), \
-            self.app.test_request_context('/'):
-
+        with (
+            patch(
+                "routes.core.get_primary_alias_route", side_effect=fake_primary_route
+            ),
+            patch(
+                "routes.core.extract_references_from_target",
+                side_effect=fake_target_refs,
+            ),
+            patch(
+                "routes.core.extract_references_from_text",
+                return_value=fake_server_refs,
+            ),
+            patch(
+                "routes.core.extract_references_from_bytes", return_value=fake_cid_refs
+            ),
+            self.app.test_request_context("/"),
+        ):
             cross_reference = _build_cross_reference_data()
 
-        alias_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'alpha')
-        beta_entry = next(item for item in cross_reference['aliases'] if item['name'] == 'beta')
-        server_entry = next(item for item in cross_reference['servers'] if item['name'] == 'bravo')
-        cid_main_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value_main)
-        cid_target_entry = next(item for item in cross_reference['cids'] if item['cid'] == cid_value_target)
+        alias_entry = next(
+            item for item in cross_reference["aliases"] if item["name"] == "alpha"
+        )
+        beta_entry = next(
+            item for item in cross_reference["aliases"] if item["name"] == "beta"
+        )
+        server_entry = next(
+            item for item in cross_reference["servers"] if item["name"] == "bravo"
+        )
+        cid_main_entry = next(
+            item for item in cross_reference["cids"] if item["cid"] == cid_value_main
+        )
+        cid_target_entry = next(
+            item for item in cross_reference["cids"] if item["cid"] == cid_value_target
+        )
 
-        alpha_key = alias_entry['entity_key']
-        server_key = server_entry['entity_key']
-        cid_main_key = cid_main_entry['entity_key']
-        cid_target_key = cid_target_entry['entity_key']
+        alpha_key = alias_entry["entity_key"]
+        server_key = server_entry["entity_key"]
+        cid_main_key = cid_main_entry["entity_key"]
+        cid_target_key = cid_target_entry["entity_key"]
 
-        self.assertIn(alpha_key, cid_main_entry['implied_keys'])
-        self.assertIn(server_key, cid_main_entry['implied_keys'])
-        self.assertIn(cid_target_key, cid_main_entry['implied_keys'])
+        self.assertIn(alpha_key, cid_main_entry["implied_keys"])
+        self.assertIn(server_key, cid_main_entry["implied_keys"])
+        self.assertIn(cid_target_key, cid_main_entry["implied_keys"])
 
-        self.assertEqual(cid_main_entry['preview'], 'main references payl')
-        self.assertTrue(cid_main_entry['preview_truncated'])
-        self.assertEqual(cid_target_entry['preview'], '')
-        self.assertFalse(cid_target_entry['preview_truncated'])
+        self.assertEqual(cid_main_entry["preview"], "main references payl")
+        self.assertTrue(cid_main_entry["preview_truncated"])
+        self.assertEqual(cid_target_entry["preview"], "")
+        self.assertFalse(cid_target_entry["preview_truncated"])
 
         cid_to_alias_refs = [
             ref
-            for ref in cross_reference['references']
-            if ref['source_key'] == cid_main_key and ref['target_key'] == alpha_key
+            for ref in cross_reference["references"]
+            if ref["source_key"] == cid_main_key and ref["target_key"] == alpha_key
         ]
         cid_to_server_refs = [
             ref
-            for ref in cross_reference['references']
-            if ref['source_key'] == cid_main_key and ref['target_key'] == server_key
+            for ref in cross_reference["references"]
+            if ref["source_key"] == cid_main_key and ref["target_key"] == server_key
         ]
         cid_to_cid_refs = [
             ref
-            for ref in cross_reference['references']
-            if ref['source_key'] == cid_main_key and ref['target_key'] == cid_target_key
+            for ref in cross_reference["references"]
+            if ref["source_key"] == cid_main_key and ref["target_key"] == cid_target_key
         ]
 
         self.assertEqual(len(cid_to_alias_refs), 1)
         self.assertEqual(len(cid_to_server_refs), 1)
         self.assertEqual(len(cid_to_cid_refs), 1)
 
-        self.assertEqual(len(set(beta_entry['outgoing_refs'])), 1)
-        self.assertEqual(len(set(cid_target_entry['incoming_refs'])), 2)
+        self.assertEqual(len(set(beta_entry["outgoing_refs"])), 1)
+        self.assertEqual(len(set(cid_target_entry["incoming_refs"])), 2)
 
 
 class TestSearchApi(BaseTestCase):
@@ -660,100 +792,116 @@ class TestSearchApi(BaseTestCase):
     def test_search_results_include_all_categories(self):
         """Search results should highlight matches across every enabled category."""
 
-        search_term = 'search-api-unique'
-        alias_name = f'{search_term}-alias'
-        server_name = f'{search_term}-server'
-        variable_name = f'{search_term.upper()}_VARIABLE'
-        secret_name = f'{search_term.upper()}_SECRET'
+        search_term = "search-api-unique"
+        alias_name = f"{search_term}-alias"
+        server_name = f"{search_term}-server"
+        variable_name = f"{search_term.upper()}_VARIABLE"
+        secret_name = f"{search_term.upper()}_SECRET"
 
         alias = Alias(
             name=alias_name,
-            definition=_alias_definition(alias_name, f'/servers/{server_name}'),
+            definition=_alias_definition(alias_name, f"/servers/{server_name}"),
         )
         server = Server(
             name=server_name,
-            definition='''
+            definition="""
 def main(request):
     return "Search API unique server response for search-api-unique"
-'''.strip(),
+""".strip(),
         )
         variable = Variable(
             name=variable_name,
-            definition='Unique variable for search-api-unique test coverage.',
+            definition="Unique variable for search-api-unique test coverage.",
         )
         secret = Secret(
             name=secret_name,
-            definition='super secret search-api-unique token',
+            definition="super secret search-api-unique token",
         )
-        cid_value = generate_cid(f'CID content for {search_term}'.encode())
+        cid_value = generate_cid(f"CID content for {search_term}".encode())
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=f'Payload for {search_term}'.encode(),
+            path=f"/{cid_value}",
+            file_data=f"Payload for {search_term}".encode(),
         )
 
         db.session.add_all([alias, server, variable, secret, cid_record])
         db.session.commit()
 
-        response = self.client.get('/search/results', query_string={'q': search_term})
+        response = self.client.get("/search/results", query_string={"q": search_term})
         self.assertEqual(response.status_code, 200)
 
         payload = response.get_json()
-        categories = payload['categories']
+        categories = payload["categories"]
 
-        self.assertGreaterEqual(payload['total_count'], 5)
-        self.assertEqual(categories['aliases']['count'], 1)
-        self.assertEqual(categories['servers']['count'], 1)
-        self.assertEqual(categories['variables']['count'], 1)
-        self.assertEqual(categories['secrets']['count'], 1)
-        self.assertEqual(categories['cids']['count'], 1)
+        self.assertGreaterEqual(payload["total_count"], 5)
+        self.assertEqual(categories["aliases"]["count"], 1)
+        self.assertEqual(categories["servers"]["count"], 1)
+        self.assertEqual(categories["variables"]["count"], 1)
+        self.assertEqual(categories["secrets"]["count"], 1)
+        self.assertEqual(categories["cids"]["count"], 1)
 
-        alias_details = categories['aliases']['items'][0]['details']
-        self.assertTrue(any('<mark>' in detail['value'] for detail in alias_details))
+        alias_details = categories["aliases"]["items"][0]["details"]
+        self.assertTrue(any("<mark>" in detail["value"] for detail in alias_details))
 
-        alias_entry = categories['aliases']['items'][0]
-        server_entry = categories['servers']['items'][0]
-        variable_entry = categories['variables']['items'][0]
-        secret_entry = categories['secrets']['items'][0]
-        cid_entry = categories['cids']['items'][0]
+        alias_entry = categories["aliases"]["items"][0]
+        server_entry = categories["servers"]["items"][0]
+        variable_entry = categories["variables"]["items"][0]
+        secret_entry = categories["secrets"]["items"][0]
+        cid_entry = categories["cids"]["items"][0]
 
-        server_details = server_entry['details']
-        self.assertTrue(server_details and '<mark>' in server_details[0]['value'])
+        server_details = server_entry["details"]
+        self.assertTrue(server_details and "<mark>" in server_details[0]["value"])
 
-        cid_details = cid_entry['details']
-        self.assertTrue(cid_details and '<mark>' in cid_details[0]['value'])
+        cid_details = cid_entry["details"]
+        self.assertTrue(cid_details and "<mark>" in cid_details[0]["value"])
 
-        self.assertTrue(alias_entry['aliases'])
-        self.assertEqual(alias_entry['aliases'][0]['name'], alias_name)
-        self.assertIn(f'/aliases/new?target_path=/servers/{server_name}', alias_entry['alias_form_url'])
+        self.assertTrue(alias_entry["aliases"])
+        self.assertEqual(alias_entry["aliases"][0]["name"], alias_name)
+        self.assertIn(
+            f"/aliases/new?target_path=/servers/{server_name}",
+            alias_entry["alias_form_url"],
+        )
 
-        self.assertTrue(server_entry['aliases'])
-        self.assertEqual(server_entry['aliases'][0]['name'], alias_name)
-        self.assertIn(f'target_path=/servers/{server_name}', server_entry['alias_form_url'])
-        self.assertIn(f'name={server_name}', server_entry['alias_form_url'])
+        self.assertTrue(server_entry["aliases"])
+        self.assertEqual(server_entry["aliases"][0]["name"], alias_name)
+        self.assertIn(
+            f"target_path=/servers/{server_name}", server_entry["alias_form_url"]
+        )
+        self.assertIn(f"name={server_name}", server_entry["alias_form_url"])
 
-        self.assertIn(f'target_path=/variables/{variable_name}', variable_entry['alias_form_url'])
-        self.assertIn(f'name={variable_name}', variable_entry['alias_form_url'])
+        self.assertIn(
+            f"target_path=/variables/{variable_name}", variable_entry["alias_form_url"]
+        )
+        self.assertIn(f"name={variable_name}", variable_entry["alias_form_url"])
 
-        self.assertIn(f'target_path=/secrets/{secret_name}', secret_entry['alias_form_url'])
-        self.assertIn(f'name={secret_name}', secret_entry['alias_form_url'])
+        self.assertIn(
+            f"target_path=/secrets/{secret_name}", secret_entry["alias_form_url"]
+        )
+        self.assertIn(f"name={secret_name}", secret_entry["alias_form_url"])
 
-        self.assertIn(f'target_path=/{cid_value}', cid_entry['alias_form_url'])
-        self.assertIn(f'name={cid_value}', cid_entry['alias_form_url'])
+        self.assertIn(f"target_path=/{cid_value}", cid_entry["alias_form_url"])
+        self.assertIn(f"name={cid_value}", cid_entry["alias_form_url"])
 
         filtered = self.client.get(
-            '/search/results',
-            query_string={'q': search_term, 'aliases': '1', 'servers': '0', 'variables': '0', 'secrets': '0', 'cids': '0'},
+            "/search/results",
+            query_string={
+                "q": search_term,
+                "aliases": "1",
+                "servers": "0",
+                "variables": "0",
+                "secrets": "0",
+                "cids": "0",
+            },
         )
         filtered_payload = filtered.get_json()
-        self.assertEqual(filtered_payload['categories']['aliases']['count'], 1)
-        for category in ('servers', 'variables', 'secrets', 'cids'):
-            self.assertEqual(filtered_payload['categories'][category]['count'], 0)
+        self.assertEqual(filtered_payload["categories"]["aliases"]["count"], 1)
+        for category in ("servers", "variables", "secrets", "cids"):
+            self.assertEqual(filtered_payload["categories"][category]["count"], 0)
 
-        empty_response = self.client.get('/search/results', query_string={'q': '   '})
+        empty_response = self.client.get("/search/results", query_string={"q": "   "})
         empty_payload = empty_response.get_json()
-        self.assertEqual(empty_payload['total_count'], 0)
-        for category in ('aliases', 'servers', 'variables', 'secrets', 'cids'):
-            self.assertEqual(empty_payload['categories'][category]['count'], 0)
+        self.assertEqual(empty_payload["total_count"], 0)
+        for category in ("aliases", "servers", "variables", "secrets", "cids"):
+            self.assertEqual(empty_payload["categories"][category]["count"], 0)
 
     def test_cid_results_sorted_and_limited_to_latest_entries(self):
         """CID search results should be sorted by newest first and capped at 100 items."""
@@ -761,8 +909,8 @@ def main(request):
         now = datetime.now(timezone.utc)
         for index in range(105):
             record = CID(
-                path=f'/needle-{index:03d}',
-                file_data=f'needle {index}'.encode(),
+                path=f"/needle-{index:03d}",
+                file_data=f"needle {index}".encode(),
                 created_at=now + timedelta(minutes=index),
             )
             db.session.add(record)
@@ -770,88 +918,90 @@ def main(request):
         db.session.commit()
 
         response = self.client.get(
-            '/search/results',
+            "/search/results",
             query_string={
-                'q': 'needle',
-                'aliases': '0',
-                'servers': '0',
-                'variables': '0',
-                'secrets': '0',
-                'cids': '1',
+                "q": "needle",
+                "aliases": "0",
+                "servers": "0",
+                "variables": "0",
+                "secrets": "0",
+                "cids": "1",
             },
         )
 
         self.assertEqual(response.status_code, 200)
 
         payload = response.get_json()
-        cids_category = payload['categories']['cids']
+        cids_category = payload["categories"]["cids"]
 
-        self.assertEqual(payload['total_count'], 100)
-        self.assertEqual(cids_category['count'], 100)
-        self.assertEqual(len(cids_category['items']), 100)
-        self.assertEqual(cids_category['items'][0]['name'], '/needle-104')
-        self.assertEqual(cids_category['items'][-1]['name'], '/needle-005')
+        self.assertEqual(payload["total_count"], 100)
+        self.assertEqual(cids_category["count"], 100)
+        self.assertEqual(len(cids_category["items"]), 100)
+        self.assertEqual(cids_category["items"][0]["name"], "/needle-104")
+        self.assertEqual(cids_category["items"][-1]["name"], "/needle-005")
 
     def test_index_cross_reference_skips_cids_without_named_server(self):
         """Servers lacking a name should not introduce orphan CID entries."""
         self.authenticate()
 
-        cid_value = generate_cid(b'Server without a name referencing this CID')
+        cid_value = generate_cid(b"Server without a name referencing this CID")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'nameless server content',
+            path=f"/{cid_value}",
+            file_data=b"nameless server content",
         )
         nameless_server = Server(
-            name='',
+            name="",
             definition="""
 def main(request):
     return "Hello"
 """.strip(),
-            definition_cid=f'/{cid_value}',
+            definition_cid=f"/{cid_value}",
         )
 
         db.session.add_all([cid_record, nameless_server])
         db.session.commit()
 
-        response = self.client.get('/')
+        response = self.client.get("/")
         page = response.get_data(as_text=True)
 
-        self.assertIn('No CIDs referenced by the workspace aliases or servers yet.', page)
+        self.assertIn(
+            "No CIDs referenced by the workspace aliases or servers yet.", page
+        )
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             cross_reference = _build_cross_reference_data()
 
         self.assertFalse(
-            any(entry['cid'] == cid_value for entry in cross_reference['cids']),
-            'CID referenced only by a nameless server should be filtered out',
+            any(entry["cid"] == cid_value for entry in cross_reference["cids"]),
+            "CID referenced only by a nameless server should be filtered out",
         )
         self.assertFalse(
             any(
-                ref['target_type'] == 'cid' and ref['target_name'] == cid_value
-                for ref in cross_reference['references']
+                ref["target_type"] == "cid" and ref["target_name"] == cid_value
+                for ref in cross_reference["references"]
             ),
-            'References column should not include entries for the filtered CID',
+            "References column should not include entries for the filtered CID",
         )
 
     def test_plans_page(self):
         """Plans endpoint should stay disabled and answer with a 404."""
-        response = self.client.get('/plans')
+        response = self.client.get("/plans")
         self.assertEqual(response.status_code, 404)
 
     def test_terms_page_remains_disabled_and_returns_404(self):
         """/terms should behave like a missing page while the legacy route stays disabled."""
-        response = self.client.get('/terms')
+        response = self.client.get("/terms")
         # The terms route is intentionally disabled, so the app should treat it as not found.
         self.assertEqual(response.status_code, 404)
 
     def test_privacy_page_returns_not_found(self):
         """Privacy endpoint should stay disabled and answer with a 404."""
-        response = self.client.get('/privacy')
+        response = self.client.get("/privacy")
         self.assertEqual(response.status_code, 404)
 
     def test_404_page_includes_creation_links(self):
         """The 404 page should offer shortcuts for creating aliases, servers, variables, and secrets."""
-        missing_path = '/missing/path'
+        missing_path = "/missing/path"
 
         response = self.client.get(missing_path)
         self.assertEqual(response.status_code, 404)
@@ -868,45 +1018,45 @@ class TestAuthenticatedRoutes(BaseTestCase):
 
     def test_dashboard_redirects_unauthenticated(self):
         """Test dashboard redirects unauthenticated users."""
-        response = self.client.get('/dashboard', follow_redirects=False)
+        response = self.client.get("/dashboard", follow_redirects=False)
         self.assertEqual(response.status_code, 302)
 
     def test_dashboard_redirects_authenticated_users_to_profile(self):
         """Dashboard should lead signed-in users to their profile overview."""
-        response = self.client.get('/dashboard', follow_redirects=False)
+        response = self.client.get("/dashboard", follow_redirects=False)
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/profile', response.location)
+        self.assertIn("/profile", response.location)
 
     def test_dashboard_without_access_redirects_to_profile(self):
         """Test dashboard redirects to profile."""
-        response = self.client.get('/dashboard', follow_redirects=False)
+        response = self.client.get("/dashboard", follow_redirects=False)
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/profile', response.location)
+        self.assertIn("/profile", response.location)
 
     def test_profile_page_returns_success_for_authenticated_user(self):
         """Ensure authenticated users can load their profile page with a 200 response."""
-        response = self.client.get('/profile')
+        response = self.client.get("/profile")
         # Authenticated access should successfully render the profile page.
         self.assertEqual(response.status_code, 200)
 
     def test_navigation_includes_meta_inspector_link(self):
         """Display a metadata inspector shortcut in the site navigation."""
 
-        response = self.client.get('/profile')
+        response = self.client.get("/profile")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         self.assertIn('href="/meta/profile.html"', page)
-        self.assertIn('fa-circle-info', page)
-        self.assertIn('About this page', page)
-        self.assertIn('History', page)
-        self.assertIn('Server Events', page)
-        self.assertIn('/history?start=', page)
-        self.assertIn('/server_events?start=', page)
+        self.assertIn("fa-circle-info", page)
+        self.assertIn("About this page", page)
+        self.assertIn("History", page)
+        self.assertIn("Server Events", page)
+        self.assertIn("/history", page)
+        self.assertIn("/server_events", page)
 
     def test_content_route_returns_not_found(self):
         """Legacy /content endpoint should be unavailable."""
-        response = self.client.get('/content', follow_redirects=False)
+        response = self.client.get("/content", follow_redirects=False)
         self.assertEqual(response.status_code, 404)
 
 
@@ -914,37 +1064,43 @@ class TestRemovedLegacyRoutes(BaseTestCase):
     """Ensure removed authentication and marketing routes return 404."""
 
     def test_subscribe_route_removed(self):
-        response = self.client.get('/subscribe')
+        response = self.client.get("/subscribe")
         self.assertEqual(response.status_code, 404)
-        response = self.client.post('/subscribe', data={'plan': 'free', 'submit': 'Subscribe'})
+        response = self.client.post(
+            "/subscribe", data={"plan": "free", "submit": "Subscribe"}
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_accept_terms_route_removed(self):
-        response = self.client.get('/accept-terms')
+        response = self.client.get("/accept-terms")
         self.assertEqual(response.status_code, 404)
-        response = self.client.post('/accept-terms', data={'submit': 'Accept Terms'})
+        response = self.client.post("/accept-terms", data={"submit": "Accept Terms"})
         self.assertEqual(response.status_code, 404)
 
     def test_invitation_routes_removed(self):
-        response = self.client.get('/invitations')
+        response = self.client.get("/invitations")
         self.assertEqual(response.status_code, 404)
-        response = self.client.get('/create-invitation')
+        response = self.client.get("/create-invitation")
         self.assertEqual(response.status_code, 404)
-        response = self.client.post('/create-invitation', data={'submit': 'Create Invitation'})
+        response = self.client.post(
+            "/create-invitation", data={"submit": "Create Invitation"}
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_require_invitation_removed(self):
-        response = self.client.get('/require-invitation')
+        response = self.client.get("/require-invitation")
         self.assertEqual(response.status_code, 404)
-        response = self.client.post('/require-invitation', data={'invitation_code': 'test'})
+        response = self.client.post(
+            "/require-invitation", data={"invitation_code": "test"}
+        )
         self.assertEqual(response.status_code, 404)
 
     def test_invite_link_removed(self):
-        response = self.client.get('/invite/example-code')
+        response = self.client.get("/invite/example-code")
         self.assertEqual(response.status_code, 404)
 
     def test_screenshot_demo_removed(self):
-        response = self.client.get('/_screenshot/cid-demo')
+        response = self.client.get("/_screenshot/cid-demo")
         self.assertEqual(response.status_code, 404)
 
 
@@ -953,37 +1109,46 @@ class TestFileUploadRoutes(BaseTestCase):
 
     def test_upload_get_returns_200_with_text_ai_markup(self):
         """GET /upload returns HTTP 200 and renders the text AI input markup."""
-        response = self.client.get('/upload')
+        response = self.client.get("/upload")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         # The upload page must render the AI-enhanced text input so users can submit
         # content with the correct identifiers.
-        self.assertIn('text_content-ai-input', page)
+        self.assertIn("text_content-ai-input", page)
         self.assertIn('data-ai-target-id="text_content"', page)
         self.assertIn('data-code-editor-for="text_content"', page)
-        self.assertIn('js/code_editor.js', page)
-        self.assertIn('ace-builds@1.32.6', page)
+        self.assertIn("js/code_editor.js", page)
+        self.assertIn("ace-builds@1.32.6", page)
+        self.assertIn("data-ai-request-editor", page)
+        self.assertIn("AI request editor", page)
+        self.assertIn("AI action editor", page)
+        self.assertIn("Sample AI server", page)
+        self.assertIn("About AI", page)
 
     def test_upload_post_stores_file_and_returns_success_page(self):
         """Uploading a new file persists its content for the user and renders the success page."""
         # Create test file data to submit through the upload form.
         test_data = b"Test file content"
-        test_file = (BytesIO(test_data), 'test.txt')
+        test_file = (BytesIO(test_data), "test.txt")
 
-        response = self.client.post('/upload', data={
-            'file': test_file,
-            'title': 'Test File',
-            'description': 'Test description',
-            'submit': 'Upload File'
-        }, follow_redirects=True)
+        response = self.client.post(
+            "/upload",
+            data={
+                "file": test_file,
+                "title": "Test File",
+                "description": "Test description",
+                "submit": "Upload File",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
         # The user's upload must be resolvable (via DB for hash-based or literal extraction)
         # Query by the specific CID that should have been generated from the test data
         expected_cid = generate_cid(test_data)
-        cid_record = get_cid_by_path(f'/{expected_cid}')
+        cid_record = get_cid_by_path(f"/{expected_cid}")
         self.assertIsNotNone(cid_record)
         self.assertEqual(cid_record.file_data, test_data)
 
@@ -1002,12 +1167,16 @@ class TestFileUploadRoutes(BaseTestCase):
         db.session.commit()
 
         # Try to upload same content
-        test_file = (BytesIO(test_data), 'duplicate.txt')
-        response = self.client.post('/upload', data={
-            'file': test_file,
-            'title': 'Duplicate File',
-            'submit': 'Upload File'
-        }, follow_redirects=True)
+        test_file = (BytesIO(test_data), "duplicate.txt")
+        response = self.client.post(
+            "/upload",
+            data={
+                "file": test_file,
+                "title": "Duplicate File",
+                "submit": "Upload File",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -1026,12 +1195,12 @@ class TestFileUploadRoutes(BaseTestCase):
         db.session.add(test_cid)
         db.session.commit()
 
-        response = self.client.get('/uploads')
+        response = self.client.get("/uploads")
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
         # Success requires the manual upload to appear with its reference section.
-        self.assertIn('References', page)
-        self.assertIn('None', page)
+        self.assertIn("References", page)
+        self.assertIn("None", page)
 
     def test_uploads_list_excludes_server_events(self):
         """Uploads list should only show manual uploads."""
@@ -1077,24 +1246,26 @@ class TestFileUploadRoutes(BaseTestCase):
         )
 
         invocation = ServerInvocation(
-            server_name='test-server',
+            server_name="test-server",
             result_cid=server_result_cid,
             invocation_cid=invocation_cid,
             request_details_cid=request_cid,
             servers_cid=servers_cid,
         )
 
-        db.session.add_all([
-            manual_upload,
-            server_upload,
-            request_upload,
-            invocation_upload,
-            servers_upload,
-            invocation,
-        ])
+        db.session.add_all(
+            [
+                manual_upload,
+                server_upload,
+                request_upload,
+                invocation_upload,
+                servers_upload,
+                invocation,
+            ]
+        )
         db.session.commit()
 
-        response = self.client.get('/uploads')
+        response = self.client.get("/uploads")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
@@ -1103,8 +1274,8 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertNotIn(request_cid, page)
         self.assertNotIn(invocation_cid, page)
         self.assertNotIn(servers_cid, page)
-        self.assertNotIn('Server: test-server', page)
-        self.assertNotIn('View event JSON', page)
+        self.assertNotIn("Server: test-server", page)
+        self.assertNotIn("View event JSON", page)
 
     def test_server_events_page_shows_invocations(self):
         """Server events page should list invocation details and required links."""
@@ -1112,21 +1283,23 @@ class TestFileUploadRoutes(BaseTestCase):
         invocation_cid = "I" * CID_LENGTH
         servers_cid = "S" * CID_LENGTH
 
-        request_payload = json.dumps({
-            'headers': {
-                'Referer': 'https://example.com/origin'
-            }
-        }, indent=2, sort_keys=True).encode('utf-8')
+        request_payload = json.dumps(
+            {"headers": {"Referer": "https://example.com/origin"}},
+            indent=2,
+            sort_keys=True,
+        ).encode("utf-8")
         request_cid = generate_cid(request_payload)
 
-        db.session.add(CID(
-            path=f'/{request_cid}',
-            file_data=request_payload,
-            file_size=len(request_payload),
-        ))
+        db.session.add(
+            CID(
+                path=f"/{request_cid}",
+                file_data=request_payload,
+                file_size=len(request_payload),
+            )
+        )
 
         invocation = ServerInvocation(
-            server_name='test-server',
+            server_name="test-server",
             result_cid=result_cid,
             servers_cid=servers_cid,
             request_details_cid=request_cid,
@@ -1136,7 +1309,7 @@ class TestFileUploadRoutes(BaseTestCase):
         db.session.add(invocation)
         db.session.commit()
 
-        response = self.client.get('/server_events')
+        response = self.client.get("/server_events")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
@@ -1145,20 +1318,20 @@ class TestFileUploadRoutes(BaseTestCase):
         self.assertIn(f'href="/{result_cid}.txt"', page)
         self.assertIn(f'href="/{servers_cid}.txt"', page)
 
-        self.assertIn(f'/{invocation_cid}.txt', page)
-        self.assertIn(f'/{request_cid}.txt', page)
-        self.assertIn(f'/{result_cid}.txt', page)
-        self.assertIn(f'/{servers_cid}.txt', page)
+        self.assertIn(f"/{invocation_cid}.txt", page)
+        self.assertIn(f"/{request_cid}.txt", page)
+        self.assertIn(f"/{result_cid}.txt", page)
+        self.assertIn(f"/{servers_cid}.txt", page)
 
-        self.assertIn(f'/edit/{invocation_cid}', page)
-        self.assertIn(f'/meta/{invocation_cid}', page)
-        self.assertIn('/servers/test-server', page)
-        self.assertIn('https://example.com/origin', page)
+        self.assertIn(f"/edit/{invocation_cid}", page)
+        self.assertIn(f"/meta/{invocation_cid}", page)
+        self.assertIn("/servers/test-server", page)
+        self.assertIn("https://example.com/origin", page)
 
-        self.assertIn(f'#{invocation_cid[:9]}...', page)
-        self.assertIn(f'#{request_cid[:9]}...', page)
-        self.assertIn(f'#{result_cid[:9]}...', page)
-        self.assertIn(f'#{servers_cid[:9]}...', page)
+        self.assertIn(f"#{invocation_cid[:9]}...", page)
+        self.assertIn(f"#{request_cid[:9]}...", page)
+        self.assertIn(f"#{result_cid[:9]}...", page)
+        self.assertIn(f"#{servers_cid[:9]}...", page)
 
 
 class TestCidEditingRoutes(BaseTestCase):
@@ -1167,10 +1340,10 @@ class TestCidEditingRoutes(BaseTestCase):
     def _create_cid_record(self, content: bytes, path: str = None) -> str:
         if path is None:
             cid_value = generate_cid(content)
-            cid_path = f'/{cid_value}'
+            cid_path = f"/{cid_value}"
         else:
-            cid_path = path if path.startswith('/') else f'/{path}'
-            cid_value = cid_path.lstrip('/')
+            cid_path = path if path.startswith("/") else f"/{path}"
+            cid_value = cid_path.lstrip("/")
 
         record = CID(
             path=cid_path,
@@ -1191,175 +1364,175 @@ class TestCidEditingRoutes(BaseTestCase):
         return alias
 
     def test_edit_requires_login(self):
-        cid_value = self._create_cid_record(b'needs auth')
-        response = self.client.get(f'/edit/{cid_value}', follow_redirects=False)
+        cid_value = self._create_cid_record(b"needs auth")
+        response = self.client.get(f"/edit/{cid_value}", follow_redirects=False)
         self.assertEqual(response.status_code, 200)
 
     def test_edit_cid_get_full_match(self):
-        cid_value = self._create_cid_record(b'original content')
+        cid_value = self._create_cid_record(b"original content")
         alias = Alias(
-            name='docs',
-            definition=_alias_definition('docs', '/docs'),
+            name="docs",
+            definition=_alias_definition("docs", "/docs"),
         )
-        server = Server(name='ref-server', definition='return None')
+        server = Server(name="ref-server", definition="return None")
         db.session.add_all([alias, server])
         db.session.commit()
-        cid_record = CID.query.filter_by(path=f'/{cid_value}').first()
-        cid_record.file_data = b'Use /docs with /servers/ref-server'
+        cid_record = CID.query.filter_by(path=f"/{cid_value}").first()
+        cid_record.file_data = b"Use /docs with /servers/ref-server"
         db.session.commit()
 
-        response = self.client.get(f'/edit/{cid_value}')
+        response = self.client.get(f"/edit/{cid_value}")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Referenced Entities', page)
-        self.assertIn('docs', page)
-        self.assertIn('ref-server', page)
+        self.assertIn("Referenced Entities", page)
+        self.assertIn("docs", page)
+        self.assertIn("ref-server", page)
         self.assertIn(cid_value, page)
-        self.assertIn('text_content-ai-input', page)
+        self.assertIn("text_content-ai-input", page)
         self.assertIn('data-ai-target-id="text_content"', page)
         self.assertIn('data-code-editor-for="text_content"', page)
-        self.assertIn('js/code_editor.js', page)
-        self.assertIn('ace-builds@1.32.6', page)
+        self.assertIn("js/code_editor.js", page)
+        self.assertIn("ace-builds@1.32.6", page)
 
     def test_edit_cid_get_without_alias_shows_alias_field(self):
-        cid_value = self._create_cid_record(b'no alias yet')
-        response = self.client.get(f'/edit/{cid_value}')
+        cid_value = self._create_cid_record(b"no alias yet")
+        response = self.client.get(f"/edit/{cid_value}")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias Name (optional)', page)
-        self.assertIn('Optionally supply a new alias', page)
+        self.assertIn("Alias Name (optional)", page)
+        self.assertIn("Optionally supply a new alias", page)
 
     def test_edit_cid_get_unique_prefix(self):
-        cid_value = self._create_cid_record(b'unique prefix content')
+        cid_value = self._create_cid_record(b"unique prefix content")
         # Use 8 characters to ensure uniqueness with pre-loaded CIDs
         prefix = cid_value[:8]
 
-        response = self.client.get(f'/edit/{prefix}')
+        response = self.client.get(f"/edit/{prefix}")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         self.assertIn(cid_value, page)
-        self.assertIn('unique prefix content', page)
+        self.assertIn("unique prefix content", page)
 
     def test_edit_cid_get_with_existing_alias_updates_button_text(self):
-        cid_value = self._create_cid_record(b'aliased content')
-        self._create_alias('Atari', f'/{cid_value}')
+        cid_value = self._create_cid_record(b"aliased content")
+        self._create_alias("Atari", f"/{cid_value}")
 
-        response = self.client.get(f'/edit/{cid_value}')
+        response = self.client.get(f"/edit/{cid_value}")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Save Atari', page)
-        self.assertIn('Saving will update the <strong>Atari</strong> alias', page)
-        self.assertNotIn('Alias Name (optional)', page)
+        self.assertIn("Save Atari", page)
+        self.assertIn("Saving will update the <strong>Atari</strong> alias", page)
+        self.assertNotIn("Alias Name (optional)", page)
 
     def test_edit_cid_multiple_matches(self):
-        first = self._create_cid_record(b'first option', path='/shared123')
-        second = self._create_cid_record(b'second option', path='/shared456')
+        first = self._create_cid_record(b"first option", path="/shared123")
+        second = self._create_cid_record(b"second option", path="/shared456")
 
-        response = self.client.get('/edit/shared')
+        response = self.client.get("/edit/shared")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Multiple Matches Found', page)
+        self.assertIn("Multiple Matches Found", page)
         self.assertIn(first, page)
         self.assertIn(second, page)
 
     def test_edit_cid_full_match_preferred_over_prefix(self):
-        exact = self._create_cid_record(b'exact match', path='/shared')
-        self._create_cid_record(b'longer match', path='/shared123')
+        exact = self._create_cid_record(b"exact match", path="/shared")
+        self._create_cid_record(b"longer match", path="/shared123")
 
-        response = self.client.get('/edit/shared')
+        response = self.client.get("/edit/shared")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertNotIn('Multiple Matches Found', page)
+        self.assertNotIn("Multiple Matches Found", page)
         self.assertIn(exact, page)
-        self.assertIn('exact match', page)
+        self.assertIn("exact match", page)
 
     def test_edit_cid_not_found(self):
-        response = self.client.get('/edit/missing')
+        response = self.client.get("/edit/missing")
         self.assertEqual(response.status_code, 404)
 
     def test_edit_cid_save_creates_new_record(self):
-        original_content = b'original text'
+        original_content = b"original text"
         cid_value = self._create_cid_record(original_content)
-        updated_text = 'updated text value'
+        updated_text = "updated text value"
         response = self.client.post(
-            f'/edit/{cid_value}',
-            data={'text_content': updated_text, 'submit': 'Save Changes'},
+            f"/edit/{cid_value}",
+            data={"text_content": updated_text, "submit": "Save Changes"},
             follow_redirects=True,
         )
 
         self.assertEqual(response.status_code, 200)
 
-        new_cid = generate_cid(updated_text.encode('utf-8'))
-        record = get_cid_by_path(f'/{new_cid}')
+        new_cid = generate_cid(updated_text.encode("utf-8"))
+        record = get_cid_by_path(f"/{new_cid}")
         self.assertIsNotNone(record)
-        self.assertEqual(record.file_data, updated_text.encode('utf-8'))
+        self.assertEqual(record.file_data, updated_text.encode("utf-8"))
 
         page = response.get_data(as_text=True)
         self.assertIn(new_cid, page)
 
     def test_edit_cid_save_updates_existing_alias_target(self):
-        original_content = b'alias original'
+        original_content = b"alias original"
         cid_value = self._create_cid_record(original_content)
-        self._create_alias('Atari', f'/{cid_value}')
+        self._create_alias("Atari", f"/{cid_value}")
 
-        updated_text = 'alias new content'
+        updated_text = "alias new content"
         response = self.client.post(
-            f'/edit/{cid_value}',
-            data={'text_content': updated_text, 'submit': 'Save Atari'},
+            f"/edit/{cid_value}",
+            data={"text_content": updated_text, "submit": "Save Atari"},
             follow_redirects=True,
         )
 
         self.assertEqual(response.status_code, 200)
 
-        new_cid = generate_cid(updated_text.encode('utf-8'))
-        alias = Alias.query.filter_by(name='Atari').first()
+        new_cid = generate_cid(updated_text.encode("utf-8"))
+        alias = Alias.query.filter_by(name="Atari").first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, f'/{new_cid}')
+        self.assertEqual(alias.target_path, f"/{new_cid}")
 
         page = response.get_data(as_text=True)
         self.assertIn(new_cid, page)
 
     def test_edit_cid_save_allows_creating_new_alias(self):
-        original_content = b'add alias original'
+        original_content = b"add alias original"
         cid_value = self._create_cid_record(original_content)
-        updated_text = 'add alias new'
-        alias_name = 'NewAlias'
+        updated_text = "add alias new"
+        alias_name = "NewAlias"
         response = self.client.post(
-            f'/edit/{cid_value}',
+            f"/edit/{cid_value}",
             data={
-                'text_content': updated_text,
-                'alias_name': alias_name,
-                'submit': 'Save Changes',
+                "text_content": updated_text,
+                "alias_name": alias_name,
+                "submit": "Save Changes",
             },
             follow_redirects=True,
         )
 
         self.assertEqual(response.status_code, 200)
 
-        new_cid = generate_cid(updated_text.encode('utf-8'))
+        new_cid = generate_cid(updated_text.encode("utf-8"))
         alias = Alias.query.filter_by(name=alias_name).first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, f'/{new_cid}')
-        self.assertEqual(alias.match_type, 'literal')
+        self.assertEqual(alias.target_path, f"/{new_cid}")
+        self.assertEqual(alias.match_type, "literal")
         self.assertFalse(alias.ignore_case)
 
     def test_edit_cid_alias_name_conflict_shows_error(self):
-        original_content = b'conflict original'
+        original_content = b"conflict original"
         cid_value = self._create_cid_record(original_content)
-        self._create_alias('Existing', '/other-target')
-        updated_text = 'conflict new text'
+        self._create_alias("Existing", "/other-target")
+        updated_text = "conflict new text"
         response = self.client.post(
-            f'/edit/{cid_value}',
+            f"/edit/{cid_value}",
             data={
-                'text_content': updated_text,
-                'alias_name': 'Existing',
-                'submit': 'Save Changes',
+                "text_content": updated_text,
+                "alias_name": "Existing",
+                "submit": "Save Changes",
             },
             follow_redirects=True,
         )
@@ -1367,61 +1540,64 @@ class TestCidEditingRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Alias with this name already exists.', page)
-        self.assertIn('Alias Name (optional)', page)
+        self.assertIn("Alias with this name already exists.", page)
+        self.assertIn("Alias Name (optional)", page)
 
-        new_cid = generate_cid(updated_text.encode('utf-8'))
-        self.assertIsNone(CID.query.filter_by(path=f'/{new_cid}').first())
+        new_cid = generate_cid(updated_text.encode("utf-8"))
+        self.assertIsNone(CID.query.filter_by(path=f"/{new_cid}").first())
 
-        alias = Alias.query.filter_by(name='Existing').first()
+        alias = Alias.query.filter_by(name="Existing").first()
         self.assertIsNotNone(alias)
-        self.assertEqual(alias.target_path, '/other-target')
+        self.assertEqual(alias.target_path, "/other-target")
 
     def test_edit_cid_save_existing_content(self):
-        content = b'repeated text content'
+        content = b"repeated text content"
         cid_value = self._create_cid_record(content)
         response = self.client.post(
-            f'/edit/{cid_value}',
-            data={'text_content': content.decode('utf-8'), 'submit': 'Save Changes'},
+            f"/edit/{cid_value}",
+            data={"text_content": content.decode("utf-8"), "submit": "Save Changes"},
             follow_redirects=True,
         )
 
         self.assertEqual(response.status_code, 200)
-        count = CID.query.filter_by(path=f'/{cid_value}').count()
+        count = CID.query.filter_by(path=f"/{cid_value}").count()
         self.assertEqual(count, 1)
+
 
 class TestHistoryRoutes(BaseTestCase):
     """Test history and page view routes."""
 
-    @patch('routes.history.get_history_statistics')
+    @patch("routes.history.get_history_statistics")
     def test_history_page_displays_invocation_and_referer_details(self, mock_stats):
         """Ensure history page renders invocation links, server events, and referer metadata for page views."""
-        result_cid = 'A' * CID_LENGTH
-        invocation_cid = 'B' * CID_LENGTH
+        result_cid = "A" * CID_LENGTH
+        invocation_cid = "B" * CID_LENGTH
 
         # Mock the statistics function to avoid SQLAlchemy func issues
         mock_stats.return_value = {
-            'total_views': 1,
-            'unique_paths': 1,
-            'popular_paths': [(f'/{result_cid}', 1)]
+            "total_views": 1,
+            "unique_paths": 1,
+            "popular_paths": [(f"/{result_cid}", 1)],
         }
 
         # Create test page view
-        request_details = json.dumps({
-            'headers': {
-                'Referer': 'https://example.com/source'
-            }
-        }, indent=2, sort_keys=True).encode('utf-8')
+        request_details = json.dumps(
+            {"headers": {"Referer": "https://example.com/source"}},
+            indent=2,
+            sort_keys=True,
+        ).encode("utf-8")
         request_cid = generate_cid(request_details)
 
-        db.session.add(CID(
-            path=f'/{request_cid}',
-            file_data=request_details,
-            file_size=len(request_details),
-        ))
+        db.session.add(
+            CID(
+                path=f"/{request_cid}",
+                file_data=request_details,
+                file_size=len(request_details),
+            )
+        )
 
         invocation = ServerInvocation(
-            server_name='test-server',
+            server_name="test-server",
             result_cid=result_cid,
             invocation_cid=invocation_cid,
             request_details_cid=request_cid,
@@ -1429,87 +1605,95 @@ class TestHistoryRoutes(BaseTestCase):
         db.session.add(invocation)
 
         page_view = PageView(
-            path=f'/{result_cid}',
-            method='GET',
-            user_agent='Test Agent',
-            ip_address='127.0.0.1'
+            path=f"/{result_cid}",
+            method="GET",
+            user_agent="Test Agent",
+            ip_address="127.0.0.1",
         )
         db.session.add(page_view)
         db.session.commit()
 
-        response = self.client.get('/history')
+        response = self.client.get("/history")
         self.assertEqual(response.status_code, 200)
 
         # Success criteria: invocation link, server event details, and referer metadata are visible.
         page = response.get_data(as_text=True)
-        self.assertIn(f'/{invocation_cid}.json', page)
-        self.assertIn('Server event: test-server', page)
-        self.assertIn('Referer: https://example.com/source', page)
+        self.assertIn(f"/{invocation_cid}.json", page)
+        self.assertIn("Server event: test-server", page)
+        self.assertIn("Referer: https://example.com/source", page)
 
-    @patch('routes.history.get_history_statistics')
-    @patch('routes.history.get_paginated_page_views')
-    def test_history_pagination_second_page_empty_results(self, mock_paginated, mock_stats):
+    @patch("routes.history.get_history_statistics")
+    @patch("routes.history.get_paginated_page_views")
+    def test_history_pagination_second_page_empty_results(
+        self, mock_paginated, mock_stats
+    ):
         """Requesting page 2 returns 200 even when pagination yields no results."""
         # Mock pagination/statistics to simulate requesting an empty second page.
         mock_stats.return_value = {
-            'total_views': 1,
-            'unique_paths': 1,
-            'popular_paths': [('/test-path', 1)]
+            "total_views": 1,
+            "unique_paths": 1,
+            "popular_paths": [("/test-path", 1)],
         }
         mock_paginated.return_value = []
 
-        response = self.client.get('/history?page=2')
+        response = self.client.get("/history?page=2")
         self.assertEqual(response.status_code, 200)
 
     def test_history_page_supports_time_filters(self):
         """The history page should filter results using start and end timestamps."""
 
         now = datetime.now(timezone.utc)
-        earlier = PageView(path='/before-filter', method='GET', viewed_at=now - timedelta(hours=1))
-        recent = PageView(path='/after-filter', method='POST', viewed_at=now - timedelta(minutes=5))
+        earlier = PageView(
+            path="/before-filter", method="GET", viewed_at=now - timedelta(hours=1)
+        )
+        recent = PageView(
+            path="/after-filter", method="POST", viewed_at=now - timedelta(minutes=5)
+        )
         db.session.add_all([earlier, recent])
         db.session.commit()
 
         start = format_history_timestamp(now - timedelta(minutes=30))
         end = format_history_timestamp(now + timedelta(minutes=30))
-        response = self.client.get(f"/history?start={quote_plus(start)}&end={quote_plus(end)}")
+        response = self.client.get(
+            f"/history?start={quote_plus(start)}&end={quote_plus(end)}"
+        )
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('/after-filter', page)
-        self.assertNotIn('/before-filter', page)
-        self.assertIn(f'value=\"{start}\"', page)
-        self.assertIn(f'value=\"{end}\"', page)
+        self.assertIn("/after-filter", page)
+        self.assertNotIn("/before-filter", page)
+        self.assertIn(f'value="{start}"', page)
+        self.assertIn(f'value="{end}"', page)
 
 
 class TestServerRoutes(BaseTestCase):
     """Test server management routes."""
 
-    @patch('routes.servers.get_current_server_definitions_cid')
+    @patch("routes.servers.get_current_server_definitions_cid")
     def test_servers_list_shows_overview_and_create_link(self, mock_cid):
         """The servers index should load and display the overview header plus a create button."""
         # Mock the CID function to avoid network lookups during the list fetch
-        mock_cid.return_value = 'test_cid_123'
+        mock_cid.return_value = "test_cid_123"
 
-        response = self.client.get('/servers')
+        response = self.client.get("/servers")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Servers', page)
-        self.assertIn('Create New Server', page)
+        self.assertIn("Servers", page)
+        self.assertIn("Create New Server", page)
 
     def test_new_server_get(self):
         """Test new server page GET request."""
-        response = self.client.get('/servers/new')
+        response = self.client.get("/servers/new")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('definition-ai-input', page)
+        self.assertIn("definition-ai-input", page)
         self.assertIn('data-ai-target-id="definition"', page)
 
     def test_new_server_prefills_name_from_path_query(self):
         """The server creation form should reuse the requested path for its name."""
-        response = self.client.get('/servers/new?path=/docs/latest')
+        response = self.client.get("/servers/new?path=/docs/latest")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
@@ -1518,35 +1702,43 @@ class TestServerRoutes(BaseTestCase):
     def test_new_server_post_creates_template_backed_server(self):
         """Submitting valid form data should persist a new server for the user."""
         self.authenticate()
-        response = self.client.post('/servers/new', data={
-            'name': 'test-server',
-            'definition': 'Test server definition',
-            'submit': 'Save Server'
-        }, follow_redirects=True)
+        response = self.client.post(
+            "/servers/new",
+            data={
+                "name": "test-server",
+                "definition": "Test server definition",
+                "submit": "Save Server",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
         # Verify the server record now exists with the submitted definition
-        server = Server.query.filter_by( name='test-server').first()
+        server = Server.query.filter_by(name="test-server").first()
         self.assertIsNotNone(server)
-        self.assertEqual(server.definition, 'Test server definition')
+        self.assertEqual(server.definition, "Test server definition")
 
     def test_new_server_duplicate_name_shows_error_and_preserves_original(self):
         """Submitting a duplicate server name re-renders the form with an error and keeps only the original record."""
         # Create existing server
         existing_server = Server(
-            name='duplicate-server',
-            definition='Existing definition',
+            name="duplicate-server",
+            definition="Existing definition",
         )
         db.session.add(existing_server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post('/servers/new', data={
-            'name': 'duplicate-server',
-            'definition': 'New definition',
-            'submit': 'Save Server'
-        }, follow_redirects=True)
+        response = self.client.post(
+            "/servers/new",
+            data={
+                "name": "duplicate-server",
+                "definition": "New definition",
+                "submit": "Save Server",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
@@ -1554,24 +1746,24 @@ class TestServerRoutes(BaseTestCase):
         self.assertIn('A server named "duplicate-server" already exists', page)
 
         # The duplicate submission should leave the original server as the lone record.
-        count = Server.query.filter_by( name='duplicate-server').count()
+        count = Server.query.filter_by(name="duplicate-server").count()
         self.assertEqual(count, 1)
 
     def test_view_server_renders_referenced_entities_and_returns_ok(self):
         """Viewing a server returns 200 and surfaces referenced metadata in the page."""
-        helper_server = Server(name='helper', definition='print("helper")')
+        helper_server = Server(name="helper", definition='print("helper")')
         alias = Alias(
-            name='docs-link',
-            definition=_alias_definition('docs-link', '/docs'),
+            name="docs-link",
+            definition=_alias_definition("docs-link", "/docs"),
         )
-        cid_value = 'cidserver123456'
+        cid_value = "cidserver123456"
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'server reference',
+            path=f"/{cid_value}",
+            file_data=b"server reference",
             file_size=16,
         )
         server = Server(
-            name='view-server',
+            name="view-server",
             definition=(
                 f'print("Use /{alias.name} and /servers/{helper_server.name} and /{helper_server.name} and /{cid_value}")'
             ),
@@ -1580,77 +1772,83 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/view-server')
+        response = self.client.get("/servers/view-server")
         # Viewing the server should succeed and expose referenced resources to the user.
         self.assertEqual(response.status_code, 200)
         page = response.get_data(as_text=True)
-        self.assertIn('Referenced Entities', page)
+        self.assertIn("Referenced Entities", page)
         self.assertIn(alias.name, page)
         self.assertIn(helper_server.name, page)
-        self.assertIn(f'/meta/{cid_value}', page)
+        self.assertIn(f"/meta/{cid_value}", page)
 
     def test_view_server_includes_main_test_form(self):
         """Server detail page should surface parameter inputs when main() is present."""
         server = Server(
-            name='auto-test',
+            name="auto-test",
             definition='def main(user, greeting="Hello"):\n    return {"output": greeting}',
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/auto-test')
+        response = self.client.get("/servers/auto-test")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         self.assertIn('data-mode="main"', page)
         self.assertIn('name="user"', page)
         self.assertIn('name="greeting"', page)
-        user_snippet = '\n'.join([
-            '<textarea class="form-control"',
-            '                                  id="server-test-param-0"',
-            '                                  name="user"',
-        ])
-        greeting_snippet = '\n'.join([
-            '<textarea class="form-control"',
-            '                                  id="server-test-param-1"',
-            '                                  name="greeting"',
-        ])
-        legacy_input_snippet = '\n'.join([
-            '<input type="text"',
-            '                               class="form-control"',
-            '                               id="server-test-param-0"',
-        ])
+        user_snippet = "\n".join(
+            [
+                '<textarea class="form-control"',
+                '                                  id="server-test-param-0"',
+                '                                  name="user"',
+            ]
+        )
+        greeting_snippet = "\n".join(
+            [
+                '<textarea class="form-control"',
+                '                                  id="server-test-param-1"',
+                '                                  name="greeting"',
+            ]
+        )
+        legacy_input_snippet = "\n".join(
+            [
+                '<input type="text"',
+                '                               class="form-control"',
+                '                               id="server-test-param-0"',
+            ]
+        )
         self.assertIn(user_snippet, page)
         self.assertIn(greeting_snippet, page)
         self.assertNotIn(legacy_input_snippet, page)
-        self.assertIn('/auto-test', page)
+        self.assertIn("/auto-test", page)
 
     def test_view_server_falls_back_to_query_test_form(self):
         """When no main() exists a key/value textarea should be displayed."""
         server = Server(
-            name='simple-test',
+            name="simple-test",
             definition='print("hello")',
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/simple-test')
+        response = self.client.get("/servers/simple-test")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         self.assertIn('data-mode="query"', page)
-        self.assertIn('Enter each parameter on a new line', page)
-        self.assertIn('/simple-test', page)
-        self.assertIn('server-test-query-ai-input', page)
+        self.assertIn("Enter each parameter on a new line", page)
+        self.assertIn("/simple-test", page)
+        self.assertIn("server-test-query-ai-input", page)
         self.assertIn('data-ai-target-id="server-test-query"', page)
 
     def test_view_server_invocation_history_table(self):
         """Server detail page should show invocation events in table format."""
         server = Server(
-            name='view-server',
-            definition='Server to view',
+            name="view-server",
+            definition="Server to view",
         )
         db.session.add(server)
 
@@ -1658,21 +1856,23 @@ class TestServerRoutes(BaseTestCase):
         invocation_cid = "I" * CID_LENGTH
         servers_cid = "S" * CID_LENGTH
 
-        request_payload = json.dumps({
-            'headers': {
-                'Referer': 'https://example.com/origin'
-            }
-        }, indent=2, sort_keys=True).encode('utf-8')
+        request_payload = json.dumps(
+            {"headers": {"Referer": "https://example.com/origin"}},
+            indent=2,
+            sort_keys=True,
+        ).encode("utf-8")
         request_cid = generate_cid(request_payload)
 
-        db.session.add(CID(
-            path=f'/{request_cid}',
-            file_data=request_payload,
-            file_size=len(request_payload),
-        ))
+        db.session.add(
+            CID(
+                path=f"/{request_cid}",
+                file_data=request_payload,
+                file_size=len(request_payload),
+            )
+        )
 
         invocation = ServerInvocation(
-            server_name='view-server',
+            server_name="view-server",
             result_cid=result_cid,
             servers_cid=servers_cid,
             request_details_cid=request_cid,
@@ -1682,136 +1882,146 @@ class TestServerRoutes(BaseTestCase):
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/view-server')
+        response = self.client.get("/servers/view-server")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('<th>Invoked</th>', page)
-        self.assertNotIn('<th>Server</th>', page)
+        self.assertIn("<th>Invoked</th>", page)
+        self.assertNotIn("<th>Server</th>", page)
         self.assertIn(f'href="/{invocation_cid}.txt"', page)
         self.assertIn(f'href="/{request_cid}.txt"', page)
         self.assertIn(f'href="/{result_cid}.txt"', page)
         self.assertIn(f'href="/{servers_cid}.txt"', page)
-        self.assertIn(f'/edit/{invocation_cid}', page)
-        self.assertIn(f'/meta/{invocation_cid}', page)
-        self.assertIn(f'/{invocation_cid}.txt', page)
-        self.assertIn(f'/{request_cid}.txt', page)
-        self.assertIn(f'/{result_cid}.txt', page)
-        self.assertIn(f'/{servers_cid}.txt', page)
-        self.assertIn(f'#{invocation_cid[:9]}...', page)
-        self.assertIn(f'#{request_cid[:9]}...', page)
-        self.assertIn(f'#{result_cid[:9]}...', page)
-        self.assertIn(f'#{servers_cid[:9]}...', page)
-        self.assertIn('https://example.com/origin', page)
-        self.assertIn('1 total', page)
+        self.assertIn(f"/edit/{invocation_cid}", page)
+        self.assertIn(f"/meta/{invocation_cid}", page)
+        self.assertIn(f"/{invocation_cid}.txt", page)
+        self.assertIn(f"/{request_cid}.txt", page)
+        self.assertIn(f"/{result_cid}.txt", page)
+        self.assertIn(f"/{servers_cid}.txt", page)
+        self.assertIn(f"#{invocation_cid[:9]}...", page)
+        self.assertIn(f"#{request_cid[:9]}...", page)
+        self.assertIn(f"#{result_cid[:9]}...", page)
+        self.assertIn(f"#{servers_cid[:9]}...", page)
+        self.assertIn("https://example.com/origin", page)
+        self.assertIn("1 total", page)
 
     def test_view_nonexistent_server_returns_404(self):
         """Viewing a missing server should respond with a 404 error."""
         self.authenticate()
-        response = self.client.get('/servers/nonexistent')
+        response = self.client.get("/servers/nonexistent")
         self.assertEqual(response.status_code, 404)
 
     def test_edit_server_get_returns_populated_form(self):
         """GETing the edit page for an existing server returns 200 and shows the saved values."""
         server = Server(
-            name='edit-server',
-            definition='Server to edit',
+            name="edit-server",
+            definition="Server to edit",
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/edit-server/edit')
+        response = self.client.get("/servers/edit-server/edit")
         self.assertEqual(response.status_code, 200)
 
         # The response should render the edit form with the server's current data prefilled.
         page = response.get_data(as_text=True)
         self.assertIn('value="edit-server"', page)
-        self.assertIn('Server to edit', page)
+        self.assertIn("Server to edit", page)
 
     def test_edit_server_includes_test_form(self):
         """Edit page should expose the testing controls based on main() parameters."""
         server = Server(
-            name='edit-test',
+            name="edit-test",
             definition='def main(token):\n    return {"output": token}',
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/servers/edit-test/edit')
+        response = self.client.get("/servers/edit-test/edit")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         self.assertIn('data-mode="main"', page)
         self.assertIn('name="token"', page)
-        self.assertIn('/edit-test', page)
+        self.assertIn("/edit-test", page)
 
     def test_edit_server_post_updates_name_and_definition(self):
         """Submitting the edit form updates the server's name and definition."""
         server = Server(
-            name='edit-server',
-            definition='Original definition',
+            name="edit-server",
+            definition="Original definition",
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post('/servers/edit-server/edit', data={
-            'name': 'edited-server',
-            'definition': 'Updated definition',
-            'submit': 'Rename to edited-server'
-        }, follow_redirects=False)
+        response = self.client.post(
+            "/servers/edit-server/edit",
+            data={
+                "name": "edited-server",
+                "definition": "Updated definition",
+                "submit": "Rename to edited-server",
+            },
+            follow_redirects=False,
+        )
 
         self.assertEqual(response.status_code, 302)
 
         # After submitting the edit, the persisted server should reflect the requested changes.
         db.session.refresh(server)
-        self.assertEqual(server.name, 'edited-server')
-        self.assertEqual(server.definition, 'Updated definition')
+        self.assertEqual(server.name, "edited-server")
+        self.assertEqual(server.definition, "Updated definition")
 
     def test_edit_server_save_as_creates_new_server(self):
         """Saving a server as a new copy should keep the original intact."""
         server = Server(
-            name='copy-source',
-            definition='Copy me',
+            name="copy-source",
+            definition="Copy me",
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post('/servers/copy-source/edit', data={
-            'name': 'copy-target',
-            'definition': 'Copy me',
-            'enabled': 'y',
-            'submit_action': 'save-as'
-        }, follow_redirects=False)
+        response = self.client.post(
+            "/servers/copy-source/edit",
+            data={
+                "name": "copy-target",
+                "definition": "Copy me",
+                "enabled": "y",
+                "submit_action": "save-as",
+            },
+            follow_redirects=False,
+        )
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers['Location'].endswith('/servers/copy-target'))
+        self.assertTrue(response.headers["Location"].endswith("/servers/copy-target"))
 
         db.session.refresh(server)
-        self.assertEqual(server.name, 'copy-source')
+        self.assertEqual(server.name, "copy-source")
 
-        duplicate = Server.query.filter_by( name='copy-target').first()
+        duplicate = Server.query.filter_by(name="copy-target").first()
         self.assertIsNotNone(duplicate)
-        self.assertEqual(duplicate.definition, 'Copy me')
+        self.assertEqual(duplicate.definition, "Copy me")
 
     def test_delete_server_redirects_and_removes_database_record(self):
         """Posting to the delete endpoint should redirect and remove the server from the database."""
         server = Server(
-            name='delete-server',
-            definition='Server to delete',
+            name="delete-server",
+            definition="Server to delete",
         )
         db.session.add(server)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post('/servers/delete-server/delete', follow_redirects=False)
+        response = self.client.post(
+            "/servers/delete-server/delete", follow_redirects=False
+        )
         self.assertEqual(response.status_code, 302)
 
         # Confirm the server is removed from the user's collection after the redirect response.
-        deleted_server = Server.query.filter_by( name='delete-server').first()
+        deleted_server = Server.query.filter_by(name="delete-server").first()
         self.assertIsNone(deleted_server)
 
 
@@ -1822,160 +2032,164 @@ class TestVariableRoutes(BaseTestCase):
         """Variables page should: 1) return 200, 2) show saved variables, 3) sort them alphabetically."""
 
         variable_a = Variable(
-            name='alpha',
-            definition='First variable',
+            name="alpha",
+            definition="First variable",
         )
         variable_b = Variable(
-            name='beta',
-            definition='Second variable',
+            name="beta",
+            definition="Second variable",
         )
         db.session.add_all([variable_b, variable_a])
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/variables')
+        response = self.client.get("/variables")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('alpha', page)
-        self.assertIn('beta', page)
-        self.assertLess(page.index('alpha'), page.index('beta'))
+        self.assertIn("alpha", page)
+        self.assertIn("beta", page)
+        self.assertLess(page.index("alpha"), page.index("beta"))
 
     def test_new_variable_post_creates_template_variable(self):
         """Posting a new variable should persist its definition."""
         self.authenticate()
-        response = self.client.post('/variables/new', data={
-            'name': 'test-variable',
-            'definition': 'Test variable definition',
-            'submit': 'Save Variable'
-        }, follow_redirects=True)
+        response = self.client.post(
+            "/variables/new",
+            data={
+                "name": "test-variable",
+                "definition": "Test variable definition",
+                "submit": "Save Variable",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
         # Confirm the variable was stored with the expected attributes
-        variable = Variable.query.filter_by( name='test-variable').first()
+        variable = Variable.query.filter_by(name="test-variable").first()
         self.assertIsNotNone(variable)
-        self.assertEqual(variable.definition, 'Test variable definition')
+        self.assertEqual(variable.definition, "Test variable definition")
 
     def test_new_variable_form_includes_ai_controls(self):
         """Variable form should expose AI helper controls."""
         self.authenticate()
-        response = self.client.get('/variables/new')
+        response = self.client.get("/variables/new")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('definition-ai-input', page)
-        self.assertIn('Ask AI to edit the variable definition', page)
+        self.assertIn("definition-ai-input", page)
+        self.assertIn("Ask AI to edit the variable definition", page)
         self.assertIn('data-code-editor-for="definition"', page)
-        self.assertIn('code_editor.js', page)
+        self.assertIn("code_editor.js", page)
 
     def test_variable_view_shows_matching_route_summary(self):
         """Variable detail view should render matching route information."""
 
         variable = Variable(
-            name='profile-link',
-            definition='/profile',
+            name="profile-link",
+            definition="/profile",
         )
         db.session.add(variable)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/variables/profile-link')
+        response = self.client.get("/variables/profile-link")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Matching Route', page)
-        self.assertIn('Route main.profile', page)
-        self.assertIn('/profile', page)
-        self.assertIn('Status:', page)
+        self.assertIn("Matching Route", page)
+        self.assertIn("Route main.profile", page)
+        self.assertIn("/profile", page)
+        self.assertIn("Status:", page)
 
     def test_variable_view_shows_cid_link_for_cid_value(self):
         """Variable detail view should render CID link when definition is a CID."""
 
-        cid_value = generate_cid(b'test content for variable')
+        cid_value = generate_cid(b"test content for variable")
         variable = Variable(
-            name='cid-variable',
+            name="cid-variable",
             definition=cid_value,
         )
         db.session.add(variable)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/variables/cid-variable')
+        response = self.client.get("/variables/cid-variable")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         # Check for the CID link markup
-        self.assertIn('cid-display', page)
-        self.assertIn('cid-link', page)
+        self.assertIn("cid-display", page)
+        self.assertIn("cid-link", page)
         # CID label format is #{first 9 chars}...
-        expected_label = f'#{cid_value[:9]}...'
+        expected_label = f"#{cid_value[:9]}..."
         self.assertIn(expected_label, page)
 
     def test_variable_view_shows_plain_text_for_non_cid_value(self):
         """Variable detail view should render plain text when definition is not a CID."""
 
         variable = Variable(
-            name='text-variable',
-            definition='just some regular text',
+            name="text-variable",
+            definition="just some regular text",
         )
         db.session.add(variable)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.get('/variables/text-variable')
+        response = self.client.get("/variables/text-variable")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
         # Check for plain text display (pre tag)
         self.assertIn('<pre id="variable-definition"', page)
-        self.assertIn('just some regular text', page)
+        self.assertIn("just some regular text", page)
         # Should NOT have CID link markup
-        self.assertNotIn('cid-display', page)
-        self.assertNotIn('cid-link', page)
+        self.assertNotIn("cid-display", page)
+        self.assertNotIn("cid-link", page)
 
     def test_variable_edit_shows_404_matching_route(self):
         """Variable edit form should surface missing route diagnostics."""
 
         variable = Variable(
-            name='missing-route',
-            definition='/missing-endpoint',
+            name="missing-route",
+            definition="/missing-endpoint",
         )
         db.session.add(variable)
         db.session.commit()
 
-        response = self.client.get('/variables/missing-route/edit')
+        response = self.client.get("/variables/missing-route/edit")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Matching Route', page)
-        self.assertIn('/missing-endpoint', page)
-        self.assertIn('404 – Not Found', page)
+        self.assertIn("Matching Route", page)
+        self.assertIn("/missing-endpoint", page)
+        self.assertIn("404 – Not Found", page)
 
     def test_variable_context_prefetches_path_content(self):
         """Variable values pointing at paths should resolve to page content."""
 
         server = Server(
-            name='prefetch-source',
+            name="prefetch-source",
             definition="""
 def main():
     return {"output": "prefetched-value", "content_type": "text/plain"}
 """.strip(),
         )
         variable = Variable(
-            name='prefetched',
-            definition='/prefetch-source',
+            name="prefetched",
+            definition="/prefetch-source",
         )
         db.session.add_all([server, variable])
         db.session.commit()
 
-        with self.app.test_request_context('/prefetch-check'):
+        with self.app.test_request_context("/prefetch-check"):
             context = server_execution._load_user_context()
 
-        self.assertIn('prefetched', context['variables'])
-        value = context['variables']['prefetched']
+        self.assertIn("prefetched", context["variables"])
+        value = context["variables"]["prefetched"]
         self.assertNotEqual(value, variable.definition)
-        self.assertIn('prefetched-value', value)
+        self.assertIn("prefetched-value", value)
 
 
 class TestSecretRoutes(BaseTestCase):
@@ -1984,23 +2198,27 @@ class TestSecretRoutes(BaseTestCase):
     def test_secrets_list_returns_ok_for_authenticated_user(self):
         """Secrets index returns HTTP 200 when accessed by a logged-in user."""
         # After logging in, the list endpoint should be reachable without error.
-        response = self.client.get('/secrets')
+        response = self.client.get("/secrets")
         self.assertEqual(response.status_code, 200)
 
     def test_new_secret_post_persists_secret_and_flashes_success(self):
         """Submitting the new-secret form should persist the record and flash confirmation."""
-        response = self.client.post('/secrets/new', data={
-            'name': 'test-secret',
-            'definition': 'Test secret definition',
-            'submit': 'Save Secret'
-        }, follow_redirects=True)
+        response = self.client.post(
+            "/secrets/new",
+            data={
+                "name": "test-secret",
+                "definition": "Test secret definition",
+                "submit": "Save Secret",
+            },
+            follow_redirects=True,
+        )
 
         self.assertEqual(response.status_code, 200)
 
         # Verify the secret was stored with the expected content
-        secret = Secret.query.filter_by( name='test-secret').first()
+        secret = Secret.query.filter_by(name="test-secret").first()
         self.assertIsNotNone(secret)
-        self.assertEqual(secret.definition, 'Test secret definition')
+        self.assertEqual(secret.definition, "Test secret definition")
 
         # Confirm the user receives feedback about the successful creation
         page = unescape(response.get_data(as_text=True))
@@ -2008,36 +2226,36 @@ class TestSecretRoutes(BaseTestCase):
 
     def test_new_secret_form_includes_ai_controls(self):
         """Secret form should expose AI helper controls."""
-        response = self.client.get('/secrets/new')
+        response = self.client.get("/secrets/new")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('definition-ai-input', page)
-        self.assertIn('Ask AI to edit the secret definition', page)
+        self.assertIn("definition-ai-input", page)
+        self.assertIn("Ask AI to edit the secret definition", page)
         self.assertIn('data-code-editor-for="definition"', page)
-        self.assertIn('code_editor.js', page)
+        self.assertIn("code_editor.js", page)
 
     def test_view_secret_page_displays_secret_details(self):
         """Secret detail page should render secret metadata and definition."""
         secret = Secret(
-            name='production-api-key',
-            definition='super-secret-value',
+            name="production-api-key",
+            definition="super-secret-value",
         )
         db.session.add(secret)
         db.session.commit()
 
-        response = self.client.get('/secrets/production-api-key')
+        response = self.client.get("/secrets/production-api-key")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Secret Definition', page)
-        self.assertIn('super-secret-value', page)
-        self.assertIn('Direct URL', page)
-        self.assertIn('/secrets/production-api-key', page)
+        self.assertIn("Secret Definition", page)
+        self.assertIn("super-secret-value", page)
+        self.assertIn("Direct URL", page)
+        self.assertIn("/secrets/production-api-key", page)
 
     def test_view_secret_missing_returns_404(self):
         """Requesting a secret that does not exist should return 404."""
-        response = self.client.get('/secrets/nonexistent-secret')
+        response = self.client.get("/secrets/nonexistent-secret")
         self.assertEqual(response.status_code, 404)
 
 
@@ -2046,106 +2264,116 @@ class TestAliasRoutes(BaseTestCase):
 
     def test_new_alias_form_includes_ai_controls(self):
         """Alias form should expose AI helper controls."""
-        response = self.client.get('/aliases/new')
+        response = self.client.get("/aliases/new")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('definition-ai-input', page)
+        self.assertIn("definition-ai-input", page)
         self.assertIn('data-ai-target-id="definition"', page)
-        self.assertIn('Ask AI to edit the alias definition', page)
+        self.assertIn("Ask AI to edit the alias definition", page)
         self.assertIn('data-code-editor-for="definition"', page)
-        self.assertIn('code_editor.js', page)
+        self.assertIn("code_editor.js", page)
 
     def test_edit_alias_post_updates_alias(self):
         """Renaming an alias should update its name and retain a valid definition."""
         alias = Alias(
-            name='docs-link',
-            definition=_alias_definition('docs-link', '/docs'),
+            name="docs-link",
+            definition=_alias_definition("docs-link", "/docs"),
         )
         db.session.add(alias)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post(f'/aliases/{alias.name}/edit', data={
-            'name': 'docs-guide',
-            'definition': _alias_definition('docs-link', '/docs'),
-            'enabled': 'y',
-            'submit': 'Rename to docs-guide',
-        }, follow_redirects=False)
+        response = self.client.post(
+            f"/aliases/{alias.name}/edit",
+            data={
+                "name": "docs-guide",
+                "definition": _alias_definition("docs-link", "/docs"),
+                "enabled": "y",
+                "submit": "Rename to docs-guide",
+            },
+            follow_redirects=False,
+        )
 
         self.assertEqual(response.status_code, 302)
 
         db.session.refresh(alias)
-        self.assertEqual(alias.name, 'docs-guide')
-        self.assertEqual(alias.definition, _alias_definition('docs-guide', '/docs'))
+        self.assertEqual(alias.name, "docs-guide")
+        self.assertEqual(alias.definition, _alias_definition("docs-guide", "/docs"))
 
     def test_edit_alias_save_as_creates_new_alias(self):
         """Saving an alias as a copy should not modify the original alias."""
         alias = Alias(
-            name='alias-source',
-            definition=_alias_definition('alias-source', '/docs/source'),
+            name="alias-source",
+            definition=_alias_definition("alias-source", "/docs/source"),
         )
         db.session.add(alias)
         db.session.commit()
 
         self.authenticate()
-        response = self.client.post(f'/aliases/{alias.name}/edit', data={
-            'name': 'alias-copy',
-            'definition': _alias_definition('alias-source', '/docs/source'),
-            'enabled': 'y',
-            'submit_action': 'save-as',
-        }, follow_redirects=False)
+        response = self.client.post(
+            f"/aliases/{alias.name}/edit",
+            data={
+                "name": "alias-copy",
+                "definition": _alias_definition("alias-source", "/docs/source"),
+                "enabled": "y",
+                "submit_action": "save-as",
+            },
+            follow_redirects=False,
+        )
 
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.headers['Location'].endswith('/aliases/alias-copy'))
+        self.assertTrue(response.headers["Location"].endswith("/aliases/alias-copy"))
 
         db.session.refresh(alias)
-        self.assertEqual(alias.name, 'alias-source')
+        self.assertEqual(alias.name, "alias-source")
 
-        alias_copy = Alias.query.filter_by( name='alias-copy').first()
+        alias_copy = Alias.query.filter_by(name="alias-copy").first()
         self.assertIsNotNone(alias_copy)
-        self.assertEqual(alias_copy.definition, _alias_definition('alias-copy', '/docs/source'))
+        self.assertEqual(
+            alias_copy.definition, _alias_definition("alias-copy", "/docs/source")
+        )
 
     def test_alias_list_displays_cid_link_for_cid_target(self):
         """Alias listings should render CID targets with the standard link widget."""
         self.authenticate()
 
-        cid_value = generate_cid(b'Alias list CID target display')
+        cid_value = generate_cid(b"Alias list CID target display")
         alias = Alias(
-            name='cid-list',
-            definition=_alias_definition('cid-list', f'/{cid_value}'),
+            name="cid-list",
+            definition=_alias_definition("cid-list", f"/{cid_value}"),
         )
 
         db.session.add(alias)
         db.session.commit()
 
-        response = self.client.get('/aliases')
+        response = self.client.get("/aliases")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Aliases', page)
-        self.assertIn('cid-display dropdown', page)
+        self.assertIn("Aliases", page)
+        self.assertIn("cid-display dropdown", page)
         self.assertIn(f'href="/{cid_value}.txt"', page)
-        self.assertNotIn(f'<code>/{cid_value}</code>', page)
+        self.assertNotIn(f"<code>/{cid_value}</code>", page)
 
     def test_alias_detail_displays_cid_link_for_cid_target(self):
         """Alias detail view should render CID targets with the standard link widget."""
         self.authenticate()
 
-        cid_value = generate_cid(b'Alias detail CID target display')
+        cid_value = generate_cid(b"Alias detail CID target display")
         cid_record = CID(
-            path=f'/{cid_value}',
-            file_data=b'Alias detail content',
+            path=f"/{cid_value}",
+            file_data=b"Alias detail content",
         )
         alias = Alias(
-            name='cid-detail',
-            definition=_alias_definition('cid-detail', f'/{cid_value}'),
+            name="cid-detail",
+            definition=_alias_definition("cid-detail", f"/{cid_value}"),
         )
 
         db.session.add_all([cid_record, alias])
         db.session.commit()
 
-        response = self.client.get(f'/aliases/{alias.name}')
+        response = self.client.get(f"/aliases/{alias.name}")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
@@ -2157,7 +2385,7 @@ class TestAliasRoutes(BaseTestCase):
             page,
             r'(?s)redirects browsers to\s*<span class="cid-display dropdown">',
         )
-        self.assertNotIn(f'<code>/{cid_value}</code>', page)
+        self.assertNotIn(f"<code>/{cid_value}</code>", page)
 
 
 class TestSettingsRoutes(BaseTestCase):
@@ -2166,7 +2394,7 @@ class TestSettingsRoutes(BaseTestCase):
     def test_settings_page_loads_for_authenticated_user(self):
         """Settings page returns HTTP 200 for a signed-in visitor."""
         self.authenticate()
-        response = self.client.get('/settings')
+        response = self.client.get("/settings")
         self.assertEqual(response.status_code, 200)
 
     def test_settings_page_shows_direct_access_links(self):
@@ -2175,26 +2403,26 @@ class TestSettingsRoutes(BaseTestCase):
         self.authenticate()
 
         alias = Alias(
-            name='docs',
-            definition=_alias_definition('docs', '/docs-target'),
+            name="docs",
+            definition=_alias_definition("docs", "/docs-target"),
         )
         server = Server(
-            name='engine',
+            name="engine",
             definition='print("ok")',
         )
         variable = Variable(
-            name='app-config',
-            definition='value = 1',
+            name="app-config",
+            definition="value = 1",
         )
         secret = Secret(
-            name='api-key',
-            definition='secret-value',
+            name="api-key",
+            definition="secret-value",
         )
 
         db.session.add_all([alias, server, variable, secret])
         db.session.commit()
 
-        response = self.client.get('/settings')
+        response = self.client.get("/settings")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
@@ -2213,11 +2441,11 @@ class TestSettingsRoutes(BaseTestCase):
     def test_import_form_includes_ai_controls(self):
         """Import form should expose AI helper controls."""
         self.authenticate()
-        response = self.client.get('/import')
+        response = self.client.get("/import")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('import_text-ai-input', page)
+        self.assertIn("import_text-ai-input", page)
         self.assertIn('data-ai-target-id="import_text"', page)
 
 
@@ -2226,7 +2454,7 @@ class TestErrorHandlers(BaseTestCase):
 
     def test_404_handler_no_cid_content(self):
         """Test 404 handler when no CID content exists."""
-        response = self.client.get('/nonexistent-path')
+        response = self.client.get("/nonexistent-path")
         self.assertEqual(response.status_code, 404)
 
     def test_404_handler_with_cid_content(self):
@@ -2241,10 +2469,10 @@ class TestErrorHandlers(BaseTestCase):
         db.session.add(cid_content)
         db.session.commit()
 
-        response = self.client.get('/test-cid-path')
+        response = self.client.get("/test-cid-path")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, test_data)
-        self.assertEqual(response.content_type, 'text/plain; charset=utf-8')
+        self.assertEqual(response.content_type, "text/plain; charset=utf-8")
 
     def test_404_handler_with_etag_caching(self):
         """Test 404 handler ETag caching."""
@@ -2260,13 +2488,13 @@ class TestErrorHandlers(BaseTestCase):
         db.session.commit()
 
         # First request
-        response = self.client.get(f'/{cid}')
+        response = self.client.get(f"/{cid}")
         self.assertEqual(response.status_code, 200)
-        etag = response.headers.get('ETag')
+        etag = response.headers.get("ETag")
         self.assertIsNotNone(etag)
 
         # Second request with ETag
-        response = self.client.get(f'/{cid}', headers={'If-None-Match': etag})
+        response = self.client.get(f"/{cid}", headers={"If-None-Match": etag})
         self.assertEqual(response.status_code, 304)
 
     def test_404_handler_legacy_html_content(self):
@@ -2278,7 +2506,7 @@ class TestErrorHandlers(BaseTestCase):
         db.session.add(cid_content)
         db.session.commit()
 
-        response = self.client.get('/legacy-content')
+        response = self.client.get("/legacy-content")
         self.assertEqual(response.status_code, 200)
 
 
@@ -2290,10 +2518,10 @@ class TestPageViewTracking(BaseTestCase):
         self.authenticate()
 
         # Make request that should be tracked
-        self.client.get('/profile')
+        self.client.get("/profile")
 
         # Check if page view was recorded
-        PageView.query.filter_by(path='/profile').first()
+        PageView.query.filter_by(path="/profile").first()
         # Note: This might not work in test environment due to mocking complexity
         # but the test structure is correct
 
@@ -2302,7 +2530,7 @@ class TestPageViewTracking(BaseTestCase):
         self.authenticate()
 
         # These should not create page views
-        static_paths = ['/static/css/style.css', '/favicon.ico', '/robots.txt']
+        static_paths = ["/static/css/style.css", "/favicon.ico", "/robots.txt"]
 
         for path in static_paths:
             self.client.get(path)
@@ -2316,58 +2544,59 @@ class TestSourceRoutes(BaseTestCase):
 
     def test_source_index_lists_tracked_files(self):
         """Root source page should list tracked files."""
-        response = self.client.get('/source')
+        response = self.client.get("/source")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('models.py', page)
-        self.assertIn('/source/models.py', page)
+        self.assertIn("models.py", page)
+        self.assertIn("/source/models.py", page)
 
     def test_source_serves_file_content(self):
         """Requesting a tracked file should render its contents."""
-        response = self.client.get('/source/models.py')
+        response = self.client.get("/source/models.py")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('class Alias(db.Model)', page)
+        self.assertIn("class Alias(db.Model)", page)
 
     def test_source_serves_untracked_project_files(self):
         """Enhanced source browser should serve untracked project files."""
-        temp_path = Path(self.app.root_path) / 'untracked_test.py'
-        temp_path.write_text('# Untracked Python file', encoding='utf-8')
+        temp_path = Path(self.app.root_path) / "untracked_test.py"
+        temp_path.write_text("# Untracked Python file", encoding="utf-8")
 
         try:
             # Clear any cached results to ensure fresh discovery
             from routes.source import _get_all_project_files, _get_tracked_paths
+
             _get_all_project_files.cache_clear()
             _get_tracked_paths.cache_clear()
 
-            response = self.client.get('/source/untracked_test.py')
+            response = self.client.get("/source/untracked_test.py")
             # Should now serve untracked project files with enhanced functionality
             self.assertEqual(response.status_code, 200)
             page = response.get_data(as_text=True)
-            self.assertIn('Untracked Python file', page)
+            self.assertIn("Untracked Python file", page)
         finally:
             temp_path.unlink(missing_ok=True)
 
     def test_source_rejects_files_outside_project(self):
         """Files outside project directory should not be served."""
-        response = self.client.get('/source/../../../etc/passwd')
+        response = self.client.get("/source/../../../etc/passwd")
         self.assertEqual(response.status_code, 404)
 
     def test_source_rejects_path_traversal(self):
         """Path traversal attempts should return 404."""
-        response = self.client.get('/source/../app.py')
+        response = self.client.get("/source/../app.py")
         self.assertEqual(response.status_code, 404)
 
     def test_source_htmlcov_serves_raw_content(self):
         """Coverage reports should be served without additional templating."""
-        htmlcov_dir = Path(self.app.root_path) / 'htmlcov'
+        htmlcov_dir = Path(self.app.root_path) / "htmlcov"
         created_dir = not htmlcov_dir.exists()
         htmlcov_dir.mkdir(exist_ok=True)
-        html_file = htmlcov_dir / 'index.html'
-        html_content = '<html><body>Coverage report</body></html>'
-        html_file.write_text(html_content, encoding='utf-8')
+        html_file = htmlcov_dir / "index.html"
+        html_content = "<html><body>Coverage report</body></html>"
+        html_file.write_text(html_content, encoding="utf-8")
 
         try:
             from routes.source import _get_all_project_files, _get_tracked_paths
@@ -2375,7 +2604,7 @@ class TestSourceRoutes(BaseTestCase):
             _get_all_project_files.cache_clear()
             _get_tracked_paths.cache_clear()
 
-            response = self.client.get('/source/htmlcov/index.html')
+            response = self.client.get("/source/htmlcov/index.html")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get_data(as_text=True), html_content)
         finally:
@@ -2386,29 +2615,29 @@ class TestSourceRoutes(BaseTestCase):
     def test_source_instance_overview_lists_database_tables(self):
         """Instance overview should list available database tables and columns."""
 
-        response = self.client.get('/source/instance')
+        response = self.client.get("/source/instance")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('Database Tables', page)
+        self.assertIn("Database Tables", page)
         self.assertIn('href="/source/instance/alias"', page)
-        self.assertIn('<code>name</code>', page)
+        self.assertIn("<code>name</code>", page)
 
     def test_source_instance_table_renders_existing_rows(self):
         """Table detail view should render rows for a populated table."""
 
-        alias = Alias(name='overview-alias', definition='print("hi")')
+        alias = Alias(name="overview-alias", definition='print("hi")')
         db.session.add(alias)
         db.session.commit()
 
-        response = self.client.get('/source/instance/alias')
+        response = self.client.get("/source/instance/alias")
         self.assertEqual(response.status_code, 200)
 
         page = response.get_data(as_text=True)
-        self.assertIn('<code>name</code>', page)
-        self.assertIn('overview-alias', page)
-        self.assertIn('Displaying', page)
+        self.assertIn("<code>name</code>", page)
+        self.assertIn("overview-alias", page)
+        self.assertIn("Displaying", page)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

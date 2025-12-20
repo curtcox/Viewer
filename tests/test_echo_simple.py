@@ -4,6 +4,7 @@ Simple test to validate echo functionality without full Flask setup.
 This test focuses on the core logic that should happen when /echo is accessed.
 """
 
+
 def test_echo_server_lookup_logic():
     """Test the logic for looking up an echo server"""
 
@@ -18,26 +19,36 @@ def test_echo_server_lookup_logic():
 
     # Test the existing routes check
     existing_routes = {
-        '/', '/dashboard', '/profile', '/upload',
-        '/uploads', '/history', '/servers', '/variables',
-        '/secrets', '/settings'
+        "/",
+        "/dashboard",
+        "/profile",
+        "/upload",
+        "/uploads",
+        "/history",
+        "/servers",
+        "/variables",
+        "/secrets",
+        "/settings",
     }
 
     # Check if path could be a server name (single segment, not existing route)
-    is_potential_server = (path.startswith('/') and
-                          path.count('/') == 1 and
-                          path not in existing_routes)
+    is_potential_server = (
+        path.startswith("/") and path.count("/") == 1 and path not in existing_routes
+    )
 
     print(f"Is potential server path: {is_potential_server}")
 
     # This should be True - /echo is a single segment path not in existing routes
-    assert is_potential_server, "Expected /echo to be identified as potential server path"
+    assert is_potential_server, (
+        "Expected /echo to be identified as potential server path"
+    )
 
     print("✓ Path correctly identified as potential server")
 
     # Assertion and return
     assert potential_server_name == "echo"
     return potential_server_name
+
 
 def test_server_execution_requirements():
     """Test what's required for server execution to work"""
@@ -50,6 +61,7 @@ def test_server_execution_requirements():
     print("5. CID generation and storage must work")
     print("6. Redirect to CID URL must happen")
 
+
 def test_cid_generation_logic():
     """Test CID generation for echo output"""
     import base64
@@ -57,7 +69,7 @@ def test_cid_generation_logic():
 
     # Simulate echo server output
     output = "Hello, World!"
-    output_bytes = output.encode('utf-8')
+    output_bytes = output.encode("utf-8")
 
     # This is the CID generation logic from routes.py
     hash_obj = hashlib.sha256()
@@ -65,7 +77,7 @@ def test_cid_generation_logic():
     hash_digest = hash_obj.digest()
 
     # Convert to base32 and create CID
-    base32_hash = base64.b32encode(hash_digest).decode('ascii').lower().rstrip('=')
+    base32_hash = base64.b32encode(hash_digest).decode("ascii").lower().rstrip("=")
     cid = f"bafybei{base32_hash}"
 
     print("\nCID generation test:")
@@ -87,6 +99,7 @@ def test_cid_generation_logic():
     assert redirect_url.startswith(f"/{cid}")
     return cid, redirect_url
 
+
 def test_missing_echo_server_scenario():
     """Test what happens when echo server doesn't exist"""
 
@@ -102,6 +115,7 @@ def test_missing_echo_server_scenario():
     print("9. 404 template is rendered")
 
     print("\n❌ ISSUE IDENTIFIED: No 'echo' server exists in the database!")
+
 
 if __name__ == "__main__":
     print("=== Echo Functionality Analysis ===")
@@ -124,7 +138,9 @@ if __name__ == "__main__":
         print("1. No server named 'echo' exists in the database")
         print("2. The system correctly identifies /echo as a potential server path")
         print("3. But when it queries for Server(name='echo'), it finds nothing")
-        print("4. So it falls through to checking CID table for path='/echo' (also empty)")
+        print(
+            "4. So it falls through to checking CID table for path='/echo' (also empty)"
+        )
         print("5. Finally returns 404")
         print("")
         print("Expected behavior if echo server existed:")
@@ -139,4 +155,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Test failed: {e}")
         import traceback
+
         traceback.print_exc()

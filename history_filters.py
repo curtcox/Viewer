@@ -15,7 +15,11 @@ def format_history_timestamp(value: Optional[datetime]) -> str:
     if value is None:
         return ""
 
-    normalized = value.astimezone(timezone.utc) if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    normalized = (
+        value.astimezone(timezone.utc)
+        if value.tzinfo
+        else value.replace(tzinfo=timezone.utc)
+    )
     return normalized.strftime(HISTORY_TIMESTAMP_FORMAT)
 
 
@@ -60,7 +64,9 @@ class ParsedDateRange:
         return params
 
 
-def parse_date_range(start_raw: Optional[str], end_raw: Optional[str]) -> ParsedDateRange:
+def parse_date_range(
+    start_raw: Optional[str], end_raw: Optional[str]
+) -> ParsedDateRange:
     """Parse start/end inputs while preserving user intent and validity."""
 
     start_raw = start_raw or ""

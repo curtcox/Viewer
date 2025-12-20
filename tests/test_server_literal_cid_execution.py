@@ -6,6 +6,7 @@ from cid_core import generate_cid
 import server_execution
 from app import app
 
+
 def test_try_server_execution_runs_python_literal():
     python_literal = """\
 def main():

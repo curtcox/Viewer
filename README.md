@@ -20,6 +20,18 @@ scripts/run-integration.sh  # run the dedicated integration test suite (mirrors 
 python run_coverage.py --xml --html  # run tests with coverage reports (optional)
 ```
 
+### Read-Only Mode
+
+Run the application in read-only mode for secure, memory-constrained operation:
+
+```bash
+python main.py --read-only                          # 1GB memory limit (default)
+python main.py --read-only --max-cid-memory 512M    # Custom memory limit
+```
+
+Read-only mode blocks state-changing operations, uses an in-memory database, and loads a secure boot image.
+See [docs/readonly_mode.md](docs/readonly_mode.md) for details.
+
 > **Note:** The automated tests require the [Markdown](https://python-markdown.github.io/) package. Run `./install` (or
 > `pip install -r requirements.txt`) before invoking the test suite so the dependency is available.
 

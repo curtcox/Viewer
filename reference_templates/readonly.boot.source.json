@@ -1,0 +1,116 @@
+{
+  "version": 6,
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "reference_templates/aliases/ai.txt",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "reference_templates/aliases/ai_about.txt",
+      "enabled": true
+    },
+    {
+      "name": "cookies",
+      "definition_cid": "reference_templates/aliases/cookies.txt",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "reference_templates/servers/definitions/ai_stub.py",
+      "enabled": true
+    },
+    {
+      "name": "anthropic_claude",
+      "definition_cid": "reference_templates/servers/definitions/anthropic_claude.py",
+      "enabled": true
+    },
+    {
+      "name": "auto_main",
+      "definition_cid": "reference_templates/servers/definitions/auto_main.py",
+      "enabled": true
+    },
+    {
+      "name": "markdown",
+      "definition_cid": "reference_templates/servers/definitions/markdown.py",
+      "enabled": true
+    },
+    {
+      "name": "echo",
+      "definition_cid": "reference_templates/servers/definitions/echo.py",
+      "enabled": true
+    },
+    {
+      "name": "glom",
+      "definition_cid": "reference_templates/servers/definitions/glom.py",
+      "enabled": true
+    },
+    {
+      "name": "gateway",
+      "definition_cid": "reference_templates/servers/definitions/gateway.py",
+      "enabled": true
+    },
+    {
+      "name": "google_gemini",
+      "definition_cid": "reference_templates/servers/definitions/google_gemini.py",
+      "enabled": true
+    },
+    {
+      "name": "jinja",
+      "definition_cid": "reference_templates/servers/definitions/jinja_renderer.py",
+      "enabled": true
+    },
+    {
+      "name": "nvidia_nim",
+      "definition_cid": "reference_templates/servers/definitions/nvidia_nim.py",
+      "enabled": true
+    },
+    {
+      "name": "openai_chat",
+      "definition_cid": "reference_templates/servers/definitions/openai_chat.py",
+      "enabled": true
+    },
+    {
+      "name": "openrouter",
+      "definition_cid": "reference_templates/servers/definitions/openrouter.py",
+      "enabled": true
+    },
+    {
+      "name": "proxy",
+      "definition_cid": "reference_templates/servers/definitions/proxy.py",
+      "enabled": true
+    },
+    {
+      "name": "pygments",
+      "definition_cid": "reference_templates/servers/definitions/pygments.py",
+      "enabled": true
+    },
+    {
+      "name": "urleditor",
+      "definition_cid": "reference_templates/servers/definitions/urleditor.py",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "GENERATED:templates.json",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "GENERATED:uis.json",
+      "enabled": true
+    }
+  ]
+}

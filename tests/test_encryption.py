@@ -1,4 +1,5 @@
 """Coverage-oriented tests for the encryption helpers."""
+
 import base64
 from hashlib import sha256
 from hmac import new as hmac_new

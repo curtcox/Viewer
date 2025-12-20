@@ -1,4 +1,5 @@
 """HTML rendering utilities for meta route."""
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -13,9 +14,15 @@ def render_scalar_html(value: Any) -> Markup:
     """Return HTML for a scalar metadata value."""
     if isinstance(value, str):
         trimmed = value.strip()
-        if trimmed.startswith("/") or trimmed.startswith("http://") or trimmed.startswith("https://"):
+        if (
+            trimmed.startswith("/")
+            or trimmed.startswith("http://")
+            or trimmed.startswith("https://")
+        ):
             escaped_trimmed = escape(trimmed)
-            return Markup(f'<a href="{escaped_trimmed}"><code>{escaped_trimmed}</code></a>')
+            return Markup(
+                f'<a href="{escaped_trimmed}"><code>{escaped_trimmed}</code></a>'
+            )
         return Markup(f"<code>{escape(value)}</code>")
 
     if value is None:
@@ -36,15 +43,17 @@ def render_value_html(value: Any) -> Markup:
         items = []
         for key, child in value.items():
             items.append(
-                Markup("<li><span class=\"meta-key\">{}</span>: {}</li>").format(
+                Markup('<li><span class="meta-key">{}</span>: {}</li>').format(
                     escape(key), render_value_html(child)
                 )
             )
-        return Markup("<ul class=\"meta-dict\">{}</ul>").format(Markup("".join(items)))
+        return Markup('<ul class="meta-dict">{}</ul>').format(Markup("".join(items)))
 
     if isinstance(value, (list, tuple, set)):
-        items = [Markup("<li>{}</li>").format(render_value_html(child)) for child in value]
-        return Markup("<ol class=\"meta-list\">{}</ol>").format(Markup("".join(items)))
+        items = [
+            Markup("<li>{}</li>").format(render_value_html(child)) for child in value
+        ]
+        return Markup('<ol class="meta-list">{}</ol>').format(Markup("".join(items)))
 
     return render_scalar_html(value)
 
@@ -194,16 +203,16 @@ def render_related_tests_section(metadata: Dict[str, Any]) -> str:
 
     sections_html: List[str] = [
         '<section class="meta-related-tests">',
-        '<h2>Related automated coverage</h2>',
-        '<p>Tests below are sourced from <code>docs/page_test_cross_reference.md</code> for templates rendered by this page.</p>',
-        '<h3>Templates</h3>',
+        "<h2>Related automated coverage</h2>",
+        "<p>Tests below are sourced from <code>docs/page_test_cross_reference.md</code> for templates rendered by this page.</p>",
+        "<h3>Templates</h3>",
         '<ul class="meta-related-tests-templates">',
         "".join(str(item) for item in template_links),
         "</ul>",
     ]
 
     for key, label in categories:
-        sections_html.append(f'<h3>{escape(label)}</h3>')
+        sections_html.append(f"<h3>{escape(label)}</h3>")
         items = aggregated[key]
         if items:
             sections_html.append('<ul class="meta-related-tests-list">')
@@ -212,7 +221,7 @@ def render_related_tests_section(metadata: Dict[str, Any]) -> str:
                 sections_html.append(f"<li>{rendered}</li>")
             sections_html.append("</ul>")
         else:
-            sections_html.append('<p><em>None documented.</em></p>')
+            sections_html.append("<p><em>None documented.</em></p>")
 
     sections_html.append("</section>")
     return "".join(sections_html)

@@ -2,7 +2,7 @@
 
 import json
 import traceback
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from flask import Response, redirect
 
@@ -19,24 +19,35 @@ def _encode_output(output: Any) -> bytes:
     # Dicts -> JSON for human-friendly output instead of concatenated keys
     if isinstance(output, dict):
         try:
-            return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            return json.dumps(
+                output, ensure_ascii=False, indent=2, sort_keys=True
+            ).encode("utf-8")
         except (TypeError, ValueError):
             # Fall back to string representation for non-JSON-serializable dicts
             return str(output).encode("utf-8")
     # If it's an iterable, try to handle common patterns gracefully
     try:
-        from collections.abc import Iterable as _Iterable  # local import to avoid top changes
+        from collections.abc import (
+            Iterable as _Iterable,
+        )  # local import to avoid top changes
+
         if isinstance(output, _Iterable):
             items = list(output)
             # If elements look JSON-serializable (e.g., list of dicts), prefer JSON
             try:
                 if items and any(isinstance(x, (dict, list, tuple)) for x in items):
-                    return json.dumps(output, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+                    return json.dumps(
+                        output, ensure_ascii=False, indent=2, sort_keys=True
+                    ).encode("utf-8")
             except Exception as json_err:  # pylint: disable=broad-exception-caught
                 # Log all JSON encoding failures for debugging user code output
-                print(f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}")
+                print(
+                    f"[server_execution] JSON encoding attempt failed: {type(json_err).__name__}: {json_err}"
+                )
                 print(f"[server_execution] Output type: {type(output).__name__}")
-                print(f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}...")
+                print(
+                    f"[server_execution] Items types: {[type(x).__name__ for x in items[:5]]}..."
+                )
                 traceback.print_exc()
                 # Continue to try other encodings
             # List of ints -> bytes directly
@@ -56,7 +67,9 @@ def _encode_output(output: Any) -> bytes:
     return str(output).encode("utf-8")
 
 
-def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, content_type: str) -> None:
+def _log_server_output(
+    debug_prefix: str, error_suffix: str, output: Any, content_type: str
+) -> None:
     """Log execution details while tolerating logging failures."""
     try:
         sample = repr(output)
@@ -76,7 +89,13 @@ def _log_server_output(debug_prefix: str, error_suffix: str, output: Any, conten
         traceback.print_exc()
 
 
-def _handle_successful_execution(output: Any, content_type: str, server_name: str) -> Response:
+def _handle_successful_execution(
+    output: Any,
+    content_type: str,
+    server_name: str,
+    *,
+    external_calls: Optional[List[Dict[str, Any]]] = None,
+) -> Response:
     output_bytes = _encode_output(output)
     cid_value = format_cid(generate_cid(output_bytes))
 
@@ -86,7 +105,10 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
         create_cid_record(cid_value, output_bytes)
 
     from server_execution.invocation_tracking import create_server_invocation_record  # pylint: disable=no-name-in-module
-    create_server_invocation_record(server_name, cid_value)
+
+    create_server_invocation_record(
+        server_name, cid_value, external_calls=external_calls
+    )
 
     extension = get_extension_from_mime_type(content_type)
     if extension and cid_record_path:
@@ -95,4 +117,4 @@ def _handle_successful_execution(output: Any, content_type: str, server_name: st
             return redirect(redirect_path)
     if cid_record_path:
         return redirect(cid_record_path)
-    return redirect('/')
+    return redirect("/")

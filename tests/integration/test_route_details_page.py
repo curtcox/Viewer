@@ -18,12 +18,18 @@ def _normalize_location(location: str) -> str:
     return parsed.path or "/"
 
 
-def _create_alias_chain(app, base_name: str, redirect_count: int, final_target: str) -> list[str]:
+def _create_alias_chain(
+    app, base_name: str, redirect_count: int, final_target: str
+) -> list[str]:
     names: list[str] = []
     with app.app_context():
         for index in range(redirect_count):
             alias_name = f"{base_name}-{index + 1}"
-            next_path = final_target if index + 1 == redirect_count else f"/{base_name}-{index + 2}"
+            next_path = (
+                final_target
+                if index + 1 == redirect_count
+                else f"/{base_name}-{index + 2}"
+            )
             db.session.add(
                 Alias(
                     name=alias_name,

@@ -1,4 +1,5 @@
 """Helper functions for constructing OpenAPI response and request specifications."""
+
 from __future__ import annotations
 
 import re

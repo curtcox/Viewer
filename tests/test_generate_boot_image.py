@@ -44,21 +44,21 @@ class TestBootImageGenerator:
                 "test-alias": {
                     "name": "Test Alias",
                     "description": "Test alias description",
-                    "definition_cid": "reference_templates/aliases/test.txt"
+                    "definition_cid": "reference_templates/aliases/test.txt",
                 }
             },
             "servers": {
                 "test-server": {
                     "name": "Test Server",
                     "description": "Test server description",
-                    "definition_cid": "reference_templates/servers/definitions/test_server.py"
+                    "definition_cid": "reference_templates/servers/definitions/test_server.py",
                 }
             },
             "variables": {
                 "test-variable": {
                     "name": "Test Variable",
                     "description": "Test variable description",
-                    "definition_cid": "reference_templates/variables/test_var.txt"
+                    "definition_cid": "reference_templates/variables/test_var.txt",
                 }
             },
             "secrets": {},
@@ -66,19 +66,15 @@ class TestBootImageGenerator:
                 "test-upload": {
                     "name": "Test Upload",
                     "description": "Test upload description",
-                    "content_cid": "reference_templates/uploads/contents/test.html"
+                    "content_cid": "reference_templates/uploads/contents/test.html",
                 }
-            }
+            },
         }
         templates_source_file = ref_templates / "templates.source.json"
         templates_source_file.write_text(json.dumps(templates_source, indent=2))
 
         # Create uis.source.json
-        uis_source = {
-            "aliases": {},
-            "servers": {},
-            "variables": {}
-        }
+        uis_source = {"aliases": {}, "servers": {}, "variables": {}}
         uis_source_file = ref_templates / "uis.source.json"
         uis_source_file.write_text(json.dumps(uis_source, indent=2))
 
@@ -91,28 +87,24 @@ class TestBootImageGenerator:
                 {
                     "name": "test",
                     "definition_cid": "reference_templates/aliases/test.txt",
-                    "enabled": True
+                    "enabled": True,
                 }
             ],
             "servers": [
                 {
                     "name": "test_server",
                     "definition_cid": "reference_templates/servers/definitions/test_server.py",
-                    "enabled": True
+                    "enabled": True,
                 }
             ],
             "variables": [
                 {
                     "name": "templates",
                     "definition": "GENERATED:templates.json",
-                    "enabled": True
+                    "enabled": True,
                 },
-                {
-                    "name": "uis",
-                    "definition": "GENERATED:uis.json",
-                    "enabled": True
-                }
-            ]
+                {"name": "uis", "definition": "GENERATED:uis.json", "enabled": True},
+            ],
         }
         boot_source_file = ref_templates / "boot.source.json"
         boot_source_file.write_text(json.dumps(boot_source, indent=2))
@@ -125,6 +117,11 @@ class TestBootImageGenerator:
         default_boot_source = boot_source.copy()
         default_boot_source_file = ref_templates / "default.boot.source.json"
         default_boot_source_file.write_text(json.dumps(default_boot_source, indent=2))
+
+        # Create readonly.boot.source.json (same as boot but for readonly mode)
+        readonly_boot_source = boot_source.copy()
+        readonly_boot_source_file = ref_templates / "readonly.boot.source.json"
+        readonly_boot_source_file.write_text(json.dumps(readonly_boot_source, indent=2))
 
         return tmp_path
 
@@ -158,12 +155,13 @@ class TestBootImageGenerator:
         assert content == b"test content"
 
     def test_generate_and_store_cid(self, temp_project):
-        """Test generating and storing a CID."""
+        """Test generating and storing a CID for content > 64 bytes (hashed CID)."""
         generator = BootImageGenerator(temp_project)
         generator.ensure_cids_directory()
 
         test_file = temp_project / "test.txt"
-        test_content = b"test content"
+        # Use content > 64 bytes to ensure it generates a hashed CID (94 chars)
+        test_content = b"This is a longer test content that exceeds 64 bytes to ensure a hashed CID is generated instead of a literal one"
         test_file.write_bytes(test_content)
 
         cid = generator.generate_and_store_cid(test_file, "test.txt")
@@ -172,7 +170,10 @@ class TestBootImageGenerator:
         expected_cid = generate_cid(test_content)
         assert cid == expected_cid
 
-        # Verify CID file was created
+        # Verify it's a hashed CID (exactly 94 characters)
+        assert len(cid) == 94
+
+        # Verify CID file was created (only hashed CIDs are stored)
         cid_file = temp_project / "cids" / cid
         assert cid_file.exists()
         assert cid_file.read_bytes() == test_content
@@ -188,12 +189,43 @@ class TestBootImageGenerator:
         generator.ensure_cids_directory()
 
         test_file = temp_project / "test.txt"
-        test_file.write_bytes(b"test content")
+        # Use content > 64 bytes to generate a hashed CID
+        test_file.write_bytes(
+            b"This is a longer test content that exceeds 64 bytes to ensure a hashed CID is generated"
+        )
 
         cid1 = generator.generate_and_store_cid(test_file, "test.txt")
         cid2 = generator.generate_and_store_cid(test_file, "test.txt")
 
         assert cid1 == cid2
+
+    def test_generate_and_store_cid_literal(self, temp_project):
+        """Test that literal CIDs (< 94 chars) are NOT stored in /cids."""
+        generator = BootImageGenerator(temp_project)
+        generator.ensure_cids_directory()
+
+        test_file = temp_project / "test.txt"
+        # Use content <= 64 bytes to generate a literal CID
+        test_content = b"short content"
+        test_file.write_bytes(test_content)
+
+        cid = generator.generate_and_store_cid(test_file, "test.txt")
+
+        # Verify CID is correct
+        expected_cid = generate_cid(test_content)
+        assert cid == expected_cid
+
+        # Verify it's a literal CID (< 94 characters)
+        assert len(cid) < 94
+
+        # Verify CID file was NOT created (literal CIDs are not stored)
+        cid_file = temp_project / "cids" / cid
+        assert not cid_file.exists()
+
+        # Verify tracking still works
+        assert "test.txt" in generator.file_to_cid
+        assert generator.file_to_cid["test.txt"] == cid
+        assert "test.txt" in generator.processed_files
 
     def test_process_referenced_files(self, temp_project):
         """Test processing referenced files in JSON data."""
@@ -208,7 +240,7 @@ class TestBootImageGenerator:
             "aliases": {
                 "test": {
                     "name": "Test",
-                    "definition_cid": "reference_templates/test.txt"
+                    "definition_cid": "reference_templates/test.txt",
                 }
             }
         }
@@ -224,15 +256,13 @@ class TestBootImageGenerator:
         generator = BootImageGenerator(temp_project)
 
         # Mock the file_to_cid mapping
-        generator.file_to_cid = {
-            "reference_templates/test.txt": "TESTCID123"
-        }
+        generator.file_to_cid = {"reference_templates/test.txt": "TESTCID123"}
 
         data = {
             "aliases": {
                 "test": {
                     "name": "Test",
-                    "definition_cid": "reference_templates/test.txt"
+                    "definition_cid": "reference_templates/test.txt",
                 }
             }
         }
@@ -253,7 +283,7 @@ class TestBootImageGenerator:
         assert templates_json_path.exists()
 
         # Verify templates.json has correct structure
-        with open(templates_json_path, 'r', encoding='utf-8') as f:
+        with open(templates_json_path, "r", encoding="utf-8") as f:
             templates_data = json.load(f)
 
         assert "aliases" in templates_data
@@ -263,11 +293,17 @@ class TestBootImageGenerator:
         assert "uploads" in templates_data
 
         # Verify CIDs were replaced
-        assert templates_data["aliases"]["test-alias"]["definition_cid"].startswith("AAAAAAA")
+        assert templates_data["aliases"]["test-alias"]["definition_cid"].startswith(
+            "AAAAAAA"
+        )
 
-        # Verify CID file was created
+        # Verify CID file was created only if it's a hashed CID (>= 94 chars)
         cid_file = temp_project / "cids" / templates_cid
-        assert cid_file.exists()
+        if len(templates_cid) >= 94:
+            assert cid_file.exists()
+        else:
+            # Literal CIDs are not stored in /cids
+            assert not cid_file.exists()
 
     def test_generate_boot_json(self, temp_project):
         """Test generating boot.json."""
@@ -284,7 +320,7 @@ class TestBootImageGenerator:
         assert boot_json_path.exists()
 
         # Verify boot.json has correct structure
-        with open(boot_json_path, 'r', encoding='utf-8') as f:
+        with open(boot_json_path, "r", encoding="utf-8") as f:
             boot_data = json.load(f)
 
         assert "version" in boot_data
@@ -308,9 +344,13 @@ class TestBootImageGenerator:
         assert templates_var["definition"] == templates_cid
         assert templates_var["definition"] != "GENERATED:templates.json"
 
-        # Verify CID file was created
+        # Verify CID file was created only if it's a hashed CID (>= 94 chars)
         cid_file = temp_project / "cids" / boot_cid
-        assert cid_file.exists()
+        if len(boot_cid) >= 94:
+            assert cid_file.exists()
+        else:
+            # Literal CIDs are not stored in /cids
+            assert not cid_file.exists()
 
     def test_generate_complete(self, temp_project):
         """Test the complete generation process."""
@@ -323,30 +363,42 @@ class TestBootImageGenerator:
         assert "boot_cid" in result
         assert "minimal_boot_cid" in result
         assert "default_boot_cid" in result
+        assert "readonly_boot_cid" in result
 
         # Verify both CIDs are valid (at least 8 characters, valid CID format)
         assert len(result["templates_cid"]) >= 8
         assert len(result["boot_cid"]) >= 8
         assert len(result["minimal_boot_cid"]) >= 8
         assert len(result["default_boot_cid"]) >= 8
+        assert len(result["readonly_boot_cid"]) >= 8
         # All CIDs should be alphanumeric with _ and - allowed
         import re
-        assert re.match(r'^[A-Za-z0-9_-]+$', result["templates_cid"])
-        assert re.match(r'^[A-Za-z0-9_-]+$', result["boot_cid"])
-        assert re.match(r'^[A-Za-z0-9_-]+$', result["minimal_boot_cid"])
-        assert re.match(r'^[A-Za-z0-9_-]+$', result["default_boot_cid"])
+
+        assert re.match(r"^[A-Za-z0-9_-]+$", result["templates_cid"])
+        assert re.match(r"^[A-Za-z0-9_-]+$", result["boot_cid"])
+        assert re.match(r"^[A-Za-z0-9_-]+$", result["minimal_boot_cid"])
+        assert re.match(r"^[A-Za-z0-9_-]+$", result["default_boot_cid"])
+        assert re.match(r"^[A-Za-z0-9_-]+$", result["readonly_boot_cid"])
 
         # Verify files were created
         assert (temp_project / "reference_templates" / "templates.json").exists()
         assert (temp_project / "reference_templates" / "boot.json").exists()
         assert (temp_project / "reference_templates" / "minimal.boot.json").exists()
         assert (temp_project / "reference_templates" / "default.boot.json").exists()
+        assert (temp_project / "reference_templates" / "readonly.boot.json").exists()
 
-        # Verify CID files were created
-        assert (temp_project / "cids" / result["templates_cid"]).exists()
-        assert (temp_project / "cids" / result["boot_cid"]).exists()
-        assert (temp_project / "cids" / result["minimal_boot_cid"]).exists()
-        assert (temp_project / "cids" / result["default_boot_cid"]).exists()
+        # Verify CID files were created only for hashed CIDs (>= 94 chars)
+        # Literal CIDs (< 94 chars) are not stored in /cids
+        if len(result["templates_cid"]) >= 94:
+            assert (temp_project / "cids" / result["templates_cid"]).exists()
+        if len(result["boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["boot_cid"]).exists()
+        if len(result["minimal_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["minimal_boot_cid"]).exists()
+        if len(result["default_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["default_boot_cid"]).exists()
+        if len(result["readonly_boot_cid"]) >= 94:
+            assert (temp_project / "cids" / result["readonly_boot_cid"]).exists()
 
         # Verify processed files
         assert len(generator.processed_files) > 0
@@ -356,16 +408,18 @@ class TestBootImageGenerator:
         generator = BootImageGenerator(temp_project)
 
         # Add a reference to a non-existent file in templates.source.json
-        templates_source_file = temp_project / "reference_templates" / "templates.source.json"
-        with open(templates_source_file, 'r', encoding='utf-8') as f:
+        templates_source_file = (
+            temp_project / "reference_templates" / "templates.source.json"
+        )
+        with open(templates_source_file, "r", encoding="utf-8") as f:
             templates_data = json.load(f)
 
         templates_data["servers"]["missing"] = {
             "name": "Missing Server",
-            "definition_cid": "reference_templates/servers/definitions/missing.py"
+            "definition_cid": "reference_templates/servers/definitions/missing.py",
         }
 
-        with open(templates_source_file, 'w', encoding='utf-8') as f:
+        with open(templates_source_file, "w", encoding="utf-8") as f:
             json.dump(templates_data, f, indent=2)
 
         # Should complete without error (with warning)
@@ -378,9 +432,7 @@ class TestBootImageGenerator:
         """Test that replacing filenames preserves other fields."""
         generator = BootImageGenerator(temp_project)
 
-        generator.file_to_cid = {
-            "reference_templates/test.txt": "TESTCID123"
-        }
+        generator.file_to_cid = {"reference_templates/test.txt": "TESTCID123"}
 
         data = {
             "aliases": {
@@ -388,7 +440,7 @@ class TestBootImageGenerator:
                     "name": "Test Name",
                     "description": "Test Description",
                     "definition_cid": "reference_templates/test.txt",
-                    "metadata": {"key": "value"}
+                    "metadata": {"key": "value"},
                 }
             }
         }
@@ -412,14 +464,8 @@ class TestBootImageGenerator:
         test_file2.write_text("content2")
 
         data = [
-            {
-                "name": "test1",
-                "definition_cid": "reference_templates/test1.txt"
-            },
-            {
-                "name": "test2",
-                "definition_cid": "reference_templates/test2.txt"
-            }
+            {"name": "test1", "definition_cid": "reference_templates/test1.txt"},
+            {"name": "test2", "definition_cid": "reference_templates/test2.txt"},
         ]
 
         generator.process_referenced_files(data)

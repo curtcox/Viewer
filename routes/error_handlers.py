@@ -57,18 +57,20 @@ def not_found_error(error):  # pylint: disable=unused-argument  # Required by Fl
     if is_potential_versioned_server_path(path, existing_routes):
         from .servers import get_server_definition_history
 
-        server_result = try_server_execution_with_partial(path, get_server_definition_history)
+        server_result = try_server_execution_with_partial(
+            path, get_server_definition_history
+        )
         if server_result is not None:
             return server_result
 
-    base_path = path.split('.')[0] if '.' in path else path
+    base_path = path.split(".")[0] if "." in path else path
     cid_content = get_cid_by_path(base_path)
     if cid_content:
         result = serve_cid_content(cid_content, path)
         if result is not None:
             return result
 
-    return render_template('404.html', path=path), 404
+    return render_template("404.html", path=path), 404
 
 
 def internal_error(error):
@@ -108,9 +110,23 @@ def internal_error(error):
         # Extract the exception and build stack trace
         exception = extract_exception(error)
         exception_type = type(exception).__name__
-        exception_message = str(exception) if str(exception) else "No error message available"
+        exception_message = (
+            str(exception) if str(exception) else "No error message available"
+        )
 
         stack_trace = build_stack_trace(error, root_path, tracked_paths)
+
+        if not stack_trace:
+            stack_trace = [
+                {
+                    "display_path": "(no traceback available)",
+                    "lineno": 0,
+                    "function": exception_type,
+                    "code": exception_message,
+                    "source_link": None,
+                    "is_separator": False,
+                }
+            ]
 
     except Exception as trace_error:  # pylint: disable=broad-exception-caught  # Fallback error handler
         # If stack trace building fails, create a minimal fallback
@@ -118,38 +134,43 @@ def internal_error(error):
             import sys
 
             # Get the current exception info
-            _, _, exc_traceback = sys.exc_info()
-            if exc_traceback:
-                # Create a basic stack trace as fallback
-                stack_trace = [{
+            sys.exc_info()
+            # Create a basic stack trace as fallback
+            stack_trace = [
+                {
                     "display_path": "Error in stack trace generation",
                     "lineno": 0,
                     "function": "internal_error",
                     "code": f"Stack trace generation failed: {trace_error}\n\nOriginal error: {error}",
                     "source_link": None,
                     "is_separator": False,
-                }]
+                }
+            ]
 
             # Try to get basic info about the original error
             if not exception:
                 exception = error
                 exception_type = type(error).__name__
-                exception_message = str(error) if str(error) else "Error occurred during error handling"
+                exception_message = (
+                    str(error) if str(error) else "Error occurred during error handling"
+                )
 
         except Exception:  # pylint: disable=broad-exception-caught  # Ultimate fallback for error handling
             # Ultimate fallback - just show basic error info
-            stack_trace = [{
-                "display_path": "Critical error handling failure",
-                "lineno": 0,
-                "function": "internal_error",
-                "code": f"Both original error and error handling failed.\nOriginal error: {error}",
-                "source_link": None,
-                "is_separator": False,
-            }]
+            stack_trace = [
+                {
+                    "display_path": "Critical error handling failure",
+                    "lineno": 0,
+                    "function": "internal_error",
+                    "code": f"Both original error and error handling failed.\nOriginal error: {error}",
+                    "source_link": None,
+                    "is_separator": False,
+                }
+            ]
 
     return (
         render_template(
-            '500.html',
+            "500.html",
             stack_trace=stack_trace,
             exception_type=exception_type,
             exception_message=exception_message,
@@ -159,7 +180,7 @@ def internal_error(error):
 
 
 __all__ = [
-    'get_existing_routes',
-    'not_found_error',
-    'internal_error',
+    "get_existing_routes",
+    "not_found_error",
+    "internal_error",
 ]

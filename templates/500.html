@@ -4,6 +4,9 @@
 {% if syntax_css %}
 <style>{{ syntax_css | safe }}</style>
 {% endif %}
+{% if server_source_css %}
+<style>{{ server_source_css | safe }}</style>
+{% endif %}
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-10">
@@ -14,6 +17,11 @@
                     <p class="card-text text-muted mb-4">
                         Something went wrong on our end. We're working to fix the issue. Please try again later.
                     </p>
+                    {% if config.get('GIT_SHA') %}
+                    <p class="card-text text-muted small mb-4">
+                        Git SHA: <code>{{ config.get('GIT_SHA') }}</code>
+                    </p>
+                    {% endif %}
                     <a href="{{ url_for('main.index') }}" class="btn btn-primary">
                         <i class="fas fa-home me-2"></i>Back to Home
                     </a>

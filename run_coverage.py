@@ -57,7 +57,9 @@ def resolve_summary_path(path: Path) -> Path:
     return path
 
 
-def erase_previous_data(env: dict[str, str], *, clean_html: bool, clean_xml: bool) -> None:
+def erase_previous_data(
+    env: dict[str, str], *, clean_html: bool, clean_xml: bool
+) -> None:
     """Remove previous coverage output so fresh reports are generated."""
 
     subprocess.run(
@@ -74,7 +76,9 @@ def erase_previous_data(env: dict[str, str], *, clean_html: bool, clean_xml: boo
         COVERAGE_XML_FILE.unlink()
 
 
-def run_coverage_report(env: dict[str, str], fail_under: Optional[float]) -> tuple[str, int]:
+def run_coverage_report(
+    env: dict[str, str], fail_under: Optional[float]
+) -> tuple[str, int]:
     """Generate the textual coverage report and capture its output."""
 
     command = [sys.executable, "-m", "coverage", "report"]
@@ -138,13 +142,29 @@ def parse_arguments(argv: Sequence[str]) -> argparse.Namespace:
         description="Run pytest with coverage enabled",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--html", action="store_true", help="Generate the HTML coverage report")
-    parser.add_argument("--xml", action="store_true", help="Generate the XML coverage report")
+    parser.add_argument(
+        "--html", action="store_true", help="Generate the HTML coverage report"
+    )
+    parser.add_argument(
+        "--xml", action="store_true", help="Generate the XML coverage report"
+    )
     report_group = parser.add_mutually_exclusive_group()
-    report_group.add_argument("--report", dest="report", action="store_true", help="Show the text coverage report")
-    report_group.add_argument("--no-report", dest="report", action="store_false", help="Skip the text coverage report")
+    report_group.add_argument(
+        "--report",
+        dest="report",
+        action="store_true",
+        help="Show the text coverage report",
+    )
+    report_group.add_argument(
+        "--no-report",
+        dest="report",
+        action="store_false",
+        help="Skip the text coverage report",
+    )
     parser.set_defaults(report=True)
-    parser.add_argument("--all", action="store_true", help="Generate HTML, XML and text reports")
+    parser.add_argument(
+        "--all", action="store_true", help="Generate HTML, XML and text reports"
+    )
     parser.add_argument(
         "--fail-under",
         type=float,
@@ -209,7 +229,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     exit_code = tests_completed.returncode
 
     if not COVERAGE_DATA_FILE.exists():
-        print("No coverage data was produced. Did the tests run successfully?", file=sys.stderr)
+        print(
+            "No coverage data was produced. Did the tests run successfully?",
+            file=sys.stderr,
+        )
         return exit_code or 1
 
     summary_output = ""

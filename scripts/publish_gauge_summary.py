@@ -124,8 +124,9 @@ def parse_gauge_log(log_path: Path) -> dict[str, Any]:
     return result
 
 
-def _process_spec_failures(spec: dict, specs_run: list, specs_failed: list,
-                          failed_scenarios: list) -> None:
+def _process_spec_failures(
+    spec: dict, specs_run: list, specs_failed: list, failed_scenarios: list
+) -> None:
     """Process a spec to extract failure information."""
     if not isinstance(spec, dict):
         return
@@ -164,8 +165,9 @@ def _extract_html_specs(html_data: dict, specs_run: list) -> None:
             specs_run.append(spec_name)
 
 
-def _extract_execution_results(html_data: dict, specs_run: list, specs_failed: list,
-                               failed_scenarios: list) -> None:
+def _extract_execution_results(
+    html_data: dict, specs_run: list, specs_failed: list, failed_scenarios: list
+) -> None:
     """Extract execution results from HTML data."""
     exec_result = html_data.get("executionResult", {})
     if not isinstance(exec_result, dict):

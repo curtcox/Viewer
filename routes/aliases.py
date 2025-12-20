@@ -1,4 +1,5 @@
 """Routes for managing user-defined aliases."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,7 +8,7 @@ import re
 from typing import Any, Dict, Optional, TypeAlias
 from urllib.parse import urlsplit
 
-import logfire
+from logfire_utils import instrument as logfire_instrument
 from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -47,7 +48,7 @@ from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 
 
 # Constants
-SUBMIT_ACTION_SAVE_AS = 'save-as'
+SUBMIT_ACTION_SAVE_AS = "save-as"
 
 # Type aliases
 ValidationResult: TypeAlias = tuple[bool, Optional[str]]
@@ -58,6 +59,7 @@ DefinitionMetadata: TypeAlias = Dict[str, Any]
 @dataclass
 class TargetPathMetadata:
     """Metadata for rendering a target path in alias definitions."""
+
     kind: str  # 'cid', 'server', 'alias', 'path'
     display: str
     url: Optional[str] = None
@@ -90,9 +92,7 @@ def _alias_name_conflicts_with_routes(name: str) -> bool:
     return f"/{name}" in get_existing_routes()
 
 
-def _alias_with_name_exists(
-    name: str, exclude_id: Optional[int] = None
-) -> bool:
+def _alias_with_name_exists(name: str, exclude_id: Optional[int] = None) -> bool:
     existing = get_alias_by_name(name)
     if not existing:
         return False
@@ -162,7 +162,7 @@ def _build_definition_value(
     return definition_text or None
 
 
-@logfire.instrument(
+@logfire_instrument(
     "aliases._persist_alias({alias=})", extract_args=True, record_return=True
 )
 def _persist_alias(alias: Alias) -> Alias:
@@ -328,12 +328,12 @@ def _build_alias_view_context(alias: Alias) -> Dict[str, Any]:
     ]
 
     # Get UI suggestions for this alias
-    ui_suggestions = get_ui_suggestions_info('aliases', alias.name)
+    ui_suggestions = get_ui_suggestions_info("aliases", alias.name)
 
     return {
-        'target_references': target_references,
-        'alias_definition_lines': definition_lines,
-        'ui_suggestions': ui_suggestions,
+        "target_references": target_references,
+        "alias_definition_lines": definition_lines,
+        "ui_suggestions": ui_suggestions,
     }
 
 
@@ -352,8 +352,8 @@ def _alias_to_json(alias: Alias) -> Dict[str, Any]:
 # Configure and register standard CRUD routes using the factory
 _alias_config = EntityRouteConfig(
     entity_class=Alias,
-    entity_type='alias',
-    plural_name='aliases',
+    entity_type="alias",
+    plural_name="aliases",
     get_by_name_func=get_alias_by_name,
     get_entities_func=get_aliases,
     form_class=AliasForm,
@@ -364,16 +364,16 @@ _alias_config = EntityRouteConfig(
 register_standard_crud_routes(main_bp, _alias_config)
 
 
-@main_bp.route('/aliases/new', methods=['GET', 'POST'])
+@main_bp.route("/aliases/new", methods=["GET", "POST"])
 def new_alias():
     """Create a new alias for the authenticated user."""
     form = AliasForm()
-    change_message = (request.form.get('change_message') or '').strip()
+    change_message = (request.form.get("change_message") or "").strip()
 
-    if request.method == 'GET':
-        path_hint = (request.args.get('path') or '').strip()
-        name_hint = (request.args.get('name') or '').strip()
-        target_hint = (request.args.get('target_path') or '').strip()
+    if request.method == "GET":
+        path_hint = (request.args.get("path") or "").strip()
+        name_hint = (request.args.get("name") or "").strip()
+        target_hint = (request.args.get("target_path") or "").strip()
 
         if name_hint and not form.name.data:
             form.name.data = name_hint
@@ -386,10 +386,10 @@ def new_alias():
 
     alias_templates = [
         {
-            'id': getattr(alias, 'template_key', None) or alias.id,
-            'name': alias.name,
-            'definition': alias.definition or '',
-            'suggested_name': f"{alias.name}-copy" if alias.name else '',
+            "id": getattr(alias, "template_key", None) or alias.id,
+            "name": alias.name,
+            "definition": alias.definition or "",
+            "suggested_name": f"{alias.name}-copy" if alias.name else "",
         }
         for alias in get_template_aliases()
     ]
@@ -401,7 +401,7 @@ def new_alias():
 
         is_valid, error_message = validator.validate_name(name)
         if not is_valid:
-            flash(error_message, 'danger')
+            flash(error_message, "danger")
         else:
             definition_text = form.definition.data or ""
             definition_value = _build_definition_value(definition_text, parsed, name)
@@ -414,27 +414,25 @@ def new_alias():
             _persist_alias(alias)
             record_entity_interaction(
                 EntityInteractionRequest(
-                    entity_type='alias',
+                    entity_type="alias",
                     entity_name=alias.name,
-                    action='save',
+                    action="save",
                     message=change_message,
-                    content=form.definition.data or '',
+                    content=form.definition.data or "",
                 )
             )
-            flash(f'Alias "{name}" created successfully!', 'success')
-            return redirect(url_for('main.aliases'))
+            flash(f'Alias "{name}" created successfully!', "success")
+            return redirect(url_for("main.aliases"))
 
-    entity_name_hint = (form.name.data or '').strip()
-    interaction_history = load_interaction_history(
-        'alias', entity_name_hint
-    )
+    entity_name_hint = (form.name.data or "").strip()
+    interaction_history = load_interaction_history("alias", entity_name_hint)
 
-    template_link_info = get_template_link_info('aliases')
+    template_link_info = get_template_link_info("aliases")
 
     return render_template(
-        'alias_form.html',
+        "alias_form.html",
         form=form,
-        title='Create New Alias',
+        title="Create New Alias",
         alias=None,
         interaction_history=interaction_history,
         ai_entity_name=entity_name_hint,
@@ -459,12 +457,12 @@ def _handle_save_as(
         Redirect URL if successful, None if validation failed
     """
     if not new_name or new_name == alias.name:
-        flash('Choose a new name to save this alias as a copy.', 'danger')
+        flash("Choose a new name to save this alias as a copy.", "danger")
         return None
 
     is_valid, error_message = validator.validate_name(new_name)
     if not is_valid:
-        flash(error_message, 'danger')
+        flash(error_message, "danger")
         return None
 
     alias_copy = Alias(
@@ -475,15 +473,15 @@ def _handle_save_as(
     _persist_alias(alias_copy)
     record_entity_interaction(
         EntityInteractionRequest(
-            entity_type='alias',
+            entity_type="alias",
             entity_name=alias_copy.name,
-            action='save',
+            action="save",
             message=change_message,
-            content=form.definition.data or '',
+            content=form.definition.data or "",
         )
     )
-    flash(f'Alias "{alias_copy.name}" created successfully!', 'success')
-    return url_for('main.view_alias', alias_name=alias_copy.name)
+    flash(f'Alias "{alias_copy.name}" created successfully!', "success")
+    return url_for("main.view_alias", alias_name=alias_copy.name)
 
 
 def _handle_rename(
@@ -503,7 +501,7 @@ def _handle_rename(
     if new_name != alias.name:
         is_valid, error_message = validator.validate_name(new_name, exclude_id=alias.id)
         if not is_valid:
-            flash(error_message, 'danger')
+            flash(error_message, "danger")
             return None
 
     alias.name = new_name
@@ -513,18 +511,18 @@ def _handle_rename(
     _persist_alias(alias)
     record_entity_interaction(
         EntityInteractionRequest(
-            entity_type='alias',
+            entity_type="alias",
             entity_name=alias.name,
-            action='save',
+            action="save",
             message=change_message,
-            content=form.definition.data or '',
+            content=form.definition.data or "",
         )
     )
-    flash(f'Alias "{alias.name}" updated successfully!', 'success')
-    return url_for('main.view_alias', alias_name=alias.name)
+    flash(f'Alias "{alias.name}" updated successfully!', "success")
+    return url_for("main.view_alias", alias_name=alias.name)
 
 
-@main_bp.route('/aliases/<alias_name>/edit', methods=['GET', 'POST'])
+@main_bp.route("/aliases/<alias_name>/edit", methods=["GET", "POST"])
 def edit_alias(alias_name: str):
     """Edit an existing alias."""
     alias = get_alias_by_name(alias_name)
@@ -532,12 +530,12 @@ def edit_alias(alias_name: str):
         abort(404)
 
     form = AliasForm(obj=alias)
-    change_message = (request.form.get('change_message') or '').strip()
-    interaction_history = load_interaction_history('alias', alias.name)
+    change_message = (request.form.get("change_message") or "").strip()
+    interaction_history = load_interaction_history("alias", alias.name)
 
     def render_edit_form() -> str:
         return render_template(
-            'alias_form.html',
+            "alias_form.html",
             form=form,
             title=f'Edit Alias "{alias.name}"',
             alias=alias,
@@ -546,15 +544,15 @@ def edit_alias(alias_name: str):
             ai_entity_name_field=form.name.id,
         )
 
-    if request.method == 'GET':
+    if request.method == "GET":
         primary_line = _primary_definition_line_for_alias(alias)
         if primary_line:
             form.definition.data = ensure_primary_line(alias.definition, primary_line)
 
     if form.validate_on_submit():
         parsed = form.parsed_definition
-        new_name = form.name.data or ''
-        save_action = (request.form.get('submit_action') or '').strip().lower()
+        new_name = form.name.data or ""
+        save_action = (request.form.get("submit_action") or "").strip().lower()
         definition_text = form.definition.data or ""
 
         definition_value = _build_definition_value(definition_text, parsed, new_name)
@@ -588,26 +586,26 @@ def edit_alias(alias_name: str):
     return render_edit_form()
 
 
-@main_bp.route('/aliases/match-preview', methods=['POST'])
+@main_bp.route("/aliases/match-preview", methods=["POST"])
 def alias_match_preview():
     """Return live matching results for the provided alias configuration."""
 
     payload = request.get_json(silent=True) or {}
-    alias_name = payload.get('name')
-    definition_text = payload.get('definition')
-    raw_paths = payload.get('paths', [])
+    alias_name = payload.get("name")
+    definition_text = payload.get("definition")
+    raw_paths = payload.get("paths", [])
 
     if isinstance(raw_paths, str):
         raw_paths = [raw_paths]
     if not isinstance(raw_paths, list):
         return (
-            jsonify({'ok': False, 'error': 'Provide a list of paths.'}),
+            jsonify({"ok": False, "error": "Provide a list of paths."}),
             400,
         )
 
     if definition_text is None:
         return (
-            jsonify({'ok': False, 'error': 'Provide an alias definition.'}),
+            jsonify({"ok": False, "error": "Provide an alias definition."}),
             400,
         )
 
@@ -618,12 +616,12 @@ def alias_match_preview():
         trimmed = raw_value.strip()
         if not trimmed:
             continue
-        candidate_paths.append(trimmed if trimmed.startswith('/') else f'/{trimmed}')
+        candidate_paths.append(trimmed if trimmed.startswith("/") else f"/{trimmed}")
 
     try:
         parsed = parse_alias_definition(definition_text, alias_name=alias_name)
     except AliasDefinitionError as exc:
-        return jsonify({'ok': False, 'error': str(exc)}), 400
+        return jsonify({"ok": False, "error": str(exc)}), 400
 
     definition_summary = summarize_definition_lines(
         definition_text, alias_name=alias_name
@@ -649,12 +647,12 @@ def alias_match_preview():
 
         line_status.append(
             {
-                'number': entry.number,
-                'text': entry.text,
-                'is_mapping': entry.is_mapping,
-                'matches_any': matches_any,
-                'has_error': bool(entry.parse_error),
-                'parse_error': entry.parse_error,
+                "number": entry.number,
+                "text": entry.text,
+                "is_mapping": entry.is_mapping,
+                "matches_any": matches_any,
+                "has_error": bool(entry.parse_error),
+                "parse_error": entry.parse_error,
             }
         )
 
@@ -667,33 +665,33 @@ def alias_match_preview():
 
     return jsonify(
         {
-            'ok': True,
-            'pattern': parsed.match_pattern,
-            'results': [
+            "ok": True,
+            "pattern": parsed.match_pattern,
+            "results": [
                 {
-                    'value': value,
-                    'matches': matches,
+                    "value": value,
+                    "matches": matches,
                 }
                 for value, matches in results
             ],
-            'definition': {
-                'has_active_paths': has_active_paths,
-                'lines': line_status,
+            "definition": {
+                "has_active_paths": has_active_paths,
+                "lines": line_status,
             },
         }
     )
 
 
-@main_bp.route('/aliases/definition-status', methods=['POST'])
+@main_bp.route("/aliases/definition-status", methods=["POST"])
 def alias_definition_status():
     """Return the validation status for an alias definition."""
 
     payload = request.get_json(silent=True) or {}
-    raw_definition = payload.get('definition')
-    alias_name = payload.get('name')
+    raw_definition = payload.get("definition")
+    alias_name = payload.get("name")
 
     if raw_definition is None:
-        definition_text = ''
+        definition_text = ""
     elif isinstance(raw_definition, str):
         definition_text = raw_definition
     else:
@@ -704,16 +702,19 @@ def alias_definition_status():
 
     try:
         variables = get_variables()
-    except (SQLAlchemyError, AttributeError):  # pragma: no cover - defensive fallback when database fails
+    except (
+        SQLAlchemyError,
+        AttributeError,
+    ):  # pragma: no cover - defensive fallback when database fails
         variables = []
 
     variable_map: dict[str, str] = {}
     for entry in variables:
-        name = getattr(entry, 'name', None)
+        name = getattr(entry, "name", None)
         if not name:
             continue
-        value = getattr(entry, 'definition', '')
-        variable_map[str(name)] = '' if value is None else str(value)
+        value = getattr(entry, "definition", "")
+        variable_map[str(name)] = "" if value is None else str(value)
 
     variable_pattern = re.compile(r"\{([A-Za-z0-9._-]+)\}")
 
@@ -729,14 +730,14 @@ def alias_definition_status():
     try:
         parse_alias_definition(substituted_definition, alias_name=alias_name or None)
     except AliasDefinitionError as exc:
-        return jsonify({'ok': False, 'error': str(exc)}), 400
+        return jsonify({"ok": False, "error": str(exc)}), 400
 
-    return jsonify({'ok': True, 'message': 'Alias definition parses correctly.'})
+    return jsonify({"ok": True, "message": "Alias definition parses correctly."})
 
 
 __all__ = [
-    'new_alias',
-    'edit_alias',
-    'alias_match_preview',
-    'alias_definition_status',
+    "new_alias",
+    "edit_alias",
+    "alias_match_preview",
+    "alias_definition_status",
 ]

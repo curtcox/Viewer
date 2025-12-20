@@ -70,11 +70,11 @@ def main(name, times: int = 1):
 
         content = cid_record.file_data.decode("utf-8")
         self.assertIn("@form", content)
-        self.assertIn("action=\"/greet\"", content)
+        self.assertIn('action="/greet"', content)
         self.assertIn("@name(name): [text", content)
-        self.assertIn("value=\"Ada\"", content)
+        self.assertIn('value="Ada"', content)
         self.assertIn("@times(times): [text", content)
-        self.assertIn("value=\"3\"", content)
+        self.assertIn('value="3"', content)
 
     def test_upload_generates_formdown_for_query_mode(self):
         """Servers without auto main should render query textarea defaults."""
@@ -101,7 +101,7 @@ def helper():
 
         content = cid_record.file_data.decode("utf-8")
         self.assertIn("@query_parameters(Query parameters):", content)
-        self.assertIn("value=\"foo=bar\\npage=2\"", content)
+        self.assertIn('value="foo=bar\\npage=2"', content)
 
     def test_upload_without_workspace_server_returns_success(self):
         """Single-user mode allows uploads regardless of historical workspace ownership."""

@@ -16,7 +16,11 @@ def get_secrets() -> List[Secret]:
 
 def get_template_secrets() -> List[Secret]:
     """Return template secrets from templates variable configuration."""
-    from template_manager import get_templates_for_type, ENTITY_TYPE_SECRETS, resolve_cid_value
+    from template_manager import (
+        get_templates_for_type,
+        ENTITY_TYPE_SECRETS,
+        resolve_cid_value,
+    )
 
     templates = get_templates_for_type(ENTITY_TYPE_SECRETS)
 
@@ -28,22 +32,22 @@ def get_template_secrets() -> List[Secret]:
         # Templates are not persisted DB rows, so id remains None
         secret.id = None
         # Store the template key in a separate attribute for UI use
-        secret.template_key = template.get('key', '')
-        secret.name = template.get('name', template.get('key', ''))
+        secret.template_key = template.get("key", "")
+        secret.name = template.get("name", template.get("key", ""))
 
         # Try to get definition from various possible fields
-        definition = template.get('definition')
-        if not definition and template.get('definition_cid'):
-            definition = resolve_cid_value(template.get('definition_cid'))
-        if not definition and template.get('value_cid'):
-            definition = resolve_cid_value(template.get('value_cid'))
+        definition = template.get("definition")
+        if not definition and template.get("definition_cid"):
+            definition = resolve_cid_value(template.get("definition_cid"))
+        if not definition and template.get("value_cid"):
+            definition = resolve_cid_value(template.get("value_cid"))
 
-        secret.definition = definition or ''
+        secret.definition = definition or ""
         secret.enabled = True
         secret.template = True  # Mark as template for backwards compatibility
         secret_objects.append(secret)
 
-    return sorted(secret_objects, key=lambda s: s.name if s.name else '')
+    return sorted(secret_objects, key=lambda s: s.name if s.name else "")
 
 
 def get_secret_by_name(name: str) -> Optional[Secret]:

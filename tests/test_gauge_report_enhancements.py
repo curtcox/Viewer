@@ -48,20 +48,24 @@ def test_enhance_gauge_report_converts_artifact_paths(tmp_path):
     assert updated is True
 
     updated_index = index_html.read_text(encoding="utf-8")
-    png_href = "https://example.test/reports/gauge-specs/secureapp-artifacts/example.png"
-    json_href = "https://example.test/reports/gauge-specs/secureapp-artifacts/example.json"
+    png_href = (
+        "https://example.test/reports/gauge-specs/secureapp-artifacts/example.png"
+    )
+    json_href = (
+        "https://example.test/reports/gauge-specs/secureapp-artifacts/example.json"
+    )
     assert f'<img src="{png_href}"' in updated_index
     assert f'href="{png_href}"' in updated_index
     assert 'class="secureapp-inline-snapshot"' in updated_index
     assert '<a class="secureapp-inline-metadata"' in updated_index
-    assert '>info<' in updated_index
-    assert '/__w/' not in updated_index
+    assert ">info<" in updated_index
+    assert "/__w/" not in updated_index
 
     updated_detail = detail_html.read_text(encoding="utf-8")
     assert f'<img src="{png_href}"' in updated_detail
     assert f'href="{json_href}"' in updated_detail
-    assert '>info<' in updated_detail
-    assert '/__w/' not in updated_detail
+    assert ">info<" in updated_detail
+    assert "/__w/" not in updated_detail
 
     assert '<section class="gauge-screenshot-gallery">' in updated_index
     assert f'href="{json_href}"' in updated_index

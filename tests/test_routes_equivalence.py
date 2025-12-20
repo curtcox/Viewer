@@ -52,11 +52,17 @@ class TestServerRoutesEquivalence:
         assert memory_response.status_code == disk_response.status_code == 200
 
         memory_payload = sorted(
-            [{"name": row["name"], "enabled": row.get("enabled", True)} for row in memory_response.get_json()],
+            [
+                {"name": row["name"], "enabled": row.get("enabled", True)}
+                for row in memory_response.get_json()
+            ],
             key=lambda row: row["name"],
         )
         disk_payload = sorted(
-            [{"name": row["name"], "enabled": row.get("enabled", True)} for row in disk_response.get_json()],
+            [
+                {"name": row["name"], "enabled": row.get("enabled", True)}
+                for row in disk_response.get_json()
+            ],
             key=lambda row: row["name"],
         )
 
@@ -100,7 +106,9 @@ class TestAliasRoutesEquivalence:
         memory_response = memory_client.get(
             "/aliases", headers={"Accept": "application/json"}
         )
-        disk_response = disk_client.get("/aliases", headers={"Accept": "application/json"})
+        disk_response = disk_client.get(
+            "/aliases", headers={"Accept": "application/json"}
+        )
 
         assert memory_response.status_code == disk_response.status_code == 200
 

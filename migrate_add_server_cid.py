@@ -18,12 +18,13 @@ from db_access import get_all_servers, save_entity
 
 app = create_app()
 
+
 def migrate_add_server_cid():
     """Add definition_cid column to Server table and populate existing servers"""
 
     with app.app_context():
         # Get absolute database path
-        db_path = os.path.join(os.getcwd(), 'instance', 'secureapp.db')
+        db_path = os.path.join(os.getcwd(), "instance", "secureapp.db")
 
         if not os.path.exists(db_path):
             print(f"❌ Database file not found: {db_path}")
@@ -40,7 +41,7 @@ def migrate_add_server_cid():
             cursor.execute("PRAGMA table_info(server)")
             columns = [column[1] for column in cursor.fetchall()]
 
-            if 'definition_cid' in columns:
+            if "definition_cid" in columns:
                 print("✓ Column definition_cid already exists")
                 conn.close()
                 return True
@@ -51,7 +52,9 @@ def migrate_add_server_cid():
             print("✓ Added definition_cid column to server table")
 
             # Create index on the new column
-            cursor.execute("CREATE INDEX ix_server_definition_cid ON server (definition_cid)")
+            cursor.execute(
+                "CREATE INDEX ix_server_definition_cid ON server (definition_cid)"
+            )
             conn.commit()
             print("✓ Created index on definition_cid column")
 
@@ -89,7 +92,8 @@ def migrate_add_server_cid():
             conn.close()
             return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         success = migrate_add_server_cid()
         if success:
@@ -100,5 +104,6 @@ if __name__ == '__main__':
     except (sqlite3.Error, SQLAlchemyError, OSError) as error:
         print(f"❌ Migration error: {error}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

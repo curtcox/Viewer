@@ -1,4 +1,5 @@
 """Flask routes for import and export functionality."""
+
 from __future__ import annotations
 
 import json
@@ -24,22 +25,91 @@ from .import_engine import (
 from .import_sources import load_import_payload, parse_import_payload
 
 
-@main_bp.route('/export', methods=['GET', 'POST'])
+@main_bp.route("/export", methods=["GET", "POST"])
 def export_data():
     """Allow users to export selected data collections as JSON."""
     form = ExportForm()
     preview = build_export_preview(form)
     recent_exports = get_exports(limit=100)
+
     if form.validate_on_submit():
         from db_access import record_export
+
+        # Check if this is a GitHub PR creation request
+        if form.submit_github_pr.data:
+            # Handle GitHub PR creation
+            from flask import flash
+            from .github_pr import create_export_pr, GitHubPRError
+
+            # For PR preparation we must include CID values so missing CID content can be
+            # materialized into the repository's cids/ directory.
+            form.include_cid_map.data = True
+
+            # Generate the export
+            export_result = build_export_payload(form)
+            record_export(export_result["cid_value"])
+
+            # Create the PR
+            try:
+                pr_result = create_export_pr(
+                    export_json=export_result["json_payload"],
+                    target_repo=(form.github_target_repo.data or "").strip() or None,
+                    github_token=(form.github_token.data or "").strip() or None,
+                    pr_title=form.github_pr_title.data.strip()
+                    if form.github_pr_title.data
+                    else None,
+                    pr_description=form.github_pr_description.data.strip()
+                    if form.github_pr_description.data
+                    else None,
+                    branch_name=form.github_branch_name.data.strip()
+                    if form.github_branch_name.data
+                    else None,
+                )
+
+                if pr_result.get("mode") == "github":
+                    flash(
+                        f'Pull request created successfully: <a href="{pr_result["html_url"]}" target="_blank" class="alert-link">#{pr_result["number"]}</a>',
+                        "success",
+                    )
+                else:
+                    flash(
+                        "Prepared boot image update locally. Supply a repo + token to submit automatically, or commit/push the prepared filesystem changes later.",
+                        "info",
+                    )
+                # Return the export result page with PR info
+                export_result["github_pr"] = pr_result
+                return render_template("export_result.html", **export_result)
+
+            except GitHubPRError as e:
+                error_details = []
+                if e.details:
+                    for key, value in e.details.items():
+                        if key != "error":
+                            error_details.append(f"{key}: {value}")
+
+                error_msg = f"Failed to create pull request: {e.message}"
+                if error_details:
+                    error_msg += f"<br>Details: {', '.join(error_details)}"
+
+                flash(error_msg, "danger")
+                return render_template(
+                    "export.html",
+                    form=form,
+                    export_preview=preview,
+                    recent_exports=recent_exports,
+                )
+
+        # Standard JSON export
         export_result = build_export_payload(form)
-        record_export(export_result['cid_value'])
-        return render_template('export_result.html', **export_result)
+        record_export(export_result["cid_value"])
+        return render_template("export_result.html", **export_result)
 
-    return render_template('export.html', form=form, export_preview=preview, recent_exports=recent_exports)
+    return render_template(
+        "export.html", form=form, export_preview=preview, recent_exports=recent_exports
+    )
 
 
-@main_bp.route('/export/size', methods=['POST'])
+@main_bp.route("/export/size", methods=["POST"])
 def export_size():
     """Return the size of the export JSON for the current selections."""
     form = ExportForm()
@@ -49,28 +119,28 @@ def export_size():
             form,
             store_content=False,
         )
-        json_bytes = export_result['json_payload'].encode('utf-8')
+        json_bytes = export_result["json_payload"].encode("utf-8")
         size_bytes = len(json_bytes)
         return {
-            'ok': True,
-            'size_bytes': size_bytes,
-            'formatted_size': format_size(size_bytes),
+            "ok": True,
+            "size_bytes": size_bytes,
+            "formatted_size": format_size(size_bytes),
         }
 
-    return {'ok': False, 'errors': form.errors}, 400
+    return {"ok": False, "errors": form.errors}, 400
 
 
-@main_bp.route('/import', methods=['GET', 'POST'])
+@main_bp.route("/import", methods=["GET", "POST"])
 def import_data():
     """Allow users to import data collections from JSON content."""
     # Check if this is a JSON request (REST API)
     is_json_request = request.is_json or (
-        request.method == 'POST'
+        request.method == "POST"
         and request.content_type
-        and 'application/json' in request.content_type.lower()
+        and "application/json" in request.content_type.lower()
     )
 
-    if is_json_request and request.method == 'POST':
+    if is_json_request and request.method == "POST":
         return _handle_json_import()
 
     return _handle_form_import()
@@ -80,65 +150,68 @@ def _handle_json_import():
     """Handle JSON API import requests."""
     try:
         json_data = request.get_json() or {}
-        raw_payload = json.dumps(json_data) if isinstance(json_data, dict) else json_data
+        raw_payload = (
+            json.dumps(json_data) if isinstance(json_data, dict) else json_data
+        )
 
         parsed_payload, error_message = parse_import_payload(raw_payload)
         if error_message:
-            return jsonify({'ok': False, 'error': error_message}), 400
+            return jsonify({"ok": False, "error": error_message}), 400
 
         assert parsed_payload is not None
 
         form = ImportForm()
-        form.include_aliases.data = 'aliases' in parsed_payload.data
-        form.include_servers.data = 'servers' in parsed_payload.data
-        form.include_variables.data = 'variables' in parsed_payload.data
-        form.include_secrets.data = 'secrets' in parsed_payload.data
-        form.include_history.data = 'change_history' in parsed_payload.data
-        form.process_cid_map.data = 'cid_values' in parsed_payload.data
+        form.include_aliases.data = "aliases" in parsed_payload.data
+        form.include_servers.data = "servers" in parsed_payload.data
+        form.include_variables.data = "variables" in parsed_payload.data
+        form.include_secrets.data = "secrets" in parsed_payload.data
+        form.include_history.data = "change_history" in parsed_payload.data
+        form.process_cid_map.data = "cid_values" in parsed_payload.data
         form.include_source.data = False
 
-        context = create_import_context(form, 'REST API import', parsed_payload)
+        context = create_import_context(form, "REST API import", parsed_payload)
         ingest_import_cid_map(context)
         import_selected_sections(context)
         handle_import_source_files(context)
 
         from .import_engine import generate_snapshot_export
+
         snapshot_export = generate_snapshot_export()
 
-        response_data = {'ok': True}
+        response_data = {"ok": True}
         if context.errors:
-            response_data['errors'] = context.errors
+            response_data["errors"] = context.errors
         if context.warnings:
-            response_data['warnings'] = context.warnings
+            response_data["warnings"] = context.warnings
         if context.summaries:
-            response_data['summaries'] = context.summaries
+            response_data["summaries"] = context.summaries
         if any(context.imported_names.values()):
-            response_data['imported_names'] = context.imported_names
+            response_data["imported_names"] = context.imported_names
         if snapshot_export:
-            response_data['snapshot'] = {
-                'cid': snapshot_export['cid_value'],
+            response_data["snapshot"] = {
+                "cid": snapshot_export["cid_value"],
             }
 
         return jsonify(response_data), 200
     except RuntimeError as exc:
-        return jsonify({'ok': False, 'error': str(exc)}), 400
+        return jsonify({"ok": False, "error": str(exc)}), 400
 
 
 def _handle_form_import():
     """Handle HTML form import requests."""
     form = ImportForm()
-    change_message = (request.form.get('change_message') or '').strip()
+    change_message = (request.form.get("change_message") or "").strip()
 
     def _render_import_form(snapshot_export: dict[str, Any] | None = None):
-        interactions = load_interaction_history('import', 'json')
-        snapshot_info = session.pop('import_snapshot_export', None) or snapshot_export
-        imported_names = session.pop('import_summary_names', None)
+        interactions = load_interaction_history("import", "json")
+        snapshot_info = session.pop("import_snapshot_export", None) or snapshot_export
+        imported_names = session.pop("import_summary_names", None)
         return render_template(
-            'import.html',
+            "import.html",
             form=form,
             import_interactions=interactions,
             snapshot_export=snapshot_info,
-            imported_names=imported_names
+            imported_names=imported_names,
         )
 
     if form.validate_on_submit():
@@ -149,13 +222,16 @@ def _handle_form_import():
         parsed_payload, error_message = parse_import_payload(raw_payload)
         if error_message:
             from flask import flash
-            flash(error_message, 'danger')
+
+            flash(error_message, "danger")
             return _render_import_form()
 
         assert parsed_payload is not None
-        return process_import_submission(form, change_message, _render_import_form, parsed_payload)
+        return process_import_submission(
+            form, change_message, _render_import_form, parsed_payload
+        )
 
     return _render_import_form()
 
 
-__all__ = ['export_data', 'export_size', 'import_data']
+__all__ = ["export_data", "export_size", "import_data"]

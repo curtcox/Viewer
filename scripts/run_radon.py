@@ -88,14 +88,10 @@ def _resolve_config(raw: dict[str, object], args: argparse.Namespace) -> RadonCo
 
     paths = list(args.paths) if args.paths else _as_list(raw.get("paths")) or ["."]
     exclude = (
-        list(args.exclude)
-        if args.exclude is not None
-        else _as_list(raw.get("exclude"))
+        list(args.exclude) if args.exclude is not None else _as_list(raw.get("exclude"))
     )
     ignore = (
-        list(args.ignore)
-        if args.ignore is not None
-        else _as_list(raw.get("ignore"))
+        list(args.ignore) if args.ignore is not None else _as_list(raw.get("ignore"))
     )
 
     fail_rank = (args.fail_rank or raw.get("fail_rank") or "E").upper()
@@ -147,7 +143,9 @@ def _run_command(command: Sequence[str]) -> str:
 
     if result.returncode != 0:
         stderr = result.stderr.strip()
-        message = f"Command {' '.join(command)} failed with exit code {result.returncode}."
+        message = (
+            f"Command {' '.join(command)} failed with exit code {result.returncode}."
+        )
         if stderr:
             message = f"{message}\n{stderr}"
         raise RadonError(message)
@@ -296,7 +294,15 @@ def _format_markdown_summary(
         lines.append(f"| {rank} | {mi_counts.get(rank, 0)} |")
 
     if complexity:
-        lines.extend(["", "## Most complex code blocks", "", "| Rank | Complexity | Location | Block |", "| --- | ---: | --- | --- |"])
+        lines.extend(
+            [
+                "",
+                "## Most complex code blocks",
+                "",
+                "| Rank | Complexity | Location | Block |",
+                "| --- | ---: | --- | --- |",
+            ]
+        )
         for entry in sorted(
             complexity,
             key=lambda e: (RANK_ORDER.get(e.rank, 0), -e.complexity),
@@ -353,20 +359,30 @@ def _format_html_report(
             key=lambda e: (RANK_ORDER.get(e.rank, 0), -e.complexity),
             reverse=True,
         )[: config.top_results]:
-            location = f"{escape(entry.path)}:{entry.lineno}" if entry.lineno else escape(entry.path)
+            location = (
+                f"{escape(entry.path)}:{entry.lineno}"
+                if entry.lineno
+                else escape(entry.path)
+            )
             name = escape(entry.name or entry.block_type or "(anonymous)")
             rows.append(
-                f"      <tr><td>{escape(entry.rank)}</td><td class=\"numeric\">{entry.complexity:.2f}</td><td>{location}</td><td>{name}</td></tr>"
+                f'      <tr><td>{escape(entry.rank)}</td><td class="numeric">{entry.complexity:.2f}</td><td>{location}</td><td>{name}</td></tr>'
             )
-        return "\n".join(rows) or "      <tr><td colspan=\"4\">No code blocks matched the report criteria.</td></tr>"
+        return (
+            "\n".join(rows)
+            or '      <tr><td colspan="4">No code blocks matched the report criteria.</td></tr>'
+        )
 
     def _render_mi_rows() -> str:
         rows: list[str] = []
         for entry in sorted(maintainability, key=lambda e: e.mi)[: config.top_results]:
             rows.append(
-                f"      <tr><td>{escape(entry.rank)}</td><td class=\"numeric\">{entry.mi:.2f}</td><td>{escape(entry.path)}</td></tr>"
+                f'      <tr><td>{escape(entry.rank)}</td><td class="numeric">{entry.mi:.2f}</td><td>{escape(entry.path)}</td></tr>'
             )
-        return "\n".join(rows) or "      <tr><td colspan=\"3\">No files were analysed.</td></tr>"
+        return (
+            "\n".join(rows)
+            or '      <tr><td colspan="3">No files were analysed.</td></tr>'
+        )
 
     def _render_list(title: str, items: Sequence[str]) -> str:
         if not items:
@@ -376,7 +392,10 @@ def _format_html_report(
 
     extras_section = ""
     if extras:
-        items = [f"{key}: {json.dumps(value, sort_keys=True)}" for key, value in extras.items()]
+        items = [
+            f"{key}: {json.dumps(value, sort_keys=True)}"
+            for key, value in extras.items()
+        ]
         extras_section = _render_list("Additional data", items)
 
     exclusions_section = _render_list("Excluded paths", config.exclude)
@@ -450,14 +469,38 @@ def _write_file(path: Path, content: str) -> None:
 
 def run(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Radon and publish reports.")
-    parser.add_argument("paths", nargs="*", help="Paths to analyse. Defaults to the configured paths.")
-    parser.add_argument("--config", type=Path, default=Path("pyproject.toml"), help="Path to the Radon configuration file.")
-    parser.add_argument("--output-dir", type=Path, required=True, help="Directory for the generated report files.")
-    parser.add_argument("--summary-file", type=Path, help="Where to write the Markdown summary.")
-    parser.add_argument("--exclude", nargs="*", help="Override the configured exclusion patterns.")
-    parser.add_argument("--ignore", nargs="*", help="Override the configured ignore patterns.")
-    parser.add_argument("--fail-rank", help="Override the fail threshold for cyclomatic complexity.")
-    parser.add_argument("--top", type=int, help="Override the number of entries shown in summary tables.")
+    parser.add_argument(
+        "paths", nargs="*", help="Paths to analyse. Defaults to the configured paths."
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("pyproject.toml"),
+        help="Path to the Radon configuration file.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        required=True,
+        help="Directory for the generated report files.",
+    )
+    parser.add_argument(
+        "--summary-file", type=Path, help="Where to write the Markdown summary."
+    )
+    parser.add_argument(
+        "--exclude", nargs="*", help="Override the configured exclusion patterns."
+    )
+    parser.add_argument(
+        "--ignore", nargs="*", help="Override the configured ignore patterns."
+    )
+    parser.add_argument(
+        "--fail-rank", help="Override the fail threshold for cyclomatic complexity."
+    )
+    parser.add_argument(
+        "--top",
+        type=int,
+        help="Override the number of entries shown in summary tables.",
+    )
 
     args = parser.parse_args(argv)
 
@@ -493,7 +536,9 @@ def run(argv: Sequence[str] | None = None) -> int:
     if cc_extras:
         extras.update({f"complexity_{key}": value for key, value in cc_extras.items()})
     if mi_extras:
-        extras.update({f"maintainability_{key}": value for key, value in mi_extras.items()})
+        extras.update(
+            {f"maintainability_{key}": value for key, value in mi_extras.items()}
+        )
 
     markdown = _format_markdown_summary(
         complexity=complexity_entries,
@@ -508,8 +553,14 @@ def run(argv: Sequence[str] | None = None) -> int:
         extras=extras,
     )
 
-    _write_file(output_dir / "complexity.json", json.dumps(json.loads(cc_output or "{}"), indent=2, sort_keys=True))
-    _write_file(output_dir / "maintainability.json", json.dumps(json.loads(mi_output or "{}"), indent=2, sort_keys=True))
+    _write_file(
+        output_dir / "complexity.json",
+        json.dumps(json.loads(cc_output or "{}"), indent=2, sort_keys=True),
+    )
+    _write_file(
+        output_dir / "maintainability.json",
+        json.dumps(json.loads(mi_output or "{}"), indent=2, sort_keys=True),
+    )
     _write_file(output_dir / "summary.md", markdown)
     _write_file(output_dir / "index.html", html)
 

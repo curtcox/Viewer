@@ -15,9 +15,9 @@ class TestEntityReferences(unittest.TestCase):
 
     def setUp(self):
         self.app = app
-        self.app.config['TESTING'] = True
-        self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app.config['WTF_CSRF_ENABLED'] = False
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["WTF_CSRF_ENABLED"] = False
 
         with self.app.app_context():
             db.create_all()
@@ -30,7 +30,7 @@ class TestEntityReferences(unittest.TestCase):
     def _create_alias(self, name: str, target: str) -> str:
         with self.app.app_context():
             definition_text = format_primary_alias_line(
-                'literal',
+                "literal",
                 None,
                 target,
                 alias_name=name,
@@ -53,7 +53,7 @@ class TestEntityReferences(unittest.TestCase):
     def _create_cid(self, value: str, content: bytes) -> str:
         with self.app.app_context():
             record = CID(
-                path=f'/{value}',
+                path=f"/{value}",
                 file_data=content,
                 file_size=len(content),
             )
@@ -62,50 +62,54 @@ class TestEntityReferences(unittest.TestCase):
             return value
 
     def test_extract_references_from_text(self):
-        alias_name = self._create_alias('docs', '/docs')
-        server_name = self._create_server('status', 'print("ok")')
-        cid_value = self._create_cid('cidvalue123', b'data')
+        alias_name = self._create_alias("docs", "/docs")
+        server_name = self._create_server("status", 'print("ok")')
+        cid_value = self._create_cid("cidvalue123", b"data")
 
         text = f"Visit /{alias_name} then /servers/{server_name} and /{cid_value}"
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             references = extract_references_from_text(text)
 
-        alias_names = [ref['name'] for ref in references['aliases']]
-        server_names = [ref['name'] for ref in references['servers']]
-        cid_values = [ref['cid'] for ref in references['cids']]
+        alias_names = [ref["name"] for ref in references["aliases"]]
+        server_names = [ref["name"] for ref in references["servers"]]
+        cid_values = [ref["cid"] for ref in references["cids"]]
 
         self.assertIn(alias_name, alias_names)
         self.assertIn(server_name, server_names)
         self.assertIn(cid_value, cid_values)
 
     def test_extract_references_from_target_detects_server_and_cid(self):
-        server_name = self._create_server('reports', 'return None')
-        cid_value = self._create_cid('targetcid', b'hello world')
+        server_name = self._create_server("reports", "return None")
+        cid_value = self._create_cid("targetcid", b"hello world")
 
-        with self.app.test_request_context('/'):
-            server_refs = extract_references_from_target(f'/servers/{server_name}')
-            server_exec_refs = extract_references_from_target(f'/{server_name}')
-            cid_refs = extract_references_from_target(f'/{cid_value}')
+        with self.app.test_request_context("/"):
+            server_refs = extract_references_from_target(f"/servers/{server_name}")
+            server_exec_refs = extract_references_from_target(f"/{server_name}")
+            cid_refs = extract_references_from_target(f"/{cid_value}")
 
-        self.assertEqual(server_refs['servers'][0]['name'], server_name)
-        self.assertEqual(server_exec_refs['servers'][0]['name'], server_name)
-        self.assertEqual(cid_refs['cids'][0]['cid'], cid_value)
+        self.assertEqual(server_refs["servers"][0]["name"], server_name)
+        self.assertEqual(server_exec_refs["servers"][0]["name"], server_name)
+        self.assertEqual(cid_refs["cids"][0]["cid"], cid_value)
 
     def test_extract_references_from_bytes(self):
-        alias_name = self._create_alias('landing', '/landing')
-        content = f"Route /{alias_name} forwards to /servers/updates then /updates".encode('utf-8')
-        self._create_server('updates', 'return {}')
-        self._create_cid('contentcid', content)
+        alias_name = self._create_alias("landing", "/landing")
+        content = (
+            f"Route /{alias_name} forwards to /servers/updates then /updates".encode(
+                "utf-8"
+            )
+        )
+        self._create_server("updates", "return {}")
+        self._create_cid("contentcid", content)
 
-        with self.app.test_request_context('/'):
+        with self.app.test_request_context("/"):
             references = extract_references_from_bytes(content)
 
-        alias_names = [ref['name'] for ref in references['aliases']]
-        server_names = [ref['name'] for ref in references['servers']]
+        alias_names = [ref["name"] for ref in references["aliases"]]
+        server_names = [ref["name"] for ref in references["servers"]]
 
         self.assertIn(alias_name, alias_names)
-        self.assertIn('updates', server_names)
+        self.assertIn("updates", server_names)
 
 
-__all__ = ['TestEntityReferences']
+__all__ = ["TestEntityReferences"]

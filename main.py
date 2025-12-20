@@ -17,7 +17,9 @@ def _get_app_cached(config_items: tuple[tuple[str, Any], ...] | None):
     return create_app(config_override)
 
 
-def _config_items(config_override: Mapping[str, Any] | None) -> tuple[tuple[str, Any], ...] | None:
+def _config_items(
+    config_override: Mapping[str, Any] | None,
+) -> tuple[tuple[str, Any], ...] | None:
     if not config_override:
         return None
     # Sort keys for deterministic cache keys
@@ -37,22 +39,26 @@ app = None
 
 
 def signal_handler(_sig, _frame):
-    print('\nShutting down gracefully...')
+    print("\nShutting down gracefully...")
     sys.exit(0)
 
 
-def get_default_boot_cid() -> str | None:
-    """Get the default boot CID from reference_templates/boot.cid.
+def get_default_boot_cid(readonly: bool = False) -> str | None:
+    """Get the default boot CID from reference_templates.
+
+    Args:
+        readonly: If True, returns readonly.boot.cid instead of default
 
     Returns:
         The boot CID if the file exists and is readable, None otherwise
     """
     from pathlib import Path  # pylint: disable=import-outside-toplevel
 
-    boot_cid_file = Path(__file__).parent / "reference_templates" / "boot.cid"
+    filename = "readonly.boot.cid" if readonly else "boot.cid"
+    boot_cid_file = Path(__file__).parent / "reference_templates" / filename
     if boot_cid_file.exists():
         try:
-            return boot_cid_file.read_text(encoding='utf-8').strip()
+            return boot_cid_file.read_text(encoding="utf-8").strip()
         except Exception:  # pylint: disable=broad-except
             return None
     return None
@@ -85,6 +91,7 @@ def handle_boot_cid_import(boot_cid: str) -> None:
         print("\nUnexpected error during boot CID import:", file=sys.stderr)
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
@@ -120,7 +127,11 @@ def handle_list_boot_cids() -> None:
                 continue
 
             try:
-                content = file_data.decode("utf-8") if isinstance(file_data, (bytes, bytearray)) else str(file_data)
+                content = (
+                    file_data.decode("utf-8")
+                    if isinstance(file_data, (bytes, bytearray))
+                    else str(file_data)
+                )
                 payload = json.loads(content)
             except Exception:
                 continue
@@ -130,27 +141,39 @@ def handle_list_boot_cids() -> None:
 
             sections = [
                 section
-                for section in ['aliases', 'servers', 'variables', 'secrets', 'change_history']
+                for section in [
+                    "aliases",
+                    "servers",
+                    "variables",
+                    "secrets",
+                    "change_history",
+                ]
                 if section in payload
             ]
 
             created_at = record["created_at"]
             try:
-                created_at_value = datetime.fromisoformat(created_at) if isinstance(created_at, str) else created_at
+                created_at_value = (
+                    datetime.fromisoformat(created_at)
+                    if isinstance(created_at, str)
+                    else created_at
+                )
             except Exception:
                 created_at_value = None
 
             metadata = {
-                'size': record["file_size"],
-                'created_at': created_at_value,
-                'sections': sections,
+                "size": record["file_size"],
+                "created_at": created_at_value,
+                "sections": sections,
             }
 
             boot_cids.append((cid_value, metadata))
 
         sentinel_date = datetime(1970, 1, 1)
         boot_cids.sort(
-            key=lambda x: x[1]['created_at'] if x[1]['created_at'] is not None else sentinel_date,
+            key=lambda x: x[1]["created_at"]
+            if x[1]["created_at"] is not None
+            else sentinel_date,
             reverse=True,
         )
         return boot_cids
@@ -164,16 +187,16 @@ def handle_list_boot_cids() -> None:
 
         for cid_value, metadata in boot_cids:
             print(f"CID: {cid_value}")
-            size = metadata.get('size')
+            size = metadata.get("size")
             if size is not None:
                 print(f"  Size: {size} bytes")
-            uploaded_by = metadata.get('uploaded_by')
+            uploaded_by = metadata.get("uploaded_by")
             if uploaded_by:
                 print(f"  Uploaded by: {uploaded_by}")
-            created_at = metadata.get('created_at')
+            created_at = metadata.get("created_at")
             if created_at:
                 print(f"  Created: {created_at}")
-            sections = metadata.get('sections')
+            sections = metadata.get("sections")
             if sections:
                 print(f"  Sections: {', '.join(sections)}")
             print()
@@ -223,8 +246,7 @@ def handle_list_snapshots_command() -> None:
         table_counts = info.get("tables") or {}
         if table_counts:
             summary = ", ".join(
-                f"{table}: {count}"
-                for table, count in sorted(table_counts.items())
+                f"{table}: {count}" for table, count in sorted(table_counts.items())
             )
             print(f"    tables: {summary}")
         print()
@@ -282,7 +304,9 @@ def handle_http_request(url: str) -> None:
         sys.exit(0)
 
 
-def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, str | None]:
+def parse_positional_arguments(
+    positional_args: list[str],
+) -> tuple[str | None, str | None]:
     """Parse positional arguments and determine which are URLs and which are CIDs.
 
     Args:
@@ -300,7 +324,10 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
         return None, None
 
     if len(positional_args) > 2:
-        print("Error: Too many positional arguments (maximum 2: URL and CID)", file=sys.stderr)
+        print(
+            "Error: Too many positional arguments (maximum 2: URL and CID)",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     url = None
@@ -310,7 +337,11 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
 
     for arg in positional_args:
         # Check if it's clearly a URL (starts with /, http://, or https://)
-        if arg.startswith('/') or arg.startswith('http://') or arg.startswith('https://'):
+        if (
+            arg.startswith("/")
+            or arg.startswith("http://")
+            or arg.startswith("https://")
+        ):
             is_valid, error = is_valid_url(arg)
             if not is_valid:
                 print(f"Error: Invalid URL: {error}", file=sys.stderr)
@@ -321,7 +352,7 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
             url = arg
         else:
             # Check if it looks like a URL with different scheme
-            if '://' in arg:
+            if "://" in arg:
                 # Treat as URL and validate
                 is_valid, error = is_valid_url(arg)
                 if not is_valid:
@@ -337,10 +368,10 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
                     is_valid, error_type, error_msg = validate_cid(arg)
 
                     if not is_valid:
-                        if error_type == 'invalid_format':
+                        if error_type == "invalid_format":
                             print(f"Error: Invalid CID: {error_msg}", file=sys.stderr)
                             sys.exit(1)
-                        elif error_type == 'not_found':
+                        elif error_type == "not_found":
                             print(f"Error: {error_msg}", file=sys.stderr)
                             sys.exit(1)
                         else:
@@ -358,71 +389,98 @@ def parse_positional_arguments(positional_args: list[str]) -> tuple[str | None, 
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Run the Viewer application',
+        description="Run the Viewer application",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         add_help=False,  # We'll handle --help ourselves
     )
     parser.add_argument(
-        '--boot-cid',
+        "--boot-cid",
         type=str,
-        help='Optional CID to import on startup (legacy). Use positional CID argument instead.',
+        help="Optional CID to import on startup (legacy). Use positional CID argument instead.",
     )
     parser.add_argument(
-        '--list',
-        action='store_true',
-        help='List all valid boot CIDs and exit',
+        "--list",
+        action="store_true",
+        help="List all valid boot CIDs and exit",
     )
     parser.add_argument(
-        '--show',
-        action='store_true',
-        help='Launch the app and open it in the default web browser',
+        "--show",
+        action="store_true",
+        help="Launch the app and open it in the default web browser",
     )
     parser.add_argument(
-        '-h', '--help',
-        action='store_true',
-        help='Show help message and exit',
+        "-h",
+        "--help",
+        action="store_true",
+        help="Show help message and exit",
     )
     parser.add_argument(
-        '--port',
+        "--port",
         type=int,
         default=5001,
-        help='Port to run the server on (default: 5001)',
+        help="Port to run the server on (default: 5001)",
     )
     parser.add_argument(
-        '--in-memory-db',
-        action='store_true',
-        help='Run the application with an in-memory database',
+        "--in-memory-db",
+        action="store_true",
+        help="Run the application with an in-memory database",
     )
     parser.add_argument(
-        '--dump-db-on-exit',
+        "--dump-db-on-exit",
         type=str,
-        help='Dump the in-memory database to the specified file on exit',
+        help="Dump the in-memory database to the specified file on exit",
     )
     parser.add_argument(
-        '--snapshot',
+        "--snapshot",
         type=str,
-        metavar='NAME',
-        help='Create an in-memory database snapshot with the provided name',
+        metavar="NAME",
+        help="Create an in-memory database snapshot with the provided name",
     )
     parser.add_argument(
-        '--list-snapshots',
-        action='store_true',
-        help='List available in-memory database snapshots and exit',
+        "--list-snapshots",
+        action="store_true",
+        help="List available in-memory database snapshots and exit",
     )
     parser.add_argument(
-        'positional',
-        nargs='*',
-        help='URL and/or CID arguments',
+        "--read-only",
+        action="store_true",
+        help="Run in read-only mode with in-memory database",
+    )
+    parser.add_argument(
+        "--max-cid-memory",
+        type=str,
+        default="1G",
+        help="Maximum memory for CID storage in read-only mode (default: 1G, e.g., 100M, 2G)",
+    )
+    parser.add_argument(
+        "positional",
+        nargs="*",
+        help="URL and/or CID arguments",
     )
     args = parser.parse_args()
 
     # Configure database mode (must be done before app is accessed)
-    if args.in_memory_db:
+    if args.read_only:
+        from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+        from cli_args import parse_memory_size  # pylint: disable=import-outside-toplevel
+
+        ReadOnlyConfig.set_read_only_mode(True)
+        DatabaseConfig.set_mode(DatabaseMode.MEMORY)
+
+        # Parse and set max CID memory
+        try:
+            max_bytes = parse_memory_size(args.max_cid_memory)
+            ReadOnlyConfig.set_max_cid_memory(max_bytes)
+        except ValueError as e:
+            print(f"Error: Invalid --max-cid-memory value: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.in_memory_db:
         DatabaseConfig.set_mode(DatabaseMode.MEMORY)
 
     # Handle --help
     if args.help:
         from cli import print_help  # pylint: disable=import-outside-toplevel
+
         print_help()
         sys.exit(0)
 
@@ -442,16 +500,21 @@ if __name__ == "__main__":
     # Handle legacy --boot-cid flag
     if args.boot_cid:
         if cid is not None:
-            print("Error: Cannot specify both --boot-cid and positional CID argument", file=sys.stderr)
+            print(
+                "Error: Cannot specify both --boot-cid and positional CID argument",
+                file=sys.stderr,
+            )
             sys.exit(1)
         cid = args.boot_cid
 
     # Use default boot CID if no CID was specified and no URL (i.e., starting server)
     # Don't load default CID if just making an HTTP request
+    # Use readonly boot CID in read-only mode
     if cid is None and url is None:
-        default_cid = get_default_boot_cid()
+        default_cid = get_default_boot_cid(readonly=args.read_only)
         if default_cid:
-            print(f"Using default boot CID from reference_templates/boot.cid: {default_cid}")
+            boot_type = "readonly" if args.read_only else "default"
+            print(f"Using {boot_type} boot CID from reference_templates: {default_cid}")
             cid = default_cid
 
     # Register signal handlers for graceful shutdown
@@ -473,13 +536,18 @@ if __name__ == "__main__":
 
             # Determine the URL to open
             if url:
-                browser_url = url if url.startswith('http') else f"http://localhost:{args.port}{url}"
+                browser_url = (
+                    url
+                    if url.startswith("http")
+                    else f"http://localhost:{args.port}{url}"
+                )
             else:
                 browser_url = f"http://localhost:{args.port}"
 
             print(f"Opening browser to {browser_url}")
             # Open browser in a separate thread to not block the app startup
             import threading
+
             threading.Timer(1.0, lambda: open_browser(browser_url)).start()
 
         # Start the Flask app
@@ -487,11 +555,12 @@ if __name__ == "__main__":
         try:
             app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
         except KeyboardInterrupt:
-            print('\nShutting down gracefully...')
+            print("\nShutting down gracefully...")
         finally:
             if args.dump_db_on_exit and args.in_memory_db:
                 try:
                     from db_snapshot import DatabaseSnapshot
+
                     print(f"Dumping in-memory database to {args.dump_db_on_exit}...")
                     with app.app_context():
                         DatabaseSnapshot.dump_to_sqlite(args.dump_db_on_exit)
@@ -500,11 +569,14 @@ if __name__ == "__main__":
                     print(f"Failed to dump database: {e}", file=sys.stderr)
 
             if not args.dump_db_on_exit and args.in_memory_db:
-                print("Note: In-memory database lost on exit. Use --dump-db-on-exit to save.")
+                print(
+                    "Note: In-memory database lost on exit. Use --dump-db-on-exit to save."
+                )
 
     except Exception as e:  # pylint: disable=broad-except
         print("\nFatal error starting application:", file=sys.stderr)
         print(f"{type(e).__name__}: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)

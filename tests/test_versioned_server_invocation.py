@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 # Add the project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 from server_execution import (  # noqa: E402
     is_potential_versioned_server_path,
@@ -26,87 +26,121 @@ from server_execution import (  # noqa: E402
 
 class TestVersionedServerInvocation(unittest.TestCase):
     def setUp(self):
-        self.server_name = 'my_server'
+        self.server_name = "my_server"
 
     def test_is_potential_versioned_server_path(self):
-        existing = {'/servers', '/uploads', '/server_events'}
-        self.assertTrue(is_potential_versioned_server_path('/foo/abc', existing))
-        self.assertFalse(is_potential_versioned_server_path('/', existing))
-        self.assertFalse(is_potential_versioned_server_path('/foo', existing))  # only one segment
-        self.assertFalse(is_potential_versioned_server_path('/servers/abc', existing))  # collides with existing route root
-        self.assertTrue(is_potential_versioned_server_path('/foo/abc/helper', existing))
-        self.assertFalse(is_potential_versioned_server_path('/a/b/c/d', existing))  # too many segments
+        existing = {"/servers", "/uploads", "/server_events"}
+        self.assertTrue(is_potential_versioned_server_path("/foo/abc", existing))
+        self.assertFalse(is_potential_versioned_server_path("/", existing))
+        self.assertFalse(
+            is_potential_versioned_server_path("/foo", existing)
+        )  # only one segment
+        self.assertFalse(
+            is_potential_versioned_server_path("/servers/abc", existing)
+        )  # collides with existing route root
+        self.assertTrue(is_potential_versioned_server_path("/foo/abc/helper", existing))
+        self.assertFalse(
+            is_potential_versioned_server_path("/a/b/c/d", existing)
+        )  # too many segments
 
-    @patch('server_execution.server_lookup.get_server_by_name')
+    @patch("server_execution.server_lookup.get_server_by_name")
     def test_try_partial_server_missing(self, mock_get_server_by_name):
         mock_get_server_by_name.return_value = None
-        result = try_server_execution_with_partial(f'/{self.server_name}/abc', Mock())
+        result = try_server_execution_with_partial(f"/{self.server_name}/abc", Mock())
         self.assertIsNone(result)
 
-    @patch('server_execution.server_lookup.render_template')
-    @patch('server_execution.server_lookup.get_server_by_name')
-    def test_try_partial_no_matches_returns_404(self, mock_get_server_by_name, mock_render):
+    @patch("server_execution.server_lookup.render_template")
+    @patch("server_execution.server_lookup.get_server_by_name")
+    def test_try_partial_no_matches_returns_404(
+        self, mock_get_server_by_name, mock_render
+    ):
         mock_get_server_by_name.return_value = object()
-        mock_render.return_value = ('not found', 404)
+        mock_render.return_value = ("not found", 404)
         history_fetcher = Mock(return_value=[])
-        _, status = try_server_execution_with_partial(f'/{self.server_name}/abc', history_fetcher)
+        _, status = try_server_execution_with_partial(
+            f"/{self.server_name}/abc", history_fetcher
+        )
         self.assertEqual(status, 404)
         mock_render.assert_called()
 
-    @patch('server_execution.server_lookup.jsonify')
-    @patch('server_execution.server_lookup.get_server_by_name')
-    def test_try_partial_multiple_matches_returns_400_with_list(self, mock_get_server_by_name, mock_jsonify):
+    @patch("server_execution.server_lookup.jsonify")
+    @patch("server_execution.server_lookup.get_server_by_name")
+    def test_try_partial_multiple_matches_returns_400_with_list(
+        self, mock_get_server_by_name, mock_jsonify
+    ):
         mock_get_server_by_name.return_value = object()
         # Two matches with same prefix
-        history_fetcher = Mock(return_value=[
-            {'definition_cid': 'abcd1234', 'snapshot_cid': 'snap1', 'created_at': None},
-            {'definition_cid': 'abcd5678', 'snapshot_cid': 'snap2', 'created_at': None},
-        ])
-        mock_jsonify.side_effect = lambda payload: payload  # return payload directly for inspection
-        payload, status = try_server_execution_with_partial(f'/{self.server_name}/abcd', history_fetcher)
+        history_fetcher = Mock(
+            return_value=[
+                {
+                    "definition_cid": "abcd1234",
+                    "snapshot_cid": "snap1",
+                    "created_at": None,
+                },
+                {
+                    "definition_cid": "abcd5678",
+                    "snapshot_cid": "snap2",
+                    "created_at": None,
+                },
+            ]
+        )
+        mock_jsonify.side_effect = (
+            lambda payload: payload
+        )  # return payload directly for inspection
+        payload, status = try_server_execution_with_partial(
+            f"/{self.server_name}/abcd", history_fetcher
+        )
         self.assertEqual(status, 400)
-        self.assertIn('matches', payload)
-        self.assertEqual(len(payload['matches']), 2)
+        self.assertIn("matches", payload)
+        self.assertEqual(len(payload["matches"]), 2)
 
-    @patch('server_execution.server_lookup.execute_server_code_from_definition')
-    @patch('server_execution.server_lookup.get_server_by_name')
-    def test_try_partial_single_match_executes(self, mock_get_server_by_name, mock_execute):
+    @patch("server_execution.server_lookup.execute_server_code_from_definition")
+    @patch("server_execution.server_lookup.get_server_by_name")
+    def test_try_partial_single_match_executes(
+        self, mock_get_server_by_name, mock_execute
+    ):
         mock_get_server_by_name.return_value = object()
-        history_fetcher = Mock(return_value=[
-            {
-                'definition_cid': 'abc123',
-                'snapshot_cid': 'snapcid',
-                'definition': "print('v1')",
-                'created_at': None,
-            }
-        ])
-        mock_execute.return_value = 'EXECUTED'
-        result = try_server_execution_with_partial(f'/{self.server_name}/abc', history_fetcher)
-        self.assertEqual(result, 'EXECUTED')
+        history_fetcher = Mock(
+            return_value=[
+                {
+                    "definition_cid": "abc123",
+                    "snapshot_cid": "snapcid",
+                    "definition": "print('v1')",
+                    "created_at": None,
+                }
+            ]
+        )
+        mock_execute.return_value = "EXECUTED"
+        result = try_server_execution_with_partial(
+            f"/{self.server_name}/abc", history_fetcher
+        )
+        self.assertEqual(result, "EXECUTED")
         mock_execute.assert_called_once()
 
-    @patch('server_execution.server_lookup.execute_server_function_from_definition')
-    @patch('server_execution.server_lookup.get_server_by_name')
-    def test_try_partial_helper_executes(self, mock_get_server_by_name, mock_execute_helper):
+    @patch("server_execution.server_lookup.execute_server_function_from_definition")
+    @patch("server_execution.server_lookup.get_server_by_name")
+    def test_try_partial_helper_executes(
+        self, mock_get_server_by_name, mock_execute_helper
+    ):
         mock_get_server_by_name.return_value = object()
         history_entry = {
-            'definition_cid': 'abc123',
-            'snapshot_cid': 'snapcid',
-            'definition': "def helper(label):\n    return {'output': label, 'content_type': 'text/plain'}\n",
-            'created_at': None,
+            "definition_cid": "abc123",
+            "snapshot_cid": "snapcid",
+            "definition": "def helper(label):\n    return {'output': label, 'content_type': 'text/plain'}\n",
+            "created_at": None,
         }
         history_fetcher = Mock(return_value=[history_entry])
-        mock_execute_helper.return_value = 'HELPER'
+        mock_execute_helper.return_value = "HELPER"
 
         result = try_server_execution_with_partial(
-            f'/{self.server_name}/abc/helper', history_fetcher
+            f"/{self.server_name}/abc/helper", history_fetcher
         )
 
-        self.assertEqual(result, 'HELPER')
+        self.assertEqual(result, "HELPER")
         mock_execute_helper.assert_called_once_with(
-            history_entry['definition'], self.server_name, 'helper'
+            history_entry["definition"], self.server_name, "helper"
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

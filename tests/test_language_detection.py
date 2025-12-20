@@ -36,7 +36,7 @@ LANGUAGE_CASES = [
     ),
     LanguageCase(
         name="clojure_namespace",
-        definition="(ns example.core)\n(defn main [] (println \"hi\"))",
+        definition='(ns example.core)\n(defn main [] (println "hi"))',
         expected="clojure",
     ),
     LanguageCase(

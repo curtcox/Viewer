@@ -1,4 +1,5 @@
 """Main export engine for building complete export payloads."""
+
 from __future__ import annotations
 
 import json
@@ -10,7 +11,12 @@ from cid_utils import generate_cid
 from db_access import get_uploads
 from forms import ExportForm
 
-from .cid_utils import CidWriter, encode_section_content, normalise_cid, serialise_cid_value
+from .cid_utils import (
+    CidWriter,
+    encode_section_content,
+    normalise_cid,
+    serialise_cid_value,
+)
 from .change_history import gather_change_history
 from .dependency_analyzer import build_runtime_section
 from .export_sections import (
@@ -65,9 +71,9 @@ def build_export_payload(
     store_content: bool = True,
 ) -> dict[str, Any]:
     """Return rendered export payload data for the user's selected collections."""
-    payload: dict[str, Any] = {'version': 6}
+    payload: dict[str, Any] = {"version": 6}
     sections: dict[str, Any] = {
-        'runtime': build_runtime_section(),
+        "runtime": build_runtime_section(),
     }
     base_path = app_root_path()
     cid_writer = CidWriter(
@@ -78,38 +84,38 @@ def build_export_payload(
     add_optional_section(
         sections,
         True,
-        'project_files',
+        "project_files",
         partial(collect_project_files_section, base_path, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_aliases.data,
-        'aliases',
+        "aliases",
         partial(collect_alias_section, form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_servers.data,
-        'servers',
+        "servers",
         partial(collect_server_section, form, cid_writer),
     )
 
     add_optional_section(
         sections,
         form.include_variables.data,
-        'variables',
+        "variables",
         partial(collect_variables_section, form),
         require_truthy=False,
     )
 
-    secret_key = (form.secret_key.data or '').strip()
+    secret_key = (form.secret_key.data or "").strip()
 
     add_optional_section(
         sections,
         form.include_secrets.data,
-        'secrets',
+        "secrets",
         partial(
             collect_secrets_section,
             form,
@@ -123,14 +129,14 @@ def build_export_payload(
     add_optional_section(
         sections,
         form.include_history.data,
-        'change_history',
+        "change_history",
         gather_change_history,
     )
 
     add_optional_section(
         sections,
         form.include_source.data,
-        'app_source',
+        "app_source",
         partial(collect_app_source_section, form, base_path, cid_writer),
     )
 
@@ -142,27 +148,30 @@ def build_export_payload(
         payload[section_name] = section_cid
 
     if form.include_cid_map.data and cid_writer.cid_map_entries:
-        payload['cid_values'] = {
-            cid: cid_writer.cid_map_entries[cid] for cid in sorted(cid_writer.cid_map_entries)
+        payload["cid_values"] = {
+            cid: cid_writer.cid_map_entries[cid]
+            for cid in sorted(cid_writer.cid_map_entries)
         }
 
-    ordered_keys = sorted(key for key in payload if key != 'cid_values')
-    if 'cid_values' in payload:
-        ordered_keys.append('cid_values')
+    ordered_keys = sorted(key for key in payload if key != "cid_values")
+    if "cid_values" in payload:
+        ordered_keys.append("cid_values")
 
     ordered_payload = {key: payload[key] for key in ordered_keys}
     json_payload = json.dumps(ordered_payload, indent=2)
-    json_bytes = json_payload.encode('utf-8')
+    json_bytes = json_payload.encode("utf-8")
 
     if store_content:
-        cid_value = cid_writer.cid_for_content(json_bytes, optional=False, include_in_map=False)
-        download_path = cid_path(cid_value, 'json') or ''
+        cid_value = cid_writer.cid_for_content(
+            json_bytes, optional=False, include_in_map=False
+        )
+        download_path = cid_path(cid_value, "json") or ""
     else:
         cid_value = format_cid(generate_cid(json_bytes))
-        download_path = ''
+        download_path = ""
 
     return {
-        'cid_value': cid_value,
-        'download_path': download_path,
-        'json_payload': json_payload,
+        "cid_value": cid_value,
+        "download_path": download_path,
+        "json_payload": json_payload,
     }

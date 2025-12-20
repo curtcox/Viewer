@@ -19,6 +19,7 @@ import tomllib
 @dataclass
 class DeadCodeEntry:
     """Represents a single dead code finding from Vulture."""
+
     path: str
     line: int
     confidence: int
@@ -29,6 +30,7 @@ class DeadCodeEntry:
 @dataclass
 class VultureConfig:
     """Configuration for Vulture analysis."""
+
     paths: list[str]
     exclude: list[str]
     min_confidence: int
@@ -64,6 +66,7 @@ def _load_config(path: Path) -> dict[str, object]:
 
 def _resolve_config(raw: dict[str, object], args: argparse.Namespace) -> VultureConfig:
     """Resolve Vulture configuration from file and CLI arguments."""
+
     def _as_list(value: object) -> list[str]:
         if isinstance(value, str):
             return [value]
@@ -77,12 +80,14 @@ def _resolve_config(raw: dict[str, object], args: argparse.Namespace) -> Vulture
 
     paths = list(args.paths) if args.paths else _as_list(raw.get("paths")) or ["."]
     exclude = (
-        list(args.exclude)
-        if args.exclude is not None
-        else _as_list(raw.get("exclude"))
+        list(args.exclude) if args.exclude is not None else _as_list(raw.get("exclude"))
     )
 
-    min_confidence = args.min_confidence if args.min_confidence is not None else raw.get("min_confidence", 80)
+    min_confidence = (
+        args.min_confidence
+        if args.min_confidence is not None
+        else raw.get("min_confidence", 80)
+    )
     if not isinstance(min_confidence, int):
         min_confidence = 80
     min_confidence = max(0, min(100, min_confidence))
@@ -177,7 +182,9 @@ def _parse_vulture_output(output: str) -> list[DeadCodeEntry]:
     return entries
 
 
-def _categorize_entries(entries: Sequence[DeadCodeEntry]) -> dict[str, list[DeadCodeEntry]]:
+def _categorize_entries(
+    entries: Sequence[DeadCodeEntry],
+) -> dict[str, list[DeadCodeEntry]]:
     """Categorize dead code entries by type."""
     categories: dict[str, list[DeadCodeEntry]] = {}
 
@@ -201,37 +208,43 @@ def _format_markdown_summary(
     ]
 
     if not entries:
-        lines.extend([
-            "No dead code detected! 🎉",
-            "",
-            f"Vulture scanned with minimum confidence level: {config.min_confidence}%",
-        ])
+        lines.extend(
+            [
+                "No dead code detected! 🎉",
+                "",
+                f"Vulture scanned with minimum confidence level: {config.min_confidence}%",
+            ]
+        )
         return "\n".join(lines) + "\n"
 
     categories = _categorize_entries(entries)
     unique_files = len({entry.path for entry in entries})
 
-    lines.extend([
-        f"* Found {len(entries)} potential dead code issue(s) across {unique_files} file(s).",
-        f"* Minimum confidence threshold: {config.min_confidence}%",
-        "",
-        "## Summary by type",
-        "",
-        "| Type | Count |",
-        "| --- | ---: |",
-    ])
+    lines.extend(
+        [
+            f"* Found {len(entries)} potential dead code issue(s) across {unique_files} file(s).",
+            f"* Minimum confidence threshold: {config.min_confidence}%",
+            "",
+            "## Summary by type",
+            "",
+            "| Type | Count |",
+            "| --- | ---: |",
+        ]
+    )
 
     for item_type in sorted(categories.keys()):
         count = len(categories[item_type])
         lines.append(f"| {item_type} | {count} |")
 
-    lines.extend([
-        "",
-        "## Dead code findings",
-        "",
-        "| File | Line | Confidence | Type | Message |",
-        "| --- | ---: | ---: | --- | --- |",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Dead code findings",
+            "",
+            "| File | Line | Confidence | Type | Message |",
+            "| --- | ---: | ---: | --- | --- |",
+        ]
+    )
 
     for entry in sorted(entries, key=lambda e: (e.path, e.line)):
         lines.append(
@@ -261,16 +274,17 @@ def _format_html_report(
     config: VultureConfig,
 ) -> str:
     """Format Vulture findings as an HTML report."""
+
     def _render_rows() -> str:
         if not entries:
-            return "      <tr><td colspan=\"5\">No dead code detected! 🎉</td></tr>"
+            return '      <tr><td colspan="5">No dead code detected! 🎉</td></tr>'
 
         rows: list[str] = []
         for entry in sorted(entries, key=lambda e: (e.path, e.line)):
             rows.append(
                 f"      <tr><td>{escape(entry.path)}</td>"
-                f"<td class=\"numeric\">{entry.line}</td>"
-                f"<td class=\"numeric\">{entry.confidence}%</td>"
+                f'<td class="numeric">{entry.line}</td>'
+                f'<td class="numeric">{entry.confidence}%</td>'
                 f"<td>{escape(entry.item_type)}</td>"
                 f"<td>{escape(entry.message)}</td></tr>"
             )
@@ -287,8 +301,8 @@ def _format_html_report(
 
     summary_text = (
         f"Found {len(entries)} potential dead code issue(s) across {unique_files} file(s)."
-        if entries else
-        "No dead code detected!"
+        if entries
+        else "No dead code detected!"
     )
 
     categories_rows = ""
@@ -296,7 +310,9 @@ def _format_html_report(
         cat_rows = []
         for item_type in sorted(categories.keys()):
             count = len(categories[item_type])
-            cat_rows.append(f"      <tr><td>{escape(item_type)}</td><td class=\"numeric\">{count}</td></tr>")
+            cat_rows.append(
+                f'      <tr><td>{escape(item_type)}</td><td class="numeric">{count}</td></tr>'
+            )
         categories_rows = f"""
   <section>
     <h2>Summary by type</h2>
@@ -312,7 +328,9 @@ def _format_html_report(
 
     exclusions_section = _render_list("Excluded patterns", config.exclude)
     ignore_names_section = _render_list("Ignored names", config.ignore_names)
-    ignore_decorators_section = _render_list("Ignored decorators", config.ignore_decorators)
+    ignore_decorators_section = _render_list(
+        "Ignored decorators", config.ignore_decorators
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -365,8 +383,12 @@ def _write_file(path: Path, content: str) -> None:
 
 def run(argv: Sequence[str] | None = None) -> int:
     """Run Vulture and generate reports."""
-    parser = argparse.ArgumentParser(description="Run Vulture and publish dead code reports.")
-    parser.add_argument("paths", nargs="*", help="Paths to analyse. Defaults to configured paths.")
+    parser = argparse.ArgumentParser(
+        description="Run Vulture and publish dead code reports."
+    )
+    parser.add_argument(
+        "paths", nargs="*", help="Paths to analyse. Defaults to configured paths."
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -427,7 +449,9 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     # Exit code 2 is always invalid arguments
     if exit_code == 2:
-        error_msg = f"Vulture command failed with invalid arguments (exit code {exit_code})."
+        error_msg = (
+            f"Vulture command failed with invalid arguments (exit code {exit_code})."
+        )
         if stderr.strip():
             error_msg = f"{error_msg}\nStderr: {stderr.strip()}"
         if output.strip():
@@ -437,8 +461,14 @@ def run(argv: Sequence[str] | None = None) -> int:
     # For other non-zero exit codes, check if the output looks like an error
     if exit_code != 0:
         combined_output = f"{output}\n{stderr}".lower()
-        error_indicators = ["error:", "could not be found", "no such file",
-                           "permission denied", "failed to", "unexpected character"]
+        error_indicators = [
+            "error:",
+            "could not be found",
+            "no such file",
+            "permission denied",
+            "failed to",
+            "unexpected character",
+        ]
 
         if any(indicator in combined_output for indicator in error_indicators):
             error_msg = f"Vulture command failed with exit code {exit_code}."
@@ -483,7 +513,7 @@ def _parse_vulture_text_output(output: str) -> list[DeadCodeEntry]:
     if not output.strip():
         return entries
 
-    for line in output.strip().split('\n'):
+    for line in output.strip().split("\n"):
         # Vulture output format: path:line: message (confidence%)
         # Example: app.py:42: unused function 'foo' (60% confidence)
         if not line.strip():
@@ -491,7 +521,7 @@ def _parse_vulture_text_output(output: str) -> list[DeadCodeEntry]:
 
         try:
             # Split on first two colons to get path, line, and rest
-            parts = line.split(':', 2)
+            parts = line.split(":", 2)
             if len(parts) < 3:
                 continue
 
@@ -504,30 +534,30 @@ def _parse_vulture_text_output(output: str) -> list[DeadCodeEntry]:
             message = rest
             item_type = "unknown"
 
-            if '(' in rest and '% confidence)' in rest:
-                message_part, conf_part = rest.rsplit('(', 1)
+            if "(" in rest and "% confidence)" in rest:
+                message_part, conf_part = rest.rsplit("(", 1)
                 message = message_part.strip()
-                conf_str = conf_part.replace('% confidence)', '').strip()
+                conf_str = conf_part.replace("% confidence)", "").strip()
                 try:
                     confidence = int(conf_str)
                 except ValueError:
                     pass
 
             # Determine item type from message
-            if 'unused function' in message.lower():
-                item_type = 'function'
-            elif 'unused method' in message.lower():
-                item_type = 'method'
-            elif 'unused class' in message.lower():
-                item_type = 'class'
-            elif 'unused variable' in message.lower():
-                item_type = 'variable'
-            elif 'unused attribute' in message.lower():
-                item_type = 'attribute'
-            elif 'unused import' in message.lower():
-                item_type = 'import'
-            elif 'unused property' in message.lower():
-                item_type = 'property'
+            if "unused function" in message.lower():
+                item_type = "function"
+            elif "unused method" in message.lower():
+                item_type = "method"
+            elif "unused class" in message.lower():
+                item_type = "class"
+            elif "unused variable" in message.lower():
+                item_type = "variable"
+            elif "unused attribute" in message.lower():
+                item_type = "attribute"
+            elif "unused import" in message.lower():
+                item_type = "import"
+            elif "unused property" in message.lower():
+                item_type = "property"
 
             entry = DeadCodeEntry(
                 path=path,

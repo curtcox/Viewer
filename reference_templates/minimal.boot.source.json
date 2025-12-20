@@ -1,11 +1,16 @@
 {
   "version": 6,
-  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "runtime": "{\"python\": {\"version\": \"3.12.0\", \"implementation\": \"CPython\"}}",
   "project_files": "{}",
   "aliases": [
     {
       "name": "ai",
       "definition_cid": "reference_templates/aliases/ai.txt",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "reference_templates/aliases/ai_about.txt",
       "enabled": true
     }
   ],
@@ -13,6 +18,11 @@
     {
       "name": "ai_stub",
       "definition_cid": "reference_templates/servers/definitions/ai_stub.py",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
       "enabled": true
     }
   ],

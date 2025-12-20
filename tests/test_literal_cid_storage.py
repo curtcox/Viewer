@@ -18,11 +18,13 @@ class TestLiteralCIDStorage(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -130,11 +132,13 @@ class TestLiteralCIDResolution(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.app = create_app({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'WTF_CSRF_ENABLED': False,
-        })
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                "WTF_CSRF_ENABLED": False,
+            }
+        )
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
@@ -184,5 +188,5 @@ class TestLiteralCIDResolution(unittest.TestCase):
         self.assertIsNotNone(record.created_at)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

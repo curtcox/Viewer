@@ -1,0 +1,159 @@
+{
+  "dependencies": {
+    "aiohttp": {
+      "version": "3.13.2"
+    },
+    "attrs": {
+      "version": "25.4.0"
+    },
+    "coverage": {
+      "version": "7.13.0"
+    },
+    "email-validator": {
+      "version": "2.3.0"
+    },
+    "flask": {
+      "version": "3.1.2"
+    },
+    "flask-dance": {
+      "version": "7.1.0"
+    },
+    "flask-login": {
+      "version": "0.6.3"
+    },
+    "flask-sqlalchemy": {
+      "version": "3.1.1"
+    },
+    "flask-wtf": {
+      "version": "1.2.2"
+    },
+    "glom": {
+      "version": "24.11.0"
+    },
+    "gunicorn": {
+      "version": "23.0.0"
+    },
+    "hypothesis": {
+      "version": "6.148.7"
+    },
+    "langsmith": {
+      "version": "0.4.59"
+    },
+    "logfire": {
+      "version": "4.16.0"
+    },
+    "markdown": {
+      "version": "3.10"
+    },
+    "mypy": {
+      "version": "1.19.0"
+    },
+    "oauthlib": {
+      "version": "3.3.1"
+    },
+    "opentelemetry-api": {
+      "version": "1.39.0"
+    },
+    "opentelemetry-instrumentation-botocore": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-fastapi": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-flask": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-httpx": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-jinja2": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-requests": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-sqlalchemy": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-sqlite3": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-instrumentation-urllib": {
+      "version": "0.60b0"
+    },
+    "opentelemetry-sdk": {
+      "version": "1.39.0"
+    },
+    "psycopg2-binary": {
+      "version": "2.9.11"
+    },
+    "pygithub": {
+      "version": "2.8.1"
+    },
+    "pygments": {
+      "version": "2.19.2"
+    },
+    "pyjwt": {
+      "version": "2.10.1"
+    },
+    "pylint": {
+      "version": "4.0.4"
+    },
+    "pylint-pytest": {
+      "version": "1.1.8"
+    },
+    "pyppeteer": {
+      "version": "1.0.2"
+    },
+    "pytest": {
+      "version": "8.2.0"
+    },
+    "pytest-cov": {
+      "version": "7.0.0"
+    },
+    "pytest-deadfixtures": {
+      "version": "3.0.0"
+    },
+    "pytest-html": {
+      "version": "4.1.1"
+    },
+    "pytest-testmon": {
+      "version": "2.2.0"
+    },
+    "pytest-timeout": {
+      "version": "2.4.0"
+    },
+    "python-dotenv": {
+      "version": "1.2.1"
+    },
+    "qrcode": {
+      "version": "8.2"
+    },
+    "radon": {
+      "version": "6.0.1"
+    },
+    "requests": {
+      "version": "2.32.5"
+    },
+    "ruff": {
+      "version": "0.14.8"
+    },
+    "sqlalchemy": {
+      "version": "2.0.45"
+    },
+    "vulture": {
+      "version": "2.14"
+    },
+    "werkzeug": {
+      "version": "3.1.4"
+    },
+    "wtforms": {
+      "version": "3.2.1"
+    }
+  },
+  "python": {
+    "executable": "/Users/curtcox/me/Viewer/venv/bin/python",
+    "implementation": "CPython",
+    "version": "3.14.2"
+  }
+}

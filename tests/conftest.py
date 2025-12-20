@@ -1,4 +1,5 @@
 """Root conftest for all tests - patches and global fixtures."""
+
 from __future__ import annotations
 
 import importlib.metadata
@@ -13,10 +14,22 @@ from db_config import DatabaseConfig, DatabaseMode
 
 def pytest_configure(config):
     """Register custom markers."""
-    config.addinivalue_line("markers", "memory_db: mark test as using in-memory database")
+    config.addinivalue_line(
+        "markers", "memory_db: mark test as using in-memory database"
+    )
     config.addinivalue_line(
         "markers", "db_equivalence: mark test as database equivalence test"
     )
+
+
+@pytest.fixture(autouse=True)
+def reset_readonly_config():
+    """Reset ReadOnlyConfig before each test to ensure clean state."""
+    from readonly_config import ReadOnlyConfig  # pylint: disable=import-outside-toplevel
+
+    ReadOnlyConfig.reset()
+    yield
+    ReadOnlyConfig.reset()
 
 
 @pytest.fixture()
@@ -81,9 +94,6 @@ def disk_db_app(tmp_path):
 def disk_client(disk_db_app):
     """Test client bound to disk database app."""
     return disk_db_app.test_client()
-
-
-
 
 
 def patch_testmon_for_invalid_metadata():

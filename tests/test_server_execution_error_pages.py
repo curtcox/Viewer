@@ -1,4 +1,5 @@
 """Integration tests for server execution error pages."""
+
 from __future__ import annotations
 
 import unittest
@@ -115,15 +116,15 @@ class TestServerExecutionErrorPages(unittest.TestCase):
         # After decomposition, check for the code_execution module instead of server_execution.py
         link_labels = {label for _, label in parser.links}
         self.assertTrue(
-            "server_execution/code_execution.py" in link_labels or "server_execution.py" in link_labels,
+            "server_execution/code_execution.py" in link_labels
+            or "server_execution.py" in link_labels,
             msg=f"Server execution frame should expose a /source link, found: {link_labels}",
         )
 
     def test_error_page_includes_server_details_and_arguments(self) -> None:
-        self.server.definition = """
-def main(request):
-    raise ValueError("boom")
-"""
+        self.server.definition = (
+            'def main(request):\n    x = 1\n    raise ValueError("boom")\n'
+        )
         db.session.commit()
 
         response = self.client.get("/jinja_renderer?color=blue")
@@ -138,6 +139,13 @@ def main(request):
         self.assertIn("Arguments passed to server", html)
         self.assertIn("/servers/jinja_renderer", html)
         self.assertIn("Stack trace with source links", html)
+
+        # Relevant server source line(s) should be highlighted.
+        self.assertIn("server-source-line highlight", html)
+        self.assertIn('data-line="3"', html)
+
+        # Syntax highlighting should still be present (Pygments emits token spans like class="k").
+        self.assertIn('class="k"', html)
 
         # Arguments section should include the provided query parameter.
         self.assertIn("color", html)

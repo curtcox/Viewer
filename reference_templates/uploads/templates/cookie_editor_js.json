@@ -1,0 +1,7 @@
+{
+  "id": "cookie-editor-script",
+  "name": "Cookie Editor JavaScript",
+  "description": "Client-side logic that powers the cookie editor UI.",
+  "content_file": "contents/cookie_editor.js",
+  "suggested_filename": "cookie-editor.js"
+}
