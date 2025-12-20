@@ -32,6 +32,7 @@ def the_response_status_should_be_200() -> None:
     [
         "The response content type should be <content_type>",
         "And the response content type should be <content_type>",
+        'Then the response content type should be "<content_type>"',
     ]
 )
 def the_response_content_type_should_be(content_type: str) -> None:

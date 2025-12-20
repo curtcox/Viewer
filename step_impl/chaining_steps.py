@@ -75,6 +75,8 @@ def _save_language_cid(
     [
         'Given a server named "<server_name>" that echoes its input with prefix "<prefix>"',
         'And a server named "<server_name>" that echoes its input with prefix "<prefix>"',
+        "Given a server named <server_name> that echoes its input with prefix <prefix>",
+        "And a server named <server_name> that echoes its input with prefix <prefix>",
     ]
 )
 def given_echo_server(server_name: str, prefix: str) -> None:
@@ -90,6 +92,8 @@ def main(input_data):
     [
         'Given a server named "<server_name>" that returns "<value>"',
         'And a server named "<server_name>" that returns "<value>"',
+        "Given a server named <server_name> that returns <value>",
+        "And a server named <server_name> that returns <value>",
     ]
 )
 def given_simple_server(server_name: str, value: str) -> None:
@@ -101,7 +105,7 @@ def main():
     _store_server(server_name, definition)
 
 
-@step('And a CID containing "<content>"')
+@step(['And a CID containing "<content>"', "And a CID containing <content>"])
 def and_cid_containing(content: str) -> None:
     """Store a CID with the given content."""
     state = get_scenario_state()
@@ -163,7 +167,12 @@ def then_response_redirects() -> None:
     state["redirect_location"] = location
 
 
-@step('And the CID content should be "<expected_content>"')
+@step(
+    [
+        'And the CID content should be "<expected_content>"',
+        "And the CID content should be <expected_content>",
+    ]
+)
 def and_cid_content_should_be(expected_content: str) -> None:
     """Assert the CID content matches the expected value."""
     state = get_scenario_state()
@@ -177,7 +186,12 @@ def and_cid_content_should_be(expected_content: str) -> None:
     )
 
 
-@step('Given the default server "<server_name>" is available')
+@step(
+    [
+        'Given the default server "<server_name>" is available',
+        "Given the default server <server_name> is available",
+    ]
+)
 def given_default_server_available(server_name: str) -> None:
     """Load a default server definition from reference templates."""
 
@@ -189,7 +203,12 @@ def given_default_server_available(server_name: str) -> None:
     _store_server(server_name, definition_path.read_text(encoding="utf-8"))
 
 
-@step('And a wrapping server named "<server_name>" that wraps payload with "<prefix>"')
+@step(
+    [
+        'And a wrapping server named "<server_name>" that wraps payload with "<prefix>"',
+        "And a wrapping server named <server_name> that wraps payload with <prefix>",
+    ]
+)
 def and_wrapping_server(server_name: str, prefix: str) -> None:
     """Create a wrapper server that prefixes chained payloads."""
 
@@ -218,6 +237,8 @@ def when_request_resource_with_cid(path_prefix: str) -> None:
     [
         'Then the CID content should contain "<expected_content>"',
         'And the CID content should contain "<expected_content>"',
+        "Then the CID content should contain <expected_content>",
+        "And the CID content should contain <expected_content>",
     ]
 )
 def then_cid_content_contains(expected_content: str) -> None:
@@ -234,7 +255,12 @@ def then_cid_content_contains(expected_content: str) -> None:
     )
 
 
-@step('Given a CID containing python server code that returns "<output>"')
+@step(
+    [
+        'Given a CID containing python server code that returns "<output>"',
+        "Given a CID containing python server code that returns <output>",
+    ]
+)
 def given_python_cid_literal(output: str) -> None:
     """Store a Python CID literal server that returns a constant output."""
 
@@ -249,7 +275,12 @@ def given_python_cid_literal(output: str) -> None:
     )
 
 
-@step('Given a CID containing bash server code that echoes "<output>"')
+@step(
+    [
+        'Given a CID containing bash server code that echoes "<output>"',
+        "Given a CID containing bash server code that echoes <output>",
+    ]
+)
 def given_bash_cid_literal(output: str) -> None:
     """Store a Bash CID literal server that echoes a value."""
 
@@ -263,6 +294,8 @@ echo "{output}"
     [
         'Given a python CID literal server that returns "<output>"',
         'And a python CID literal server that returns "<output>"',
+        "Given a python CID literal server that returns <output>",
+        "And a python CID literal server that returns <output>",
     ]
 )
 def python_literal_server(output: str) -> None:
@@ -283,6 +316,8 @@ def python_literal_server(output: str) -> None:
     [
         'Given a python CID literal server that prefixes its payload with "<prefix>"',
         'And a python CID literal server that prefixes its payload with "<prefix>"',
+        "Given a python CID literal server that prefixes its payload with <prefix>",
+        "And a python CID literal server that prefixes its payload with <prefix>",
     ]
 )
 def python_literal_prefix(prefix: str) -> None:
@@ -304,6 +339,8 @@ def python_literal_prefix(prefix: str) -> None:
     [
         'Given a python CID literal server that wraps its payload with "<prefix>"',
         'And a python CID literal server that wraps its payload with "<prefix>"',
+        "Given a python CID literal server that wraps its payload with <prefix>",
+        "And a python CID literal server that wraps its payload with <prefix>",
     ]
 )
 def python_literal_wrap(prefix: str) -> None:
@@ -327,6 +364,10 @@ def python_literal_wrap(prefix: str) -> None:
         'And a bash CID literal server that prefixes input with "<prefix>"',
         'Given a bash CID literal server that prefixes its payload with "<prefix>"',
         'And a bash CID literal server that prefixes its payload with "<prefix>"',
+        "Given a bash CID literal server that prefixes input with <prefix>",
+        "And a bash CID literal server that prefixes input with <prefix>",
+        "Given a bash CID literal server that prefixes its payload with <prefix>",
+        "And a bash CID literal server that prefixes its payload with <prefix>",
     ]
 )
 def bash_literal_prefix(prefix: str) -> None:
@@ -343,6 +384,8 @@ echo "{prefix}${{input_payload}}"
     [
         'Given a bash CID literal server that echoes "<output>"',
         'And a bash CID literal server that echoes "<output>"',
+        "Given a bash CID literal server that echoes <output>",
+        "And a bash CID literal server that echoes <output>",
     ]
 )
 def bash_literal_echo(output: str) -> None:
@@ -358,6 +401,8 @@ echo "{output}"
     [
         'Given a clojure CID literal server that emits "<output>"',
         'And a clojure CID literal server that emits "<output>"',
+        "Given a clojure CID literal server that emits <output>",
+        "And a clojure CID literal server that emits <output>",
     ]
 )
 def clojure_literal_emit(output: str) -> None:
@@ -379,6 +424,8 @@ def clojure_literal_emit(output: str) -> None:
     [
         'Given a clojure CID literal server that prefixes its payload with "<prefix>"',
         'And a clojure CID literal server that prefixes its payload with "<prefix>"',
+        "Given a clojure CID literal server that prefixes its payload with <prefix>",
+        "And a clojure CID literal server that prefixes its payload with <prefix>",
     ]
 )
 def clojure_literal_prefix(prefix: str) -> None:
@@ -397,7 +444,10 @@ def clojure_literal_prefix(prefix: str) -> None:
 
 
 @step(
-    'Given a clojure CID literal server stored without an extension that emits "<output>"'
+    [
+        'Given a clojure CID literal server stored without an extension that emits "<output>"',
+        "Given a clojure CID literal server stored without an extension that emits <output>",
+    ]
 )
 def clojure_literal_no_extension(output: str) -> None:
     """Persist a Clojure CID server without a file extension."""
@@ -412,6 +462,8 @@ def clojure_literal_no_extension(output: str) -> None:
     [
         'Given a clojurescript CID literal server that emits "<output>"',
         'And a clojurescript CID literal server that emits "<output>"',
+        "Given a clojurescript CID literal server that emits <output>",
+        "And a clojurescript CID literal server that emits <output>",
     ]
 )
 def clojurescript_literal_emit(output: str) -> None:
@@ -433,6 +485,8 @@ def clojurescript_literal_emit(output: str) -> None:
     [
         'Given a clojurescript CID literal server that prefixes its payload with "<prefix>"',
         'And a clojurescript CID literal server that prefixes its payload with "<prefix>"',
+        "Given a clojurescript CID literal server that prefixes its payload with <prefix>",
+        "And a clojurescript CID literal server that prefixes its payload with <prefix>",
     ]
 )
 def clojurescript_literal_prefix(prefix: str) -> None:
@@ -451,7 +505,10 @@ def clojurescript_literal_prefix(prefix: str) -> None:
 
 
 @step(
-    'Given a clojurescript CID literal server stored without an extension that emits "<output>"'
+    [
+        'Given a clojurescript CID literal server stored without an extension that emits "<output>"',
+        "Given a clojurescript CID literal server stored without an extension that emits <output>",
+    ]
 )
 def clojurescript_literal_no_extension(output: str) -> None:
     """Persist a ClojureScript CID server without a file extension."""
@@ -468,6 +525,8 @@ def clojurescript_literal_no_extension(output: str) -> None:
     [
         'Given a TypeScript CID literal server that emits "<output>"',
         'And a TypeScript CID literal server that emits "<output>"',
+        "Given a TypeScript CID literal server that emits <output>",
+        "And a TypeScript CID literal server that emits <output>",
     ]
 )
 def typescript_literal_emit(output: str) -> None:
@@ -490,6 +549,8 @@ export default function main(payload) {{
     [
         'Given a TypeScript CID literal server that prefixes its payload with "<prefix>"',
         'And a TypeScript CID literal server that prefixes its payload with "<prefix>"',
+        "Given a TypeScript CID literal server that prefixes its payload with <prefix>",
+        "And a TypeScript CID literal server that prefixes its payload with <prefix>",
     ]
 )
 def typescript_literal_prefix(prefix: str) -> None:
@@ -510,7 +571,10 @@ export default function main(payload) {{
 
 
 @step(
-    'Given a TypeScript CID literal server stored without an extension that emits "<output>"'
+    [
+        'Given a TypeScript CID literal server stored without an extension that emits "<output>"',
+        "Given a TypeScript CID literal server stored without an extension that emits <output>",
+    ]
 )
 def typescript_literal_no_extension(output: str) -> None:
     """Persist a TypeScript CID server without a file extension."""
@@ -524,7 +588,10 @@ export default function main() {{
 
 
 @step(
-    'Given a TypeScript CID literal server stored with a .ts extension that emits "<output>"'
+    [
+        'Given a TypeScript CID literal server stored with a .ts extension that emits "<output>"',
+        "Given a TypeScript CID literal server stored with a .ts extension that emits <output>",
+    ]
 )
 def typescript_literal_with_extension(output: str) -> None:
     """Persist a TypeScript CID server with an explicit .ts extension."""
@@ -538,7 +605,10 @@ export default function main() {{
 
 
 @step(
-    'Given a server named "<server_name>" defined in /servers that prefixes its payload with "<prefix>"'
+    [
+        'Given a server named "<server_name>" defined in /servers that prefixes its payload with "<prefix>"',
+        "Given a server named <server_name> defined in /servers that prefixes its payload with <prefix>",
+    ]
 )
 def given_named_prefixed_server(server_name: str, prefix: str) -> None:
     """Create a named server that prefixes payload with the provided prefix."""
