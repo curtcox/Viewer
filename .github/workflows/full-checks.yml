@@ -519,6 +519,12 @@ jobs:
           python scripts/publish_gauge_summary.py \
             --log "${{ github.workspace }}/reports/html-report/gauge-execution.log" \
             --html-report "${{ github.workspace }}/reports/html-report/index.html"
+      - name: Capture Gauge debug log
+        if: always()
+        run: |
+          if [ -f "${{ github.workspace }}/logs/gauge.log" ]; then
+            cp "${{ github.workspace }}/logs/gauge.log" "${{ github.workspace }}/reports/html-report/gauge.log"
+          fi
       - name: Upload Gauge HTML report
         if: always()
         uses: actions/upload-artifact@v4

@@ -7,6 +7,26 @@ from typing import Any
 _scenario_state: dict[str, Any] = {}
 
 
+class _ScenarioStore:
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return _scenario_state[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        _scenario_state[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        try:
+            del _scenario_state[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+
+store = _ScenarioStore()
+
+
 def get_scenario_state() -> dict[str, Any]:
     """Get the shared scenario state."""
     return _scenario_state

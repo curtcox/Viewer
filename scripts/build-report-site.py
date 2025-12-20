@@ -434,6 +434,7 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     gauge_dir.mkdir(parents=True, exist_ok=True)
 
     log_path = gauge_dir / "gauge-execution.log"
+    debug_log_path = gauge_dir / "gauge.log"
     index_path = gauge_dir / "index.html"
     original_index = gauge_dir / "index_original.html"
 
@@ -455,8 +456,13 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     if original_index.exists():
         original_link = '<p><a href="index_original.html">View full Gauge HTML report</a></p>'
 
+    debug_log_link = ""
+    if debug_log_path.exists():
+        debug_log_link = '<p><a href="gauge.log" target="_blank" rel="noopener">View Gauge debug log (gauge.log)</a></p>'
+
     body = f"""  <h1>Gauge specification results</h1>
   {original_link}
+  {debug_log_link}
   {summary_html}"""
 
     index_path.write_text(
@@ -897,7 +903,7 @@ def _count_failing_jobs(job_statuses: dict[str, str]) -> int:
 
 def _get_background_color(job_statuses: dict[str, str]) -> str:
     """Determine the background color based on the number of failing jobs.
-    
+
     Returns:
         - Light green (#d4edda) if all jobs pass
         - Yellow (#fff3cd) if there are 1-2 failing jobs
