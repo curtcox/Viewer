@@ -508,6 +508,7 @@ jobs:
       DATABASE_URL: sqlite:////tmp/secureapp-ci.db
       SESSION_SECRET: test-secret-key
       TESTING: "True"
+      USE_SYSTEM_GAUGE: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
