@@ -12,6 +12,8 @@ import subprocess
 import tempfile
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+import db_access
+
 from logfire_utils import instrument as logfire_instrument
 from flask import Response, current_app, has_app_context, has_request_context, jsonify, redirect, request
 
@@ -38,6 +40,10 @@ from text_function_runner import run_text_function
 AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 _SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
+
+
+def create_cid_record(*args, **kwargs):
+    return db_access.create_cid_record(*args, **kwargs)
 
 # Pattern to detect positional parameters in bash scripts (e.g., $1, $2)
 _BASH_POSITIONAL_PARAM_PATTERN = r'\$[1-9]'
@@ -779,6 +785,9 @@ def _inject_optional_parameter_from_path(
     """
 
     if not server_name or not details.parameter_order:
+        return None, None
+
+    if server_name == "gateway":
         return None, None
 
     for name in details.parameter_order:

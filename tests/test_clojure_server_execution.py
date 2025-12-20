@@ -8,7 +8,7 @@ from cid_core import generate_cid
 import db_access
 import server_execution
 from app import app
-from server_execution import code_execution, invocation_tracking, server_lookup
+from server_execution import code_execution, error_handling, invocation_tracking, response_handling, server_lookup
 
 
 _CID_PAYLOADS: dict[str, bytes] = {}
@@ -46,7 +46,9 @@ def clojure_environment(monkeypatch):
     monkeypatch.setattr(db_access, "get_secrets", return_empty_list)
     monkeypatch.setattr(db_access, "get_variables", return_empty_list)
     monkeypatch.setattr(invocation_tracking, "create_server_invocation_record", noop_record)
-    monkeypatch.setattr(code_execution, "create_cid_record", noop_create_cid)
+    monkeypatch.setattr(response_handling, "create_cid_record", noop_create_cid)
+    monkeypatch.setattr(error_handling, "create_cid_record", noop_create_cid)
+    monkeypatch.setattr(invocation_tracking, "create_cid_record", noop_create_cid)
     monkeypatch.setattr(server_lookup, "get_server_by_name", servers.get)
     monkeypatch.setattr(code_execution, "get_server_by_name", servers.get)
     monkeypatch.setattr(db_access, "get_server_by_name", servers.get)
