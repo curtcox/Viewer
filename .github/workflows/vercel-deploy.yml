@@ -83,14 +83,20 @@ jobs:
         id: health-check
         run: |
           DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
+          VERCEL_PROTECTION_BYPASS="${{ secrets.VERCEL_PROTECTION_BYPASS }}"
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "Error: Deployment URL is empty"
+            exit 1
+          fi
+
+          if [ -z "$VERCEL_PROTECTION_BYPASS" ]; then
+            echo "Error: VERCEL_PROTECTION_BYPASS secret is not set"
             exit 1
           fi
           
           echo "Testing deployment at: $DEPLOYMENT_URL"
           
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL" || echo "000")
+          HTTP_CODE=$(curl -s -L -o /dev/null -w "%{http_code}" -H "x-vercel-protection-bypass: $VERCEL_PROTECTION_BYPASS" "$DEPLOYMENT_URL" || echo "000")
           echo "HTTP response code: $HTTP_CODE"
           
           if [ "$HTTP_CODE" = "200" ]; then
@@ -105,12 +111,18 @@ jobs:
         run: |
           DEPLOYMENT_URL="${{ needs.deploy.outputs.deployment-url }}"
           EXPECTED_SHA="${{ steps.git-sha.outputs.sha }}"
+          VERCEL_PROTECTION_BYPASS="${{ secrets.VERCEL_PROTECTION_BYPASS }}"
+
+          if [ -z "$VERCEL_PROTECTION_BYPASS" ]; then
+            echo "Error: VERCEL_PROTECTION_BYPASS secret is not set"
+            exit 1
+          fi
           
           echo "Expected SHA: $EXPECTED_SHA"
           echo "Fetching deployed page from: $DEPLOYMENT_URL"
           
           # Fetch the page and look for the SHA in either meta tag or HTML comment
-          RESPONSE=$(curl -s "$DEPLOYMENT_URL")
+          RESPONSE=$(curl -s -L -H "x-vercel-protection-bypass: $VERCEL_PROTECTION_BYPASS" "$DEPLOYMENT_URL")
           
           # Check for SHA in meta tag or HTML comment
           if echo "$RESPONSE" | grep -q "$EXPECTED_SHA"; then
