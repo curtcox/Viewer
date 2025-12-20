@@ -605,15 +605,10 @@ def _build_gauge_index(gauge_dir: Path) -> None:
     index_path = gauge_dir / "index.html"
     summary_path = gauge_dir / "summary.html"
 
-    has_gauge_report = False
-    if index_path.exists():
-        try:
-            content = index_path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            content = ""
-        has_gauge_report = "gauge" in content.lower() and (
-            "executionResult" in content or "specs" in content.lower()
-        )
+    # If the Gauge artifact provides an index.html, preserve it. Historically this
+    # is the interactive Gauge report entry point, and overwriting it breaks the
+    # published experience on GitHub Pages.
+    has_gauge_report = index_path.exists()
 
     summary_html = _build_gauge_summary(log_path)
 
