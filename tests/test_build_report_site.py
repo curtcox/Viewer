@@ -102,6 +102,32 @@ def test_write_landing_page_includes_notice(tmp_path) -> None:
     assert notice in content
 
 
+def test_parse_gauge_log_detects_status_prefixed_spec_lines(tmp_path) -> None:
+    log_path = tmp_path / "gauge-execution.log"
+    log_path.write_text(
+        "\n".join(
+            [
+                "✓ specs/example.spec",
+                "✗ specs/failed.spec :: Failing scenario -> FAILED",
+                "Total scenarios: 2",
+                "Passed: 1",
+                "Failed: 1",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    summary = build_report._parse_gauge_log(log_path)
+
+    assert "specs/example.spec" in summary.specs_run
+    assert "specs/failed.spec" in summary.specs_run
+    assert "specs/failed.spec" in summary.specs_failed
+    assert summary.total_scenarios == 2
+    assert summary.passed_scenarios == 1
+    assert summary.failed_scenarios_count == 1
+
+
 def test_build_linter_index_empty_summary(tmp_path) -> None:
     """Test that empty summary.txt shows 'No summary available' message."""
     linter_dir = tmp_path / "pylint"

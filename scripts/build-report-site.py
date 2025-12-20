@@ -21,7 +21,9 @@ from typing import Protocol, Sequence, cast
 MAX_DISPLAYED_ITEMS = 20
 
 # Regex patterns for Gauge log parsing
-REGEX_SPEC_FILE = re.compile(r"^([a-zA-Z0-9_/.-]+\.spec)\s*::")
+REGEX_SPEC_FILE = re.compile(
+    r"^(?:[✓✗✔✖]\s*)?([a-zA-Z0-9_/.-]+\.spec)(?:\s*::|$)"
+)
 REGEX_SCENARIO_NAME = re.compile(r"::\s*(.+?)(?:\s*->|\s*✖|$)")
 REGEX_MISSING_STEP = re.compile(
     r"no step implementation matches|No step implementation matches", re.IGNORECASE
