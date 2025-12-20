@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 3629
-- Unit Tests: 3000
-- Integration Tests: 485
+**Total Tests:** 3653
+- Unit Tests: 3012
+- Integration Tests: 492
 - Property Tests: 14
-- Gauge Tests: 130
+- Gauge Tests: 135
 
 ## Unit Tests
 
-Total: 3000 tests
+Total: 3012 tests
 
 - [Test that pending calls are cleared after being used.](tests/test_ai_eval_reports.py:81)
 - [Test that __call__ uses pending external calls from call_with_capture.](tests/test_ai_eval_reports.py:64)
@@ -1377,9 +1377,9 @@ Total: 3000 tests
 - [Test that list_secrets() returns SQLAlchemy model objects, not serializable data](tests/test_variables_secrets_issue.py:62)
 - [Test that list_variables() returns SQLAlchemy model objects, not serializable data](tests/test_variables_secrets_issue.py:30)
 - [TestVariablesSecretsIssue.test_model_as_dict_ignores_disabled_entries](tests/test_variables_secrets_issue.py:149)
-- [Test that READ_ONLY environment variable enables both read-only mode and sets database to memory mode.](tests/test_vercel_entry_point.py:10)
-- [Test that READ_ONLY=false does not enable read-only mode.](tests/test_vercel_entry_point.py:70)
-- [Test that various true values enable read-only mode.](tests/test_vercel_entry_point.py:123)
+- [Test that READ_ONLY environment variable enables both read-only mode and sets database to memory mode.](tests/test_vercel_entry_point.py:12)
+- [Test that READ_ONLY=false does not enable read-only mode.](tests/test_vercel_entry_point.py:77)
+- [Test that various true values enable read-only mode.](tests/test_vercel_entry_point.py:130)
 - [TestVersionedServerInvocation.test_is_potential_versioned_server_path](tests/test_versioned_server_invocation.py:31)
 - [TestVersionedServerInvocation.test_try_partial_helper_executes](tests/test_versioned_server_invocation.py:90)
 - [TestVersionedServerInvocation.test_try_partial_multiple_matches_returns_400_with_list](tests/test_versioned_server_invocation.py:58)
@@ -1669,12 +1669,13 @@ Total: 3000 tests
 - [test_create_alias_rejects_conflicting_route](tests/test_alias_routing.py:458)
 - [test_create_alias_via_form](tests/test_alias_routing.py:401)
 - [test_create_alias_with_glob_match_type](tests/test_alias_routing.py:423)
-- [New databases should include the alias.definition column without migration.](tests/test_app_startup.py:122)
-- [Startup should store error in config and show 500 page if CID filename is invalid or doesn't match contents.](tests/test_app_startup.py:167)
-- [Logfire misconfiguration should not stop the application from starting.](tests/test_app_startup.py:51)
-- [Instrumentation failures should be logged but not crash startup.](tests/test_app_startup.py:82)
-- [CID fixtures on disk should be imported into the database.](tests/test_app_startup.py:142)
+- [New databases should include the alias.definition column without migration.](tests/test_app_startup.py:133)
+- [Startup should store error in config and show 500 page if CID filename is invalid or doesn't match contents.](tests/test_app_startup.py:178)
+- [Logfire misconfiguration should not stop the application from starting.](tests/test_app_startup.py:62)
+- [Instrumentation failures should be logged but not crash startup.](tests/test_app_startup.py:93)
+- [CID fixtures on disk should be imported into the database.](tests/test_app_startup.py:153)
 - [The factory should create an app whose homepage can be rendered.](tests/test_app_startup.py:32)
+- [test_create_app_uses_fallback_secret_key_when_session_secret_empty](tests/test_app_startup.py:51)
 - [Creating a CID record produces equivalent results.](tests/test_db_equivalence.py:223)
 - [create_cid_record() produces equivalent results.](tests/test_db_access_equivalence.py:173)
 - [Test creating CID record with all required fields](tests/test_cid_functionality.py:144)
@@ -1985,6 +1986,17 @@ Total: 3000 tests
 - [Test generating CID from large content.](tests/test_cid_class.py:116)
 - [Test generating CID from small content.](tests/test_cid_class.py:95)
 - [test_frontend_filtering_orders_exact_partial_and_not_found](tests/test_routes_overview.py:96)
+- [Gateway should convert JSON responses to formatted HTML.](tests/test_gateway_server.py:118)
+- [Gateway should convert API URLs in JSON responses to clickable links.](tests/test_gateway_server.py:146)
+- [Gateway definition should support request_transform and response_transform.](tests/test_gateway_server.py:203)
+- [Examples page should include instructions on how to use the gateway.](tests/test_gateway_server.py:217)
+- [Gateway should gracefully handle missing target_server parameter.](tests/test_gateway_server.py:186)
+- [Gateway examples page should include all required API providers.](tests/test_gateway_server.py:64)
+- [Gateway should proxy requests to the target server.](tests/test_gateway_server.py:91)
+- [Verify that the gateway server template is registered.](tests/test_gateway_server.py:33)
+- [When no target_server is provided, gateway should show examples page.](tests/test_gateway_server.py:45)
+- [Gateway template should have proper id, name, and description.](tests/test_gateway_server.py:236)
+- [Gateway should use the path after /gateway as the target path.](tests/test_gateway_server.py:173)
 - [Test generating CID just above DIRECT_CONTENT_EMBED_LIMIT.](tests/test_cid_core.py:244)
 - [Test JSON generation with no secrets](tests/test_secret_definitions_cid.py:81)
 - [Test that secrets are sorted alphabetically in JSON](tests/test_secret_definitions_cid.py:94)
@@ -2597,9 +2609,9 @@ Total: 3000 tests
 - [Test that raw SQL queries also return correct enabled values.](tests/test_enabled_field_persistence.py:330)
 - [Test reading file content.](tests/test_generate_boot_image.py:156)
 - [--read-only flag should be parsed.](tests/test_cli_args_readonly.py:77)
-- [Test that READ_ONLY environment variable enables both read-only mode and sets database to memory mode.](tests/test_vercel_entry_point.py:10)
-- [Test that READ_ONLY=false does not enable read-only mode.](tests/test_vercel_entry_point.py:70)
-- [Test that various true values enable read-only mode.](tests/test_vercel_entry_point.py:123)
+- [Test that READ_ONLY environment variable enables both read-only mode and sets database to memory mode.](tests/test_vercel_entry_point.py:12)
+- [Test that READ_ONLY=false does not enable read-only mode.](tests/test_vercel_entry_point.py:77)
+- [Test that various true values enable read-only mode.](tests/test_vercel_entry_point.py:130)
 - [Test realistic usage scenarios](tests/test_serve_cid_integration.py:147)
 - [record_entity_interaction() produces equivalent results.](tests/test_db_access_equivalence.py:260)
 - [test_record_entity_interaction_persists](tests/test_entity_interactions.py:31)
@@ -3015,7 +3027,7 @@ Total: 3000 tests
 
 ## Integration Tests
 
-Total: 485 tests
+Total: 492 tests
 
 - [TestAiEditorIntegration.test_ai_editor_contains_navigation_and_info_menu](tests/integration/test_ai_editor_integration.py:68)
 - [TestAiEditorIntegration.test_ai_editor_escapes_payload_attribute](tests/integration/test_ai_editor_integration.py:98)
@@ -3285,6 +3297,13 @@ Total: 485 tests
 - [Test error handling when PR creation fails.](tests/integration/test_github_pr_workflow.py:138)
 - [Test complete export to GitHub PR flow.](tests/integration/test_github_pr_workflow.py:38)
 - [Test that filtering by enabled status works identically.](tests/integration/test_one_shot_equivalence.py:556)
+- [Gateway should convert API URLs in JSON to clickable gateway links.](tests/integration/test_gateway_server.py:130)
+- [Gateway examples page should include usage instructions.](tests/integration/test_gateway_server.py:235)
+- [Gateway examples page should have clickable links to API servers.](tests/integration/test_gateway_server.py:48)
+- [Gateway should properly route paths after the mount point.](tests/integration/test_gateway_server.py:173)
+- [Examples page should indicate which APIs require authentication.](tests/integration/test_gateway_server.py:204)
+- [Gateway should proxy requests to the target server.](tests/integration/test_gateway_server.py:81)
+- [Gateway server without target_server should show examples page.](tests/integration/test_gateway_server.py:14)
 - [Grep server should accept pattern from path segment.](tests/integration/test_bash_path_parameters.py:228)
 - [Grep server output should chain to the server on its left.](tests/integration/test_bash_path_parameters.py:276)
 - [Grep server should accept CID as input source.](tests/integration/test_bash_path_parameters.py:256)
@@ -3524,7 +3543,7 @@ Total: 14 tests
 
 ## Gauge Tests
 
-Total: 130 scenarios
+Total: 135 scenarios
 
 - [AI menu links are available alongside AI actions](specs/ai_actions_menu.spec:3)
 - [Accept headers request alternate representations](specs/content_negotiation.spec:31)
@@ -3580,6 +3599,11 @@ Total: 130 scenarios
 - [Embedded CID execution guide is listed](specs/upload_templates.spec:30)
 - [Export shows helpful errors when GitHub access fails](specs/github_pr_integration.spec:15)
 - [Extension overrides provide alternate representations](specs/content_negotiation.spec:3)
+- [Gateway displays examples page without target server](specs/gateway.spec:6)
+- [Gateway examples include auth requirement indicators](specs/gateway.spec:26)
+- [Gateway examples include clickable API links](specs/gateway.spec:40)
+- [Gateway examples include required REST APIs](specs/gateway.spec:15)
+- [Gateway examples include usage instructions](specs/gateway.spec:32)
 - [Grep server accepts pattern from path parameter](specs/bash_path_parameters.spec:49)
 - [Grep server provides input to left server](specs/bash_path_parameters.spec:58)
 - [Import shows helpful errors when PR format is wrong](specs/github_pr_integration.spec:20)
