@@ -869,6 +869,8 @@ def _execute_bash_server_response(
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
     if status_code >= 400:
         return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
     return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
@@ -892,6 +894,8 @@ def _execute_clojure_server_response(
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
     if status_code >= 400:
         return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
     return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
@@ -915,6 +919,8 @@ def _execute_clojurescript_server_response(
     _log_server_output(debug_prefix, "", output_bytes, "text/plain")
     if status_code >= 400:
         return Response(output_bytes, status=status_code, mimetype="text/plain")
+    if debug_prefix.startswith("execute_literal_server"):
+        return Response(output_bytes, mimetype="text/plain")
     return _handle_successful_execution(output_bytes, "text/plain", server_name)
 
 
