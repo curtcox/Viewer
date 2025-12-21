@@ -374,9 +374,27 @@ class TestShouldReturnDebugResponse:
     def test_debug_1_returns_true(self):
         """debug=1 query param returns True."""
 
+    def test_debug_yes_returns_true(self):
+        """debug=yes query param returns True."""
+
+    def test_debug_on_returns_true(self):
+        """debug=on query param returns True."""
+
     def test_debug_case_insensitive(self):
         """Debug param is case insensitive."""
-        # DEBUG=TRUE, Debug=True both work
+        # DEBUG=TRUE, Debug=True, debug=YES all work
+
+    def test_debug_0_returns_false(self):
+        """debug=0 query param returns False."""
+
+    def test_debug_no_returns_false(self):
+        """debug=no query param returns False."""
+
+    def test_debug_off_returns_false(self):
+        """debug=off query param returns False."""
+
+    def test_debug_random_value_returns_false(self):
+        """debug=random returns False (not in truthy set)."""
 
 
 class TestGetFinalExtension:
@@ -597,6 +615,46 @@ class TestCheckChainingSupport:
 
     def test_typescript_supports_chaining(self):
         """TypeScript scripts support chaining."""
+
+
+class TestJavaScriptModuleSupport:
+    """Test JavaScript CommonJS and ES Module detection."""
+
+    def test_commonjs_module_detected(self):
+        """Detect CommonJS module.exports pattern."""
+        # module.exports = function(input) { ... }
+
+    def test_esmodule_default_export_detected(self):
+        """Detect ES Module default export pattern."""
+        # export default function main(input) { ... }
+
+    def test_commonjs_execution(self):
+        """Execute CommonJS JavaScript server."""
+        # Receives input, returns output
+
+    def test_esmodule_execution(self):
+        """Execute ES Module JavaScript server."""
+        # Receives input, returns output
+
+    def test_javascript_without_export_error(self):
+        """JavaScript without proper export returns error."""
+        # No module.exports or export default -> error
+
+
+class TestRuntimeAvailability:
+    """Test runtime availability error handling."""
+
+    def test_nodejs_unavailable_error(self):
+        """Error when Node.js is not available."""
+        # Returns 500 "Node.js runtime is not available"
+
+    def test_deno_unavailable_error(self):
+        """Error when Deno is not available for TypeScript."""
+        # Returns 500 "Deno runtime is not available"
+
+    def test_clojure_unavailable_error(self):
+        """Error when Clojure is not available."""
+        # Returns 500 "Clojure runtime is not available"
 ```
 
 #### Test File: `tests/test_pipeline_alias_resolution.py`
@@ -1057,6 +1115,55 @@ These tests verify the pipeline execution functionality with debug mode.
 * When I request /tracked/input?debug=true
 * Then segment 0 should have server_invocation_cid
 * And the invocation record should exist in the database
+
+## JavaScript CommonJS module execution
+
+* Given a JavaScript CID using CommonJS: module.exports = function(input) { return "cjs:" + input; }
+* When I request /{javascript server CID}.js/test-input?debug=true
+* Then segment 0 should have implementation_language "javascript"
+* And the final_output should be "cjs:test-input"
+
+## JavaScript ES Module execution
+
+* Given a JavaScript CID using ES Modules: export default function main(input) { return "esm:" + input; }
+* When I request /{javascript server CID}.js/test-input?debug=true
+* Then segment 0 should have implementation_language "javascript"
+* And the final_output should be "esm:test-input"
+
+## Debug parameter accepts 1
+
+* Given a server named "echo" that returns "data"
+* When I request /echo/input?debug=1
+* Then the response should be JSON
+* And the response should contain segment entries
+
+## Debug parameter accepts yes
+
+* Given a server named "echo" that returns "data"
+* When I request /echo/input?debug=yes
+* Then the response should be JSON
+* And the response should contain segment entries
+
+## Debug parameter accepts on
+
+* Given a server named "echo" that returns "data"
+* When I request /echo/input?debug=on
+* Then the response should be JSON
+* And the response should contain segment entries
+
+## Debug parameter rejects random value
+
+* Given a server named "echo" that returns "data"
+* When I request /echo/input?debug=random
+* Then the response should NOT be JSON debug output
+* And the response should be normal execution result
+
+## Node.js runtime unavailable error
+
+* Given Node.js is not available on the system
+* When I request /{javascript CID}.js/input
+* Then the response status should be 500
+* And the response should contain "Node.js runtime is not available"
 ```
 
 ---
@@ -1128,47 +1235,23 @@ The `{pattern}` (config/argument) comes first, followed by `{input}` which could
 
 ---
 
-## Open Questions
+### 11. Node.js Runtime Availability
+**Decision**: Return a 500 error with message "Node.js runtime is not available".
+- Consistent with existing pattern for other missing runtimes (Clojure, Deno)
+- Clear error message helps users diagnose environment issues
 
-The following questions require clarification before implementation:
+### 12. JavaScript Server Function Signature
+**Decision**: Support both CommonJS and ES Modules.
+- CommonJS: `module.exports = function(input) { ... }`
+- ES Modules: `export default function main(input) { ... }`
+- Implementation detects module type and handles accordingly
+- Provides flexibility for different JavaScript codebases
 
-### Question 1: Node.js Runtime Availability
-
-**Question**: What should happen when a `.js` file is requested but Node.js is not available on the system?
-
-**Options**:
-- A) Return a 500 error with message "Node.js runtime is not available"
-- B) Fall back to Deno for JavaScript execution
-- C) Return an error suggesting TypeScript (.ts) as alternative
-
-**Proposed Answer**: Option A - consistent with existing pattern for other missing runtimes (Clojure, TypeScript/Deno).
-
----
-
-### Question 2: JavaScript Server Function Signature
-
-**Question**: What function signature should JavaScript servers use for chaining?
-
-**Options**:
-- A) `module.exports = function(input) { ... }` (CommonJS)
-- B) `export default function main(input) { ... }` (ES Modules)
-- C) Read from stdin like bash
-- D) Support both CommonJS and ES Modules
-
-**Proposed Answer**: Need input - affects implementation of `_run_javascript_script()`.
-
----
-
-### Question 3: Debug Mode Query Parameter Variants
-
-**Question**: Should other truthy values for debug be accepted (e.g., `debug=1`, `debug=yes`)?
-
-**Options**:
-- A) Only accept `debug=true` (case-insensitive)
-- B) Accept `true`, `1`, `yes`, `on` (common truthy values)
-- C) Accept any non-empty value
-
-**Proposed Answer**: Option B - user-friendly while still explicit.
+### 13. Debug Mode Query Parameter Variants
+**Decision**: Accept `true`, `1`, `yes`, `on` (common truthy values).
+- Case-insensitive matching
+- User-friendly while still explicit
+- Consistent with common web conventions
 
 ---
 
