@@ -60,7 +60,7 @@
                         <h3 id="aliases">Aliases</h3>
                         <p>Aliases allow you to create URL shortcuts and route transformations. They define mappings from one path to another, enabling flexible request routing.</p>
                         <p>
-                            <a href="{{ url_for('main.aliases') }}" class="btn btn-sm btn-primary">
+                            <a href="{{ url_for('main.aliases') }}" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-link me-1"></i>View All Aliases
                             </a>
                         </p>
@@ -75,7 +75,7 @@
                         <h3 id="servers">Servers</h3>
                         <p>Servers are Python functions that process HTTP requests and return responses. They enable dynamic content generation and can interact with external services.</p>
                         <p>
-                            <a href="{{ url_for('main.servers') }}" class="btn btn-sm btn-success">
+                            <a href="{{ url_for('main.servers') }}" class="btn btn-sm btn-outline-success">
                                 <i class="fas fa-server me-1"></i>View All Servers
                             </a>
                         </p>
@@ -90,7 +90,7 @@
                         <h3 id="variables">Variables</h3>
                         <p>Variables store reusable values that can be referenced by servers and other entities.</p>
                         <p>
-                            <a href="{{ url_for('main.variables') }}" class="btn btn-sm btn-info">
+                            <a href="{{ url_for('main.variables') }}" class="btn btn-sm btn-outline-info">
                                 <i class="fas fa-code me-1"></i>View All Variables
                             </a>
                         </p>
@@ -100,7 +100,7 @@
                         <h3 id="secrets">Secrets</h3>
                         <p>Secrets provide secure storage for sensitive information like API keys and passwords.</p>
                         <p>
-                            <a href="{{ url_for('main.secrets') }}" class="btn btn-sm btn-warning">
+                            <a href="{{ url_for('main.secrets') }}" class="btn btn-sm btn-outline-warning">
                                 <i class="fas fa-key me-1"></i>View All Secrets
                             </a>
                         </p>
@@ -128,10 +128,10 @@
                         <h3 id="import-export">Importing and Exporting</h3>
                         <p>Viewer supports importing and exporting complete configurations as JSON files with CID references.</p>
                         <p>
-                            <a href="{{ url_for('main.export_data') }}" class="btn btn-sm btn-primary me-2">
+                            <a href="{{ url_for('main.export_data') }}" class="btn btn-sm btn-outline-primary me-2">
                                 <i class="fas fa-download me-1"></i>Export Data
                             </a>
-                            <a href="{{ url_for('main.import_data') }}" class="btn btn-sm btn-primary">
+                            <a href="{{ url_for('main.import_data') }}" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-file-import me-1"></i>Import Data
                             </a>
                         </p>
