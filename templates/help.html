@@ -147,6 +147,19 @@
                             <li><a href="{{ url_for('main.source_browser', requested_path='docs/') }}">Documentation Files</a> - Detailed documentation</li>
                             <li><a href="{{ url_for('main.source_browser', requested_path='specs/') }}">Gauge Specifications</a> - Behavioral specifications</li>
                         </ul>
+
+                        {% if docs_files %}
+                            <hr class="my-4">
+
+                            <h3 id="docs">Docs</h3>
+                            <ul>
+                                {% for doc_file in docs_files %}
+                                    <li>
+                                        <a href="{{ url_for('main.source_browser', requested_path='docs/' + doc_file) }}">{{ doc_file }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

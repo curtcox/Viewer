@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Optional
 
-from flask import abort, redirect, render_template, url_for
+from flask import abort, current_app, redirect, render_template, url_for
 
 from db_access import (
     count_aliases,
@@ -158,7 +159,18 @@ def settings():
 @main_bp.route("/help")
 def help_page():
     """Help documentation page."""
-    return render_template("help.html")
+    docs_files: list[str] = []
+    docs_dir = Path(current_app.root_path) / "docs"
+    try:
+        docs_files = sorted(
+            entry.name
+            for entry in docs_dir.iterdir()
+            if entry.is_file() and not entry.name.startswith(".")
+        )
+    except OSError:
+        docs_files = []
+
+    return render_template("help.html", docs_files=docs_files)
 
 
 def get_settings_counts():
