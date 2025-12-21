@@ -45,3 +45,7 @@ def test_routes_overview_lists_user_routes(
     assert "Alias: docs" in page
     assert "Server: toolbox" in page
     assert "Built-in route source" in page
+
+    assert 'href="/docs"' in page
+    assert 'href="/toolbox"' in page
+    assert 'href="/aliases"' in page

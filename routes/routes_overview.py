@@ -29,6 +29,22 @@ class RouteEntry:
     is_catch_all: bool = False
 
     @property
+    def link_url(self) -> Optional[str]:
+        if self.is_catch_all:
+            return None
+
+        if not self.path or not self.path.startswith("/"):
+            return None
+
+        if "<" in self.path or ">" in self.path:
+            return None
+
+        if "(" in self.path or ")" in self.path:
+            return None
+
+        return self.path
+
+    @property
     def category_label(self) -> str:
         return {
             "builtin": "Built-in",

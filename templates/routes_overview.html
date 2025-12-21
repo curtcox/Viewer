@@ -106,7 +106,15 @@ mark.route-fragment-highlight {
                             {% endif %}
                         </div>
                     </td>
-                    <td class="font-monospace" data-path-cell data-original-path="{{ entry.path|e }}">{{ entry.path }}</td>
+                    <td class="font-monospace" data-path-cell>
+                        {% if entry.link_url %}
+                            <a href="{{ entry.link_url }}" class="text-decoration-none">
+                                <span data-path-text data-original-path="{{ entry.path|e }}">{{ entry.path }}</span>
+                            </a>
+                        {% else %}
+                            <span data-path-text data-original-path="{{ entry.path|e }}">{{ entry.path }}</span>
+                        {% endif %}
+                    </td>
                     <td data-name-cell data-original-name="{{ entry.name|e }}">{{ entry.name }}</td>
                     <td>
                         {% if entry.extra_detail %}
@@ -139,9 +147,9 @@ document.addEventListener('DOMContentLoaded', function () {
     rows.forEach((row, index) => originalIndex.set(row, index));
 
     function resetRowHighlights(row) {
-        const pathCell = row.querySelector('[data-path-cell]');
-        if (pathCell && 'originalPath' in pathCell.dataset) {
-            pathCell.textContent = pathCell.dataset.originalPath;
+        const pathText = row.querySelector('[data-path-text]');
+        if (pathText && 'originalPath' in pathText.dataset) {
+            pathText.textContent = pathText.dataset.originalPath;
         }
 
         const nameCell = row.querySelector('[data-name-cell]');
@@ -226,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        highlightCell(row.querySelector('[data-path-cell]'), 'originalPath', uniqueFragments);
+        highlightCell(row.querySelector('[data-path-text]'), 'originalPath', uniqueFragments);
         highlightCell(row.querySelector('[data-name-cell]'), 'originalName', uniqueFragments);
     }
 
