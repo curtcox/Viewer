@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h1 class="h2 mb-0">
+                    <i class="fas fa-circle-question text-primary me-2"></i>
+                    Help Documentation
+                </h1>
+                <div>
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-home me-1"></i>Home
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>Welcome to Viewer!</strong> This help documentation covers all major features including aliases, servers, variables, secrets, CIDs, boot images, and import/export.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body help-content">
+                    {% if help_content %}
+                        {{ help_content|safe }}
+                    {% else %}
+                        <h3>Quick Navigation</h3>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <a href="#aliases"><i class="fas fa-link text-primary me-2"></i>Aliases</a> - Create shortcuts and route transformations
+                            </li>
+                            <li class="mb-2">
+                                <a href="#servers"><i class="fas fa-server text-success me-2"></i>Servers</a> - Execute Python code to handle requests
+                            </li>
+                            <li class="mb-2">
+                                <a href="#variables"><i class="fas fa-code text-info me-2"></i>Variables</a> - Store and reference reusable values
+                            </li>
+                            <li class="mb-2">
+                                <a href="#secrets"><i class="fas fa-key text-warning me-2"></i>Secrets</a> - Securely store encrypted credentials
+                            </li>
+                            <li class="mb-2">
+                                <a href="#cids"><i class="fas fa-fingerprint text-secondary me-2"></i>CIDs</a> - Content-addressed storage system
+                            </li>
+                            <li class="mb-2">
+                                <a href="#boot-images"><i class="fas fa-rocket text-danger me-2"></i>Boot Images</a> - Pre-configured application states
+                            </li>
+                            <li class="mb-2">
+                                <a href="#import-export"><i class="fas fa-download text-primary me-2"></i>Import/Export</a> - Transfer configuration between instances
+                            </li>
+                        </ul>
+
+                        <hr class="my-4">
+
+                        <h3 id="aliases">Aliases</h3>
+                        <p>Aliases allow you to create URL shortcuts and route transformations. They define mappings from one path to another, enabling flexible request routing.</p>
+                        <p>
+                            <a href="{{ url_for('main.aliases') }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-link me-1"></i>View All Aliases
+                            </a>
+                        </p>
+
+                        <h4>Alias Definition Syntax</h4>
+                        <p>Aliases use a simple yet powerful syntax:</p>
+                        <pre><code>literal /docs -> /usr/share/doc</code></pre>
+                        <p>This creates a literal path mapping from <code>/docs</code> to <code>/usr/share/doc</code>.</p>
+
+                        <hr class="my-4">
+
+                        <h3 id="servers">Servers</h3>
+                        <p>Servers are Python functions that process HTTP requests and return responses. They enable dynamic content generation and can interact with external services.</p>
+                        <p>
+                            <a href="{{ url_for('main.servers') }}" class="btn btn-sm btn-success">
+                                <i class="fas fa-server me-1"></i>View All Servers
+                            </a>
+                        </p>
+
+                        <h4>Server Definition</h4>
+                        <p>A server is defined as a Python function named <code>main()</code>:</p>
+                        <pre><code>def main():
+    return "Hello, World!"</code></pre>
+
+                        <hr class="my-4">
+
+                        <h3 id="variables">Variables</h3>
+                        <p>Variables store reusable values that can be referenced by servers and other entities.</p>
+                        <p>
+                            <a href="{{ url_for('main.variables') }}" class="btn btn-sm btn-info">
+                                <i class="fas fa-code me-1"></i>View All Variables
+                            </a>
+                        </p>
+
+                        <hr class="my-4">
+
+                        <h3 id="secrets">Secrets</h3>
+                        <p>Secrets provide secure storage for sensitive information like API keys and passwords.</p>
+                        <p>
+                            <a href="{{ url_for('main.secrets') }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-key me-1"></i>View All Secrets
+                            </a>
+                        </p>
+
+                        <hr class="my-4">
+
+                        <h3 id="cids">CIDs (Content Identifiers)</h3>
+                        <p>CIDs are content-addressed identifiers used throughout Viewer for reliable content storage and verification.</p>
+                        <p>Example CID: <code>AAAAAA3yP8vZp0NCu8wTFW0Rnptg_hAsDFIirsPLwML4zn9ZPfHc1yGMe3HQWB_nLSm-d40KGIhJyQM8FqkdWnyLO6Ozbg</code></p>
+
+                        <hr class="my-4">
+
+                        <h3 id="boot-images">Boot Images</h3>
+                        <p>Boot images are pre-configured application states that can be loaded at startup. They define the initial set of aliases, servers, variables, and other entities.</p>
+
+                        <h4>Available Boot Images</h4>
+                        <ul>
+                            <li><strong>Default</strong> - Full-featured configuration with example servers and aliases</li>
+                            <li><strong>Minimal</strong> - Bare-bones configuration for starting from scratch</li>
+                            <li><strong>Readonly</strong> - Read-only mode for viewing content without modifications</li>
+                        </ul>
+
+                        <hr class="my-4">
+
+                        <h3 id="import-export">Importing and Exporting</h3>
+                        <p>Viewer supports importing and exporting complete configurations as JSON files with CID references.</p>
+                        <p>
+                            <a href="{{ url_for('main.export_data') }}" class="btn btn-sm btn-primary me-2">
+                                <i class="fas fa-download me-1"></i>Export Data
+                            </a>
+                            <a href="{{ url_for('main.import_data') }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-file-import me-1"></i>Import Data
+                            </a>
+                        </p>
+
+                        <hr class="my-4">
+
+                        <h3>Additional Resources</h3>
+                        <ul>
+                            <li><a href="{{ url_for('main.routes_overview') }}">Routes Overview</a> - All application routes</li>
+                            <li><a href="{{ url_for('main.source_browser') }}">Source Browser</a> - Browse application source code</li>
+                            <li><a href="{{ url_for('main.openapi_docs') }}">API Documentation</a> - OpenAPI specification</li>
+                            <li><a href="{{ url_for('main.history') }}">History</a> - View change history</li>
+                            <li><a href="{{ url_for('main.source_browser', requested_path='docs/') }}">Documentation Files</a> - Detailed documentation</li>
+                            <li><a href="{{ url_for('main.source_browser', requested_path='specs/') }}">Gauge Specifications</a> - Behavioral specifications</li>
+                        </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.help-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.help-content h4 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.help-content pre {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.help-content code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.help-content pre code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.help-content a {
+    color: #0d6efd;
+    text-decoration: underline;
+}
+
+.help-content a:hover {
+    color: #0a58ca;
+}
+
+.help-content ul {
+    margin-bottom: 1rem;
+}
+
+.help-content li {
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}

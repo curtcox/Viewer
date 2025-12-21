@@ -155,6 +155,12 @@ def settings():
     return render_template("settings.html", **counts)
 
 
+@main_bp.route("/help")
+def help_page():
+    """Help documentation page."""
+    return render_template("help.html")
+
+
 def get_settings_counts():
     """Return counts of globally saved resources for settings display."""
     return {
