@@ -179,6 +179,7 @@ __all__ = [
     "dashboard",
     "get_existing_routes",
     "get_settings_counts",
+    "help_page",
     "index",
     "inject_observability_info",
     "inject_meta_inspector_link",
