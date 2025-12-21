@@ -623,7 +623,7 @@ def _build_gauge_index(gauge_dir: Path) -> None:
         debug_log_link = '<p><a href="gauge.log" target="_blank" rel="noopener">View Gauge debug log (gauge.log)</a></p>'
 
     body = f"""  <h1>Gauge specification results</h1>
-  {original_link}
+  {report_link}
   {debug_log_link}
   {summary_html}"""
 

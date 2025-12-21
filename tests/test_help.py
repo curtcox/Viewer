@@ -1,6 +1,5 @@
 """Tests for help documentation routes and rendering."""
 
-import pytest
 from flask import url_for
 
 
