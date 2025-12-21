@@ -983,21 +983,72 @@ def main(request):
             "References column should not include entries for the filtered CID",
         )
 
-    def test_plans_page(self):
-        """Plans endpoint should stay disabled and answer with a 404."""
-        response = self.client.get("/plans")
-        self.assertEqual(response.status_code, 404)
+    def test_alias_named_plans_can_be_resolved(self):
+        """Aliases should be able to use names that previously had placeholder 404 routes."""
+        cid_value = generate_cid(b"plans target")
+        db.session.add(
+            CID(
+                path=f"/{cid_value}",
+                file_data=b"plans target",
+                file_size=len(b"plans target"),
+            )
+        )
+        db.session.commit()
 
-    def test_terms_page_remains_disabled_and_returns_404(self):
-        """/terms should behave like a missing page while the legacy route stays disabled."""
-        response = self.client.get("/terms")
-        # The terms route is intentionally disabled, so the app should treat it as not found.
-        self.assertEqual(response.status_code, 404)
+        alias = Alias(
+            name="plans",
+            definition=_alias_definition("plans", f"/{cid_value}"),
+        )
+        db.session.add(alias)
+        db.session.commit()
 
-    def test_privacy_page_returns_not_found(self):
-        """Privacy endpoint should stay disabled and answer with a 404."""
-        response = self.client.get("/privacy")
-        self.assertEqual(response.status_code, 404)
+        response = self.client.get("/plans", follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith(f"/{cid_value}"))
+
+    def test_alias_named_terms_can_be_resolved(self):
+        cid_value = generate_cid(b"terms target")
+        db.session.add(
+            CID(
+                path=f"/{cid_value}",
+                file_data=b"terms target",
+                file_size=len(b"terms target"),
+            )
+        )
+        db.session.commit()
+
+        alias = Alias(
+            name="terms",
+            definition=_alias_definition("terms", f"/{cid_value}"),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        response = self.client.get("/terms", follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith(f"/{cid_value}"))
+
+    def test_alias_named_privacy_can_be_resolved(self):
+        cid_value = generate_cid(b"privacy target")
+        db.session.add(
+            CID(
+                path=f"/{cid_value}",
+                file_data=b"privacy target",
+                file_size=len(b"privacy target"),
+            )
+        )
+        db.session.commit()
+
+        alias = Alias(
+            name="privacy",
+            definition=_alias_definition("privacy", f"/{cid_value}"),
+        )
+        db.session.add(alias)
+        db.session.commit()
+
+        response = self.client.get("/privacy", follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith(f"/{cid_value}"))
 
     def test_404_page_includes_creation_links(self):
         """The 404 page should offer shortcuts for creating aliases, servers, variables, and secrets."""

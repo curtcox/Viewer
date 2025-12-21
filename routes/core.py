@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from flask import abort, current_app, redirect, render_template, url_for
+from flask import current_app, redirect, render_template, url_for
 
 from db_access import (
     count_aliases,
@@ -96,57 +96,6 @@ def dashboard():
 def profile():
     """User profile placeholder for future external account management."""
     return render_template("profile.html")
-
-
-@main_bp.route("/subscribe", methods=["GET", "POST"])
-def subscribe():
-    abort(404)
-
-
-@main_bp.route("/accept-terms", methods=["GET", "POST"])
-def accept_terms():
-    abort(404)
-
-
-@main_bp.route("/plans")
-def plans():
-    abort(404)
-
-
-@main_bp.route("/terms")
-def terms():
-    abort(404)
-
-
-@main_bp.route("/privacy")
-def privacy():
-    abort(404)
-
-
-@main_bp.route("/invitations")
-def invitations():
-    abort(404)
-
-
-@main_bp.route("/create-invitation", methods=["GET", "POST"])
-def create_invitation():
-    abort(404)
-
-
-@main_bp.route("/require-invitation", methods=["GET", "POST"])
-def require_invitation():
-    abort(404)
-
-
-@main_bp.route("/invite/<invitation_code>")
-def accept_invitation(invitation_code):  # pylint: disable=unused-argument
-    """Accept invitation route (placeholder - returns 404)."""
-    abort(404)
-
-
-@main_bp.route("/_screenshot/cid-demo")
-def screenshot_cid_demo():
-    abort(404)
 
 
 @main_bp.route("/settings")
