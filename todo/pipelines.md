@@ -20,7 +20,7 @@ The application already has basic server chaining support:
   - `_resolve_chained_input_from_path()` - resolves chained input
   - `_load_server_literal()` - loads CID-based server definitions
   - `_remaining_path_segments()` - extracts path segments after server name
-- **Languages Supported**: Python, Bash, Clojure, ClojureScript, TypeScript
+- **Languages Supported**: Python, Bash, JavaScript, Clojure, ClojureScript, TypeScript
 
 ### Existing Test Coverage
 
@@ -73,6 +73,12 @@ class PathSegmentInfo:
     # Server parameters
     input_parameters: List[ParameterInfo]
     parameter_values: Dict[str, Any]
+
+    # Execution state
+    executed: bool                       # False if error prevented execution
+    input_value: Optional[str]           # Input received from next segment
+    intermediate_output: Optional[Any]   # Output produced by this segment
+    intermediate_content_type: Optional[str]
 
     # Invocation tracking
     server_invocation_cid: Optional[str]
@@ -185,8 +191,8 @@ def detect_language_from_suffix(segment: str) -> Optional[str]:
 
     .sh -> bash
     .py -> python
-    .js -> javascript (not yet supported)
-    .ts -> typescript
+    .js -> javascript (via Node.js)
+    .ts -> typescript (via Deno)
     .clj -> clojure
     .cljs -> clojurescript
     """
@@ -433,6 +439,10 @@ class TestGetResolutionType:
         """Python suffix means execution."""
         # segment.py -> "execution"
 
+    def test_js_suffix_is_execution(self):
+        """JavaScript suffix means execution."""
+        # segment.js -> "execution"
+
     def test_ts_suffix_is_execution(self):
         """TypeScript suffix means execution."""
         # segment.ts -> "execution"
@@ -456,6 +466,10 @@ class TestGetResolutionType:
     def test_csv_suffix_is_contents(self):
         """CSV suffix means contents."""
         # segment.csv -> "contents"
+
+    def test_unrecognized_suffix_is_error(self):
+        """Unrecognized extension returns error."""
+        # segment.xyz -> error "unrecognized extension"
 
     def test_no_suffix_uses_heuristics(self):
         """No suffix triggers heuristic detection."""
@@ -511,6 +525,9 @@ class TestDetectLanguageFromSuffix:
     def test_py_is_python(self):
         assert detect_language_from_suffix("script.py") == "python"
 
+    def test_js_is_javascript(self):
+        assert detect_language_from_suffix("script.js") == "javascript"
+
     def test_ts_is_typescript(self):
         assert detect_language_from_suffix("script.ts") == "typescript"
 
@@ -520,8 +537,13 @@ class TestDetectLanguageFromSuffix:
     def test_cljs_is_clojurescript(self):
         assert detect_language_from_suffix("script.cljs") == "clojurescript"
 
-    def test_unknown_suffix_returns_none(self):
-        assert detect_language_from_suffix("data.csv") is None
+    def test_unknown_suffix_raises_error(self):
+        """Unrecognized suffix should raise error, not return None."""
+        # detect_language_from_suffix("data.xyz") raises UnrecognizedExtensionError
+
+    def test_data_suffix_raises_error(self):
+        """Data suffixes should raise error indicating data, not code."""
+        # detect_language_from_suffix("data.csv") raises DataExtensionError
 
     def test_no_suffix_returns_none(self):
         assert detect_language_from_suffix("nosuffix") is None
@@ -566,6 +588,9 @@ class TestCheckChainingSupport:
 
     def test_bash_with_dollar_one_supports_chaining(self):
         """Bash with $1 supports chaining with params."""
+
+    def test_javascript_supports_chaining(self):
+        """JavaScript scripts support chaining."""
 
     def test_clojure_supports_chaining(self):
         """Clojure scripts support chaining."""
@@ -789,6 +814,30 @@ class TestDebugOutputFormat:
         # /server/input?debug=true -> application/json
 
 
+class TestSingleSegmentDebug:
+    """Test debug mode for single-segment (non-pipeline) requests."""
+
+    def test_single_server_debug(self):
+        """Single server segment returns debug info."""
+        # /echo?debug=true -> single segment info
+
+    def test_single_cid_debug(self):
+        """Single CID segment returns debug info."""
+        # /AAAAAAAA?debug=true -> single segment info
+
+    def test_single_alias_debug(self):
+        """Single alias segment returns debug info."""
+        # /myalias?debug=true -> single segment info with alias chain
+
+    def test_single_segment_shows_all_fields(self):
+        """Single segment debug shows all standard fields."""
+        # Includes segment_type, resolution_type, errors, etc.
+
+    def test_single_segment_intermediate_output(self):
+        """Single segment debug shows intermediate output."""
+        # intermediate_output field present with execution result
+
+
 class TestDebugErrorCases:
     """Test debug mode error handling."""
 
@@ -807,6 +856,54 @@ class TestDebugErrorCases:
     def test_debug_shows_chaining_not_supported(self):
         """Debug shows chaining not supported error."""
         # When Python server without main is not in last position
+
+    def test_debug_shows_unrecognized_extension(self):
+        """Debug shows unrecognized extension error."""
+        # /server/{CID}.xyz -> "unrecognized_extension: xyz" in errors
+
+    def test_debug_continues_after_error(self):
+        """Debug analyzes all segments even after error."""
+        # Error in segment 1 doesn't prevent segment 2 analysis
+
+    def test_debug_marks_unexecuted_segments(self):
+        """Debug marks segments after error as not executed."""
+        # Segments after error show executed: false
+
+
+class TestDebugIntermediateOutputs:
+    """Test intermediate output capture in debug mode."""
+
+    def test_debug_shows_each_segment_output(self):
+        """Debug shows intermediate output for each segment."""
+        # Each segment has intermediate_output field
+
+    def test_debug_output_flows_through_chain(self):
+        """Debug shows how output flows between segments."""
+        # segment[1].intermediate_output == segment[0].input_value
+
+    def test_debug_shows_final_output(self):
+        """Debug shows final pipeline output."""
+        # response.final_output matches leftmost segment output
+
+    def test_debug_shows_content_type_per_segment(self):
+        """Debug shows content type for each segment output."""
+        # Each segment has intermediate_content_type field
+
+
+class TestDebugInvocationTracking:
+    """Test ServerInvocation record creation in debug mode."""
+
+    def test_debug_creates_invocation_records(self):
+        """Debug mode creates ServerInvocation records."""
+        # Same as normal execution per Q7 resolution
+
+    def test_debug_invocation_has_debug_flag(self):
+        """Debug invocations could be identified if needed."""
+        # For future: mark invocations as debug-triggered
+
+    def test_debug_invocation_cid_in_response(self):
+        """Debug response includes invocation CID."""
+        # Each segment shows server_invocation_cid
 ```
 
 ### Integration Tests (`specs/pipeline_execution.spec`)
@@ -915,140 +1012,163 @@ These tests verify the pipeline execution functionality with debug mode.
 * When I request /{bash server CID}.sh/{python server CID}.py/end?debug=true
 * Then segment 0 should have implementation_language "bash"
 * And segment 1 should have implementation_language "python"
+
+## JavaScript CID literal execution
+
+* Given a JavaScript CID literal server that returns "js-output"
+* When I request /{javascript server CID}.js/input?debug=true
+* Then segment 0 should have implementation_language "javascript"
+* And segment 0 should have resolution_type "execution"
+
+## JavaScript chained with Python
+
+* Given a JavaScript CID literal server that returns "from-js"
+* And a python CID literal server that prefixes its payload with "py:"
+* When I request /{python server CID}.py/{javascript server CID}.js/end?debug=true
+* Then segment 0 should have implementation_language "python"
+* And segment 1 should have implementation_language "javascript"
+
+## Unrecognized extension returns error
+
+* Given a CID containing "some content"
+* When I request /echo/{stored CID}.xyz?debug=true
+* Then segment 1 should have errors containing "unrecognized extension"
+
+## Single segment debug request
+
+* Given a server named "echo" that echoes its input with prefix "got:"
+* When I request /echo?debug=true
+* Then the response should be JSON
+* And the response should contain 1 segment entry
+* And segment 0 should have type "server"
+* And segment 0 should have intermediate_output
+
+## Debug shows intermediate outputs for each segment
+
+* Given a server named "s1" that returns "first"
+* And a server named "s2" that echoes its input with prefix "second:"
+* When I request /s2/s1?debug=true
+* Then segment 1 should have intermediate_output "first"
+* And segment 0 should have intermediate_output "second:first"
+
+## Debug creates invocation records
+
+* Given a server named "tracked" that returns "result"
+* When I request /tracked/input?debug=true
+* Then segment 0 should have server_invocation_cid
+* And the invocation record should exist in the database
 ```
+
+---
+
+## Design Decisions (Resolved)
+
+The following questions have been resolved and inform the implementation:
+
+### 1. Unrecognized Extension Types
+**Decision**: Unrecognized extensions (e.g., `.xyz`) are reported as errors.
+- Errors clearly indicate the issue rather than silently falling back
+- Helps users identify typos or misconfigured pipelines
+
+### 2. JavaScript Support
+**Decision**: Execute `.js` files via Node.js and `.ts` files via Deno.
+- Both runtimes supported for their respective file types
+- Follows the pattern of using the canonical runtime for each language
+
+### 3. Recursive Alias Resolution
+**Decision**: Rely on existing cycle detection in `_evaluate_nested_path_to_value`.
+- No artificial depth limit needed
+- Existing `visited` set prevents infinite loops
+
+### 4. Debug for Non-Pipeline Requests
+**Decision**: Yes, return single segment debug info for consistency.
+- Single-segment requests (e.g., `/echo?debug=true`) return debug info
+- Provides consistent debugging experience across all request types
+
+### 5. Parameter Value Serialization
+**Decision**: Use full nested structure for complex values.
+- Dicts and lists serialized as complete nested JSON structures
+- Enables thorough debugging without truncation
+
+### 6. Error Continuation in Debug Mode
+**Decision**: Analyze all segments but mark errors.
+- Debug continues analyzing remaining segments after encountering an error
+- Error segments marked with `executed: false`
+- Provides complete pipeline visibility for debugging
+
+### 7. Invocation Records in Debug Mode
+**Decision**: Yes, create ServerInvocation records same as normal execution.
+- Debug mode is a full execution with additional metadata returned
+- Invocation history captures debug executions for audit/replay
+
+### 8. Python Parameter Ordering
+**Decision**: Keep as specified - `/{server}/{config}/{in}` (config first, then input).
+
+**Rationale** (shell pipeline analogy): The ordering follows shell pipeline conventions where no arguments can come after the pipe operator (`|`). In a pipeline like:
+```
+grep pattern | sort | head
+```
+The `pattern` argument to `grep` must come before the pipe. Similarly:
+```
+/grep/{pattern}/{input}
+```
+The `{pattern}` (config/argument) comes first, followed by `{input}` which could itself expand into a sub-pipeline. If input came first, the config could be pushed arbitrarily far to the right as each input expands.
+
+### 9. Debug with Intermediate Outputs
+**Decision**: Debug shows intermediate outputs for each segment.
+- Each segment includes `intermediate_output` field
+- Enables tracing data flow through the entire pipeline
+- `final_output` field contains the leftmost segment's output
+
+### 10. CID Extension vs Content Type
+**Decision**: Extension determines handling.
+- `{CID}.json` treats content as JSON data, regardless of actual content
+- `{CID}.py` executes as Python, regardless of actual content
+- Explicit extensions are honored; user intent is respected
 
 ---
 
 ## Open Questions
 
-### Question 1: Handling of Unsupported Extension Types
+The following questions require clarification before implementation:
 
-**Question**: What should happen when a segment has an unrecognized extension like `.xyz`?
+### Question 1: Node.js Runtime Availability
+
+**Question**: What should happen when a `.js` file is requested but Node.js is not available on the system?
 
 **Options**:
-- A) Treat as data (contents)
-- B) Return an error
-- C) Use heuristic detection on content
+- A) Return a 500 error with message "Node.js runtime is not available"
+- B) Fall back to Deno for JavaScript execution
+- C) Return an error suggesting TypeScript (.ts) as alternative
 
-**Proposed Answer**: Option C - Use heuristic detection since the extension is not informative.
+**Proposed Answer**: Option A - consistent with existing pattern for other missing runtimes (Clojure, TypeScript/Deno).
 
 ---
 
-### Question 2: JavaScript Support (.js extension)
+### Question 2: JavaScript Server Function Signature
 
-**Question**: Should `.js` files be supported for execution? Currently TypeScript (.ts) is supported via Deno.
+**Question**: What function signature should JavaScript servers use for chaining?
 
 **Options**:
-- A) Yes, execute via Node.js
-- B) Yes, execute via Deno (which supports JS)
-- C) No, only support TypeScript
-- D) Add later as separate enhancement
+- A) `module.exports = function(input) { ... }` (CommonJS)
+- B) `export default function main(input) { ... }` (ES Modules)
+- C) Read from stdin like bash
+- D) Support both CommonJS and ES Modules
 
-**Proposed Answer**: Need input - affects test plan scope.
+**Proposed Answer**: Need input - affects implementation of `_run_javascript_script()`.
 
 ---
 
-### Question 3: Recursive Alias Resolution Limit
+### Question 3: Debug Mode Query Parameter Variants
 
-**Question**: What is the maximum depth for alias resolution chains before erroring?
-
-**Options**:
-- A) No limit (rely on existing cycle detection)
-- B) Fixed limit (e.g., 10)
-- C) Configurable limit
-
-**Proposed Answer**: Option A - rely on existing `visited` set cycle detection in `_evaluate_nested_path_to_value`.
-
----
-
-### Question 4: Debug Response for Non-Pipeline Requests
-
-**Question**: Should `?debug=true` work on non-pipeline requests (single segment)?
+**Question**: Should other truthy values for debug be accepted (e.g., `debug=1`, `debug=yes`)?
 
 **Options**:
-- A) No, return normal response
-- B) Yes, return single segment debug info
-- C) Return error explaining it's not a pipeline
+- A) Only accept `debug=true` (case-insensitive)
+- B) Accept `true`, `1`, `yes`, `on` (common truthy values)
+- C) Accept any non-empty value
 
-**Proposed Answer**: Option B - provide debug info for consistency.
-
----
-
-### Question 5: Parameter Value Serialization
-
-**Question**: How should complex parameter values (dicts, lists) be serialized in debug output?
-
-**Options**:
-- A) JSON string representation
-- B) Full nested structure
-- C) Truncated preview
-
-**Proposed Answer**: Option B - full nested structure for complete debugging.
-
----
-
-### Question 6: Error Continuation in Debug Mode
-
-**Question**: When a segment has an error, should debug mode continue analyzing remaining segments?
-
-**Options**:
-- A) Stop at first error
-- B) Continue and mark all subsequent as "not executed"
-- C) Analyze all segments but mark errors
-
-**Proposed Answer**: Option C - show all segment analysis for debugging.
-
----
-
-### Question 7: Invocation CID Creation in Debug Mode
-
-**Question**: Should debug mode create ServerInvocation records?
-
-**Options**:
-- A) Yes, same as normal execution
-- B) No, debug is read-only
-- C) Optional via additional query param
-
-**Proposed Answer**: Option B - debug should be side-effect free for safe exploration.
-
----
-
-### Question 8: Python Server Parameter Ordering
-
-**Question**: For Python `main(in, config)`, the request states `/{server}/{config}/{in}`. Is this correct? It seems reversed from typical left-to-right reading.
-
-**Options**:
-- A) Keep as specified (config first, then input)
-- B) Reverse to `/{server}/{in}/{config}` for intuitive reading
-- C) Support both via naming conventions
-
-**Proposed Answer**: Need clarification - affects test cases.
-
----
-
-### Question 9: Handling Mixed Debug and Execution Results
-
-**Question**: Should the debug response include the actual execution result alongside segment info?
-
-**Options**:
-- A) Debug only shows analysis, not execution results
-- B) Debug includes final_output field with actual result
-- C) Debug shows intermediate outputs for each segment
-
-**Proposed Answer**: Option C - show intermediate outputs for full pipeline visibility.
-
----
-
-### Question 10: CID Extension vs Content Type
-
-**Question**: When a CID has extension `.json` but contains Python code, which takes precedence?
-
-**Options**:
-- A) Extension determines handling (treat as JSON data)
-- B) Content detection overrides extension
-- C) Error for mismatch
-
-**Proposed Answer**: Option A - explicit extension should be honored.
+**Proposed Answer**: Option B - user-friendly while still explicit.
 
 ---
 
