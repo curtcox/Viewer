@@ -17,6 +17,11 @@
       "name": "cookies",
       "definition_cid": "reference_templates/aliases/cookies.txt",
       "enabled": true
+    },
+    {
+      "name": "help",
+      "definition_cid": "reference_templates/aliases/help.txt",
+      "enabled": true
     }
   ],
   "servers": [
