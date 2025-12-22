@@ -101,6 +101,11 @@
       "enabled": true
     },
     {
+      "name": "reflect",
+      "definition_cid": "reference_templates/servers/definitions/reflect.py",
+      "enabled": true
+    },
+    {
       "name": "ai_editor",
       "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
       "enabled": true

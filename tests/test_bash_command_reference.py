@@ -65,6 +65,9 @@ def test_boot_images_include_expected_commands():
     default_names = _load_server_names("reference_templates/default.boot.source.json")
     readonly_names = _load_server_names("reference_templates/readonly.boot.source.json")
 
+    assert "reflect" in default_names
+    assert "reflect" in readonly_names
+
     command_names = {command.name for command in COMMON_COMMANDS}
     safe_names = {command.name for command in COMMON_COMMANDS if command.safe_for_readonly}
     dual_names = command_names - safe_names

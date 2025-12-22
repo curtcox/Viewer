@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from textwrap import dedent
 
-from common_commands import COMMON_COMMANDS, CommandInfo
+from common_commands import CommandInfo
 
 
 def _example_links(path: str) -> str:
