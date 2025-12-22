@@ -6,8 +6,7 @@ for debug mode output in various formats (JSON, HTML, plain text).
 
 import html
 import json
-from dataclasses import asdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from flask import Response
 

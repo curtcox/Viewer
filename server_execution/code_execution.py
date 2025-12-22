@@ -6,7 +6,6 @@ import json
 import os
 import re
 import textwrap
-from urllib.parse import unquote
 import shutil
 import subprocess
 import tempfile
@@ -14,6 +13,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import db_access
 
+from routes.pipelines import get_segment_base_and_extension, parse_pipeline_path
 from logfire_utils import instrument as logfire_instrument
 from flask import (
     Response,
@@ -104,33 +104,17 @@ def _resolve_cid_content(cid_segment: str) -> Optional[str]:
     Returns:
         The CID content as a string, or None if not a valid CID
     """
-    # Try to extract CID components
+    from server_execution.pipeline_execution import _get_segment_contents
+
     cid_components = split_cid_path(cid_segment) or split_cid_path(f"/{cid_segment}")
-    if not cid_components:
-        return None
+    base_segment, _ = get_segment_base_and_extension(cid_segment)
+    cid_value = cid_components[0] if cid_components else base_segment
 
-    cid_value, _ = cid_components
     normalized_cid = format_cid(cid_value)
-
-    # Try literal CID content first
-    literal_bytes = extract_literal_content(normalized_cid)
-    if literal_bytes is not None:
-        try:
-            return literal_bytes.decode("utf-8")
-        except (UnicodeDecodeError, AttributeError):
-            return literal_bytes.decode("utf-8", errors="replace")
-
-    # Try database CID lookup
-    cid_record_path = cid_path(normalized_cid)
-    if cid_record_path:
-        cid_record = get_cid_by_path(cid_record_path)
-        if cid_record and getattr(cid_record, "file_data", None) is not None:
-            try:
-                return cid_record.file_data.decode("utf-8")
-            except (UnicodeDecodeError, AttributeError):
-                return cid_record.file_data.decode("utf-8", errors="replace")
-
-    return None
+    contents = _get_segment_contents(normalized_cid, set())
+    if contents is None and cid_segment != normalized_cid:
+        contents = _get_segment_contents(cid_segment.lstrip("/"), set())
+    return contents
 
 
 def _resolve_bash_path_parameters(
@@ -251,9 +235,7 @@ def _extract_chained_output(value: Any) -> Any:
 
 
 def _split_path_segments(path: Optional[str]) -> List[str]:
-    if not path:
-        return []
-    return [segment for segment in path.split("/") if segment]
+    return parse_pipeline_path(path or "")
 
 
 def _split_request_path_segments() -> List[str]:
@@ -267,8 +249,7 @@ def _split_request_path_segments() -> List[str]:
         else request.path
     )
 
-    segments = _split_path_segments(raw_path)
-    return [unquote(segment) for segment in segments]
+    return parse_pipeline_path(raw_path)
 
 
 def _remaining_path_segments(server_name: Optional[str]) -> List[str]:
@@ -299,19 +280,31 @@ def _auto_main_accepts_additional_path(server: Any) -> bool:
     return bool(details.parameter_order)
 
 
+def _detect_language_from_suffix(extension: str) -> Optional[str]:
+    """Attempt to detect language using pipeline suffix rules."""
+    from server_execution.pipeline_execution import (
+        DataExtensionError,
+        UnrecognizedExtensionError,
+        detect_language_from_suffix,
+    )
+
+    try:
+        return detect_language_from_suffix(f"cid.{extension}")
+    except (UnrecognizedExtensionError, DataExtensionError):
+        return None
+
+
 def _language_from_extension(extension: Optional[str], definition: str) -> str:
     """Return execution language based on explicit extension or code content."""
 
-    if extension and extension.lower() == "sh":
-        return "bash"
-    if extension and extension.lower() == "py":
-        return "python"
-    if extension and extension.lower() == "clj":
-        return "clojure"
-    if extension and extension.lower() == "cljs":
-        return "clojurescript"
-    if extension and extension.lower() == "ts":
-        return "typescript"
+    if extension:
+        try:
+            detected = _detect_language_from_suffix(extension)
+            if detected:
+                return detected
+        except Exception:  # pylint: disable=broad-except
+            # Fallback to content-based detection below
+            pass
     return detect_server_language(definition)
 
 
@@ -350,17 +343,9 @@ def _clone_request_context_kwargs(
 def _resolve_chained_input_from_path(
     path: str, visited: Set[str]
 ) -> tuple[Optional[str], Optional[Response]]:
-    segments = _split_path_segments(path)
-    if len(segments) <= 1:
-        return None, None
+    from server_execution.pipeline_compat import resolve_chained_input_from_path_v2
 
-    nested_path = "/" + "/".join(segments[1:])
-    nested_value = _evaluate_nested_path_to_value(nested_path, visited)
-    if isinstance(nested_value, Response):
-        return None, nested_value
-    if nested_value is None:
-        return None, None
-    return str(_extract_chained_output(nested_value)), None
+    return resolve_chained_input_from_path_v2(path, visited)
 
 
 def _execute_python_code_to_value(
@@ -703,7 +688,7 @@ def _load_server_literal(
     return definition_text, language_override, normalized_cid
 
 
-def _evaluate_nested_path_to_value(
+def _evaluate_nested_path_to_value_legacy(
     path: str, visited: Optional[Set[str]] = None
 ) -> Any:
     """Recursively evaluate a path to produce a value, following servers/aliases/CIDs."""
@@ -731,7 +716,9 @@ def _evaluate_nested_path_to_value(
     if server and not getattr(server, "enabled", True):
         server = None
     if server:
-        return _execute_nested_server_to_value(server, server_name, normalized, visited)
+        return _execute_nested_server_to_value(
+            server, server_name, normalized, visited
+        )
 
     if len(segments) > 1:
         literal_definition, language_override, normalized_cid = _load_server_literal(
@@ -751,7 +738,7 @@ def _evaluate_nested_path_to_value(
     if alias_match and getattr(alias_match, "route", None):
         target = getattr(alias_match.route, "target_path", None)
         if target:
-            return _evaluate_nested_path_to_value(target, visited)
+            return _evaluate_nested_path_to_value_legacy(target, visited)
 
     if len(segments) == 1:
         cid_components = split_cid_path(segments[0]) or split_cid_path(
@@ -778,6 +765,15 @@ def _evaluate_nested_path_to_value(
                     return cid_record.file_data.decode("utf-8", errors="replace")
 
     return None
+
+
+def _evaluate_nested_path_to_value(
+    path: str, visited: Optional[Set[str]] = None
+) -> Any:
+    """Evaluate a nested path using the pipeline implementation by default."""
+    from server_execution.pipeline_compat import evaluate_nested_path_to_value_v2
+
+    return evaluate_nested_path_to_value_v2(path, visited)
 
 
 def _inject_nested_parameter_value(
