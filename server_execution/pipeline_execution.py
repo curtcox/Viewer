@@ -8,7 +8,7 @@ the input to the segment on its left.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Set, Tuple
 
 from flask import Response
 
@@ -26,7 +26,7 @@ from routes.pipelines import get_segment_base_and_extension, parse_pipeline_path
 
 # Import execution functions from existing module
 from server_execution.code_execution import (
-    _evaluate_nested_path_to_value,
+    _evaluate_nested_path_to_value_legacy,
     _extract_chained_output,
     _load_server_literal,
 )
@@ -460,7 +460,11 @@ def analyze_segment(
     return info
 
 
-def execute_pipeline(path: str, debug: bool = False) -> PipelineExecutionResult:
+def execute_pipeline(
+    path: str,
+    debug: bool = False,
+    evaluate_path: Optional[Callable[[str, Optional[Set[str]]], Any]] = None,
+) -> PipelineExecutionResult:
     """Execute a pipeline request and return the result.
 
     Pipelines execute right-to-left, with each segment's output becoming
@@ -495,6 +499,7 @@ def execute_pipeline(path: str, debug: bool = False) -> PipelineExecutionResult:
     visited: Set[str] = set()
     current_output: Optional[Any] = None
     current_content_type = "text/html"
+    path_evaluator = evaluate_path or _evaluate_nested_path_to_value_legacy
 
     # Start from the rightmost segment
     for i in range(len(segment_infos) - 1, -1, -1):
@@ -532,7 +537,7 @@ def execute_pipeline(path: str, debug: bool = False) -> PipelineExecutionResult:
                 nested_path = "/" + "/".join(
                     seg.segment_text for seg in segment_infos[i:]
                 )
-                result = _evaluate_nested_path_to_value(nested_path, visited.copy())
+                result = path_evaluator(nested_path, visited.copy())
 
                 if isinstance(result, Response):
                     # Handle Response object

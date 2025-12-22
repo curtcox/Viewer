@@ -13,6 +13,13 @@ from server_execution import (
     try_server_execution,
     try_server_execution_with_partial,
 )
+from routes.pipelines import (
+    get_final_extension,
+    is_pipeline_request,
+    should_return_debug_response,
+)
+from server_execution.pipeline_debug import format_debug_response
+from server_execution.pipeline_execution import execute_pipeline
 
 
 def get_existing_routes():
@@ -43,6 +50,11 @@ def not_found_error(error):  # pylint: disable=unused-argument  # Required by Fl
     """
     path = request.path
     existing_routes = get_existing_routes()
+
+    if should_return_debug_response(request) and is_pipeline_request(path):
+        result = execute_pipeline(path, debug=True)
+        extension = get_final_extension(request.full_path)
+        return format_debug_response(result, extension)
 
     if is_potential_alias_path(path, existing_routes):
         alias_result = try_alias_redirect(path)
