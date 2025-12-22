@@ -1,6 +1,5 @@
 import os
 
-import pytest
 from flask import Response
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")

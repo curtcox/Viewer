@@ -7,7 +7,6 @@ from typing import Any, Dict, Optional
 
 from getgauge.python import step
 
-from step_impl.http_helpers import _perform_get_request
 from step_impl.shared_app import get_shared_app
 from step_impl.shared_state import get_scenario_state
 
