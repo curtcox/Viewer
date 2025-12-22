@@ -2,15 +2,15 @@
 
 This index lists all tests in the project, organized by type.
 
-**Total Tests:** 3974
-- Unit Tests: 3314
+**Total Tests:** 3983
+- Unit Tests: 3323
 - Integration Tests: 493
 - Property Tests: 14
 - Gauge Tests: 153
 
 ## Unit Tests
 
-Total: 3314 tests
+Total: 3323 tests
 
 - [Test that pending calls are cleared after being used.](tests/test_ai_eval_reports.py:87)
 - [Test that __call__ uses pending external calls from call_with_capture.](tests/test_ai_eval_reports.py:68)
@@ -1577,6 +1577,7 @@ Total: 3314 tests
 - [Test that error pages show comprehensive source links for all project files.](tests/test_enhanced_error_pages.py:34)
 - [test_aliases_route_lists_aliases](tests/test_alias_routing.py:377)
 - [test_aliases_route_lists_aliases_for_default_user](tests/test_alias_routing.py:368)
+- [Every command should have a generated bash server definition.](tests/test_bash_command_reference.py:49)
 - [All search result categories should include name_highlighted field. Ensures TextHighlighter is used consistently across all result types.](tests/test_search_highlighting.py:173)
 - [Test that allowed_builtins exposes builtin functions.](tests/test_text_function_runner.py:55)
 - [Test creating an allowed authorization result.](tests/test_authorization.py:11)
@@ -1626,6 +1627,7 @@ Total: 3314 tests
 - [Test encoding simple data.](tests/test_cid_core.py:31)
 - [Test encoding and decoding roundtrip.](tests/test_cid_core.py:41)
 - [Test the base path extraction logic that was added to not_found_error](tests/test_fix_validation.py:7)
+- [docs/bash_commands.md should match the generator output.](tests/test_bash_command_reference.py:40)
 - [Get info for bash server.](tests/test_pipeline_execution.py:463)
 - [Bash scripts support chaining.](tests/test_pipeline_execution.py:235)
 - [Convert basic parameter info.](tests/test_pipeline_debug.py:25)
@@ -1635,6 +1637,7 @@ Total: 3314 tests
 - [Test that binary content that's not valid UTF-8 returns None for content_text.](tests/test_cid_editor_helper.py:95)
 - [Test that boot.cid exists and has valid content.](tests/test_main.py:22)
 - [Test that boot.cid contains a valid-looking CID format.](tests/test_main.py:60)
+- [Default boot should have all commands and readonly should exclude duals.](tests/test_bash_command_reference.py:62)
 - [Test the boundary between literal and hashed CIDs.](tests/test_cid_class.py:360)
 - [Content exactly at 64 bytes should not be stored.](tests/test_literal_cid_storage.py:94)
 - [Test CID at the boundary of direct embedding.](tests/test_cid_editor_helper.py:67)
@@ -1959,6 +1962,7 @@ Total: 3314 tests
 - [Test that disabled entities are correctly retrieved from DB before export.](tests/test_enabled_field_import_export.py:263)
 - [Disabled server is not detected as server.](tests/test_pipeline_execution.py:180)
 - [Disabled server returns None.](tests/test_pipeline_execution.py:401)
+- [Each documented example should behave like the direct bash invocation.](tests/test_bash_command_reference.py:89)
 - [Test dumping in-memory DB to SQLite file.](tests/test_db_snapshot.py:153)
 - [Test that dumping raises error if not in memory mode.](tests/test_db_snapshot.py:184)
 - [Test that creating a duplicate CID raises IntegrityError. This test ensures that attempting to create a CID with a path that already exists will raise an IntegrityError due to the UNIQUE constraint on the path column.](tests/test_db_access.py:144)
@@ -2064,6 +2068,7 @@ Total: 3314 tests
 - [Test that the 500.html template properly renders source links.](tests/test_enhanced_error_pages.py:87)
 - [Test that the error page template has the correct structure for displaying source links.](tests/test_error_page_source_links.py:505)
 - [Error in segment prevents execution.](tests/test_pipeline_execution.py:517)
+- [Nested evaluation routes through the pipeline compatibility layer.](tests/test_pipeline_feature_flag.py:11)
 - [Test that exception chains are properly displayed with separators.](tests/test_error_page_source_links.py:300)
 - [Test that exception chains are properly displayed in browser.](tests/test_error_pages_e2e.py:127)
 - [Test that exception chains are displayed with proper visual separators.](tests/test_enhanced_error_pages.py:117)
@@ -2731,6 +2736,7 @@ Total: 3314 tests
 - [Test the complete 404 error handler flow for /echo](tests/test_echo_functionality.py:136)
 - [test_not_found_handler_uses_alias](tests/test_alias_routing.py:357)
 - [Test not_found error message.](tests/test_crud_factory.py:58)
+- [404 handler returns pipeline debug output when requested.](tests/test_pipeline_feature_flag.py:52)
 - [Nullable fields behave equivalently.](tests/test_db_edge_cases_equivalence.py:91)
 - [Test opening browser with exception.](tests/test_cli.py:408)
 - [Test opening browser successfully.](tests/test_cli.py:399)
@@ -2784,6 +2790,7 @@ Total: 3314 tests
 - [test_payload_attribute_escapes_quotes](tests/test_ai_editor.py:126)
 - [Test payload property for hash-based CID.](tests/test_cid_class.py:213)
 - [Test payload property for literal CID.](tests/test_cid_class.py:207)
+- [The shared three-command pipeline example should be visible in the docs.](tests/test_bash_command_reference.py:123)
 - [Test that placeholder allows admin paths.](tests/test_authorization.py:81)
 - [Test that placeholder function allows all requests.](tests/test_authorization.py:57)
 - [Test that placeholder allows API requests.](tests/test_authorization.py:73)
@@ -2940,6 +2947,7 @@ Total: 3314 tests
 - [test_requires_login](tests/test_routes_overview.py:41)
 - [Reset should restore defaults.](tests/test_readonly_config.py:39)
 - [Reset should return to disk mode.](tests/test_db_config.py:59)
+- [Chained input resolution honors the pipeline compatibility layer.](tests/test_pipeline_feature_flag.py:33)
 - [Test resolve_cid_value with actual CID.](tests/test_template_manager.py:357)
 - [Test resolve_cid_value with direct value.](tests/test_template_manager.py:350)
 - [Test resolve_cid_value with empty value.](tests/test_template_manager.py:373)
@@ -3158,6 +3166,7 @@ Total: 3314 tests
 - [Plain text shows segment information.](tests/test_pipeline_debug.py:407)
 - [Plain text shows status.](tests/test_pipeline_debug.py:391)
 - [Test that process_text_upload returns encoded content](tests/test_extension_logic.py:71)
+- [The 3-command pipeline example should align with running the commands directly.](tests/test_bash_command_reference.py:107)
 - [Three-level chain is a pipeline.](tests/test_pipeline_recognition.py:227)
 - [Timestamp ordering is equivalent in both databases.](tests/test_db_edge_cases_equivalence.py:188)
 - [test_tip_blockquote_renders_with_strong_label](tests/test_markdown_rendering.py:46)

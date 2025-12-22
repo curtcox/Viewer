@@ -10,13 +10,35 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
+        bc \
+        bzip2 \
         build-essential \
         ca-certificates \
+        csvtool \
         curl \
+        dnsutils \
+        file \
+        findutils \
         git \
         gnupg \
+        iproute2 \
+        iputils-ping \
         jq \
+        libxml2-utils \
+        net-tools \
+        perl \
+        procps \
+        ripgrep \
+        tar \
+        time \
+        traceroute \
         unzip \
+        util-linux \
+        vim-common \
+        wget \
+        xz-utils \
+        yq \
+        zip \
         libnss3 \
         libatk1.0-0 \
         libatk-bridge2.0-0 \
@@ -72,3 +94,4 @@ RUN python -m pip install --upgrade pip \
 RUN pyppeteer-install
 
 WORKDIR /workspace
+        gzip \
