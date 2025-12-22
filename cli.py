@@ -250,7 +250,7 @@ def make_http_get_request(
     # Create a test client and make the request
     try:
         with app.test_client() as client:
-            response = client.get(path)
+            response = client.get(path, follow_redirects=True)
 
             # Get response data as text
             if response.data:
