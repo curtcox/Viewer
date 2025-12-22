@@ -51,11 +51,6 @@
       "enabled": true
     },
     {
-      "name": "echo",
-      "definition_cid": "reference_templates/servers/definitions/echo.py",
-      "enabled": true
-    },
-    {
       "name": "glom",
       "definition_cid": "reference_templates/servers/definitions/glom.py",
       "enabled": true
@@ -73,11 +68,6 @@
     {
       "name": "jinja",
       "definition_cid": "reference_templates/servers/definitions/jinja_renderer.py",
-      "enabled": true
-    },
-    {
-      "name": "file",
-      "definition_cid": "reference_templates/servers/definitions/file.py",
       "enabled": true
     },
     {
@@ -121,8 +111,138 @@
       "enabled": true
     },
     {
-      "name": "sed",
-      "definition_cid": "reference_templates/servers/definitions/sed.sh",
+      "name": "base64",
+      "definition_cid": "reference_templates/servers/definitions/base64.sh",
+      "enabled": true
+    },
+    {
+      "name": "basename",
+      "definition_cid": "reference_templates/servers/definitions/basename.sh",
+      "enabled": true
+    },
+    {
+      "name": "bc",
+      "definition_cid": "reference_templates/servers/definitions/bc.sh",
+      "enabled": true
+    },
+    {
+      "name": "bzip2",
+      "definition_cid": "reference_templates/servers/definitions/bzip2.sh",
+      "enabled": true
+    },
+    {
+      "name": "cat",
+      "definition_cid": "reference_templates/servers/definitions/cat.sh",
+      "enabled": true
+    },
+    {
+      "name": "column",
+      "definition_cid": "reference_templates/servers/definitions/column.sh",
+      "enabled": true
+    },
+    {
+      "name": "comm",
+      "definition_cid": "reference_templates/servers/definitions/comm.sh",
+      "enabled": true
+    },
+    {
+      "name": "csvtool",
+      "definition_cid": "reference_templates/servers/definitions/csvtool.sh",
+      "enabled": true
+    },
+    {
+      "name": "curl",
+      "definition_cid": "reference_templates/servers/definitions/curl.sh",
+      "enabled": true
+    },
+    {
+      "name": "cut",
+      "definition_cid": "reference_templates/servers/definitions/cut.sh",
+      "enabled": true
+    },
+    {
+      "name": "date",
+      "definition_cid": "reference_templates/servers/definitions/date.sh",
+      "enabled": true
+    },
+    {
+      "name": "df",
+      "definition_cid": "reference_templates/servers/definitions/df.sh",
+      "enabled": true
+    },
+    {
+      "name": "diff",
+      "definition_cid": "reference_templates/servers/definitions/diff.sh",
+      "enabled": true
+    },
+    {
+      "name": "dig",
+      "definition_cid": "reference_templates/servers/definitions/dig.sh",
+      "enabled": true
+    },
+    {
+      "name": "dirname",
+      "definition_cid": "reference_templates/servers/definitions/dirname.sh",
+      "enabled": true
+    },
+    {
+      "name": "dmesg",
+      "definition_cid": "reference_templates/servers/definitions/dmesg.sh",
+      "enabled": true
+    },
+    {
+      "name": "docker",
+      "definition_cid": "reference_templates/servers/definitions/docker.sh",
+      "enabled": true
+    },
+    {
+      "name": "du",
+      "definition_cid": "reference_templates/servers/definitions/du.sh",
+      "enabled": true
+    },
+    {
+      "name": "echo",
+      "definition_cid": "reference_templates/servers/definitions/echo.sh",
+      "enabled": true
+    },
+    {
+      "name": "env",
+      "definition_cid": "reference_templates/servers/definitions/env.sh",
+      "enabled": true
+    },
+    {
+      "name": "expand",
+      "definition_cid": "reference_templates/servers/definitions/expand.sh",
+      "enabled": true
+    },
+    {
+      "name": "expr",
+      "definition_cid": "reference_templates/servers/definitions/expr.sh",
+      "enabled": true
+    },
+    {
+      "name": "file",
+      "definition_cid": "reference_templates/servers/definitions/file.sh",
+      "enabled": true
+    },
+    {
+      "name": "find",
+      "definition_cid": "reference_templates/servers/definitions/find.sh",
+      "enabled": true
+    },
+    {
+      "name": "fold",
+      "definition_cid": "reference_templates/servers/definitions/fold.sh",
+      "enabled": true
+    },
+    {
+      "name": "free",
+      "definition_cid": "reference_templates/servers/definitions/free.sh",
+      "enabled": true
+    },
+    {
+      "name": "git",
+      "definition_cid": "reference_templates/servers/definitions/git.sh",
       "enabled": true
     },
     {
@@ -131,8 +251,328 @@
       "enabled": true
     },
     {
+      "name": "gunzip",
+      "definition_cid": "reference_templates/servers/definitions/gunzip.sh",
+      "enabled": true
+    },
+    {
+      "name": "gzip",
+      "definition_cid": "reference_templates/servers/definitions/gzip.sh",
+      "enabled": true
+    },
+    {
+      "name": "head",
+      "definition_cid": "reference_templates/servers/definitions/head.sh",
+      "enabled": true
+    },
+    {
+      "name": "hexdump",
+      "definition_cid": "reference_templates/servers/definitions/hexdump.sh",
+      "enabled": true
+    },
+    {
+      "name": "host",
+      "definition_cid": "reference_templates/servers/definitions/host.sh",
+      "enabled": true
+    },
+    {
+      "name": "hostname",
+      "definition_cid": "reference_templates/servers/definitions/hostname.sh",
+      "enabled": true
+    },
+    {
+      "name": "id",
+      "definition_cid": "reference_templates/servers/definitions/id.sh",
+      "enabled": true
+    },
+    {
+      "name": "ifconfig",
+      "definition_cid": "reference_templates/servers/definitions/ifconfig.sh",
+      "enabled": true
+    },
+    {
+      "name": "ip",
+      "definition_cid": "reference_templates/servers/definitions/ip.sh",
+      "enabled": true
+    },
+    {
+      "name": "jobs",
+      "definition_cid": "reference_templates/servers/definitions/jobs.sh",
+      "enabled": true
+    },
+    {
+      "name": "join",
+      "definition_cid": "reference_templates/servers/definitions/join.sh",
+      "enabled": true
+    },
+    {
+      "name": "journalctl",
+      "definition_cid": "reference_templates/servers/definitions/journalctl.sh",
+      "enabled": true
+    },
+    {
       "name": "jq",
       "definition_cid": "reference_templates/servers/definitions/jq.sh",
+      "enabled": true
+    },
+    {
+      "name": "kubectl",
+      "definition_cid": "reference_templates/servers/definitions/kubectl.sh",
+      "enabled": true
+    },
+    {
+      "name": "man",
+      "definition_cid": "reference_templates/servers/definitions/man.sh",
+      "enabled": true
+    },
+    {
+      "name": "md5sum",
+      "definition_cid": "reference_templates/servers/definitions/md5sum.sh",
+      "enabled": true
+    },
+    {
+      "name": "mktemp",
+      "definition_cid": "reference_templates/servers/definitions/mktemp.sh",
+      "enabled": true
+    },
+    {
+      "name": "netstat",
+      "definition_cid": "reference_templates/servers/definitions/netstat.sh",
+      "enabled": true
+    },
+    {
+      "name": "nl",
+      "definition_cid": "reference_templates/servers/definitions/nl.sh",
+      "enabled": true
+    },
+    {
+      "name": "nslookup",
+      "definition_cid": "reference_templates/servers/definitions/nslookup.sh",
+      "enabled": true
+    },
+    {
+      "name": "od",
+      "definition_cid": "reference_templates/servers/definitions/od.sh",
+      "enabled": true
+    },
+    {
+      "name": "paste",
+      "definition_cid": "reference_templates/servers/definitions/paste.sh",
+      "enabled": true
+    },
+    {
+      "name": "perl",
+      "definition_cid": "reference_templates/servers/definitions/perl.sh",
+      "enabled": true
+    },
+    {
+      "name": "pgrep",
+      "definition_cid": "reference_templates/servers/definitions/pgrep.sh",
+      "enabled": true
+    },
+    {
+      "name": "ping",
+      "definition_cid": "reference_templates/servers/definitions/ping.sh",
+      "enabled": true
+    },
+    {
+      "name": "printenv",
+      "definition_cid": "reference_templates/servers/definitions/printenv.sh",
+      "enabled": true
+    },
+    {
+      "name": "printf",
+      "definition_cid": "reference_templates/servers/definitions/printf.sh",
+      "enabled": true
+    },
+    {
+      "name": "ps",
+      "definition_cid": "reference_templates/servers/definitions/ps.sh",
+      "enabled": true
+    },
+    {
+      "name": "pwd",
+      "definition_cid": "reference_templates/servers/definitions/pwd.sh",
+      "enabled": true
+    },
+    {
+      "name": "python",
+      "definition_cid": "reference_templates/servers/definitions/python.sh",
+      "enabled": true
+    },
+    {
+      "name": "readlink",
+      "definition_cid": "reference_templates/servers/definitions/readlink.sh",
+      "enabled": true
+    },
+    {
+      "name": "realpath",
+      "definition_cid": "reference_templates/servers/definitions/realpath.sh",
+      "enabled": true
+    },
+    {
+      "name": "rev",
+      "definition_cid": "reference_templates/servers/definitions/rev.sh",
+      "enabled": true
+    },
+    {
+      "name": "rg",
+      "definition_cid": "reference_templates/servers/definitions/rg.sh",
+      "enabled": true
+    },
+    {
+      "name": "sed",
+      "definition_cid": "reference_templates/servers/definitions/sed.sh",
+      "enabled": true
+    },
+    {
+      "name": "seq",
+      "definition_cid": "reference_templates/servers/definitions/seq.sh",
+      "enabled": true
+    },
+    {
+      "name": "sha256sum",
+      "definition_cid": "reference_templates/servers/definitions/sha256sum.sh",
+      "enabled": true
+    },
+    {
+      "name": "sort",
+      "definition_cid": "reference_templates/servers/definitions/sort.sh",
+      "enabled": true
+    },
+    {
+      "name": "ss",
+      "definition_cid": "reference_templates/servers/definitions/ss.sh",
+      "enabled": true
+    },
+    {
+      "name": "stat",
+      "definition_cid": "reference_templates/servers/definitions/stat.sh",
+      "enabled": true
+    },
+    {
+      "name": "strings",
+      "definition_cid": "reference_templates/servers/definitions/strings.sh",
+      "enabled": true
+    },
+    {
+      "name": "systemctl",
+      "definition_cid": "reference_templates/servers/definitions/systemctl.sh",
+      "enabled": true
+    },
+    {
+      "name": "tail",
+      "definition_cid": "reference_templates/servers/definitions/tail.sh",
+      "enabled": true
+    },
+    {
+      "name": "tar",
+      "definition_cid": "reference_templates/servers/definitions/tar.sh",
+      "enabled": true
+    },
+    {
+      "name": "tee",
+      "definition_cid": "reference_templates/servers/definitions/tee.sh",
+      "enabled": true
+    },
+    {
+      "name": "time",
+      "definition_cid": "reference_templates/servers/definitions/time.sh",
+      "enabled": true
+    },
+    {
+      "name": "timeout",
+      "definition_cid": "reference_templates/servers/definitions/timeout.sh",
+      "enabled": true
+    },
+    {
+      "name": "tldr",
+      "definition_cid": "reference_templates/servers/definitions/tldr.sh",
+      "enabled": true
+    },
+    {
+      "name": "tr",
+      "definition_cid": "reference_templates/servers/definitions/tr.sh",
+      "enabled": true
+    },
+    {
+      "name": "traceroute",
+      "definition_cid": "reference_templates/servers/definitions/traceroute.sh",
+      "enabled": true
+    },
+    {
+      "name": "uname",
+      "definition_cid": "reference_templates/servers/definitions/uname.sh",
+      "enabled": true
+    },
+    {
+      "name": "unexpand",
+      "definition_cid": "reference_templates/servers/definitions/unexpand.sh",
+      "enabled": true
+    },
+    {
+      "name": "uniq",
+      "definition_cid": "reference_templates/servers/definitions/uniq.sh",
+      "enabled": true
+    },
+    {
+      "name": "unzip",
+      "definition_cid": "reference_templates/servers/definitions/unzip.sh",
+      "enabled": true
+    },
+    {
+      "name": "uptime",
+      "definition_cid": "reference_templates/servers/definitions/uptime.sh",
+      "enabled": true
+    },
+    {
+      "name": "wc",
+      "definition_cid": "reference_templates/servers/definitions/wc.sh",
+      "enabled": true
+    },
+    {
+      "name": "wget",
+      "definition_cid": "reference_templates/servers/definitions/wget.sh",
+      "enabled": true
+    },
+    {
+      "name": "whoami",
+      "definition_cid": "reference_templates/servers/definitions/whoami.sh",
+      "enabled": true
+    },
+    {
+      "name": "xargs",
+      "definition_cid": "reference_templates/servers/definitions/xargs.sh",
+      "enabled": true
+    },
+    {
+      "name": "xmllint",
+      "definition_cid": "reference_templates/servers/definitions/xmllint.sh",
+      "enabled": true
+    },
+    {
+      "name": "xxd",
+      "definition_cid": "reference_templates/servers/definitions/xxd.sh",
+      "enabled": true
+    },
+    {
+      "name": "xz",
+      "definition_cid": "reference_templates/servers/definitions/xz.sh",
+      "enabled": true
+    },
+    {
+      "name": "yq",
+      "definition_cid": "reference_templates/servers/definitions/yq.sh",
+      "enabled": true
+    },
+    {
+      "name": "zcat",
+      "definition_cid": "reference_templates/servers/definitions/zcat.sh",
+      "enabled": true
+    },
+    {
+      "name": "zip",
+      "definition_cid": "reference_templates/servers/definitions/zip.sh",
       "enabled": true
     }
   ],

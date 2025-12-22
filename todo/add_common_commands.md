@@ -1,3 +1,5 @@
+Status: ✅ Implemented. Command servers, docs, and boot images updated.
+
 Add a new document in docs/bash_commands.md that lists all commands and their roles.
 
 For each command listed below.
