@@ -101,6 +101,11 @@
       "enabled": true
     },
     {
+      "name": "qr",
+      "definition_cid": "reference_templates/servers/definitions/qr.py",
+      "enabled": true
+    },
+    {
       "name": "pygments",
       "definition_cid": "reference_templates/servers/definitions/pygments.py",
       "enabled": true

@@ -11,9 +11,11 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+import re
 
 import pytest
 
+from boot_cid_importer import import_boot_cid
 from app import create_app
 from cid_utils import generate_cid
 from db_access import create_cid_record
@@ -845,6 +847,67 @@ class TestOneShotWithBootCID:
             # Clean up servers CID file
             if servers_cid_file.exists():
                 servers_cid_file.unlink()
+
+    def test_cli_can_generate_qr_png(self, tmp_path):
+        """CLI one-shot mode should return QR code bytes for /qr paths."""
+
+        default_boot_cid = (
+            self.CLI_ROOT / "reference_templates" / "default.boot.cid"
+        ).read_text(encoding="utf-8")
+
+        env = os.environ.copy()
+        env.pop("TESTING", None)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "main.py",
+                "--in-memory-db",
+                "/qr/hello-world",
+                default_boot_cid.strip(),
+            ],
+            cwd=self.CLI_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            env=env,
+        )
+
+        assert result.returncode == 0, f"CLI error: {result.stderr}"
+        assert "Status: 200" in result.stdout, result.stdout
+        assert "[Binary data:" in result.stdout, result.stdout
+
+        size_line = next(
+            (line for line in result.stdout.splitlines() if line.startswith("[Binary data:")),
+            "",
+        )
+        size_match = re.search(r"\\[Binary data: (\\d+) bytes\\]", size_line)
+        cli_reported_size = int(size_match.group(1)) if size_match else None
+
+        db_path = tmp_path / "qr_cli.db"
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{db_path}",
+                "WTF_CSRF_ENABLED": False,
+                "LOAD_CIDS_IN_TESTS": True,
+            }
+        )
+
+        with app.app_context():
+            success, error = import_boot_cid(app, default_boot_cid.strip())
+            assert success, f"Boot CID import failed: {error}"
+
+        with app.test_client() as client:
+            response = client.get("/qr/hello-world", follow_redirects=True)
+
+        assert response.status_code == 200
+        assert response.mimetype == "image/png"
+        assert response.data.startswith(b"\x89PNG\r\n\x1a\n")
+
+        if cli_reported_size is not None:
+            assert cli_reported_size == len(response.data)
 
 
 if __name__ == "__main__":

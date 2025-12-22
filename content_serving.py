@@ -137,6 +137,38 @@ class PathInfo:
 # ============================================================================
 
 
+def _require_qrcode() -> None:
+    """Ensure the optional qrcode dependency is available."""
+    if qrcode is None:
+        raise RuntimeError(
+            "Missing optional dependency 'qrcode'. Run './install' or "
+            "'pip install qrcode[pil]' before generating QR codes."
+        ) from _qrcode_import_error
+
+
+def generate_qr_png(target_text: str) -> bytes:
+    """Generate PNG bytes for a QR code that encodes target_text.
+
+    Args:
+        target_text: Text to encode in the QR code
+
+    Returns:
+        PNG image bytes
+
+    Raises:
+        RuntimeError: If qrcode library is not installed
+    """
+    _require_qrcode()
+
+    qr_code = qrcode.QRCode(box_size=QR_CODE_BOX_SIZE, border=QR_CODE_BORDER)
+    qr_code.add_data(target_text)
+    qr_code.make(fit=True)
+    qr_image = qr_code.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    qr_image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def generate_qr_data_url(target_url: str) -> str:
     """Generate a data URL representing a QR code that encodes target_url.
 
@@ -154,19 +186,7 @@ def generate_qr_data_url(target_url: str) -> str:
         >>> url.startswith("data:image/png;base64,")
         True
     """
-    if qrcode is None:
-        raise RuntimeError(
-            "Missing optional dependency 'qrcode'. Run './install' or "
-            "'pip install qrcode[pil]' before generating QR codes."
-        ) from _qrcode_import_error
-
-    qr_code = qrcode.QRCode(box_size=QR_CODE_BOX_SIZE, border=QR_CODE_BORDER)
-    qr_code.add_data(target_url)
-    qr_code.make(fit=True)
-    qr_image = qr_code.make_image(fill_color="black", back_color="white")
-    buffer = io.BytesIO()
-    qr_image.save(buffer, format="PNG")
-    qr_png_bytes = buffer.getvalue()
+    qr_png_bytes = generate_qr_png(target_url)
     return "data:image/png;base64," + base64.b64encode(qr_png_bytes).decode("ascii")
 
 
