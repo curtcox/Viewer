@@ -40,10 +40,12 @@ def test_all_docs_files_are_linked_and_reachable_from_help(client):
     docs_files = sorted(
         entry.name
         for entry in docs_dir.iterdir()
-        if entry.is_file() and not entry.name.startswith(".")
+        if entry.is_file()
+        and not entry.name.startswith(".")
+        and entry.suffix.lower() == ".md"
     )
 
-    expected_paths: list[str] = [f"/source/docs/{name}" for name in docs_files]
+    expected_paths: list[str] = [f"/help/{name}" for name in docs_files]
 
     for expected in expected_paths:
         assert expected in hrefs
@@ -52,3 +54,6 @@ def test_all_docs_files_are_linked_and_reachable_from_help(client):
         linked_path = linked.path
         linked_response = client.get(linked_path)
         assert linked_response.status_code == 200
+        body = linked_response.get_data(as_text=True)
+        assert '<main class="markdown-body">' in body
+        assert "<a" in body

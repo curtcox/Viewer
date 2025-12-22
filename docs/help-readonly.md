@@ -165,9 +165,9 @@ Will result in an error message explaining that the operation is not permitted i
 ## Help Resources
 
 - [General Help](/help) - Complete help documentation
-- [Readonly Mode Documentation](/source/docs/readonly_mode.md) - Technical details
-- [Boot CID Usage](/source/docs/BOOT_CID_USAGE.md) - Boot image system
-- [Export Format](/source/docs/import-export-json-format.md) - Export file structure
+- [Readonly Mode Documentation](/help/readonly_mode.md) - Technical details
+- [Boot CID Usage](/help/BOOT_CID_USAGE.md) - Boot image system
+- [Export Format](/help/import-export-json-format.md) - Export file structure
 - [Gauge Specs](/source/specs/) - Behavioral specifications
 
 ## Common Questions
