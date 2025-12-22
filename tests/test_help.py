@@ -47,3 +47,17 @@ class TestHelpRoutes:
         with memory_db_app.test_request_context():
             url = url_for('main.help_page')
             assert url == '/help'
+
+    def test_help_markdown_renders_document(self, memory_client):
+        """Help markdown endpoint renders docs as HTML."""
+        response = memory_client.get("/help/help.md")
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert '<main class="markdown-body">' in body
+        assert '<a href="/aliases">' in body
+        assert '/help/import-export-json-format.md' in body
+
+    def test_help_markdown_rejects_traversal(self, memory_client):
+        """Traversal attempts return 404."""
+        response = memory_client.get("/help/../app.py")
+        assert response.status_code == 404

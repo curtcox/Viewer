@@ -108,8 +108,8 @@ With the default boot image, you have access to:
 ## Help Resources
 
 - [General Help](/help) - Complete help documentation
-- [Boot CID Documentation](/source/docs/BOOT_CID_USAGE.md) - Boot image system details
-- [Import/Export Guide](/source/docs/import-export-json-format.md) - Data transfer format
+- [Boot CID Documentation](/help/BOOT_CID_USAGE.md) - Boot image system details
+- [Import/Export Guide](/help/import-export-json-format.md) - Data transfer format
 - [Gauge Specs](/source/specs/) - Behavioral specifications
 
 ---

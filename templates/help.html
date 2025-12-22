@@ -144,7 +144,7 @@
                             <li><a href="{{ url_for('main.source_browser') }}">Source Browser</a> - Browse application source code</li>
                             <li><a href="{{ url_for('main.openapi_docs') }}">API Documentation</a> - OpenAPI specification</li>
                             <li><a href="{{ url_for('main.history') }}">History</a> - View change history</li>
-                            <li><a href="{{ url_for('main.source_browser', requested_path='docs/') }}">Documentation Files</a> - Detailed documentation</li>
+                            <li><a href="{{ url_for('main.help_markdown', doc_path='help.md') }}">Documentation Files</a> - Detailed documentation</li>
                             <li><a href="{{ url_for('main.source_browser', requested_path='specs/') }}">Gauge Specifications</a> - Behavioral specifications</li>
                         </ul>
 
@@ -155,7 +155,7 @@
                             <ul>
                                 {% for doc_file in docs_files %}
                                     <li>
-                                        <a href="{{ url_for('main.source_browser', requested_path='docs/' + doc_file) }}">{{ doc_file }}</a>
+                                        <a href="{{ url_for('main.help_markdown', doc_path=doc_file) }}">{{ doc_file }}</a>
                                     </li>
                                 {% endfor %}
                             </ul>

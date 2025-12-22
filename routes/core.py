@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from flask import current_app, redirect, render_template, url_for
+from flask import abort, current_app, redirect, render_template, url_for
 
 from db_access import (
     count_aliases,
@@ -18,6 +18,7 @@ from db_access import (
     get_first_server_name,
     get_first_variable_name,
 )
+from content_rendering import render_markdown_document
 from routes.context_processors import (
     inject_meta_inspector_link,
     inject_observability_info,
@@ -108,18 +109,67 @@ def settings():
 @main_bp.route("/help")
 def help_page():
     """Help documentation page."""
-    docs_files: list[str] = []
     docs_dir = Path(current_app.root_path) / "docs"
-    try:
-        docs_files = sorted(
-            entry.name
-            for entry in docs_dir.iterdir()
-            if entry.is_file() and not entry.name.startswith(".")
-        )
-    except OSError:
-        docs_files = []
+    docs_files = _list_markdown_docs(docs_dir)
 
     return render_template("help.html", docs_files=docs_files)
+
+
+@main_bp.route("/help/<path:doc_path>")
+def help_markdown(doc_path: str):
+    """Render markdown documentation files from the docs directory."""
+
+    docs_dir = Path(current_app.root_path) / "docs"
+    docs_files = _list_markdown_docs(docs_dir)
+    resolved_path = _resolve_markdown_doc_path(doc_path, docs_dir)
+    if resolved_path is None:
+        abort(404)
+
+    try:
+        markdown_source = resolved_path.read_text(encoding="utf-8")
+    except OSError:
+        abort(404)
+
+    help_content = render_markdown_document(markdown_source)
+    return render_template(
+        "help.html",
+        help_content=help_content,
+        docs_files=docs_files,
+    )
+
+
+def _list_markdown_docs(docs_dir: Path) -> list[str]:
+    """Return sorted markdown filenames from docs directory."""
+
+    try:
+        return sorted(
+            entry.name
+            for entry in docs_dir.iterdir()
+            if entry.is_file()
+            and not entry.name.startswith(".")
+            and entry.suffix.lower() == ".md"
+        )
+    except OSError:
+        return []
+
+
+def _resolve_markdown_doc_path(doc_path: str, docs_dir: Path) -> Optional[Path]:
+    """Resolve a markdown doc path safely within docs directory."""
+
+    candidate = Path(doc_path)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+
+    resolved = (docs_dir / candidate).resolve()
+    try:
+        resolved.relative_to(docs_dir)
+    except ValueError:
+        return None
+
+    if resolved.suffix.lower() != ".md" or not resolved.is_file():
+        return None
+
+    return resolved
 
 
 def get_settings_counts():
@@ -140,6 +190,7 @@ __all__ = [
     "dashboard",
     "get_existing_routes",
     "get_settings_counts",
+    "help_markdown",
     "help_page",
     "index",
     "inject_observability_info",

@@ -123,15 +123,15 @@ Unlike the default boot image, minimal boot:
 ### Build a Template Library
 1. Create reusable entity definitions
 2. Store them as a variable named `templates`
-3. Format according to the [template specification](/source/docs/json-template-format.md)
+3. Format according to the [template specification](/help/json-template-format.md)
 
 ## Help Resources
 
 - [General Help](/help) - Complete help documentation
 - [Creating Aliases](/help#aliases) - Alias syntax and examples
 - [Creating Servers](/help#servers) - Server development guide
-- [Import/Export Guide](/source/docs/import-export-json-format.md) - Data transfer format
-- [Template Format](/source/docs/json-template-format.md) - Build your own templates
+- [Import/Export Guide](/help/import-export-json-format.md) - Data transfer format
+- [Template Format](/help/json-template-format.md) - Build your own templates
 - [Gauge Specs](/source/specs/) - Behavioral specifications
 
 ## Need Examples?

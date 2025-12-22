@@ -136,7 +136,7 @@ CIDs are used for:
 - Import/export payloads
 - Boot image content
 
-For technical details, see [CID documentation](/source/docs/import-export-json-format.md#cid-content-identifier-references).
+For technical details, see [CID documentation](/help/import-export-json-format.md#cid-content-identifier-references).
 
 ## Boot Images
 
@@ -168,7 +168,7 @@ Boot images are defined in `reference_templates/` and generated using:
 python generate_boot_image.py
 ```
 
-This reads the source files and creates CID-based boot images. See [Boot CID Usage](/source/docs/BOOT_CID_USAGE.md) for more information.
+This reads the source files and creates CID-based boot images. See [Boot CID Usage](/help/BOOT_CID_USAGE.md) for more information.
 
 ## Importing and Exporting
 
@@ -198,7 +198,7 @@ Exports use a JSON format with CID references for efficient content storage. The
 - Content deduplication
 - Integrity verification
 
-See [Import/Export Format](/source/docs/import-export-json-format.md) for the complete specification.
+See [Import/Export Format](/help/import-export-json-format.md) for the complete specification.
 
 ### Command-Line Import
 
@@ -273,10 +273,10 @@ Viewer includes comprehensive behavioral specifications:
 
 ### Documentation Files
 
-- [Boot CID Usage](/source/docs/BOOT_CID_USAGE.md)
-- [Import/Export Format](/source/docs/import-export-json-format.md)
-- [JSON Template Format](/source/docs/json-template-format.md)
-- [Readonly Mode](/source/docs/readonly_mode.md)
+- [Boot CID Usage](/help/BOOT_CID_USAGE.md)
+- [Import/Export Format](/help/import-export-json-format.md)
+- [JSON Template Format](/help/json-template-format.md)
+- [Readonly Mode](/help/readonly_mode.md)
 
 ## Getting Help
 
