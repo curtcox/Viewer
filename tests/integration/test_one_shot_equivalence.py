@@ -882,7 +882,7 @@ class TestOneShotWithBootCID:
             (line for line in result.stdout.splitlines() if line.startswith("[Binary data:")),
             "",
         )
-        size_match = re.search(r"\\[Binary data: (\\d+) bytes\\]", size_line)
+        size_match = re.search(r"\[Binary data: (\d+) bytes\]", size_line)
         cli_reported_size = int(size_match.group(1)) if size_match else None
 
         db_path = tmp_path / "qr_cli.db"
