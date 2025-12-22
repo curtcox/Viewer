@@ -57,7 +57,7 @@ def render_bash_commands_markdown(commands: list[CommandInfo]) -> str:
         ]
     )
 
-    pipeline_path = "/tr/a-z%20A-Z/rev/echo/hello"
+    pipeline_path = "/tr/a-z%20A-Z/rev/_/echo/hello"
     lines.append(f"- Pipeline: {_example_links(pipeline_path)}")
     lines.append("")
 

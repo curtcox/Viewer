@@ -110,7 +110,7 @@ Pipeline URLs execute from right to left. The example below uppercases text usin
 - `rev` reverses the string
 - `tr` translates lowercase to uppercase
 
-- Pipeline: [Execute](/tr/a-z%20A-Z/rev/echo/hello) · [Debug](/tr/a-z%20A-Z/rev/echo/hello?debug=true)
+- Pipeline: [Execute](/tr/a-z%20A-Z/rev/_/echo/hello) · [Debug](/tr/a-z%20A-Z/rev/_/echo/hello?debug=true)
 
 ## Command reference
 
