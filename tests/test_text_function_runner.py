@@ -30,6 +30,19 @@ return z + w
         result = self.run_text_function(body, argmap)
         self.assertEqual(result, 26)  # (10 * 2) + (5 + 1) = 20 + 6 = 26
 
+    def test_future_imports_are_hoisted(self):
+        """__future__ imports should not raise syntax errors."""
+        body = """
+from __future__ import annotations
+
+def render(label: str) -> str:
+    return label
+
+return render(value)
+"""
+        result = self.run_text_function(body, {"value": "hello"})
+        self.assertEqual(result, "hello")
+
     def test_param_order_specified(self):
         """Test that param_order fixes the function signature."""
         body = "return f'{a}-{b}-{c}'"

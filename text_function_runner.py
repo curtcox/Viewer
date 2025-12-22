@@ -20,6 +20,32 @@ from cid_utils import store_cid_from_bytes
 from db_access import get_cid_by_path
 
 
+def _extract_future_imports(body_text: str) -> tuple[str, str]:
+    """Separate ``__future__`` imports from the rest of the body text.
+
+    Future imports must appear at the start of the compiled module. When we wrap
+    user code inside a helper function, those imports would otherwise become
+    invalid. We hoist them to the module prefix so they apply to the generated
+    function definition.
+    """
+
+    future_imports: list[str] = []
+    remaining_lines: list[str] = []
+
+    for line in body_text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("from __future__ import"):
+            future_imports.append(stripped)
+            continue
+        remaining_lines.append(line)
+
+    header = "\n".join(future_imports).strip()
+    if header:
+        header += "\n\n"
+
+    return header, "\n".join(remaining_lines)
+
+
 def _coerce_to_bytes(value: Any) -> bytes:
     if isinstance(value, bytes):
         return value
@@ -101,8 +127,13 @@ def run_text_function(
     h = hashlib.sha256(body_text.encode("utf-8")).hexdigest()[:12]
     fn_name = f"_fn_{h}"
 
+    future_imports, cleaned_body = _extract_future_imports(body_text)
+
     # Compose the source
-    src = f"def {fn_name}({', '.join(param_names)}):\n{textwrap.indent(body_text, '    ')}"
+    src = (
+        f"{future_imports}def {fn_name}({', '.join(param_names)}):\n"
+        f"{textwrap.indent(cleaned_body, '    ')}"
+    )
 
     # Global namespace with all builtins available plus helper utilities
     ns = {
