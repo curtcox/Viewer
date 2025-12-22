@@ -15,6 +15,7 @@ from . import authorization_steps  # noqa: F401
 from . import chaining_steps  # noqa: F401
 from . import cid_editor_steps  # noqa: F401
 from . import import_export_steps  # noqa: F401
+from . import pipeline_debug_steps  # noqa: F401
 from . import source_steps  # noqa: F401
 from . import urleditor_steps  # noqa: F401
 from . import web_steps  # noqa: F401

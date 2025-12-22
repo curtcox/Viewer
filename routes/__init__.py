@@ -10,6 +10,7 @@ main_bp = Blueprint("main", __name__)
 from . import aliases  # noqa: F401,E402
 from . import cid_editor  # noqa: F401,E402
 from . import core  # noqa: F401,E402
+from . import pipelines  # noqa: F401,E402
 from . import history  # noqa: F401,E402
 from . import import_export  # noqa: F401,E402
 from . import interactions  # noqa: F401,E402
