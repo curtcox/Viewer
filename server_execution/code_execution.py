@@ -104,17 +104,11 @@ def _resolve_cid_content(cid_segment: str) -> Optional[str]:
     Returns:
         The CID content as a string, or None if not a valid CID
     """
-    from server_execution.pipeline_execution import _get_segment_contents, validate_cid
+    from server_execution.pipeline_execution import _get_segment_contents
 
     cid_components = split_cid_path(cid_segment) or split_cid_path(f"/{cid_segment}")
     base_segment, _ = get_segment_base_and_extension(cid_segment)
-    if cid_components:
-        cid_value = cid_components[0]
-    else:
-        is_valid, _ = validate_cid(cid_segment)
-        if not is_valid:
-            return None
-        cid_value = base_segment
+    cid_value = cid_components[0] if cid_components else base_segment
 
     normalized_cid = format_cid(cid_value)
     contents = _get_segment_contents(normalized_cid, set())
@@ -868,9 +862,40 @@ def _resolve_chained_input_for_server(
         return None, None
 
     nested_path = "/" + "/".join(remainder_segments)
-    from server_execution.pipeline_compat import resolve_chained_input_from_path_v2
+    visited: Set[str] = set()
+    first_segment = remainder_segments[0]
+    cid_components = split_cid_path(first_segment) or split_cid_path(
+        f"/{first_segment}"
+    )
+    extension = (cid_components or (None, None))[1]
+    executes_as_terminal_literal = len(
+        remainder_segments
+    ) == 1 and _is_supported_literal_extension(extension)
 
-    return resolve_chained_input_from_path_v2(nested_path, set())
+    if executes_as_terminal_literal:
+        literal_definition, language_override, normalized_cid = _load_server_literal(
+            first_segment
+        )
+        if literal_definition is not None:
+            literal_name = normalized_cid or first_segment
+            literal_value = _execute_literal_definition_to_value(
+                literal_definition,
+                literal_name,
+                nested_path,
+                visited,
+                language_override=language_override,
+            )
+            if isinstance(literal_value, Response):
+                return None, literal_value
+            if literal_value is not None:
+                return str(literal_value), None
+
+    nested_value = _evaluate_nested_path_to_value(nested_path, visited)
+    if isinstance(nested_value, Response):
+        return None, nested_value
+    if nested_value is None:
+        return None, None
+    return str(_extract_chained_output(nested_value)), None
 
 
 def _execute_bash_server_response(

@@ -555,8 +555,6 @@ def execute_pipeline(
                 for j in range(i + 1, len(segment_infos)):
                     segment_infos[j].executed = True
 
-                break  # Execution handles the rest of the chain
-
         except Exception as e:
             info.errors.append(f"execution error: {str(e)}")
             info.executed = False
