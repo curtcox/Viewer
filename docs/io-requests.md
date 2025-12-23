@@ -202,3 +202,123 @@ Use **Pipeline** when you need:
 - Simple right-to-left data transformation
 - Each server processes independently
 - Simpler mental model
+
+## Potential Future IO Servers
+
+The following servers are designed specifically for IO chains. They leverage the bidirectional request/response flow to provide capabilities not possible with simple pipeline servers.
+
+### Request Transformation Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `validate` | Validate requests against schemas, reject invalid | `/io/validate/schema.json/api` |
+| `auth` | Add authentication headers/tokens to requests | `/io/auth/bearer/api` |
+| `sign` | Cryptographically sign requests | `/io/sign/key/api` |
+| `prefix` | Add prefix to request data | `/io/prefix/Hello:/echo/World` |
+| `suffix` | Add suffix to request data | `/io/suffix/!/echo/Hello` |
+
+### Response Transformation Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `filter` | Filter response content (regex or jq-style) | `/io/filter/error/cat/log.txt` |
+| `transform` | Apply JSONPath/jq transformations to responses | `/io/transform/.data/api` |
+| `compress` | Compress responses (gzip, brotli) | `/io/compress/gzip/api` |
+| `wrap` | Wrap response in a template | `/io/wrap/template.html/api` |
+| `sanitize` | Sanitize HTML/script content from responses | `/io/sanitize/api` |
+
+### Caching and Performance Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `cache` | Cache responses with TTL | `/io/cache/300/api` |
+| `rate_limit` | Rate limit requests | `/io/rate_limit/10/api` |
+| `timeout` | Set timeout for downstream servers | `/io/timeout/5000/slow_api` |
+| `retry` | Retry failed requests with backoff | `/io/retry/3/flaky_api` |
+| `delay` | Add artificial delay (testing) | `/io/delay/1000/api` |
+
+### Observability Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `log` | Log requests and responses | `/io/log/api` |
+| `count` | Count requests/responses, add statistics | `/io/count/api` |
+| `sample` | Sample a percentage of requests | `/io/sample/10/api` |
+| `stats` | Collect timing and size statistics | `/io/stats/api` |
+
+### Data Format Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `sql_query` | Translate URL params to SQL queries | `/io/sql_query/csv_to_html/db` |
+| `csv_to_html` | Convert CSV responses to HTML tables | `/io/csv_to_html/data.csv` |
+| `sql_browser` | Combined SQL query builder with HTML output | `/io/sql_browser/db/users` |
+
+### Testing and Development Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `mock` | Return mock responses for testing | `/io/mock/response.json/api` |
+| `fail` | Simulate failures (testing error handling) | `/io/fail/500/api` |
+| `echo_both` | Echo both request and response (debugging) | `/io/echo_both/api` |
+
+### Aggregation Servers
+
+| Server | Purpose | Example |
+|--------|---------|---------|
+| `split` | Split request to multiple downstream servers | `/io/split/api1/api2` |
+| `merge` | Merge responses from multiple sources | `/io/merge/api1/api2` |
+| `encrypt` | Encrypt request/response data | `/io/encrypt/key/api` |
+
+## Example IO Chains
+
+These chains illustrate common patterns and can be used to test the IO implementation.
+
+### Authenticated API with Caching
+```
+/io/cache/300/auth/bearer/validate/schema.json/api
+```
+- Validates request against schema
+- Adds bearer token authentication
+- Caches response for 5 minutes
+
+### Logged and Filtered Data
+```
+/io/log/filter/error/cat/application.log
+```
+- Reads log file
+- Filters for error lines
+- Logs the request and response
+
+### Rate-Limited API with Retry
+```
+/io/rate_limit/10/retry/3/timeout/5000/api
+```
+- Sets 5-second timeout
+- Retries up to 3 times on failure
+- Rate limits to 10 requests per window
+
+### SQL Query to HTML Table
+```
+/io/sql_query/select * from users/csv_to_html/db
+```
+- Builds SQL query from URL
+- Executes against database
+- Converts CSV result to HTML table
+
+### Request/Response Transformation
+```
+/io/prefix/REQUEST:/suffix/!/echo/data
+```
+- Echoes "data"
+- Adds suffix "!" → "data!"
+- Adds prefix "REQUEST:" → "REQUEST:data!"
+
+### Debug Chain for Testing
+```
+/io/log/echo_both/delay/100/echo/test?debug=true
+```
+- Echoes "test" with 100ms delay
+- Shows both request and response
+- Logs everything
+- Debug mode shows full execution trace
