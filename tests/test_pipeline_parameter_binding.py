@@ -239,16 +239,28 @@ class TestSegmentTypeResolution(unittest.TestCase):
         self.alias_patcher = patch(
             "server_execution.segment_analysis.find_matching_alias"
         )
+        self.validate_cid_patcher = patch(
+            "server_execution.segment_analysis.validate_cid"
+        )
+        self.is_probable_cid_patcher = patch(
+            "server_execution.segment_analysis.is_probable_cid_component"
+        )
         self.mock_get_server = self.server_patcher.start()
         self.mock_find_alias = self.alias_patcher.start()
+        self.mock_validate_cid = self.validate_cid_patcher.start()
+        self.mock_is_probable_cid = self.is_probable_cid_patcher.start()
 
         self.mock_get_server.return_value = None
         self.mock_find_alias.return_value = None
+        self.mock_validate_cid.return_value = (False, None)
+        self.mock_is_probable_cid.return_value = False
 
     def tearDown(self):
         """Clean up patches."""
         self.server_patcher.stop()
         self.alias_patcher.stop()
+        self.validate_cid_patcher.stop()
+        self.is_probable_cid_patcher.stop()
 
     def test_server_takes_priority(self):
         """Named server takes priority over alias, CID, and parameter."""
