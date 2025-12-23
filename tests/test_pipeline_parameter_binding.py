@@ -11,10 +11,8 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-# Mock Flask, SQLAlchemy, and related modules before importing server_execution modules
-# These mocks prevent the deep import chain that requires installed dependencies
-# Create separate mock instances for each module to avoid conflicts
-for mod in [
+# List of modules to mock during import
+_MOCKED_MODULES = [
     "flask", "flask_sqlalchemy", "sqlalchemy", "sqlalchemy.exc", "sqlalchemy.orm",
     "werkzeug", "werkzeug.exceptions", "werkzeug.routing",
     "database", "models", "db_access", "db_access._exports", "db_access._common",
@@ -22,7 +20,14 @@ for mod in [
     "alias_routing", "alias_definition", "alias_matching",
     "cid_core", "cid_presenter",
     "routes", "routes.pipelines",
-]:
+]
+
+# Save original modules before mocking (to restore after import)
+_original_modules = {mod: sys.modules.get(mod) for mod in _MOCKED_MODULES}
+
+# Mock Flask, SQLAlchemy, and related modules before importing server_execution modules
+# These mocks prevent the deep import chain that requires installed dependencies
+for mod in _MOCKED_MODULES:
     sys.modules[mod] = MagicMock()
 
 # Set up mock return values for functions that need proper behavior
@@ -45,6 +50,13 @@ from server_execution.segment_analysis import (  # noqa: E402
     analyze_segment,
     resolve_segment_type,
 )
+
+# Restore original modules after import to avoid polluting other tests
+for mod, original in _original_modules.items():
+    if original is None:
+        sys.modules.pop(mod, None)
+    else:
+        sys.modules[mod] = original
 
 
 class TestPipelineParameterBinding(unittest.TestCase):
