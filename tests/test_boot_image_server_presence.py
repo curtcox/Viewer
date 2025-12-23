@@ -19,6 +19,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "markdown": "markdown.py",
     "shell": "shell.py",
     "glom": "glom.py",
+    "hrx": "hrx.py",
     "gateway": "gateway.py",
     "io": "io.py",
     "files": "files.py",
