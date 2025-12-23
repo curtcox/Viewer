@@ -132,10 +132,12 @@ def group_segments_with_params(
 
     groups: List[Dict[str, Any]] = []
     current_group: Optional[Dict[str, Any]] = None
+    total_segments = len(segments)
 
-    for segment in segments:
+    for index, segment in enumerate(segments):
         # Analyze to determine if it's a server or parameter
-        info = analyze_segment(segment, 0, 1)
+        # Pass actual position and total for proper chaining validation
+        info = analyze_segment(segment, index, total_segments)
 
         if info.segment_type in ("server", "cid", "alias"):
             # Start a new group for this server
