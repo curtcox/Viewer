@@ -165,8 +165,8 @@ class TestGetResolutionType(unittest.TestCase):
 class TestResolveSegmentType(unittest.TestCase):
     """Test resolve_segment_type function."""
 
-    @patch("server_execution.pipeline_execution.get_server_by_name")
-    @patch("server_execution.pipeline_execution.find_matching_alias")
+    @patch("server_execution.segment_analysis.get_server_by_name")
+    @patch("server_execution.segment_analysis.find_matching_alias")
     def test_named_server_detection(self, mock_alias, mock_server):
         """Detect segment as named server."""
         mock_server.return_value = MagicMock(enabled=True)
@@ -175,8 +175,8 @@ class TestResolveSegmentType(unittest.TestCase):
         result = resolve_segment_type("echo")
         self.assertEqual(result, "server")
 
-    @patch("server_execution.pipeline_execution.get_server_by_name")
-    @patch("server_execution.pipeline_execution.find_matching_alias")
+    @patch("server_execution.segment_analysis.get_server_by_name")
+    @patch("server_execution.segment_analysis.find_matching_alias")
     def test_disabled_server_not_detected(self, mock_alias, mock_server):
         """Disabled server is not detected as server."""
         mock_server.return_value = MagicMock(enabled=False)
@@ -186,8 +186,8 @@ class TestResolveSegmentType(unittest.TestCase):
         # Should fall through to CID or parameter
         self.assertIn(result, ["cid", "parameter"])
 
-    @patch("server_execution.pipeline_execution.get_server_by_name")
-    @patch("server_execution.pipeline_execution.find_matching_alias")
+    @patch("server_execution.segment_analysis.get_server_by_name")
+    @patch("server_execution.segment_analysis.find_matching_alias")
     def test_alias_detection(self, mock_alias, mock_server):
         """Detect segment as alias."""
         mock_server.return_value = None
@@ -196,8 +196,8 @@ class TestResolveSegmentType(unittest.TestCase):
         result = resolve_segment_type("myalias")
         self.assertEqual(result, "alias")
 
-    @patch("server_execution.pipeline_execution.get_server_by_name")
-    @patch("server_execution.pipeline_execution.find_matching_alias")
+    @patch("server_execution.segment_analysis.get_server_by_name")
+    @patch("server_execution.segment_analysis.find_matching_alias")
     def test_cid_detection(self, mock_alias, mock_server):
         """Detect segment as CID."""
         mock_server.return_value = None
@@ -206,8 +206,8 @@ class TestResolveSegmentType(unittest.TestCase):
         result = resolve_segment_type("AAAAAAAA")
         self.assertEqual(result, "cid")
 
-    @patch("server_execution.pipeline_execution.get_server_by_name")
-    @patch("server_execution.pipeline_execution.find_matching_alias")
+    @patch("server_execution.segment_analysis.get_server_by_name")
+    @patch("server_execution.segment_analysis.find_matching_alias")
     def test_parameter_fallback(self, mock_alias, mock_server):
         """Detect segment as parameter when nothing else matches."""
         mock_server.return_value = None
@@ -252,14 +252,14 @@ class TestCheckChainingSupport(unittest.TestCase):
 class TestResolveAliases(unittest.TestCase):
     """Test resolve_aliases function."""
 
-    @patch("server_execution.pipeline_execution.resolve_alias_target")
+    @patch("server_execution.segment_analysis.resolve_alias_target")
     def test_no_alias_returns_empty(self, mock_resolve):
         """Non-alias segment returns empty list."""
         mock_resolve.return_value = None
         result = resolve_aliases("directserver")
         self.assertEqual(result, [])
 
-    @patch("server_execution.pipeline_execution.resolve_alias_target")
+    @patch("server_execution.segment_analysis.resolve_alias_target")
     def test_single_alias_returned(self, mock_resolve):
         """Single alias resolution tracked."""
         mock_match = MagicMock()
@@ -378,7 +378,7 @@ class TestGetServerInfo(unittest.TestCase):
     """Test get_server_info function."""
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_named_server_info(self, mock_get_server, mock_load_literal):
         """Get info for named server."""
         mock_server = MagicMock()
@@ -397,7 +397,7 @@ class TestGetServerInfo(unittest.TestCase):
         self.assertTrue(info["supports_chaining"])
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_disabled_server_returns_none(self, mock_get_server, mock_load_literal):
         """Disabled server returns None."""
         mock_server = MagicMock()
@@ -410,7 +410,7 @@ class TestGetServerInfo(unittest.TestCase):
         self.assertIsNone(info)
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_cid_literal_server_info(self, mock_get_server, mock_load_literal):
         """Get info for CID-based server."""
         mock_get_server.return_value = None
@@ -427,7 +427,7 @@ class TestGetServerInfo(unittest.TestCase):
         self.assertEqual(info["language"], "python")
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_nonexistent_server_returns_none(self, mock_get_server, mock_load_literal):
         """Nonexistent server returns None."""
         mock_get_server.return_value = None
@@ -438,7 +438,7 @@ class TestGetServerInfo(unittest.TestCase):
         self.assertIsNone(info)
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_server_with_parameters(self, mock_get_server, mock_load_literal):
         """Server info includes parameters."""
         mock_server = MagicMock()
@@ -459,7 +459,7 @@ class TestGetServerInfo(unittest.TestCase):
         self.assertFalse(params[1].required)
 
     @patch("server_execution.pipeline_execution._load_server_literal")
-    @patch("server_execution.pipeline_execution.get_server_by_name")
+    @patch("server_execution.segment_analysis.get_server_by_name")
     def test_bash_server_info(self, mock_get_server, mock_load_literal):
         """Get info for bash server."""
         mock_server = MagicMock()
