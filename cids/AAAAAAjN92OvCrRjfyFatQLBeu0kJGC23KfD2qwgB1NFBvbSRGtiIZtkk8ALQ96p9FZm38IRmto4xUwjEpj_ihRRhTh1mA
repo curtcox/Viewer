@@ -34,7 +34,7 @@ def serve_directory(path):
 
 request_path = request["path"]
 if request_path.startswith("/files/"):
-    request_path = request_path[7:]
+    request_path = request_path[6:]
 elif request_path.startswith("/"):
     request_path = request_path[1:]
 
