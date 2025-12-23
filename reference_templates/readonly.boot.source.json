@@ -56,6 +56,11 @@
       "enabled": true
     },
     {
+      "name": "io",
+      "definition_cid": "reference_templates/servers/definitions/io.py",
+      "enabled": true
+    },
+    {
       "name": "google_gemini",
       "definition_cid": "reference_templates/servers/definitions/google_gemini.py",
       "enabled": true
