@@ -4,7 +4,7 @@ Implementation of the HRX format specification from https://github.com/google/hr
 """
 
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set
 
 
 class HRXParseError(Exception):
@@ -24,7 +24,7 @@ class HRXArchive:
             HRXParseError: If the archive is invalid or empty
         """
         self.files: Dict[str, str] = {}
-        self.directories: set[str] = set()
+        self.directories: Set[str] = set()
         self._parse(archive_string)
 
     def _parse(self, archive_string: str) -> None:
@@ -53,7 +53,7 @@ class HRXArchive:
         lines = archive_string.split("\n")
 
         current_path: Optional[str] = None
-        current_content: list[str] = []
+        current_content: List[str] = []
         in_content = False
 
         i = 0
@@ -97,7 +97,7 @@ class HRXArchive:
             else:
                 self.files[current_path] = content
 
-    def list_files(self) -> list[str]:
+    def list_files(self) -> List[str]:
         """Return a sorted list of all file paths in the archive.
 
         Returns:
