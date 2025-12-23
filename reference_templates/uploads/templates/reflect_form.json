@@ -1,0 +1,7 @@
+{
+  "id": "reflect-form-html",
+  "name": "Form that posts to /reflect",
+  "description": "An HTML page with a form that submits a message to the /reflect route.",
+  "content_file": "contents/reflect_form.html",
+  "suggested_filename": "reflect-form.html"
+}

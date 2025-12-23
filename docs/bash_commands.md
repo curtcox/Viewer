@@ -50,6 +50,7 @@ Use `_` as a placeholder argument when you want to chain input without passing o
 | `jq` | Transform | Query/transform JSON |
 | `journalctl` | Source | Query systemd journal logs |
 | `kubectl` | Dual | Kubernetes CLI (query or mutate cluster) |
+| `ls` | Source | List directory contents |
 | `md5sum` | Transform | Hash/check MD5 digests |
 | `mktemp` | Dual | Create temp file/dir and print its name |
 | `netstat` | Source | Network connections/routes (legacy) |
@@ -71,6 +72,7 @@ Use `_` as a placeholder argument when you want to chain input without passing o
 | `rg` | Transform | ripgrep recursive search |
 | `sed` | Transform | Stream editor |
 | `seq` | Source | Generate numeric sequences |
+| `shasum` | Transform | Hash/check SHA digests |
 | `sha256sum` | Transform | Hash/check SHA-256 digests |
 | `sort` | Transform | Sort lines |
 | `ss` | Source | Socket statistics |
@@ -84,12 +86,14 @@ Use `_` as a placeholder argument when you want to chain input without passing o
 | `timeout` | Dual | Run a command with a time limit |
 | `tr` | Transform | Translate/delete characters |
 | `traceroute` | Source | Trace network path |
+| `tree` | Source | Display a directory tree |
 | `uname` | Source | System information |
 | `unexpand` | Transform | Convert spaces to tabs |
 | `uniq` | Transform | Filter adjacent duplicates |
 | `uptime` | Source | Uptime/load averages |
 | `wc` | Transform | Count lines/words/bytes |
 | `wget` | Dual | Download from URLs |
+| `which` | Source | Locate a command in PATH |
 | `whoami` | Source | Effective username |
 | `xargs` | Dual | Build/execute commands from stdin items |
 | `xmllint` | Transform | Parse/query/format XML |
@@ -458,6 +462,14 @@ Kubernetes CLI (query or mutate cluster)
 - With parameters: [Execute](/kubectl/--help) · [Debug](/kubectl/--help?debug=true)
 - In a pipeline: [Execute](/kubectl/_/echo/Hello%20World) · [Debug](/kubectl/_/echo/Hello%20World?debug=true)
 
+### `ls` (Source)
+
+List directory contents
+
+- Just the command: [Execute](/ls) · [Debug](/ls?debug=true)
+- With parameters: [Execute](/ls/--help) · [Debug](/ls/--help?debug=true)
+- In a pipeline: [Execute](/ls/_/echo/Hello%20World) · [Debug](/ls/_/echo/Hello%20World?debug=true)
+
 ### `md5sum` (Transform)
 
 Hash/check MD5 digests
@@ -626,6 +638,14 @@ Generate numeric sequences
 - With parameters: [Execute](/seq/--help) · [Debug](/seq/--help?debug=true)
 - In a pipeline: [Execute](/seq/_/echo/Hello%20World) · [Debug](/seq/_/echo/Hello%20World?debug=true)
 
+### `shasum` (Transform)
+
+Hash/check SHA digests
+
+- Just the command: [Execute](/shasum) · [Debug](/shasum?debug=true)
+- With parameters: [Execute](/shasum/--help) · [Debug](/shasum/--help?debug=true)
+- In a pipeline: [Execute](/shasum/_/echo/Hello%20World) · [Debug](/shasum/_/echo/Hello%20World?debug=true)
+
 ### `sha256sum` (Transform)
 
 Hash/check SHA-256 digests
@@ -730,6 +750,14 @@ Trace network path
 - With parameters: [Execute](/traceroute/--help) · [Debug](/traceroute/--help?debug=true)
 - In a pipeline: [Execute](/traceroute/_/echo/Hello%20World) · [Debug](/traceroute/_/echo/Hello%20World?debug=true)
 
+### `tree` (Source)
+
+Display a directory tree
+
+- Just the command: [Execute](/tree) · [Debug](/tree?debug=true)
+- With parameters: [Execute](/tree/--help) · [Debug](/tree/--help?debug=true)
+- In a pipeline: [Execute](/tree/_/echo/Hello%20World) · [Debug](/tree/_/echo/Hello%20World?debug=true)
+
 ### `uname` (Source)
 
 System information
@@ -777,6 +805,14 @@ Download from URLs
 - Just the command: [Execute](/wget) · [Debug](/wget?debug=true)
 - With parameters: [Execute](/wget/--help) · [Debug](/wget/--help?debug=true)
 - In a pipeline: [Execute](/wget/_/echo/Hello%20World) · [Debug](/wget/_/echo/Hello%20World?debug=true)
+
+### `which` (Source)
+
+Locate a command in PATH
+
+- Just the command: [Execute](/which) · [Debug](/which?debug=true)
+- With parameters: [Execute](/which/--help) · [Debug](/which/--help?debug=true)
+- In a pipeline: [Execute](/which/_/echo/Hello%20World) · [Debug](/which/_/echo/Hello%20World?debug=true)
 
 ### `whoami` (Source)
 

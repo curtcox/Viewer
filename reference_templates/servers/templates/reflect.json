@@ -1,0 +1,6 @@
+{
+  "id": "reflect",
+  "name": "Reflect request context",
+  "description": "Reflect the incoming request and context as HTML for debugging.",
+  "definition_file": "definitions/reflect.py"
+}

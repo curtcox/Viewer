@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Echo Form</title>
+    <title>Reflect Form</title>
 </head>
 <body>
     <main>
-        <h1>Submit Data to /echo</h1>
-        <p>Use this form to send a POST request to the /echo route.</p>
-        <form action="/echo" method="post">
+        <h1>Submit Data to /reflect</h1>
+        <p>Use this form to send a POST request to the /reflect route.</p>
+        <form action="/reflect" method="post">
             <label for="message">Message</label>
             <input id="message" name="message" type="text" placeholder="Enter a message" required>
-            <button type="submit">Send to /echo</button>
+            <button type="submit">Send to /reflect</button>
         </form>
     </main>
 </body>

@@ -1,7 +1,0 @@
-{
-  "id": "echo-form-html",
-  "name": "Form that posts to /echo",
-  "description": "An HTML page with a form that submits a message to the /echo route.",
-  "content_file": "contents/echo_form.html",
-  "suggested_filename": "echo-form.html"
-}

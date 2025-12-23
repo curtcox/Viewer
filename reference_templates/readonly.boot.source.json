@@ -291,6 +291,11 @@
       "enabled": true
     },
     {
+      "name": "ls",
+      "definition_cid": "reference_templates/servers/definitions/ls.sh",
+      "enabled": true
+    },
+    {
       "name": "jq",
       "definition_cid": "reference_templates/servers/definitions/jq.sh",
       "enabled": true
@@ -401,6 +406,11 @@
       "enabled": true
     },
     {
+      "name": "shasum",
+      "definition_cid": "reference_templates/servers/definitions/shasum.sh",
+      "enabled": true
+    },
+    {
       "name": "sha256sum",
       "definition_cid": "reference_templates/servers/definitions/sha256sum.sh",
       "enabled": true
@@ -436,6 +446,11 @@
       "enabled": true
     },
     {
+      "name": "tree",
+      "definition_cid": "reference_templates/servers/definitions/tree.sh",
+      "enabled": true
+    },
+    {
       "name": "tr",
       "definition_cid": "reference_templates/servers/definitions/tr.sh",
       "enabled": true
@@ -468,6 +483,11 @@
     {
       "name": "wc",
       "definition_cid": "reference_templates/servers/definitions/wc.sh",
+      "enabled": true
+    },
+    {
+      "name": "which",
+      "definition_cid": "reference_templates/servers/definitions/which.sh",
       "enabled": true
     },
     {

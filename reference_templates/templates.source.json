@@ -12,10 +12,10 @@
     }
   },
   "servers": {
-    "echo": {
-      "name": "Echo request context",
+    "reflect": {
+      "name": "Reflect request context",
       "description": "Render the incoming request and context as HTML for debugging",
-      "definition_cid": "reference_templates/servers/definitions/echo.py"
+      "definition_cid": "reference_templates/servers/definitions/reflect.py"
     },
     "auto-main": {
       "name": "Auto main",
@@ -72,10 +72,10 @@
       "description": "A minimal HTML page that renders a friendly greeting",
       "content_cid": "reference_templates/uploads/contents/hello_world.html"
     },
-    "echo-form": {
-      "name": "Echo Form",
+    "reflect-form": {
+      "name": "Reflect Form",
       "description": "Interactive form that echoes user input",
-      "content_cid": "reference_templates/uploads/contents/echo_form.html"
+      "content_cid": "reference_templates/uploads/contents/reflect_form.html"
     },
     "markdown-showcase": {
       "name": "Markdown Showcase",

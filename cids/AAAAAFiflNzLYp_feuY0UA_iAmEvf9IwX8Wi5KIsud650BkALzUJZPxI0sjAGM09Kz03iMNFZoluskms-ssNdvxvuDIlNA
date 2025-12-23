@@ -56,11 +56,6 @@
       "enabled": true
     },
     {
-      "name": "hrx",
-      "definition_cid": "AAAAAAlXDaZ5WKnx6iRBSWhb8W350D-d3TD7SOLFf4ug22SIeI1dhhYN0WiRQO2TZ4D2OzWuooz171lAC5iEYKfjTjQhPg",
-      "enabled": true
-    },
-    {
       "name": "gateway",
       "definition_cid": "AAAAAEYoitd5gfBP6Yj3HgfpR_gSXatHWHa5K3D9mBgCgX0OSmj5Np2TYEfzO-vBIqVpXP8zWqLEK9ozspnDoWiDRZRNhA",
       "enabled": true
@@ -237,7 +232,7 @@
     },
     {
       "name": "echo",
-      "definition_cid": "AAAAAAMcjwl6YxzYM8QXVkKuv4M4QwgmBEJL1S1pYW4K5sOlUqZnx5apiACSDfnBwYXW-yLUW-SgjfddXfilwn8PIWhy3A",
+      "definition_cid": "AAAAAAMrLGuBsR8DMVaibYw9N39Tmt54BUSqGfsI7yH4zaSxGR0xUVTVJ2vtka_rxcNZJXS7KLYR7owd1CVBVwoTf0UZLQ",
       "enabled": true
     },
     {
@@ -634,7 +629,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABkZw3LANR5DoPynNGBuPqd0qWDQWtOiStD_9Hi0ZkC40u0mkvGHrSV-SwUw9gdKMHlCpY7k2UgcC792nT9rryhOJQ",
+      "definition": "AAAAABkNg-MLydMQUqbOaGkY4x3o6ATm4Tii2euXWf-PSIxqZRh0UNiFOPhrfq4mcnhA65QX22mxh4INJsK09GRm_GFDeQ",
       "enabled": true
     },
     {

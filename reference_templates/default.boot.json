@@ -356,6 +356,11 @@
       "enabled": true
     },
     {
+      "name": "ls",
+      "definition_cid": "AAAAAAMcx8LDNR_r1ZodlDUdFk3NHhlCGn2iZ32SKrf8u7hc_CxPCDG3R6LVmrceEwlJSraAdqKobr-NI2ZmmrILfE93wg",
+      "enabled": true
+    },
+    {
       "name": "man",
       "definition_cid": "AAAAAAMdSGKwZqrb-qeLul9b3ZEEkLfTCwnmNlGS2sOtiehDjDMWQBYQAQZPb7fN6ZMtFQ9mhJSZ6Xvhff24abbr-tb8UA",
       "enabled": true
@@ -466,6 +471,11 @@
       "enabled": true
     },
     {
+      "name": "shasum",
+      "definition_cid": "AAAAAAM8aoPg-fgEi3CM1bF09p6PRi_Ogpafosdcx_tzij9EyWotkdEkjTegLk_gRxNlpINfWayJDD6FjGoZCWTmJyg2fw",
+      "enabled": true
+    },
+    {
       "name": "sha256sum",
       "definition_cid": "AAAAAAM7gzzE6u-5ATNvvV9styGLMjVLs8x8A_IUMR1AYqOKuWaKhnLgKOMzrt85VzHp_ZqHcSBNG5LSmJL54fp8OUKbnQ",
       "enabled": true
@@ -526,6 +536,11 @@
       "enabled": true
     },
     {
+      "name": "tree",
+      "definition_cid": "AAAAAAR_f2Rg7qmLorI9pjYs9LnxbhOAvI87IrOGUnumNHf1Ijbp4X_odRegfHsS6TQGjGx9odrWvnnBFuhB0KAxAwB-1A",
+      "enabled": true
+    },
+    {
       "name": "tr",
       "definition_cid": "AAAAAAMgsVKToQeJoImciJK5LTqVConPHVoZLmFu1q8-cmw6-hbUAZvWKlaHVXoL6xqAj3KH3noFN4_MnPtKNXgBP-33UA",
       "enabled": true
@@ -568,6 +583,11 @@
     {
       "name": "wget",
       "definition_cid": "AAAAAAMfxEsOqNTOCeW423e8SfzcZ0hR8fs2DTBnPIdS1lyCuRq_kokkAf3aHTwsOSEASsYtopPFjOjf2Mvw6P76brgDcg",
+      "enabled": true
+    },
+    {
+      "name": "which",
+      "definition_cid": "AAAAAAMp1vXtx9muz7r4maku3FbNSTTEEUWt_xZ9H0UqWHVOalkK1lU6dKzF34eFoBXy7sn_WGB7CKpYp4Gd9g3htmdqJw",
       "enabled": true
     },
     {
@@ -614,7 +634,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABjerE98TsIhzSqLYax3Y--hJSEIVKBDmKEkeAUeWAojmGsjOsGOvYAYL3-d79E0BwlZczDFfvn4miDMIuy2bbBtQA",
+      "definition": "AAAAABkZw3LANR5DoPynNGBuPqd0qWDQWtOiStD_9Hi0ZkC40u0mkvGHrSV-SwUw9gdKMHlCpY7k2UgcC792nT9rryhOJQ",
       "enabled": true
     },
     {
