@@ -66,16 +66,6 @@
       "enabled": true
     },
     {
-      "name": "files",
-      "definition_cid": "AAAAAAjDw8XXPbvGnIU6EEOglVbc6g8Lah7EJ-b1xDiaRWZcSIzEpLMbbPqo3wiHu8pWR9CbCO9-om5iRIoS3nweCp3PHA",
-      "enabled": true
-    },
-    {
-      "name": "cid_links",
-      "definition_cid": "AAAAAA3yP8vZp0NCu8wTFW0Rnptg_hAsDFIirsPLwML4zn9ZPfHc1yGMe3HQWB_nLSm-d40KGIhJyQM8FqkdWnyLO6Ozbg",
-      "enabled": true
-    },
-    {
       "name": "google_gemini",
       "definition_cid": "AAAAAALpGaX8UPOcTsJrWgt-yp6TjAPjytk1SJzQAUbTr7YXWPfECCHmfiZ4_0olrl_k2CRhHcTBLqHHRi04GfUmR9pj3g",
       "enabled": true
@@ -128,11 +118,6 @@
     {
       "name": "ai_editor",
       "definition_cid": "AAAAABu8a62uw4-FzFgiMz5s4lCxcIddOJ1P1yMposLYgbJ6MKEeNBIOCyPp16LXljDuaxqK9t-EyklnGqPaQFSJSZ96Lw",
-      "enabled": true
-    },
-    {
-      "name": "ai_assist",
-      "definition_cid": "AAAAAE3EI2XfzXzVJVe-64OYNA3wQNjXx7dLmxGfp5N7WXU1WPF85Ze-uiB-GiCF2hadsqUHFNLbyq4DskRoaJ-rP8jxJA",
       "enabled": true
     },
     {

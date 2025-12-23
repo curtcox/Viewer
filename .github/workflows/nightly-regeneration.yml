@@ -32,8 +32,8 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Generate boot images
-        run: python generate_boot_image.py
+      - name: Generate boot images (and fail if boot.* differs from default.boot.*)
+        run: bash check_boot_image_files_match.sh
 
       - name: Generate test index
         run: python generate_test_index.py
@@ -51,7 +51,7 @@ jobs:
           # Using || true to handle cases where glob patterns don't match any files
           git add reference_templates/*.json reference_templates/*.cid TEST_INDEX.md 2>/dev/null || true
           git add cids/ 2>/dev/null || true
-          
+
           if git diff --cached --quiet; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected"

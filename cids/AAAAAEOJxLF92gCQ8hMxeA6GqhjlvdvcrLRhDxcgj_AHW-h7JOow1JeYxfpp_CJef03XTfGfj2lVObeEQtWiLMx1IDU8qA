@@ -46,11 +46,6 @@
       "enabled": true
     },
     {
-      "name": "shell",
-      "definition_cid": "AAAAAAgjImFOVDQRrmpxzfsEMkvHHznh_7EgGhK74l9SZgn-Aj159nn1rNfjvVJPiLsPxeTm9ma5XCSAdCiOwShIE_iOjQ",
-      "enabled": true
-    },
-    {
       "name": "glom",
       "definition_cid": "AAAAABTWb1akxzL_bpFix54IqmDtWDOa3BBb0xY15kpSijDUDAc_KxvcQs-Bvxys5RJS2Uf9IBA4h6bSwkamY4rg2BF-2g",
       "enabled": true
@@ -63,16 +58,6 @@
     {
       "name": "io",
       "definition_cid": "AAAAACCJMXsVJtUQbDzMdXB6eYsR1-0XD1DDmC8D5NlSyBNYCMT_hVaXLeepRe3mZchyh6s_pVOznysDC7GE1F0ajUP8pQ",
-      "enabled": true
-    },
-    {
-      "name": "files",
-      "definition_cid": "AAAAAAjDw8XXPbvGnIU6EEOglVbc6g8Lah7EJ-b1xDiaRWZcSIzEpLMbbPqo3wiHu8pWR9CbCO9-om5iRIoS3nweCp3PHA",
-      "enabled": true
-    },
-    {
-      "name": "cid_links",
-      "definition_cid": "AAAAAA3yP8vZp0NCu8wTFW0Rnptg_hAsDFIirsPLwML4zn9ZPfHc1yGMe3HQWB_nLSm-d40KGIhJyQM8FqkdWnyLO6Ozbg",
       "enabled": true
     },
     {
@@ -131,11 +116,6 @@
       "enabled": true
     },
     {
-      "name": "ai_assist",
-      "definition_cid": "AAAAAE3EI2XfzXzVJVe-64OYNA3wQNjXx7dLmxGfp5N7WXU1WPF85Ze-uiB-GiCF2hadsqUHFNLbyq4DskRoaJ-rP8jxJA",
-      "enabled": true
-    },
-    {
       "name": "awk",
       "definition_cid": "AAAAAAM2vJVb8lhKLJxRwxa0LGf5sly33MECDzlgy4ZzHKNXLRkuq8kTkmmijEOSO7gcs2IgdEd1Nul4nEISqY2jjXq05g",
       "enabled": true
@@ -156,11 +136,6 @@
       "enabled": true
     },
     {
-      "name": "bzip2",
-      "definition_cid": "AAAAAAMvSMWa47yPggWdi3W72x0OdruC3hZjifQ-wS_qN7g56-fL-F4X2HNEqOh3Qq6k3OFzfJOW8Ik1TN08NfsTG4o1Ag",
-      "enabled": true
-    },
-    {
       "name": "cat",
       "definition_cid": "AAAAAAMvlkX81t9LWdwiTNcpxgs_Mv69nZwttAG8cBqQ2it9HSR_XkZoNcfbi_GslyMsYLu8Tjav9T_jFCg5xmE98tXhNg",
       "enabled": true
@@ -178,11 +153,6 @@
     {
       "name": "csvtool",
       "definition_cid": "AAAAAAMuy3toE7j61S9I4YIdorpCl6szqkrekP-FQIRpjEQnaNzpKjq7NOMgFjy4ffhXoBrdt2x7o1cIQrjN6QGNoKWHqA",
-      "enabled": true
-    },
-    {
-      "name": "curl",
-      "definition_cid": "AAAAAAMkqik6Un5p1HFb9-nf6QpUFkKe3gypnVQNikfx_jP5DS1ey5IFaJxe4uGvcx2h6wdo_5aBK4PR5QEAumBMg6HWcg",
       "enabled": true
     },
     {
@@ -221,11 +191,6 @@
       "enabled": true
     },
     {
-      "name": "docker",
-      "definition_cid": "AAAAAAM0ZezafOAODKEJw4XY1bWO4L4Np6BfKmLOl3KE67ZUrKrSNBgZCPAplMd2l5vmMkdhuZJqnSSKxDy59TxJMjA29A",
-      "enabled": true
-    },
-    {
       "name": "du",
       "definition_cid": "AAAAAAMehERAmXTQ_9jIKJsL8a1te4IBcqbuw7szid1qrzayhKhBW4zScJMjyPSuwjTm_uc45EGquLXr7bxSROylMwObmw",
       "enabled": true
@@ -233,11 +198,6 @@
     {
       "name": "echo",
       "definition_cid": "AAAAAAMcjwl6YxzYM8QXVkKuv4M4QwgmBEJL1S1pYW4K5sOlUqZnx5apiACSDfnBwYXW-yLUW-SgjfddXfilwn8PIWhy3A",
-      "enabled": true
-    },
-    {
-      "name": "env",
-      "definition_cid": "AAAAAAMqN9NIWwnA_ohUqu93ZCn4epYRMI6cFUsD7et_VNzFmls1Q9HDP79YTjdPU50WF0kRS7PhsO4fO6JZ8tVJ9Vg0cw",
       "enabled": true
     },
     {
@@ -256,11 +216,6 @@
       "enabled": true
     },
     {
-      "name": "find",
-      "definition_cid": "AAAAAAMzvBGEZTzjPdqH87MWIHXhBulxjhJmsRdD4z9TYuuCUJ0gnqjni2W2iHtYwuMVcfUp3tvbnf8XxfK3g8ANiR2RLg",
-      "enabled": true
-    },
-    {
       "name": "fold",
       "definition_cid": "AAAAAAMivfQV2SRieI6zgVriR3f_w-X7oL5sgHGpZbahy1dMICVYyuCWQ2-SIbImw0Tind0Do9ydx7SznmGNbFZcN8DQnw",
       "enabled": true
@@ -271,23 +226,8 @@
       "enabled": true
     },
     {
-      "name": "git",
-      "definition_cid": "AAAAAAMs-1_66ueK9te4yi5-Ch50LIhdl5F8cSXBoJTVNP5Fp95T5WZlfdRHxp06Kl1_FLg9-_ecr6PtQPhy_XE11ITl6Q",
-      "enabled": true
-    },
-    {
       "name": "grep",
       "definition_cid": "AAAAAAMiKx_VsRKB_azxDpVHCVPjyOM86qpOclJdWQYMJTusjjvoBjtv8P3ee4JxY-TbjygR2ylLeiVvdKh55WhoEwGzEA",
-      "enabled": true
-    },
-    {
-      "name": "gunzip",
-      "definition_cid": "AAAAAAMk0RIHjOoXqvWPtuhMdCTRm8LwRC3NEuXDUgyDtEBqCq88F57omtmrvUAdgVOd0922WxNXMsnJrQtnZbxeVBBHeg",
-      "enabled": true
-    },
-    {
-      "name": "gzip",
-      "definition_cid": "AAAAAAMl1MESk1P47yFGvoBogrDNthu1E0iGXChCH0Epkwnyvb_NnvicxNNGyvKLZu6fmK1SRtOEdxXhPlf6F7z7zXtXwQ",
       "enabled": true
     },
     {
@@ -316,16 +256,6 @@
       "enabled": true
     },
     {
-      "name": "ifconfig",
-      "definition_cid": "AAAAAAM_c8UBgTk1w-w0dtQRbMLYyQKbIXqchRSfyXtZGNSITTmUHhEeSbBwmTSreQc7jEWVjAgC1UlLURSfliwx1MYWvA",
-      "enabled": true
-    },
-    {
-      "name": "ip",
-      "definition_cid": "AAAAAAMpRrKMKrtY3FlyO8VK9cwgngW0rDQeOZ7KizLPZwj_eKEDY6uTFgJHX-S9XUX4LsO1UF-fGlOQhd2MOHiwI0Vl2w",
-      "enabled": true
-    },
-    {
       "name": "jobs",
       "definition_cid": "AAAAAAMcINdXOjCugUHWC4CGRH7Kla4yz1nOntYMqY1KMwDrui2zWDc9ba9MgZ3cEYbKiIX_ttMqOT-BEmbv6FHYcy39Ng",
       "enabled": true
@@ -346,11 +276,6 @@
       "enabled": true
     },
     {
-      "name": "kubectl",
-      "definition_cid": "AAAAAANBq0Fg4_zxgvLOJVY0Yyc_vGHbQS3cSGhruazk63eYQzbth8macDS9-yLxIzQyLP5SP0iCKh5I_BZNZfAsv7FV6Q",
-      "enabled": true
-    },
-    {
       "name": "man",
       "definition_cid": "AAAAAAMdSGKwZqrb-qeLul9b3ZEEkLfTCwnmNlGS2sOtiehDjDMWQBYQAQZPb7fN6ZMtFQ9mhJSZ6Xvhff24abbr-tb8UA",
       "enabled": true
@@ -358,11 +283,6 @@
     {
       "name": "md5sum",
       "definition_cid": "AAAAAAMrnAFfqVUlHPCBL5bqujpwPVfB_RY429WDVdvC4CYCj6IM6vYvrb0l7b89cL_V2uSCOqyvhW1eUMYk90OKyo7jcA",
-      "enabled": true
-    },
-    {
-      "name": "mktemp",
-      "definition_cid": "AAAAAAM83YuB_6_cyzN9S9UIElHpPGEzvZcRuv3rWkUzFF-f0ko9AAx0dzQ9ZUzaQnSru9DHu4VkpT71R2HdRdEKmWXGXQ",
       "enabled": true
     },
     {
@@ -486,33 +406,8 @@
       "enabled": true
     },
     {
-      "name": "systemctl",
-      "definition_cid": "AAAAAANVH_DxOf9wpBT_dQuWbbShEAJpxa-Gtu9F_3BMetUvErKtN1QYhCOFGykVHXWpH93Vf-MWpnKae3TTLYGZdK4a0A",
-      "enabled": true
-    },
-    {
       "name": "tail",
       "definition_cid": "AAAAAAMdabXE4fXd1DG9uSrwzk-fVCvcVKmm54mpRIDeRdiZVuTbrhGKtkKsI5Uv_7ZWQYEl0FkR1Odq15UiQBUK_85gcA",
-      "enabled": true
-    },
-    {
-      "name": "tar",
-      "definition_cid": "AAAAAAM2wk6U4VPbklInLqvmEnXjNqrgRZ8awZ6o-fp4LTKWk562iQKEwjcIpttQKwJ0OjWE1CX9omdvtjindQ-ZJd98Hw",
-      "enabled": true
-    },
-    {
-      "name": "tee",
-      "definition_cid": "AAAAAAMqfCp0DoaDAKkQLnYXcjE79tFtACDxI8tP-KYnSJtQK_hAXuLcNT9s2WIFfybWrBCjfPfI86Hv4vcJ7jQ__uFztQ",
-      "enabled": true
-    },
-    {
-      "name": "time",
-      "definition_cid": "AAAAAAMk_XOJ73qovKRCTv93y8Kd7bB05Fpp9yP2js7-Am6fkB7l6Ljmw5U7YZEKUbAtfMZocrPnRZDxkkfaVOMgFLXF0g",
-      "enabled": true
-    },
-    {
-      "name": "timeout",
-      "definition_cid": "AAAAAAM4Pl5tBmjcdUfInGbW1rEYJh7IA5NQoJiZIbXfvHcTSfd1jZ1ww3jKpOiuGfd7m7QAu0O0-ooi0TWacYbUFVGeqg",
       "enabled": true
     },
     {
@@ -546,11 +441,6 @@
       "enabled": true
     },
     {
-      "name": "unzip",
-      "definition_cid": "AAAAAAMlRntOcHGSIbJikrTQv7rd0XFfvCrk5sBOkeUqQRQs00kxWi6jetHYOV7S6wYUZBeLMNNoDjTR3kyC2P5OyFR4jg",
-      "enabled": true
-    },
-    {
       "name": "uptime",
       "definition_cid": "AAAAAAMpVwR8p1jkc0U7E31lu10XQDQO3_uF3DQBfcZeIV4eHGI_b68ZHAvmhumVjB9msbl-e8yLpeoIoO6p3i0Hpe2cDQ",
       "enabled": true
@@ -561,18 +451,8 @@
       "enabled": true
     },
     {
-      "name": "wget",
-      "definition_cid": "AAAAAAMfxEsOqNTOCeW423e8SfzcZ0hR8fs2DTBnPIdS1lyCuRq_kokkAf3aHTwsOSEASsYtopPFjOjf2Mvw6P76brgDcg",
-      "enabled": true
-    },
-    {
       "name": "whoami",
       "definition_cid": "AAAAAAMn-rk1csW1hte56BwXwHwhulek5UDApG9Yl2TJwdLTsdtWeoCQ8RgaZPbAMVyrnfe7RJx1bJfzjP50pVqAdI8laQ",
-      "enabled": true
-    },
-    {
-      "name": "xargs",
-      "definition_cid": "AAAAAAM4x-47n5jdgpPMjErpYCmVK4CHZ5rW70-H7zCMfnN5BR6tursXrZCsfQ5WuFlqtb3TDxsG41sOluCkhjkxYfv2XA",
       "enabled": true
     },
     {
@@ -586,11 +466,6 @@
       "enabled": true
     },
     {
-      "name": "xz",
-      "definition_cid": "AAAAAAMgdf1jNpqYPunD4GgRldTr94SWbBvG_dNWY3hlxLTxfHpkAFj8-uK2aUPDxcltsRF4k-Uvk_14t7MtbeGiFkvA2A",
-      "enabled": true
-    },
-    {
       "name": "yq",
       "definition_cid": "AAAAAAMq2ZItWH_QossilZIw623wms6Bcl6QBbXuYBFIAUm5NIbgs1cgJ4y9pJrrDaDOITiAWfXmqMoO9u9IrxyDxcTKmw",
       "enabled": true
@@ -598,11 +473,6 @@
     {
       "name": "zcat",
       "definition_cid": "AAAAAAMlaMOHfd7JftqvfoGgXXuLbNmjBhI4bP6EkLFrKOZAuQme0JPbECsfOZAEBmMb7HWbU9XO2IJbxAhkHTt1Tg8SpQ",
-      "enabled": true
-    },
-    {
-      "name": "zip",
-      "definition_cid": "AAAAAAMcssk8G8XIaDI8nmKJmXPwKgdhgMuzyF-R3lkFX_fRKqaLHyauUw_ctk7_hfEagp5qLhsnODO0VoBfVckzOtUx8g",
       "enabled": true
     }
   ],

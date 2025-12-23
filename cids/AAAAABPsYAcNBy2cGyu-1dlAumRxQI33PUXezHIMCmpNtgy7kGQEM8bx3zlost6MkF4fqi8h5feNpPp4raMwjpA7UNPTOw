@@ -1,0 +1,156 @@
+{
+  "version": 6,
+  "runtime": "{\"python\": {\"version\": \"3.11.0\", \"implementation\": \"CPython\"}}",
+  "project_files": "{}",
+  "aliases": [
+    {
+      "name": "ai",
+      "definition_cid": "AAAAAAARYWkgLT4gL2FpX2Fzc2lzdAo",
+      "enabled": true
+    },
+    {
+      "name": "ai_about",
+      "definition_cid": "AAAAAAASYWlfYWJvdXQgLT4gL2VjaG8K",
+      "enabled": true
+    },
+    {
+      "name": "cookies",
+      "definition_cid": "AAAAAABwT5wpsj5DSheNKHonqPEoD6dBhqwmGJHWwCeDvje7WhhC64I5jJCWzdorCkW19vkdi1LLePQzB6pFNcr1HkPjeQ",
+      "enabled": true
+    }
+  ],
+  "servers": [
+    {
+      "name": "ai_stub",
+      "definition_cid": "AAAAAAl3qJvncImjT6EyiB8JXypHPdzn2vPawWKvAFWu9blgdvWqiKMrcVqFOfALgEfAFy4Z5Oiv7r5JOp8N_NVmMKyVXg",
+      "enabled": true
+    },
+    {
+      "name": "ai_assist",
+      "definition_cid": "AAAAAE3EI2XfzXzVJVe-64OYNA3wQNjXx7dLmxGfp5N7WXU1WPF85Ze-uiB-GiCF2hadsqUHFNLbyq4DskRoaJ-rP8jxJA",
+      "enabled": true
+    },
+    {
+      "name": "anthropic_claude",
+      "definition_cid": "AAAAAAR1K4NxeXNfbO--2jYloChZBEAn_FaPZzvIhHrcKDojjk2ong1aFMh1Dxpwc7P1NBm3XhhkSmFtaFRtmMEZuoNkYg",
+      "enabled": true
+    },
+    {
+      "name": "auto_main",
+      "definition_cid": "AAAAAAUAzUNEGmF8SGCkh8152c3H1wrxIMha6WEE0a_OeHb-Enr8vcrspwGutk8a_dGjCVNj4AFhc4MmLlYE045-egEHMw",
+      "enabled": true
+    },
+    {
+      "name": "markdown",
+      "definition_cid": "AAAAAANlCGrLM1BcFmv6LErO8aEV2AU4L3OcHg_U47eGIAmhupMoKQkLBDyhIisiCf5czzVRecc3AikQG54OT26fjsXmUw",
+      "enabled": true
+    },
+    {
+      "name": "shell",
+      "definition_cid": "AAAAAAgjImFOVDQRrmpxzfsEMkvHHznh_7EgGhK74l9SZgn-Aj159nn1rNfjvVJPiLsPxeTm9ma5XCSAdCiOwShIE_iOjQ",
+      "enabled": true
+    },
+    {
+      "name": "cid_links",
+      "definition_cid": "AAAAAA3yP8vZp0NCu8wTFW0Rnptg_hAsDFIirsPLwML4zn9ZPfHc1yGMe3HQWB_nLSm-d40KGIhJyQM8FqkdWnyLO6Ozbg",
+      "enabled": true
+    },
+    {
+      "name": "echo",
+      "definition_cid": "AAAAAAMcjwl6YxzYM8QXVkKuv4M4QwgmBEJL1S1pYW4K5sOlUqZnx5apiACSDfnBwYXW-yLUW-SgjfddXfilwn8PIWhy3A",
+      "enabled": true
+    },
+    {
+      "name": "glom",
+      "definition_cid": "AAAAABTWb1akxzL_bpFix54IqmDtWDOa3BBb0xY15kpSijDUDAc_KxvcQs-Bvxys5RJS2Uf9IBA4h6bSwkamY4rg2BF-2g",
+      "enabled": true
+    },
+    {
+      "name": "google_gemini",
+      "definition_cid": "AAAAAALpGaX8UPOcTsJrWgt-yp6TjAPjytk1SJzQAUbTr7YXWPfECCHmfiZ4_0olrl_k2CRhHcTBLqHHRi04GfUmR9pj3g",
+      "enabled": true
+    },
+    {
+      "name": "jinja",
+      "definition_cid": "AAAAAAK1ttKQW9DZJ9DP4kP9utIdkZvDzMimLIb8Q2x_b79V-NoClpr9W6WwoPIcFFO6Mf_YvDQ5EBs_-wj_lYVPdMd2xA",
+      "enabled": true
+    },
+    {
+      "name": "file",
+      "definition_cid": "AAAAAAMqF3qOA8vo0urhAsFE-WCvvyw8yXIMFJQaw34Pimh_vvLypbyuPkqA6L4QPd0cpg5xPm-e8YDXldv4c4-YmnVQXg",
+      "enabled": true
+    },
+    {
+      "name": "nvidia_nim",
+      "definition_cid": "AAAAAAOgwPEIyUAZHwXZMg6jINbgLpDR6AQQwH6eE2YZxIfeSeOojoFVc_MgkyEmBCgVPuTBFSTKqJ6IhQQt--Q_EzkLrA",
+      "enabled": true
+    },
+    {
+      "name": "openai_chat",
+      "definition_cid": "AAAAAAMWrWv-WBhDECY9jCTmF0_7an1vY81fmwJA_uMsBxs5kK6hXRAcGenL3M3HkRO-2kSsrH6b6EUI6Um8mL4WqIG9wQ",
+      "enabled": true
+    },
+    {
+      "name": "openrouter",
+      "definition_cid": "AAAAAANUOuanh8hUFyX6AozQDYoWYCncqXyvoX_5vWNXqtyMN5TDgI0ghksSqjTzyDxpESgJFv0PXWCQ3cNRth_V_fUqGQ",
+      "enabled": true
+    },
+    {
+      "name": "proxy",
+      "definition_cid": "AAAAABYgQKvttnJmQ20KtX5pQdGTwgZaGAcJa51NgczBBYGvjDPTmsKCtOt2U0eSp954MYAUz7X5ksj2iN6v2JcBsr2iRA",
+      "enabled": true
+    },
+    {
+      "name": "qr",
+      "definition_cid": "AAAAAAZzV_6EfLUkdPKtYZED7G6BvGm4OCGlFKhgC0TwvBjRbw9wtMDwwW1q3KdGfvJ2BSslicE16GOqZ7StlDwou1zMpQ",
+      "enabled": true
+    },
+    {
+      "name": "pygments",
+      "definition_cid": "AAAAABBsWm4-28FQ5b-m-C_7jrYxfMTa6ylOcYIctIE0N8De_3_05IaW3zyGl5ha8UVdmSWIFWvH4md0rPjjoBeswuxIiA",
+      "enabled": true
+    },
+    {
+      "name": "urleditor",
+      "definition_cid": "AAAAABmg9dxt5NvhsIEdylINFExca-wDSz4UDgtzvO_1i0D72ookD1urZq0341pljrr7fUHjH1FKxiND6T-osvwcSV4eKA",
+      "enabled": true
+    },
+    {
+      "name": "ai_editor",
+      "definition_cid": "AAAAABu8a62uw4-FzFgiMz5s4lCxcIddOJ1P1yMposLYgbJ6MKEeNBIOCyPp16LXljDuaxqK9t-EyklnGqPaQFSJSZ96Lw",
+      "enabled": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "templates",
+      "definition": "AAAAABjerE98TsIhzSqLYax3Y--hJSEIVKBDmKEkeAUeWAojmGsjOsGOvYAYL3-d79E0BwlZczDFfvn4miDMIuy2bbBtQA",
+      "enabled": true
+    },
+    {
+      "name": "uis",
+      "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
+      "enabled": true
+    },
+    {
+      "name": "AI_MODEL",
+      "definition": "anthropic/claude-sonnet-4.5",
+      "enabled": true
+    },
+    {
+      "name": "AI_TEMPERATURE",
+      "definition": "0.3",
+      "enabled": true
+    },
+    {
+      "name": "AI_MAX_TOKENS",
+      "definition": "4096",
+      "enabled": true
+    },
+    {
+      "name": "AI_SYSTEM_PROMPTS",
+      "definition_file": "AAAAAAKjzmQXzKjvPUCcuwOWz8WE80vh6i1UU7x63NmlP1KRnsMboBt9DGXzk1yEy1Inl3-hy8WWHlnHIkU5Xfb0r8-gDQ",
+      "enabled": true
+    }
+  ]
+}

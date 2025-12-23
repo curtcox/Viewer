@@ -61,6 +61,16 @@
       "enabled": true
     },
     {
+      "name": "files",
+      "definition_cid": "reference_templates/servers/definitions/files.py",
+      "enabled": true
+    },
+    {
+      "name": "cid_links",
+      "definition_cid": "reference_templates/servers/definitions/cid_links.py",
+      "enabled": true
+    },
+    {
       "name": "google_gemini",
       "definition_cid": "reference_templates/servers/definitions/google_gemini.py",
       "enabled": true
@@ -113,6 +123,11 @@
     {
       "name": "ai_editor",
       "definition_cid": "reference_templates/servers/definitions/ai_editor.py",
+      "enabled": true
+    },
+    {
+      "name": "ai_assist",
+      "definition_cid": "reference_templates/servers/definitions/ai_assist.py",
       "enabled": true
     },
     {
