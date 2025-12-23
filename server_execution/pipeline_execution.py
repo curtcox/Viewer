@@ -7,6 +7,7 @@ A pipeline executes right-to-left, with each segment's output becoming
 the input to the segment on its left.
 """
 
+from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Set
 
 from flask import Response
@@ -47,9 +48,6 @@ from server_execution.segment_analysis import (
 _EXECUTABLE_EXTENSIONS = EXECUTABLE_EXTENSIONS
 _DATA_EXTENSIONS = DATA_EXTENSIONS
 _EXTENSION_TO_LANGUAGE = EXTENSION_TO_LANGUAGE
-
-
-from dataclasses import dataclass
 
 
 @dataclass

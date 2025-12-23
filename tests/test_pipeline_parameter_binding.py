@@ -7,10 +7,41 @@ These tests verify that pipeline parameters bind correctly to servers:
 This behavior is shared between pipeline execution and io execution.
 """
 
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-from server_execution.segment_analysis import (
+# Mock Flask, SQLAlchemy, and related modules before importing server_execution modules
+# These mocks prevent the deep import chain that requires installed dependencies
+# Create separate mock instances for each module to avoid conflicts
+for mod in [
+    "flask", "flask_sqlalchemy", "sqlalchemy", "sqlalchemy.exc", "sqlalchemy.orm",
+    "werkzeug", "werkzeug.exceptions", "werkzeug.routing",
+    "database", "models", "db_access", "db_access._exports", "db_access._common",
+    "db_access.aliases", "db_access.servers", "db_access.cids",
+    "alias_routing", "alias_definition", "alias_matching",
+    "cid_core", "cid_presenter",
+    "routes", "routes.pipelines",
+]:
+    sys.modules[mod] = MagicMock()
+
+# Set up mock return values for functions that need proper behavior
+sys.modules["db_access"].get_server_by_name = MagicMock(return_value=None)
+sys.modules["db_access"].get_cid_by_path = MagicMock(return_value=None)
+sys.modules["alias_routing"].find_matching_alias = MagicMock(return_value=None)
+sys.modules["alias_routing"].resolve_alias_target = MagicMock()
+sys.modules["routes.pipelines"].get_segment_base_and_extension = lambda s: (s, None)
+
+# CID functions - return values that indicate "not a CID"
+sys.modules["cid_core"].split_cid_path = MagicMock(return_value=None)
+sys.modules["cid_core"].is_normalized_cid = MagicMock(return_value=False)
+sys.modules["cid_core"].is_probable_cid_component = MagicMock(return_value=False)
+sys.modules["cid_core"].parse_cid_components = MagicMock(return_value=None)
+sys.modules["cid_core"].extract_literal_content = MagicMock(return_value=None)
+sys.modules["cid_presenter"].cid_path = MagicMock(return_value=None)
+sys.modules["cid_presenter"].format_cid = MagicMock(return_value=None)
+
+from server_execution.segment_analysis import (  # noqa: E402
     analyze_segment,
     resolve_segment_type,
 )
