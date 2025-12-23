@@ -49,7 +49,6 @@ class HRXArchive:
 
         # Split the archive by boundaries
         # Each entry starts with a boundary
-        pattern = f"^{re.escape(boundary)}"
         lines = archive_string.split("\n")
 
         current_path: Optional[str] = None
