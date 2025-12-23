@@ -294,106 +294,214 @@ These tests verify that io reuses the same segment classification as pipeline.
 
 ---
 
-## Open Questions
+## Resolved Design Decisions
 
-### Q1: Middle Server Signature for Response Phase
+### D1: Middle Server Signature for Response Phase
 
-**Question**: What signature should middle servers use to receive both the original request and the response from the right?
+**Decision**: Separate positional parameters
 
-**Options**:
-a) Separate positional parameters: `def main(request, response, *, context=None)`
-b) Combined dict parameter: `def main(data, *, context=None)` where `data = {"request": ..., "response": ...}`
-c) Use context: `def main(input, *, context=None)` where `context["io_response"]` contains the response
-d) Named parameters: `def main(*, io_request=None, io_response=None, context=None)`
-
-**Implications**:
-- Option (a) requires all io-compatible servers to follow specific signature
-- Option (b) requires servers to unpack dict, but flexible
-- Option (c) keeps signature simple but uses context magic
-- Option (d) uses kwargs for flexibility
-
-### Q2: Request Phase vs Response Phase Detection
-
-**Question**: How does a middle server know if it's in the request phase or response phase?
-
-**Options**:
-a) Separate function names: `main_request()` and `main_response()`
-b) Phase parameter: `def main(data, *, phase="request", context=None)`
-c) Presence of response: Check if response parameter is None/present
-d) Context flag: `context["io_phase"]` = "request" or "response"
-
-### Q3: Chaining Semantics for Parameters
-
-**Question**: In `/io/s1/param/s2`, how should `param` be treated?
-
-**Options**:
-a) `param` is passed as input to `s2`, result becomes input to `s1`
-b) `param` is configuration for `s1`, `s2` gets empty input
-c) Error - parameters can only be at the end
-d) `param` is treated as a literal server that just returns its text
-
-**Recommended**: Option (d) - consistent with pipeline behavior where parameters are literal values
-
-### Q4: How Should io Handle Non-Chainable Servers?
-
-**Question**: What happens if a Python server without `main()` is in a non-tail position?
-
-**Options**:
-a) Error immediately before execution
-b) Execute in tail-only mode (single invocation)
-c) Skip response phase for that server
-d) Allow it but only invoke once
-
-**Recommended**: Option (a) - consistent with pipeline error behavior
-
-### Q5: Response Modification vs Replacement
-
-**Question**: When a middle server is invoked in the response phase, should it:
-
-**Options**:
-a) Modify the response (must return modified version)
-b) Optionally return nothing to pass response unchanged
-c) Have access to both but only return the final response
-d) Return a tuple of (modified_response, metadata)
-
-### Q6: Debug Output Structure
-
-**Question**: Should debug output for io be different from pipeline?
-
-**Options**:
-a) Same structure as pipeline debug
-b) Extended structure showing request phase + response phase for each segment
-c) Separate sections for request flow and response flow
-
-**Recommended**: Option (b) - extend `PathSegmentInfo` with:
 ```python
-request_phase_input: Optional[str]
-request_phase_output: Optional[str]
-response_phase_input: Optional[str]  # Original request + response from right
-response_phase_output: Optional[str]
+def main(request, response=None, *, context=None):
+    """
+    request: The original request data (always present)
+    response: The response from the server to the right (None during request phase)
+    """
 ```
 
-### Q7: Error Recovery in Response Phase
+**Rationale**: Explicit and clear. Servers know exactly what they're receiving.
 
-**Question**: If a server fails during the response phase, what happens?
+### D2: Request Phase vs Response Phase Detection
+
+**Decision**: Presence of response parameter
+
+- **Request phase**: `response is None`
+- **Response phase**: `response is not None`
+
+```python
+def main(request, response=None, *, context=None):
+    if response is None:
+        # Request phase: transform request for next server
+        return {"output": transform_request(request)}
+    else:
+        # Response phase: modify response before passing back
+        return {"output": transform_response(request, response)}
+```
+
+**Rationale**: Simple, no extra parameters or context magic needed.
+
+### D3: Chaining Semantics for Parameters
+
+**Decision**: Parameters are literal values that configure the server to their left
+
+In `/io/s1/param/s2`:
+- `param` is a literal value that configures `s1`
+- `s1` receives `param` as its request during request phase
+- `s1` produces a chained request that goes to `s2`
+- `s2` (tail) produces a response
+- `s1` receives its original request (`param`) + response from `s2` during response phase
+
+**Example flow for `/io/grep/pattern/cat/file.txt`**:
+```
+Request phase:
+  grep receives "pattern" → produces request for cat
+  cat receives request → produces response (file contents)
+
+Response phase:
+  grep receives ("pattern", file_contents) → filters and returns matching lines
+```
+
+**Rationale**: Parameters act as configuration, consistent with shell pipeline conventions where arguments come before the pipe.
+
+### D4: Non-Chainable Server Handling
+
+**Decision**: Error immediately before execution
+
+If a Python server without `main()` is in a non-tail position, return an error before any execution begins.
+
+**Rationale**: Consistent with pipeline behavior. Fail fast with clear error message.
+
+### D5: Response Modification vs Replacement
+
+**Decision**: Servers must return a response (modification can be a no-op)
+
+- Servers must always return a value from the response phase
+- Returning the response unchanged is valid: `return {"output": response}`
+- There is no "pass-through" mode; explicit return required
+
+**Rationale**: Explicit is better than implicit. Makes data flow traceable.
+
+### D6: Debug Output Structure
+
+**Decision**: Extended structure showing both phases
+
+Extend `PathSegmentInfo` (or create `IOSegmentInfo`) with:
+```python
+@dataclass
+class IOSegmentInfo:
+    segment_text: str
+    segment_type: Literal["server", "parameter", "cid", "alias"]
+    resolution_type: Literal["literal", "contents", "execution", "error"]
+
+    # Request phase tracking
+    request_phase_input: Optional[str] = None
+    request_phase_output: Optional[str] = None
+    request_phase_executed: bool = False
+
+    # Response phase tracking
+    response_phase_request: Optional[str] = None  # Original request
+    response_phase_response: Optional[str] = None  # Response from right
+    response_phase_output: Optional[str] = None
+    response_phase_executed: bool = False
+
+    # Common fields
+    server_name: Optional[str] = None
+    implementation_language: Optional[str] = None
+    errors: List[str] = field(default_factory=list)
+```
+
+**Rationale**: Full visibility into both phases for debugging.
+
+### D7: Error Recovery in Response Phase
+
+**Decision**: Return error immediately, skip remaining servers
+
+If any server fails during the response phase:
+1. Stop the response chain immediately
+2. Return the error to the user
+3. Do not invoke remaining servers in the response chain
+
+**Rationale**: Errors should not be silently swallowed. Consistent with request phase behavior.
+
+### D8: Content-Type Handling Through Chain
+
+**Decision**: Each server can set content-type, but only the leftmost (final) is used
+
+- Any server can include `content_type` in its response
+- During the response phase, each server can override the content-type
+- The final content-type returned to the user is from the leftmost server's response phase output
+- If a server doesn't specify content-type, it inherits from the response it received
+
+**Rationale**: Gives flexibility while maintaining predictable behavior. The "closest to user" server has final say.
+
+---
+
+## Followup Questions
+
+### F1: Parameter Binding Scope
+
+**Question**: In `/io/s1/param1/param2/s2/param3`, how are parameters bound to servers?
 
 **Options**:
-a) Return error immediately, skip remaining servers
-b) Pass original response to next server, continue chain
-c) Provide error to next server in chain to handle
-d) Return partial response with error information
+a) All adjacent parameters bind to the server on their left:
+   - `s1` gets `["param1", "param2"]`
+   - `s2` gets `["param3"]`
 
-### Q8: Content-Type Handling Through Chain
+b) Only the immediately adjacent parameter binds:
+   - `s1` gets `"param1"`
+   - `param2` is an error or treated as literal server
+   - `s2` gets `"param3"`
 
-**Question**: How should content-type be managed as data flows through the chain?
+c) Parameters bind to the server on their right (like pipeline):
+   - `s1` gets nothing initially
+   - `s2` gets `["param1", "param2"]` as input
+   - `param3` is the tail
+
+**Current understanding based on your answer**: Option (a) seems implied - parameters configure the server to their left. Please confirm or clarify.
+
+### F2: Tail Server Parameter Handling
+
+**Question**: In `/io/s1/param/s2/param2`, what happens with `param2`?
+
+If parameters bind to the left:
+- `s1` gets `param` as request
+- `s2` gets `param2` as request
+- But `s2` is the tail, so when does it return a response?
 
 **Options**:
-a) Each server can set/override content-type
-b) Only final (leftmost) server's content-type is used
-c) io server aggregates and negotiates content-types
-d) Content-type from tail propagates unless overridden
+a) `s2` receives `param2` and returns a response based on it
+b) `param2` is the actual tail (literal response), `s2` is a middle server
+c) Error - tail servers cannot have parameters after them
 
-**Recommended**: Option (d) - mirrors how HTTP proxies work
+### F3: Existing Server Compatibility
+
+**Question**: Do existing servers need to be modified to work with io?
+
+**Context**: Existing servers have signatures like:
+```python
+def main(input_data, *, context=None):  # Single input
+def main(command, *, context=None):      # Single input
+```
+
+But io requires:
+```python
+def main(request, response=None, *, context=None):  # Request + optional response
+```
+
+**Options**:
+a) Only new "io-compatible" servers work with io
+b) Existing servers work but only as tail (single invocation)
+c) io wraps existing servers, calling them differently in each phase
+d) Existing servers need an adapter layer
+
+### F4: Request Phase Output Semantics
+
+**Question**: What should a server return during the request phase?
+
+**Options**:
+a) The transformed request for the next server: `return {"output": "request for next"}`
+b) Nothing special, just process normally: `return {"output": result}`
+c) A special structure indicating "pass this to the next server": `return {"chain_request": "..."}`
+
+**Related**: In the request phase, the server's output becomes the input to the next server. Is this just the `output` field, or is there a different structure?
+
+### F5: Empty/No Servers After io
+
+**Question**: What should `/io/` (with trailing slash) or `/io//server` do?
+
+**Options**:
+a) Same as `/io` - show landing page
+b) Error - empty segment
+c) Ignore empty segments
 
 ---
 
