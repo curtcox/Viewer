@@ -156,6 +156,19 @@ Contents:
 
 ## Test Plan
 
+### Unit Tests: Pipeline Parameter Binding (Verify Existing Behavior)
+
+These tests verify that pipeline parameter binding works correctly (params to the RIGHT of a server configure that server). These tests should be added to the existing pipeline test suite if not already present.
+
+| Test ID | Test Name | Description | Expected Result |
+|---------|-----------|-------------|-----------------|
+| PB-01 | `test_single_param_binds_to_left_server` | `/server/param` | `server` receives `param` as input |
+| PB-02 | `test_param_position_matters` | `/s1/s2/param` | `s2` receives `param`, `s1` receives `s2`'s output |
+| PB-03 | `test_multiple_adjacent_params` | `/server/p1/p2` | `server` receives both `p1` and `p2` |
+| PB-04 | `test_params_between_servers` | `/s1/p1/s2/p2` | `s1` gets `p1`, `s2` gets `p2` |
+| PB-05 | `test_param_not_to_right_server` | `/s1/param/s2` | `param` goes to `s1`, NOT `s2` |
+| PB-06 | `test_rightmost_is_input` | `/echo/hello` | `echo` receives literal "hello" |
+
 ### Unit Tests: Segment Analysis (Shared Logic)
 
 These tests verify that io reuses the same segment classification as pipeline.
@@ -229,6 +242,18 @@ These tests verify that io reuses the same segment classification as pipeline.
 | PE-05 | `test_mixed_elements` | `/io/echo/{CID}/param` | All element types work together |
 | PE-06 | `test_alias_chain_resolution` | Alias → alias → server | Full alias chain resolved |
 | PE-07 | `test_cid_with_extension` | `/io/{CID}.sh/input` | Extension overrides detection |
+
+### Unit Tests: IO Parameter Binding
+
+| Test ID | Test Name | Description | Expected Result |
+|---------|-----------|-------------|-----------------|
+| IP-01 | `test_io_single_param_to_server` | `/io/s1/param` | `s1` receives `param` in request phase |
+| IP-02 | `test_io_param_with_tail` | `/io/s1/param/s2` | `s1` gets `param`, `s2` gets `s1`'s output |
+| IP-03 | `test_io_multiple_params_bind_left` | `/io/s1/p1/p2/s2` | `s1` gets `[p1, p2]`, `s2` gets `s1`'s output |
+| IP-04 | `test_io_tail_with_param` | `/io/s1/s2/param` | `s2` (tail) receives `param` AND `s1`'s request |
+| IP-05 | `test_io_each_server_gets_own_params` | `/io/s1/p1/s2/p2` | `s1` gets `p1`, `s2` gets `p2` + request |
+| IP-06 | `test_io_response_phase_preserves_request` | `/io/s1/param/s2` | `s1` response phase gets original `param` |
+| IP-07 | `test_io_empty_params_handled` | `/io/s1//s2` | Empty segment ignored, works like `/io/s1/s2` |
 
 ### Unit Tests: Data Piping Between Element Types
 
@@ -331,26 +356,32 @@ def main(request, response=None, *, context=None):
 
 ### D3: Chaining Semantics for Parameters
 
-**Decision**: Parameters are literal values that configure the server to their left
+**Decision**: Parameters bind to the server on their LEFT (parameters appear to the RIGHT of the server they configure)
+
+This is consistent with pipeline behavior where `/server/param` means `param` is passed to `server`.
 
 In `/io/s1/param/s2`:
-- `param` is a literal value that configures `s1`
+- `param` is to the right of `s1`, so it configures `s1`
 - `s1` receives `param` as its request during request phase
 - `s1` produces a chained request that goes to `s2`
 - `s2` (tail) produces a response
 - `s1` receives its original request (`param`) + response from `s2` during response phase
 
+In `/io/s1/param1/param2/s2/param3`:
+- `param1` and `param2` bind to `s1` (all adjacent params to its right)
+- `param3` binds to `s2`
+
 **Example flow for `/io/grep/pattern/cat/file.txt`**:
 ```
 Request phase:
   grep receives "pattern" → produces request for cat
-  cat receives request → produces response (file contents)
+  cat receives "file.txt" + request from grep → produces response (file contents)
 
 Response phase:
   grep receives ("pattern", file_contents) → filters and returns matching lines
 ```
 
-**Rationale**: Parameters act as configuration, consistent with shell pipeline conventions where arguments come before the pipe.
+**Rationale**: Consistent with pipeline parameter binding. Parameters appear to the right of the server they configure.
 
 ### D4: Non-Chainable Server Handling
 
@@ -423,85 +454,71 @@ If any server fails during the response phase:
 
 **Rationale**: Gives flexibility while maintaining predictable behavior. The "closest to user" server has final say.
 
----
+### D9: Parameter Binding Scope
 
-## Followup Questions
+**Decision**: Like pipelines - all adjacent parameters bind to the server on their left
 
-### F1: Parameter Binding Scope
+In `/io/s1/param1/param2/s2/param3`:
+- `s1` gets `["param1", "param2"]` (all adjacent params to its right)
+- `s2` gets `["param3"]`
 
-**Question**: In `/io/s1/param1/param2/s2/param3`, how are parameters bound to servers?
+This matches pipeline behavior. Note: Current pipeline servers don't use multiple config params, so either single or multiple binding would work. IO should support both for future flexibility.
 
-**Options**:
-a) All adjacent parameters bind to the server on their left:
-   - `s1` gets `["param1", "param2"]`
-   - `s2` gets `["param3"]`
+**Rationale**: Consistent with pipeline conventions.
 
-b) Only the immediately adjacent parameter binds:
-   - `s1` gets `"param1"`
-   - `param2` is an error or treated as literal server
-   - `s2` gets `"param3"`
+### D10: Tail Server Parameter Handling
 
-c) Parameters bind to the server on their right (like pipeline):
-   - `s1` gets nothing initially
-   - `s2` gets `["param1", "param2"]` as input
-   - `param3` is the tail
+**Decision**: Tail server receives its parameters AND the modified request from the previous server
 
-**Current understanding based on your answer**: Option (a) seems implied - parameters configure the server to their left. Please confirm or clarify.
+In `/io/s1/param/s2/param2`:
+- `s1` receives `param` as request during request phase
+- `s1` produces a modified request for `s2`
+- `s2` (tail) receives BOTH `param2` AND the modified request from `s1`
+- `s2` returns a response based on both inputs
 
-### F2: Tail Server Parameter Handling
+**Rationale**: The tail server needs full context - both its configuration and the chained request.
 
-**Question**: In `/io/s1/param/s2/param2`, what happens with `param2`?
+### D11: Existing Server Compatibility
 
-If parameters bind to the left:
-- `s1` gets `param` as request
-- `s2` gets `param2` as request
-- But `s2` is the tail, so when does it return a response?
+**Decision**: Existing servers work but only as tail (single invocation)
 
-**Options**:
-a) `s2` receives `param2` and returns a response based on it
-b) `param2` is the actual tail (literal response), `s2` is a middle server
-c) Error - tail servers cannot have parameters after them
+- Existing servers with signature `def main(input_data, *, context=None)` can be used as the tail server
+- They receive a single invocation with the chained request
+- They cannot be used in middle positions (which require request + response handling)
+- New io-compatible servers use `def main(request, response=None, *, context=None)`
 
-### F3: Existing Server Compatibility
+**Rationale**: Backward compatibility while enabling new io-specific servers.
 
-**Question**: Do existing servers need to be modified to work with io?
+### D12: Request Phase Output Semantics
 
-**Context**: Existing servers have signatures like:
+**Decision**: Nothing special - just process normally using `{"output": result}`
+
+- The `output` field from a server's return value becomes the input to the next server
+- No special structure needed
+- Servers designed for io may still be invoked alone for debugging, so they should handle both cases
+
+**Example**:
 ```python
-def main(input_data, *, context=None):  # Single input
-def main(command, *, context=None):      # Single input
+def main(request, response=None, *, context=None):
+    if response is None:
+        # Request phase - output becomes next server's input
+        return {"output": process_request(request)}
+    else:
+        # Response phase - output becomes previous server's response input
+        return {"output": process_response(request, response)}
 ```
 
-But io requires:
-```python
-def main(request, response=None, *, context=None):  # Request + optional response
-```
+**Rationale**: Simple and consistent with existing server patterns.
 
-**Options**:
-a) Only new "io-compatible" servers work with io
-b) Existing servers work but only as tail (single invocation)
-c) io wraps existing servers, calling them differently in each phase
-d) Existing servers need an adapter layer
+### D13: Empty Segment Handling
 
-### F4: Request Phase Output Semantics
+**Decision**: Show landing page for `/io/` and ignore empty segments in `/io//server`
 
-**Question**: What should a server return during the request phase?
+- `/io/` (trailing slash only) → Landing page
+- `/io//server` → Equivalent to `/io/server` (empty segment ignored)
+- Multiple empty segments are all ignored
 
-**Options**:
-a) The transformed request for the next server: `return {"output": "request for next"}`
-b) Nothing special, just process normally: `return {"output": result}`
-c) A special structure indicating "pass this to the next server": `return {"chain_request": "..."}`
-
-**Related**: In the request phase, the server's output becomes the input to the next server. Is this just the `output` field, or is there a different structure?
-
-### F5: Empty/No Servers After io
-
-**Question**: What should `/io/` (with trailing slash) or `/io//server` do?
-
-**Options**:
-a) Same as `/io` - show landing page
-b) Error - empty segment
-c) Ignore empty segments
+**Rationale**: Forgiving URL parsing, consistent with common web server behavior.
 
 ---
 
