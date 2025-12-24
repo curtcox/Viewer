@@ -54,9 +54,7 @@ def test_all_bash_command_definitions_exist():
         assert path.exists(), f"Missing definition for {command.name}"
 
         text = path.read_text()
-        assert f'COMMAND="{command.name}"' in text
-        assert "BASH_COMMAND_STUB_DIR" in text
-        assert "use '_' to skip while piping" in text
+        assert f"@bash_command {command.name}" in text
 
 
 def test_boot_images_include_expected_commands():

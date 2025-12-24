@@ -65,6 +65,9 @@ def detect_server_language(definition: str | None) -> str:
     stripped = text.lstrip()
     first_line = stripped.splitlines()[0].lower() if stripped else ""
 
+    if first_line.startswith("@bash_command"):
+        return "bash"
+
     if first_line.startswith("#!"):
         if "python" in first_line:
             return "python"
@@ -123,6 +126,7 @@ def detect_server_language(definition: str | None) -> str:
         return "clojure"
 
     bash_markers = (
+        r"^\s*@bash_command\b",
         r"^\s*set\s+-[a-zA-Z]*[EeUuOoFfPp][a-zA-Z]*",
         r"^\s*echo\b",
         r"^\s*function\s+\w+\s*\{",

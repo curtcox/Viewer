@@ -274,8 +274,11 @@ class TestBootImageReferenceTemplates:
             assert "ai-shortcut" in templates_config["aliases"]
             assert templates_config["aliases"]["ai-shortcut"]["name"] == "AI Alias"
 
-            assert "echo" in templates_config["servers"]
-            assert templates_config["servers"]["echo"]["name"] == "Echo request context"
+            assert "reflect" in templates_config["servers"]
+            assert (
+                templates_config["servers"]["reflect"]["name"]
+                == "Reflect request context"
+            )
 
             assert "example-variable" in templates_config["variables"]
             assert (
@@ -326,10 +329,10 @@ class TestBootImageReferenceTemplates:
             definition_cid = ai_alias_template["definition_cid"]
             assert len(definition_cid) >= 8
 
-            # Get the echo server template
-            echo_server_template = templates_config["servers"]["echo"]
-            assert "definition_cid" in echo_server_template
-            server_definition_cid = echo_server_template["definition_cid"]
+            # Get the reflect server template
+            reflect_server_template = templates_config["servers"]["reflect"]
+            assert "definition_cid" in reflect_server_template
+            server_definition_cid = reflect_server_template["definition_cid"]
             assert len(server_definition_cid) >= 8
 
     def test_boot_image_complete_workflow(self, tmp_path):
@@ -387,7 +390,7 @@ class TestBootImageReferenceTemplates:
 
             # Verify specific templates
             assert "ai-shortcut" in templates_config["aliases"]
-            assert "echo" in templates_config["servers"]
+            assert "reflect" in templates_config["servers"]
             assert "example-variable" in templates_config["variables"]
             assert "hello-world" in templates_config["uploads"]
 
@@ -500,8 +503,8 @@ class TestBootImageReferenceTemplates:
             assert server.enabled is True
             # Verify the definition contains expected content
             assert (
-                "def main(" in server.definition
-                or "dict_to_html_ul" in server.definition
+                "@bash_command echo" in server.definition
+                or "COMMAND=\"echo\"" in server.definition
             )
 
     def test_default_boot_cid_shell_server_works(self, tmp_path):

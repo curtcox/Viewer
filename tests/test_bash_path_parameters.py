@@ -4,6 +4,8 @@ These tests verify the new feature that allows bash scripts to receive
 path parameters as positional arguments when they use $1, $2, etc.
 """
 
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -182,6 +184,91 @@ class TestRunBashScriptWithArgs(unittest.TestCase):
         assert b"Pattern: my-pattern" in stdout
         assert b"Input: input-data" in stdout
         assert status == 200
+
+
+class TestBashCommandDirectiveExpansion(unittest.TestCase):
+    """Test `@bash_command` directive expansion behavior."""
+
+    def _write_stub(self, directory: str, command_name: str) -> str:
+        path = os.path.join(directory, command_name)
+        script = (
+            "#!/bin/bash\n"
+            "args_text=\"<none>\"\n"
+            "if [[ $# -gt 0 ]]; then\n"
+            "  args_text=\"$*\"\n"
+            "fi\n"
+            "stdin_value=\"$(cat)\"\n"
+            "if [[ -z \"$stdin_value\" ]]; then\n"
+            "  stdin_value=\"<none>\"\n"
+            "fi\n"
+            f"echo cmd={command_name}\n"
+            "echo args=${args_text}\n"
+            "echo stdin=${stdin_value}\n"
+        )
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(script)
+        os.chmod(path, 0o755)
+        return path
+
+    def test_directive_expands_and_splits_args(self):
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as stub_dir:
+            self._write_stub(stub_dir, "echo")
+            with app.test_request_context("/echo/hello%20world"):
+                with patch(
+                    "server_execution.code_execution.build_request_args", return_value={}
+                ):
+                    with patch.dict(os.environ, {"BASH_COMMAND_STUB_DIR": stub_dir}):
+                        stdout, status, _stderr = _run_bash_script(
+                            "@bash_command echo\n",
+                            "echo",
+                            chained_input=None,
+                            script_args=["hello world"],
+                        )
+
+        assert status == 200
+        output = stdout.decode("utf-8")
+        assert "cmd=echo" in output
+        assert "args=hello world" in output
+
+    def test_directive_underscore_sentinel_means_no_args_and_passes_stdin(self):
+        app = Flask(__name__)
+        with tempfile.TemporaryDirectory() as stub_dir:
+            self._write_stub(stub_dir, "rev")
+            with app.test_request_context("/rev/_"):
+                with patch(
+                    "server_execution.code_execution.build_request_args", return_value={}
+                ):
+                    with patch.dict(os.environ, {"BASH_COMMAND_STUB_DIR": stub_dir}):
+                        stdout, status, _stderr = _run_bash_script(
+                            "@bash_command rev\n",
+                            "rev",
+                            chained_input="Hello World",
+                            script_args=["_"],
+                        )
+
+        assert status == 200
+        output = stdout.decode("utf-8")
+        assert "cmd=rev" in output
+        assert "args=<none>" in output
+        assert "stdin=Hello World" in output
+
+    def test_directive_missing_command_returns_error(self):
+        app = Flask(__name__)
+        with app.test_request_context("/missing"):
+            with patch(
+                "server_execution.code_execution.build_request_args", return_value={}
+            ):
+                stdout, status, stderr = _run_bash_script(
+                    "@bash_command definitely_not_installed\n",
+                    "definitely_not_installed",
+                    chained_input=None,
+                    script_args=None,
+                )
+
+        assert stdout == b""
+        assert status == 127
+        assert b"definitely_not_installed" in stderr
 
 
 @pytest.mark.integration

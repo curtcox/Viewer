@@ -71,13 +71,67 @@ AUTO_MAIN_PARAMS_NAME = "__viewer_auto_main_params__"
 AUTO_MAIN_RESULT_NAME = "__viewer_auto_main_result__"
 _SUPPORTED_LITERAL_EXTENSIONS = {"sh", "py", "clj", "cljs", "ts"}
 
+# Pattern to detect positional parameters in bash scripts (e.g., $1, $2)
+_BASH_POSITIONAL_PARAM_PATTERN = r"\$[1-9]"
+
+_BASH_COMMAND_DIRECTIVE_PATTERN = re.compile(
+    r"^@bash_command\s+(?P<cmd>[a-zA-Z0-9._+-]+)\s*$"
+)
+
+
+def _first_non_empty_non_comment_line(text: str) -> Optional[str]:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            continue
+        return stripped
+    return None
+
+
+def _generate_bash_command_template(command_name: str) -> str:
+    command_value = command_name
+    return (
+        "COMMAND='" + command_value + "'\n"
+        "COMMAND_PATH=\"$COMMAND\"\n"
+        "\n"
+        "if [[ -n \"${BASH_COMMAND_STUB_DIR:-}\" && -x \"${BASH_COMMAND_STUB_DIR}/$COMMAND\" ]]; then\n"
+        "    COMMAND_PATH=\"${BASH_COMMAND_STUB_DIR}/$COMMAND\"\n"
+        "fi\n"
+        "\n"
+        "arg_text=\"${1:-}\"\n"
+        "if [[ \"$arg_text\" == \"_\" ]]; then\n"
+        "    arg_text=\"\"\n"
+        "fi\n"
+        "\n"
+        "args=()\n"
+        "if [[ -n \"$arg_text\" ]]; then\n"
+        "    read -r -a args <<< \"$arg_text\"\n"
+        "fi\n"
+        "\n"
+        "if ! command -v \"$COMMAND_PATH\" >/dev/null 2>&1; then\n"
+        "    echo \"Error: '$COMMAND' is not installed in this environment\" >&2\n"
+        "    exit 127\n"
+        "fi\n"
+        "\n"
+        "command \"$COMMAND_PATH\" \"${args[@]}\"\n"
+    )
+
+
+def _expand_bash_templates(definition: str, server_name: str) -> str:
+    directive_line = _first_non_empty_non_comment_line(definition)
+    if not directive_line:
+        return definition
+    match = _BASH_COMMAND_DIRECTIVE_PATTERN.match(directive_line)
+    if not match:
+        return definition
+    command_name = match.group("cmd")
+    return _generate_bash_command_template(command_name)
+
 
 def create_cid_record(*args, **kwargs):
     return db_access.create_cid_record(*args, **kwargs)
-
-
-# Pattern to detect positional parameters in bash scripts (e.g., $1, $2)
-_BASH_POSITIONAL_PARAM_PATTERN = r"\$[1-9]"
 
 
 def _bash_script_uses_positional_params(code: str) -> bool:
@@ -89,6 +143,9 @@ def _bash_script_uses_positional_params(code: str) -> bool:
     Returns:
         True if the script uses positional parameters, False otherwise
     """
+    directive_line = _first_non_empty_non_comment_line(code)
+    if directive_line and _BASH_COMMAND_DIRECTIVE_PATTERN.match(directive_line):
+        return True
     return bool(re.search(_BASH_POSITIONAL_PARAM_PATTERN, code))
 
 
@@ -1261,6 +1318,7 @@ def _run_bash_script(
     Returns:
         Tuple of (stdout, status_code, stderr)
     """
+    code = _expand_bash_templates(code, server_name)
     stdin_payload = _build_bash_stdin_payload(chained_input)
 
     with tempfile.NamedTemporaryFile("w", delete=False, suffix=".sh") as script_file:
