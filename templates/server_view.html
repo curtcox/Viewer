@@ -133,7 +133,9 @@
                     <p class="text-muted">
                         Viewer fills handler parameters using the query string, request body, headers, and cookies
                         before falling back to saved variables and then secrets. Values from higher-priority sources
-                        override later ones with the same name.
+                        override later ones with the same name. See the
+                        <a href="/source/server_execution/request_parsing.py" class="text-decoration-none">named value resolution source</a>
+                        for the full implementation details.
                     </p>
                     <div class="d-flex flex-wrap gap-3 align-items-center small mb-3">
                         <span><span class="text-success fw-semibold">Defined</span>: available before a request is sent.</span>

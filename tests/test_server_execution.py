@@ -24,6 +24,9 @@ from server_execution import (
     _parse_function_details,
     _remaining_path_segments,
     _resolve_function_parameters,
+    NamedValueResolver,
+    resolve_named_value,
+    resolve_named_values,
     _split_path_segments,
     analyze_server_definition,
     build_request_args,
@@ -400,6 +403,77 @@ class TestResolveRequestParameters(unittest.TestCase):
 
         assert resolved == {"a": "1"}
         assert "b" in missing
+
+
+class TestNamedValueResolver(unittest.TestCase):
+    """Test the shared named value resolver."""
+
+    def test_resolver_prioritises_request_sources(self):
+        app = Flask(__name__)
+        with app.test_request_context(
+            "/test?token=query",
+            json={"token": "body"},
+            headers={"Token": "header"},
+        ):
+            resolver = NamedValueResolver(
+                {
+                    "token": "base",
+                    "context": {
+                        "variables": {"token": "variable"},
+                        "secrets": {"token": "secret"},
+                    },
+                }
+            )
+
+            found, value = resolver.resolve("token")
+
+        assert found is True
+        assert value == "query"
+
+    def test_resolve_many_and_available_sources(self):
+        app = Flask(__name__)
+        with app.test_request_context(
+            "/test",
+            json={"city": "body-city"},
+            headers={"X-Trace": "trace"},
+        ):
+            resolver = NamedValueResolver(
+                {
+                    "context": {
+                        "variables": {"country": "var"},
+                        "secrets": {"api_key": "secret"},
+                    }
+                }
+            )
+
+            resolved = resolver.resolve_many(["country", "api_key", "missing"])
+            available = resolver.available_sources()
+
+        assert resolved == {"country": "var", "api_key": "secret"}
+        assert available["request_body"] == ["city"]
+        assert "X-Trace" in available["headers"]
+        assert available["context_variables"] == ["country"]
+        assert available["context_secrets"] == ["api_key"]
+
+
+class TestResolveNamedValueHelpers(unittest.TestCase):
+    """Test the public helper wrappers for named resolution."""
+
+    def test_resolve_named_value_returns_none_when_missing(self):
+        app = Flask(__name__)
+        with app.test_request_context("/test"):
+            value = resolve_named_value("missing", {"context": {"variables": {}}})
+
+        assert value is None
+
+    def test_resolve_named_values_honours_priority(self):
+        app = Flask(__name__)
+        with app.test_request_context("/test?item=query", json={"item": "body"}):
+            values = resolve_named_values(
+                ["item", "secondary"], {"secondary": "base", "context": {}}
+            )
+
+        assert values == {"item": "query", "secondary": "base"}
 
 
 class TestBuildMissingParameterResponse(unittest.TestCase):

@@ -13,6 +13,9 @@
             Parameters are populated in priority order from the query string, JSON or form body, HTTP headers
             (hyphen/underscore normalised), explicit invocation arguments, saved variables, then saved secrets.
             Missing required parameters receive a JSON 400 response describing how to provide each value.
+            The underlying resolution logic lives in
+            <a href="/source/server_execution/request_parsing.py" class="text-decoration-none">server_execution/request_parsing.py</a>
+            for transparency.
         </p>
         <h6 class="mb-2"><i class="fas fa-link me-2"></i>Server Command Chaining</h6>
         <p class="mb-3">

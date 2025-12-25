@@ -46,6 +46,9 @@ __all__ = [
     "execute_server_code_from_definition",
     "execute_server_function",
     "execute_server_function_from_definition",
+    "NamedValueResolver",
+    "resolve_named_value",
+    "resolve_named_values",
     # Invocation tracking
     "create_server_invocation_record",
     # Server lookup
@@ -132,13 +135,21 @@ _LAZY_IMPORTS = {
         "server_execution.request_parsing",
         "_lookup_header_value",
     ),
-    "_resolve_single_parameter": (
-        "server_execution.request_parsing",
-        "_resolve_single_parameter",
-    ),
     "_resolve_function_parameters": (
         "server_execution.request_parsing",
         "_resolve_function_parameters",
+    ),
+    "NamedValueResolver": (
+        "server_execution.request_parsing",
+        "NamedValueResolver",
+    ),
+    "resolve_named_value": (
+        "server_execution.request_parsing",
+        "resolve_named_value",
+    ),
+    "resolve_named_values": (
+        "server_execution.request_parsing",
+        "resolve_named_values",
     ),
     "_build_missing_parameter_response": (
         "server_execution.request_parsing",
