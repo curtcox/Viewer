@@ -122,9 +122,20 @@ Pipeline URLs execute from right to left. The example below uppercases text usin
 
 Pattern scanning and text processing language
 
-- Just the command: [Execute](/awk) · [Debug](/awk?debug=true)
-- With parameters: [Execute](/awk/--help) · [Debug](/awk/--help?debug=true)
-- In a pipeline: [Execute](/awk/_/echo/Hello%20World) · [Debug](/awk/_/echo/Hello%20World?debug=true)
+- Default field selection (prints the first column): [Execute](/awk/%7Bprint%20$1%7D/_/printf%20%22alice%20engineer%5Cnben%20designer%5Cn%22) · [Debug](/awk/%7Bprint%20$1%7D/_/printf%20%22alice%20engineer%5Cnben%20designer%5Cn%22?debug=true)
+  - Bash: `printf "alice engineer\nben designer\n" | awk '{print $1}'`
+  - Output:
+    ```
+    alice
+    ben
+    ```
+- Custom delimiter to grab the domain column: [Execute](/awk/-F%20:%20%27{print%20$2}%27/_/printf%20%22user%3Aexample.com%5Cnadmin%3Aexample.org%5Cn%22) · [Debug](/awk/-F%20:%20%27{print%20$2}%27/_/printf%20%22user%3Aexample.com%5Cnadmin%3Aexample.org%5Cn%22?debug=true)
+  - Bash: `printf "user:example.com\nadmin:example.org\n" | awk -F : '{print $2}'`
+  - Output:
+    ```
+    example.com
+    example.org
+    ```
 
 ### `base64` (Transform)
 
@@ -170,9 +181,22 @@ Concatenate files / pass stdin through
 
 Align text into columns
 
-- Just the command: [Execute](/column) · [Debug](/column?debug=true)
-- With parameters: [Execute](/column/--help) · [Debug](/column/--help?debug=true)
-- In a pipeline: [Execute](/column/_/echo/Hello%20World) · [Debug](/column/_/echo/Hello%20World?debug=true)
+- Tab-align whitespace-separated columns (default): [Execute](/column/-t/_/printf%20%22name%20age%5CnAna%2029%5CnBen%2031%5Cn%22) · [Debug](/column/-t/_/printf%20%22name%20age%5CnAna%2029%5CnBen%2031%5Cn%22?debug=true)
+  - Bash: `printf "name age\nAna 29\nBen 31\n" | column -t`
+  - Output:
+    ```
+    name  age
+    Ana   29
+    Ben   31
+    ```
+- Custom delimiter with `-s , -t`: [Execute](/column/-s%20,%20-t/_/printf%20%22name,city%5CnRavi,Delhi%5CnMia,Rome%5Cn%22) · [Debug](/column/-s%20,%20-t/_/printf%20%22name,city%5CnRavi,Delhi%5CnMia,Rome%5Cn%22?debug=true)
+  - Bash: `printf "name,city\nRavi,Delhi\nMia,Rome\n" | column -s , -t`
+  - Output:
+    ```
+    name  city
+    Ravi  Delhi
+    Mia   Rome
+    ```
 
 ### `comm` (Transform)
 
@@ -202,9 +226,22 @@ Transfer data from URLs
 
 Extract fields/columns from lines
 
-- Just the command: [Execute](/cut) · [Debug](/cut?debug=true)
-- With parameters: [Execute](/cut/--help) · [Debug](/cut/--help?debug=true)
-- In a pipeline: [Execute](/cut/_/echo/Hello%20World) · [Debug](/cut/_/echo/Hello%20World?debug=true)
+- Default (tab-delimited) field extraction: [Execute](/cut/-f1/_/printf%20%22name%5Ctcity%5CnAda%5CtBoston%5CnTerry%5CtDenver%5Cn%22) · [Debug](/cut/-f1/_/printf%20%22name%5Ctcity%5CnAda%5CtBoston%5CnTerry%5CtDenver%5Cn%22?debug=true)
+  - Bash: `printf "name\tcity\nAda\tBoston\nTerry\tDenver\n" | cut -f1`
+  - Output:
+    ```
+    name
+    Ada
+    Terry
+    ```
+- Custom delimiter for CSV-style input: [Execute](/cut/-d%20,%20-f2/_/printf%20%22user%2Cemail%5Cnanna%2Canna%40example.com%5Cnbob%2Cbob%40example.net%5Cn%22) · [Debug](/cut/-d%20,%20-f2/_/printf%20%22user%2Cemail%5Cnanna%2Canna%40example.com%5Cnbob%2Cbob%40example.net%5Cn%22?debug=true)
+  - Bash: `printf "user,email\nanna,anna@example.com\nbob,bob@example.net\n" | cut -d , -f2`
+  - Output:
+    ```
+    email
+    anna@example.com
+    bob@example.net
+    ```
 
 ### `date` (Source)
 
@@ -346,9 +383,20 @@ VCS; log/diff and also mutates repo
 
 Filter lines by regex
 
-- Just the command: [Execute](/grep) · [Debug](/grep?debug=true)
-- With parameters: [Execute](/grep/--help) · [Debug](/grep/--help?debug=true)
-- In a pipeline: [Execute](/grep/_/echo/Hello%20World) · [Debug](/grep/_/echo/Hello%20World?debug=true)
+- Default match (returns lines containing "error"): [Execute](/grep/error/_/printf%20%22error%20line%5Cnplain%20line%5Cnerror%20again%5Cn%22) · [Debug](/grep/error/_/printf%20%22error%20line%5Cnplain%20line%5Cnerror%20again%5Cn%22?debug=true)
+  - Bash: `printf "error line\nplain line\nerror again\n" | grep error`
+  - Output:
+    ```
+    error line
+    error again
+    ```
+- Invert match to exclude a pattern: [Execute](/grep/-v%20debug/_/printf%20%22info%20ready%5Cnwarning%5Cninfo%20debug%5Cn%22) · [Debug](/grep/-v%20debug/_/printf%20%22info%20ready%5Cnwarning%5Cninfo%20debug%5Cn%22?debug=true)
+  - Bash: `printf "info ready\nwarning\ninfo debug\n" | grep -v debug`
+  - Output:
+    ```
+    info ready
+    warning
+    ```
 
 ### `gunzip` (Dual)
 
@@ -370,9 +418,29 @@ Compress/decompress gzip
 
 First lines/bytes
 
-- Just the command: [Execute](/head) · [Debug](/head?debug=true)
-- With parameters: [Execute](/head/--help) · [Debug](/head/--help?debug=true)
-- In a pipeline: [Execute](/head/_/echo/Hello%20World) · [Debug](/head/_/echo/Hello%20World?debug=true)
+- Default first 10 lines: [Execute](/head/_/printf%20%221%5Cn2%5Cn3%5Cn4%5Cn5%5Cn6%5Cn7%5Cn8%5Cn9%5Cn10%5Cn11%5Cn%22) · [Debug](/head/_/printf%20%221%5Cn2%5Cn3%5Cn4%5Cn5%5Cn6%5Cn7%5Cn8%5Cn9%5Cn10%5Cn11%5Cn%22?debug=true)
+  - Bash: `printf "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n" | head`
+  - Output:
+    ```
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    ```
+- Custom line count with `-n 3`: [Execute](/head/-n%203/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cndelta%5Cn%22) · [Debug](/head/-n%203/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cndelta%5Cn%22?debug=true)
+  - Bash: `printf "alpha\nbeta\ngamma\ndelta\n" | head -n 3`
+  - Output:
+    ```
+    alpha
+    beta
+    gamma
+    ```
 
 ### `hexdump` (Transform)
 
@@ -522,9 +590,18 @@ Octal/hex dump
 
 Merge lines as columns
 
-- Just the command: [Execute](/paste) · [Debug](/paste?debug=true)
-- With parameters: [Execute](/paste/--help) · [Debug](/paste/--help?debug=true)
-- In a pipeline: [Execute](/paste/_/echo/Hello%20World) · [Debug](/paste/_/echo/Hello%20World?debug=true)
+- Combine two columns from stdin (default tab delimiter): [Execute](/paste/-/_/printf%20%22first%5Cnsecond%5Cn%22) · [Debug](/paste/-/_/printf%20%22first%5Cnsecond%5Cn%22?debug=true)
+  - Bash: `printf "first\nsecond\n" | paste - -`
+  - Output:
+    ```
+    first\tsecond
+    ```
+- Custom delimiter with `-d ,`: [Execute](/paste/-d%20,%20-/_/printf%20%22apples%5Cnoranges%5Cn%22) · [Debug](/paste/-d%20,%20-/_/printf%20%22apples%5Cnoranges%5Cn%22?debug=true)
+  - Bash: `printf "apples\noranges\n" | paste -d , - -`
+  - Output:
+    ```
+    apples,oranges
+    ```
 
 ### `perl` (Transform)
 
@@ -610,9 +687,13 @@ Canonicalize absolute path
 
 Reverse characters per line
 
-- Just the command: [Execute](/rev) · [Debug](/rev?debug=true)
-- With parameters: [Execute](/rev/--help) · [Debug](/rev/--help?debug=true)
-- In a pipeline: [Execute](/rev/_/echo/Hello%20World) · [Debug](/rev/_/echo/Hello%20World?debug=true)
+- Reverse text by line (default behavior): [Execute](/rev/_/printf%20%22loop%5Cnstar%5Cn%22) · [Debug](/rev/_/printf%20%22loop%5Cnstar%5Cn%22?debug=true)
+  - Bash: `printf "loop\nstar\n" | rev`
+  - Output:
+    ```
+    pool
+    rats
+    ```
 
 ### `rg` (Transform)
 
@@ -626,9 +707,21 @@ ripgrep recursive search
 
 Stream editor
 
-- Just the command: [Execute](/sed) · [Debug](/sed?debug=true)
-- With parameters: [Execute](/sed/--help) · [Debug](/sed/--help?debug=true)
-- In a pipeline: [Execute](/sed/_/echo/Hello%20World) · [Debug](/sed/_/echo/Hello%20World?debug=true)
+- Default substitution (replaces first match on each line): [Execute](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22) · [Debug](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22?debug=true)
+  - Bash: `printf "foo start\nfoo middle\nplain\n" | sed 's/foo/bar/'`
+  - Output:
+    ```
+    bar start
+    bar middle
+    plain
+    ```
+- Global substitution with `g` flag: [Execute](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22) · [Debug](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22?debug=true)
+  - Bash: `printf "path-with-dashes\nother-path\n" | sed 's/-/\//g'`
+  - Output:
+    ```
+    path/with/dashes
+    other/path
+    ```
 
 ### `seq` (Source)
 
@@ -658,9 +751,22 @@ Hash/check SHA-256 digests
 
 Sort lines
 
-- Just the command: [Execute](/sort) · [Debug](/sort?debug=true)
-- With parameters: [Execute](/sort/--help) · [Debug](/sort/--help?debug=true)
-- In a pipeline: [Execute](/sort/_/echo/Hello%20World) · [Debug](/sort/_/echo/Hello%20World?debug=true)
+- Default ascending sort: [Execute](/sort/_/printf%20%22banana%5Cnapple%5Cnochard%5Cn%22) · [Debug](/sort/_/printf%20%22banana%5Cnapple%5Cnochard%5Cn%22?debug=true)
+  - Bash: `printf "banana\napple\nochard\n" | sort`
+  - Output:
+    ```
+    apple
+    banana
+    chard
+    ```
+- Reverse sort with `-r`: [Execute](/sort/-r/_/printf%20%222%5Cn10%5Cn5%5Cn%22) · [Debug](/sort/-r/_/printf%20%222%5Cn10%5Cn5%5Cn%22?debug=true)
+  - Bash: `printf "2\n10\n5\n" | sort -r`
+  - Output:
+    ```
+    5
+    2
+    10
+    ```
 
 ### `ss` (Source)
 
@@ -706,9 +812,28 @@ Create/extract archives; can stream to stdout
 
 Last lines/bytes
 
-- Just the command: [Execute](/tail) · [Debug](/tail?debug=true)
-- With parameters: [Execute](/tail/--help) · [Debug](/tail/--help?debug=true)
-- In a pipeline: [Execute](/tail/_/echo/Hello%20World) · [Debug](/tail/_/echo/Hello%20World?debug=true)
+- Default last 10 lines: [Execute](/tail/_/printf%20%221%5Cn2%5Cn3%5Cn4%5Cn5%5Cn6%5Cn7%5Cn8%5Cn9%5Cn10%5Cn11%5Cn%22) · [Debug](/tail/_/printf%20%221%5Cn2%5Cn3%5Cn4%5Cn5%5Cn6%5Cn7%5Cn8%5Cn9%5Cn10%5Cn11%5Cn%22?debug=true)
+  - Bash: `printf "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n" | tail`
+  - Output:
+    ```
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    11
+    ```
+- Custom line count with `-n 2`: [Execute](/tail/-n%202/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cndelta%5Cn%22) · [Debug](/tail/-n%202/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cndelta%5Cn%22?debug=true)
+  - Bash: `printf "alpha\nbeta\ngamma\ndelta\n" | tail -n 2`
+  - Output:
+    ```
+    gamma
+    delta
+    ```
 
 ### `tee` (Dual)
 
@@ -738,9 +863,19 @@ Run a command with a time limit
 
 Translate/delete characters
 
-- Just the command: [Execute](/tr) · [Debug](/tr?debug=true)
-- With parameters: [Execute](/tr/--help) · [Debug](/tr/--help?debug=true)
-- In a pipeline: [Execute](/tr/_/echo/Hello%20World) · [Debug](/tr/_/echo/Hello%20World?debug=true)
+- Default transliteration example (lowercase to uppercase): [Execute](/tr/a-z/A-Z/_/echo/hello) · [Debug](/tr/a-z/A-Z/_/echo/hello?debug=true)
+  - Bash: `echo hello | tr a-z A-Z`
+  - Output:
+    ```
+    HELLO
+    ```
+- Delete characters with `-d`: [Execute](/tr/-d%200-9/_/printf%20%22room101%5Cnlevel42%5Cn%22) · [Debug](/tr/-d%200-9/_/printf%20%22room101%5Cnlevel42%5Cn%22?debug=true)
+  - Bash: `printf "room101\nlevel42\n" | tr -d 0-9`
+  - Output:
+    ```
+    room
+    level
+    ```
 
 ### `traceroute` (Source)
 
@@ -770,17 +905,39 @@ System information
 
 Convert spaces to tabs
 
-- Just the command: [Execute](/unexpand) · [Debug](/unexpand?debug=true)
-- With parameters: [Execute](/unexpand/--help) · [Debug](/unexpand/--help?debug=true)
-- In a pipeline: [Execute](/unexpand/_/echo/Hello%20World) · [Debug](/unexpand/_/echo/Hello%20World?debug=true)
+- Convert leading spaces to tabs (default tab stop every 8): [Execute](/unexpand/_/printf%20%22%20%20%20%20%20%20%20%20start%5Cn%20%20%20%20mid%5Cn%22) · [Debug](/unexpand/_/printf%20%22%20%20%20%20%20%20%20%20start%5Cn%20%20%20%20mid%5Cn%22?debug=true)
+  - Bash: `printf "        start\n    mid\n" | unexpand`
+  - Output:
+    ```
+    \tstart
+    \tmid
+    ```
+- Convert all spaces every 4 columns with `-a -t 4`: [Execute](/unexpand/-a%20-t%204/_/printf%20%22word%20%20gap%5Cnwide%20%20%20%20space%5Cn%22) · [Debug](/unexpand/-a%20-t%204/_/printf%20%22word%20%20gap%5Cnwide%20%20%20%20space%5Cn%22?debug=true)
+  - Bash: `printf "word  gap\nwide    space\n" | unexpand -a -t 4`
+  - Output:
+    ```
+    word\tgap
+    wide\tspace
+    ```
 
 ### `uniq` (Transform)
 
 Filter adjacent duplicates
 
-- Just the command: [Execute](/uniq) · [Debug](/uniq?debug=true)
-- With parameters: [Execute](/uniq/--help) · [Debug](/uniq/--help?debug=true)
-- In a pipeline: [Execute](/uniq/_/echo/Hello%20World) · [Debug](/uniq/_/echo/Hello%20World?debug=true)
+- Default unique filtering (drops repeated neighbors): [Execute](/uniq/_/printf%20%22apple%5Cnapple%5Cnbanana%5Cnbanana%5Cnbanana%5Cn%22) · [Debug](/uniq/_/printf%20%22apple%5Cnapple%5Cnbanana%5Cnbanana%5Cnbanana%5Cn%22?debug=true)
+  - Bash: `printf "apple\napple\nbanana\nbanana\nbanana\n" | uniq`
+  - Output:
+    ```
+    apple
+    banana
+    ```
+- Count occurrences with `-c`: [Execute](/uniq/-c/_/printf%20%22red%5Cnred%5Cnblue%5Cnblue%5Cnblue%5Cn%22) · [Debug](/uniq/-c/_/printf%20%22red%5Cnred%5Cnblue%5Cnblue%5Cnblue%5Cn%22?debug=true)
+  - Bash: `printf "red\nred\nblue\nblue\nblue\n" | uniq -c`
+  - Output:
+    ```
+        2 red
+        3 blue
+    ```
 
 ### `uptime` (Source)
 
@@ -794,9 +951,18 @@ Uptime/load averages
 
 Count lines/words/bytes
 
-- Just the command: [Execute](/wc) · [Debug](/wc?debug=true)
-- With parameters: [Execute](/wc/--help) · [Debug](/wc/--help?debug=true)
-- In a pipeline: [Execute](/wc/_/echo/Hello%20World) · [Debug](/wc/_/echo/Hello%20World?debug=true)
+- Default counts (lines, words, bytes): [Execute](/wc/_/printf%20%22hello%20world%5Cnsecond%20line%5Cn%22) · [Debug](/wc/_/printf%20%22hello%20world%5Cnsecond%20line%5Cn%22?debug=true)
+  - Bash: `printf "hello world\nsecond line\n" | wc`
+  - Output:
+    ```
+          2       4      24
+    ```
+- Line-only count with `-l`: [Execute](/wc/-l/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cn%22) · [Debug](/wc/-l/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cn%22?debug=true)
+  - Bash: `printf "alpha\nbeta\ngamma\n" | wc -l`
+  - Output:
+    ```
+    3
+    ```
 
 ### `wget` (Dual)
 
