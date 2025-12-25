@@ -1,5 +1,6 @@
 """HTTP request parsing and parameter resolution."""
 
+from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from flask import (
@@ -83,40 +84,72 @@ def _lookup_header_value(
     return None
 
 
-def _resolve_single_parameter(
-    param_name: str,
-    *,
-    query_values: Dict[str, Any],
-    body_values: Dict[str, Any],
-    header_values: Dict[str, Any],
-    base_args: Dict[str, Any],
-    context_variables: Dict[str, Any],
-    context_secrets: Dict[str, Any],
-) -> Tuple[bool, Optional[Any]]:
-    """Attempt to resolve a single parameter from available sources.
+@dataclass(frozen=True)
+class NamedValueResolver:
+    """Resolve named parameters from request and context sources.
 
-    Returns (found, value) tuple.
+    The resolver encapsulates the standard priority order used by Viewer:
+    query string, request body, headers, explicit invocation arguments,
+    saved variables, then saved secrets.
     """
-    if param_name in query_values:
-        return True, query_values[param_name]
 
-    if param_name in body_values:
-        return True, body_values[param_name]
+    base_args: Dict[str, Any]
 
-    header_value = _lookup_header_value(header_values, param_name)
-    if header_value is not None:
-        return True, header_value
+    def __post_init__(self):
+        (
+            query_values,
+            body_values,
+            header_values,
+            context_variables,
+            context_secrets,
+        ) = _collect_parameter_sources(self.base_args)
+        object.__setattr__(self, "query_values", query_values)
+        object.__setattr__(self, "body_values", body_values)
+        object.__setattr__(self, "header_values", header_values)
+        object.__setattr__(self, "context_variables", context_variables)
+        object.__setattr__(self, "context_secrets", context_secrets)
 
-    if param_name in base_args:
-        return True, base_args[param_name]
+    def resolve(self, param_name: str) -> Tuple[bool, Optional[Any]]:
+        """Resolve a single named parameter from known sources."""
+        if param_name in self.query_values:
+            return True, self.query_values[param_name]
 
-    if param_name in context_variables:
-        return True, context_variables[param_name]
+        if param_name in self.body_values:
+            return True, self.body_values[param_name]
 
-    if param_name in context_secrets:
-        return True, context_secrets[param_name]
+        header_value = _lookup_header_value(self.header_values, param_name)
+        if header_value is not None:
+            return True, header_value
 
-    return False, None
+        if param_name in self.base_args:
+            return True, self.base_args[param_name]
+
+        if param_name in self.context_variables:
+            return True, self.context_variables[param_name]
+
+        if param_name in self.context_secrets:
+            return True, self.context_secrets[param_name]
+
+        return False, None
+
+    def resolve_many(self, names: Iterable[str]) -> Dict[str, Any]:
+        """Resolve many parameters at once, skipping missing values."""
+        resolved: Dict[str, Any] = {}
+        for name in names:
+            found, value = self.resolve(name)
+            if found:
+                resolved[name] = value
+        return resolved
+
+    def available_sources(self) -> Dict[str, List[str]]:
+        """Report available keys by source for diagnostics."""
+        return {
+            "query_string": sorted(self.query_values.keys()),
+            "request_body": sorted(self.body_values.keys()),
+            "headers": sorted(set(request.headers.keys())),
+            "context_variables": sorted(self.context_variables.keys()),
+            "context_secrets": sorted(self.context_secrets.keys()),
+        }
 
 
 def _resolve_function_parameters(
@@ -130,30 +163,12 @@ def _resolve_function_parameters(
     resolved: Dict[str, Any] = {}
     missing: List[str] = []
 
-    # Collect all parameter sources
-    query_values, body_values, header_values, context_variables, context_secrets = (
-        _collect_parameter_sources(base_args)
-    )
-
-    available = {
-        "query_string": sorted(query_values.keys()),
-        "request_body": sorted(body_values.keys()),
-        "headers": sorted(set(request.headers.keys())),
-        "context_variables": sorted(context_variables.keys()),
-        "context_secrets": sorted(context_secrets.keys()),
-    }
+    resolver = NamedValueResolver(base_args)
+    available = resolver.available_sources()
 
     # Resolve each parameter
     for name in details.parameter_order:
-        found, value = _resolve_single_parameter(
-            name,
-            query_values=query_values,
-            body_values=body_values,
-            header_values=header_values,
-            base_args=base_args,
-            context_variables=context_variables,
-            context_secrets=context_secrets,
-        )
+        found, value = resolver.resolve(name)
 
         if found:
             resolved[name] = value
@@ -167,6 +182,21 @@ def _resolve_function_parameters(
         raise MissingParameterError(missing, available)
 
     return (resolved, [], available) if allow_partial else resolved
+
+
+def resolve_named_value(param_name: str, base_args: Dict[str, Any]) -> Optional[Any]:
+    """Resolve a single parameter using the shared named-value logic."""
+
+    found, value = NamedValueResolver(base_args).resolve(param_name)
+    return value if found else None
+
+
+def resolve_named_values(
+    param_names: Iterable[str], base_args: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Resolve multiple parameters using the shared named-value logic."""
+
+    return NamedValueResolver(base_args).resolve_many(param_names)
 
 
 def _build_missing_parameter_response(function_name: str, error: MissingParameterError):

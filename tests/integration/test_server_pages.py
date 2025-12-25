@@ -263,6 +263,28 @@ def test_servers_page_shows_lowercase_parameters_as_variables(
     assert "temperature" in page
 
 
+def test_server_detail_links_to_resolution_source(
+    client,
+    integration_app,
+):
+    """Server detail page should link to the named value resolution source."""
+
+    with integration_app.app_context():
+        db.session.add(
+            Server(
+                name="docs-link",
+                definition=("def main():\n    return {'output': 'ok'}\n"),
+            )
+        )
+        db.session.commit()
+
+    response = client.get("/servers/docs-link")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "/source/server_execution/request_parsing.py" in page
+
+
 def test_new_server_form_renders_in_single_user_mode(
     client,
 ):
