@@ -127,7 +127,7 @@ Pattern scanning and text processing language
 ben designer
 " | awk '{print $1}'`
           - Output:
-            ```
+            ```text
             alice
             ben
             ```
@@ -136,7 +136,7 @@ ben designer
 admin:example.org
 " | awk -F : '{print $2}'`
           - Output:
-            ```
+            ```text
             example.com
             example.org
             ```
@@ -191,7 +191,7 @@ Ana 29
 Ben 31
 " | column -t`
           - Output:
-            ```
+            ```text
             name  age
             Ana   29
             Ben   31
@@ -202,7 +202,7 @@ Ravi,Delhi
 Mia,Rome
 " | column -s , -t`
           - Output:
-            ```
+            ```text
             name  city
             Ravi  Delhi
             Mia   Rome
@@ -242,7 +242,7 @@ Ada	Boston
 Terry	Denver
 " | cut -f1`
           - Output:
-            ```
+            ```text
             name
             Ada
             Terry
@@ -253,7 +253,7 @@ anna,anna@example.com
 bob,bob@example.net
 " | cut -d , -f2`
           - Output:
-            ```
+            ```text
             email
             anna@example.com
             bob@example.net
@@ -437,7 +437,7 @@ First lines/bytes
 11
 " | head`
           - Output:
-            ```
+            ```text
             1
             2
             3
@@ -456,7 +456,7 @@ gamma
 delta
 " | head -n 3`
           - Output:
-            ```
+            ```text
             alpha
             beta
             gamma
@@ -615,15 +615,15 @@ Merge lines as columns
 second
 " | paste - -`
           - Output:
-            ```
-            first	second
+            ```text
+            first<TAB>second
             ```
         - Custom delimiter with `-d ,`: [Execute](/paste/-d%20,%20-/_/printf%20%22apples%5Cnoranges%5Cn%22) · [Debug](/paste/-d%20,%20-/_/printf%20%22apples%5Cnoranges%5Cn%22?debug=true)
           - Bash: `printf "apples
 oranges
 " | paste -d , - -`
           - Output:
-            ```
+            ```text
             apples,oranges
             ```
 
@@ -716,7 +716,7 @@ Reverse characters per line
 star
 " | rev`
           - Output:
-            ```
+            ```text
             pool
             rats
             ```
@@ -739,7 +739,7 @@ foo middle
 plain
 " | sed 's/foo/bar/'`
           - Output:
-            ```
+            ```text
             bar start
             bar middle
             plain
@@ -749,7 +749,7 @@ plain
 other-path
 " | sed 's/-/\//g'`
           - Output:
-            ```
+            ```text
             path/with/dashes
             other/path
             ```
@@ -788,7 +788,7 @@ apple
 ochard
 " | sort`
           - Output:
-            ```
+            ```text
             apple
             banana
             chard
@@ -799,7 +799,7 @@ ochard
 5
 " | sort -r`
           - Output:
-            ```
+            ```text
             5
             2
             10
@@ -863,7 +863,7 @@ Last lines/bytes
 11
 " | tail`
           - Output:
-            ```
+            ```text
             2
             3
             4
@@ -882,7 +882,7 @@ gamma
 delta
 " | tail -n 2`
           - Output:
-            ```
+            ```text
             gamma
             delta
             ```
@@ -918,7 +918,7 @@ Translate/delete characters
 - Default transliteration example (lowercase to uppercase): [Execute](/tr/a-z/A-Z/_/echo/hello) · [Debug](/tr/a-z/A-Z/_/echo/hello?debug=true)
           - Bash: `echo hello | tr a-z A-Z`
           - Output:
-            ```
+            ```text
             HELLO
             ```
         - Delete characters with `-d`: [Execute](/tr/-d%200-9/_/printf%20%22room101%5Cnlevel42%5Cn%22) · [Debug](/tr/-d%200-9/_/printf%20%22room101%5Cnlevel42%5Cn%22?debug=true)
@@ -926,7 +926,7 @@ Translate/delete characters
 level42
 " | tr -d 0-9`
           - Output:
-            ```
+            ```text
             room
             level
             ```
@@ -964,18 +964,18 @@ Convert spaces to tabs
     mid
 " | unexpand`
           - Output:
-            ```
-            	start
-            	mid
+            ```text
+            <TAB>start
+            <TAB>mid
             ```
         - Convert all spaces every 4 columns with `-a -t 4`: [Execute](/unexpand/-a%20-t%204/_/printf%20%22word%20%20gap%5Cnwide%20%20%20%20space%5Cn%22) · [Debug](/unexpand/-a%20-t%204/_/printf%20%22word%20%20gap%5Cnwide%20%20%20%20space%5Cn%22?debug=true)
           - Bash: `printf "word  gap
 wide    space
 " | unexpand -a -t 4`
           - Output:
-            ```
-            word	gap
-            wide	space
+            ```text
+            word<TAB>gap
+            wide<TAB>space
             ```
 
 ### `uniq` (Transform)
@@ -990,7 +990,7 @@ banana
 banana
 " | uniq`
           - Output:
-            ```
+            ```text
             apple
             banana
             ```
@@ -1002,7 +1002,7 @@ blue
 blue
 " | uniq -c`
           - Output:
-            ```
+            ```text
                 2 red
                 3 blue
             ```
@@ -1024,7 +1024,7 @@ Count lines/words/bytes
 second line
 " | wc`
           - Output:
-            ```
+            ```text
                   2       4      24
             ```
         - Line-only count with `-l`: [Execute](/wc/-l/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cn%22) · [Debug](/wc/-l/_/printf%20%22alpha%5Cnbeta%5Cngamma%5Cn%22?debug=true)
@@ -1033,7 +1033,7 @@ beta
 gamma
 " | wc -l`
           - Output:
-            ```
+            ```text
             3
             ```
 
