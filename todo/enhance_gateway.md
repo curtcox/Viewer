@@ -61,9 +61,11 @@ The `gateways` variable is a JSON map from server names to transform function pa
 
 ### Transform Function Interface
 
+Transform functions execute in the full server execution context, with access to all standard server capabilities.
+
 **Request Transform:**
 ```python
-def transform_request(request_details: dict) -> dict:
+def transform_request(request_details: dict, context: dict) -> dict:
     """Transform incoming request for target server.
 
     Args:
@@ -71,36 +73,38 @@ def transform_request(request_details: dict) -> dict:
             - path: The path after /gateway/{server}/
             - query_string: Original query string
             - method: HTTP method
-            - headers: Request headers
-            - body: Request body (if any)
+            - headers: Request headers (dict, excludes cookies)
+            - json: Request body parsed as JSON (None if not valid JSON or no body)
+        context: Full server execution context (same as other servers)
 
     Returns:
         Dict containing:
             - url: Target URL to request
             - method: HTTP method to use
             - headers: Headers to send
-            - body: Body to send (if any)
-            - params: Query parameters (if any)
+            - json: JSON body to send (if any)
+            - params: Query parameters dict (if any)
     """
 ```
 
 **Response Transform:**
 ```python
-def transform_response(response_details: dict) -> dict:
+def transform_response(response_details: dict, context: dict) -> dict:
     """Transform response from target server for user.
 
     Args:
         response_details: Dict containing:
             - status_code: HTTP status code
-            - headers: Response headers
+            - headers: Response headers (dict)
             - content: Raw response content (bytes)
             - text: Response as text (if decodable)
-            - json: Parsed JSON (if applicable)
+            - json: Parsed JSON (if applicable, None otherwise)
             - request_path: Original request path after /gateway/{server}/
+        context: Full server execution context (same as other servers)
 
     Returns:
         Dict containing:
-            - output: Content to return to user
+            - output: Content to return to user (str or bytes)
             - content_type: Content type for response
     """
 ```
@@ -310,27 +314,46 @@ For `/gateway/response`:
 
 ---
 
+## Design Decisions (Resolved)
+
+1. **Transform function execution environment**: Full context. Transform functions have access to the full server execution context, same as any other server.
+
+2. **Error handling strategy**: Use general server debugging. Any debugging enhancements needed should be made to enhance debugging for all servers, not gateway-specific. Transform errors use the standard server error handling mechanisms.
+
+3. **CID resolution for transforms**: Resolved at request time. Transform CIDs can be specified in the request (e.g., override via form), so they cannot be pre-resolved. CID resolution failures return 404 errors.
+
+4. **Authentication forwarding**: Auth is up to the specified server, not the gateway. The gateway passes through the request; the target server or its transform functions handle authentication.
+
+5. **Request body handling**: JSON. Request body is parsed as JSON before being passed to the transform function.
+
+6. **Response caching**: No additional caching. Gateway does not add any caching layer.
+
+7. **Form state persistence**: Form overrides are temporary. The form provides a mechanism for overriding the transform relative to that specific request only. Users can copy and paste the modified transform into the corresponding variable position if they want to persist changes.
+
+8. **Server invocation CID lookup**: Full population from invocation data.
+   - For `/gateway/request`: Load and populate all request data from the invocation
+   - For `/gateway/response`: Load and populate all response data from the invocation
+   - Error handling:
+     - CID not found → Display error message
+     - Referenced CIDs not found → Display error message
+     - Not a server invocation CID → Display error message
+
+9. **Validation depth**: Maximum ahead-of-time validation. The meta page should do as much validation as possible: syntax checking, type hints if available, and any static analysis that can be performed without execution.
+
+10. **Template loading mechanism**: Jinja2. Use the existing Jinja2 template system for consistency with the rest of the application.
+
+---
+
 ## Open Questions
 
-1. **Transform function execution environment**: Should transform functions have access to the full server execution context, or a restricted sandbox? What modules should be available?
+1. **Transform access to other servers**: Should transform functions be able to invoke other servers directly (e.g., for chained transformations)? Should they have direct access to secrets?
 
-2. **Error handling strategy**: When a transform function fails, should we show the raw response/request, or always show an error page? How do we make debugging easy?
+2. **Invalid JSON body handling**: When the request body is not valid JSON, what should be passed to the transform function? Options:
+   - Pass `None` for the body
+   - Pass the raw text as a string
+   - Return an error before invoking the transform
 
-3. **CID resolution for transforms**: Should transform CIDs be resolved at request time or cached? How do we handle CID resolution failures?
-
-4. **Authentication forwarding**: For gateways to authenticated APIs, how should credentials be handled? Pass through from request headers? Load from secrets?
-
-5. **Request body handling**: For POST/PUT requests, how should the request body be passed to the transform function? As raw bytes, decoded text, or parsed JSON?
-
-6. **Response caching**: Should gateway responses be cached? If so, based on what criteria?
-
-7. **Form state persistence**: For the experimentation forms, should modified transform functions be saveable? How do they relate to the gateways variable?
-
-8. **Server invocation CID lookup**: How should the form load data from a previous invocation CID? What fields should be pre-populated?
-
-9. **Validation depth**: For the meta page, should we just do syntax validation of transforms, or also type checking / execution testing?
-
-10. **Template loading mechanism**: Should gateway HTML templates use the same Jinja2 system as other templates, or a simpler approach given they're bundled with the server?
+3. **Invocation source validation**: When loading from a server invocation CID in the forms, should we validate that the invocation is specifically from a gateway request? Or allow populating forms from any server invocation (which might have different field structures)?
 
 ---
 
@@ -374,7 +397,10 @@ test_request_transform_receives_correct_details
     - query_string is included
     - method is captured
     - headers are passed (without cookie)
-    - body is included for POST/PUT
+    - json body is parsed for POST/PUT with valid JSON
+    - json is None for non-JSON body (see open question #2)
+    - json is None for GET requests without body
+    - context parameter contains full server execution context
 
 test_request_transform_modifies_request
     - Can change target URL
@@ -444,6 +470,20 @@ test_gateway_response_form
     - Form has CID input field
     - POST with CID populates form from invocation
 
+test_gateway_request_form_cid_loading
+    - Valid invocation CID populates all request fields
+    - CID not found -> displays error message
+    - CID found but referenced request_details_cid missing -> displays error message
+    - CID is not a server invocation -> displays error message
+    - Invocation from different server type -> (see open question #3)
+
+test_gateway_response_form_cid_loading
+    - Valid invocation CID populates all response fields
+    - CID not found -> displays error message
+    - CID found but referenced result_cid missing -> displays error message
+    - CID is not a server invocation -> displays error message
+    - Invocation from different server type -> (see open question #3)
+
 test_gateway_meta_page
     - GET /gateway/meta/jsonplaceholder returns meta page
     - Page links to /servers/jsonplaceholder (if exists)
@@ -451,6 +491,15 @@ test_gateway_meta_page
     - Page shows response transform source
     - Page indicates validation status
     - GET /gateway/meta/unknown returns 404
+
+test_gateway_meta_page_validation
+    - Valid transform -> shows "valid" status with green indicator
+    - Syntax error in transform -> shows error with line number
+    - Missing required function -> shows "missing transform_request/transform_response"
+    - Wrong function signature -> shows signature mismatch warning
+    - Type hint violations (if analyzable) -> shows type warnings
+    - CID not found -> shows "transform not found" error
+    - All validations shown for both request and response transforms
 
 test_gateway_server_route
     - GET /gateway/jsonplaceholder makes request to JSONPlaceholder
