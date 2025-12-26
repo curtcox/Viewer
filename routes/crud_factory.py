@@ -14,6 +14,7 @@ from flask import (
     jsonify,
     redirect,
     render_template,
+    Response,
     request,
     url_for,
 )
@@ -27,7 +28,7 @@ from template_status import get_template_link_info
 from .enabled import extract_enabled_value_from_request, request_prefers_json
 from .entities import create_entity, update_entity
 from .messages import EntityMessages
-from .response_utils import wants_structured_response
+from .response_utils import get_response_format, wants_structured_response
 
 
 class EntityRouteConfig:
@@ -127,6 +128,14 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], 
         """List all entities."""
         entities_list = config.get_entities()
 
+        response_format = get_response_format()
+        if response_format != "html":
+            from response_formats import render_payload
+
+            payload = [config.to_json(e) for e in entities_list]
+            body, mimetype = render_payload(payload, response_format)
+            return Response(body, mimetype=mimetype)
+
         if wants_structured_response():
             return jsonify([config.to_json(e) for e in entities_list])
 
@@ -167,6 +176,14 @@ def create_view_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[...,
         entity = config.get_by_name(entity_name)
         if not entity:
             abort(404)
+
+        response_format = get_response_format()
+        if response_format != "html":
+            from response_formats import render_payload
+
+            payload = config.to_json(entity)
+            body, mimetype = render_payload(payload, response_format)
+            return Response(body, mimetype=mimetype)
 
         if wants_structured_response():
             return jsonify(config.to_json(entity))

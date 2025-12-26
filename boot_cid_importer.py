@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any, Optional
 
 from flask import Flask, has_app_context
@@ -232,12 +233,14 @@ def import_boot_cid(app: Flask, boot_cid: str) -> tuple[bool, Optional[str]]:
     # Create import context
     raw_payload = json.dumps(payload, indent=2)
 
+    secret_key = os.environ.get("BOOT_SECRET_KEY", "")
+
     context = ImportContext(
         form=form,
         change_message=f"Boot import from CID {boot_cid}",
         raw_payload=raw_payload,
         data=payload,
-        secret_key="",  # Empty secret key for boot import
+        secret_key=secret_key,
     )
 
     # Ingest CID map

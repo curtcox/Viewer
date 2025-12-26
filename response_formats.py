@@ -274,14 +274,13 @@ def _convert_to_json(payload: Any, source_format: str, original: str) -> str:
 
 def _convert_to_text(payload: Any, source_format: str, _original: str) -> str:
     if source_format == "json":
-        return json.dumps(payload, indent=2, sort_keys=True)
+        return _json_to_text(payload)
     return _strip_html(str(payload))
 
 
 def _convert_to_markdown(payload: Any, source_format: str, _original: str) -> str:
     if source_format == "json":
-        formatted = json.dumps(payload, indent=2, sort_keys=True)
-        return f"```json\n{formatted}\n```"
+        return _json_to_markdown(payload)
     return _strip_html(str(payload))
 
 
@@ -350,6 +349,50 @@ def _json_to_csv(payload: Any) -> str:
     return buffer.getvalue()
 
 
+def _json_to_text(payload: Any) -> str:
+    if isinstance(payload, Mapping):
+        return "\n".join(
+            f"{key}: {_stringify_csv_value(value)}" for key, value in payload.items()
+        )
+
+    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+        named_values = _extract_named_values(payload)
+        if named_values:
+            return "\n".join(named_values)
+        return "\n".join(_stringify_csv_value(item) for item in payload)
+
+    return json.dumps(payload, indent=2, sort_keys=True)
+
+
+def _json_to_markdown(payload: Any) -> str:
+    if isinstance(payload, Mapping):
+        return "\n".join(
+            f"- **{key}**: {_stringify_csv_value(value)}"
+            for key, value in payload.items()
+        )
+
+    if isinstance(payload, Sequence) and not isinstance(payload, (str, bytes, bytearray)):
+        named_values = _extract_named_values(payload)
+        if named_values:
+            return "\n".join(f"- {value}" for value in named_values)
+        return "\n".join(f"- {_stringify_csv_value(item)}" for item in payload)
+
+    formatted = json.dumps(payload, indent=2, sort_keys=True)
+    return f"```json\n{formatted}\n```"
+
+
+def _extract_named_values(payload: Sequence[Any]) -> list[str] | None:
+    names: list[str] = []
+    for item in payload:
+        if not isinstance(item, Mapping):
+            return None
+        name_value = item.get("name")
+        if name_value is None:
+            return None
+        names.append(str(name_value))
+    return names
+
+
 def _write_csv_row(
     writer: csv.writer, header: Iterable[str], values: Iterable[Any]
 ) -> None:
@@ -402,7 +445,29 @@ def _sanitize_xml_text(value: str) -> str:
     )
 
 
+def render_payload(payload: Any, target_format: str) -> tuple[str, str]:
+    """Render a structured payload into the requested format."""
+
+    format_key = target_format if target_format in SUPPORTED_FORMATS else "json"
+    converters: Mapping[str, Any] = {
+        "html": lambda value: _convert_to_html(
+            value, "json", "application/json"
+        ),
+        "json": lambda value: json.dumps(value, ensure_ascii=False),
+        "txt": _json_to_text,
+        "md": _json_to_markdown,
+        "xml": lambda value: _value_to_xml(value, "response"),
+        "csv": _json_to_csv,
+    }
+
+    converter = converters.get(format_key, converters["json"])
+    body = converter(payload)
+    mimetype = SUPPORTED_FORMATS.get(format_key, "application/json")
+    return body, mimetype
+
+
 __all__ = [
     "register_response_format_handlers",
     "resolve_format_from_accept",
+    "render_payload",
 ]
