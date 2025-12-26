@@ -482,6 +482,23 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
         return None
 
     definition_text = server_definitions[server_name]
+
+    if not isinstance(definition_text, str):
+        try:
+            snapshot_cid_for_error = format_cid(cid.path)
+        except Exception:
+            snapshot_cid_for_error = None
+
+        value_preview = repr(definition_text)
+        if len(value_preview) > 500:
+            value_preview = f"{value_preview[:500]}...<truncated>"
+
+        raise TypeError(
+            "Expected server definition text to be a str in server definitions snapshot "
+            f"(server_name={server_name!r}, snapshot_cid={snapshot_cid_for_error!r}). "
+            f"Got {type(definition_text).__name__}: {value_preview}"
+        )
+
     definition_bytes = definition_text.encode("utf-8")
     per_server_cid = _generate_and_format_cid(definition_bytes)
 
