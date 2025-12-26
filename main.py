@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import signal
 import sys
@@ -30,6 +31,16 @@ def get_app(config_override: Mapping[str, Any] | None = None):
     """Retrieve (and cache) a Flask app instance for the provided configuration."""
 
     return _get_app_cached(_config_items(config_override))
+
+
+def configure_logging(debug_enabled: bool) -> int:
+    """Configure root logging level and environment flag based on debug option."""
+
+    log_level = logging.DEBUG if debug_enabled else logging.INFO
+    os.environ["VIEWER_LOG_LEVEL"] = "DEBUG" if debug_enabled else "INFO"
+    logging.basicConfig(level=log_level, force=True)
+    logging.getLogger().setLevel(log_level)
+    return log_level
 
 
 # Expose a module-level application reference for code paths that monkeypatch main.app.
@@ -463,6 +474,9 @@ if __name__ == "__main__":
         help="URL and/or CID arguments",
     )
     args = parser.parse_args()
+
+    # Configure logging early so subsequent imports respect the chosen level.
+    configure_logging(args.debug)
 
     # Configure database mode (must be done before app is accessed)
     if args.read_only:

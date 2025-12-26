@@ -63,8 +63,24 @@ from routes.core import internal_error, not_found_error
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
+LOG_LEVEL_ENV_VAR = "VIEWER_LOG_LEVEL"
+
+
+def _configure_logging() -> int:
+    """Configure root logging level based on environment.
+
+    Returns the configured log level.
+    """
+
+    level_name = os.getenv(LOG_LEVEL_ENV_VAR, "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    logging.basicConfig(level=level)
+    logging.getLogger().setLevel(level)
+    return level
+
+
+# Configure logging using an environment-controlled log level.
+_configure_logging()
 
 
 def _setup_logfire_instrumentation(logger: logging.Logger) -> list[str]:
