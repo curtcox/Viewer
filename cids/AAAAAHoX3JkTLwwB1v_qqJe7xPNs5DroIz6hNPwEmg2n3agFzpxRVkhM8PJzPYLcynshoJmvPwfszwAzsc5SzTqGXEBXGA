@@ -127,12 +127,9 @@ def _load_gateways(context):
     """Load gateway configurations from the gateways variable."""
     try:
         # Try to get gateways from context variables
-        # Context is a dict with {"variables": {...}, "secrets": {...}, "servers": {...}}
         gateways_value = None
-        if context and isinstance(context, dict):
-            variables = context.get("variables", {})
-            if isinstance(variables, dict):
-                gateways_value = variables.get("gateways")
+        if context and hasattr(context, "variables"):
+            gateways_value = context.variables.get("gateways")
 
         if gateways_value:
             if isinstance(gateways_value, dict):
@@ -153,8 +150,11 @@ def _load_gateways(context):
 
         # Build base_args with context for named value resolution
         base_args = {}
-        if context and isinstance(context, dict):
-            base_args["context"] = context
+        if context and hasattr(context, "variables"):
+            base_args["context"] = {
+                "variables": dict(context.variables) if context.variables else {},
+                "secrets": dict(context.secrets) if hasattr(context, "secrets") and context.secrets else {},
+            }
 
         value = resolve_named_value("gateways", base_args)
         if value:

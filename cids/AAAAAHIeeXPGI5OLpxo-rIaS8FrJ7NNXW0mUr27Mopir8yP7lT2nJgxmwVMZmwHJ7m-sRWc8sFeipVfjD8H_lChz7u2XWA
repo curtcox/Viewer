@@ -91,84 +91,33 @@ def _main_impl(context=None):
     return _handle_gateway_request(server_name, rest_path, gateways, context)
 
 
-def _resolve_cid_content(cid_value):
-    """Resolve a CID value to its content."""
-    try:
-        # Try database first - CID paths are stored with leading slash
-        from cid_storage import get_cid_content
-        cid_path = f"/{cid_value}" if not cid_value.startswith("/") else cid_value
-        content = get_cid_content(cid_path)
-        if content:
-            if hasattr(content, "file_data"):
-                data = content.file_data
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            if hasattr(content, "data"):
-                data = content.data
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            return content.decode("utf-8") if isinstance(content, bytes) else content
-    except Exception:
-        pass
-
-    # Try file system as fallback
-    try:
-        from pathlib import Path
-        # Remove leading slash if present for filesystem lookup
-        bare_cid = cid_value.lstrip("/")
-        cid_file = Path("cids") / bare_cid
-        if cid_file.exists():
-            return cid_file.read_text(encoding="utf-8")
-    except Exception:
-        pass
-
-    return None
-
-
 def _load_gateways(context):
     """Load gateway configurations from the gateways variable."""
     try:
         # Try to get gateways from context variables
-        # Context is a dict with {"variables": {...}, "secrets": {...}, "servers": {...}}
-        gateways_value = None
-        if context and isinstance(context, dict):
-            variables = context.get("variables", {})
-            if isinstance(variables, dict):
-                gateways_value = variables.get("gateways")
-
-        if gateways_value:
-            if isinstance(gateways_value, dict):
-                return gateways_value
-            if isinstance(gateways_value, str):
-                # Try to parse as JSON first
-                try:
+        if context and hasattr(context, "variables"):
+            gateways_value = context.variables.get("gateways")
+            if gateways_value:
+                if isinstance(gateways_value, str):
                     return json.loads(gateways_value)
-                except json.JSONDecodeError:
-                    # Value might be a CID - try to resolve it
-                    if gateways_value.startswith("AAAAA"):
-                        cid_content = _resolve_cid_content(gateways_value)
-                        if cid_content:
-                            return json.loads(cid_content)
+                return gateways_value
 
         # Try to resolve from named value resolver
         from server_execution.request_parsing import resolve_named_value
 
         # Build base_args with context for named value resolution
         base_args = {}
-        if context and isinstance(context, dict):
-            base_args["context"] = context
+        if context and hasattr(context, "variables"):
+            base_args["context"] = {
+                "variables": dict(context.variables) if context.variables else {},
+                "secrets": dict(context.secrets) if hasattr(context, "secrets") and context.secrets else {},
+            }
 
         value = resolve_named_value("gateways", base_args)
         if value:
-            if isinstance(value, dict):
-                return value
             if isinstance(value, str):
-                try:
-                    return json.loads(value)
-                except json.JSONDecodeError:
-                    # Value might be a CID - try to resolve it
-                    if value.startswith("AAAAA"):
-                        cid_content = _resolve_cid_content(value)
-                        if cid_content:
-                            return json.loads(cid_content)
+                return json.loads(value)
+            return value
 
     except Exception as e:
         logger.warning(f"Failed to load gateways: {e}")

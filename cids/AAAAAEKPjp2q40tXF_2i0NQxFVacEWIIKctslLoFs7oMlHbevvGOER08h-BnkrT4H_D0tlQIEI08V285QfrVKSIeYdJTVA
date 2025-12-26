@@ -62,12 +62,7 @@
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAHn-h81MjacniyXkVaLekpu60c-mMslCDbTWhsxh851Dz8lYZIlERndRgDF5ahkQWswFj3ueUUx4IBvbP0YB1tOPbQ",
-      "enabled": true
-    },
-    {
-      "name": "jsonplaceholder",
-      "definition_cid": "AAAAAAtYyY_Dx84xJNIl0KoZv-_crxGjcno8GLj5GyP011mHY85RIMCEty6PiGN0KuRUxsOR1ODWhCh2PPoR520plXjpzQ",
+      "definition_cid": "AAAAAHChs61USusn6UI2BVkKaK0pRRoMTkTpu1m4V-1sfjOOg5tYmnP66f-yl_EZtrUUnpdow7hIdwZG75dt-gsRqEN99Q",
       "enabled": true
     },
     {
@@ -645,11 +640,6 @@
     {
       "name": "uis",
       "definition": "AAAAAAA3ewogICJhbGlhc2VzIjoge30sCiAgInNlcnZlcnMiOiB7fSwKICAidmFyaWFibGVzIjoge30KfQ",
-      "enabled": true
-    },
-    {
-      "name": "gateways",
-      "definition": "AAAAAAVS0H0Ln0vBXRvrM6uBMye3p7LLRMgJ3tblRHUIPK9fJ4njYDRAhVBmiT9pUVF7HT--ByOr97iR0EgAmhpbPlnewQ",
       "enabled": true
     }
   ]
