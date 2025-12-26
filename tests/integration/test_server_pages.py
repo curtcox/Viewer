@@ -97,6 +97,8 @@ def test_servers_page_includes_enabled_toggle(
     assert toggle_match is not None
     assert "checked" not in toggle_match.group(0)
     assert "server-enabled-label" in page
+    assert "servers-extra-col" in page
+    assert "servers-show-all-columns" in page
 
 
 def test_server_enable_toggle_updates_state(
