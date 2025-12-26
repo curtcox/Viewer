@@ -421,6 +421,11 @@ if __name__ == "__main__":
         help="Port to run the server on (default: 5001)",
     )
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Run in debug mode",
+    )
+    parser.add_argument(
         "--in-memory-db",
         action="store_true",
         help="Run the application with an in-memory database",
@@ -553,7 +558,12 @@ if __name__ == "__main__":
         # Start the Flask app
         app = get_app()
         try:
-            app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
+            app.run(
+                host="0.0.0.0",
+                port=args.port,
+                debug=args.debug,
+                use_reloader=False,
+            )
         except KeyboardInterrupt:
             print("\nShutting down gracefully...")
         finally:
