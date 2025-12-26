@@ -75,7 +75,11 @@ def transform_request(request_details: dict, context: dict) -> dict:
             - method: HTTP method
             - headers: Request headers (dict, excludes cookies)
             - json: Request body parsed as JSON (None if not valid JSON or no body)
+            - body: Raw request body as text (None if no body)
         context: Full server execution context (same as other servers)
+            - Can invoke other servers
+            - Can access secrets
+            - Has all standard server capabilities
 
     Returns:
         Dict containing:
@@ -83,6 +87,7 @@ def transform_request(request_details: dict, context: dict) -> dict:
             - method: HTTP method to use
             - headers: Headers to send
             - json: JSON body to send (if any)
+            - data: Raw body to send as string (if any, alternative to json)
             - params: Query parameters dict (if any)
     """
 ```
@@ -101,6 +106,9 @@ def transform_response(response_details: dict, context: dict) -> dict:
             - json: Parsed JSON (if applicable, None otherwise)
             - request_path: Original request path after /gateway/{server}/
         context: Full server execution context (same as other servers)
+            - Can invoke other servers
+            - Can access secrets
+            - Has all standard server capabilities
 
     Returns:
         Dict containing:
@@ -342,18 +350,20 @@ For `/gateway/response`:
 
 10. **Template loading mechanism**: Jinja2. Use the existing Jinja2 template system for consistency with the rest of the application.
 
+11. **Transform access to other servers and secrets**: Yes to both. Transform functions can invoke other servers directly (e.g., for chained transformations) and can access secrets directly. This follows from having full server execution context.
+
+12. **Request body handling (detailed)**: Always transform the original request into a JSON object. The `request_details` dict passed to the transform function is a complete JSON representation of the request:
+    - If body is valid JSON: `json` field contains parsed JSON, `body` field contains raw text
+    - If body is not valid JSON: `json` field is `None`, `body` field contains raw text
+    - If no body: both `json` and `body` are `None`
+
+13. **Invocation source validation**: Allow populating forms from any server invocation. The form should indicate whether the server used in the invocation currently has a defined gateway in `/variables/gateways`. This allows users to experiment with transforms for servers that may not yet have gateway configurations.
+
 ---
 
 ## Open Questions
 
-1. **Transform access to other servers**: Should transform functions be able to invoke other servers directly (e.g., for chained transformations)? Should they have direct access to secrets?
-
-2. **Invalid JSON body handling**: When the request body is not valid JSON, what should be passed to the transform function? Options:
-   - Pass `None` for the body
-   - Pass the raw text as a string
-   - Return an error before invoking the transform
-
-3. **Invocation source validation**: When loading from a server invocation CID in the forms, should we validate that the invocation is specifically from a gateway request? Or allow populating forms from any server invocation (which might have different field structures)?
+None - all questions have been resolved.
 
 ---
 
@@ -397,10 +407,17 @@ test_request_transform_receives_correct_details
     - query_string is included
     - method is captured
     - headers are passed (without cookie)
-    - json body is parsed for POST/PUT with valid JSON
-    - json is None for non-JSON body (see open question #2)
-    - json is None for GET requests without body
+    - json field contains parsed JSON when body is valid JSON
+    - json field is None when body is not valid JSON
+    - json field is None when no body present
+    - body field contains raw text when body present
+    - body field is None when no body present
     - context parameter contains full server execution context
+
+test_request_transform_context_capabilities
+    - Transform can invoke other servers via context
+    - Transform can access secrets via context
+    - Transform has standard server capabilities
 
 test_request_transform_modifies_request
     - Can change target URL
@@ -425,6 +442,12 @@ test_response_transform_receives_correct_details
     - text version is included
     - json is parsed if applicable
     - original request_path is included
+    - context parameter contains full server execution context
+
+test_response_transform_context_capabilities
+    - Transform can invoke other servers via context
+    - Transform can access secrets via context
+    - Transform has standard server capabilities
 
 test_response_transform_modifies_response
     - Can change output content
@@ -475,14 +498,18 @@ test_gateway_request_form_cid_loading
     - CID not found -> displays error message
     - CID found but referenced request_details_cid missing -> displays error message
     - CID is not a server invocation -> displays error message
-    - Invocation from different server type -> (see open question #3)
+    - Invocation from non-gateway server -> populates form, shows indicator
+    - Indicator shows "gateway defined" if server has gateway in /variables/gateways
+    - Indicator shows "no gateway defined" if server lacks gateway configuration
 
 test_gateway_response_form_cid_loading
     - Valid invocation CID populates all response fields
     - CID not found -> displays error message
     - CID found but referenced result_cid missing -> displays error message
     - CID is not a server invocation -> displays error message
-    - Invocation from different server type -> (see open question #3)
+    - Invocation from non-gateway server -> populates form, shows indicator
+    - Indicator shows "gateway defined" if server has gateway in /variables/gateways
+    - Indicator shows "no gateway defined" if server lacks gateway configuration
 
 test_gateway_meta_page
     - GET /gateway/meta/jsonplaceholder returns meta page
