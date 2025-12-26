@@ -107,7 +107,7 @@ def load_cids_from_directory(app: Flask, allow_missing: bool = False) -> None:
 
         if existing is None:
             create_cid_record(generated_cid, file_bytes)
-            LOGGER.info("Loaded CID %s from %s", generated_cid, file_path)
+            LOGGER.debug("Loaded CID %s from %s", generated_cid, file_path)
         else:
             if existing.file_data != file_bytes:
                 message = f"CID {generated_cid} already exists in the database with different content"

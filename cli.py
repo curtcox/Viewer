@@ -298,6 +298,7 @@ OPTIONS:
     --show              Launch the app and open it in the default web browser
     --boot-cid CID      Import a boot CID on startup (legacy, use positional CID instead)
     --port PORT         Port to run the server on (default: 5001)
+    --debug             Enable debug logging and Flask debug mode
     --in-memory-db      Use an in-memory database instead of persistent SQLite
     --dump-db-on-exit FILE
                         Dump the in-memory database to FILE on exit
