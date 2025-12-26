@@ -19,12 +19,13 @@ import ast
 import inspect
 import json
 import logging
+import traceback
 from html import escape
 from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
-from flask import request as flask_request
+from flask import current_app, request as flask_request
 from jinja2 import Template
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,22 @@ def main(context=None):
     Parameters:
         context: Request context (automatically provided)
     """
+    try:
+        return _main_impl(context)
+    except Exception as e:
+        # Catch-all error handler with diagnostic information
+        error_detail = traceback.format_exc()
+        logger.error(f"Gateway error: {e}\n{error_detail}")
+        return _render_error(
+            "Gateway Error",
+            f"An unexpected error occurred: {escape(str(e))}",
+            {},  # Empty gateways since we may not have loaded them
+            error_detail=error_detail,
+        )
+
+
+def _main_impl(context=None):
+    """Implementation of main gateway routing logic."""
     # Get the request path
     request_path = flask_request.path or "/"
 
@@ -101,19 +118,38 @@ def _load_gateways(context):
 
 
 def _load_template(template_name):
-    """Load a Jinja2 template from the gateway templates directory."""
-    template_dir = Path(__file__).parent.parent / "templates" / "gateway"
-    template_path = template_dir / template_name
+    """Load a Jinja2 template from the gateway templates directory.
 
-    if template_path.exists():
-        with open(template_path, "r", encoding="utf-8") as f:
-            return Template(f.read())
+    Tries multiple paths to find templates:
+    1. Flask app root + reference_templates/servers/templates/gateway/
+    2. Current working directory relative paths
+    """
+    template_paths = []
+
+    # Try Flask app root path
+    try:
+        app_root = Path(current_app.root_path)
+        template_paths.append(app_root / "reference_templates" / "servers" / "templates" / "gateway" / template_name)
+    except RuntimeError:
+        # No Flask app context
+        pass
+
+    # Try current working directory
+    cwd = Path.cwd()
+    template_paths.append(cwd / "reference_templates" / "servers" / "templates" / "gateway" / template_name)
+
+    for template_path in template_paths:
+        if template_path.exists():
+            with open(template_path, "r", encoding="utf-8") as f:
+                return Template(f.read())
 
     # Fallback: return a simple error template
+    tried_paths = ", ".join(str(p) for p in template_paths)
     return Template(
-        """<!DOCTYPE html><html><body>
+        f"""<!DOCTYPE html><html><body>
         <h1>Template Not Found</h1>
-        <p>Could not load template: {{ template_name }}</p>
+        <p>Could not load template: {{{{ template_name }}}}</p>
+        <p>Tried paths: {tried_paths}</p>
         </body></html>"""
     )
 
@@ -754,12 +790,13 @@ def _transform_response(ctx, gateways, context):
     return ctx
 
 
-def _render_error(title, message, gateways):
-    """Render an error page."""
+def _render_error(title, message, gateways, *, error_detail=None):
+    """Render an error page with optional diagnostic details."""
     template = _load_template("error.html")
     html = template.render(
         error_title=title,
         error_message=message,
+        error_detail=error_detail,
         available_gateways=gateways,
     )
     return {"output": html, "content_type": "text/html"}
