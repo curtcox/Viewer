@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import signal
 import sys
@@ -30,6 +31,16 @@ def get_app(config_override: Mapping[str, Any] | None = None):
     """Retrieve (and cache) a Flask app instance for the provided configuration."""
 
     return _get_app_cached(_config_items(config_override))
+
+
+def configure_logging(debug_enabled: bool) -> int:
+    """Configure root logging level and environment flag based on debug option."""
+
+    log_level = logging.DEBUG if debug_enabled else logging.INFO
+    os.environ["VIEWER_LOG_LEVEL"] = "DEBUG" if debug_enabled else "INFO"
+    logging.basicConfig(level=log_level, force=True)
+    logging.getLogger().setLevel(log_level)
+    return log_level
 
 
 # Expose a module-level application reference for code paths that monkeypatch main.app.
@@ -421,6 +432,11 @@ if __name__ == "__main__":
         help="Port to run the server on (default: 5001)",
     )
     parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Run in debug mode",
+    )
+    parser.add_argument(
         "--in-memory-db",
         action="store_true",
         help="Run the application with an in-memory database",
@@ -458,6 +474,9 @@ if __name__ == "__main__":
         help="URL and/or CID arguments",
     )
     args = parser.parse_args()
+
+    # Configure logging early so subsequent imports respect the chosen level.
+    configure_logging(args.debug)
 
     # Configure database mode (must be done before app is accessed)
     if args.read_only:
@@ -553,7 +572,12 @@ if __name__ == "__main__":
         # Start the Flask app
         app = get_app()
         try:
-            app.run(host="0.0.0.0", port=args.port, debug=True, use_reloader=False)
+            app.run(
+                host="0.0.0.0",
+                port=args.port,
+                debug=args.debug,
+                use_reloader=False,
+            )
         except KeyboardInterrupt:
             print("\nShutting down gracefully...")
         finally:
