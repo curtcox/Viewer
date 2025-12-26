@@ -124,6 +124,7 @@ class TestOneShotEquivalence:
         # Set environment variable for the CLI to use the test database
         env = os.environ.copy()
         env["DATABASE_URL"] = test_db_uri
+        env["TESTING"] = "1"
 
         args = [sys.executable, "main.py", path]
         if extra_args:
@@ -407,6 +408,18 @@ class TestOneShotEquivalence:
         # Both should have similar structure
         assert "<html" in http_response.lower() or "<!doctype" in http_response.lower()
         assert "<html" in cli_response.lower() or "<!doctype" in cli_response.lower()
+
+    def test_servers_text_format_equivalence(self):
+        """Test that /servers.txt returns consistent plain text via HTTP and CLI."""
+
+        http_status, http_response = self._get_http_response("/servers.txt")
+        cli_status, cli_response = self._get_cli_response("/servers.txt")
+
+        assert http_status == 200, f"HTTP failed with status {http_status}"
+        assert cli_status == 200, f"CLI failed with status {cli_status}"
+
+        assert http_response.strip() == cli_response.strip()
+        assert "test_equivalence_server" in http_response
 
     def test_invalid_cid_format_error(self):
         """Test that requesting invalid CID format returns same error."""
