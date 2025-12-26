@@ -19,24 +19,45 @@
             </div>
 
             {% if server_rows %}
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                <div class="flex-grow-1" style="max-width: 420px;">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
+                        <input
+                            type="search"
+                            class="form-control"
+                            id="servers-filter-input"
+                            placeholder="Search servers"
+                            autocomplete="off"
+                        >
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="servers-show-all-columns">
+                    <label class="form-check-label" for="servers-show-all-columns">Show all columns</label>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
                             <th scope="col">Server</th>
-                            <th scope="col" class="text-nowrap">Created</th>
-                            <th scope="col" class="text-nowrap">Updated</th>
+                            <th scope="col" class="text-nowrap servers-extra-col d-none">Created</th>
+                            <th scope="col" class="text-nowrap servers-extra-col d-none">Updated</th>
                             <th scope="col">Variables</th>
                             <th scope="col">Secrets</th>
                             <th scope="col">Routes</th>
-                            <th scope="col" class="text-center">Enabled</th>
+                            <th scope="col" class="text-center servers-extra-col d-none">Enabled</th>
                             <th scope="col" class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in server_rows %}
                         {% set server = row.server %}
-                        <tr>
+                        {% set variables_labels = row.variables | map(attribute='label') | list | join(' ') if row.variables else '' %}
+                        {% set secrets_labels = row.secrets | map(attribute='label') | list | join(' ') if row.secrets else '' %}
+                        {% set routes_labels = row.routes | map(attribute='label') | list | join(' ') if row.routes else '' %}
+                        <tr data-server-row data-search="{{ (server.name ~ ' /servers/' ~ server.name ~ ' ' ~ variables_labels ~ ' ' ~ secrets_labels ~ ' ' ~ routes_labels ~ ' ' ~ ('enabled' if server.enabled else 'disabled') ~ ' ' ~ (server.created_at.strftime('%Y-%m-%d') if server.created_at else '') ~ ' ' ~ (server.updated_at.strftime('%Y-%m-%d') if server.updated_at else '')) | e }}">
                             <td>
                                 <div class="fw-semibold">
                                     <i class="fas fa-server me-2 text-secondary"></i>{{ server.name }}
@@ -49,11 +70,11 @@
                                 </div>
                                 <div class="small text-muted">/servers/{{ server.name }}</div>
                             </td>
-                            <td class="text-nowrap">
+                            <td class="text-nowrap servers-extra-col d-none">
                                 <i class="fas fa-calendar-plus me-1 text-muted"></i>
                                 {{ server.created_at.strftime('%Y-%m-%d') }}
                             </td>
-                            <td class="text-nowrap">
+                            <td class="text-nowrap servers-extra-col d-none">
                                 {% if server.updated_at != server.created_at %}
                                 <i class="fas fa-calendar-edit me-1 text-muted"></i>
                                 {{ server.updated_at.strftime('%Y-%m-%d') }}
@@ -94,7 +115,7 @@
                                 <span class="text-muted">None</span>
                                 {% endif %}
                             </td>
-                            <td class="text-center">
+                            <td class="text-center servers-extra-col d-none">
                                 {% set toggle_id = 'server-enabled-toggle-' ~ server.name %}
                                 <form
                                     method="post"
@@ -158,4 +179,46 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterInput = document.getElementById('servers-filter-input');
+    const showAllColumns = document.getElementById('servers-show-all-columns');
+    const rows = Array.from(document.querySelectorAll('[data-server-row]'));
+    const extraCols = Array.from(document.querySelectorAll('.servers-extra-col'));
+
+    function normalize(value) {
+        return (value || '').toString().toLowerCase();
+    }
+
+    function applyFilter() {
+        const query = normalize(filterInput ? filterInput.value : '');
+        rows.forEach((row) => {
+            const haystack = normalize(row.getAttribute('data-search'));
+            const match = !query || haystack.includes(query);
+            row.classList.toggle('d-none', !match);
+        });
+    }
+
+    function applyColumnToggle() {
+        const show = Boolean(showAllColumns && showAllColumns.checked);
+        extraCols.forEach((col) => {
+            col.classList.toggle('d-none', !show);
+        });
+    }
+
+    if (filterInput) {
+        filterInput.addEventListener('input', applyFilter);
+    }
+
+    if (showAllColumns) {
+        showAllColumns.addEventListener('change', applyColumnToggle);
+    }
+
+    applyColumnToggle();
+    applyFilter();
+});
+</script>
 {% endblock %}

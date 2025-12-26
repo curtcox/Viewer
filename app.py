@@ -215,9 +215,10 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         "GITHUB_REPOSITORY_URL",
         os.environ.get("GITHUB_REPOSITORY_URL", "https://github.com/curtcox/Viewer"),
     )
-    flask_app.config.setdefault(
-        "CID_DIRECTORY", str(Path(flask_app.root_path) / "cids")
-    )
+    default_cid_directory = str(Path(flask_app.root_path) / "cids")
+    configured_cid_directory = os.environ.get("CID_DIRECTORY", default_cid_directory)
+
+    flask_app.config.setdefault("CID_DIRECTORY", configured_cid_directory)
 
     # Set GIT_SHA from environment variable if provided (used in Vercel deployments)
     git_sha = os.environ.get("GIT_SHA")
@@ -225,10 +226,16 @@ def create_app(config_override: Optional[dict] = None) -> Flask:
         flask_app.config["GIT_SHA"] = git_sha
 
     cid_directory_overridden = bool(
-        config_override and "CID_DIRECTORY" in config_override
+        (config_override and "CID_DIRECTORY" in config_override)
+        or (
+            os.environ.get("CID_DIRECTORY")
+            and os.environ.get("CID_DIRECTORY") != default_cid_directory
+        )
     )
     load_cids_in_tests = bool(
-        config_override and config_override.get("LOAD_CIDS_IN_TESTS")
+        (config_override and config_override.get("LOAD_CIDS_IN_TESTS"))
+        or os.environ.get("LOAD_CIDS_IN_TESTS", "").lower()
+        in {"1", "true", "yes"}
     )
 
     if config_override:

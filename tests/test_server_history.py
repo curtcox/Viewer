@@ -128,6 +128,27 @@ class TestServerHistory(unittest.TestCase):
         # Should return empty list since our server isn't in any CID
         self.assertEqual(history, [])
 
+    @patch("routes.servers.get_uploads")
+    def test_get_server_definition_history_raises_helpful_error_for_non_string_definition(
+        self, mock_get_uploads
+    ):
+        mock_cid = Mock()
+        mock_cid.path = "cid_bad_value"
+        mock_cid.created_at = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        mock_cid.file_data = json.dumps(
+            {"test_server": {"not": "a string"}, "other_server": "print('other')"}
+        ).encode("utf-8")
+
+        mock_get_uploads.return_value = [mock_cid]
+
+        with self.assertRaises(TypeError) as ctx:
+            get_server_definition_history(self.server_name)
+
+        message = str(ctx.exception)
+        self.assertIn("server_name='test_server'", message)
+        self.assertIn("snapshot_cid='cid_bad_value'", message)
+        self.assertIn("{'not': 'a string'}", message)
+
 
 if __name__ == "__main__":
     unittest.main()
