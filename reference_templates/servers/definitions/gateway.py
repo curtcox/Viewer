@@ -1,476 +1,796 @@
 # ruff: noqa: F821, F706
 # pylint: disable=undefined-variable,return-outside-function
-"""Gateway server for proxying requests to external REST APIs.
+"""Gateway server for proxying requests to external and internal APIs.
 
-This server acts as a proxy between the user and external API servers,
-with optional request and response transformations.
+This server provides a unified interface for accessing APIs with customizable
+request and response transformations. All server-specific configuration comes
+from the 'gateways' variable.
+
+Routes:
+    /gateway - Instruction page
+    /gateway/request - Request experimentation form
+    /gateway/response - Response experimentation form
+    /gateway/meta/{server} - Server meta page with transform validation
+    /gateway/{server} - Issue request to gateway server root
+    /gateway/{server}/{rest} - Issue request to gateway server with path
 """
 
+import ast
+import inspect
 import json
+import logging
 from html import escape
-from urllib.parse import urlparse, urljoin
+from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
 from flask import request as flask_request
+from jinja2 import Template
+
+logger = logging.getLogger(__name__)
 
 
-def main(
-    target_server=None, request_transform=None, response_transform=None, context=None
-):
+def main(context=None):
     """Gateway server main function.
 
+    Handles all gateway routes based on the request path.
+
     Parameters:
-        target_server: Base URL of the target API server (e.g., 'https://api.github.com')
-        request_transform: Optional server name to transform the request before sending
-        response_transform: Optional server name to transform the response before returning
-        context: Request context (automatically provided by the server execution framework)
-
-    When target_server is not provided, displays an examples/instructions page.
-    When target_server is provided, proxies requests to that server.
+        context: Request context (automatically provided)
     """
-
-    # If no target server is specified, show the examples page
-    if not target_server:
-        return _render_examples_page()
-
-    # Get the path after the gateway mount point
+    # Get the request path
     request_path = flask_request.path or "/"
 
-    # Extract the path after /gateway (or whatever the mount point is)
-    # The remaining path should be used as the request path to the target server
-    path_parts = request_path.strip("/").split("/", 1)
-    if len(path_parts) > 1:
-        target_path = "/" + path_parts[1]
-    else:
-        target_path = "/"
+    # Parse the path to determine the route
+    path_parts = request_path.strip("/").split("/")
 
-    # Build the full target URL
-    target_url = urljoin(target_server.rstrip("/") + "/", target_path.lstrip("/"))
+    # Remove 'gateway' prefix if present
+    if path_parts and path_parts[0] == "gateway":
+        path_parts = path_parts[1:]
 
-    # Prepare request details for transformation
-    request_details = {
-        "url": target_url,
-        "method": flask_request.method,
-        "headers": dict(flask_request.headers),
-        "query_string": flask_request.query_string.decode("utf-8"),
-        "path": target_path,
-        "original_path": request_path,
-        "target_server": target_server,
+    # Load gateways configuration
+    gateways = _load_gateways(context)
+
+    # Route to appropriate handler
+    if not path_parts or path_parts[0] == "":
+        return _handle_instruction_page(gateways, context)
+
+    first_part = path_parts[0]
+
+    if first_part == "request":
+        return _handle_request_form(gateways, context)
+
+    if first_part == "response":
+        return _handle_response_form(gateways, context)
+
+    if first_part == "meta" and len(path_parts) > 1:
+        server_name = path_parts[1]
+        return _handle_meta_page(server_name, gateways, context)
+
+    # Otherwise, treat first part as server name
+    server_name = first_part
+    rest_path = "/".join(path_parts[1:]) if len(path_parts) > 1 else ""
+
+    return _handle_gateway_request(server_name, rest_path, gateways, context)
+
+
+def _load_gateways(context):
+    """Load gateway configurations from the gateways variable."""
+    try:
+        # Try to get gateways from context variables
+        if context and hasattr(context, "variables"):
+            gateways_value = context.variables.get("gateways")
+            if gateways_value:
+                if isinstance(gateways_value, str):
+                    return json.loads(gateways_value)
+                return gateways_value
+
+        # Try to resolve from named value resolver
+        from server_execution.request_parsing import resolve_named_value
+
+        found, value = resolve_named_value("gateways")
+        if found and value:
+            if isinstance(value, str):
+                return json.loads(value)
+            return value
+
+    except Exception as e:
+        logger.warning(f"Failed to load gateways: {e}")
+
+    return {}
+
+
+def _load_template(template_name):
+    """Load a Jinja2 template from the gateway templates directory."""
+    template_dir = Path(__file__).parent.parent / "templates" / "gateway"
+    template_path = template_dir / template_name
+
+    if template_path.exists():
+        with open(template_path, "r", encoding="utf-8") as f:
+            return Template(f.read())
+
+    # Fallback: return a simple error template
+    return Template(
+        """<!DOCTYPE html><html><body>
+        <h1>Template Not Found</h1>
+        <p>Could not load template: {{ template_name }}</p>
+        </body></html>"""
+    )
+
+
+def _handle_instruction_page(gateways, context):
+    """Render the main gateway instruction page."""
+    template = _load_template("instruction.html")
+    html = template.render(gateways=gateways)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_request_form(gateways, context):
+    """Handle the request experimentation form."""
+    template = _load_template("request_form.html")
+
+    # Get form data
+    form_data = dict(flask_request.form) if flask_request.form else {}
+    action = form_data.get("action", "")
+
+    # Initialize context
+    ctx = {
+        "gateways": gateways,
+        "selected_server": form_data.get("server", ""),
+        "method": form_data.get("method", "GET"),
+        "path": form_data.get("path", ""),
+        "query_string": form_data.get("query_string", ""),
+        "headers": form_data.get("headers", "{}"),
+        "body": form_data.get("body", ""),
+        "transform_override": form_data.get("transform_override", ""),
+        "invocation_cid": form_data.get("invocation_cid", ""),
+        "error": None,
+        "success": None,
+        "preview": None,
+        "response": None,
+        "gateway_defined": False,
+        "invocation_server": None,
+        "default_transform": _get_default_request_transform(),
     }
 
-    # Apply request transformation if specified
-    if request_transform:
-        try:
-            transform_result = _apply_transform(
-                request_transform, request_details, context
-            )
-            if isinstance(transform_result, dict) and "error" in transform_result:
-                return transform_result
-            request_details = transform_result
-        except Exception as e:
-            return {
-                "output": _render_error_page(
-                    "Request Transform Error",
-                    f"Failed to transform request: {escape(str(e))}",
-                ),
-                "content_type": "text/html",
-            }
+    # Handle actions
+    if action == "load" and ctx["invocation_cid"]:
+        ctx = _load_invocation_for_request(ctx, gateways)
+    elif action == "preview" and ctx["selected_server"]:
+        ctx = _preview_request_transform(ctx, gateways)
+    elif action == "execute" and ctx["selected_server"]:
+        ctx = _execute_gateway_request(ctx, gateways, context)
 
-    # Make the request to the target server
+    html = template.render(**ctx)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_response_form(gateways, context):
+    """Handle the response experimentation form."""
+    template = _load_template("response_form.html")
+
+    # Get form data
+    form_data = dict(flask_request.form) if flask_request.form else {}
+    action = form_data.get("action", "")
+
+    # Initialize context
+    ctx = {
+        "gateways": gateways,
+        "selected_server": form_data.get("server", ""),
+        "status_code": int(form_data.get("status_code", 200)),
+        "request_path": form_data.get("request_path", ""),
+        "response_headers": form_data.get("response_headers", '{"Content-Type": "application/json"}'),
+        "response_body": form_data.get("response_body", ""),
+        "transform_override": form_data.get("transform_override", ""),
+        "invocation_cid": form_data.get("invocation_cid", ""),
+        "error": None,
+        "success": None,
+        "preview": None,
+        "preview_html": None,
+        "gateway_defined": False,
+        "invocation_server": None,
+        "default_transform": _get_default_response_transform(),
+    }
+
+    # Handle actions
+    if action == "load" and ctx["invocation_cid"]:
+        ctx = _load_invocation_for_response(ctx, gateways)
+    elif action == "transform":
+        ctx = _transform_response(ctx, gateways, context)
+
+    html = template.render(**ctx)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_meta_page(server_name, gateways, context):
+    """Handle the gateway meta page showing transform source and validation."""
+    if server_name not in gateways:
+        return _render_error("Gateway Not Found", f"No gateway configured for '{server_name}'", gateways)
+
+    config = gateways[server_name]
+    template = _load_template("meta.html")
+
+    # Load and validate transforms
+    request_transform_source = None
+    request_transform_status = "error"
+    request_transform_status_text = "Not Found"
+    request_transform_error = None
+    request_transform_warnings = []
+
+    response_transform_source = None
+    response_transform_status = "error"
+    response_transform_status_text = "Not Found"
+    response_transform_error = None
+    response_transform_warnings = []
+
+    # Load request transform
+    request_cid = config.get("request_transform_cid")
+    if request_cid:
+        source, error, warnings = _load_and_validate_transform(request_cid, "transform_request", context)
+        request_transform_source = source
+        if error:
+            request_transform_error = error
+            request_transform_status = "error"
+            request_transform_status_text = "Error"
+        elif warnings:
+            request_transform_warnings = warnings
+            request_transform_status = "warning"
+            request_transform_status_text = "Valid with Warnings"
+        else:
+            request_transform_status = "valid"
+            request_transform_status_text = "Valid"
+
+    # Load response transform
+    response_cid = config.get("response_transform_cid")
+    if response_cid:
+        source, error, warnings = _load_and_validate_transform(response_cid, "transform_response", context)
+        response_transform_source = source
+        if error:
+            response_transform_error = error
+            response_transform_status = "error"
+            response_transform_status_text = "Error"
+        elif warnings:
+            response_transform_warnings = warnings
+            response_transform_status = "warning"
+            response_transform_status_text = "Valid with Warnings"
+        else:
+            response_transform_status = "valid"
+            response_transform_status_text = "Valid"
+
+    # Check if server exists
+    server_exists = _check_server_exists(server_name, context)
+
+    # Generate test paths based on server type
+    test_paths = _get_test_paths(server_name)
+
+    html = template.render(
+        server_name=server_name,
+        config=config,
+        server_exists=server_exists,
+        request_transform_source=request_transform_source,
+        request_transform_status=request_transform_status,
+        request_transform_status_text=request_transform_status_text,
+        request_transform_error=request_transform_error,
+        request_transform_warnings=request_transform_warnings,
+        response_transform_source=response_transform_source,
+        response_transform_status=response_transform_status,
+        response_transform_status_text=response_transform_status_text,
+        response_transform_error=response_transform_error,
+        response_transform_warnings=response_transform_warnings,
+        test_paths=test_paths,
+    )
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_gateway_request(server_name, rest_path, gateways, context):
+    """Handle an actual gateway request to a configured server."""
+    if server_name not in gateways:
+        return _render_error(
+            "Gateway Not Found",
+            f"No gateway configured for '{server_name}'",
+            gateways,
+        )
+
+    config = gateways[server_name]
+
+    # Build request details
     try:
-        response = _make_request(request_details)
-    except Exception as e:
-        return {
-            "output": _render_error_page(
-                "Request Failed",
-                f"Failed to connect to target server: {escape(str(e))}",
-            ),
-            "content_type": "text/html",
-        }
+        json_body = flask_request.get_json(silent=True)
+    except Exception:
+        json_body = None
 
-    # Prepare response details for transformation
+    try:
+        raw_body = flask_request.get_data(as_text=True)
+    except Exception:
+        raw_body = None
+
+    request_details = {
+        "path": rest_path,
+        "query_string": flask_request.query_string.decode("utf-8"),
+        "method": flask_request.method,
+        "headers": {k: v for k, v in flask_request.headers if k.lower() != "cookie"},
+        "json": json_body,
+        "body": raw_body,
+    }
+
+    # Load and execute request transform
+    request_cid = config.get("request_transform_cid")
+    if request_cid:
+        try:
+            transform_fn = _load_transform_function(request_cid, context)
+            if transform_fn:
+                transformed = transform_fn(request_details, context)
+                if isinstance(transformed, dict):
+                    request_details = transformed
+        except Exception as e:
+            logger.error(f"Request transform error: {e}")
+            return _render_error(
+                "Request Transform Error",
+                f"Failed to execute request transform: {escape(str(e))}",
+                gateways,
+            )
+
+    # Make the request to the target
+    target_url = config.get("target_url", "")
+    try:
+        response = _execute_target_request(target_url, request_details)
+    except Exception as e:
+        logger.error(f"Target request error: {e}")
+        return _render_error(
+            "Request Failed",
+            f"Failed to connect to target: {escape(str(e))}",
+            gateways,
+        )
+
+    # Build response details
+    try:
+        response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
+    except Exception:
+        response_json = None
+
     response_details = {
         "status_code": response.status_code,
         "headers": dict(response.headers),
         "content": response.content,
-        "text": response.text if response.text else "",
-        "request_details": request_details,
+        "text": response.text,
+        "json": response_json,
+        "request_path": rest_path,
     }
 
-    # Apply response transformation if specified
-    if response_transform:
+    # Load and execute response transform
+    response_cid = config.get("response_transform_cid")
+    if response_cid:
         try:
-            transform_result = _apply_transform(
-                response_transform, response_details, context
-            )
-            if isinstance(transform_result, dict) and "output" in transform_result:
-                return transform_result
-            response_details = transform_result
+            transform_fn = _load_transform_function(response_cid, context)
+            if transform_fn:
+                result = transform_fn(response_details, context)
+                if isinstance(result, dict) and "output" in result:
+                    return result
         except Exception as e:
-            return {
-                "output": _render_error_page(
-                    "Response Transform Error",
-                    f"Failed to transform response: {escape(str(e))}",
-                ),
-                "content_type": "text/html",
-            }
+            logger.error(f"Response transform error: {e}")
+            return _render_error(
+                "Response Transform Error",
+                f"Failed to execute response transform: {escape(str(e))}",
+                gateways,
+            )
 
-    # Default: Convert JSON responses to HTML
-    content_type = response.headers.get("Content-Type", "")
-    if "application/json" in content_type:
-        try:
-            json_data = response.json()
-            html_output = _render_json_as_html(json_data, target_server, request_path)
-            return {
-                "output": html_output,
-                "content_type": "text/html",
-            }
-        except json.JSONDecodeError:
-            pass
-
-    # Return raw response
+    # Default: return raw response
     return {
         "output": response.content,
-        "content_type": content_type,
+        "content_type": response.headers.get("Content-Type", "text/plain"),
     }
 
 
-def _render_examples_page():
-    """Render the examples and instructions page."""
-
-    examples = [
-        {
-            "name": "GitHub API",
-            "description": "Browse the GitHub REST API",
-            "link": "/gateway?target_server=https://api.github.com&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "OpenAI API",
-            "description": "OpenAI API endpoints",
-            "link": "/gateway?target_server=https://api.openai.com&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "Anthropic API",
-            "description": "Anthropic Claude API",
-            "link": "/gateway?target_server=https://api.anthropic.com&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "Google AI API",
-            "description": "Google Gemini and AI APIs",
-            "link": "/gateway?target_server=https://generativelanguage.googleapis.com&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "OpenRouter API",
-            "description": "OpenRouter unified API",
-            "link": "/gateway?target_server=https://openrouter.ai&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "Eleven Labs API",
-            "description": "Text-to-speech and voice APIs",
-            "link": "/gateway?target_server=https://api.elevenlabs.io&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "Vercel API",
-            "description": "Vercel deployment and project API",
-            "link": "/gateway?target_server=https://api.vercel.com&response_transform=gateway_json_to_html",
-            "requires_auth": True,
-        },
-        {
-            "name": "JSONPlaceholder",
-            "description": "Free fake API for testing (no auth required)",
-            "link": "/gateway?target_server=https://jsonplaceholder.typicode.com&response_transform=gateway_json_to_html",
-            "requires_auth": False,
-        },
-    ]
-
-    html_parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        "    <meta charset='utf-8'>",
-        "    <title>Gateway Server - API Examples</title>",
-        "    <style>",
-        "        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; }",
-        "        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }",
-        "        h2 { color: #34495e; margin-top: 2rem; }",
-        "        .example { background: #f8f9fa; border-left: 4px solid #3498db; padding: 1rem; margin: 1rem 0; border-radius: 4px; }",
-        "        .example h3 { margin-top: 0; color: #2980b9; }",
-        "        .example p { margin: 0.5rem 0; color: #555; }",
-        "        .auth-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.85rem; font-weight: 600; margin-left: 0.5rem; }",
-        "        .auth-required { background: #ffe5e5; color: #c0392b; }",
-        "        .no-auth { background: #e5ffe5; color: #27ae60; }",
-        "        .link { display: inline-block; margin-top: 0.5rem; padding: 0.5rem 1rem; background: #3498db; color: white; text-decoration: none; border-radius: 4px; }",
-        "        .link:hover { background: #2980b9; }",
-        "        .instructions { background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0; border-radius: 4px; }",
-        "        code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: 'Courier New', monospace; }",
-        "        pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        "    <h1>🌐 Gateway Server</h1>",
-        "    <p>The Gateway Server acts as a proxy to external REST APIs, transforming responses into browsable HTML pages with embedded links.</p>",
-        "    ",
-        "    <div class='instructions'>",
-        "        <h2>How it Works</h2>",
-        "        <p>The gateway server:</p>",
-        "        <ul>",
-        "            <li>Routes requests to external API servers</li>",
-        "            <li>Optionally transforms requests before sending</li>",
-        "            <li>Optionally transforms responses before displaying</li>",
-        "            <li>Converts JSON responses to browsable HTML with clickable links</li>",
-        "        </ul>",
-        "        <h3>Parameters</h3>",
-        "        <ul>",
-        "            <li><code>target_server</code> - Base URL of the API server (required)</li>",
-        "            <li><code>request_transform</code> - Server name to transform requests (optional)</li>",
-        "            <li><code>response_transform</code> - Server name to transform responses (optional)</li>",
-        "        </ul>",
-        "    </div>",
-        "    ",
-        "    <h2>API Examples</h2>",
-    ]
-
-    for example in examples:
-        auth_class = "auth-required" if example["requires_auth"] else "no-auth"
-        auth_text = "API Key Required" if example["requires_auth"] else "No Auth"
-
-        html_parts.extend(
-            [
-                "    <div class='example'>",
-                f"        <h3>{escape(example['name'])}<span class='auth-badge {auth_class}'>{auth_text}</span></h3>",
-                f"        <p>{escape(example['description'])}</p>",
-                f"        <a href='{escape(example['link'])}' class='link'>Browse API</a>",
-                "    </div>",
-            ]
-        )
-
-    html_parts.extend(
-        [
-            "    ",
-            "    <h2>Usage Example</h2>",
-            "    <pre>",
-            "/gateway?target_server=https://api.github.com&response_transform=gateway_json_to_html",
-            "    </pre>",
-            "    <p>This will browse the GitHub API root and convert responses to HTML with clickable links.</p>",
-            "</body>",
-            "</html>",
-        ]
-    )
-
-    return {
-        "output": "\n".join(html_parts),
-        "content_type": "text/html",
-    }
-
-
-def _render_error_page(title, message):
-    """Render an error page."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset='utf-8'>
-    <title>{escape(title)}</title>
-    <style>
-        body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }}
-        .error {{ background: #fee; border-left: 4px solid #c33; padding: 1rem; border-radius: 4px; }}
-        h1 {{ color: #c33; }}
-    </style>
-</head>
-<body>
-    <div class='error'>
-        <h1>{escape(title)}</h1>
-        <p>{message}</p>
-    </div>
-</body>
-</html>"""
-
-
-def _render_json_as_html(data, target_server, current_path):
-    """Render JSON data as formatted HTML with embedded links."""
-
-    html_parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        "    <meta charset='utf-8'>",
-        "    <title>API Response</title>",
-        "    <style>",
-        "        body { font-family: 'Courier New', monospace; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background: #1e1e1e; color: #d4d4d4; }",
-        "        pre { background: #252526; padding: 1.5rem; border-radius: 8px; overflow-x: auto; line-height: 1.5; }",
-        "        .json-key { color: #9cdcfe; }",
-        "        .json-string { color: #ce9178; }",
-        "        .json-number { color: #b5cea8; }",
-        "        .json-boolean { color: #569cd6; }",
-        "        .json-null { color: #569cd6; }",
-        "        .json-url { color: #4ec9b0; text-decoration: underline; cursor: pointer; }",
-        "        .json-url:hover { color: #4fc3f7; }",
-        "        h1 { color: #4ec9b0; font-size: 1.5rem; }",
-        "        .breadcrumb { color: #858585; margin-bottom: 1rem; }",
-        "        a { color: #4ec9b0; text-decoration: none; }",
-        "        a:hover { text-decoration: underline; }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        f"    <div class='breadcrumb'>Gateway: {escape(target_server)} {escape(current_path)}</div>",
-        "    <h1>API Response</h1>",
-        "    <pre>",
-    ]
-
-    # Format JSON with syntax highlighting and links
-    formatted_json = _format_json_with_links(
-        data, target_server, current_path, indent=0
-    )
-    html_parts.append(formatted_json)
-
-    html_parts.extend(
-        [
-            "    </pre>",
-            "</body>",
-            "</html>",
-        ]
-    )
-
-    return "\n".join(html_parts)
-
-
-def _format_json_with_links(obj, target_server, current_path, indent=0):
-    """Format JSON with syntax highlighting and convert URLs to gateway links."""
-    indent_str = "  " * indent
-
-    if obj is None:
-        return "<span class='json-null'>null</span>"
-
-    if isinstance(obj, bool):
-        return f"<span class='json-boolean'>{str(obj).lower()}</span>"
-
-    if isinstance(obj, (int, float)):
-        return f"<span class='json-number'>{obj}</span>"
-
-    if isinstance(obj, str):
-        # Check if string looks like a URL for the target server
-        if _is_api_url(obj, target_server):
-            gateway_link = _convert_to_gateway_link(obj, target_server, current_path)
-            return f"<a href='{escape(gateway_link)}' class='json-url'>\"<span class='json-string'>{escape(obj)}</span>\"</a>"
-        return f"<span class='json-string'>\"{escape(obj)}\"</span>"
-
-    if isinstance(obj, list):
-        if not obj:
-            return "[]"
-
-        items = []
-        for item in obj:
-            formatted_item = _format_json_with_links(
-                item, target_server, current_path, indent + 1
-            )
-            items.append(f"{indent_str}  {formatted_item}")
-
-        return "[\n" + ",\n".join(items) + f"\n{indent_str}]"
-
-    if isinstance(obj, dict):
-        if not obj:
-            return "{}"
-
-        items = []
-        for key, value in obj.items():
-            formatted_value = _format_json_with_links(
-                value, target_server, current_path, indent + 1
-            )
-            items.append(
-                f"{indent_str}  <span class='json-key'>\"{escape(str(key))}\"</span>: {formatted_value}"
-            )
-
-        return "{\n" + ",\n".join(items) + f"\n{indent_str}" + "}"
-
-    return f"<span class='json-string'>\"{escape(str(obj))}\"</span>"
-
-
-def _is_api_url(value, target_server):
-    """Check if a string value represents a URL for the target API."""
-    if not isinstance(value, str):
-        return False
-
-    # Parse the target server
-    parsed_target = urlparse(target_server)
-    target_domain = parsed_target.netloc
-
-    # Check if value is a full URL matching the target server
-    if value.startswith("http://") or value.startswith("https://"):
-        parsed_value = urlparse(value)
-        return parsed_value.netloc == target_domain
-
-    # Check if value looks like an API path (starts with /)
-    if value.startswith("/") and len(value) > 1:
-        return True
-
-    return False
-
-
-def _convert_to_gateway_link(url, target_server, current_path):
-    """Convert an API URL to a gateway link."""
-    # If it's a full URL, extract just the path
-    if url.startswith("http://") or url.startswith("https://"):
-        parsed_url = urlparse(url)
-        api_path = parsed_url.path
-        query = f"?{parsed_url.query}" if parsed_url.query else ""
+def _execute_target_request(target_url, request_details):
+    """Execute a request to the target server."""
+    # Build the full URL
+    if target_url.startswith("/"):
+        # Internal server request
+        base_url = flask_request.host_url.rstrip("/")
+        url = urljoin(base_url, target_url)
     else:
-        # It's already a path
-        api_path = url
-        query = ""
+        url = request_details.get("url", target_url)
 
-    # Extract the gateway mount point from current_path if present
-    if "/gateway" in current_path:
-        gateway_mount = current_path.split("/gateway")[0] + "/gateway"
-    else:
-        gateway_mount = "/gateway"
+    # Add path if not already in URL
+    if "url" not in request_details:
+        path = request_details.get("path", "")
+        if path:
+            url = urljoin(url.rstrip("/") + "/", path.lstrip("/"))
 
-    return f"{gateway_mount}{api_path}{query}?target_server={target_server}"
-
-
-def _make_request(request_details):
-    """Make an HTTP request to the target server."""
-    url = request_details["url"]
     method = request_details.get("method", "GET")
     headers = request_details.get("headers", {})
+    params = request_details.get("params")
+    json_body = request_details.get("json")
+    data = request_details.get("data")
 
-    # Filter out problematic headers
+    # Filter headers
     filtered_headers = {}
     for key, value in headers.items():
-        lower_key = key.lower()
-        if lower_key not in {"host", "content-length"}:
+        if key.lower() not in ("host", "content-length", "transfer-encoding"):
             filtered_headers[key] = value
 
-    # Get request body if present
-    body = flask_request.get_data(cache=False) or None
-
-    response = requests.request(
+    return requests.request(
         method,
         url,
         headers=filtered_headers,
-        data=body,
-        allow_redirects=False,
+        params=params,
+        json=json_body if json_body else None,
+        data=data if data and not json_body else None,
         timeout=30,
+        allow_redirects=True,
     )
 
-    return response
+
+def _load_transform_function(cid, context):
+    """Load a transform function from a CID."""
+    try:
+        # Try to load from CID store
+        from db_access import get_cid_by_path
+
+        cid_record = get_cid_by_path(cid)
+        if cid_record and cid_record.file_data:
+            source = cid_record.file_data.decode("utf-8")
+            return _compile_transform(source)
+
+        # Try direct file path (for development)
+        from pathlib import Path
+        if Path(cid).exists():
+            with open(cid, "r", encoding="utf-8") as f:
+                source = f.read()
+            return _compile_transform(source)
+
+    except Exception as e:
+        logger.error(f"Failed to load transform from CID {cid}: {e}")
+
+    return None
 
 
-def _apply_transform(transform_server_name, data, context_info):
-    """Apply a transformation server to the data.
+def _compile_transform(source):
+    """Compile transform source code and return the transform function."""
+    # Create a namespace for execution
+    namespace = {"__builtins__": __builtins__}
 
-    This would execute the named server with the data as input.
-    For now, this is a placeholder that would need to integrate with
-    the server execution system.
+    # Execute the source
+    exec(source, namespace)
+
+    # Look for transform functions
+    for name in ("transform_request", "transform_response"):
+        if name in namespace and callable(namespace[name]):
+            return namespace[name]
+
+    return None
+
+
+def _load_and_validate_transform(cid, expected_fn_name, context):
+    """Load transform source and validate it.
+
+    Returns: (source, error, warnings)
     """
-    # This is a placeholder - in a real implementation, this would:
-    # 1. Look up the transform server by name
-    # 2. Execute it with the data as input
-    # 3. Return the transformed result
+    source = None
+    error = None
+    warnings = []
 
-    # For now, just return the data unchanged
-    return data
+    try:
+        # Try to load source
+        from db_access import get_cid_by_path
+
+        cid_record = get_cid_by_path(cid)
+        if cid_record and cid_record.file_data:
+            source = cid_record.file_data.decode("utf-8")
+        else:
+            # Try file path
+            from pathlib import Path
+            if Path(cid).exists():
+                with open(cid, "r", encoding="utf-8") as f:
+                    source = f.read()
+
+        if not source:
+            return None, f"Transform not found at CID: {cid}", []
+
+        # Syntax validation
+        try:
+            tree = ast.parse(source)
+        except SyntaxError as e:
+            return source, f"Syntax error at line {e.lineno}: {e.msg}", []
+
+        # Check for expected function
+        function_found = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == expected_fn_name:
+                function_found = True
+                # Check signature
+                args = node.args
+                if len(args.args) < 2:
+                    warnings.append(f"Function {expected_fn_name} should have at least 2 parameters (request_details, context)")
+                break
+
+        if not function_found:
+            return source, f"Missing required function: {expected_fn_name}", []
+
+        return source, None, warnings
+
+    except Exception as e:
+        return source, f"Validation error: {str(e)}", []
+
+
+def _check_server_exists(server_name, context):
+    """Check if a server with the given name exists."""
+    try:
+        from db_access import get_server_by_name
+        server = get_server_by_name(server_name)
+        return server is not None
+    except Exception:
+        return False
+
+
+def _get_test_paths(server_name):
+    """Get suggested test paths for a gateway."""
+    test_paths = {
+        "jsonplaceholder": ["posts", "users", "comments", "albums"],
+        "man": ["ls", "cat", "grep"],
+        "tldr": ["ls", "cat", "git"],
+        "hrx": [],
+    }
+    return test_paths.get(server_name, [])
+
+
+def _load_invocation_for_request(ctx, gateways):
+    """Load invocation data for the request form."""
+    try:
+        from db_access import get_cid_by_path
+
+        # Load the invocation JSON
+        cid = ctx["invocation_cid"]
+        cid_record = get_cid_by_path(cid)
+        if not cid_record:
+            ctx["error"] = f"CID not found: {cid}"
+            return ctx
+
+        invocation_data = json.loads(cid_record.file_data.decode("utf-8"))
+
+        # Check if this is a server invocation
+        if "server_name" not in invocation_data:
+            ctx["error"] = "CID does not reference a server invocation"
+            return ctx
+
+        ctx["invocation_server"] = invocation_data.get("server_name", "")
+        ctx["gateway_defined"] = ctx["invocation_server"] in gateways
+
+        # Load request details
+        request_cid = invocation_data.get("request_details_cid")
+        if request_cid:
+            request_record = get_cid_by_path(request_cid)
+            if request_record:
+                request_data = json.loads(request_record.file_data.decode("utf-8"))
+                ctx["path"] = request_data.get("path", "")
+                ctx["method"] = request_data.get("method", "GET")
+                ctx["query_string"] = request_data.get("query_string", "")
+                ctx["headers"] = json.dumps(request_data.get("headers", {}), indent=2)
+                ctx["body"] = request_data.get("body", "")
+            else:
+                ctx["error"] = f"Request details CID not found: {request_cid}"
+
+        ctx["success"] = f"Loaded invocation from {ctx['invocation_server']}"
+
+    except Exception as e:
+        ctx["error"] = f"Failed to load invocation: {str(e)}"
+
+    return ctx
+
+
+def _load_invocation_for_response(ctx, gateways):
+    """Load invocation data for the response form."""
+    try:
+        from db_access import get_cid_by_path
+
+        # Load the invocation JSON
+        cid = ctx["invocation_cid"]
+        cid_record = get_cid_by_path(cid)
+        if not cid_record:
+            ctx["error"] = f"CID not found: {cid}"
+            return ctx
+
+        invocation_data = json.loads(cid_record.file_data.decode("utf-8"))
+
+        # Check if this is a server invocation
+        if "server_name" not in invocation_data:
+            ctx["error"] = "CID does not reference a server invocation"
+            return ctx
+
+        ctx["invocation_server"] = invocation_data.get("server_name", "")
+        ctx["gateway_defined"] = ctx["invocation_server"] in gateways
+
+        # Load result
+        result_cid = invocation_data.get("result_cid")
+        if result_cid:
+            result_record = get_cid_by_path(result_cid)
+            if result_record:
+                ctx["response_body"] = result_record.file_data.decode("utf-8", errors="replace")
+            else:
+                ctx["error"] = f"Result CID not found: {result_cid}"
+
+        ctx["success"] = f"Loaded invocation from {ctx['invocation_server']}"
+
+    except Exception as e:
+        ctx["error"] = f"Failed to load invocation: {str(e)}"
+
+    return ctx
+
+
+def _preview_request_transform(ctx, gateways):
+    """Preview the transformed request without executing it."""
+    try:
+        server_name = ctx["selected_server"]
+        if server_name not in gateways:
+            ctx["error"] = f"Gateway not found: {server_name}"
+            return ctx
+
+        config = gateways[server_name]
+
+        # Build request details
+        request_details = {
+            "path": ctx["path"],
+            "query_string": ctx["query_string"],
+            "method": ctx["method"],
+            "headers": json.loads(ctx["headers"]) if ctx["headers"] else {},
+            "json": json.loads(ctx["body"]) if ctx["body"] else None,
+            "body": ctx["body"],
+        }
+
+        # Get transform source
+        transform_source = ctx["transform_override"] if ctx["transform_override"] else None
+        if not transform_source:
+            # Load default from CID
+            request_cid = config.get("request_transform_cid")
+            if request_cid:
+                transform_fn = _load_transform_function(request_cid, None)
+                if transform_fn:
+                    result = transform_fn(request_details, {})
+                    ctx["preview"] = json.dumps(result, indent=2)
+                    return ctx
+
+        # Use override
+        if transform_source:
+            transform_fn = _compile_transform(transform_source)
+            if transform_fn:
+                result = transform_fn(request_details, {})
+                ctx["preview"] = json.dumps(result, indent=2)
+            else:
+                ctx["error"] = "Could not compile transform function"
+        else:
+            ctx["preview"] = json.dumps(request_details, indent=2)
+
+    except Exception as e:
+        ctx["error"] = f"Preview failed: {str(e)}"
+
+    return ctx
+
+
+def _execute_gateway_request(ctx, gateways, context):
+    """Execute the gateway request and show the result."""
+    ctx = _preview_request_transform(ctx, gateways)
+
+    if ctx.get("error"):
+        return ctx
+
+    try:
+        # Parse the preview to get the transformed request
+        transformed = json.loads(ctx.get("preview", "{}"))
+
+        server_name = ctx["selected_server"]
+        config = gateways[server_name]
+        target_url = config.get("target_url", "")
+
+        # Execute the request
+        response = _execute_target_request(target_url, transformed)
+
+        # Format the response
+        response_info = {
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "body_preview": response.text[:1000] if response.text else "",
+        }
+        ctx["response"] = json.dumps(response_info, indent=2)
+
+    except Exception as e:
+        ctx["error"] = f"Request failed: {str(e)}"
+
+    return ctx
+
+
+def _transform_response(ctx, gateways, context):
+    """Transform a response using the specified transform."""
+    try:
+        server_name = ctx["selected_server"]
+        config = gateways.get(server_name, {})
+
+        # Build response details
+        response_details = {
+            "status_code": ctx["status_code"],
+            "headers": json.loads(ctx["response_headers"]) if ctx["response_headers"] else {},
+            "text": ctx["response_body"],
+            "json": None,
+            "content": ctx["response_body"].encode("utf-8"),
+            "request_path": ctx["request_path"],
+        }
+
+        # Try to parse as JSON
+        try:
+            response_details["json"] = json.loads(ctx["response_body"])
+        except Exception:
+            pass
+
+        # Get transform source
+        transform_source = ctx["transform_override"] if ctx["transform_override"] else None
+        if not transform_source:
+            # Load default from CID
+            response_cid = config.get("response_transform_cid")
+            if response_cid:
+                transform_fn = _load_transform_function(response_cid, None)
+                if transform_fn:
+                    result = transform_fn(response_details, context or {})
+                    if isinstance(result, dict) and "output" in result:
+                        ctx["preview"] = result.get("output", "")
+                        ctx["preview_html"] = result.get("output", "")
+                    return ctx
+
+        # Use override
+        if transform_source:
+            transform_fn = _compile_transform(transform_source)
+            if transform_fn:
+                result = transform_fn(response_details, context or {})
+                if isinstance(result, dict) and "output" in result:
+                    ctx["preview"] = result.get("output", "")
+                    ctx["preview_html"] = result.get("output", "")
+            else:
+                ctx["error"] = "Could not compile transform function"
+        else:
+            ctx["preview"] = ctx["response_body"]
+            ctx["preview_html"] = escape(ctx["response_body"])
+
+    except Exception as e:
+        ctx["error"] = f"Transform failed: {str(e)}"
+
+    return ctx
+
+
+def _render_error(title, message, gateways):
+    """Render an error page."""
+    template = _load_template("error.html")
+    html = template.render(
+        error_title=title,
+        error_message=message,
+        available_gateways=gateways,
+    )
+    return {"output": html, "content_type": "text/html"}
+
+
+def _get_default_request_transform():
+    """Get the default request transform template."""
+    return '''def transform_request(request_details: dict, context: dict) -> dict:
+    """Transform incoming request for target server."""
+    path = request_details.get("path", "")
+    method = request_details.get("method", "GET")
+
+    return {
+        "url": f"https://example.com/{path}",
+        "method": method,
+        "headers": request_details.get("headers", {}),
+        "json": request_details.get("json"),
+    }
+'''
+
+
+def _get_default_response_transform():
+    """Get the default response transform template."""
+    return '''def transform_response(response_details: dict, context: dict) -> dict:
+    """Transform response from target server."""
+    from html import escape
+
+    text = response_details.get("text", "")
+
+    return {
+        "output": f"<pre>{escape(text)}</pre>",
+        "content_type": "text/html",
+    }
+'''

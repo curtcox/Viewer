@@ -305,11 +305,55 @@ class BootImageGenerator:
 
         return uis_cid
 
+    def generate_gateways_json(self) -> str:
+        """Generate gateways.json from gateways.source.json.
+
+        Returns:
+            CID of the generated gateways.json
+        """
+        print("\nProcessing gateways.source.json")
+        print("=" * 60)
+
+        # Read gateways.source.json
+        source_path = self.reference_templates_dir / "gateways.source.json"
+        with open(source_path, "r", encoding="utf-8") as f:
+            source_data = json.load(f)
+
+        # Process all referenced files (transform functions)
+        print("\nProcessing referenced files...")
+        self.process_referenced_files(source_data)
+
+        # Replace filenames with CIDs
+        print("\nReplacing filenames with CIDs...")
+        gateways_data = self.replace_filenames_with_cids(source_data)
+
+        # Write gateways.json
+        target_path = self.reference_templates_dir / "gateways.json"
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(gateways_data, f, indent=2)
+        print(f"\nGenerated: {target_path}")
+
+        # Generate CID for gateways.json
+        gateways_json_content = json.dumps(gateways_data, indent=2).encode("utf-8")
+        gateways_cid = generate_cid(gateways_json_content)
+
+        # Store gateways.json CID (skip literal CIDs)
+        if not is_literal_cid(gateways_cid):
+            cid_file_path = self.cids_dir / gateways_cid
+            with open(cid_file_path, "wb") as f:
+                f.write(gateways_json_content)
+            print(f"Stored gateways.json -> {gateways_cid}")
+        else:
+            print(f"Skipped literal CID for gateways.json -> {gateways_cid}")
+
+        return gateways_cid
+
     def generate_boot_json(
         self,
         templates_cid: str,
         source_name: str = "boot",
         uis_cid: Optional[str] = None,
+        gateways_cid: Optional[str] = None,
     ) -> str:
         """Generate boot.json from a boot.source.json file.
 
@@ -317,6 +361,7 @@ class BootImageGenerator:
             templates_cid: CID of the templates.json file
             source_name: Name prefix for source/output files (e.g., "boot", "minimal", "default")
             uis_cid: CID of the uis.json file (optional)
+            gateways_cid: CID of the gateways.json file (optional)
 
         Returns:
             CID of the generated boot.json
@@ -366,6 +411,14 @@ class BootImageGenerator:
                 ):
                     print(f"Replacing uis variable with CID: {uis_cid}")
                     var["definition"] = uis_cid
+                # Replace GENERATED:gateways.json marker with actual gateways CID
+                if (
+                    gateways_cid
+                    and var.get("name") == "gateways"
+                    and var.get("definition") == "GENERATED:gateways.json"
+                ):
+                    print(f"Replacing gateways variable with CID: {gateways_cid}")
+                    var["definition"] = gateways_cid
 
         # Write boot.json
         target_path = self.reference_templates_dir / target_filename
@@ -398,7 +451,7 @@ class BootImageGenerator:
         """Generate the complete boot image.
 
         Returns:
-            Dictionary with 'templates_cid', 'uis_cid', 'minimal_boot_cid', 'default_boot_cid', and 'readonly_boot_cid' keys
+            Dictionary with 'templates_cid', 'uis_cid', 'gateways_cid', 'minimal_boot_cid', 'default_boot_cid', and 'readonly_boot_cid' keys
         """
         print("Generating Boot Image")
         print("=" * 60)
@@ -412,10 +465,21 @@ class BootImageGenerator:
         # Generate uis.json and get its CID
         uis_cid = self.generate_uis_json()
 
-        minimal_boot_cid = self.generate_boot_json(templates_cid, "minimal", uis_cid)
-        default_boot_cid = self.generate_boot_json(templates_cid, "default", uis_cid)
-        readonly_boot_cid = self.generate_boot_json(templates_cid, "readonly", uis_cid)
-        boot_cid = self.generate_boot_json(templates_cid, "boot", uis_cid)
+        # Generate gateways.json and get its CID
+        gateways_cid = self.generate_gateways_json()
+
+        minimal_boot_cid = self.generate_boot_json(
+            templates_cid, "minimal", uis_cid, gateways_cid
+        )
+        default_boot_cid = self.generate_boot_json(
+            templates_cid, "default", uis_cid, gateways_cid
+        )
+        readonly_boot_cid = self.generate_boot_json(
+            templates_cid, "readonly", uis_cid, gateways_cid
+        )
+        boot_cid = self.generate_boot_json(
+            templates_cid, "boot", uis_cid, gateways_cid
+        )
 
         # Summary
         print("\n" + "=" * 60)
@@ -423,6 +487,7 @@ class BootImageGenerator:
         print("=" * 60)
         print(f"Templates CID:     {templates_cid}")
         print(f"UIs CID:           {uis_cid}")
+        print(f"Gateways CID:      {gateways_cid}")
         print(f"Minimal Boot CID:  {minimal_boot_cid}")
         print(f"Default Boot CID:  {default_boot_cid}")
         print(f"Readonly Boot CID: {readonly_boot_cid}")
@@ -442,6 +507,7 @@ class BootImageGenerator:
         return {
             "templates_cid": templates_cid,
             "uis_cid": uis_cid,
+            "gateways_cid": gateways_cid,
             "boot_cid": boot_cid,
             "minimal_boot_cid": minimal_boot_cid,
             "default_boot_cid": default_boot_cid,

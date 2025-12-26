@@ -1,0 +1,26 @@
+{
+  "jsonplaceholder": {
+    "target_url": "https://jsonplaceholder.typicode.com",
+    "request_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_request.py",
+    "response_transform_cid": "reference_templates/gateways/transforms/jsonplaceholder_response.py",
+    "description": "JSONPlaceholder fake REST API for testing"
+  },
+  "man": {
+    "target_url": "/servers/man",
+    "request_transform_cid": "reference_templates/gateways/transforms/man_request.py",
+    "response_transform_cid": "reference_templates/gateways/transforms/man_response.py",
+    "description": "HTML formatted man pages with command links"
+  },
+  "tldr": {
+    "target_url": "/servers/tldr",
+    "request_transform_cid": "reference_templates/gateways/transforms/tldr_request.py",
+    "response_transform_cid": "reference_templates/gateways/transforms/tldr_response.py",
+    "description": "HTML formatted tldr pages with command links"
+  },
+  "hrx": {
+    "target_url": "/servers/hrx",
+    "request_transform_cid": "reference_templates/gateways/transforms/hrx_request.py",
+    "response_transform_cid": "reference_templates/gateways/transforms/hrx_response.py",
+    "description": "HRX archive web viewer with relative URL fixing"
+  }
+}

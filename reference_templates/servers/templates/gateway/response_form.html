@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gateway Response Experimenter</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; }
+        h2 { color: #9cdcfe; margin-top: 2rem; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+        .nav a { margin-right: 1.5rem; }
+        label { display: block; margin-top: 1rem; color: #9cdcfe; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; background: #252536; border: 1px solid #444; color: #eee; border-radius: 4px; font-family: inherit; box-sizing: border-box; }
+        textarea { font-family: 'Courier New', monospace; min-height: 100px; }
+        .code-editor { font-family: 'Courier New', monospace; min-height: 300px; }
+        button { background: #4ec9b0; color: #1a1a2e; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1rem; margin-right: 0.5rem; }
+        button:hover { background: #3db89a; }
+        button.secondary { background: #444; color: #eee; }
+        button.secondary:hover { background: #555; }
+        .form-row { display: flex; gap: 1rem; }
+        .form-row > div { flex: 1; }
+        .card { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .preview { background: #1e1e2e; padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace; white-space: pre-wrap; overflow-x: auto; }
+        .preview-html { background: #fff; color: #000; padding: 1rem; border-radius: 4px; }
+        .error { background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .success { background: #1f3d1f; border-left: 4px solid #4f4; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .indicator { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin-left: 0.5rem; }
+        .indicator.defined { background: #1f3d1f; color: #4f4; }
+        .indicator.undefined { background: #3d3d1f; color: #ff4; }
+        .help-text { color: #858585; font-size: 0.9rem; margin-top: 0.25rem; }
+        .ai-assist { margin-top: 1rem; padding: 1rem; background: #2a2a3e; border-radius: 4px; }
+        .ai-assist h3 { margin-top: 0; color: #c586c0; }
+        .tabs { display: flex; gap: 0; margin-top: 1rem; }
+        .tab { padding: 0.5rem 1rem; background: #333; color: #aaa; cursor: pointer; border: none; }
+        .tab.active { background: #1e1e2e; color: #eee; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway">Gateway Home</a>
+        <a href="/gateway/request">Request Tool</a>
+        <a href="/variables/gateways">Gateway Configurations</a>
+    </div>
+
+    <h1>Gateway Response Experimenter</h1>
+
+    <p>Test and modify response transformations. Enter response data below to see how it would be transformed for the user.</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+    <div class="success">{{ success }}</div>
+    {% endif %}
+
+    <form method="POST" action="/gateway/response">
+        <div class="card">
+            <h2>Load from Invocation</h2>
+            <label for="invocation_cid">Server Invocation CID</label>
+            <input type="text" id="invocation_cid" name="invocation_cid" value="{{ invocation_cid or '' }}" placeholder="Enter a server invocation CID to load response data">
+            <p class="help-text">Load response data from a previous server invocation.</p>
+            {% if invocation_server %}
+            <p>
+                Loaded from: <strong>{{ invocation_server }}</strong>
+                <span class="indicator {{ 'defined' if gateway_defined else 'undefined' }}">
+                    {{ 'Gateway Defined' if gateway_defined else 'No Gateway Defined' }}
+                </span>
+            </p>
+            {% endif %}
+            <button type="submit" name="action" value="load" class="secondary">Load Invocation</button>
+        </div>
+
+        <div class="card">
+            <h2>Response Details</h2>
+
+            <div class="form-row">
+                <div>
+                    <label for="server">Gateway Server</label>
+                    <select id="server" name="server">
+                        <option value="">Select a gateway...</option>
+                        {% for name, config in gateways.items() %}
+                        <option value="{{ name }}" {{ 'selected' if name == selected_server else '' }}>{{ name }} - {{ config.description }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="status_code">Status Code</label>
+                    <select id="status_code" name="status_code">
+                        <option value="200" {{ 'selected' if status_code == 200 else '' }}>200 OK</option>
+                        <option value="201" {{ 'selected' if status_code == 201 else '' }}>201 Created</option>
+                        <option value="400" {{ 'selected' if status_code == 400 else '' }}>400 Bad Request</option>
+                        <option value="401" {{ 'selected' if status_code == 401 else '' }}>401 Unauthorized</option>
+                        <option value="404" {{ 'selected' if status_code == 404 else '' }}>404 Not Found</option>
+                        <option value="500" {{ 'selected' if status_code == 500 else '' }}>500 Server Error</option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="request_path">Original Request Path</label>
+            <input type="text" id="request_path" name="request_path" value="{{ request_path or '' }}" placeholder="/posts/1">
+            <p class="help-text">The path that was used in the original request</p>
+
+            <label for="response_headers">Response Headers (JSON)</label>
+            <textarea id="response_headers" name="response_headers" placeholder='{"Content-Type": "application/json"}'>{{ response_headers or '{"Content-Type": "application/json"}' }}</textarea>
+
+            <label for="response_body">Response Body</label>
+            <textarea id="response_body" name="response_body" style="min-height: 200px;" placeholder='{"id": 1, "title": "Example", "userId": 1}'>{{ response_body or '' }}</textarea>
+        </div>
+
+        <div class="card">
+            <h2>Transform Function Override</h2>
+            <p class="help-text">Temporarily modify the response transform function for testing. Copy to <a href="/variables/gateways">/variables/gateways</a> to persist changes.</p>
+
+            <label for="transform_override">Response Transform Function</label>
+            <textarea id="transform_override" name="transform_override" class="code-editor" placeholder="def transform_response(response_details: dict, context: dict) -> dict:
+    # Modify response_details and return transformed output
+    return {
+        'output': '...',
+        'content_type': 'text/html',
+    }">{{ transform_override or default_transform }}</textarea>
+
+            <div class="ai-assist">
+                <h3>AI Assist</h3>
+                <label for="ai_request">Describe the change you want</label>
+                <textarea id="ai_request" name="ai_request" rows="2" placeholder="Add syntax highlighting to JSON output"></textarea>
+                <button type="submit" name="action" value="ai_assist" class="secondary">Apply AI Suggestion</button>
+            </div>
+        </div>
+
+        <button type="submit" name="action" value="transform">Transform Response</button>
+    </form>
+
+    {% if preview %}
+    <div class="card">
+        <h2>Transformed Response</h2>
+        <div class="tabs">
+            <button type="button" class="tab active" onclick="showTab('raw')">Raw Output</button>
+            <button type="button" class="tab" onclick="showTab('rendered')">Rendered HTML</button>
+        </div>
+        <div id="raw" class="tab-content active">
+            <pre class="preview">{{ preview }}</pre>
+        </div>
+        <div id="rendered" class="tab-content">
+            <div class="preview-html">{{ preview_html|safe }}</div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(id) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+    {% endif %}
+</body>
+</html>
