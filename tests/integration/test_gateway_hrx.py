@@ -474,9 +474,9 @@ class TestGatewayManIntegration:
     def test_gateway_man_grep_returns_man_page(self, app_with_gateway):
         """Test that /gateway/man/grep returns the grep man page."""
         with app_with_gateway.test_client() as client:
-            response = client.get("/gateway/man/grep")
+            response = client.get("/gateway/man/grep", follow_redirects=True)
 
-            # Should return 200 status
+            # Should return 200 status (after following redirect)
             assert response.status_code == 200, (
                 f"Expected 200, got {response.status_code}: {response.data[:500]}"
             )
@@ -496,7 +496,7 @@ class TestGatewayManIntegration:
     def test_gateway_man_ls_returns_man_page(self, app_with_gateway):
         """Test that /gateway/man/ls returns the ls man page."""
         with app_with_gateway.test_client() as client:
-            response = client.get("/gateway/man/ls")
+            response = client.get("/gateway/man/ls", follow_redirects=True)
 
             assert response.status_code == 200, (
                 f"Expected 200, got {response.status_code}: {response.data[:500]}"
@@ -508,7 +508,7 @@ class TestGatewayManIntegration:
     def test_gateway_instruction_page_lists_gateways(self, app_with_gateway):
         """Test that /gateway shows instruction page with configured gateways."""
         with app_with_gateway.test_client() as client:
-            response = client.get("/gateway")
+            response = client.get("/gateway", follow_redirects=True)
 
             assert response.status_code == 200
 
