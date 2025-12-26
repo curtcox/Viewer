@@ -2,7 +2,8 @@
 # pylint: disable=undefined-variable,return-outside-function
 """Request transform for tldr gateway.
 
-Transforms incoming gateway requests into /servers/tldr requests.
+Transforms incoming gateway requests for the tldr server.
+The gateway automatically routes to /servers/tldr.
 """
 
 
@@ -14,20 +15,19 @@ def transform_request(request_details: dict, context: dict) -> dict:
         context: Full server execution context
 
     Returns:
-        Dict with url, method, headers, params for the target request
+        Dict with method, headers, params for the target request
     """
     path = request_details.get("path", "")
 
     # Extract command from path (e.g., "ls" from "/ls")
     command = path.strip("/").split("/")[0] if path.strip("/") else ""
 
-    # Build request to internal tldr server
+    # Build request params for tldr server
     params = {}
     if command:
         params["command"] = command
 
     return {
-        "url": "/servers/tldr",
         "method": "GET",
         "headers": {"Accept": "text/plain"},
         "params": params,

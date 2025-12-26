@@ -2,7 +2,8 @@
 # pylint: disable=undefined-variable,return-outside-function
 """Request transform for man page gateway.
 
-Transforms incoming gateway requests into /servers/man requests.
+Transforms incoming gateway requests for the man server.
+The gateway automatically routes to /servers/man.
 """
 
 
@@ -14,11 +15,11 @@ def transform_request(request_details: dict, context: dict) -> dict:
         context: Full server execution context
 
     Returns:
-        Dict with url, method, headers, params for the target request
+        Dict with method, headers, params for the target request
     """
     path = request_details.get("path", "")
 
-    # Extract command from path (e.g., "ls" from "/ls" or "ls/section" from "/ls/1")
+    # Extract command from path (e.g., "grep" from "/grep")
     command = path.strip("/").split("/")[0] if path.strip("/") else ""
 
     # Check for section number in path (e.g., /ls/1 for man section 1)
@@ -27,8 +28,7 @@ def transform_request(request_details: dict, context: dict) -> dict:
     if len(path_parts) > 1 and path_parts[1].isdigit():
         section = path_parts[1]
 
-    # Build request to internal man server
-    # The man server is at /servers/man
+    # Build request params for man server
     params = {}
     if command:
         params["command"] = command
@@ -36,7 +36,6 @@ def transform_request(request_details: dict, context: dict) -> dict:
         params["section"] = section
 
     return {
-        "url": "/servers/man",
         "method": "GET",
         "headers": {"Accept": "text/plain"},
         "params": params,

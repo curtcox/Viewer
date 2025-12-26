@@ -366,8 +366,8 @@ def _handle_gateway_request(server_name, rest_path, gateways, context):
                 gateways,
             )
 
-    # Make the request to the target
-    target_url = config.get("target_url", "")
+    # Make the request to the target server (use /servers/{gateway_name})
+    target_url = f"/servers/{server_name}"
     try:
         response = _execute_target_request(target_url, request_details)
     except Exception as e:
@@ -714,8 +714,8 @@ def _execute_gateway_request(ctx, gateways, context):
         transformed = json.loads(ctx.get("preview", "{}"))
 
         server_name = ctx["selected_server"]
-        config = gateways[server_name]
-        target_url = config.get("target_url", "")
+        # Use /servers/{gateway_name} as target
+        target_url = f"/servers/{server_name}"
 
         # Execute the request
         response = _execute_target_request(target_url, transformed)

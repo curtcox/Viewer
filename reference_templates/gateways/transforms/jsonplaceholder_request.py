@@ -2,7 +2,8 @@
 # pylint: disable=undefined-variable,return-outside-function
 """Request transform for JSONPlaceholder API gateway.
 
-Transforms incoming gateway requests into JSONPlaceholder API requests.
+Transforms incoming gateway requests for the jsonplaceholder server.
+The gateway automatically routes to /servers/jsonplaceholder.
 """
 
 
@@ -14,17 +15,10 @@ def transform_request(request_details: dict, context: dict) -> dict:
         context: Full server execution context
 
     Returns:
-        Dict with url, method, headers, json, params for the target request
+        Dict with method, headers, path, params for the target request
     """
     path = request_details.get("path", "")
     method = request_details.get("method", "GET")
-
-    # Build the target URL
-    base_url = "https://jsonplaceholder.typicode.com"
-    if path:
-        target_url = f"{base_url}/{path.lstrip('/')}"
-    else:
-        target_url = base_url
 
     # Pass through headers, filtering out host
     headers = {}
@@ -36,7 +30,7 @@ def transform_request(request_details: dict, context: dict) -> dict:
     headers["Accept"] = "application/json"
 
     result = {
-        "url": target_url,
+        "path": path,
         "method": method,
         "headers": headers,
     }

@@ -442,5 +442,86 @@ class TestGatewayHRXWithHTTPClient:
             assert b"background-color" in response.data
 
 
+class TestGatewayManIntegration:
+    """Integration tests for man gateway to verify /gateway/man/{command} works."""
+
+    @pytest.fixture
+    def app_with_gateway(self, tmp_path):
+        """Create app with gateway server and gateways variable."""
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+                "LOAD_CIDS_IN_TESTS": True,
+            }
+        )
+
+        # Load default boot CID to get gateway server and gateways variable
+        boot_cid_file = Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        if not boot_cid_file.exists():
+            pytest.skip("No default.boot.cid file found")
+
+        boot_cid = boot_cid_file.read_text(encoding="utf-8").strip()
+
+        with app.app_context():
+            success, error = import_boot_cid(app, boot_cid)
+            if not success:
+                pytest.skip(f"Failed to import boot CID: {error}")
+
+        return app
+
+    def test_gateway_man_grep_returns_man_page(self, app_with_gateway):
+        """Test that /gateway/man/grep returns the grep man page."""
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/man/grep")
+
+            # Should return 200 status
+            assert response.status_code == 200, (
+                f"Expected 200, got {response.status_code}: {response.data[:500]}"
+            )
+
+            data = response.data.decode("utf-8")
+
+            # Should not show "Gateway Not Found" error
+            assert "Gateway Not Found" not in data, (
+                f"Gateway should be configured: {data[:500]}"
+            )
+
+            # Should contain grep-related content
+            assert "grep" in data.lower(), (
+                f"Response should contain grep content: {data[:500]}"
+            )
+
+    def test_gateway_man_ls_returns_man_page(self, app_with_gateway):
+        """Test that /gateway/man/ls returns the ls man page."""
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/man/ls")
+
+            assert response.status_code == 200, (
+                f"Expected 200, got {response.status_code}: {response.data[:500]}"
+            )
+
+            data = response.data.decode("utf-8")
+            assert "Gateway Not Found" not in data
+
+    def test_gateway_instruction_page_lists_gateways(self, app_with_gateway):
+        """Test that /gateway shows instruction page with configured gateways."""
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway")
+
+            assert response.status_code == 200
+
+            data = response.data.decode("utf-8")
+
+            # Should show Gateway Server page
+            assert "Gateway" in data
+
+            # Should list configured gateways (man, hrx, tldr, jsonplaceholder)
+            assert "man" in data.lower() or "hrx" in data.lower(), (
+                f"Should list configured gateways: {data[:500]}"
+            )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
