@@ -93,6 +93,7 @@ def test_gateway_template_has_correct_metadata():
 @patch("requests.request")
 def test_gateway_proxies_request_to_target_server(mock_request):
     """Gateway should proxy requests to the configured target server."""
+
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.headers = {"Content-Type": "application/json"}
@@ -112,8 +113,7 @@ def test_gateway_proxies_request_to_target_server(mock_request):
             definition, "gateway"
         )
 
-    assert result["content_type"] == "text/html"
-    # Should have proxied to the target
+    assert result["content_type"] == "application/json"
     mock_request.assert_called()
 
 
@@ -133,6 +133,8 @@ def test_gateway_handles_missing_gateway_gracefully():
     assert result["content_type"] == "text/html"
     # Should show error about gateway not found
     assert "Not Found" in result["output"] or "not configured" in result["output"].lower()
+    assert "Defined gateways" in result["output"]
+    assert "jsonplaceholder" in result["output"]
 
 
 def test_gateway_request_route_accessible():
@@ -169,3 +171,23 @@ def test_gateway_response_route_accessible():
     assert result["content_type"] == "text/html"
     # Should render response form
     assert "Response" in result["output"]
+
+
+@patch("requests.request")
+def test_gateway_man_executes_internally_without_http(mock_request):
+    """Gateway should execute internal targets (like man) without HTTP requests."""
+    from reference_templates.servers import get_server_templates
+
+    templates = get_server_templates()
+    gateway_template = next(t for t in templates if t.get("id") == "gateway")
+    definition = gateway_template["definition"]
+
+    with app.test_request_context("/gateway/man/grep"):
+        result = server_execution.execute_server_code_from_definition(
+            definition, "gateway"
+        )
+
+    mock_request.assert_not_called()
+    assert result["content_type"] == "text/html"
+    assert "Failed to connect" not in result["output"]
+    assert "<html" in result["output"].lower()

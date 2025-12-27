@@ -298,12 +298,7 @@ def _handle_response_form(gateways, context):
 def _handle_meta_page(server_name, gateways, context):
     """Handle the gateway meta page showing transform source and validation."""
     if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
-        return _render_error(
-            "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
-            gateways,
-        )
+        return _render_error("Gateway Not Found", f"No gateway configured for '{server_name}'", gateways)
 
     config = gateways[server_name]
     template = _load_template("meta.html")
@@ -383,10 +378,9 @@ def _handle_meta_page(server_name, gateways, context):
 def _handle_gateway_request(server_name, rest_path, gateways, context):
     """Handle an actual gateway request to a configured server."""
     if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
         return _render_error(
             "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            f"No gateway configured for '{server_name}'",
             gateways,
         )
 

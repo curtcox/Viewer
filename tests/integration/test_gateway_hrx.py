@@ -6,7 +6,6 @@ the properly linked contents from an HRX CID archive.
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -465,9 +464,8 @@ class TestGatewayManIntegration:
     2. The gateway routes to the correct server path
     3. The gateway handles unconfigured gateways properly
 
-    The HTTP proxy to /servers/{name}/{path} fails in test mode because Flask's
-    test client doesn't intercept requests made by the `requests` library. The
-    tests verify the gateway routes correctly by checking the error message URL.
+    These tests ensure that internal gateways (like `man`) execute without
+    making outbound HTTP requests.
     """
 
     @pytest.fixture
@@ -497,7 +495,7 @@ class TestGatewayManIntegration:
         return app
 
     def test_gateway_man_routes_to_man_server(self, app_with_gateway):
-        """Test that /gateway/man/grep routes to /servers/man/grep."""
+        """Test that /gateway/man/grep returns the man page without HTTP proxying."""
         with app_with_gateway.test_client() as client:
             response = client.get("/gateway/man/grep", follow_redirects=True)
 
@@ -513,11 +511,13 @@ class TestGatewayManIntegration:
                 f"Gateway 'man' should be configured in gateways variable: {data[:500]}"
             )
 
-            # The gateway tries to proxy to /servers/man/grep
-            # Since there's no running server, we get a connection error
-            # but the URL in the error shows correct routing
-            assert "/servers/man/grep" in data or "grep" in data.lower(), (
-                f"Response should show gateway routed to man server: {data[:500]}"
+            assert "Failed to connect" not in data, (
+                f"Gateway should not attempt HTTP proxying for man: {data[:500]}"
+            )
+
+            # man pages vary by platform, but should usually contain a NAME section.
+            assert "NAME" in data or "name" in data.lower(), (
+                f"Expected man page content in response: {data[:500]}"
             )
 
     def test_gateway_ls_routes_to_man_server(self, app_with_gateway):

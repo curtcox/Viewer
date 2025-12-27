@@ -41,6 +41,11 @@
       "name": "uis",
       "definition": "GENERATED:uis.json",
       "enabled": true
+    },
+    {
+      "name": "gateways",
+      "definition": "GENERATED:gateways.json",
+      "enabled": true
     }
   ]
 }

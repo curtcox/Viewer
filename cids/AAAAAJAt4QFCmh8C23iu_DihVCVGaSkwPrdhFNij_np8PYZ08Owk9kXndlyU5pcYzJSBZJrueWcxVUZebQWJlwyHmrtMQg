@@ -298,12 +298,7 @@ def _handle_response_form(gateways, context):
 def _handle_meta_page(server_name, gateways, context):
     """Handle the gateway meta page showing transform source and validation."""
     if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
-        return _render_error(
-            "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
-            gateways,
-        )
+        return _render_error("Gateway Not Found", f"No gateway configured for '{server_name}'", gateways)
 
     config = gateways[server_name]
     template = _load_template("meta.html")
@@ -383,21 +378,13 @@ def _handle_meta_page(server_name, gateways, context):
 def _handle_gateway_request(server_name, rest_path, gateways, context):
     """Handle an actual gateway request to a configured server."""
     if server_name not in gateways:
-        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
         return _render_error(
             "Gateway Not Found",
-            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            f"No gateway configured for '{server_name}'",
             gateways,
         )
 
     config = gateways[server_name]
-
-    debug_context = {
-        "gateway": server_name,
-        "rest_path": rest_path,
-        "request_path": getattr(flask_request, "path", None),
-        "request_method": getattr(flask_request, "method", None),
-    }
 
     # Build request details
     try:
@@ -606,80 +593,7 @@ def _execute_internal_target(target: dict, request_details: dict):
         result = server_execution.try_server_execution(flask_request.path)
         if result is None:
             raise LookupError(f"No internal target handled path: {flask_request.path}")
-
-        adapted = _as_requests_like_response(result)
-        resolved = _follow_internal_redirects(adapted)
-        return resolved
-
-
-def _follow_internal_redirects(response, max_hops: int = 3):
-    """Resolve internal redirect responses into final CID-backed content."""
-    current = response
-    for _ in range(max_hops):
-        status = getattr(current, "status_code", 200)
-        if status not in (301, 302, 303, 307, 308):
-            return current
-
-        headers = getattr(current, "headers", {}) or {}
-        location = headers.get("Location") or headers.get("location")
-        if not isinstance(location, str) or not location:
-            return current
-
-        cid_value, content_type = _try_resolve_location_to_content(location)
-        if cid_value is None:
-            return current
-
-        class _ResolvedResponse:
-            def __init__(self, *, body: bytes, content_type: str):
-                self.status_code = 200
-                self.headers = {"Content-Type": content_type}
-                self.content = body
-                self.text = body.decode("utf-8", errors="replace")
-
-            def json(self):
-                return json.loads(self.text)
-
-        return _ResolvedResponse(body=cid_value, content_type=content_type)
-
-    return current
-
-
-def _try_resolve_location_to_content(location: str) -> tuple[bytes | None, str]:
-    """Try to resolve a redirect Location to CID content bytes and content type."""
-    if not isinstance(location, str):
-        return None, "text/plain"
-
-    raw_path = location.split("?", 1)[0]
-    raw_path = raw_path.lstrip("/")
-    if not raw_path:
-        return None, "text/plain"
-
-    if "/" in raw_path:
-        # Not a simple /{cid}[.ext] path.
-        return None, "text/plain"
-
-    if "." in raw_path:
-        cid_candidate, ext = raw_path.split(".", 1)
-    else:
-        cid_candidate, ext = raw_path, ""
-
-    cid_text = _resolve_cid_content(cid_candidate)
-    if cid_text is None:
-        return None, "text/plain"
-
-    if isinstance(cid_text, (bytes, bytearray)):
-        body = bytes(cid_text)
-    else:
-        body = str(cid_text).encode("utf-8")
-
-    content_type = {
-        "html": "text/html",
-        "txt": "text/plain",
-        "json": "application/json",
-        "md": "text/markdown",
-    }.get(ext.lower() if isinstance(ext, str) else "", "text/html")
-
-    return body, content_type
+        return _as_requests_like_response(result)
 
 
 def _as_requests_like_response(result):

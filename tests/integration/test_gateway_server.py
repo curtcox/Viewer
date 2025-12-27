@@ -209,3 +209,4 @@ def test_gateway_error_page_includes_diagnostics(
     page = response.get_data(as_text=True)
     # Should show gateway not found error
     assert "Not Found" in page or "not configured" in page.lower()
+    assert "Defined gateways" in page

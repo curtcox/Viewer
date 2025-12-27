@@ -23,6 +23,8 @@ class TestBootImageGenerator:
         (ref_templates / "servers" / "definitions").mkdir()
         (ref_templates / "uploads").mkdir()
         (ref_templates / "uploads" / "contents").mkdir()
+        (ref_templates / "gateways").mkdir()
+        (ref_templates / "gateways" / "transforms").mkdir()
         (tmp_path / "cids").mkdir()
 
         # Create test files
@@ -37,6 +39,31 @@ class TestBootImageGenerator:
 
         upload_file = ref_templates / "uploads" / "contents" / "test.html"
         upload_file.write_text("<html><body>Test</body></html>")
+
+        # Create gateways.source.json and referenced transform files
+        (ref_templates / "gateways" / "transforms" / "test_request.py").write_text(
+            "def transform_request(request_details, context):\n    return request_details\n"
+        )
+        (ref_templates / "gateways" / "transforms" / "test_response.py").write_text(
+            "def transform_response(response_details, context):\n    return response_details\n"
+        )
+        gateways_source = {
+            "test-gateway": {
+                "target_url": "https://test.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Test gateway",
+            },
+            "another-gateway": {
+                "target_url": "https://another.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Another gateway",
+            },
+        }
+        (ref_templates / "gateways.source.json").write_text(
+            json.dumps(gateways_source, indent=2)
+        )
 
         # Create templates.source.json
         templates_source = {
@@ -104,6 +131,11 @@ class TestBootImageGenerator:
                     "enabled": True,
                 },
                 {"name": "uis", "definition": "GENERATED:uis.json", "enabled": True},
+                {
+                    "name": "gateways",
+                    "definition": "GENERATED:gateways.json",
+                    "enabled": True,
+                },
             ],
         }
         boot_source_file = ref_templates / "boot.source.json"
@@ -595,7 +627,7 @@ class TestGatewaysInBootImage:
         generator = BootImageGenerator(temp_project_with_gateways)
         generator.ensure_cids_directory()
 
-        gateways_cid = generator.generate_gateways_json()
+        generator.generate_gateways_json()
 
         # Verify gateways.json was created
         gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
@@ -614,7 +646,7 @@ class TestGatewaysInBootImage:
         generator = BootImageGenerator(temp_project_with_gateways)
         generator.ensure_cids_directory()
 
-        gateways_cid = generator.generate_gateways_json()
+        generator.generate_gateways_json()
 
         # Verify gateways.json was created
         gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
@@ -636,7 +668,7 @@ class TestGatewaysInBootImage:
         """Test that gateways variable is properly set in boot.json."""
         generator = BootImageGenerator(temp_project_with_gateways)
 
-        result = generator.generate()
+        generator.generate()
 
         # Verify boot.json was created
         boot_json_path = temp_project_with_gateways / "reference_templates" / "boot.json"
@@ -663,7 +695,7 @@ class TestGatewaysInBootImage:
         """Test that gateways are included in default.boot.json."""
         generator = BootImageGenerator(temp_project_with_gateways)
 
-        result = generator.generate()
+        generator.generate()
 
         # Verify default.boot.json was created
         default_boot_path = temp_project_with_gateways / "reference_templates" / "default.boot.json"
@@ -685,7 +717,7 @@ class TestGatewaysInBootImage:
         """Test that gateways are included in readonly.boot.json."""
         generator = BootImageGenerator(temp_project_with_gateways)
 
-        result = generator.generate()
+        generator.generate()
 
         # Verify readonly.boot.json was created
         readonly_boot_path = temp_project_with_gateways / "reference_templates" / "readonly.boot.json"
@@ -707,7 +739,7 @@ class TestGatewaysInBootImage:
         """Test that transform files are processed and stored as CIDs."""
         generator = BootImageGenerator(temp_project_with_gateways)
 
-        result = generator.generate()
+        generator.generate()
 
         # Verify transform files were processed
         assert "reference_templates/gateways/transforms/test_request.py" in generator.processed_files
