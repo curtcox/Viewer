@@ -66,11 +66,6 @@
       "enabled": true
     },
     {
-      "name": "jsonplaceholder",
-      "definition_cid": "AAAAAAzeRHohEBtBmD3CGfiX4fYirg0W3iHmMP5yG07gJGrJAxpvyllwYe4dmOsU0bOP92VC99OlYQuRZBJiMps2PztPOA",
-      "enabled": true
-    },
-    {
       "name": "io",
       "definition_cid": "AAAAACCJMXsVJtUQbDzMdXB6eYsR1-0XD1DDmC8D5NlSyBNYCMT_hVaXLeepRe3mZchyh6s_pVOznysDC7GE1F0ajUP8pQ",
       "enabled": true
@@ -649,7 +644,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAAAVSqKizHAcuesx6v1JAP9zsag80wOXcNDRct3DQc9OqUGgLWLkJjNUhI074glsMSnceaomGp7WsU31cirZ0SVptWg",
+      "definition": "AAAAAAVScHmwAF7NL0un4qrdPc_yu3MAX8A5MX00aebgUhnK7DAa4titOdAz2fc_XNDIFHYosEnBGbX7EvyVdm-um5iBnw",
       "enabled": true
     }
   ]

@@ -296,6 +296,9 @@
                                             {% if entry.is_current %}
                                                 <span class="badge bg-success me-2">Current</span>
                                             {% endif %}
+                                            {% if entry.is_invalid %}
+                                                <span class="badge bg-danger me-2">Invalid</span>
+                                            {% endif %}
                                             {{ entry.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                         </h6>
                                         <div class="ms-auto">
@@ -304,12 +307,19 @@
                                             </button>
                                         </div>
                                     </div>
+                                    {% if entry.definition_cid %}
                                     <div class="text-muted small mb-2">
                                         Definition CID: {{ render_cid_link(entry.definition_cid) }}
                                     </div>
+                                    {% endif %}
                                     {% if entry.snapshot_cid %}
                                     <div class="text-muted small mb-2">
                                         Snapshot CID: {{ render_cid_link(entry.snapshot_cid) }}
+                                    </div>
+                                    {% endif %}
+                                    {% if entry.is_invalid and entry.error %}
+                                    <div class="alert alert-danger py-2 mb-2" role="alert">
+                                        {{ entry.error }}
                                     </div>
                                     {% endif %}
                                     <div class="collapse" id="definition-{{ loop.index0 }}">

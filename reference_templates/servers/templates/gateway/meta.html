@@ -58,6 +58,89 @@
             <span class="info-label">Server Definition:</span>
             <span class="info-value"><a href="/servers/{{ server_name }}">View Server</a></span>
         </div>
+        {% if server_definition_info %}
+        <div class="info-row">
+            <span class="info-label">Server Definition Type:</span>
+            <span class="info-value"><code>{{ server_definition_info.definition_type }}</code></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Server Definition Valid:</span>
+            <span class="info-value">
+                {% if server_definition_info.definition_is_str %}
+                    <span class="status valid">Yes</span>
+                {% else %}
+                    <span class="status error">No</span>
+                {% endif %}
+            </span>
+        </div>
+        {% if not server_definition_info.definition_is_str %}
+        <div class="error-detail">
+            Server definition is not a string. Gateway execution may fail or behave unexpectedly.
+            {% if server_definition_diagnostics_url %}
+                <a href="{{ server_definition_diagnostics_url }}">View server definition diagnostics</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if server_definition_info.definition_preview %}
+        <pre>{{ server_definition_info.definition_preview }}</pre>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Target Resolution</h3>
+        {% if resolved_target %}
+        <pre>{{ resolved_target | tojson(indent=2) }}</pre>
+        {% else %}
+        <p><em>No target resolution information available.</em></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>
+            Downstream Probe
+            {% if probe and probe.response and probe.response.status_code is not none %}
+                {% if probe.response.status_code|int < 400 %}
+                    <span class="status valid">{{ probe.response.status_code }}</span>
+                {% else %}
+                    <span class="status error">{{ probe.response.status_code }}</span>
+                {% endif %}
+            {% elif probe and probe.error %}
+                <span class="status error">Error</span>
+            {% else %}
+                <span class="status warning">Unknown</span>
+            {% endif %}
+        </h3>
+        {% if probe and probe.request_details %}
+        <div class="info-row">
+            <span class="info-label">Probe Path:</span>
+            <span class="info-value"><code>{{ probe.sample_path }}</code></span>
+        </div>
+        <pre>{{ probe.request_details | tojson(indent=2) }}</pre>
+        {% endif %}
+
+        {% if probe and probe.resolved_target %}
+        <h4>Resolved Target</h4>
+        <pre>{{ probe.resolved_target | tojson(indent=2) }}</pre>
+        {% endif %}
+
+        {% if probe and probe.response %}
+        <h4>Response Preview</h4>
+        <div class="info-row">
+            <span class="info-label">Content-Type:</span>
+            <span class="info-value"><code>{{ probe.response.content_type }}</code></span>
+        </div>
+        {% if probe.response.body_preview %}
+        <pre>{{ probe.response.body_preview }}</pre>
+        {% endif %}
+        {% endif %}
+
+        {% if probe and probe.error %}
+        <div class="error-detail">{{ probe.error }}</div>
+        {% if probe.error_detail %}
+        <pre>{{ probe.error_detail }}</pre>
+        {% endif %}
         {% endif %}
     </div>
 
@@ -68,7 +151,13 @@
         </h3>
         <div class="info-row">
             <span class="info-label">CID:</span>
-            <span class="info-value"><code>{{ config.request_transform_cid }}</code></span>
+            <span class="info-value">
+                {% if request_cid_lookup %}
+                    {{ request_cid_link_html | safe }}
+                {% else %}
+                    <code>{{ config.request_transform_cid }}</code>
+                {% endif %}
+            </span>
         </div>
         {% if request_transform_error %}
         <div class="error-detail">{{ request_transform_error }}</div>
@@ -92,7 +181,13 @@
         </h3>
         <div class="info-row">
             <span class="info-label">CID:</span>
-            <span class="info-value"><code>{{ config.response_transform_cid }}</code></span>
+            <span class="info-value">
+                {% if response_cid_lookup %}
+                    {{ response_cid_link_html | safe }}
+                {% else %}
+                    <code>{{ config.response_transform_cid }}</code>
+                {% endif %}
+            </span>
         </div>
         {% if response_transform_error %}
         <div class="error-detail">{{ response_transform_error }}</div>
@@ -118,5 +213,6 @@
             {% endfor %}
         </div>
     </div>
+    <script src="/static/js/cid_editor_controls.js"></script>
 </body>
 </html>

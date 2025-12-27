@@ -3,10 +3,11 @@
 import json
 import re
 from collections.abc import Iterable
+from html import escape
 from typing import Any
 
 from constants import EntityType, ServerMode
-from flask import abort, jsonify, request, url_for
+from flask import Response, abort, jsonify, request, url_for
 
 from cid_presenter import cid_path, format_cid, format_cid_short
 from cid_utils import (
@@ -43,6 +44,19 @@ from .core import derive_name_from_path
 from .crud_factory import EntityRouteConfig, register_standard_crud_routes
 from .history import _load_request_referers
 from .server_definition_parser import ServerDefinitionParser
+
+
+def _stringify_definition_for_display(value: Any) -> tuple[str, bool, str, str]:
+    if isinstance(value, str):
+        return value, False, "str", "str"
+
+    expected = "str"
+    actual = type(value).__name__
+    try:
+        rendered = json.dumps(value, indent=2, sort_keys=True, default=str)
+    except Exception:
+        rendered = repr(value)
+    return rendered, True, expected, actual
 
 
 def _generate_and_format_cid(content: bytes) -> str:
@@ -493,11 +507,24 @@ def _parse_server_snapshot(cid, server_name: str) -> dict[str, Any] | None:
         if len(value_preview) > 500:
             value_preview = f"{value_preview[:500]}...<truncated>"
 
-        raise TypeError(
-            "Expected server definition text to be a str in server definitions snapshot "
-            f"(server_name={server_name!r}, snapshot_cid={snapshot_cid_for_error!r}). "
-            f"Got {type(definition_text).__name__}: {value_preview}"
+        snapshot_path = (
+            cid_path(snapshot_cid_for_error) if snapshot_cid_for_error else None
         )
+
+        return {
+            "definition": None,
+            "definition_cid": None,
+            "snapshot_cid": snapshot_cid_for_error,
+            "snapshot_path": snapshot_path,
+            "created_at": cid.created_at,
+            "is_current": False,
+            "is_invalid": True,
+            "error": (
+                "Expected server definition text to be a str in server definitions snapshot "
+                f"(server_name={server_name!r}, snapshot_cid={snapshot_cid_for_error!r}). "
+                f"Got {type(definition_text).__name__}: {value_preview}"
+            ),
+        }
 
     definition_bytes = definition_text.encode("utf-8")
     per_server_cid = _generate_and_format_cid(definition_bytes)
@@ -797,6 +824,13 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
     """
     history = get_server_definition_history(server.name)
     invocations = get_server_invocation_history(server.name)
+
+    display_definition, definition_invalid, expected_type, actual_type = (
+        _stringify_definition_for_display(getattr(server, "definition", ""))
+    )
+    original_definition = getattr(server, "definition", "")
+    server.definition = display_definition
+
     test_config = _build_server_test_config(server.name, server.definition)
 
     highlighted_definition, syntax_css = _highlight_definition_content(
@@ -831,7 +865,81 @@ def _build_server_view_context(server: Server) -> dict[str, Any]:
         "ui_suggestions": ui_suggestions,
         "implementation_language": detect_server_language(server.definition),
         "named_value_matrix": _build_named_value_matrix(server),
+        "definition_invalid": definition_invalid,
+        "definition_invalid_expected_type": expected_type,
+        "definition_invalid_actual_type": actual_type,
+        "definition_invalid_value": original_definition,
     }
+
+
+@main_bp.route("/servers/<server_name>/definition-diagnostics")
+def server_definition_diagnostics(server_name: str):
+    """Display detailed diagnostics when a server definition is invalid."""
+
+    server = get_server_by_name(server_name)
+    if not server:
+        abort(404)
+
+    provided_value = getattr(server, "definition", None)
+    display_definition, _, expected_type, actual_type = (
+        _stringify_definition_for_display(provided_value)
+    )
+
+    snapshot_cid = format_cid(get_current_server_definitions_cid())
+    snapshot_path = cid_path(snapshot_cid, "json") if snapshot_cid else None
+
+    try:
+        snapshot_record = get_cid_by_path(cid_path(snapshot_cid)) if snapshot_cid else None
+    except Exception:
+        snapshot_record = None
+
+    snapshot_entry_preview = None
+    if snapshot_record and getattr(snapshot_record, "file_data", None):
+        try:
+            snapshot_data = json.loads(snapshot_record.file_data.decode("utf-8"))
+            if isinstance(snapshot_data, dict) and server_name in snapshot_data:
+                snapshot_entry_preview = snapshot_data.get(server_name)
+        except Exception:
+            snapshot_entry_preview = None
+
+    try:
+        provided_pretty = json.dumps(provided_value, indent=2, sort_keys=True, default=str)
+    except Exception:
+        provided_pretty = repr(provided_value)
+
+    try:
+        snapshot_pretty = json.dumps(snapshot_entry_preview, indent=2, sort_keys=True, default=str)
+    except Exception:
+        snapshot_pretty = repr(snapshot_entry_preview)
+
+    html = (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        f"<title>Server Definition Diagnostics: {escape(server_name)}</title>"
+        "<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:1000px;margin:2rem auto;padding:0 1rem;}"
+        ".bad{background:#3d1f1f;color:#fee;border-left:6px solid #f44;padding:1rem;border-radius:6px;}"
+        "pre{background:#f6f8fa;padding:1rem;border-radius:6px;overflow:auto;}</style>"
+        "</head><body>"
+        f"<h1>Server Definition Diagnostics: {escape(server_name)}</h1>"
+        "<div class='bad'>"
+        f"<div><strong>Expected:</strong> {escape(expected_type)}</div>"
+        f"<div><strong>Actual:</strong> {escape(actual_type)}</div>"
+        "<div style='margin-top:.5rem'>"
+        f"<a href='/servers/{escape(server_name)}'>Back to server</a>"
+        "</div>"
+        "</div>"
+        "<h2>Provided value (server.definition)</h2>"
+        f"<pre>{escape(provided_pretty)}</pre>"
+        "<h2>Current server definitions snapshot</h2>"
+        f"<div><strong>Snapshot CID:</strong> {escape(snapshot_cid or '')} "
+        + (f"(<a href='{escape(snapshot_path)}'>view</a>)" if snapshot_path else "")
+        + "</div>"
+        "<h3>Snapshot entry for this server</h3>"
+        f"<pre>{escape(snapshot_pretty)}</pre>"
+        "<h2>Display rendering (what the UI uses)</h2>"
+        f"<pre>{escape(display_definition)}</pre>"
+        "</body></html>"
+    )
+    return Response(html, status=200, mimetype="text/html")
 
 
 # Configure and register standard CRUD routes using the factory

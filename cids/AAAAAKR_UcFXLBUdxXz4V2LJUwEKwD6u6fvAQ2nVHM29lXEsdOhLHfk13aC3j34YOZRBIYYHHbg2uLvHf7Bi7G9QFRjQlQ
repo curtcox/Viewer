@@ -384,57 +384,13 @@ def _handle_meta_page(server_name, gateways, context):
     # Check if server exists
     server_exists = _check_server_exists(server_name, context)
 
-    server_definition_info = _get_server_definition_info(server_name)
-    server_definition_diagnostics_url = None
-    if server_exists:
-        server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
-
     # Generate test paths based on server type
     test_paths = _get_test_paths(server_name)
-
-    resolved_target = _resolve_target(config, server_name, {})
-
-    probe = {
-        "attempted": False,
-        "sample_path": None,
-        "resolved_target": resolved_target,
-        "request_details": None,
-        "response": None,
-        "error": None,
-        "error_detail": None,
-    }
-
-    sample_path = ""
-    if test_paths:
-        sample_path = test_paths[0]
-    probe_request_details = _build_probe_request_details(sample_path)
-    probe["sample_path"] = sample_path
-    probe["request_details"] = _safe_preview_request_details(probe_request_details)
-    probe["attempted"] = True
-    try:
-        probe_target = _resolve_target(config, server_name, probe_request_details)
-        probe["resolved_target"] = probe_target
-        response = _execute_target_request(probe_target, probe_request_details)
-        probe["response"] = _preview_response(response)
-    except Exception as e:
-        probe["error"] = str(e)
-        probe["error_detail"] = _format_exception_detail(
-            e,
-            debug_context={
-                "gateway": server_name,
-                "probe_request_details": probe.get("request_details"),
-                "probe_resolved_target": probe.get("resolved_target"),
-            },
-        )
 
     html = template.render(
         server_name=server_name,
         config=config,
         server_exists=server_exists,
-        server_definition_info=server_definition_info,
-        server_definition_diagnostics_url=server_definition_diagnostics_url,
-        resolved_target=resolved_target,
-        probe=probe,
         request_cid_lookup=request_cid_lookup,
         response_cid_lookup=response_cid_lookup,
         request_cid_link_html=request_cid_link_html,
@@ -952,75 +908,6 @@ def _check_server_exists(server_name, context):
         return server is not None
     except Exception:
         return False
-
-
-def _get_server_definition_info(server_name: str) -> dict:
-    """Load basic server info for diagnostics without raising."""
-    info = {
-        "exists": False,
-        "definition_type": None,
-        "definition_is_str": False,
-        "definition_preview": None,
-    }
-    try:
-        from db_access import get_server_by_name
-
-        server = get_server_by_name(server_name)
-        if not server:
-            return info
-
-        info["exists"] = True
-        definition = getattr(server, "definition", None)
-        info["definition_type"] = type(definition).__name__
-        info["definition_is_str"] = isinstance(definition, str)
-        try:
-            preview = definition if isinstance(definition, str) else repr(definition)
-        except Exception:
-            preview = "<unavailable>"
-
-        if isinstance(preview, str) and len(preview) > 500:
-            preview = f"{preview[:500]}...<truncated>"
-        info["definition_preview"] = preview
-        return info
-    except Exception as e:
-        info["error"] = str(e)
-        return info
-
-
-def _build_probe_request_details(sample_path: str) -> dict:
-    return {
-        "path": sample_path,
-        "query_string": "",
-        "method": "GET",
-        "headers": {"Accept": "text/plain"},
-    }
-
-
-def _preview_response(response) -> dict:
-    preview = {
-        "status_code": getattr(response, "status_code", None),
-        "content_type": None,
-        "body_preview": None,
-    }
-    try:
-        headers = getattr(response, "headers", {}) or {}
-        content_type = None
-        if isinstance(headers, dict):
-            content_type = headers.get("Content-Type") or headers.get("content-type")
-        preview["content_type"] = content_type
-    except Exception:
-        preview["content_type"] = None
-
-    try:
-        text = getattr(response, "text", "")
-        if isinstance(text, str):
-            snippet = text[:500]
-            preview["body_preview"] = snippet
-        else:
-            preview["body_preview"] = repr(text)[:500]
-    except Exception:
-        preview["body_preview"] = "<unavailable>"
-    return preview
 
 
 def _get_test_paths(server_name):
