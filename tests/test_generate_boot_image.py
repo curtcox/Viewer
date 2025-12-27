@@ -23,6 +23,8 @@ class TestBootImageGenerator:
         (ref_templates / "servers" / "definitions").mkdir()
         (ref_templates / "uploads").mkdir()
         (ref_templates / "uploads" / "contents").mkdir()
+        (ref_templates / "gateways").mkdir()
+        (ref_templates / "gateways" / "transforms").mkdir()
         (tmp_path / "cids").mkdir()
 
         # Create test files
@@ -37,6 +39,31 @@ class TestBootImageGenerator:
 
         upload_file = ref_templates / "uploads" / "contents" / "test.html"
         upload_file.write_text("<html><body>Test</body></html>")
+
+        # Create gateways.source.json and referenced transform files
+        (ref_templates / "gateways" / "transforms" / "test_request.py").write_text(
+            "def transform_request(request_details, context):\n    return request_details\n"
+        )
+        (ref_templates / "gateways" / "transforms" / "test_response.py").write_text(
+            "def transform_response(response_details, context):\n    return response_details\n"
+        )
+        gateways_source = {
+            "test-gateway": {
+                "target_url": "https://test.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Test gateway",
+            },
+            "another-gateway": {
+                "target_url": "https://another.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Another gateway",
+            },
+        }
+        (ref_templates / "gateways.source.json").write_text(
+            json.dumps(gateways_source, indent=2)
+        )
 
         # Create templates.source.json
         templates_source = {
@@ -104,6 +131,11 @@ class TestBootImageGenerator:
                     "enabled": True,
                 },
                 {"name": "uis", "definition": "GENERATED:uis.json", "enabled": True},
+                {
+                    "name": "gateways",
+                    "definition": "GENERATED:gateways.json",
+                    "enabled": True,
+                },
             ],
         }
         boot_source_file = ref_templates / "boot.source.json"
@@ -472,3 +504,253 @@ class TestBootImageGenerator:
 
         assert "reference_templates/test1.txt" in generator.processed_files
         assert "reference_templates/test2.txt" in generator.processed_files
+
+
+class TestGatewaysInBootImage:
+    """Tests for gateways being properly added to boot images."""
+
+    @pytest.fixture
+    def temp_project_with_gateways(self, tmp_path):
+        """Create a temporary project structure with gateways configuration."""
+        # Create directories
+        ref_templates = tmp_path / "reference_templates"
+        ref_templates.mkdir()
+        (ref_templates / "aliases").mkdir()
+        (ref_templates / "variables").mkdir()
+        (ref_templates / "servers").mkdir()
+        (ref_templates / "servers" / "definitions").mkdir()
+        (ref_templates / "gateways").mkdir()
+        (ref_templates / "gateways" / "transforms").mkdir()
+        (ref_templates / "uploads").mkdir()
+        (ref_templates / "uploads" / "contents").mkdir()
+        (tmp_path / "cids").mkdir()
+
+        # Create test transform files for gateways
+        request_transform = ref_templates / "gateways" / "transforms" / "test_request.py"
+        request_transform.write_text(
+            '''def transform_request(request_details: dict, context: dict) -> dict:
+    return {"url": "https://test.example.com", "method": "GET"}
+'''
+        )
+
+        response_transform = ref_templates / "gateways" / "transforms" / "test_response.py"
+        response_transform.write_text(
+            '''def transform_response(response_details: dict, context: dict) -> dict:
+    return {"output": "test output", "content_type": "text/html"}
+'''
+        )
+
+        # Create test files
+        alias_file = ref_templates / "aliases" / "test.txt"
+        alias_file.write_text("literal /test -> /target")
+
+        var_file = ref_templates / "variables" / "test_var.txt"
+        var_file.write_text("test value")
+
+        server_file = ref_templates / "servers" / "definitions" / "test_server.py"
+        server_file.write_text("def main():\n    return 'Hello'\n")
+
+        # Create templates.source.json
+        templates_source = {
+            "aliases": {},
+            "servers": {},
+            "variables": {},
+            "secrets": {},
+            "uploads": {},
+        }
+        templates_source_file = ref_templates / "templates.source.json"
+        templates_source_file.write_text(json.dumps(templates_source, indent=2))
+
+        # Create gateways.source.json with transform CIDs
+        gateways_source = {
+            "test-gateway": {
+                "target_url": "https://test.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Test gateway for unit testing",
+            },
+            "another-gateway": {
+                "target_url": "https://another.example.com",
+                "request_transform_cid": "reference_templates/gateways/transforms/test_request.py",
+                "response_transform_cid": "reference_templates/gateways/transforms/test_response.py",
+                "description": "Another test gateway",
+            },
+        }
+        gateways_source_file = ref_templates / "gateways.source.json"
+        gateways_source_file.write_text(json.dumps(gateways_source, indent=2))
+
+        # Create uis.source.json
+        uis_source = {"aliases": {}, "servers": {}, "variables": {}}
+        uis_source_file = ref_templates / "uis.source.json"
+        uis_source_file.write_text(json.dumps(uis_source, indent=2))
+
+        # Create boot.source.json with gateways variable
+        boot_source = {
+            "version": 6,
+            "runtime": '{"python": {"version": "3.11.0", "implementation": "CPython"}}',
+            "project_files": "{}",
+            "aliases": [],
+            "servers": [],
+            "variables": [
+                {
+                    "name": "templates",
+                    "definition": "GENERATED:templates.json",
+                    "enabled": True,
+                },
+                {"name": "uis", "definition": "GENERATED:uis.json", "enabled": True},
+                {
+                    "name": "gateways",
+                    "definition": "GENERATED:gateways.json",
+                    "enabled": True,
+                },
+            ],
+        }
+        boot_source_file = ref_templates / "boot.source.json"
+        boot_source_file.write_text(json.dumps(boot_source, indent=2))
+
+        # Create minimal.boot.source.json (same as boot.source.json)
+        minimal_boot_source_file = ref_templates / "minimal.boot.source.json"
+        minimal_boot_source_file.write_text(json.dumps(boot_source, indent=2))
+
+        # Create default.boot.source.json (with gateways)
+        default_boot_source_file = ref_templates / "default.boot.source.json"
+        default_boot_source_file.write_text(json.dumps(boot_source, indent=2))
+
+        # Create readonly.boot.source.json (with gateways)
+        readonly_boot_source_file = ref_templates / "readonly.boot.source.json"
+        readonly_boot_source_file.write_text(json.dumps(boot_source, indent=2))
+
+        return tmp_path
+
+    def test_generate_gateways_json_creates_file(self, temp_project_with_gateways):
+        """Test that generate_gateways_json creates gateways.json file."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+        generator.ensure_cids_directory()
+
+        generator.generate_gateways_json()
+
+        # Verify gateways.json was created
+        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        assert gateways_json_path.exists(), "gateways.json should be created"
+
+        # Verify it contains the gateway configurations
+        with open(gateways_json_path, "r", encoding="utf-8") as f:
+            gateways_data = json.load(f)
+
+        assert "test-gateway" in gateways_data
+        assert "another-gateway" in gateways_data
+        assert gateways_data["test-gateway"]["target_url"] == "https://test.example.com"
+
+    def test_generate_gateways_json_replaces_cids(self, temp_project_with_gateways):
+        """Test that generate_gateways_json replaces file paths with CIDs."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+        generator.ensure_cids_directory()
+
+        generator.generate_gateways_json()
+
+        # Verify gateways.json was created
+        gateways_json_path = temp_project_with_gateways / "reference_templates" / "gateways.json"
+        with open(gateways_json_path, "r", encoding="utf-8") as f:
+            gateways_data = json.load(f)
+
+        # CIDs should be replaced (start with AAAAAAA for literal or be full CID)
+        request_cid = gateways_data["test-gateway"]["request_transform_cid"]
+        response_cid = gateways_data["test-gateway"]["response_transform_cid"]
+
+        assert not request_cid.startswith("reference_templates/"), (
+            "Request transform CID should be replaced"
+        )
+        assert not response_cid.startswith("reference_templates/"), (
+            "Response transform CID should be replaced"
+        )
+
+    def test_gateways_variable_in_boot_json(self, temp_project_with_gateways):
+        """Test that gateways variable is properly set in boot.json."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+
+        generator.generate()
+
+        # Verify boot.json was created
+        boot_json_path = temp_project_with_gateways / "reference_templates" / "boot.json"
+        assert boot_json_path.exists()
+
+        with open(boot_json_path, "r", encoding="utf-8") as f:
+            boot_data = json.load(f)
+
+        # Find gateways variable
+        gateways_var = None
+        for var in boot_data["variables"]:
+            if var["name"] == "gateways":
+                gateways_var = var
+                break
+
+        assert gateways_var is not None, "gateways variable should exist in boot.json"
+        assert gateways_var["enabled"] is True
+        # The definition should be replaced with a CID, not GENERATED:gateways.json
+        assert gateways_var["definition"] != "GENERATED:gateways.json", (
+            "gateways definition should be replaced with CID"
+        )
+
+    def test_gateways_in_default_boot_json(self, temp_project_with_gateways):
+        """Test that gateways are included in default.boot.json."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+
+        generator.generate()
+
+        # Verify default.boot.json was created
+        default_boot_path = temp_project_with_gateways / "reference_templates" / "default.boot.json"
+        assert default_boot_path.exists()
+
+        with open(default_boot_path, "r", encoding="utf-8") as f:
+            boot_data = json.load(f)
+
+        # Find gateways variable
+        gateways_var = None
+        for var in boot_data["variables"]:
+            if var["name"] == "gateways":
+                gateways_var = var
+                break
+
+        assert gateways_var is not None, "gateways variable should exist in default.boot.json"
+
+    def test_gateways_in_readonly_boot_json(self, temp_project_with_gateways):
+        """Test that gateways are included in readonly.boot.json."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+
+        generator.generate()
+
+        # Verify readonly.boot.json was created
+        readonly_boot_path = temp_project_with_gateways / "reference_templates" / "readonly.boot.json"
+        assert readonly_boot_path.exists()
+
+        with open(readonly_boot_path, "r", encoding="utf-8") as f:
+            boot_data = json.load(f)
+
+        # Find gateways variable
+        gateways_var = None
+        for var in boot_data["variables"]:
+            if var["name"] == "gateways":
+                gateways_var = var
+                break
+
+        assert gateways_var is not None, "gateways variable should exist in readonly.boot.json"
+
+    def test_gateways_transform_files_processed(self, temp_project_with_gateways):
+        """Test that transform files are processed and stored as CIDs."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+
+        generator.generate()
+
+        # Verify transform files were processed
+        assert "reference_templates/gateways/transforms/test_request.py" in generator.processed_files
+        assert "reference_templates/gateways/transforms/test_response.py" in generator.processed_files
+
+    def test_gateways_cid_in_result(self, temp_project_with_gateways):
+        """Test that generate() returns gateways_cid in result."""
+        generator = BootImageGenerator(temp_project_with_gateways)
+
+        result = generator.generate()
+
+        # Result should include gateways_cid
+        assert "gateways_cid" in result, "Result should include gateways_cid"
+        assert len(result["gateways_cid"]) >= 8, "gateways_cid should be a valid CID"

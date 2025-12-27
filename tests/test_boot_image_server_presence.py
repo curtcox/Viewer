@@ -17,6 +17,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "anthropic_claude": "anthropic_claude.py",
     "auto_main": "auto_main.py",
     "markdown": "markdown.py",
+    "jsonplaceholder": "jsonplaceholder.py",
     "shell": "shell.py",
     "glom": "glom.py",
     "hrx": "hrx.py",

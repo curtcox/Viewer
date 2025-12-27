@@ -72,6 +72,7 @@ class TestBootImageDynamicContent:
         (ref_templates / "variables").mkdir()
         (ref_templates / "servers" / "definitions").mkdir(parents=True)
         (ref_templates / "uploads" / "contents").mkdir(parents=True)
+        (ref_templates / "gateways" / "transforms").mkdir(parents=True)
         (self.project_dir / "cids").mkdir()
 
         # Create base boot source files (minimal, default, readonly, and legacy boot)
@@ -86,7 +87,17 @@ class TestBootImageDynamicContent:
                     "name": "templates",
                     "definition": "GENERATED:templates.json",
                     "enabled": True,
-                }
+                },
+                {
+                    "name": "uis",
+                    "definition": "GENERATED:uis.json",
+                    "enabled": True,
+                },
+                {
+                    "name": "gateways",
+                    "definition": "GENERATED:gateways.json",
+                    "enabled": True,
+                },
             ],
         }
         boot_source_json = json.dumps(boot_source, indent=2)
@@ -110,6 +121,11 @@ class TestBootImageDynamicContent:
         # Create base uis.source.json so UI content generation succeeds
         uis_source = {"aliases": {}, "servers": {}, "variables": {}}
         (ref_templates / "uis.source.json").write_text(json.dumps(uis_source, indent=2))
+
+        # Create base gateways.source.json so gateway content generation succeeds
+        (ref_templates / "gateways.source.json").write_text(
+            json.dumps({}, indent=2)
+        )
 
     def _add_alias_to_boot_source(self, name: str, definition_content: str) -> str:
         """Add an alias to boot.source.json."""

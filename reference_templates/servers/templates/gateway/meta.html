@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gateway Meta: {{ server_name }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; }
+        h2 { color: #9cdcfe; margin-top: 2rem; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+        .nav a { margin-right: 1.5rem; }
+        .card { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .card h3 { margin-top: 0; color: #dcdcaa; }
+        code { font-family: 'Courier New', monospace; background: #1e1e2e; padding: 0.2rem 0.4rem; border-radius: 3px; }
+        pre { background: #1e1e2e; padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace; overflow-x: auto; white-space: pre-wrap; }
+        .status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.9rem; margin-left: 0.5rem; }
+        .status.valid { background: #1f3d1f; color: #4f4; }
+        .status.error { background: #3d1f1f; color: #f44; }
+        .status.warning { background: #3d3d1f; color: #ff4; }
+        .error-detail { color: #f88; margin-top: 0.5rem; padding: 0.5rem; background: #2a1515; border-radius: 4px; }
+        .warning-detail { color: #ff8; margin-top: 0.5rem; padding: 0.5rem; background: #2a2a15; border-radius: 4px; }
+        .info-row { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+        .info-label { color: #858585; min-width: 120px; }
+        .info-value { color: #eee; }
+        .test-links { margin-top: 1rem; }
+        .test-links a { display: inline-block; margin-right: 1rem; padding: 0.5rem 1rem; background: #333; border-radius: 4px; }
+        .test-links a:hover { background: #444; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway">Gateway Home</a>
+        <a href="/gateway/{{ server_name }}">Use Gateway</a>
+        <a href="/gateway/request">Request Tool</a>
+        <a href="/gateway/response">Response Tool</a>
+    </div>
+
+    <h1>Gateway Meta: {{ server_name }}</h1>
+
+    <div class="card">
+        <h3>Configuration</h3>
+        <div class="info-row">
+            <span class="info-label">Gateway Name:</span>
+            <span class="info-value">{{ server_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Target URL:</span>
+            <span class="info-value"><code>{{ config.target_url }}</code></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Description:</span>
+            <span class="info-value">{{ config.description }}</span>
+        </div>
+        {% if server_exists %}
+        <div class="info-row">
+            <span class="info-label">Server Definition:</span>
+            <span class="info-value"><a href="/servers/{{ server_name }}">View Server</a></span>
+        </div>
+        {% if server_definition_info %}
+        <div class="info-row">
+            <span class="info-label">Server Definition Type:</span>
+            <span class="info-value"><code>{{ server_definition_info.definition_type }}</code></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Server Definition Valid:</span>
+            <span class="info-value">
+                {% if server_definition_info.definition_is_str %}
+                    <span class="status valid">Yes</span>
+                {% else %}
+                    <span class="status error">No</span>
+                {% endif %}
+            </span>
+        </div>
+        {% if not server_definition_info.definition_is_str %}
+        <div class="error-detail">
+            Server definition is not a string. Gateway execution may fail or behave unexpectedly.
+            {% if server_definition_diagnostics_url %}
+                <a href="{{ server_definition_diagnostics_url }}">View server definition diagnostics</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if server_definition_info.definition_preview %}
+        <pre>{{ server_definition_info.definition_preview }}</pre>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Target Resolution</h3>
+        {% if resolved_target %}
+        <pre>{{ resolved_target | tojson(indent=2) }}</pre>
+        {% else %}
+        <p><em>No target resolution information available.</em></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>
+            Downstream Probe
+            {% if probe and probe.response and probe.response.status_code is not none %}
+                {% if probe.response.status_code|int < 400 %}
+                    <span class="status valid">{{ probe.response.status_code }}</span>
+                {% else %}
+                    <span class="status error">{{ probe.response.status_code }}</span>
+                {% endif %}
+            {% elif probe and probe.error %}
+                <span class="status error">Error</span>
+            {% else %}
+                <span class="status warning">Unknown</span>
+            {% endif %}
+        </h3>
+        {% if probe and probe.request_details %}
+        <div class="info-row">
+            <span class="info-label">Probe Path:</span>
+            <span class="info-value"><code>{{ probe.sample_path }}</code></span>
+        </div>
+        <pre>{{ probe.request_details | tojson(indent=2) }}</pre>
+        {% endif %}
+
+        {% if probe and probe.resolved_target %}
+        <h4>Resolved Target</h4>
+        <pre>{{ probe.resolved_target | tojson(indent=2) }}</pre>
+        {% endif %}
+
+        {% if probe and probe.response %}
+        <h4>Response Preview</h4>
+        <div class="info-row">
+            <span class="info-label">Content-Type:</span>
+            <span class="info-value"><code>{{ probe.response.content_type }}</code></span>
+        </div>
+        {% if probe.response.body_preview %}
+        <pre>{{ probe.response.body_preview }}</pre>
+        {% endif %}
+        {% endif %}
+
+        {% if probe and probe.error %}
+        <div class="error-detail">{{ probe.error }}</div>
+        {% if probe.error_detail %}
+        <pre>{{ probe.error_detail }}</pre>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>
+            Request Transform
+            <span class="status {{ request_transform_status }}">{{ request_transform_status_text }}</span>
+        </h3>
+        <div class="info-row">
+            <span class="info-label">CID:</span>
+            <span class="info-value">
+                {% if request_cid_lookup %}
+                    {{ request_cid_link_html | safe }}
+                {% else %}
+                    <code>{{ config.request_transform_cid }}</code>
+                {% endif %}
+            </span>
+        </div>
+        {% if request_transform_error %}
+        <div class="error-detail">{{ request_transform_error }}</div>
+        {% endif %}
+        {% if request_transform_warnings %}
+        {% for warning in request_transform_warnings %}
+        <div class="warning-detail">{{ warning }}</div>
+        {% endfor %}
+        {% endif %}
+        {% if request_transform_source %}
+        <pre>{{ request_transform_source }}</pre>
+        {% else %}
+        <p><em>Transform source not available</em></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>
+            Response Transform
+            <span class="status {{ response_transform_status }}">{{ response_transform_status_text }}</span>
+        </h3>
+        <div class="info-row">
+            <span class="info-label">CID:</span>
+            <span class="info-value">
+                {% if response_cid_lookup %}
+                    {{ response_cid_link_html | safe }}
+                {% else %}
+                    <code>{{ config.response_transform_cid }}</code>
+                {% endif %}
+            </span>
+        </div>
+        {% if response_transform_error %}
+        <div class="error-detail">{{ response_transform_error }}</div>
+        {% endif %}
+        {% if response_transform_warnings %}
+        {% for warning in response_transform_warnings %}
+        <div class="warning-detail">{{ warning }}</div>
+        {% endfor %}
+        {% endif %}
+        {% if response_transform_source %}
+        <pre>{{ response_transform_source }}</pre>
+        {% else %}
+        <p><em>Transform source not available</em></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Test Links</h3>
+        <div class="test-links">
+            <a href="/gateway/{{ server_name }}">Gateway Root</a>
+            {% for path in test_paths %}
+            <a href="/gateway/{{ server_name }}/{{ path }}">{{ path }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <script src="/static/js/cid_editor_controls.js"></script>
+</body>
+</html>

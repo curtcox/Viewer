@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gateway Request Experimenter</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; }
+        h2 { color: #9cdcfe; margin-top: 2rem; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+        .nav a { margin-right: 1.5rem; }
+        label { display: block; margin-top: 1rem; color: #9cdcfe; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; background: #252536; border: 1px solid #444; color: #eee; border-radius: 4px; font-family: inherit; box-sizing: border-box; }
+        textarea { font-family: 'Courier New', monospace; min-height: 100px; }
+        .code-editor { font-family: 'Courier New', monospace; min-height: 300px; }
+        button { background: #4ec9b0; color: #1a1a2e; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 1rem; margin-right: 0.5rem; }
+        button:hover { background: #3db89a; }
+        button.secondary { background: #444; color: #eee; }
+        button.secondary:hover { background: #555; }
+        .form-row { display: flex; gap: 1rem; }
+        .form-row > div { flex: 1; }
+        .card { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .preview { background: #1e1e2e; padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace; white-space: pre-wrap; overflow-x: auto; }
+        .error { background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .success { background: #1f3d1f; border-left: 4px solid #4f4; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .indicator { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.8rem; margin-left: 0.5rem; }
+        .indicator.defined { background: #1f3d1f; color: #4f4; }
+        .indicator.undefined { background: #3d3d1f; color: #ff4; }
+        .help-text { color: #858585; font-size: 0.9rem; margin-top: 0.25rem; }
+        .ai-assist { margin-top: 1rem; padding: 1rem; background: #2a2a3e; border-radius: 4px; }
+        .ai-assist h3 { margin-top: 0; color: #c586c0; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway">Gateway Home</a>
+        <a href="/gateway/response">Response Tool</a>
+        <a href="/variables/gateways">Gateway Configurations</a>
+    </div>
+
+    <h1>Gateway Request Experimenter</h1>
+
+    <p>Test and modify request transformations. Enter request details below to see how they would be transformed for a target server.</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if success %}
+    <div class="success">{{ success }}</div>
+    {% endif %}
+
+    <form method="POST" action="/gateway/request">
+        <div class="card">
+            <h2>Load from Invocation</h2>
+            <label for="invocation_cid">Server Invocation CID</label>
+            <input type="text" id="invocation_cid" name="invocation_cid" value="{{ invocation_cid or '' }}" placeholder="Enter a server invocation CID to load request data">
+            <p class="help-text">Load request data from a previous server invocation.</p>
+            {% if invocation_server %}
+            <p>
+                Loaded from: <strong>{{ invocation_server }}</strong>
+                <span class="indicator {{ 'defined' if gateway_defined else 'undefined' }}">
+                    {{ 'Gateway Defined' if gateway_defined else 'No Gateway Defined' }}
+                </span>
+            </p>
+            {% endif %}
+            <button type="submit" name="action" value="load" class="secondary">Load Invocation</button>
+        </div>
+
+        <div class="card">
+            <h2>Request Details</h2>
+
+            <div class="form-row">
+                <div>
+                    <label for="server">Gateway Server</label>
+                    <select id="server" name="server">
+                        <option value="">Select a gateway...</option>
+                        {% for name, config in gateways.items() %}
+                        <option value="{{ name }}" {{ 'selected' if name == selected_server else '' }}>{{ name }} - {{ config.description }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="method">HTTP Method</label>
+                    <select id="method" name="method">
+                        <option value="GET" {{ 'selected' if method == 'GET' else '' }}>GET</option>
+                        <option value="POST" {{ 'selected' if method == 'POST' else '' }}>POST</option>
+                        <option value="PUT" {{ 'selected' if method == 'PUT' else '' }}>PUT</option>
+                        <option value="PATCH" {{ 'selected' if method == 'PATCH' else '' }}>PATCH</option>
+                        <option value="DELETE" {{ 'selected' if method == 'DELETE' else '' }}>DELETE</option>
+                    </select>
+                </div>
+            </div>
+
+            <label for="path">Request Path</label>
+            <input type="text" id="path" name="path" value="{{ path or '' }}" placeholder="/posts/1">
+            <p class="help-text">Path after /gateway/{server}/</p>
+
+            <label for="query_string">Query String</label>
+            <input type="text" id="query_string" name="query_string" value="{{ query_string or '' }}" placeholder="userId=1&_limit=10">
+
+            <label for="headers">Headers (JSON)</label>
+            <textarea id="headers" name="headers" placeholder='{"Accept": "application/json"}'>{{ headers or '{}' }}</textarea>
+
+            <label for="body">Request Body (JSON)</label>
+            <textarea id="body" name="body" placeholder='{"title": "Example", "body": "Content"}'>{{ body or '' }}</textarea>
+        </div>
+
+        <div class="card">
+            <h2>Transform Function Override</h2>
+            <p class="help-text">Temporarily modify the request transform function for testing. Copy to <a href="/variables/gateways">/variables/gateways</a> to persist changes.</p>
+
+            <label for="transform_override">Request Transform Function</label>
+            <textarea id="transform_override" name="transform_override" class="code-editor" placeholder="def transform_request(request_details: dict, context: dict) -> dict:
+    # Modify request_details and return transformed request
+    return {
+        'url': '...',
+        'method': 'GET',
+        'headers': {},
+    }">{{ transform_override or default_transform }}</textarea>
+
+            <div class="ai-assist">
+                <h3>AI Assist</h3>
+                <label for="ai_request">Describe the change you want</label>
+                <textarea id="ai_request" name="ai_request" rows="2" placeholder="Add a custom header for API versioning"></textarea>
+                <button type="submit" name="action" value="ai_assist" class="secondary">Apply AI Suggestion</button>
+            </div>
+        </div>
+
+        <button type="submit" name="action" value="preview">Preview Transformed Request</button>
+        <button type="submit" name="action" value="execute">Execute Request</button>
+    </form>
+
+    {% if preview %}
+    <div class="card">
+        <h2>Transformed Request Preview</h2>
+        <pre class="preview">{{ preview }}</pre>
+    </div>
+    {% endif %}
+
+    {% if response %}
+    <div class="card">
+        <h2>Response</h2>
+        <pre class="preview">{{ response }}</pre>
+    </div>
+    {% endif %}
+</body>
+</html>

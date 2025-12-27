@@ -1,0 +1,211 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""Response transform for tldr gateway.
+
+Transforms tldr output into formatted HTML with command links.
+"""
+
+import re
+from html import escape
+
+
+def transform_response(response_details: dict, context: dict) -> dict:
+    """Transform tldr response to formatted HTML.
+
+    Args:
+        response_details: Dict containing status_code, headers, content, text, json, request_path
+        context: Full server execution context
+
+    Returns:
+        Dict with output (HTML) and content_type
+    """
+    request_path = response_details.get("request_path", "")
+    status_code = response_details.get("status_code", 200)
+    text = response_details.get("text", "")
+
+    # Extract command name from path
+    command = request_path.strip("/").split("/")[0] if request_path.strip("/") else "tldr"
+
+    if status_code >= 400 or not text:
+        return {
+            "output": _render_error_page(command, text or "Command not found"),
+            "content_type": "text/html",
+        }
+
+    # Convert tldr page to HTML
+    html_output = _render_tldr_as_html(text, command)
+
+    return {
+        "output": html_output,
+        "content_type": "text/html",
+    }
+
+
+def _render_error_page(command: str, message: str) -> str:
+    """Render an error page."""
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>tldr {escape(command)} - Error</title>
+    <style>
+        body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }}
+        .error {{ background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; }}
+        h1 {{ color: #f44; }}
+        a {{ color: #4ec9b0; }}
+        .nav {{ margin-bottom: 1rem; }}
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway/tldr">tldr pages</a> |
+        <a href="/gateway/man/{escape(command)}">Try man {escape(command)}</a>
+    </div>
+    <div class="error">
+        <h1>tldr {escape(command)}</h1>
+        <p>{escape(message)}</p>
+    </div>
+</body>
+</html>"""
+
+
+def _render_tldr_as_html(text: str, command: str) -> str:
+    """Render tldr text as formatted HTML."""
+    html_parts = [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head>",
+        '    <meta charset="utf-8">',
+        '    <title>tldr ' + escape(command) + '</title>',
+        "    <style>",
+        "        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }",
+        "        h1 { color: #4ec9b0; }",
+        "        .description { color: #9cdcfe; margin-bottom: 1.5rem; font-size: 1.1rem; }",
+        "        .example { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }",
+        "        .example-desc { color: #c586c0; margin-bottom: 0.5rem; }",
+        "        .example-cmd { font-family: 'Courier New', monospace; color: #dcdcaa; background: #1e1e2e; padding: 0.5rem; border-radius: 4px; display: block; }",
+        "        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; }",
+        "        .placeholder { color: #ce9178; }",
+        "        a { color: #4ec9b0; text-decoration: none; }",
+        "        a:hover { text-decoration: underline; }",
+        "        .nav { margin-bottom: 1rem; padding: 0.5rem; background: #252536; border-radius: 4px; }",
+        "        .nav a { margin-right: 1rem; }",
+        "        .see-also { margin-top: 2rem; padding: 1rem; background: #252536; border-radius: 4px; }",
+        "        .see-also h3 { margin-top: 0; color: #9cdcfe; }",
+        "    </style>",
+        "</head>",
+        "<body>",
+        '    <div class="nav">',
+        '        <a href="/gateway/tldr">tldr pages</a>',
+        f'        <a href="/gateway/man/{escape(command)}">man {escape(command)}</a>',
+        "    </div>",
+        f"    <h1>{escape(command)}</h1>",
+    ]
+
+    # Parse tldr format
+    lines = text.split("\n")
+    description_lines = []
+    examples = []
+    current_example_desc = None
+    see_also = []
+
+    for line in lines:
+        line = line.rstrip()
+
+        # Skip title line (starts with #)
+        if line.startswith("#"):
+            continue
+
+        # Description lines start with >
+        if line.startswith(">"):
+            description_lines.append(line[1:].strip())
+            continue
+
+        # Example description starts with -
+        if line.startswith("-"):
+            if current_example_desc:
+                examples.append((current_example_desc, None))
+            current_example_desc = line[1:].strip()
+            continue
+
+        # Example command is backtick-wrapped
+        if line.startswith("`") and line.endswith("`"):
+            cmd = line[1:-1]
+            if current_example_desc:
+                examples.append((current_example_desc, cmd))
+                current_example_desc = None
+            continue
+
+        # Check for "See also:" section
+        if line.lower().startswith("see also:"):
+            see_also_text = line[9:].strip()
+            # Extract command names from "See also: cmd1, cmd2"
+            see_also = [c.strip() for c in see_also_text.split(",") if c.strip()]
+            continue
+
+    # Add remaining example if any
+    if current_example_desc:
+        examples.append((current_example_desc, None))
+
+    # Render description
+    if description_lines:
+        desc_html = " ".join(description_lines)
+        # Convert command references to links
+        desc_html = _convert_command_references(desc_html)
+        html_parts.append(f'    <div class="description">{desc_html}</div>')
+
+    # Render examples
+    for desc, cmd in examples:
+        html_parts.append('    <div class="example">')
+        desc_html = _convert_command_references(escape(desc))
+        html_parts.append(f'        <div class="example-desc">{desc_html}</div>')
+        if cmd:
+            cmd_html = _format_command(cmd)
+            html_parts.append(f'        <code class="example-cmd">{cmd_html}</code>')
+        html_parts.append("    </div>")
+
+    # Render see also
+    if see_also:
+        html_parts.append('    <div class="see-also">')
+        html_parts.append("        <h3>See also</h3>")
+        links = []
+        for cmd in see_also:
+            links.append(f'<a href="/gateway/tldr/{escape(cmd)}">{escape(cmd)}</a>')
+        html_parts.append("        " + ", ".join(links))
+        html_parts.append("    </div>")
+
+    html_parts.extend(
+        [
+            "</body>",
+            "</html>",
+        ]
+    )
+
+    return "\n".join(html_parts)
+
+
+def _convert_command_references(text: str) -> str:
+    """Convert command names to links."""
+    # Pattern for backtick-wrapped commands in descriptions
+    pattern = r"`([a-zA-Z0-9_-]+)`"
+
+    def replace_cmd(match):
+        cmd = match.group(1)
+        return f'<a href="/gateway/tldr/{cmd}"><code>{escape(cmd)}</code></a>'
+
+    return re.sub(pattern, replace_cmd, text)
+
+
+def _format_command(cmd: str) -> str:
+    """Format a command, highlighting placeholders."""
+    # Escape HTML first
+    cmd = escape(cmd)
+
+    # Highlight placeholders like {{path}} or {{file}}
+    pattern = r"\{\{([^}]+)\}\}"
+
+    def replace_placeholder(match):
+        placeholder = match.group(1)
+        return f'<span class="placeholder">{{{{{placeholder}}}}}</span>'
+
+    return re.sub(pattern, replace_placeholder, cmd)

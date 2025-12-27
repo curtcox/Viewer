@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gateway Error</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #f44; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+        .nav a { margin-right: 1.5rem; }
+        .error { background: #3d1f1f; border-left: 4px solid #f44; padding: 1.5rem; border-radius: 4px; margin-bottom: 1rem; }
+        .error h2 { margin-top: 0; color: #f88; }
+        code { font-family: 'Courier New', monospace; background: #1e1e2e; padding: 0.2rem 0.4rem; border-radius: 3px; }
+        pre { background: #1e1e2e; padding: 1rem; border-radius: 4px; font-family: 'Courier New', monospace; overflow-x: auto; white-space: pre-wrap; }
+        .available-gateways { list-style: none; padding: 0; }
+        .available-gateways li { padding: 0.5rem; border-bottom: 1px solid #333; }
+        .available-gateways a { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway">Gateway Home</a>
+        <a href="/variables/gateways">Gateway Configurations</a>
+    </div>
+
+    <div class="error">
+        <h2>{{ error_title or 'Error' }}</h2>
+        <p>{{ error_message }}</p>
+        {% if error_detail %}
+        <pre>{{ error_detail }}</pre>
+        {% endif %}
+    </div>
+
+    {% if available_gateways %}
+    <h2>Available Gateways</h2>
+    <ul class="available-gateways">
+        {% for name, config in available_gateways.items() %}
+        <li>
+            <a href="/gateway/{{ name }}">{{ name }}</a> - {{ config.description }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <p><a href="/gateway">Back to Gateway Home</a></p>
+</body>
+</html>

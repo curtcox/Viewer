@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -14,7 +15,7 @@ from cid_utils import (
     store_server_definitions_cid,
 )
 from database import db
-from db_access import get_cid_by_path
+from db_access import create_cid_record, get_cid_by_path
 from models import Secret, Server, Variable
 
 pytestmark = pytest.mark.integration
@@ -71,6 +72,40 @@ def test_server_pages_show_implementation_language(
     edit_page = edit_response.get_data(as_text=True)
     assert "Implementation Language" in edit_page
     assert "Bash" in edit_page
+
+
+def test_server_edit_page_renders_invalid_snapshot_definition_entry(
+    client,
+    integration_app,
+):
+    """Edit page should not crash when a server definitions snapshot stores a non-string value for a server."""
+
+    with integration_app.app_context():
+        server = Server(
+            name="man",
+            definition="def main():\n    return {'output': 'ok'}\n",
+            enabled=True,
+        )
+        db.session.add(server)
+        db.session.commit()
+
+        snapshot_payload = {
+            "man": {
+                "request_transform_cid": "AAAAA_TEST",
+                "response_transform_cid": "AAAAA_TEST",
+                "description": "not a string",
+            }
+        }
+        snapshot_bytes = json.dumps(snapshot_payload).encode("utf-8")
+        snapshot_cid = generate_cid(snapshot_bytes)
+        create_cid_record(snapshot_cid, snapshot_bytes)
+
+    response = client.get("/servers/man/edit")
+    assert response.status_code == 200
+
+    page = response.get_data(as_text=True)
+    assert "Invalid" in page
+    assert "Expected server definition text" in page
 
 
 def test_servers_page_includes_enabled_toggle(

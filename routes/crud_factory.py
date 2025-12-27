@@ -130,6 +130,9 @@ def create_list_route(bp: Blueprint, config: EntityRouteConfig) -> Callable[[], 
 
         response_format = get_response_format()
         if response_format != "html":
+            if response_format == "txt" and not entities_list:
+                return Response(f"{config.plural_name.title()}\n", mimetype="text/plain")
+
             from response_formats import render_payload
 
             payload = [config.to_json(e) for e in entities_list]

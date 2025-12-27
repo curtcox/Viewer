@@ -72,5 +72,32 @@ class TestGetDefaultBootCid(unittest.TestCase):
         )
 
 
+class TestShouldUseDefaultBootCid(unittest.TestCase):
+    def test_returns_true_when_no_url_and_no_cid(self):
+        from main import should_use_default_boot_cid
+
+        assert should_use_default_boot_cid(cid=None, url=None) is True
+
+    def test_returns_false_for_internal_path_url(self):
+        from main import should_use_default_boot_cid
+
+        assert should_use_default_boot_cid(cid=None, url="/variables.txt") is False
+
+    def test_returns_false_for_external_url(self):
+        from main import should_use_default_boot_cid
+
+        assert (
+            should_use_default_boot_cid(cid=None, url="https://example.com") is False
+        )
+
+    def test_returns_false_when_cid_is_provided(self):
+        from main import should_use_default_boot_cid
+
+        assert (
+            should_use_default_boot_cid(cid="AAAAA-somecid", url="/variables.txt")
+            is False
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
