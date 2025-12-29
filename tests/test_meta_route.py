@@ -233,6 +233,24 @@ class TestMetaRoute(unittest.TestCase):
                 self.assertIn(f'href="/{cid}.txt"', body)
                 self.assertIn(f'/meta/{cid}', body)
 
+    def test_meta_route_html_renders_any_cid_field_with_popup_pairs(self):
+        with self.app.app_context():
+            from uuid import uuid4
+
+            cid_value = f"cid-{uuid4().hex[:8]}"
+            self._create_cid(cid_value, b"result")
+            self._create_server(name="demo-server")
+
+            response = self.client.get(f"/meta/{cid_value}.html")
+            self.assertEqual(response.status_code, 200)
+
+            body = response.data.decode("utf-8")
+            self.assertIn(
+                '<span class="meta-key">cid</span>: <span class="cid-link-popup',
+                body,
+            )
+            self.assertIn("fa-ellipsis-vertical:before { content: '⋮';", body)
+
     def test_meta_route_html_includes_related_tests_links(self):
         with self.app.app_context():
             response = self.client.get("/meta/settings.html")

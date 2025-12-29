@@ -9,11 +9,27 @@ from typing import Any, Dict, List, Optional
 from flask import current_app
 from markupsafe import Markup, escape
 
+from cid import CID
 from cid_presenter import extract_cid_from_path, format_cid, render_cid_link
+from cid_core import is_normalized_cid
+
+
+def _is_probable_cid(value: Any) -> bool:
+    """Return True when the value looks like a CID reference."""
+
+    if not isinstance(value, (str, CID)):
+        return False
+
+    normalized = format_cid(value)
+    return bool(normalized and is_normalized_cid(normalized))
 
 
 def render_scalar_html(value: Any) -> Markup:
     """Return HTML for a scalar metadata value."""
+    cid_markup = render_cid_popup_pair(value)
+    if cid_markup:
+        return cid_markup
+
     if isinstance(value, str):
         trimmed = value.strip()
         if (
@@ -42,8 +58,17 @@ def render_scalar_html(value: Any) -> Markup:
 def render_cid_popup_pair(value: Any) -> Markup:
     """Return markup showing a CID link with a companion meta popup link."""
 
-    extracted = extract_cid_from_path(value if isinstance(value, str) else None)
-    cid_value = extracted or format_cid(value)
+    cid_value = None
+
+    if isinstance(value, CID):
+        cid_value = format_cid(value)
+    elif isinstance(value, str):
+        extracted = extract_cid_from_path(value)
+        if extracted:
+            cid_value = extracted
+        elif _is_probable_cid(value):
+            cid_value = format_cid(value)
+
     if not cid_value:
         return Markup("")
 
@@ -290,8 +315,10 @@ def render_metadata_html(metadata: Dict[str, Any]) -> str:
     .cid-link-popup { gap: 0.5rem; }
     .cid-display.dropdown { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; }
     .cid-display .cid-link { font-weight: 600; text-decoration: none; color: #0d6efd; }
-    .cid-display .cid-menu-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid #ced4da; background: #fff; color: #212529; padding: 0.2rem 0.45rem; border-radius: 0.25rem; cursor: pointer; }
-    .cid-display .cid-menu-btn i { pointer-events: none; }
+    .cid-display .cid-menu-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; border: 1px solid #6c757d; background: #fff; color: #6c757d; padding: 0.125rem 0.4rem; border-radius: 0.2rem; cursor: pointer; line-height: 1; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 1px rgba(0,0,0,0.05); }
+    .cid-display .cid-menu-btn:hover { background: #6c757d; color: #fff; }
+    .cid-display .cid-menu-btn .fa-ellipsis-vertical:before { content: '⋮'; display: inline-block; }
+    .cid-display .cid-menu-btn i { pointer-events: none; font-style: normal; }
     .cid-display .dropdown-menu { display: none; position: absolute; top: 100%; right: 0; min-width: 12rem; margin-top: 0.25rem; padding: 0.35rem 0; background: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem; box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1); z-index: 10; }
     .cid-display .dropdown-menu.show { display: block; }
     .cid-display .dropdown-menu li { list-style: none; }
