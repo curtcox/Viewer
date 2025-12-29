@@ -64,7 +64,7 @@ def render_cid_popup_pair(value: Any) -> Markup:
         cid_value = format_cid(value)
     elif isinstance(value, str):
         extracted = extract_cid_from_path(value)
-        if extracted:
+        if extracted and is_normalized_cid(extracted):
             cid_value = extracted
         elif _is_probable_cid(value):
             cid_value = format_cid(value)

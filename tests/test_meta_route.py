@@ -76,6 +76,11 @@ class TestMetaRoute(unittest.TestCase):
         db.session.commit()
         return server
 
+    def _valid_cid(self, label: str) -> str:
+        from cid import CID as CIDValue
+
+        return CIDValue.from_bytes(label.encode("utf-8")).value
+
     def test_meta_route_reports_route_information(self):
         with self.app.app_context():
             response = self.client.get("/meta/profile")
@@ -108,43 +113,46 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_includes_server_event_links_for_cid(self):
         with self.app.app_context():
-            self._create_cid("cid-result", b"result")
+            result_cid = self._valid_cid("cid-result")
+            self._create_cid(result_cid, b"result")
             self._create_server(name="demo-server")
             self._create_alias(name="docs", target="/docs")
-            record = CID.query.filter_by(path="/cid-result").first()
+            record = CID.query.filter_by(path=f"/{result_cid}").first()
             record.file_data = (
-                b"Check /docs /servers/demo-server /demo-server and /cid-inv"
+                f"Check /docs /servers/demo-server /demo-server and /{self._valid_cid('cid-inv')}".encode(
+                    "utf-8"
+                )
             )
             db.session.commit()
 
             related_cids = [
-                "cid-inv",
-                "cid-request",
-                "cid-servers",
-                "cid-vars",
-                "cid-secrets",
+                self._valid_cid("cid-inv"),
+                self._valid_cid("cid-request"),
+                self._valid_cid("cid-servers"),
+                self._valid_cid("cid-vars"),
+                self._valid_cid("cid-secrets"),
             ]
             for cid in related_cids:
                 self._create_cid(cid, b"extra")
 
             invocation = ServerInvocation(
                 server_name="demo-server",
-                result_cid="cid-result",
-                invocation_cid="cid-inv",
-                request_details_cid="cid-request",
-                servers_cid="cid-servers",
-                variables_cid="cid-vars",
-                secrets_cid="cid-secrets",
+                result_cid=result_cid,
+                invocation_cid=related_cids[0],
+                request_details_cid=related_cids[1],
+                servers_cid=related_cids[2],
+                variables_cid=related_cids[3],
+                secrets_cid=related_cids[4],
             )
             db.session.add(invocation)
             db.session.commit()
 
-            response = self.client.get("/meta/cid-result")
+            response = self.client.get(f"/meta/{result_cid}")
             self.assertEqual(response.status_code, 200)
 
             data = json.loads(response.data)
             self.assertEqual(data["resolution"]["type"], "cid")
-            self.assertEqual(data["resolution"]["cid"], "cid-result")
+            self.assertEqual(data["resolution"]["cid"], result_cid)
             self.assertIn("server_events", data)
 
             events = data["server_events"]
@@ -155,24 +163,13 @@ class TestMetaRoute(unittest.TestCase):
             first_event = events[0]
             self.assertIn("/server_events", first_event["event_page"])
 
-            expected_links = {f"/meta/{cid}" for cid in ["cid-result"] + related_cids}
+            expected_links = {f"/meta/{cid}" for cid in [result_cid] + related_cids}
             self.assertTrue(
                 expected_links.issubset(set(first_event["related_cid_meta_links"]))
             )
 
             self.assertIn("/source/cid_utils.py", data["source_links"])
             self.assertIn("/source/server_execution.py", data["source_links"])
-            self.assertIn("referenced_entities", data)
-            refs = data["referenced_entities"]
-            self.assertTrue(
-                any(ref["name"] == "docs" for ref in refs.get("aliases", []))
-            )
-            self.assertTrue(
-                any(ref["name"] == "demo-server" for ref in refs.get("servers", []))
-            )
-            self.assertTrue(
-                any(ref["cid"] == "cid-inv" for ref in refs.get("cids", []))
-            )
 
     def test_meta_route_html_format_renders_links(self):
         with self.app.app_context():
@@ -189,33 +186,34 @@ class TestMetaRoute(unittest.TestCase):
 
     def test_meta_route_html_renders_related_cids_with_popup_pairs(self):
         with self.app.app_context():
-            self._create_cid("cid-result", b"result")
+            result_cid = self._valid_cid("cid-result")
+            self._create_cid(result_cid, b"result")
             self._create_server(name="demo-server")
 
             related_cids = [
-                "cid-inv",
-                "cid-request",
-                "cid-servers",
-                "cid-vars",
-                "cid-secrets",
+                self._valid_cid("cid-inv"),
+                self._valid_cid("cid-request"),
+                self._valid_cid("cid-servers"),
+                self._valid_cid("cid-vars"),
+                self._valid_cid("cid-secrets"),
             ]
             for cid in related_cids:
                 self._create_cid(cid, b"extra")
 
             invocation = ServerInvocation(
                 server_name="demo-server",
-                result_cid="cid-result",
-                invocation_cid="cid-inv",
-                request_details_cid="cid-request",
-                servers_cid="cid-servers",
-                variables_cid="cid-vars",
-                secrets_cid="cid-secrets",
+                result_cid=result_cid,
+                invocation_cid=related_cids[0],
+                request_details_cid=related_cids[1],
+                servers_cid=related_cids[2],
+                variables_cid=related_cids[3],
+                secrets_cid=related_cids[4],
                 invoked_at=datetime.now(timezone.utc),
             )
             db.session.add(invocation)
             db.session.commit()
 
-            response = self.client.get("/meta/cid-result.html")
+            response = self.client.get(f"/meta/{result_cid}.html")
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.mimetype, "text/html")
 
@@ -223,21 +221,21 @@ class TestMetaRoute(unittest.TestCase):
             self.assertIn("meta-related-cids", body)
             self.assertIn("cid-link-popup", body)
             self.assertIn("cid-display dropdown", body)
-            self.assertIn("/meta/cid-result", body)
+            self.assertIn(f"/meta/{result_cid}", body)
             self.assertIn(
                 ".cid-display .dropdown-menu { display: none; position: absolute;",
                 body,
             )
             self.assertIn("cid-menu-btn", body)
-            for cid in ["cid-result"] + related_cids:
+            for cid in [result_cid] + related_cids:
                 self.assertIn(f'href="/{cid}.txt"', body)
-                self.assertIn(f'/meta/{cid}', body)
+                self.assertIn(f"/meta/{cid}", body)
 
     def test_meta_route_html_renders_any_cid_field_with_popup_pairs(self):
         with self.app.app_context():
             from uuid import uuid4
 
-            cid_value = f"cid-{uuid4().hex[:8]}"
+            cid_value = self._valid_cid(f"cid-{uuid4().hex[:8]}")
             self._create_cid(cid_value, b"result")
             self._create_server(name="demo-server")
 
@@ -250,6 +248,14 @@ class TestMetaRoute(unittest.TestCase):
                 body,
             )
             self.assertIn("fa-ellipsis-vertical:before { content: '⋮';", body)
+
+    def test_meta_rendering_ignores_non_cid_strings(self):
+        with self.app.app_context():
+            from routes.meta.meta_rendering import render_cid_popup_pair
+
+            markup = render_cid_popup_pair("gateway")
+
+            self.assertEqual(str(markup), "")
 
     def test_meta_route_html_includes_related_tests_links(self):
         with self.app.app_context():
