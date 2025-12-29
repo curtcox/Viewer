@@ -224,6 +224,14 @@ class TestMetaRoute(unittest.TestCase):
             self.assertIn("cid-link-popup", body)
             self.assertIn("cid-display dropdown", body)
             self.assertIn("/meta/cid-result", body)
+            self.assertIn(
+                ".cid-display .dropdown-menu { display: none; position: absolute;",
+                body,
+            )
+            self.assertIn("cid-menu-btn", body)
+            for cid in ["cid-result"] + related_cids:
+                self.assertIn(f'href="/{cid}.txt"', body)
+                self.assertIn(f'/meta/{cid}', body)
 
     def test_meta_route_html_includes_related_tests_links(self):
         with self.app.app_context():
