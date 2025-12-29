@@ -85,7 +85,7 @@ def _render_tldr_as_html(text: str, command: str) -> str:
         "        .description { color: #9cdcfe; margin-bottom: 1.5rem; font-size: 1.1rem; }",
         "        .example { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }",
         "        .example-desc { color: #c586c0; margin-bottom: 0.5rem; }",
-        "        .example-cmd { font-family: 'Courier New', monospace; color: #dcdcaa; background: #1e1e2e; padding: 0.5rem; border-radius: 4px; display: block; white-space: pre-wrap; }",
+        "        .example-cmd { font-family: 'Courier New', monospace; color: #dcdcaa; background: #1e1e2e; padding: 0.5rem; border-radius: 4px; display: block; }",
         "        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; }",
         "        .placeholder { color: #ce9178; }",
         "        a { color: #4ec9b0; text-decoration: none; }",
@@ -109,7 +109,6 @@ def _render_tldr_as_html(text: str, command: str) -> str:
     description_lines = []
     examples = []
     current_example_desc = None
-    current_example_cmd_lines: list[str] = []
     see_also = []
 
     for line in lines:
@@ -127,28 +126,16 @@ def _render_tldr_as_html(text: str, command: str) -> str:
         # Example description starts with -
         if line.startswith("-"):
             if current_example_desc:
-                cmd = "\n".join(current_example_cmd_lines) if current_example_cmd_lines else None
-                examples.append((current_example_desc, cmd))
+                examples.append((current_example_desc, None))
             current_example_desc = line[1:].strip()
-            current_example_cmd_lines = []
-            continue
-
-        # Example command may be indented (standard tldr format)
-        if line[:1].isspace():
-            cmd_line = line.lstrip()
-            if (
-                current_example_desc
-                and cmd_line
-                and not cmd_line.startswith(("#", ">", "-"))
-            ):
-                current_example_cmd_lines.append(cmd_line)
             continue
 
         # Example command is backtick-wrapped
         if line.startswith("`") and line.endswith("`"):
-            cmd_line = line[1:-1]
-            if current_example_desc and cmd_line:
-                current_example_cmd_lines.append(cmd_line)
+            cmd = line[1:-1]
+            if current_example_desc:
+                examples.append((current_example_desc, cmd))
+                current_example_desc = None
             continue
 
         # Check for "See also:" section
@@ -160,8 +147,7 @@ def _render_tldr_as_html(text: str, command: str) -> str:
 
     # Add remaining example if any
     if current_example_desc:
-        cmd = "\n".join(current_example_cmd_lines) if current_example_cmd_lines else None
-        examples.append((current_example_desc, cmd))
+        examples.append((current_example_desc, None))
 
     # Render description
     if description_lines:
@@ -176,7 +162,7 @@ def _render_tldr_as_html(text: str, command: str) -> str:
         desc_html = _convert_command_references(escape(desc))
         html_parts.append(f'        <div class="example-desc">{desc_html}</div>')
         if cmd:
-            cmd_html = _format_command(cmd).replace("\n", "<br>")
+            cmd_html = _format_command(cmd)
             html_parts.append(f'        <code class="example-cmd">{cmd_html}</code>')
         html_parts.append("    </div>")
 
@@ -245,34 +231,4 @@ def _format_command(cmd: str) -> str:
         placeholder = match.group(1)
         return f'<span class="placeholder">{{{{{placeholder}}}}}</span>'
 
-    cmd = re.sub(pattern, replace_placeholder, cmd)
-
-    def is_inside_html_tag(text: str, index: int) -> bool:
-        last_open = text.rfind("<", 0, index)
-        last_close = text.rfind(">", 0, index)
-        return last_open > last_close
-
-    # Link command tokens in example commands (e.g. "cat file | grep pattern").
-    # We link:
-    # - The first command in the line
-    # - Commands after separators like |, ;, &&, ||
-    # We avoid linking:
-    # - Flags (start with '-')
-    # - Paths (contain '/')
-    # - Anything that appears inside HTML tags (e.g. placeholder spans)
-    command_pattern = re.compile(r"(^|\|\s*|;\s*|&&\s*|\|\|\s*)([a-zA-Z0-9_-]+)")
-
-    def link_command(match: re.Match[str]) -> str:
-        prefix = match.group(1)
-        token = match.group(2)
-
-        token_start = match.start(2)
-        if is_inside_html_tag(cmd, token_start):
-            return match.group(0)
-
-        if token.startswith("-") or "/" in token:
-            return match.group(0)
-
-        return f'{prefix}<a href="/gateway/tldr/{escape(token)}">{escape(token)}</a>'
-
-    return command_pattern.sub(link_command, cmd)
+    return re.sub(pattern, replace_placeholder, cmd)

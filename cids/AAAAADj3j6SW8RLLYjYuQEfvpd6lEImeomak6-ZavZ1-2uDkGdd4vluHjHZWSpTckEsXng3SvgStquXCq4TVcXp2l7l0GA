@@ -57,7 +57,7 @@
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAALNFRsdFYltVH6Qmgeeexp9g1O2uRXxy0zJKaYe4pQdR_LRAvugdtyiqvMj1Cooy2OqLrGnOrSI_uMNxPULvGDIz_w",
+      "definition_cid": "AAAAALNEJ7JzMPqmSGekDh5I6-hSswpNJV02O46EkiAO-oC6F1svrje1HBB0aXXzPVqR1BiMO30whi83YMaD4Q5mffD7dw",
       "enabled": true
     },
     {
@@ -534,7 +534,7 @@
     },
     {
       "name": "gateways",
-      "definition": "AAAAAAVSabDIQKz1no_3QBmqFby7A1QKp2FV7rEL2ll9rPdBXs24X7063Y14w4ZkorDNive_Ci7yBljpVLF39ALKz8hWDw",
+      "definition": "AAAAAAVS__UuNc4qa4dRV2hDWjyanCEgvllhznWLMvGwf0GK43wvjDKNkF3dfmXNXrVKcVu4l-fJcb7DqB5d5cYY9PftWA",
       "enabled": true
     }
   ]

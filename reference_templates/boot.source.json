@@ -66,6 +66,11 @@
       "enabled": true
     },
     {
+      "name": "jsonplaceholder",
+      "definition_cid": "reference_templates/servers/definitions/jsonplaceholder.py",
+      "enabled": true
+    },
+    {
       "name": "io",
       "definition_cid": "reference_templates/servers/definitions/io.py",
       "enabled": true

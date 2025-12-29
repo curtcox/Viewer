@@ -515,6 +515,95 @@ class TestGatewayManIntegration:
                 f"Response was: {data[:500]}"
             )
 
+
+class TestGatewayTldrIntegration:
+    """Integration tests for the tldr gateway."""
+
+    @pytest.fixture
+    def app_with_gateway(self, tmp_path):
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+                "LOAD_CIDS_IN_TESTS": True,
+            }
+        )
+
+        boot_cid_file = Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        if not boot_cid_file.exists():
+            pytest.skip("No default.boot.cid file found")
+
+        boot_cid = boot_cid_file.read_text(encoding="utf-8").strip()
+
+        with app.app_context():
+            success, error = import_boot_cid(app, boot_cid)
+            if not success:
+                pytest.skip(f"Failed to import boot CID: {error}")
+
+        return app
+
+    def test_gateway_tldr_routes_to_tldr_server(self, app_with_gateway):
+        """Test that /gateway/tldr/ls returns an HTML page without HTTP proxying."""
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/tldr/ls", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "<html" in data.lower(), (
+                f"Expected HTML response wrapper for tldr gateway: {data[:500]}"
+            )
+            assert "Gateway Not Found" not in data, (
+                f"Gateway 'tldr' should be configured: {data[:500]}"
+            )
+
+    def test_gateway_tldr_grep_includes_linkified_pipeline_example(self, app_with_gateway):
+        """Test that /gateway/tldr/grep includes the stdin pipeline example and linkifies commands."""
+        with app_with_gateway.test_client() as client:
+            response = client.get("/gateway/tldr/grep", follow_redirects=True)
+            assert response.status_code == 200
+
+            data = response.get_data(as_text=True)
+            assert "<html" in data.lower(), (
+                f"Expected HTML response wrapper for tldr gateway: {data[:500]}"
+            )
+            assert "/gateway/tldr/cat" in data, (
+                f"Expected 'cat' to be linkified in grep page: {data[:500]}"
+            )
+            assert "/gateway/tldr/grep" in data, (
+                f"Expected 'grep' to be linkified in grep page: {data[:500]}"
+            )
+
+
+class TestGatewayGeneralIntegration:
+    """Integration tests for gateway pages that are not specific to a single gateway."""
+
+    @pytest.fixture
+    def app_with_gateway(self, tmp_path):
+        app = create_app(
+            {
+                "TESTING": True,
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
+                "WTF_CSRF_ENABLED": False,
+                "LOAD_CIDS_IN_TESTS": True,
+            }
+        )
+
+        boot_cid_file = (
+            Path(__file__).parent.parent.parent / "reference_templates" / "default.boot.cid"
+        )
+        if not boot_cid_file.exists():
+            pytest.skip("No default.boot.cid file found")
+
+        boot_cid = boot_cid_file.read_text(encoding="utf-8").strip()
+
+        with app.app_context():
+            success, error = import_boot_cid(app, boot_cid)
+            if not success:
+                pytest.skip(f"Failed to import boot CID: {error}")
+
+        return app
+
     def test_gateway_ls_routes_to_man_server(self, app_with_gateway):
         """Test that /gateway/man/ls routes to /servers/man/ls."""
         with app_with_gateway.test_client() as client:

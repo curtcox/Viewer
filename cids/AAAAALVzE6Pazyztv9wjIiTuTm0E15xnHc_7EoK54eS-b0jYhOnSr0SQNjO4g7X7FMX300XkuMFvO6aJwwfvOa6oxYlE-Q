@@ -141,6 +141,18 @@ def _resolve_cid_content(cid_value):
 def _load_gateways(context):
     """Load gateway configurations from the gateways variable."""
     try:
+        # In development/test mode, prefer the working-tree gateway definitions
+        # so local edits to request/response transforms are immediately reflected.
+        try:
+            if current_app.config.get("TESTING") or current_app.config.get(
+                "LOAD_CIDS_IN_TESTS"
+            ):
+                source_path = Path.cwd() / "reference_templates" / "gateways.source.json"
+                if source_path.exists():
+                    return json.loads(source_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
         # Try to get gateways from context variables
         # Context is a dict with {"variables": {...}, "secrets": {...}, "servers": {...}}
         gateways_value = None
