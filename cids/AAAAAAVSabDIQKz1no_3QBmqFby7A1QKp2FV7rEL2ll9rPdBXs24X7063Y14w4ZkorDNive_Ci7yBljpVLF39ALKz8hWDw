@@ -1,0 +1,22 @@
+{
+  "jsonplaceholder": {
+    "request_transform_cid": "AAAAAAcDEabo_ndn5uPJMow30GGL0RLFsoYfI9pnnqEv8WCexbJ83SRmjz9Ami1Mm107AgKEYZityZOHnuis0XRqxz91Cw",
+    "response_transform_cid": "AAAAAB1-VAz_2GRbZAAX4hfLbCRvvMQ68e-LrChs0VPbbK2AkcUNhuSKDHGwX4QkyVgBuxjpsqlqGVuFkxzYamUYBa6uDg",
+    "description": "JSONPlaceholder fake REST API for testing"
+  },
+  "man": {
+    "request_transform_cid": "AAAAAAaMsYabK_PVL6O5dzLo5umUZVUNc4TCX9_jpOmgZRfYS7q9ucBUhXLj5xUbrDGu7usooPXFj52vkLuEPHVi0RfO2Q",
+    "response_transform_cid": "AAAAAB22Wg2fhkyu551DRhFBhFAQ_qBxDEiKccl86ByxrzsnCnYdoVx6TPZ19O9vFYSkO3CoSWUFhA6Jjx9M1mYm8ct8Ig",
+    "description": "HTML formatted man pages with command links"
+  },
+  "tldr": {
+    "request_transform_cid": "AAAAAANoBblFXSuVP9YdpuFSVnFCrdLo-HftAHX5Mhw-zmN68Mb4enBZvWitTork0eAIOYc5jAx8lxX8cUUlyVYH07ohoA",
+    "response_transform_cid": "AAAAACabihYfN6iU7xywOlJBvFZ54x_uvNbaFVyQ_8KgOF4V99lTcKW8hjYEZOqjBkX9QNelf8rv9777_vMa6d-0ZRIKZg",
+    "description": "HTML formatted tldr pages with command links"
+  },
+  "hrx": {
+    "request_transform_cid": "AAAAAASijDU5-aN9Ie5ukCEoN7KU4lJSxI8EJz3SiIcmJ5LQ1bAdKhJQSnDN5dZlFCqMs52vn0qMo_kTJcV_YbY_oe1_Lw",
+    "response_transform_cid": "AAAAAC3PgMvTj_P0yd95mh6GynWa0KuLbZk3m2eImdGrQVWsppMp32YNuwuB4k3cgRSmnyurkBYCH8Dh0YoWthujU347MQ",
+    "description": "HRX archive web viewer with relative URL fixing"
+  }
+}

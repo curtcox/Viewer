@@ -1,0 +1,112 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""JSONPlaceholder API proxy server.
+
+This server proxies requests to https://jsonplaceholder.typicode.com,
+a free fake REST API for testing and prototyping.
+
+Usage:
+    /jsonplaceholder/posts - Get all posts
+    /jsonplaceholder/posts/1 - Get a specific post
+    /jsonplaceholder/users - Get all users
+    /jsonplaceholder/comments?postId=1 - Get comments for a post
+"""
+
+from urllib.parse import urljoin
+
+import requests
+from flask import request as flask_request
+
+
+BASE_URL = "https://jsonplaceholder.typicode.com"
+
+
+def _split_server_path(path: str) -> tuple[str, str]:
+    """Return the server mount name and the remainder of the request path."""
+    if not isinstance(path, str):
+        return "", ""
+
+    stripped = path.lstrip("/")
+    if not stripped:
+        return "", "/" if path.endswith("/") else ""
+
+    if "/" in stripped:
+        server_name, remainder = stripped.split("/", 1)
+        suffix = f"/{remainder}"
+    else:
+        server_name = stripped
+        suffix = ""
+
+    if not suffix and path.endswith("/"):
+        suffix = "/"
+
+    return server_name, suffix
+
+
+def _proxy_request(req) -> dict:
+    """Proxy the incoming request to JSONPlaceholder."""
+    # Get the requested path after /jsonplaceholder
+    full_path = getattr(req, "path", "") or ""
+    _, suffix = _split_server_path(full_path)
+    path = suffix
+
+    # Build the target URL
+    target_url = BASE_URL.rstrip("/")
+    if path:
+        target_url = urljoin(target_url + "/", path.lstrip("/"))
+
+    # Add query string if present
+    query_string_bytes = getattr(req, "query_string", b"") or b""
+    query_string = (
+        query_string_bytes.decode("utf-8", errors="replace")
+        if isinstance(query_string_bytes, (bytes, bytearray))
+        else str(query_string_bytes)
+    )
+    if query_string:
+        separator = "&" if "?" in target_url else "?"
+        target_url = f"{target_url}{separator}{query_string}"
+
+    # Get request parameters
+    method = getattr(req, "method", "GET") or "GET"
+    headers = dict(getattr(req, "headers", {}) or {})
+
+    # Filter headers
+    filtered_headers = {}
+    for key, value in headers.items():
+        if key is None:
+            continue
+        lower_key = key.lower()
+        if lower_key in {"host", "content-length"}:
+            continue
+        filtered_headers[key] = value
+
+    # Add JSON accept header
+    filtered_headers.setdefault("Accept", "application/json")
+
+    # Get body data
+    body = req.get_data(cache=False) if hasattr(req, "get_data") else None
+    body = body or None
+
+    # Make the request
+    response = requests.request(
+        method,
+        target_url,
+        headers=filtered_headers,
+        data=body,
+        allow_redirects=True,
+        timeout=30,
+    )
+
+    content_type = response.headers.get("Content-Type", "application/json")
+    return {"output": response.content, "content_type": content_type}
+
+
+def main(context=None):
+    """Entry point for the JSONPlaceholder server."""
+    try:
+        result = _proxy_request(flask_request)
+    except requests.RequestException as exc:
+        message = f"JSONPlaceholder request failed: {exc}"
+        result = {"output": message, "content_type": "text/plain"}
+
+    return result

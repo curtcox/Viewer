@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gateway Server</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; }
+        h2 { color: #9cdcfe; margin-top: 2rem; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+        .nav a { margin-right: 1.5rem; }
+        .card { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .card h3 { margin-top: 0; color: #dcdcaa; }
+        .card p { margin-bottom: 0.5rem; color: #aaa; }
+        .gateway-list { list-style: none; padding: 0; }
+        .gateway-list li { padding: 0.75rem; border-bottom: 1px solid #333; }
+        .gateway-list li:last-child { border-bottom: none; }
+        .gateway-name { font-weight: bold; color: #9cdcfe; }
+        .gateway-desc { color: #858585; font-size: 0.9rem; }
+        code { font-family: 'Courier New', monospace; background: #1e1e2e; padding: 0.2rem 0.4rem; border-radius: 3px; }
+        .tools { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .tool-card { flex: 1; min-width: 250px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/servers/gateway">Server Definition</a>
+        <a href="/variables/gateways">Gateway Configurations</a>
+        <a href="/gateway/request">Request Tool</a>
+        <a href="/gateway/response">Response Tool</a>
+    </div>
+
+    <h1>Gateway Server</h1>
+
+    <p>The gateway server provides a unified interface for accessing external and internal APIs with customizable request and response transformations.</p>
+
+    <h2>How It Works</h2>
+
+    <div class="card">
+        <h3>URL Format</h3>
+        <p><code>/gateway/{server}/{path}</code></p>
+        <p>Where <code>{server}</code> is a configured gateway name and <code>{path}</code> is passed to the target API.</p>
+    </div>
+
+    <div class="card">
+        <h3>Transformations</h3>
+        <p>Each gateway defines:</p>
+        <ul>
+            <li><strong>Request Transform</strong> - Modifies the incoming request before sending to the target</li>
+            <li><strong>Response Transform</strong> - Formats the response before returning to the user</li>
+        </ul>
+    </div>
+
+    <h2>Development Tools</h2>
+
+    <div class="tools">
+        <div class="card tool-card">
+            <h3><a href="/gateway/request">Request Experimenter</a></h3>
+            <p>Test and modify request transformations interactively. Load previous invocations by CID.</p>
+        </div>
+        <div class="card tool-card">
+            <h3><a href="/gateway/response">Response Experimenter</a></h3>
+            <p>Test and modify response transformations interactively. Load previous invocations by CID.</p>
+        </div>
+    </div>
+
+    <h2>Configured Gateways</h2>
+
+    <ul class="gateway-list">
+        {% for name, config in gateways.items() %}
+        <li>
+            <div class="gateway-name"><a href="/gateway/{{ name }}">{{ name }}</a></div>
+            <div class="gateway-desc">{{ config.description }}</div>
+            <div><a href="/gateway/meta/{{ name }}">View Meta</a></div>
+        </li>
+        {% else %}
+        <li>
+            <em>No gateways configured. Add gateway configurations to the <a href="/variables/gateways">gateways variable</a>.</em>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,0 +1,1309 @@
+# ruff: noqa: F821, F706
+# pylint: disable=undefined-variable,return-outside-function
+"""Gateway server for proxying requests to external and internal APIs.
+
+This server provides a unified interface for accessing APIs with customizable
+request and response transformations. All server-specific configuration comes
+from the 'gateways' variable.
+
+Routes:
+    /gateway - Instruction page
+    /gateway/request - Request experimentation form
+    /gateway/response - Response experimentation form
+    /gateway/meta/{server} - Server meta page with transform validation
+    /gateway/{server} - Issue request to gateway server root
+    /gateway/{server}/{rest} - Issue request to gateway server with path
+"""
+
+import ast
+import json
+import logging
+import traceback
+from html import escape
+from pathlib import Path
+from urllib.parse import urljoin
+
+import requests
+from flask import current_app, request as flask_request
+from jinja2 import Template
+
+from cid_presenter import extract_cid_from_path, render_cid_link
+
+logger = logging.getLogger(__name__)
+
+
+def _normalize_cid_lookup(value: str | None) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+
+    cid_value = extract_cid_from_path(cleaned)
+    if cid_value:
+        return f"/{cid_value}"
+
+    return cleaned
+
+
+def main(context=None):
+    """Gateway server main function.
+
+    Handles all gateway routes based on the request path.
+
+    Parameters:
+        context: Request context (automatically provided)
+    """
+    try:
+        return _main_impl(context)
+    except Exception as e:
+        # Catch-all error handler with diagnostic information
+        error_detail = traceback.format_exc()
+        logger.error(f"Gateway error: {e}\n{error_detail}")
+        return _render_error(
+            "Gateway Error",
+            f"An unexpected error occurred: {escape(str(e))}",
+            {},  # Empty gateways since we may not have loaded them
+            error_detail=error_detail,
+        )
+
+
+def _main_impl(context=None):
+    """Implementation of main gateway routing logic."""
+    # Get the request path
+    request_path = flask_request.path or "/"
+
+    # Parse the path to determine the route
+    path_parts = request_path.strip("/").split("/")
+
+    # Remove 'gateway' prefix if present
+    if path_parts and path_parts[0] == "gateway":
+        path_parts = path_parts[1:]
+
+    # Load gateways configuration
+    gateways = _load_gateways(context)
+
+    # Route to appropriate handler
+    if not path_parts or path_parts[0] == "":
+        return _handle_instruction_page(gateways, context)
+
+    first_part = path_parts[0]
+
+    if first_part == "request":
+        return _handle_request_form(gateways, context)
+
+    if first_part == "response":
+        return _handle_response_form(gateways, context)
+
+    if first_part == "meta" and len(path_parts) > 1:
+        server_name = path_parts[1]
+        return _handle_meta_page(server_name, gateways, context)
+
+    # Otherwise, treat first part as server name
+    server_name = first_part
+    rest_path = "/".join(path_parts[1:]) if len(path_parts) > 1 else ""
+
+    return _handle_gateway_request(server_name, rest_path, gateways, context)
+
+
+def _resolve_cid_content(cid_value):
+    """Resolve a CID value to its content."""
+    try:
+        # Try database first - CID paths are stored with leading slash
+        from cid_storage import get_cid_content
+        cid_path = f"/{cid_value}" if not cid_value.startswith("/") else cid_value
+        content = get_cid_content(cid_path)
+        if content:
+            if hasattr(content, "file_data"):
+                data = content.file_data
+                return data.decode("utf-8") if isinstance(data, bytes) else data
+            if hasattr(content, "data"):
+                data = content.data
+                return data.decode("utf-8") if isinstance(data, bytes) else data
+            return content.decode("utf-8") if isinstance(content, bytes) else content
+    except Exception:
+        pass
+
+    # Try file system as fallback
+    try:
+        # Remove leading slash if present for filesystem lookup
+        bare_cid = cid_value.lstrip("/")
+        cid_file = Path("cids") / bare_cid
+        if cid_file.exists():
+            return cid_file.read_text(encoding="utf-8")
+    except Exception:
+        pass
+
+    return None
+
+
+def _load_gateways(context):
+    """Load gateway configurations from the gateways variable."""
+    try:
+        # In development/test mode, prefer the working-tree gateway definitions
+        # so local edits to request/response transforms are immediately reflected.
+        try:
+            if current_app.config.get("TESTING") or current_app.config.get(
+                "LOAD_CIDS_IN_TESTS"
+            ):
+                source_path = Path.cwd() / "reference_templates" / "gateways.source.json"
+                if source_path.exists():
+                    return json.loads(source_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+        # Try to get gateways from context variables
+        # Context is a dict with {"variables": {...}, "secrets": {...}, "servers": {...}}
+        gateways_value = None
+        if context and isinstance(context, dict):
+            variables = context.get("variables", {})
+            if isinstance(variables, dict):
+                gateways_value = variables.get("gateways")
+
+        if gateways_value:
+            if isinstance(gateways_value, dict):
+                return gateways_value
+            if isinstance(gateways_value, str):
+                # Try to parse as JSON first
+                try:
+                    return json.loads(gateways_value)
+                except json.JSONDecodeError:
+                    # Value might be a CID - try to resolve it
+                    if gateways_value.startswith("AAAAA"):
+                        cid_content = _resolve_cid_content(gateways_value)
+                        if cid_content:
+                            return json.loads(cid_content)
+
+        # Try to resolve from named value resolver
+        from server_execution.request_parsing import resolve_named_value
+
+        # Build base_args with context for named value resolution
+        base_args = {}
+        if context and isinstance(context, dict):
+            base_args["context"] = context
+
+        value = resolve_named_value("gateways", base_args)
+        if value:
+            if isinstance(value, dict):
+                return value
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    # Value might be a CID - try to resolve it
+                    if value.startswith("AAAAA"):
+                        cid_content = _resolve_cid_content(value)
+                        if cid_content:
+                            return json.loads(cid_content)
+
+    except Exception as e:
+        logger.warning(f"Failed to load gateways: {e}")
+
+    return {}
+
+
+def _load_template(template_name):
+    """Load a Jinja2 template from the gateway templates directory.
+
+    Tries multiple paths to find templates:
+    1. Flask app root + reference_templates/servers/templates/gateway/
+    2. Current working directory relative paths
+    """
+    template_paths = []
+
+    # Try Flask app root path
+    try:
+        app_root = Path(current_app.root_path)
+        template_paths.append(app_root / "reference_templates" / "servers" / "templates" / "gateway" / template_name)
+    except RuntimeError:
+        # No Flask app context
+        pass
+
+    # Try current working directory
+    cwd = Path.cwd()
+    template_paths.append(cwd / "reference_templates" / "servers" / "templates" / "gateway" / template_name)
+
+    for template_path in template_paths:
+        if template_path.exists():
+            with open(template_path, "r", encoding="utf-8") as f:
+                return Template(f.read())
+
+    # Fallback: return a simple error template
+    tried_paths = ", ".join(str(p) for p in template_paths)
+    return Template(
+        f"""<!DOCTYPE html><html><body>
+        <h1>Template Not Found</h1>
+        <p>Could not load template: {{{{ template_name }}}}</p>
+        <p>Tried paths: {tried_paths}</p>
+        </body></html>"""
+    )
+
+
+def _handle_instruction_page(gateways, context):
+    """Render the main gateway instruction page."""
+    template = _load_template("instruction.html")
+    html = template.render(gateways=gateways)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_request_form(gateways, context):
+    """Handle the request experimentation form."""
+    template = _load_template("request_form.html")
+
+    # Get form data
+    form_data = dict(flask_request.form) if flask_request.form else {}
+    action = form_data.get("action", "")
+
+    # Initialize context
+    ctx = {
+        "gateways": gateways,
+        "selected_server": form_data.get("server", ""),
+        "method": form_data.get("method", "GET"),
+        "path": form_data.get("path", ""),
+        "query_string": form_data.get("query_string", ""),
+        "headers": form_data.get("headers", "{}"),
+        "body": form_data.get("body", ""),
+        "transform_override": form_data.get("transform_override", ""),
+        "invocation_cid": form_data.get("invocation_cid", ""),
+        "error": None,
+        "success": None,
+        "preview": None,
+        "response": None,
+        "gateway_defined": False,
+        "invocation_server": None,
+        "default_transform": _get_default_request_transform(),
+    }
+
+    # Handle actions
+    if action == "load" and ctx["invocation_cid"]:
+        ctx = _load_invocation_for_request(ctx, gateways)
+    elif action == "preview" and ctx["selected_server"]:
+        ctx = _preview_request_transform(ctx, gateways)
+    elif action == "execute" and ctx["selected_server"]:
+        ctx = _execute_gateway_request(ctx, gateways, context)
+
+    html = template.render(**ctx)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_response_form(gateways, context):
+    """Handle the response experimentation form."""
+    template = _load_template("response_form.html")
+
+    # Get form data
+    form_data = dict(flask_request.form) if flask_request.form else {}
+    action = form_data.get("action", "")
+
+    # Initialize context
+    ctx = {
+        "gateways": gateways,
+        "selected_server": form_data.get("server", ""),
+        "status_code": int(form_data.get("status_code", 200)),
+        "request_path": form_data.get("request_path", ""),
+        "response_headers": form_data.get("response_headers", '{"Content-Type": "application/json"}'),
+        "response_body": form_data.get("response_body", ""),
+        "transform_override": form_data.get("transform_override", ""),
+        "invocation_cid": form_data.get("invocation_cid", ""),
+        "error": None,
+        "success": None,
+        "preview": None,
+        "preview_html": None,
+        "gateway_defined": False,
+        "invocation_server": None,
+        "default_transform": _get_default_response_transform(),
+    }
+
+    # Handle actions
+    if action == "load" and ctx["invocation_cid"]:
+        ctx = _load_invocation_for_response(ctx, gateways)
+    elif action == "transform":
+        ctx = _transform_response(ctx, gateways, context)
+
+    html = template.render(**ctx)
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_meta_page(server_name, gateways, context):
+    """Handle the gateway meta page showing transform source and validation."""
+    if server_name not in gateways:
+        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
+        return _render_error(
+            "Gateway Not Found",
+            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            gateways,
+        )
+
+    config = gateways[server_name]
+    template = _load_template("meta.html")
+
+    # Load and validate transforms
+    request_transform_source = None
+    request_transform_status = "error"
+    request_transform_status_text = "Not Found"
+    request_transform_error = None
+    request_transform_warnings = []
+
+    response_transform_source = None
+    response_transform_status = "error"
+    response_transform_status_text = "Not Found"
+    response_transform_error = None
+    response_transform_warnings = []
+
+    request_cid_link_html = ""
+    response_cid_link_html = ""
+
+    # Load request transform
+    request_cid = config.get("request_transform_cid")
+    request_cid_lookup = _normalize_cid_lookup(request_cid)
+    if request_cid_lookup and request_cid_lookup.startswith("/"):
+        request_cid_link_html = str(render_cid_link(request_cid_lookup))
+    if request_cid:
+        source, error, warnings = _load_and_validate_transform(request_cid_lookup, "transform_request", context)
+        request_transform_source = source
+        if error:
+            request_transform_error = error
+            request_transform_status = "error"
+            request_transform_status_text = "Error"
+        elif warnings:
+            request_transform_warnings = warnings
+            request_transform_status = "warning"
+            request_transform_status_text = "Valid with Warnings"
+        else:
+            request_transform_status = "valid"
+            request_transform_status_text = "Valid"
+
+    # Load response transform
+    response_cid = config.get("response_transform_cid")
+    response_cid_lookup = _normalize_cid_lookup(response_cid)
+    if response_cid_lookup and response_cid_lookup.startswith("/"):
+        response_cid_link_html = str(render_cid_link(response_cid_lookup))
+    if response_cid:
+        source, error, warnings = _load_and_validate_transform(response_cid_lookup, "transform_response", context)
+        response_transform_source = source
+        if error:
+            response_transform_error = error
+            response_transform_status = "error"
+            response_transform_status_text = "Error"
+        elif warnings:
+            response_transform_warnings = warnings
+            response_transform_status = "warning"
+            response_transform_status_text = "Valid with Warnings"
+        else:
+            response_transform_status = "valid"
+            response_transform_status_text = "Valid"
+
+    # Check if server exists
+    server_exists = _check_server_exists(server_name, context)
+
+    server_definition_info = _get_server_definition_info(server_name)
+    server_definition_diagnostics_url = None
+    if server_exists:
+        server_definition_diagnostics_url = f"/servers/{server_name}/definition-diagnostics"
+
+    # Generate test paths based on server type
+    test_paths = _get_test_paths(server_name)
+
+    resolved_target = _resolve_target(config, server_name, {})
+
+    probe = {
+        "attempted": False,
+        "sample_path": None,
+        "resolved_target": resolved_target,
+        "request_details": None,
+        "response": None,
+        "error": None,
+        "error_detail": None,
+    }
+
+    sample_path = ""
+    if test_paths:
+        sample_path = test_paths[0]
+    probe_request_details = _build_probe_request_details(sample_path)
+    probe["sample_path"] = sample_path
+    probe["request_details"] = _safe_preview_request_details(probe_request_details)
+    probe["attempted"] = True
+    try:
+        probe_target = _resolve_target(config, server_name, probe_request_details)
+        probe["resolved_target"] = probe_target
+        response = _execute_target_request(probe_target, probe_request_details)
+        probe["response"] = _preview_response(response)
+    except Exception as e:
+        probe["error"] = str(e)
+        probe["error_detail"] = _format_exception_detail(
+            e,
+            debug_context={
+                "gateway": server_name,
+                "probe_request_details": probe.get("request_details"),
+                "probe_resolved_target": probe.get("resolved_target"),
+            },
+        )
+
+    html = template.render(
+        server_name=server_name,
+        config=config,
+        server_exists=server_exists,
+        server_definition_info=server_definition_info,
+        server_definition_diagnostics_url=server_definition_diagnostics_url,
+        resolved_target=resolved_target,
+        probe=probe,
+        request_cid_lookup=request_cid_lookup,
+        response_cid_lookup=response_cid_lookup,
+        request_cid_link_html=request_cid_link_html,
+        response_cid_link_html=response_cid_link_html,
+        request_transform_source=request_transform_source,
+        request_transform_status=request_transform_status,
+        request_transform_status_text=request_transform_status_text,
+        request_transform_error=request_transform_error,
+        request_transform_warnings=request_transform_warnings,
+        response_transform_source=response_transform_source,
+        response_transform_status=response_transform_status,
+        response_transform_status_text=response_transform_status_text,
+        response_transform_error=response_transform_error,
+        response_transform_warnings=response_transform_warnings,
+        test_paths=test_paths,
+    )
+    return {"output": html, "content_type": "text/html"}
+
+
+def _handle_gateway_request(server_name, rest_path, gateways, context):
+    """Handle an actual gateway request to a configured server."""
+    if server_name not in gateways:
+        available = ", ".join(sorted(gateways.keys())) if gateways else "(none)"
+        return _render_error(
+            "Gateway Not Found",
+            f"No gateway configured for '{server_name}'. Defined gateways: {available}",
+            gateways,
+        )
+
+    config = gateways[server_name]
+
+    debug_context = {
+        "gateway": server_name,
+        "rest_path": rest_path,
+        "request_path": getattr(flask_request, "path", None),
+        "request_method": getattr(flask_request, "method", None),
+    }
+
+    # Build request details
+    try:
+        json_body = flask_request.get_json(silent=True)
+    except Exception:
+        json_body = None
+
+    try:
+        raw_body = flask_request.get_data(as_text=True)
+    except Exception:
+        raw_body = None
+
+    request_details = {
+        "path": rest_path,
+        "query_string": flask_request.query_string.decode("utf-8"),
+        "method": flask_request.method,
+        "headers": {k: v for k, v in flask_request.headers if k.lower() != "cookie"},
+        "json": json_body,
+        "body": raw_body,
+    }
+
+    debug_context["request_details_before_transform"] = {
+        "path": request_details.get("path"),
+        "query_string": request_details.get("query_string"),
+        "method": request_details.get("method"),
+    }
+
+    # Load and execute request transform
+    request_cid = config.get("request_transform_cid")
+    if request_cid:
+        try:
+            transform_fn = _load_transform_function(_normalize_cid_lookup(request_cid), context)
+            if not transform_fn:
+                return _render_error(
+                    "Request Transform Not Found",
+                    f"Could not load request transform: {escape(str(request_cid))}",
+                    gateways,
+                    error_detail=json.dumps(
+                        {
+                            "gateway": server_name,
+                            "request_transform_cid": request_cid,
+                        },
+                        indent=2,
+                    ),
+                )
+            if transform_fn:
+                transformed = transform_fn(request_details, context)
+                if isinstance(transformed, dict):
+                    request_details = transformed
+        except Exception as e:
+            logger.error(f"Request transform error: {e}")
+            return _render_error(
+                "Request Transform Error",
+                f"Failed to execute request transform: {escape(str(e))}",
+                gateways,
+                error_detail=_format_exception_detail(
+                    e,
+                    debug_context={
+                        **debug_context,
+                        "request_transform_cid": request_cid,
+                    },
+                ),
+            )
+
+    debug_context["request_details_after_transform"] = _safe_preview_request_details(
+        request_details
+    )
+
+    resolved_target = _resolve_target(config, server_name, request_details)
+    debug_context["resolved_target"] = resolved_target
+
+    try:
+        response = _execute_target_request(resolved_target, request_details)
+    except Exception as e:
+        logger.error(f"Target request error: {e}")
+        return _render_error(
+            "Request Failed",
+            f"Failed to connect to target: {escape(str(e))}",
+            gateways,
+            error_detail=_format_exception_detail(e, debug_context=debug_context),
+        )
+
+    # Build response details
+    try:
+        response_json = response.json() if "application/json" in response.headers.get("Content-Type", "") else None
+    except Exception:
+        response_json = None
+
+    response_details = {
+        "status_code": response.status_code,
+        "headers": dict(response.headers),
+        "content": response.content,
+        "text": response.text,
+        "json": response_json,
+        "request_path": rest_path,
+    }
+
+    # Load and execute response transform
+    response_cid = config.get("response_transform_cid")
+    if response_cid:
+        try:
+            transform_fn = _load_transform_function(_normalize_cid_lookup(response_cid), context)
+            if not transform_fn:
+                return _render_error(
+                    "Response Transform Not Found",
+                    f"Could not load response transform: {escape(str(response_cid))}",
+                    gateways,
+                    error_detail=json.dumps(
+                        {
+                            "gateway": server_name,
+                            "response_transform_cid": response_cid,
+                        },
+                        indent=2,
+                    ),
+                )
+            if transform_fn:
+                result = transform_fn(response_details, context)
+                if isinstance(result, dict) and "output" in result:
+                    return result
+        except Exception as e:
+            logger.error(f"Response transform error: {e}")
+            return _render_error(
+                "Response Transform Error",
+                f"Failed to execute response transform: {escape(str(e))}",
+                gateways,
+            )
+
+    # Default: return raw response
+    return {
+        "output": response.content,
+        "content_type": response.headers.get("Content-Type", "text/plain"),
+    }
+
+
+def _execute_target_request(target_url, request_details):
+    """Execute a request to the target server."""
+    if isinstance(target_url, dict):
+        if target_url.get("mode") == "internal":
+            return _execute_internal_target(target_url, request_details)
+        target_url = target_url.get("url")
+
+    # Build the full URL
+    if target_url.startswith("/"):
+        # Internal server request
+        base_url = flask_request.host_url.rstrip("/")
+        url = urljoin(base_url, target_url)
+    else:
+        url = request_details.get("url", target_url)
+
+    # Add path if not already in URL
+    if "url" not in request_details:
+        path = request_details.get("path", "")
+        if path:
+            url = urljoin(url.rstrip("/") + "/", path.lstrip("/"))
+
+    method = request_details.get("method", "GET")
+    headers = request_details.get("headers", {})
+    params = request_details.get("params")
+    json_body = request_details.get("json")
+    data = request_details.get("data")
+
+    # Filter headers
+    filtered_headers = {}
+    for key, value in headers.items():
+        if key.lower() not in ("host", "content-length", "transfer-encoding"):
+            filtered_headers[key] = value
+
+    return requests.request(
+        method,
+        url,
+        headers=filtered_headers,
+        params=params,
+        json=json_body if json_body else None,
+        data=data if data and not json_body else None,
+        timeout=30,
+        allow_redirects=True,
+    )
+
+
+def _resolve_target(config: dict, server_name: str, request_details: dict) -> dict:
+    """Resolve the final gateway target.
+
+    Returns a dict with:
+      - mode: 'internal' | 'http'
+      - url: internal path starting with '/' or absolute URL
+    """
+    configured_target = config.get("target_url")
+    explicit_url = request_details.get("url")
+
+    if isinstance(explicit_url, str) and explicit_url:
+        if explicit_url.startswith("/"):
+            return {"mode": "internal", "url": explicit_url}
+        return {"mode": "http", "url": explicit_url}
+
+    if isinstance(configured_target, str) and configured_target:
+        if configured_target.startswith("/"):
+            return {"mode": "internal", "url": configured_target}
+        return {"mode": "http", "url": configured_target}
+
+    # Default: treat gateway name as an internal server.
+    return {"mode": "internal", "url": f"/{server_name}"}
+
+
+def _execute_internal_target(target: dict, request_details: dict):
+    """Execute an internal target (server/alias/CID) without making HTTP requests."""
+    internal_path = target.get("url")
+    if not isinstance(internal_path, str) or not internal_path.startswith("/"):
+        raise ValueError(f"Invalid internal target: {internal_path!r}")
+
+    path = internal_path
+    extra_path = request_details.get("path")
+    if isinstance(extra_path, str) and extra_path:
+        path = urljoin(path.rstrip("/") + "/", extra_path.lstrip("/"))
+
+    query_string = request_details.get("query_string")
+    if isinstance(query_string, str) and query_string:
+        path = f"{path}?{query_string.lstrip('?')}"
+
+    method = request_details.get("method", "GET")
+
+    import server_execution
+
+    # Create a nested request context so server execution that depends on
+    # request.path sees the intended internal path (e.g. /man/grep).
+    with current_app.test_request_context(
+        path,
+        method=method,
+        headers=request_details.get("headers") or {},
+        data=request_details.get("data"),
+        json=request_details.get("json"),
+    ):
+        result = server_execution.try_server_execution(flask_request.path)
+        if result is None:
+            raise LookupError(f"No internal target handled path: {flask_request.path}")
+
+        adapted = _as_requests_like_response(result)
+        resolved = _follow_internal_redirects(adapted)
+        return resolved
+
+
+def _follow_internal_redirects(response, max_hops: int = 3):
+    """Resolve internal redirect responses into final CID-backed content."""
+    current = response
+    for _ in range(max_hops):
+        status = getattr(current, "status_code", 200)
+        if status not in (301, 302, 303, 307, 308):
+            return current
+
+        headers = getattr(current, "headers", {}) or {}
+        location = headers.get("Location") or headers.get("location")
+        if not isinstance(location, str) or not location:
+            return current
+
+        cid_value, content_type = _try_resolve_location_to_content(location)
+        if cid_value is None:
+            return current
+
+        class _ResolvedResponse:
+            def __init__(self, *, body: bytes, content_type: str):
+                self.status_code = 200
+                self.headers = {"Content-Type": content_type}
+                self.content = body
+                self.text = body.decode("utf-8", errors="replace")
+
+            def json(self):
+                return json.loads(self.text)
+
+        return _ResolvedResponse(body=cid_value, content_type=content_type)
+
+    return current
+
+
+def _try_resolve_location_to_content(location: str) -> tuple[bytes | None, str]:
+    """Try to resolve a redirect Location to CID content bytes and content type."""
+    if not isinstance(location, str):
+        return None, "text/plain"
+
+    raw_path = location.split("?", 1)[0]
+    raw_path = raw_path.lstrip("/")
+    if not raw_path:
+        return None, "text/plain"
+
+    if "/" in raw_path:
+        # Not a simple /{cid}[.ext] path.
+        return None, "text/plain"
+
+    if "." in raw_path:
+        cid_candidate, ext = raw_path.split(".", 1)
+    else:
+        cid_candidate, ext = raw_path, ""
+
+    cid_text = _resolve_cid_content(cid_candidate)
+    if cid_text is None:
+        return None, "text/plain"
+
+    if isinstance(cid_text, (bytes, bytearray)):
+        body = bytes(cid_text)
+    else:
+        body = str(cid_text).encode("utf-8")
+
+    content_type = {
+        "html": "text/html",
+        "txt": "text/plain",
+        "json": "application/json",
+        "md": "text/markdown",
+    }.get(ext.lower() if isinstance(ext, str) else "", "text/html")
+
+    return body, content_type
+
+
+def _as_requests_like_response(result):
+    """Convert a Flask Response or server result dict into a requests-like object."""
+    if hasattr(result, "status_code") and hasattr(result, "headers"):
+        class _FlaskResponseAdapter:
+            def __init__(self, response):
+                self._response = response
+                self.status_code = getattr(response, "status_code", 200)
+                self.headers = dict(getattr(response, "headers", {}) or {})
+                self.content = getattr(response, "data", b"")
+                try:
+                    self.text = self.content.decode("utf-8", errors="replace")
+                except Exception:
+                    self.text = ""
+
+            def json(self):
+                return json.loads(self.text)
+
+        return _FlaskResponseAdapter(result)
+
+    if isinstance(result, dict) and "output" in result:
+        class _DictResponseAdapter:
+            def __init__(self, payload):
+                self.status_code = 200
+                self.headers = {
+                    "Content-Type": payload.get("content_type", "text/html")
+                }
+                output = payload.get("output", "")
+                self.content = (
+                    output
+                    if isinstance(output, (bytes, bytearray))
+                    else str(output).encode("utf-8")
+                )
+                self.text = self.content.decode("utf-8", errors="replace")
+
+            def json(self):
+                return json.loads(self.text)
+
+        return _DictResponseAdapter(result)
+
+    raise TypeError(f"Unsupported internal execution result type: {type(result).__name__}")
+
+
+def _safe_preview_request_details(request_details: dict) -> dict:
+    if not isinstance(request_details, dict):
+        return {"type": type(request_details).__name__}
+    preview = {}
+    for key in ("url", "path", "query_string", "method"):
+        if key in request_details:
+            preview[key] = request_details.get(key)
+    headers = request_details.get("headers")
+    if isinstance(headers, dict):
+        preview["headers"] = {
+            k: v
+            for k, v in headers.items()
+            if str(k).lower() not in ("cookie", "authorization")
+        }
+    return preview
+
+
+def _format_exception_detail(exc: Exception, *, debug_context: dict | None = None) -> str:
+    detail = {
+        "exception_type": type(exc).__name__,
+        "exception": str(exc),
+    }
+    if debug_context:
+        detail["debug_context"] = debug_context
+
+    detail["traceback"] = traceback.format_exc()
+    return json.dumps(detail, indent=2, default=str)
+
+
+def _load_transform_function(cid, context):
+    """Load a transform function from a CID."""
+    try:
+        # Try direct file path first (for development)
+        if isinstance(cid, str) and Path(cid).exists():
+            with open(cid, "r", encoding="utf-8") as f:
+                source = f.read()
+            return _compile_transform(source)
+
+        # Try to load from CID store
+        from db_access import get_cid_by_path
+
+        cid_lookup = _normalize_cid_lookup(cid)
+        cid_record = get_cid_by_path(cid_lookup) if cid_lookup else None
+        if cid_record and cid_record.file_data:
+            source = cid_record.file_data.decode("utf-8")
+            return _compile_transform(source)
+
+    except Exception as e:
+        logger.error(f"Failed to load transform from CID {cid}: {e}")
+
+    return None
+
+
+def _compile_transform(source):
+    """Compile transform source code and return the transform function."""
+    # Create a namespace for execution
+    namespace = {"__builtins__": __builtins__}
+
+    # Execute the source
+    exec(source, namespace)
+
+    # Look for transform functions
+    for name in ("transform_request", "transform_response"):
+        if name in namespace and callable(namespace[name]):
+            return namespace[name]
+
+    return None
+
+
+def _load_and_validate_transform(cid, expected_fn_name, context):
+    """Load transform source and validate it.
+
+    Returns: (source, error, warnings)
+    """
+    source = None
+    warnings = []
+
+    try:
+        # Try file path first (for development)
+        if isinstance(cid, str) and Path(cid).exists():
+            with open(cid, "r", encoding="utf-8") as f:
+                source = f.read()
+
+        # Try to load source
+        from db_access import get_cid_by_path
+
+        cid_lookup = _normalize_cid_lookup(cid)
+        cid_record = get_cid_by_path(cid_lookup) if cid_lookup else None
+        if cid_record and cid_record.file_data:
+            source = cid_record.file_data.decode("utf-8")
+
+        if not source:
+            return None, f"Transform not found at CID: {cid}", []
+
+        # Syntax validation
+        try:
+            tree = ast.parse(source)
+        except SyntaxError as e:
+            return source, f"Syntax error at line {e.lineno}: {e.msg}", []
+
+        # Check for expected function
+        function_found = False
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == expected_fn_name:
+                function_found = True
+                # Check signature
+                args = node.args
+                if len(args.args) < 2:
+                    warnings.append(f"Function {expected_fn_name} should have at least 2 parameters (request_details, context)")
+                break
+
+        if not function_found:
+            return source, f"Missing required function: {expected_fn_name}", []
+
+        return source, None, warnings
+
+    except Exception as e:
+        return source, f"Validation error: {str(e)}", []
+
+
+def _check_server_exists(server_name, context):
+    """Check if a server with the given name exists."""
+    try:
+        from db_access import get_server_by_name
+        server = get_server_by_name(server_name)
+        return server is not None
+    except Exception:
+        return False
+
+
+def _get_server_definition_info(server_name: str) -> dict:
+    """Load basic server info for diagnostics without raising."""
+    info = {
+        "exists": False,
+        "definition_type": None,
+        "definition_is_str": False,
+        "definition_preview": None,
+    }
+    try:
+        from db_access import get_server_by_name
+
+        server = get_server_by_name(server_name)
+        if not server:
+            return info
+
+        info["exists"] = True
+        definition = getattr(server, "definition", None)
+        info["definition_type"] = type(definition).__name__
+        info["definition_is_str"] = isinstance(definition, str)
+        try:
+            preview = definition if isinstance(definition, str) else repr(definition)
+        except Exception:
+            preview = "<unavailable>"
+
+        if isinstance(preview, str) and len(preview) > 500:
+            preview = f"{preview[:500]}...<truncated>"
+        info["definition_preview"] = preview
+        return info
+    except Exception as e:
+        info["error"] = str(e)
+        return info
+
+
+def _build_probe_request_details(sample_path: str) -> dict:
+    return {
+        "path": sample_path,
+        "query_string": "",
+        "method": "GET",
+        "headers": {"Accept": "text/plain"},
+    }
+
+
+def _preview_response(response) -> dict:
+    preview = {
+        "status_code": getattr(response, "status_code", None),
+        "content_type": None,
+        "body_preview": None,
+    }
+    try:
+        headers = getattr(response, "headers", {}) or {}
+        content_type = None
+        if isinstance(headers, dict):
+            content_type = headers.get("Content-Type") or headers.get("content-type")
+        preview["content_type"] = content_type
+    except Exception:
+        preview["content_type"] = None
+
+    try:
+        text = getattr(response, "text", "")
+        if isinstance(text, str):
+            snippet = text[:500]
+            preview["body_preview"] = snippet
+        else:
+            preview["body_preview"] = repr(text)[:500]
+    except Exception:
+        preview["body_preview"] = "<unavailable>"
+    return preview
+
+
+def _get_test_paths(server_name):
+    """Get suggested test paths for a gateway."""
+    test_paths = {
+        "jsonplaceholder": ["posts", "users", "comments", "albums"],
+        "man": ["ls", "cat", "grep"],
+        "tldr": ["ls", "cat", "git"],
+        "hrx": [],
+    }
+    return test_paths.get(server_name, [])
+
+
+def _load_invocation_for_request(ctx, gateways):
+    """Load invocation data for the request form."""
+    try:
+        from db_access import get_cid_by_path
+
+        # Load the invocation JSON
+        cid = ctx["invocation_cid"]
+        cid_record = get_cid_by_path(cid)
+        if not cid_record:
+            ctx["error"] = f"CID not found: {cid}"
+            return ctx
+
+        invocation_data = json.loads(cid_record.file_data.decode("utf-8"))
+
+        # Check if this is a server invocation
+        if "server_name" not in invocation_data:
+            ctx["error"] = "CID does not reference a server invocation"
+            return ctx
+
+        ctx["invocation_server"] = invocation_data.get("server_name", "")
+        ctx["gateway_defined"] = ctx["invocation_server"] in gateways
+
+        # Load request details
+        request_cid = invocation_data.get("request_details_cid")
+        if request_cid:
+            request_record = get_cid_by_path(request_cid)
+            if request_record:
+                request_data = json.loads(request_record.file_data.decode("utf-8"))
+                ctx["path"] = request_data.get("path", "")
+                ctx["method"] = request_data.get("method", "GET")
+                ctx["query_string"] = request_data.get("query_string", "")
+                ctx["headers"] = json.dumps(request_data.get("headers", {}), indent=2)
+                ctx["body"] = request_data.get("body", "")
+            else:
+                ctx["error"] = f"Request details CID not found: {request_cid}"
+
+        ctx["success"] = f"Loaded invocation from {ctx['invocation_server']}"
+
+    except Exception as e:
+        ctx["error"] = f"Failed to load invocation: {str(e)}"
+
+    return ctx
+
+
+def _load_invocation_for_response(ctx, gateways):
+    """Load invocation data for the response form."""
+    try:
+        from db_access import get_cid_by_path
+
+        # Load the invocation JSON
+        cid = ctx["invocation_cid"]
+        cid_record = get_cid_by_path(cid)
+        if not cid_record:
+            ctx["error"] = f"CID not found: {cid}"
+            return ctx
+
+        invocation_data = json.loads(cid_record.file_data.decode("utf-8"))
+
+        # Check if this is a server invocation
+        if "server_name" not in invocation_data:
+            ctx["error"] = "CID does not reference a server invocation"
+            return ctx
+
+        ctx["invocation_server"] = invocation_data.get("server_name", "")
+        ctx["gateway_defined"] = ctx["invocation_server"] in gateways
+
+        # Load result
+        result_cid = invocation_data.get("result_cid")
+        if result_cid:
+            result_record = get_cid_by_path(result_cid)
+            if result_record:
+                ctx["response_body"] = result_record.file_data.decode("utf-8", errors="replace")
+            else:
+                ctx["error"] = f"Result CID not found: {result_cid}"
+
+        ctx["success"] = f"Loaded invocation from {ctx['invocation_server']}"
+
+    except Exception as e:
+        ctx["error"] = f"Failed to load invocation: {str(e)}"
+
+    return ctx
+
+
+def _preview_request_transform(ctx, gateways):
+    """Preview the transformed request without executing it."""
+    try:
+        server_name = ctx["selected_server"]
+        if server_name not in gateways:
+            ctx["error"] = f"Gateway not found: {server_name}"
+            return ctx
+
+        config = gateways[server_name]
+
+        # Build request details
+        request_details = {
+            "path": ctx["path"],
+            "query_string": ctx["query_string"],
+            "method": ctx["method"],
+            "headers": json.loads(ctx["headers"]) if ctx["headers"] else {},
+            "json": json.loads(ctx["body"]) if ctx["body"] else None,
+            "body": ctx["body"],
+        }
+
+        # Get transform source
+        transform_source = ctx["transform_override"] if ctx["transform_override"] else None
+        if not transform_source:
+            # Load default from CID
+            request_cid = config.get("request_transform_cid")
+            if request_cid:
+                transform_fn = _load_transform_function(request_cid, None)
+                if transform_fn:
+                    result = transform_fn(request_details, {})
+                    ctx["preview"] = json.dumps(result, indent=2)
+                    return ctx
+
+        # Use override
+        if transform_source:
+            transform_fn = _compile_transform(transform_source)
+            if transform_fn:
+                result = transform_fn(request_details, {})
+                ctx["preview"] = json.dumps(result, indent=2)
+            else:
+                ctx["error"] = "Could not compile transform function"
+        else:
+            ctx["preview"] = json.dumps(request_details, indent=2)
+
+    except Exception as e:
+        ctx["error"] = f"Preview failed: {str(e)}"
+
+    return ctx
+
+
+def _execute_gateway_request(ctx, gateways, context):
+    """Execute the gateway request and show the result."""
+    ctx = _preview_request_transform(ctx, gateways)
+
+    if ctx.get("error"):
+        return ctx
+
+    try:
+        # Parse the preview to get the transformed request
+        transformed = json.loads(ctx.get("preview", "{}"))
+
+        server_name = ctx["selected_server"]
+        # Use /servers/{gateway_name} as target
+        target_url = f"/servers/{server_name}"
+
+        # Execute the request
+        response = _execute_target_request(target_url, transformed)
+
+        # Format the response
+        response_info = {
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "body_preview": response.text[:1000] if response.text else "",
+        }
+        ctx["response"] = json.dumps(response_info, indent=2)
+
+    except Exception as e:
+        ctx["error"] = f"Request failed: {str(e)}"
+
+    return ctx
+
+
+def _transform_response(ctx, gateways, context):
+    """Transform a response using the specified transform."""
+    try:
+        server_name = ctx["selected_server"]
+        config = gateways.get(server_name, {})
+
+        # Build response details
+        response_details = {
+            "status_code": ctx["status_code"],
+            "headers": json.loads(ctx["response_headers"]) if ctx["response_headers"] else {},
+            "text": ctx["response_body"],
+            "json": None,
+            "content": ctx["response_body"].encode("utf-8"),
+            "request_path": ctx["request_path"],
+        }
+
+        # Try to parse as JSON
+        try:
+            response_details["json"] = json.loads(ctx["response_body"])
+        except Exception:
+            pass
+
+        # Get transform source
+        transform_source = ctx["transform_override"] if ctx["transform_override"] else None
+        if not transform_source:
+            # Load default from CID
+            response_cid = config.get("response_transform_cid")
+            if response_cid:
+                transform_fn = _load_transform_function(response_cid, None)
+                if transform_fn:
+                    result = transform_fn(response_details, context or {})
+                    if isinstance(result, dict) and "output" in result:
+                        ctx["preview"] = result.get("output", "")
+                        ctx["preview_html"] = result.get("output", "")
+                    return ctx
+
+        # Use override
+        if transform_source:
+            transform_fn = _compile_transform(transform_source)
+            if transform_fn:
+                result = transform_fn(response_details, context or {})
+                if isinstance(result, dict) and "output" in result:
+                    ctx["preview"] = result.get("output", "")
+                    ctx["preview_html"] = result.get("output", "")
+            else:
+                ctx["error"] = "Could not compile transform function"
+        else:
+            ctx["preview"] = ctx["response_body"]
+            ctx["preview_html"] = escape(ctx["response_body"])
+
+    except Exception as e:
+        ctx["error"] = f"Transform failed: {str(e)}"
+
+    return ctx
+
+
+def _render_error(title, message, gateways, *, error_detail=None):
+    """Render an error page with optional diagnostic details."""
+    template = _load_template("error.html")
+    html = template.render(
+        error_title=title,
+        error_message=message,
+        error_detail=error_detail,
+        available_gateways=gateways,
+    )
+    return {"output": html, "content_type": "text/html"}
+
+
+def _get_default_request_transform():
+    """Get the default request transform template."""
+    return '''def transform_request(request_details: dict, context: dict) -> dict:
+    """Transform incoming request for target server."""
+    path = request_details.get("path", "")
+    method = request_details.get("method", "GET")
+
+    return {
+        "url": f"https://example.com/{path}",
+        "method": method,
+        "headers": request_details.get("headers", {}),
+        "json": request_details.get("json"),
+    }
+'''
+
+
+def _get_default_response_transform():
+    """Get the default response transform template."""
+    return '''def transform_response(response_details: dict, context: dict) -> dict:
+    """Transform response from target server."""
+    from html import escape
+
+    text = response_details.get("text", "")
+
+    return {
+        "output": f"<pre>{escape(text)}</pre>",
+        "content_type": "text/html",
+    }
+'''

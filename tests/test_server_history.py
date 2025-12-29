@@ -141,10 +141,15 @@ class TestServerHistory(unittest.TestCase):
 
         mock_get_uploads.return_value = [mock_cid]
 
-        with self.assertRaises(TypeError) as ctx:
-            get_server_definition_history(self.server_name)
+        history = get_server_definition_history(self.server_name)
+        self.assertEqual(len(history), 1)
+        entry = history[0]
 
-        message = str(ctx.exception)
+        self.assertTrue(entry.get("is_current"))
+        self.assertTrue(entry.get("is_invalid"))
+        self.assertIsNone(entry.get("definition"))
+
+        message = str(entry.get("error"))
         self.assertIn("server_name='test_server'", message)
         self.assertIn("snapshot_cid='cid_bad_value'", message)
         self.assertIn("{'not': 'a string'}", message)

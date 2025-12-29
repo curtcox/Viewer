@@ -397,6 +397,14 @@ def parse_positional_arguments(
     return url, cid
 
 
+def should_use_default_boot_cid(
+    *, cid: str | None, url: str | None
+) -> bool:
+    if cid is not None:
+        return False
+    return url is None
+
+
 if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
@@ -526,10 +534,10 @@ if __name__ == "__main__":
             sys.exit(1)
         cid = args.boot_cid
 
-    # Use default boot CID if no CID was specified and no URL (i.e., starting server)
-    # Don't load default CID if just making an HTTP request
-    # Use readonly boot CID in read-only mode
-    if cid is None and url is None:
+    # Use default boot CID if no CID was specified.
+    # For internal URLs (paths starting with /), we still want the boot image loaded
+    # so that variables like "gateways" are available.
+    if should_use_default_boot_cid(cid=cid, url=url):
         default_cid = get_default_boot_cid(readonly=args.read_only)
         if default_cid:
             boot_type = "readonly" if args.read_only else "default"
