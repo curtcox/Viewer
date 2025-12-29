@@ -21,7 +21,7 @@ All open questions have been resolved. The following decisions guide the impleme
 | 1 | OAuth Token Management | Shared OAuth token manager for consistency |
 | 2 | Service Account vs User Auth | Support both, with service account as default for Google services |
 | 3 | Database Connections | Direct connections for base servers; separate servers for SQLAlchemy, pymongo, and other pooling options |
-| 4 | Webhook Endpoints | Include in main server (Option B), with generic receiver (Option C) as fallback; use separate definitions (Option A) when dramatically simpler |
+| 4 | Webhook Endpoints | Include in main server by default; only create separate webhook server if it would require a large increase in complexity of the main server |
 | 5 | Server Naming Convention | Use underscores (e.g., `google_sheets`) |
 | 6 | Default Endpoints | Show helpful form/documentation by default, require API key for actual calls |
 | 7 | Error Message Format | Return JSON with `error` key; server framework renders appropriately |
@@ -35,6 +35,10 @@ All open questions have been resolved. The following decisions guide the impleme
 | 15 | Rate Limit Handling | Configurable retry with exponential backoff, max 3 retries |
 | 16 | Timeout Configuration | Default 60s timeout, configurable via parameter |
 | 17 | Logging | Log request URL, method, response status (never log secrets or sensitive data) |
+| 18 | Shared Abstractions Location | New top-level package: `server_utils/external_api/` |
+| 19 | OAuth Token Persistence | Return refreshed tokens to caller (caller handles persistence) |
+| 20 | Database Query Timeout | Separate query timeout from connection timeout for database servers |
+| 21 | Pooling Server Configuration | Generic connection string (not separate secrets per database type) |
 
 ---
 
@@ -44,7 +48,9 @@ Based on the design decisions, the following shared abstractions will be created
 
 ### Location
 
-All shared abstractions will be in: `server_utils/external_api/`
+All shared abstractions will be in a new top-level package: `server_utils/external_api/`
+
+This is separate from `server_execution/` to maintain clear separation of concerns.
 
 ### Module Structure
 
@@ -177,13 +183,13 @@ class ExternalApiClient:
 
 ### 2. OAuth Manager (`oauth_manager.py`)
 
-Shared OAuth token management with refresh capability.
+Shared OAuth token management with refresh capability. Returns refreshed tokens to the caller (caller is responsible for persistence).
 
 ```python
 """OAuth token manager for external APIs."""
 
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 
 import requests
@@ -205,7 +211,11 @@ class OAuthTokens:
 
 
 class OAuthManager:
-    """Manages OAuth tokens with automatic refresh."""
+    """Manages OAuth tokens with automatic refresh.
+
+    Note: This class returns refreshed tokens to the caller. The caller is
+    responsible for persisting tokens if needed (e.g., updating secrets store).
+    """
 
     def __init__(
         self,
@@ -220,18 +230,27 @@ class OAuthManager:
         self.scopes = scopes or []
         self._tokens: Optional[OAuthTokens] = None
 
-    def get_access_token(self, refresh_token: Optional[str] = None) -> str:
-        """Get valid access token, refreshing if needed."""
+    def get_access_token(self, refresh_token: Optional[str] = None) -> Tuple[str, Optional[OAuthTokens]]:
+        """Get valid access token, refreshing if needed.
+
+        Returns:
+            Tuple of (access_token, new_tokens_if_refreshed).
+            If tokens were refreshed, caller should persist new_tokens.
+        """
         if self._tokens and not self._tokens.is_expired():
-            return self._tokens.access_token
+            return self._tokens.access_token, None
 
         if refresh_token or (self._tokens and self._tokens.refresh_token):
             return self._refresh_token(refresh_token or self._tokens.refresh_token)
 
         raise ValueError("No valid token available and no refresh token provided")
 
-    def _refresh_token(self, refresh_token: str) -> str:
-        """Refresh the access token."""
+    def _refresh_token(self, refresh_token: str) -> Tuple[str, OAuthTokens]:
+        """Refresh the access token.
+
+        Returns:
+            Tuple of (access_token, new_tokens). Caller should persist new_tokens.
+        """
         response = requests.post(
             self.token_url,
             data={
@@ -252,17 +271,21 @@ class OAuthManager:
             token_type=data.get("token_type", "Bearer"),
         )
 
-        return self._tokens.access_token
+        return self._tokens.access_token, self._tokens
 
     def set_tokens(self, tokens: OAuthTokens) -> None:
         """Set tokens directly (e.g., from stored secrets)."""
         self._tokens = tokens
 
-    def get_auth_header(self, refresh_token: Optional[str] = None) -> Dict[str, str]:
-        """Get Authorization header with valid token."""
-        token = self.get_access_token(refresh_token)
+    def get_auth_header(self, refresh_token: Optional[str] = None) -> Tuple[Dict[str, str], Optional[OAuthTokens]]:
+        """Get Authorization header with valid token.
+
+        Returns:
+            Tuple of (headers_dict, new_tokens_if_refreshed).
+        """
+        token, new_tokens = self.get_access_token(refresh_token)
         token_type = self._tokens.token_type if self._tokens else "Bearer"
-        return {"Authorization": f"{token_type} {token}"}
+        return {"Authorization": f"{token_type} {token}"}, new_tokens
 ```
 
 ### 3. Google Auth (`google_auth.py`)
@@ -927,16 +950,26 @@ Each shared module needs comprehensive tests:
 | Azure Blob Storage | `azure_blob` | `AZURE_STORAGE_CONNECTION_STRING` or `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY` | https://docs.microsoft.com/en-us/rest/api/storageservices/ |
 
 ### Category 22: Databases (Direct Connection)
+
+Database servers support separate connection timeout and query timeout parameters.
+
 | Service | Server Name | API Key/Secret Name | API Documentation |
 |---------|-------------|---------------------|-------------------|
 | MySQL | `mysql` | `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` | Direct connection |
 | PostgreSQL | `postgresql` | `POSTGRESQL_HOST`, `POSTGRESQL_USER`, `POSTGRESQL_PASSWORD`, `POSTGRESQL_DATABASE` | Direct connection |
 | MongoDB | `mongodb` | `MONGODB_URI` | https://www.mongodb.com/docs/drivers/python/ |
 
+**Timeout parameters for database servers:**
+- `connection_timeout`: Timeout for establishing connection (default: 10s)
+- `query_timeout`: Timeout for query execution (default: 60s)
+
 ### Category 22b: Database Connection Pooling (Separate Servers)
+
+Pooling servers accept a generic connection string parameter.
+
 | Service | Server Name | API Key/Secret Name | Notes |
 |---------|-------------|---------------------|-------|
-| SQLAlchemy Pool | `sqlalchemy_pool` | Database connection string | For MySQL/PostgreSQL pooling |
+| SQLAlchemy Pool | `sqlalchemy_pool` | `DATABASE_URL` | Generic connection string for MySQL/PostgreSQL pooling |
 | PyMongo Pool | `pymongo_pool` | `MONGODB_URI` | For MongoDB pooling |
 
 ### Category 23: Analytics & Data Warehousing
@@ -1339,23 +1372,6 @@ First servers using shared infrastructure as validation:
 
 ---
 
-## Follow-up Questions
-
-1. **Shared abstractions location**: Should `server_utils/external_api/` be a new top-level package, or should it be inside the existing `server_execution/` package?
-
-2. **OAuth token persistence**: For the OAuth manager, should it persist refresh tokens to the secrets store after refreshing, or just return them for the caller to handle?
-
-3. **Database query timeout**: For database servers (MySQL, PostgreSQL, MongoDB), should there be a separate query timeout from the connection timeout?
-
-4. **Webhook complexity threshold**: For Q4 (webhooks), what makes something "dramatically simpler" to warrant Option A (separate webhook server)? Examples:
-   - If the webhook only receives events (no API calls) → Option A?
-   - If webhook shares 80%+ code with main server → Option B?
-   - If multiple services need same webhook pattern → Option C?
-
-5. **Pooling server configuration**: For `sqlalchemy_pool` and `pymongo_pool`, should they accept a generic connection string, or should there be separate secrets for each target database (e.g., `SQLALCHEMY_POOL_MYSQL_URL`, `SQLALCHEMY_POOL_POSTGRES_URL`)?
-
----
-
 ## References
 
 - Existing server patterns: `reference_templates/servers/definitions/anthropic_claude.py`
@@ -1372,3 +1388,4 @@ First servers using shared infrastructure as validation:
 |------|--------|--------|
 | Initial | Created plan document | Claude |
 | Update 1 | Resolved all 17 open questions; added shared abstractions section; revised implementation phases to start with Phase 0 (shared infrastructure); added follow-up questions | Claude |
+| Update 2 | Resolved all 5 follow-up questions (Q18-Q21); confirmed top-level package location; updated OAuth manager to return tokens to caller; added separate connection/query timeouts for database servers; updated pooling servers to use generic connection strings; removed follow-up questions section | Claude |
