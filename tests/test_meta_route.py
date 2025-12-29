@@ -187,6 +187,44 @@ class TestMetaRoute(unittest.TestCase):
                 body,
             )
 
+    def test_meta_route_html_renders_related_cids_with_popup_pairs(self):
+        with self.app.app_context():
+            self._create_cid("cid-result", b"result")
+            self._create_server(name="demo-server")
+
+            related_cids = [
+                "cid-inv",
+                "cid-request",
+                "cid-servers",
+                "cid-vars",
+                "cid-secrets",
+            ]
+            for cid in related_cids:
+                self._create_cid(cid, b"extra")
+
+            invocation = ServerInvocation(
+                server_name="demo-server",
+                result_cid="cid-result",
+                invocation_cid="cid-inv",
+                request_details_cid="cid-request",
+                servers_cid="cid-servers",
+                variables_cid="cid-vars",
+                secrets_cid="cid-secrets",
+                invoked_at=datetime.now(timezone.utc),
+            )
+            db.session.add(invocation)
+            db.session.commit()
+
+            response = self.client.get("/meta/cid-result.html")
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, "text/html")
+
+            body = response.data.decode("utf-8")
+            self.assertIn("meta-related-cids", body)
+            self.assertIn("cid-link-popup", body)
+            self.assertIn("cid-display dropdown", body)
+            self.assertIn("/meta/cid-result", body)
+
     def test_meta_route_html_includes_related_tests_links(self):
         with self.app.app_context():
             response = self.client.get("/meta/settings.html")

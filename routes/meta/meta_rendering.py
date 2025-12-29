@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 from flask import current_app
 from markupsafe import Markup, escape
 
+from cid_presenter import format_cid, render_cid_link
+
 
 def render_scalar_html(value: Any) -> Markup:
     """Return HTML for a scalar metadata value."""
@@ -37,21 +39,65 @@ def render_scalar_html(value: Any) -> Markup:
     return Markup(f"<code>{escape(str(value))}</code>")
 
 
-def render_value_html(value: Any) -> Markup:
+def render_cid_popup_pair(value: Any) -> Markup:
+    """Return markup showing a CID link with a companion meta popup link."""
+
+    cid_value = format_cid(value)
+    if not cid_value:
+        return Markup("")
+
+    cid_link = render_cid_link(cid_value)
+    meta_href = f"/meta/{cid_value}"
+    popup_link = Markup(
+        '<a class="cid-meta-popup" href="{href}" title="View CID metadata">'
+        '<i class="fas fa-circle-info"></i>'
+        "</a>"
+    ).format(href=escape(meta_href))
+
+    return Markup(
+        '<span class="cid-link-popup d-inline-flex align-items-center gap-2">{cid_link}'
+        '<span class="cid-meta-popup-link">{popup}</span>'
+        "</span>"
+    ).format(cid_link=cid_link, popup=popup_link)
+
+
+def render_related_cids_html(value: Dict[str, Any]) -> Markup:
+    """Return HTML for related CID mappings using the standard CID/popup pair."""
+
+    items: List[Markup] = []
+    for key, cid_value in value.items():
+        items.append(
+            Markup('<li><span class="meta-key">{}</span>: {}</li>').format(
+                escape(key), render_cid_popup_pair(cid_value)
+            )
+        )
+
+    return Markup('<ul class="meta-dict meta-related-cids">{}</ul>').format(
+        Markup("".join(items))
+    )
+
+
+def render_value_html(value: Any, *, parent_key: Optional[str] = None) -> Markup:
     """Recursively render metadata as HTML."""
     if isinstance(value, dict):
+        if parent_key == "related_cids":
+            return render_related_cids_html(value)
+
         items = []
         for key, child in value.items():
             items.append(
                 Markup('<li><span class="meta-key">{}</span>: {}</li>').format(
-                    escape(key), render_value_html(child)
+                    escape(key), render_value_html(child, parent_key=key)
                 )
             )
         return Markup('<ul class="meta-dict">{}</ul>').format(Markup("".join(items)))
 
     if isinstance(value, (list, tuple, set)):
         items = [
-            Markup("<li>{}</li>").format(render_value_html(child)) for child in value
+            Markup("<li>{}</li>").format(
+                render_value_html(child, parent_key=parent_key)
+            )
+            for child in value
         ]
         return Markup('<ol class="meta-list">{}</ol>').format(Markup("".join(items)))
 
