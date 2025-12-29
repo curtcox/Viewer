@@ -12,20 +12,756 @@ Each external service requires:
 
 ---
 
+## Resolved Design Decisions
+
+All open questions have been resolved. The following decisions guide the implementation:
+
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | OAuth Token Management | Shared OAuth token manager for consistency |
+| 2 | Service Account vs User Auth | Support both, with service account as default for Google services |
+| 3 | Database Connections | Direct connections for base servers; separate servers for SQLAlchemy, pymongo, and other pooling options |
+| 4 | Webhook Endpoints | Include in main server (Option B), with generic receiver (Option C) as fallback; use separate definitions (Option A) when dramatically simpler |
+| 5 | Server Naming Convention | Use underscores (e.g., `google_sheets`) |
+| 6 | Default Endpoints | Show helpful form/documentation by default, require API key for actual calls |
+| 7 | Error Message Format | Return JSON with `error` key; server framework renders appropriately |
+| 8 | Batch Operations | Support where the API provides them, with separate parameters |
+| 9 | Secret Naming Convention | Use the term the service uses (e.g., `STRIPE_API_KEY`, `GOOGLE_ACCESS_TOKEN`) |
+| 10 | Read-Only Boot Image | Include all servers; document which operations are read vs write |
+| 11 | Secret Validation | Validate where possible, otherwise fail fast on first API call |
+| 12 | Mock vs Real API Tests | Mock for CI/CD; option for real tests with API keys in environment |
+| 13 | Test API Accounts | Document sandbox setup for each service; use in integration tests |
+| 14 | Coverage Requirements | 80% line coverage minimum; 100% for core functionality (authentication, request building) |
+| 15 | Rate Limit Handling | Configurable retry with exponential backoff, max 3 retries |
+| 16 | Timeout Configuration | Default 60s timeout, configurable via parameter |
+| 17 | Logging | Log request URL, method, response status (never log secrets or sensitive data) |
+
+---
+
+## Shared Abstractions
+
+Based on the design decisions, the following shared abstractions will be created before implementing individual servers. These provide consistent behavior across all external service servers.
+
+### Location
+
+All shared abstractions will be in: `server_utils/external_api/`
+
+### Module Structure
+
+```
+server_utils/
+└── external_api/
+    ├── __init__.py           # Public API exports
+    ├── http_client.py        # HTTP client with retry, timeout, logging
+    ├── oauth_manager.py      # OAuth token management
+    ├── google_auth.py        # Google-specific auth (service account + OAuth)
+    ├── microsoft_auth.py     # Microsoft Graph auth
+    ├── error_response.py     # Consistent JSON error formatting
+    ├── form_generator.py     # Generate helpful forms for servers
+    ├── secret_validator.py   # Validate secrets before API calls
+    ├── api_logger.py         # Safe logging (no secrets)
+    └── webhook_receiver.py   # Generic webhook receiver
+```
+
+### 1. HTTP Client (`http_client.py`)
+
+Provides consistent HTTP behavior for all external API calls.
+
+```python
+"""HTTP client with retry, timeout, and logging for external APIs."""
+
+import time
+import logging
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+
+@dataclass
+class HttpClientConfig:
+    """Configuration for HTTP client."""
+    timeout: int = 60
+    max_retries: int = 3
+    backoff_factor: float = 2.0  # Exponential backoff: 2s, 4s, 8s
+    retry_on_status: tuple = (429, 500, 502, 503, 504)
+
+
+class ExternalApiClient:
+    """HTTP client with retry, timeout, and safe logging."""
+
+    def __init__(self, config: Optional[HttpClientConfig] = None):
+        self.config = config or HttpClientConfig()
+        self.session = self._create_session()
+        self.logger = logging.getLogger("external_api")
+
+    def _create_session(self) -> requests.Session:
+        """Create session with retry configuration."""
+        session = requests.Session()
+        retry = Retry(
+            total=self.config.max_retries,
+            backoff_factor=self.config.backoff_factor,
+            status_forcelist=self.config.retry_on_status,
+            allowed_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+        return session
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        json: Optional[Dict[str, Any]] = None,
+        data: Optional[Any] = None,
+        params: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = None,
+    ) -> requests.Response:
+        """Make HTTP request with retry and logging."""
+        timeout = timeout or self.config.timeout
+
+        # Log request (no secrets)
+        self._log_request(method, url)
+
+        try:
+            response = self.session.request(
+                method=method,
+                url=url,
+                headers=headers,
+                json=json,
+                data=data,
+                params=params,
+                timeout=timeout,
+            )
+
+            # Log response (no body)
+            self._log_response(method, url, response.status_code)
+
+            return response
+
+        except requests.exceptions.RequestException as e:
+            self._log_error(method, url, str(e))
+            raise
+
+    def _log_request(self, method: str, url: str) -> None:
+        """Log request without sensitive data."""
+        self.logger.info(f"API Request: {method} {url}")
+
+    def _log_response(self, method: str, url: str, status: int) -> None:
+        """Log response status."""
+        self.logger.info(f"API Response: {method} {url} -> {status}")
+
+    def _log_error(self, method: str, url: str, error: str) -> None:
+        """Log error without sensitive data."""
+        self.logger.error(f"API Error: {method} {url} -> {error}")
+
+    def get(self, url: str, **kwargs) -> requests.Response:
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs) -> requests.Response:
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url: str, **kwargs) -> requests.Response:
+        return self.request("PUT", url, **kwargs)
+
+    def delete(self, url: str, **kwargs) -> requests.Response:
+        return self.request("DELETE", url, **kwargs)
+
+    def patch(self, url: str, **kwargs) -> requests.Response:
+        return self.request("PATCH", url, **kwargs)
+```
+
+### 2. OAuth Manager (`oauth_manager.py`)
+
+Shared OAuth token management with refresh capability.
+
+```python
+"""OAuth token manager for external APIs."""
+
+import time
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+
+import requests
+
+
+@dataclass
+class OAuthTokens:
+    """OAuth token container."""
+    access_token: str
+    refresh_token: Optional[str] = None
+    expires_at: Optional[float] = None
+    token_type: str = "Bearer"
+
+    def is_expired(self, buffer_seconds: int = 300) -> bool:
+        """Check if token is expired or will expire soon."""
+        if self.expires_at is None:
+            return False
+        return time.time() >= (self.expires_at - buffer_seconds)
+
+
+class OAuthManager:
+    """Manages OAuth tokens with automatic refresh."""
+
+    def __init__(
+        self,
+        token_url: str,
+        client_id: str,
+        client_secret: str,
+        scopes: Optional[list] = None,
+    ):
+        self.token_url = token_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.scopes = scopes or []
+        self._tokens: Optional[OAuthTokens] = None
+
+    def get_access_token(self, refresh_token: Optional[str] = None) -> str:
+        """Get valid access token, refreshing if needed."""
+        if self._tokens and not self._tokens.is_expired():
+            return self._tokens.access_token
+
+        if refresh_token or (self._tokens and self._tokens.refresh_token):
+            return self._refresh_token(refresh_token or self._tokens.refresh_token)
+
+        raise ValueError("No valid token available and no refresh token provided")
+
+    def _refresh_token(self, refresh_token: str) -> str:
+        """Refresh the access token."""
+        response = requests.post(
+            self.token_url,
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        self._tokens = OAuthTokens(
+            access_token=data["access_token"],
+            refresh_token=data.get("refresh_token", refresh_token),
+            expires_at=time.time() + data.get("expires_in", 3600),
+            token_type=data.get("token_type", "Bearer"),
+        )
+
+        return self._tokens.access_token
+
+    def set_tokens(self, tokens: OAuthTokens) -> None:
+        """Set tokens directly (e.g., from stored secrets)."""
+        self._tokens = tokens
+
+    def get_auth_header(self, refresh_token: Optional[str] = None) -> Dict[str, str]:
+        """Get Authorization header with valid token."""
+        token = self.get_access_token(refresh_token)
+        token_type = self._tokens.token_type if self._tokens else "Bearer"
+        return {"Authorization": f"{token_type} {token}"}
+```
+
+### 3. Google Auth (`google_auth.py`)
+
+Google-specific authentication supporting both service accounts and OAuth.
+
+```python
+"""Google authentication for service accounts and OAuth."""
+
+import json
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
+
+import requests
+from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+
+
+@dataclass
+class GoogleAuthConfig:
+    """Google authentication configuration."""
+    # For service account auth
+    service_account_json: Optional[str] = None
+    # For OAuth auth
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    # Common
+    scopes: Optional[list] = None
+
+
+class GoogleAuthManager:
+    """Manages Google authentication."""
+
+    OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+
+    def __init__(self, config: GoogleAuthConfig):
+        self.config = config
+        self._credentials = None
+
+    def get_auth_header(self) -> Dict[str, str]:
+        """Get Authorization header for Google API calls."""
+        if self.config.service_account_json:
+            return self._get_service_account_header()
+        elif self.config.access_token:
+            return self._get_oauth_header()
+        else:
+            raise ValueError("No authentication configured")
+
+    def _get_service_account_header(self) -> Dict[str, str]:
+        """Get header using service account credentials."""
+        if self._credentials is None:
+            info = json.loads(self.config.service_account_json)
+            self._credentials = service_account.Credentials.from_service_account_info(
+                info,
+                scopes=self.config.scopes or [],
+            )
+
+        if self._credentials.expired:
+            self._credentials.refresh(Request())
+
+        return {"Authorization": f"Bearer {self._credentials.token}"}
+
+    def _get_oauth_header(self) -> Dict[str, str]:
+        """Get header using OAuth tokens."""
+        # If we have refresh capability, use it
+        if self.config.refresh_token and self.config.client_id:
+            # Implement token refresh if needed
+            pass
+
+        return {"Authorization": f"Bearer {self.config.access_token}"}
+
+    @property
+    def auth_type(self) -> str:
+        """Return the authentication type being used."""
+        if self.config.service_account_json:
+            return "service_account"
+        return "oauth"
+```
+
+### 4. Error Response (`error_response.py`)
+
+Consistent JSON error formatting.
+
+```python
+"""Consistent error response formatting."""
+
+from typing import Dict, Any, Optional
+
+
+def error_response(
+    message: str,
+    error_type: str = "api_error",
+    status_code: Optional[int] = None,
+    details: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Create a consistent error response.
+
+    Args:
+        message: Human-readable error message
+        error_type: Error category (e.g., "auth_error", "api_error", "validation_error")
+        status_code: HTTP status code if applicable
+        details: Additional error details
+
+    Returns:
+        Dict with 'error' key containing error information
+    """
+    error = {
+        "error": {
+            "message": message,
+            "type": error_type,
+        }
+    }
+
+    if status_code is not None:
+        error["error"]["status_code"] = status_code
+
+    if details:
+        error["error"]["details"] = details
+
+    return {"output": error, "content_type": "application/json"}
+
+
+def missing_secret_error(secret_name: str) -> Dict[str, Any]:
+    """Error response for missing API secret."""
+    return error_response(
+        message=f"Missing required secret: {secret_name}",
+        error_type="auth_error",
+        details={"secret_name": secret_name},
+    )
+
+
+def api_error(
+    message: str,
+    status_code: Optional[int] = None,
+    response_body: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Error response for API call failure."""
+    details = {}
+    if response_body:
+        details["response"] = response_body[:500]  # Truncate long responses
+
+    return error_response(
+        message=message,
+        error_type="api_error",
+        status_code=status_code,
+        details=details if details else None,
+    )
+
+
+def validation_error(message: str, field: Optional[str] = None) -> Dict[str, Any]:
+    """Error response for validation failure."""
+    details = {"field": field} if field else None
+    return error_response(
+        message=message,
+        error_type="validation_error",
+        details=details,
+    )
+```
+
+### 5. Form Generator (`form_generator.py`)
+
+Generate helpful HTML forms for server documentation.
+
+```python
+"""Generate HTML forms for external API servers."""
+
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass
+from html import escape
+
+
+@dataclass
+class FormField:
+    """Form field definition."""
+    name: str
+    label: str
+    field_type: str = "text"  # text, textarea, select, hidden
+    default: str = ""
+    required: bool = False
+    options: Optional[List[str]] = None  # For select fields
+    placeholder: str = ""
+    help_text: str = ""
+
+
+def generate_form(
+    server_name: str,
+    title: str,
+    description: str,
+    fields: List[FormField],
+    endpoint: str = "",
+    examples: Optional[List[Dict[str, str]]] = None,
+    documentation_url: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate an HTML form for an API server.
+
+    Args:
+        server_name: Server identifier
+        title: Human-readable title
+        description: Server description
+        fields: List of form fields
+        endpoint: Form action endpoint
+        examples: Example API calls
+        documentation_url: Link to API documentation
+
+    Returns:
+        Dict with 'output' containing HTML form
+    """
+    action = endpoint or f"/{server_name}"
+
+    html = f'''<!DOCTYPE html>
+<html>
+<head>
+    <title>{escape(title)}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; max-width: 800px; }}
+        h1 {{ color: #333; }}
+        .description {{ color: #666; margin-bottom: 20px; }}
+        .field {{ margin-bottom: 15px; }}
+        label {{ display: block; font-weight: bold; margin-bottom: 5px; }}
+        input[type="text"], textarea, select {{ width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }}
+        textarea {{ height: 100px; font-family: monospace; }}
+        .help {{ font-size: 12px; color: #666; margin-top: 3px; }}
+        .required {{ color: red; }}
+        button {{ background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }}
+        button:hover {{ background: #0056b3; }}
+        .examples {{ background: #f5f5f5; padding: 15px; border-radius: 4px; margin-top: 20px; }}
+        .examples h3 {{ margin-top: 0; }}
+        .example {{ margin-bottom: 10px; }}
+        code {{ background: #e9ecef; padding: 2px 6px; border-radius: 3px; }}
+        pre {{ background: #e9ecef; padding: 10px; border-radius: 4px; overflow-x: auto; }}
+        .doc-link {{ margin-top: 20px; }}
+    </style>
+</head>
+<body>
+    <h1>{escape(title)}</h1>
+    <p class="description">{escape(description)}</p>
+
+    <form method="post" action="{escape(action)}">
+'''
+
+    for field in fields:
+        required_mark = '<span class="required">*</span>' if field.required else ''
+        html += f'        <div class="field">\n'
+        html += f'            <label for="{escape(field.name)}">{escape(field.label)} {required_mark}</label>\n'
+
+        if field.field_type == "textarea":
+            html += f'            <textarea name="{escape(field.name)}" id="{escape(field.name)}" placeholder="{escape(field.placeholder)}">{escape(field.default)}</textarea>\n'
+        elif field.field_type == "select" and field.options:
+            html += f'            <select name="{escape(field.name)}" id="{escape(field.name)}">\n'
+            for option in field.options:
+                selected = ' selected' if option == field.default else ''
+                html += f'                <option value="{escape(option)}"{selected}>{escape(option)}</option>\n'
+            html += '            </select>\n'
+        elif field.field_type == "hidden":
+            html += f'            <input type="hidden" name="{escape(field.name)}" value="{escape(field.default)}">\n'
+        else:
+            required_attr = ' required' if field.required else ''
+            html += f'            <input type="text" name="{escape(field.name)}" id="{escape(field.name)}" value="{escape(field.default)}" placeholder="{escape(field.placeholder)}"{required_attr}>\n'
+
+        if field.help_text:
+            html += f'            <div class="help">{escape(field.help_text)}</div>\n'
+
+        html += '        </div>\n'
+
+    html += '''        <button type="submit">Execute</button>
+    </form>
+'''
+
+    if examples:
+        html += '''
+    <div class="examples">
+        <h3>Examples</h3>
+'''
+        for example in examples:
+            html += f'        <div class="example">\n'
+            html += f'            <strong>{escape(example.get("title", "Example"))}:</strong>\n'
+            html += f'            <pre>{escape(example.get("code", ""))}</pre>\n'
+            html += '        </div>\n'
+        html += '    </div>\n'
+
+    if documentation_url:
+        html += f'''
+    <div class="doc-link">
+        <a href="{escape(documentation_url)}" target="_blank">View API Documentation</a>
+    </div>
+'''
+
+    html += '''</body>
+</html>'''
+
+    return {"output": html, "content_type": "text/html"}
+```
+
+### 6. Secret Validator (`secret_validator.py`)
+
+Validate secrets before making API calls.
+
+```python
+"""Validate API secrets before making calls."""
+
+from typing import Dict, Any, Optional, Callable
+import requests
+
+
+def validate_secret(
+    secret_value: str,
+    secret_name: str,
+    validator: Optional[Callable[[str], bool]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Validate a secret value.
+
+    Args:
+        secret_value: The secret value to validate
+        secret_name: Name of the secret (for error messages)
+        validator: Optional custom validation function
+
+    Returns:
+        None if valid, error response dict if invalid
+    """
+    from .error_response import missing_secret_error, validation_error
+
+    if not secret_value:
+        return missing_secret_error(secret_name)
+
+    if validator and not validator(secret_value):
+        return validation_error(f"Invalid {secret_name} format")
+
+    return None
+
+
+def validate_api_key_with_endpoint(
+    api_key: str,
+    validation_url: str,
+    headers_builder: Callable[[str], Dict[str, str]],
+    secret_name: str = "API_KEY",
+) -> Optional[Dict[str, Any]]:
+    """
+    Validate an API key by making a test request.
+
+    Args:
+        api_key: The API key to validate
+        validation_url: URL to call for validation
+        headers_builder: Function to build headers with the API key
+        secret_name: Name of the secret (for error messages)
+
+    Returns:
+        None if valid, error response dict if invalid
+    """
+    from .error_response import missing_secret_error, api_error
+
+    if not api_key:
+        return missing_secret_error(secret_name)
+
+    try:
+        headers = headers_builder(api_key)
+        response = requests.get(validation_url, headers=headers, timeout=10)
+
+        if response.status_code == 401:
+            return api_error(
+                message=f"Invalid or expired {secret_name}",
+                status_code=401,
+            )
+        elif response.status_code == 403:
+            return api_error(
+                message=f"Insufficient permissions for {secret_name}",
+                status_code=403,
+            )
+
+        return None
+
+    except requests.exceptions.RequestException as e:
+        # Can't validate, but don't fail - let the actual request fail
+        return None
+```
+
+### 7. Webhook Receiver (`webhook_receiver.py`)
+
+Generic webhook receiver for services that support webhooks.
+
+```python
+"""Generic webhook receiver for external services."""
+
+from typing import Dict, Any, Optional, Callable
+from dataclasses import dataclass
+import hmac
+import hashlib
+
+
+@dataclass
+class WebhookConfig:
+    """Webhook configuration."""
+    secret: str
+    signature_header: str = "X-Signature"
+    signature_algorithm: str = "sha256"
+    signature_prefix: str = ""  # e.g., "sha256=" for GitHub
+
+
+class WebhookReceiver:
+    """Generic webhook receiver with signature validation."""
+
+    def __init__(self, config: WebhookConfig):
+        self.config = config
+
+    def validate_signature(
+        self,
+        payload: bytes,
+        signature: str,
+    ) -> bool:
+        """Validate webhook signature."""
+        expected = hmac.new(
+            self.config.secret.encode(),
+            payload,
+            getattr(hashlib, self.config.signature_algorithm),
+        ).hexdigest()
+
+        if self.config.signature_prefix:
+            expected = f"{self.config.signature_prefix}{expected}"
+
+        return hmac.compare_digest(expected, signature)
+
+    def process_webhook(
+        self,
+        payload: bytes,
+        headers: Dict[str, str],
+        handler: Callable[[Dict[str, Any]], Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        Process incoming webhook.
+
+        Args:
+            payload: Raw request body
+            headers: Request headers
+            handler: Function to process the webhook payload
+
+        Returns:
+            Response dict
+        """
+        from .error_response import error_response
+        import json
+
+        # Validate signature
+        signature = headers.get(self.config.signature_header, "")
+        if not self.validate_signature(payload, signature):
+            return error_response(
+                message="Invalid webhook signature",
+                error_type="auth_error",
+                status_code=401,
+            )
+
+        # Parse payload
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError as e:
+            return error_response(
+                message=f"Invalid JSON payload: {e}",
+                error_type="validation_error",
+                status_code=400,
+            )
+
+        # Process with handler
+        return handler(data)
+```
+
+### Shared Abstraction Tests
+
+Each shared module needs comprehensive tests:
+
+| Module | Test File | Key Tests |
+|--------|-----------|-----------|
+| `http_client.py` | `tests/test_external_api_http_client.py` | Retry behavior, timeout, logging, all HTTP methods |
+| `oauth_manager.py` | `tests/test_external_api_oauth.py` | Token refresh, expiry detection, header generation |
+| `google_auth.py` | `tests/test_external_api_google_auth.py` | Service account auth, OAuth auth, token refresh |
+| `microsoft_auth.py` | `tests/test_external_api_microsoft_auth.py` | Graph API auth, token refresh |
+| `error_response.py` | `tests/test_external_api_errors.py` | All error types, JSON structure |
+| `form_generator.py` | `tests/test_external_api_forms.py` | Form generation, field types, examples |
+| `secret_validator.py` | `tests/test_external_api_secrets.py` | Validation, endpoint validation |
+| `webhook_receiver.py` | `tests/test_external_api_webhooks.py` | Signature validation, payload processing |
+
+---
+
 ## Service Categories and Inventory
 
 ### Category 1: Productivity & Workspace (Google Suite)
 | Service | Server Name | API Key/Secret Name | API Documentation |
 |---------|-------------|---------------------|-------------------|
-| Google Sheets | `google_sheets` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/sheets/api |
-| Gmail | `gmail` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/gmail/api |
-| Google Drive | `google_drive` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/drive/api |
-| Google Calendar | `google_calendar` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/calendar/api |
-| Google Forms | `google_forms` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/forms/api |
-| Google Contacts | `google_contacts` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/people/api |
-| Google Docs | `google_docs` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/docs/api |
+| Google Sheets | `google_sheets` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/sheets/api |
+| Gmail | `gmail` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/gmail/api |
+| Google Drive | `google_drive` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/drive/api |
+| Google Calendar | `google_calendar` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/calendar/api |
+| Google Forms | `google_forms` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/forms/api |
+| Google Contacts | `google_contacts` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/people/api |
+| Google Docs | `google_docs` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/docs/api |
 | Google Ads | `google_ads` | `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_CLIENT_ID` | https://developers.google.com/google-ads/api |
-| Google Analytics 4 | `google_analytics` | `GOOGLE_API_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://developers.google.com/analytics/devguides/reporting |
+| Google Analytics 4 | `google_analytics` | `GOOGLE_SERVICE_ACCOUNT_JSON` or `GOOGLE_ACCESS_TOKEN` | https://developers.google.com/analytics/devguides/reporting |
 
 ### Category 2: Productivity & Workspace (Microsoft 365)
 | Service | Server Name | API Key/Secret Name | API Documentation |
@@ -52,7 +788,7 @@ Each external service requires:
 ### Category 4: Databases & Productivity Tools
 | Service | Server Name | API Key/Secret Name | API Documentation |
 |---------|-------------|---------------------|-------------------|
-| Airtable | `airtable` | `AIRTABLE_API_KEY` or `AIRTABLE_ACCESS_TOKEN` | https://airtable.com/developers/web/api |
+| Airtable | `airtable` | `AIRTABLE_ACCESS_TOKEN` | https://airtable.com/developers/web/api |
 | Notion | `notion` | `NOTION_API_KEY` | https://developers.notion.com/ |
 | Coda | `coda` | `CODA_API_TOKEN` | https://coda.io/developers/apis/v1 |
 
@@ -187,15 +923,21 @@ Each external service requires:
 | Service | Server Name | API Key/Secret Name | API Documentation |
 |---------|-------------|---------------------|-------------------|
 | AWS S3 | `aws_s3` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` | https://docs.aws.amazon.com/s3/index.html |
-| Google Cloud Storage | `gcs` | `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://cloud.google.com/storage/docs/reference |
+| Google Cloud Storage | `gcs` | `GOOGLE_SERVICE_ACCOUNT_JSON` | https://cloud.google.com/storage/docs/reference |
 | Azure Blob Storage | `azure_blob` | `AZURE_STORAGE_CONNECTION_STRING` or `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY` | https://docs.microsoft.com/en-us/rest/api/storageservices/ |
 
-### Category 22: Databases
+### Category 22: Databases (Direct Connection)
 | Service | Server Name | API Key/Secret Name | API Documentation |
 |---------|-------------|---------------------|-------------------|
-| MySQL | `mysql` | `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` | Direct connection (not REST API) |
-| PostgreSQL | `postgresql` | `POSTGRESQL_HOST`, `POSTGRESQL_USER`, `POSTGRESQL_PASSWORD`, `POSTGRESQL_DATABASE` | Direct connection (not REST API) |
+| MySQL | `mysql` | `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` | Direct connection |
+| PostgreSQL | `postgresql` | `POSTGRESQL_HOST`, `POSTGRESQL_USER`, `POSTGRESQL_PASSWORD`, `POSTGRESQL_DATABASE` | Direct connection |
 | MongoDB | `mongodb` | `MONGODB_URI` | https://www.mongodb.com/docs/drivers/python/ |
+
+### Category 22b: Database Connection Pooling (Separate Servers)
+| Service | Server Name | API Key/Secret Name | Notes |
+|---------|-------------|---------------------|-------|
+| SQLAlchemy Pool | `sqlalchemy_pool` | Database connection string | For MySQL/PostgreSQL pooling |
+| PyMongo Pool | `pymongo_pool` | `MONGODB_URI` | For MongoDB pooling |
 
 ### Category 23: Analytics & Data Warehousing
 | Service | Server Name | API Key/Secret Name | API Documentation |
@@ -203,34 +945,41 @@ Each external service requires:
 | Segment | `segment` | `SEGMENT_WRITE_KEY` | https://segment.com/docs/connections/sources/catalog/libraries/server/http-api/ |
 | Mixpanel | `mixpanel` | `MIXPANEL_TOKEN`, `MIXPANEL_API_SECRET` | https://developer.mixpanel.com/reference |
 | Amplitude | `amplitude` | `AMPLITUDE_API_KEY`, `AMPLITUDE_SECRET_KEY` | https://developers.amplitude.com/docs/http-api-v2 |
-| BigQuery | `bigquery` | `GOOGLE_APPLICATION_CREDENTIALS` or `GOOGLE_SERVICE_ACCOUNT_JSON` | https://cloud.google.com/bigquery/docs/reference/rest |
+| BigQuery | `bigquery` | `GOOGLE_SERVICE_ACCOUNT_JSON` | https://cloud.google.com/bigquery/docs/reference/rest |
 | Snowflake | `snowflake` | `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_PASSWORD`, `SNOWFLAKE_WAREHOUSE` | https://docs.snowflake.com/en/developer-guide/sql-api |
 
 ---
 
-## Implementation Pattern
+## Updated Implementation Pattern
 
-### Server Definition Template
+### Server Definition Template (Using Shared Abstractions)
 
-Each external service server will follow this pattern:
+Each external service server will use the shared abstractions:
 
 ```python
 # ruff: noqa: F821, F706
 """Call the {ServiceName} API using automatic main() mapping."""
 
-import os
 from typing import Optional
-
-import requests
+from server_utils.external_api import (
+    ExternalApiClient,
+    HttpClientConfig,
+    error_response,
+    missing_secret_error,
+    generate_form,
+    FormField,
+)
 
 
 API_BASE_URL = "https://api.example.com/v1"
+DOCUMENTATION_URL = "https://example.com/docs"
 
 
 def main(
     endpoint: str = "",
     method: str = "GET",
     data: Optional[str] = None,
+    timeout: int = 60,
     *,
     SERVICE_API_KEY: str,
     context=None,
@@ -242,14 +991,41 @@ def main(
         endpoint: The API endpoint to call (e.g., "/users", "/messages")
         method: HTTP method (GET, POST, PUT, DELETE)
         data: JSON data for POST/PUT requests
+        timeout: Request timeout in seconds (default: 60)
         SERVICE_API_KEY: API key for authentication (from secrets)
         context: Request context (optional)
 
     Returns:
         Dict with 'output' containing the API response
     """
+    # Show form if no endpoint provided
+    if not endpoint:
+        return generate_form(
+            server_name="service_name",
+            title="Service Name API",
+            description="Make requests to the Service Name API.",
+            fields=[
+                FormField(name="endpoint", label="Endpoint", placeholder="/users", required=True),
+                FormField(name="method", label="Method", field_type="select",
+                         options=["GET", "POST", "PUT", "DELETE"], default="GET"),
+                FormField(name="data", label="JSON Data", field_type="textarea",
+                         placeholder='{"key": "value"}'),
+                FormField(name="timeout", label="Timeout (seconds)", default="60"),
+            ],
+            examples=[
+                {"title": "List users", "code": "GET /users"},
+                {"title": "Create user", "code": "POST /users\n{\"name\": \"John\"}"},
+            ],
+            documentation_url=DOCUMENTATION_URL,
+        )
+
+    # Validate secret
     if not SERVICE_API_KEY:
-        return {"output": "Missing SERVICE_API_KEY", "content_type": "text/plain"}
+        return missing_secret_error("SERVICE_API_KEY")
+
+    # Create client with configured timeout and retry
+    config = HttpClientConfig(timeout=timeout)
+    client = ExternalApiClient(config)
 
     url = f"{API_BASE_URL}{endpoint}"
     headers = {
@@ -258,22 +1034,17 @@ def main(
     }
 
     try:
-        if method.upper() == "GET":
-            response = requests.get(url, headers=headers, timeout=60)
-        elif method.upper() == "POST":
-            response = requests.post(url, headers=headers, json=data, timeout=60)
-        elif method.upper() == "PUT":
-            response = requests.put(url, headers=headers, json=data, timeout=60)
-        elif method.upper() == "DELETE":
-            response = requests.delete(url, headers=headers, timeout=60)
-        else:
-            return {"output": f"Unsupported method: {method}", "content_type": "text/plain"}
-
+        response = client.request(
+            method=method.upper(),
+            url=url,
+            headers=headers,
+            json=data if data else None,
+        )
         response.raise_for_status()
         return {"output": response.json()}
 
-    except requests.exceptions.RequestException as e:
-        return {"output": f"API Error: {str(e)}", "content_type": "text/plain"}
+    except Exception as e:
+        return error_response.api_error(str(e))
 ```
 
 ### JSON Template Pattern
@@ -283,17 +1054,12 @@ def main(
   "id": "service_name",
   "name": "Service Name API",
   "description": "Make requests to the Service Name API.",
-  "definition_file": "definitions/service_name.py"
-}
-```
-
-### Boot Image Entry Pattern
-
-```json
-{
-  "name": "service_name",
-  "definition_cid": "reference_templates/servers/definitions/service_name.py",
-  "enabled": true
+  "definition_file": "definitions/service_name.py",
+  "documentation_url": "https://example.com/docs",
+  "operations": {
+    "read": ["GET /users", "GET /items"],
+    "write": ["POST /users", "PUT /users/{id}", "DELETE /users/{id}"]
+  }
 }
 ```
 
@@ -303,24 +1069,36 @@ def main(
 
 ### Test Categories
 
-#### 1. Unit Tests (per server)
+#### 1. Shared Abstraction Tests (Must pass before server implementation)
+
+| Test File | Module | Tests |
+|-----------|--------|-------|
+| `tests/test_external_api_http_client.py` | `http_client.py` | Retry behavior (3 retries), exponential backoff (2s, 4s, 8s), timeout configuration, all HTTP methods, logging without secrets |
+| `tests/test_external_api_oauth.py` | `oauth_manager.py` | Token refresh, expiry detection, header generation |
+| `tests/test_external_api_google_auth.py` | `google_auth.py` | Service account auth, OAuth auth, auth type detection |
+| `tests/test_external_api_microsoft_auth.py` | `microsoft_auth.py` | Graph API auth, token refresh |
+| `tests/test_external_api_errors.py` | `error_response.py` | All error types, JSON structure, content_type |
+| `tests/test_external_api_forms.py` | `form_generator.py` | Form generation, all field types, examples, documentation links |
+| `tests/test_external_api_secrets.py` | `secret_validator.py` | Missing secret, invalid format, endpoint validation |
+| `tests/test_external_api_webhooks.py` | `webhook_receiver.py` | Signature validation, payload processing |
+
+#### 2. Unit Tests (per server)
 Each server definition needs the following unit tests:
 
 | Test Name | Description |
 |-----------|-------------|
-| `test_{server}_missing_api_key` | Server returns error when API key is missing |
-| `test_{server}_default_endpoint` | Server handles default/empty endpoint |
+| `test_{server}_missing_api_key` | Server returns JSON error when API key is missing |
+| `test_{server}_shows_form_without_endpoint` | Server shows helpful form when no endpoint provided |
 | `test_{server}_get_request` | Server makes GET request correctly |
 | `test_{server}_post_request` | Server makes POST request with data |
 | `test_{server}_put_request` | Server makes PUT request with data |
 | `test_{server}_delete_request` | Server makes DELETE request |
-| `test_{server}_api_error_handling` | Server handles API errors gracefully |
+| `test_{server}_api_error_handling` | Server returns JSON error on API failure |
 | `test_{server}_timeout_handling` | Server handles request timeouts |
-| `test_{server}_invalid_json_response` | Server handles non-JSON responses |
-| `test_{server}_rate_limit_response` | Server handles rate limiting (429) |
+| `test_{server}_custom_timeout` | Server respects custom timeout parameter |
+| `test_{server}_rate_limit_retry` | Server retries on 429 (via shared client) |
 
-#### 2. Integration Tests (per server)
-Each server needs integration tests with mocked external APIs:
+#### 3. Integration Tests (per server)
 
 | Test Name | Description |
 |-----------|-------------|
@@ -331,8 +1109,7 @@ Each server needs integration tests with mocked external APIs:
 | `test_{server}_chaining_input` | Server accepts chained input from another server |
 | `test_{server}_cid_output` | Server output can be stored as CID |
 
-#### 3. Boot Image Tests
-General tests for the server collection:
+#### 4. Boot Image Tests
 
 | Test Name | Description |
 |-----------|-------------|
@@ -342,494 +1119,55 @@ General tests for the server collection:
 | `test_external_server_cids_valid` | All server CIDs are valid |
 | `test_external_server_definitions_valid_python` | All server definitions are valid Python |
 | `test_no_duplicate_server_names` | No duplicate server names |
-| `test_server_names_follow_convention` | Server names follow naming convention |
-
-#### 4. Template Tests
-
-| Test Name | Description |
-|-----------|-------------|
-| `test_all_servers_have_templates` | Each server has a corresponding JSON template |
-| `test_template_ids_match_server_names` | Template IDs match server names |
-| `test_templates_have_required_fields` | Templates have id, name, description, definition_file |
-| `test_template_definition_files_exist` | Referenced definition files exist |
+| `test_server_names_follow_convention` | Server names use underscores |
+| `test_server_templates_document_operations` | Templates document read vs write operations |
 
 ---
 
-## Detailed Test Specifications
-
-### Unit Test Template
-
-```python
-import unittest
-from unittest.mock import Mock, patch
-
-class TestServiceNameServer(unittest.TestCase):
-    """Tests for service_name server."""
-
-    def test_service_name_missing_api_key(self):
-        """Server returns error when API key is missing."""
-        from reference_templates.servers.definitions.service_name import main
-        result = main(endpoint="/test", SERVICE_API_KEY="")
-        self.assertIn("Missing", result["output"])
-
-    def test_service_name_default_endpoint(self):
-        """Server handles default/empty endpoint."""
-        with patch("requests.get") as mock_get:
-            mock_response = Mock()
-            mock_response.json.return_value = {"status": "ok"}
-            mock_response.raise_for_status = Mock()
-            mock_get.return_value = mock_response
-
-            from reference_templates.servers.definitions.service_name import main
-            result = main(endpoint="", SERVICE_API_KEY="test-key")
-            self.assertIn("status", result["output"])
-
-    @patch("requests.get")
-    def test_service_name_get_request(self, mock_get):
-        """Server makes GET request correctly."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"data": [{"id": 1}]}
-        mock_response.raise_for_status = Mock()
-        mock_get.return_value = mock_response
-
-        from reference_templates.servers.definitions.service_name import main
-        result = main(endpoint="/users", method="GET", SERVICE_API_KEY="test-key")
-
-        mock_get.assert_called_once()
-        call_args = mock_get.call_args
-        self.assertIn("/users", call_args[0][0])
-        self.assertIn("Authorization", call_args[1]["headers"])
-
-    @patch("requests.post")
-    def test_service_name_post_request(self, mock_post):
-        """Server makes POST request with data."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"created": True}
-        mock_response.raise_for_status = Mock()
-        mock_post.return_value = mock_response
-
-        from reference_templates.servers.definitions.service_name import main
-        result = main(
-            endpoint="/users",
-            method="POST",
-            data={"name": "Test"},
-            SERVICE_API_KEY="test-key"
-        )
-
-        mock_post.assert_called_once()
-        self.assertEqual(result["output"]["created"], True)
-
-    @patch("requests.get")
-    def test_service_name_api_error_handling(self, mock_get):
-        """Server handles API errors gracefully."""
-        mock_get.side_effect = requests.exceptions.HTTPError("404 Not Found")
-
-        from reference_templates.servers.definitions.service_name import main
-        result = main(endpoint="/invalid", SERVICE_API_KEY="test-key")
-
-        self.assertIn("Error", result["output"])
-
-    @patch("requests.get")
-    def test_service_name_timeout_handling(self, mock_get):
-        """Server handles request timeouts."""
-        mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
-
-        from reference_templates.servers.definitions.service_name import main
-        result = main(endpoint="/slow", SERVICE_API_KEY="test-key")
-
-        self.assertIn("Error", result["output"])
-
-    @patch("requests.get")
-    def test_service_name_rate_limit_response(self, mock_get):
-        """Server handles rate limiting (429)."""
-        mock_response = Mock()
-        mock_response.status_code = 429
-        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("429 Too Many Requests")
-        mock_get.return_value = mock_response
-
-        from reference_templates.servers.definitions.service_name import main
-        result = main(endpoint="/test", SERVICE_API_KEY="test-key")
-
-        self.assertIn("Error", result["output"])
-```
-
-### Integration Test Template
-
-```python
-import pytest
-from unittest.mock import patch, Mock
-
-@pytest.mark.integration
-class TestServiceNameIntegration:
-    """Integration tests for service_name server."""
-
-    def test_service_name_server_registered_in_boot_image(self, integration_app):
-        """Server exists in boot image."""
-        with integration_app.app_context():
-            from models import Server
-            server = Server.query.filter_by(name="service_name").first()
-            assert server is not None
-            assert server.enabled is True
-
-    def test_service_name_accessible_via_url(self, client, integration_app):
-        """Server accessible at expected URL."""
-        response = client.get("/service_name")
-        assert response.status_code in (200, 302, 400)  # 400 if missing required params
-
-    def test_service_name_form_rendering(self, client, integration_app):
-        """Server renders input form when accessed with GET."""
-        response = client.get("/service_name")
-        # Should show form or parameter hints
-        assert response.status_code == 200 or b"endpoint" in response.data
-
-    @patch("requests.get")
-    def test_service_name_request_execution(self, mock_get, client, integration_app):
-        """Server executes request and returns result."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"data": "test"}
-        mock_response.raise_for_status = Mock()
-        mock_get.return_value = mock_response
-
-        # Set up secret
-        with integration_app.app_context():
-            from models import Secret
-            from app import db
-            secret = Secret(name="SERVICE_API_KEY", value="test-key")
-            db.session.add(secret)
-            db.session.commit()
-
-        response = client.post("/service_name", data={"endpoint": "/test"})
-        assert response.status_code == 200
-```
-
-### Boot Image Test
-
-```python
-import json
-import unittest
-
-class TestExternalServerBootImage(unittest.TestCase):
-    """Tests for external servers in boot images."""
-
-    @classmethod
-    def setUpClass(cls):
-        """Load boot images."""
-        with open("reference_templates/default.boot.source.json") as f:
-            cls.default_boot = json.load(f)
-        with open("reference_templates/readonly.boot.source.json") as f:
-            cls.readonly_boot = json.load(f)
-
-        # List of all external server names
-        cls.external_servers = [
-            "google_sheets", "gmail", "google_drive", "google_calendar",
-            "google_forms", "google_contacts", "google_docs", "google_ads",
-            "google_analytics", "microsoft_outlook", "microsoft_teams",
-            "onedrive", "microsoft_excel", "dynamics365", "slack", "discord",
-            "trello", "asana", "monday", "clickup", "jira", "confluence",
-            "basecamp", "smartsheet", "todoist", "airtable", "notion", "coda",
-            "twilio", "whatsapp", "telegram", "zoom", "calendly", "hubspot",
-            "salesforce", "pipedrive", "close_crm", "zoho_crm", "insightly",
-            "intercom", "zendesk", "freshdesk", "helpscout", "front", "gorgias",
-            "servicenow", "shopify", "woocommerce", "ebay", "etsy", "stripe",
-            "paypal", "mailchimp", "klaviyo", "activecampaign", "mailerlite",
-            "sendgrid", "mailgun", "postmark", "docusign", "pandadoc",
-            "dropbox", "box", "github", "gitlab", "miro", "figma", "webflow",
-            "wordpress", "wix", "squarespace", "typeform", "jotform",
-            "meta_ads", "linkedin_ads", "youtube", "quickbooks", "xero",
-            "freshbooks", "cloudconvert", "pdfco", "docparser", "parseur",
-            "apify", "clearbit", "hunter", "bitly", "uptimerobot", "aws_s3",
-            "gcs", "azure_blob", "mysql", "postgresql", "mongodb", "segment",
-            "mixpanel", "amplitude", "bigquery", "snowflake"
-        ]
-
-    def test_all_external_servers_in_default_boot(self):
-        """All external servers present in default boot."""
-        server_names = [s["name"] for s in self.default_boot["servers"]]
-        for name in self.external_servers:
-            self.assertIn(name, server_names, f"Missing server: {name}")
-
-    def test_all_external_servers_in_readonly_boot(self):
-        """All external servers present in readonly boot."""
-        server_names = [s["name"] for s in self.readonly_boot["servers"]]
-        for name in self.external_servers:
-            self.assertIn(name, server_names, f"Missing server: {name}")
-
-    def test_external_servers_enabled_by_default(self):
-        """All external servers enabled."""
-        for server in self.default_boot["servers"]:
-            if server["name"] in self.external_servers:
-                self.assertTrue(server["enabled"], f"Server not enabled: {server['name']}")
-
-    def test_external_server_cids_valid(self):
-        """All server CIDs reference valid files."""
-        import os
-        for server in self.default_boot["servers"]:
-            if server["name"] in self.external_servers:
-                definition_path = server["definition_cid"]
-                self.assertTrue(
-                    os.path.exists(definition_path),
-                    f"Definition file missing: {definition_path}"
-                )
-
-    def test_external_server_definitions_valid_python(self):
-        """All server definitions are valid Python."""
-        import ast
-        for server in self.default_boot["servers"]:
-            if server["name"] in self.external_servers:
-                definition_path = server["definition_cid"]
-                with open(definition_path) as f:
-                    code = f.read()
-                try:
-                    ast.parse(code)
-                except SyntaxError as e:
-                    self.fail(f"Invalid Python in {definition_path}: {e}")
-
-    def test_no_duplicate_server_names(self):
-        """No duplicate server names."""
-        server_names = [s["name"] for s in self.default_boot["servers"]]
-        self.assertEqual(len(server_names), len(set(server_names)))
-
-    def test_server_names_follow_convention(self):
-        """Server names follow naming convention (lowercase, underscores)."""
-        import re
-        pattern = re.compile(r'^[a-z][a-z0-9_]*$')
-        for name in self.external_servers:
-            self.assertTrue(
-                pattern.match(name),
-                f"Invalid server name format: {name}"
-            )
-```
-
-### Template Test
-
-```python
-import json
-import os
-import unittest
-
-class TestExternalServerTemplates(unittest.TestCase):
-    """Tests for external server JSON templates."""
-
-    @classmethod
-    def setUpClass(cls):
-        """Load all template files."""
-        cls.templates_dir = "reference_templates/servers/templates"
-        cls.definitions_dir = "reference_templates/servers/definitions"
-        cls.templates = {}
-
-        for filename in os.listdir(cls.templates_dir):
-            if filename.endswith(".json"):
-                with open(os.path.join(cls.templates_dir, filename)) as f:
-                    cls.templates[filename] = json.load(f)
-
-    def test_all_servers_have_templates(self):
-        """Each server has a corresponding JSON template."""
-        # Get list of .py definition files
-        definition_files = [
-            f.replace(".py", "")
-            for f in os.listdir(self.definitions_dir)
-            if f.endswith(".py")
-        ]
-
-        # Get list of .json template files
-        template_ids = [t.get("id") for t in self.templates.values()]
-
-        for def_name in definition_files:
-            self.assertIn(
-                def_name, template_ids,
-                f"Missing template for: {def_name}"
-            )
-
-    def test_templates_have_required_fields(self):
-        """Templates have id, name, description, definition_file."""
-        required_fields = ["id", "name", "description", "definition_file"]
-
-        for filename, template in self.templates.items():
-            for field in required_fields:
-                self.assertIn(
-                    field, template,
-                    f"Missing field '{field}' in {filename}"
-                )
-
-    def test_template_ids_match_server_names(self):
-        """Template IDs match server names."""
-        for filename, template in self.templates.items():
-            expected_id = filename.replace(".json", "")
-            self.assertEqual(
-                template.get("id"), expected_id,
-                f"ID mismatch in {filename}"
-            )
-
-    def test_template_definition_files_exist(self):
-        """Referenced definition files exist."""
-        for filename, template in self.templates.items():
-            definition_file = template.get("definition_file", "")
-            full_path = os.path.join(
-                self.definitions_dir,
-                definition_file.replace("definitions/", "")
-            )
-            self.assertTrue(
-                os.path.exists(full_path),
-                f"Definition file not found: {full_path} (referenced in {filename})"
-            )
-```
-
----
-
-## Service-Specific Test Variations
-
-### OAuth-Based Services (Google, Microsoft, etc.)
-
-Additional tests for OAuth services:
-
-| Test Name | Description |
-|-----------|-------------|
-| `test_{server}_oauth_token_refresh` | Server handles token refresh |
-| `test_{server}_oauth_token_expired` | Server handles expired tokens |
-| `test_{server}_oauth_scopes_required` | Server validates required scopes |
-
-### Services with Pagination
-
-Additional tests for paginated APIs:
-
-| Test Name | Description |
-|-----------|-------------|
-| `test_{server}_pagination_first_page` | Server fetches first page |
-| `test_{server}_pagination_next_page` | Server fetches subsequent pages |
-| `test_{server}_pagination_cursor_based` | Server handles cursor-based pagination |
-| `test_{server}_pagination_offset_based` | Server handles offset-based pagination |
-
-### Services with Rate Limiting
-
-Additional tests for rate-limited APIs:
-
-| Test Name | Description |
-|-----------|-------------|
-| `test_{server}_rate_limit_headers` | Server reads rate limit headers |
-| `test_{server}_rate_limit_backoff` | Server implements backoff strategy |
-| `test_{server}_rate_limit_retry` | Server retries after rate limit |
-
-### Database Connections (MySQL, PostgreSQL, MongoDB)
-
-Different test pattern for direct database connections:
-
-| Test Name | Description |
-|-----------|-------------|
-| `test_{server}_connection_success` | Server connects successfully |
-| `test_{server}_connection_failure` | Server handles connection failures |
-| `test_{server}_query_execution` | Server executes queries |
-| `test_{server}_query_timeout` | Server handles query timeouts |
-| `test_{server}_connection_pooling` | Server uses connection pooling |
-| `test_{server}_sql_injection_prevention` | Server prevents SQL injection |
-
----
-
-## Open Questions
-
-### Architecture Questions
-
-1. **OAuth Token Management**: How should OAuth tokens be managed for Google, Microsoft, and other OAuth-based services?
-   - Option A: Store refresh tokens in secrets, implement token refresh in each server
-   - Option B: Create a shared OAuth token manager that servers can use
-   - Option C: Require users to provide fresh access tokens each time
-   - **Recommendation**: Option B - shared OAuth manager for consistency
-
-2. **Service Account vs User Authentication**: For Google services, should we support both service accounts and user OAuth?
-   - Service accounts are simpler but limited to organization resources
-   - User OAuth provides broader access but requires token refresh
-   - **Recommendation**: Support both, with service account as default
-
-3. **Database Connections**: Should database servers (MySQL, PostgreSQL, MongoDB) use direct connections or should they go through a connection pooling layer?
-   - Direct connections: Simple but may exhaust connection limits
-   - Connection pooling: More complex but efficient
-   - **Recommendation**: Use connection pooling (e.g., SQLAlchemy for SQL, pymongo for MongoDB)
-
-4. **Webhook Endpoints**: Several services support webhooks (Stripe, Shopify, etc.). Should server definitions include webhook handling?
-   - Option A: Separate webhook server definitions
-   - Option B: Include webhook handling in main server
-   - Option C: Create a generic webhook receiver server
-   - **Recommendation**: Option C - generic webhook receiver that dispatches to appropriate handlers
-
-### Implementation Questions
-
-5. **Server Naming Convention**: Should server names use underscores (google_sheets) or hyphens (google-sheets)?
-   - Current pattern uses underscores (anthropic_claude, openai_chat)
-   - **Recommendation**: Use underscores for consistency
-
-6. **Default Endpoints**: Should servers have a default/demo endpoint for testing without configuration?
-   - Pro: Easier to verify server works
-   - Con: May confuse users, requires API keys anyway
-   - **Recommendation**: Show helpful form/documentation by default, require API key for actual calls
-
-7. **Error Message Format**: Should error messages be plain text or structured JSON?
-   - Plain text: Human readable in browser
-   - JSON: Machine parseable for chaining
-   - **Recommendation**: Return JSON with `error` key, server framework can render appropriately
-
-8. **Batch Operations**: Some APIs support batch operations (e.g., Airtable batch create). Should servers support these?
-   - **Recommendation**: Support batch operations where the API provides them, with separate parameters
-
-### Security Questions
-
-9. **Secret Naming Convention**: Should secrets follow the pattern `{SERVICE}_API_KEY` or `{SERVICE}_ACCESS_TOKEN`?
-   - API_KEY: For simple API keys
-   - ACCESS_TOKEN: For OAuth tokens
-   - **Recommendation**: Use the term the service uses (e.g., STRIPE_API_KEY, GOOGLE_ACCESS_TOKEN)
-
-10. **Read-Only Boot Image**: Should all external servers be included in the read-only boot image?
-    - Some servers may have write operations (e.g., POST to create records)
-    - Read-only mode may want to restrict these
-    - **Recommendation**: Include all servers, but document which operations are read vs write
-
-11. **Secret Validation**: Should servers validate secrets before making API calls?
-    - Pro: Faster failure, better error messages
-    - Con: Some APIs don't have a validation endpoint
-    - **Recommendation**: Validate where possible, otherwise fail fast on first API call
-
-### Testing Questions
-
-12. **Mock vs Real API Tests**: Should integration tests use mocked APIs or real API calls?
-    - Mocked: Faster, deterministic, no API keys needed
-    - Real: More realistic, catches actual API issues
-    - **Recommendation**: Mock for CI/CD, option for real tests with API keys in environment
-
-13. **Test API Accounts**: Should we create test/sandbox accounts for each service?
-    - Many services offer sandbox modes (Stripe, PayPal, etc.)
-    - **Recommendation**: Document sandbox setup for each service, use in integration tests
-
-14. **Coverage Requirements**: What is the minimum test coverage for each server?
-    - **Recommendation**: 80% line coverage minimum, 100% for core functionality (authentication, request building)
-
-### Operational Questions
-
-15. **Rate Limit Handling**: Should servers automatically retry on rate limits?
-    - Pro: More resilient
-    - Con: May delay response, hide issues
-    - **Recommendation**: Configurable retry with exponential backoff, max 3 retries
-
-16. **Timeout Configuration**: Should timeouts be configurable per server?
-    - Some APIs are slower (file uploads, data processing)
-    - **Recommendation**: Default 60s timeout, configurable via parameter
-
-17. **Logging**: What should be logged for external API calls?
-    - **Recommendation**: Log request URL, method, response status (never log secrets or sensitive data)
-
----
-
-## Implementation Phases
-
-### Phase 1: Foundation (10 servers)
-Set up patterns and implement first servers as templates:
-- google_sheets
-- slack
-- stripe
-- github
-- airtable
-- notion
-- hubspot
-- mailchimp
-- openai_chat (already exists)
-- zoom
+## Implementation Phases (Revised)
+
+### Phase 0: Shared Infrastructure (REQUIRED FIRST)
+Build and test all shared abstractions before implementing any servers:
+
+**Files to create:**
+- `server_utils/__init__.py`
+- `server_utils/external_api/__init__.py`
+- `server_utils/external_api/http_client.py`
+- `server_utils/external_api/oauth_manager.py`
+- `server_utils/external_api/google_auth.py`
+- `server_utils/external_api/microsoft_auth.py`
+- `server_utils/external_api/error_response.py`
+- `server_utils/external_api/form_generator.py`
+- `server_utils/external_api/secret_validator.py`
+- `server_utils/external_api/webhook_receiver.py`
+
+**Tests to create:**
+- `tests/test_external_api_http_client.py`
+- `tests/test_external_api_oauth.py`
+- `tests/test_external_api_google_auth.py`
+- `tests/test_external_api_microsoft_auth.py`
+- `tests/test_external_api_errors.py`
+- `tests/test_external_api_forms.py`
+- `tests/test_external_api_secrets.py`
+- `tests/test_external_api_webhooks.py`
+
+**Acceptance criteria:**
+- [ ] All shared modules implemented
+- [ ] 100% test coverage for shared modules
+- [ ] Documentation for each module
+
+### Phase 1: Foundation Servers (10 servers)
+First servers using shared infrastructure as validation:
+- google_sheets (tests Google auth)
+- slack (tests simple Bearer token)
+- stripe (tests webhook receiver)
+- github (tests simple token auth)
+- airtable (tests Bearer token)
+- notion (tests Bearer token)
+- hubspot (tests OAuth)
+- mailchimp (tests API key in URL)
+- openai_chat (already exists - verify integration)
+- zoom (tests OAuth)
 
 ### Phase 2: Google Suite (9 servers)
 - gmail
@@ -884,7 +1222,7 @@ Set up patterns and implement first servers as templates:
 - servicenow
 
 ### Phase 8: E-commerce & Payments (6 servers)
-- shopify
+- shopify (with webhook support)
 - woocommerce
 - ebay
 - etsy
@@ -900,13 +1238,11 @@ Set up patterns and implement first servers as templates:
 - postmark
 - (mailchimp already in Phase 1)
 
-### Phase 10: Document & Storage (6 servers)
+### Phase 10: Document & Storage (4 servers)
 - docusign
 - pandadoc
 - dropbox
 - box
-- (onedrive in Phase 3)
-- (google_drive in Phase 2)
 
 ### Phase 11: Developer & Design (4 servers)
 - gitlab
@@ -934,7 +1270,7 @@ Set up patterns and implement first servers as templates:
 - freshbooks
 - coda
 
-### Phase 16: Data Processing (10 servers)
+### Phase 16: Data Processing (9 servers)
 - cloudconvert
 - pdfco
 - docparser
@@ -944,17 +1280,18 @@ Set up patterns and implement first servers as templates:
 - hunter
 - bitly
 - uptimerobot
-- (airtable/notion already done)
 
 ### Phase 17: Cloud Storage (3 servers)
 - aws_s3
 - gcs
 - azure_blob
 
-### Phase 18: Databases (3 servers)
-- mysql
-- postgresql
-- mongodb
+### Phase 18: Databases (5 servers)
+- mysql (direct connection)
+- postgresql (direct connection)
+- mongodb (direct connection)
+- sqlalchemy_pool (connection pooling)
+- pymongo_pool (connection pooling)
 
 ### Phase 19: Analytics (5 servers)
 - segment
@@ -970,23 +1307,52 @@ Set up patterns and implement first servers as templates:
 ### Per Server
 - [ ] Definition file exists in `reference_templates/servers/definitions/{name}.py`
 - [ ] Template file exists in `reference_templates/servers/templates/{name}.json`
+- [ ] Template documents read vs write operations
 - [ ] Server entry in `default.boot.source.json`
 - [ ] Server entry in `readonly.boot.source.json`
 - [ ] Server is enabled by default
-- [ ] All unit tests pass (minimum 8 tests per server)
-- [ ] All integration tests pass (minimum 4 tests per server)
-- [ ] API key/secret naming follows convention
-- [ ] Error handling is consistent
-- [ ] Timeout is set appropriately
-- [ ] Documentation includes usage examples
+- [ ] Uses shared abstractions (http_client, error_response, form_generator)
+- [ ] All unit tests pass (minimum 10 tests per server)
+- [ ] All integration tests pass (minimum 6 tests per server)
+- [ ] 80% line coverage minimum, 100% for auth/request building
+- [ ] Secret naming matches service convention
+- [ ] Shows helpful form when no endpoint provided
+- [ ] Returns JSON errors with `error` key
+- [ ] Configurable timeout (default 60s)
+- [ ] Sandbox/test account documented
+
+### Shared Abstractions
+- [ ] All 8 modules implemented
+- [ ] 100% test coverage
+- [ ] No secrets logged
+- [ ] Retry behavior: max 3 retries, exponential backoff (2s, 4s, 8s)
+- [ ] Rate limit (429) triggers retry
 
 ### Overall
 - [ ] All 100+ servers implemented
 - [ ] Boot images regenerate successfully
 - [ ] No duplicate server names
-- [ ] All tests pass in CI/CD
+- [ ] All tests pass in CI/CD (mocked)
+- [ ] Real API tests pass with environment keys
 - [ ] No security vulnerabilities
 - [ ] Performance acceptable (no startup degradation)
+
+---
+
+## Follow-up Questions
+
+1. **Shared abstractions location**: Should `server_utils/external_api/` be a new top-level package, or should it be inside the existing `server_execution/` package?
+
+2. **OAuth token persistence**: For the OAuth manager, should it persist refresh tokens to the secrets store after refreshing, or just return them for the caller to handle?
+
+3. **Database query timeout**: For database servers (MySQL, PostgreSQL, MongoDB), should there be a separate query timeout from the connection timeout?
+
+4. **Webhook complexity threshold**: For Q4 (webhooks), what makes something "dramatically simpler" to warrant Option A (separate webhook server)? Examples:
+   - If the webhook only receives events (no API calls) → Option A?
+   - If webhook shares 80%+ code with main server → Option B?
+   - If multiple services need same webhook pattern → Option C?
+
+5. **Pooling server configuration**: For `sqlalchemy_pool` and `pymongo_pool`, should they accept a generic connection string, or should there be separate secrets for each target database (e.g., `SQLALCHEMY_POOL_MYSQL_URL`, `SQLALCHEMY_POOL_POSTGRES_URL`)?
 
 ---
 
@@ -1005,3 +1371,4 @@ Set up patterns and implement first servers as templates:
 | Date | Change | Author |
 |------|--------|--------|
 | Initial | Created plan document | Claude |
+| Update 1 | Resolved all 17 open questions; added shared abstractions section; revised implementation phases to start with Phase 0 (shared infrastructure); added follow-up questions | Claude |
