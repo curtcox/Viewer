@@ -9,9 +9,27 @@ from typing import Any, Dict, List, Optional
 from flask import current_app
 from markupsafe import Markup, escape
 
+from cid import CID
+from cid_presenter import extract_cid_from_path, format_cid, render_cid_link
+from cid_core import is_normalized_cid
+
+
+def _is_probable_cid(value: Any) -> bool:
+    """Return True when the value looks like a CID reference."""
+
+    if not isinstance(value, (str, CID)):
+        return False
+
+    normalized = format_cid(value)
+    return bool(normalized and is_normalized_cid(normalized))
+
 
 def render_scalar_html(value: Any) -> Markup:
     """Return HTML for a scalar metadata value."""
+    cid_markup = render_cid_popup_pair(value)
+    if cid_markup:
+        return cid_markup
+
     if isinstance(value, str):
         trimmed = value.strip()
         if (
@@ -37,21 +55,75 @@ def render_scalar_html(value: Any) -> Markup:
     return Markup(f"<code>{escape(str(value))}</code>")
 
 
-def render_value_html(value: Any) -> Markup:
+def render_cid_popup_pair(value: Any) -> Markup:
+    """Return markup showing a CID link with a companion meta popup link."""
+
+    cid_value = None
+
+    if isinstance(value, CID):
+        cid_value = format_cid(value)
+    elif isinstance(value, str):
+        extracted = extract_cid_from_path(value)
+        if extracted and is_normalized_cid(extracted):
+            cid_value = extracted
+        elif _is_probable_cid(value):
+            cid_value = format_cid(value)
+
+    if not cid_value:
+        return Markup("")
+
+    cid_link = render_cid_link(cid_value)
+    meta_href = f"/meta/{cid_value}"
+    popup_link = Markup(
+        '<a class="cid-meta-popup" href="{href}" title="View CID metadata">'
+        '<i class="fas fa-circle-info"></i>'
+        "</a>"
+    ).format(href=escape(meta_href))
+
+    return Markup(
+        '<span class="cid-link-popup d-inline-flex align-items-center gap-2">{cid_link}'
+        '<span class="cid-meta-popup-link">{popup}</span>'
+        "</span>"
+    ).format(cid_link=cid_link, popup=popup_link)
+
+
+def render_related_cids_html(value: Dict[str, Any]) -> Markup:
+    """Return HTML for related CID mappings using the standard CID/popup pair."""
+
+    items: List[Markup] = []
+    for key, cid_value in value.items():
+        items.append(
+            Markup('<li><span class="meta-key">{}</span>: {}</li>').format(
+                escape(key), render_cid_popup_pair(cid_value)
+            )
+        )
+
+    return Markup('<ul class="meta-dict meta-related-cids">{}</ul>').format(
+        Markup("".join(items))
+    )
+
+
+def render_value_html(value: Any, *, parent_key: Optional[str] = None) -> Markup:
     """Recursively render metadata as HTML."""
     if isinstance(value, dict):
+        if parent_key == "related_cids":
+            return render_related_cids_html(value)
+
         items = []
         for key, child in value.items():
             items.append(
                 Markup('<li><span class="meta-key">{}</span>: {}</li>').format(
-                    escape(key), render_value_html(child)
+                    escape(key), render_value_html(child, parent_key=key)
                 )
             )
         return Markup('<ul class="meta-dict">{}</ul>').format(Markup("".join(items)))
 
     if isinstance(value, (list, tuple, set)):
         items = [
-            Markup("<li>{}</li>").format(render_value_html(child)) for child in value
+            Markup("<li>{}</li>").format(
+                render_value_html(child, parent_key=parent_key)
+            )
+            for child in value
         ]
         return Markup('<ol class="meta-list">{}</ol>').format(Markup("".join(items)))
 
@@ -240,6 +312,19 @@ def render_metadata_html(metadata: Dict[str, Any]) -> str:
     .meta-key { font-weight: 600; }
     code { background: #f5f5f5; padding: 0.1rem 0.3rem; border-radius: 0.25rem; }
     a code { color: inherit; }
+    .cid-link-popup { gap: 0.5rem; }
+    .cid-display.dropdown { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .cid-display .cid-link { font-weight: 600; text-decoration: none; color: #0d6efd; }
+    .cid-display .cid-menu-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; border: 1px solid #6c757d; background: #fff; color: #6c757d; padding: 0.125rem 0.4rem; border-radius: 0.2rem; cursor: pointer; line-height: 1; box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 1px 1px rgba(0,0,0,0.05); }
+    .cid-display .cid-menu-btn:hover { background: #6c757d; color: #fff; }
+    .cid-display .cid-menu-btn .fa-ellipsis-vertical:before { content: '⋮'; display: inline-block; }
+    .cid-display .cid-menu-btn i { pointer-events: none; font-style: normal; }
+    .cid-display .dropdown-menu { display: none; position: absolute; top: 100%; right: 0; min-width: 12rem; margin-top: 0.25rem; padding: 0.35rem 0; background: #fff; border: 1px solid #dee2e6; border-radius: 0.25rem; box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1); z-index: 10; }
+    .cid-display .dropdown-menu.show { display: block; }
+    .cid-display .dropdown-menu li { list-style: none; }
+    .cid-display .dropdown-item { display: flex; align-items: center; gap: 0.35rem; width: 100%; padding: 0.35rem 0.75rem; color: #212529; text-decoration: none; background: transparent; border: 0; cursor: pointer; text-align: left; }
+    .cid-display .dropdown-item:hover { background: #f8f9fa; }
+    .cid-display .dropdown-divider { height: 0; margin: 0.35rem 0; border-top: 1px solid #e9ecef; }
     .meta-related-tests { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; }
     .meta-related-tests h2 { margin-bottom: 0.5rem; }
     .meta-related-tests h3 { margin-top: 1.25rem; margin-bottom: 0.5rem; }
@@ -247,4 +332,38 @@ def render_metadata_html(metadata: Dict[str, Any]) -> str:
     .meta-related-tests-templates { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
     .meta-related-tests-templates li { list-style: none; }
     """
-    return f"""<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Meta Inspector</title><style>{styles}</style></head><body><h1>Meta inspector</h1>{body}{related_tests}</body></html>"""
+    scripts = """
+    <script>
+    (() => {
+        function closeAllDropdowns(except) {
+            document.querySelectorAll('.cid-display.dropdown .dropdown-menu.show').forEach((menu) => {
+                if (!except || !menu.closest('.cid-display.dropdown')?.contains(except)) {
+                    menu.classList.remove('show');
+                }
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            const toggle = event.target.closest('.cid-menu-btn');
+            if (!toggle) {
+                closeAllDropdowns();
+                return;
+            }
+
+            event.preventDefault();
+            const dropdown = toggle.closest('.cid-display.dropdown');
+            const menu = dropdown?.querySelector('.dropdown-menu');
+            if (!menu) {
+                return;
+            }
+
+            const isOpen = menu.classList.contains('show');
+            closeAllDropdowns(toggle);
+            if (!isOpen) {
+                menu.classList.add('show');
+            }
+        });
+    })();
+    </script>
+    """
+    return f"""<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Meta Inspector</title><style>{styles}</style></head><body><h1>Meta inspector</h1>{body}{related_tests}{scripts}</body></html>"""
