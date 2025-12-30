@@ -1,7 +1,6 @@
 """Unit tests for Slack and Airtable server definitions."""
 
-from typing import Any, Dict
-
+from typing import Any
 import pytest
 import requests
 

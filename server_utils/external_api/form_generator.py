@@ -103,7 +103,7 @@ def generate_form(
             title_text = escape(example.get("title", "Example"))
             description_text = escape(example.get("description", ""))
             request_text = escape(example.get("request", ""))
-            html += f"        <div class=\"example\">\n"
+            html += "        <div class=\"example\">\n"
             html += f"            <strong>{title_text}</strong><br/>\n"
             if description_text:
                 html += f"            <div>{description_text}</div>\n"

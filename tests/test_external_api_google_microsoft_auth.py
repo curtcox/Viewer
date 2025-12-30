@@ -1,4 +1,3 @@
-import pytest
 import jwt
 
 from server_utils.external_api.google_auth import GoogleAuthManager

@@ -91,6 +91,46 @@
       "enabled": true
     },
     {
+      "name": "airtable",
+      "definition_cid": "AAAAABHP8QZ6Gq6NM80SDjK_4rD20aVPJ_rMcz11j2R7D3QOut-4el_nm20jMVOp1z8AZWPVvnhPiwBhITbuThh9K_Irbg",
+      "enabled": true
+    },
+    {
+      "name": "asana",
+      "definition_cid": "AAAAABQ4DUQyuMbg-vnXhWLA3RhdUUnRPyTeQTBmnPlu9tsMoKUZaW2DgdODJgERsO_41tq8vGKhTQnvb0I0tAJw5zIC9A",
+      "enabled": true
+    },
+    {
+      "name": "google_sheets",
+      "definition_cid": "AAAAABoR59FOEVb0LhnvhIHLFNtNQ6QnTpCCK_KsaWS0xMO0J56y1O6vS_6iOF0LK0NRoTWIJhFJqEh1CI7xBv76WCfoAw",
+      "enabled": true
+    },
+    {
+      "name": "github",
+      "definition_cid": "AAAAABFkgYD5SwJ0w8OECQQBlm40jxLdNLpOD4hYlpAqKwF_mXB_Y666XfmimgY7fZmxHcVnURwDTLLPsTXPnh7HB67ceg",
+      "enabled": true
+    },
+    {
+      "name": "notion",
+      "definition_cid": "AAAAABBfUmaUF95IalPv8jfYchJSnPZ8KjpaEkFfZxdYgfZaFnn24Mas_CsgE77Zztdn-ET8I7HxgI7bA5nYFOmLEYkTsg",
+      "enabled": true
+    },
+    {
+      "name": "stripe",
+      "definition_cid": "AAAAABlYyRKfUrDVVm3s_prCtRGFa-rA1v3wHfuxz3Iob8ozwv3lOAIRYMDmg2f0v3OI_SzXw4z_c1Pk8R0YNHRoX-GoZQ",
+      "enabled": true
+    },
+    {
+      "name": "zendesk",
+      "definition_cid": "AAAAABJOQDpaFu_OP19J68Hvqi8-1BM-Li4TPj2jsA9sz8TM1hjD3x9Ttq5SyoQB1FHVTnT0u1m7h-r6mBEYZS3QSj554Q",
+      "enabled": true
+    },
+    {
+      "name": "slack",
+      "definition_cid": "AAAAAAjq6uAvu7zJ5T0_Nn4wlXAVVrvhK_y4PJVYCFltS-Gxh_Tu6istwJH-bejw7tKQQ3YqVT_HUG7kvev7P5-OVHQZnw",
+      "enabled": true
+    },
+    {
       "name": "jinja",
       "definition_cid": "AAAAAAK1ttKQW9DZJ9DP4kP9utIdkZvDzMimLIb8Q2x_b79V-NoClpr9W6WwoPIcFFO6Mf_YvDQ5EBs_-wj_lYVPdMd2xA",
       "enabled": true
@@ -639,7 +679,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAABkZw3LANR5DoPynNGBuPqd0qWDQWtOiStD_9Hi0ZkC40u0mkvGHrSV-SwUw9gdKMHlCpY7k2UgcC792nT9rryhOJQ",
+      "definition": "AAAAACC43hnN7k8OSkLx7voDnRsddqDP-Kz0-3S34sZ9nqVwKRYkkKvxjyFTxV8wkdD-9i_Mze5QJIgnGVBoxwNnUrlx8Q",
       "enabled": true
     },
     {

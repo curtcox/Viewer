@@ -1,4 +1,3 @@
-import pytest
 import requests
 from typing import Any
 

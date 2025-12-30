@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import time
 
-import pytest
 import requests
 
 from reference_templates.servers.definitions import stripe
@@ -138,13 +138,15 @@ def test_success_returns_payload():
 def test_process_webhook_valid_signature():
     payload = json.dumps({"id": "evt_123", "type": "customer.created"})
     secret = "whsec_test"
-    signature = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    timestamp = int(time.time())
+    signed_payload = f"{timestamp}.".encode() + payload.encode()
+    signature = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
 
     result = stripe.main(
         operation="process_webhook",
         STRIPE_WEBHOOK_SECRET=secret,
         webhook_payload=payload,
-        stripe_signature=f"v1={signature}",
+        stripe_signature=f"t={timestamp},v1={signature}",
         dry_run=False,
     )
 
@@ -154,12 +156,13 @@ def test_process_webhook_valid_signature():
 def test_process_webhook_invalid_signature():
     payload = json.dumps({"id": "evt_123", "type": "customer.created"})
     secret = "whsec_test"
+    timestamp = int(time.time())
 
     result = stripe.main(
         operation="process_webhook",
         STRIPE_WEBHOOK_SECRET=secret,
         webhook_payload=payload,
-        stripe_signature="v1=invalid",
+        stripe_signature=f"t={timestamp},v1=invalid",
         dry_run=False,
     )
 
