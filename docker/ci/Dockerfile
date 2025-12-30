@@ -94,4 +94,3 @@ RUN python -m pip install --upgrade pip \
 RUN pyppeteer-install
 
 WORKDIR /workspace
-        gzip \

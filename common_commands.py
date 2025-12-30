@@ -131,4 +131,3 @@ def group_commands_for_readonly(commands: Iterable[CommandInfo]) -> list[Command
     """Return commands safe to include in the readonly boot image."""
 
     return [command for command in commands if command.safe_for_readonly]
-

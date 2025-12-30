@@ -136,7 +136,7 @@ COMMAND_EXAMPLE_OVERRIDES: dict[str, list[str]] = {
         """
     ).strip().splitlines(),
     "sed": dedent(
-        """
+        r"""
         - Default substitution (replaces first match on each line): [Execute](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22) · [Debug](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22?debug=true)
           - Bash: `printf "foo start\nfoo middle\nplain\n" | sed 's/foo/bar/'`
           - Output:

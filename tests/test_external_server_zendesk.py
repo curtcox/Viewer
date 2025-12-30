@@ -167,6 +167,6 @@ def test_success_returns_payload():
     )
 
     assert result == {"output": payload}
-    method, url, kwargs = client.calls[0]
+    method, url, _ = client.calls[0]
     assert method == "GET"
     assert url.endswith("/tickets.json")
