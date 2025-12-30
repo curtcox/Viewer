@@ -66,6 +66,11 @@
       "enabled": true
     },
     {
+      "name": "mcp",
+      "definition_cid": "reference_templates/servers/definitions/mcp.py",
+      "enabled": true
+    },
+    {
       "name": "jsonplaceholder",
       "definition_cid": "reference_templates/servers/definitions/jsonplaceholder.py",
       "enabled": true
@@ -690,6 +695,11 @@
     {
       "name": "gateways",
       "definition": "GENERATED:gateways.json",
+      "enabled": true
+    },
+    {
+      "name": "mcps",
+      "definition": "GENERATED:mcps.json",
       "enabled": true
     }
   ]

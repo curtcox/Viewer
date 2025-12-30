@@ -1,0 +1,21 @@
+{
+  "description": "Markdown to HTML converter",
+  "auto_discover": true,
+  "tools": {
+    "convert": {
+      "description": "Convert markdown to HTML",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "description": "The markdown content to convert"
+          }
+        },
+        "required": ["markdown"]
+      }
+    }
+  },
+  "resources": {},
+  "prompts": {}
+}
