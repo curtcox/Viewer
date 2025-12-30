@@ -434,7 +434,7 @@ def _handle_initialize(params: dict, request_id: any) -> dict:
         "jsonrpc": "2.0",
         "id": request_id,
         "result": {
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": "2025-11-25",
             "serverInfo": {
                 "name": "Viewer MCP Server",
                 "version": "1.0.0"
@@ -620,93 +620,153 @@ def _discover_shell_server_tools(server_name: str, server_definition: str) -> li
     }]
 ```
 
-### Phase 5: Streamable HTTP Transport
+### Phase 5: Streamable HTTP Transport (MCP 2025-11-25)
 
-#### 5.1 Streaming Response Handler
+The Streamable HTTP transport uses a single endpoint that handles both requests and server-initiated messages.
 
-For long-running operations, the server can return a streaming response using chunked transfer encoding with SSE format:
+#### 5.1 Request Handler (POST)
+
+POST requests send JSON-RPC messages. The server responds with either JSON or a stream:
 
 ```python
-def _handle_streaming_response(server_name: str, request_id: any, context: dict):
-    """Handle a request that requires streaming response.
+def _handle_post_request(server_name: str, context: dict):
+    """Handle POST request per MCP 2025-11-25 Streamable HTTP spec.
 
-    Per MCP 2025-11-25 Streamable HTTP spec:
-    - Response Content-Type: text/event-stream
-    - Each event contains a JSON-RPC message
-    - Final event contains the result
+    - Client sends one JSON-RPC message per request
+    - Server responds with JSON or opens a stream
+    - Session managed via Mcp-Session-Id header
     """
-    def generate():
-        # Send progress updates as SSE events
-        yield f"event: message\ndata: {json.dumps({'jsonrpc': '2.0', 'method': 'notifications/progress', 'params': {'progress': 0}})}\n\n"
+    # Validate Accept header
+    accept = request.headers.get("Accept", "")
+    if "application/json" not in accept and "text/event-stream" not in accept:
+        return {"error": "Must accept application/json or text/event-stream"}, 406
 
-        # ... perform work ...
+    # Parse JSON-RPC request
+    body = request.get_json()
+    method = body.get("method")
+    request_id = body.get("id")
 
-        # Send final result
-        result = {"jsonrpc": "2.0", "id": request_id, "result": {...}}
-        yield f"event: message\ndata: {json.dumps(result)}\n\n"
+    # Get or create session
+    session_id = request.headers.get("Mcp-Session-Id")
+    if method == "initialize":
+        session_id = _create_session()
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Transfer-Encoding": "chunked"
-        }
-    )
+    # Handle the request
+    result = _dispatch_method(server_name, method, body.get("params", {}), request_id, context)
+
+    # Return response with session header
+    response = make_response(jsonify(result))
+    response.headers["Mcp-Session-Id"] = session_id
+    response.headers["Content-Type"] = "application/json"
+    return response
 ```
 
-#### 5.2 GET Listener Endpoint
+#### 5.2 Streaming Response (POST with SSE response)
 
-For server-initiated messages (optional capability):
+For long-running operations, respond with a stream of JSON-RPC messages:
+
+```python
+def _handle_streaming_post(server_name: str, request_id: any, context: dict):
+    """Handle POST that returns a streaming response.
+
+    Per MCP 2025-11-25 spec:
+    - Response Content-Type: text/event-stream
+    - Each SSE event contains one JSON-RPC message in data field
+    - Server may send notifications before the final response
+    """
+    session_id = request.headers.get("Mcp-Session-Id")
+
+    def generate():
+        # Optional: send progress notifications
+        progress = {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progress": 50}}
+        yield f"event: message\ndata: {json.dumps(progress)}\n\n"
+
+        # Send final response
+        result = {"jsonrpc": "2.0", "id": request_id, "result": {"content": [...]}}
+        yield f"event: message\ndata: {json.dumps(result)}\n\n"
+
+    response = Response(stream_with_context(generate()), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Mcp-Session-Id"] = session_id
+    return response
+```
+
+#### 5.3 Listener Endpoint (GET)
+
+GET requests open a stream for server-initiated messages:
 
 ```python
 def _handle_get_listener(server_name: str, context: dict):
-    """Handle GET request to open listener for server-initiated messages.
+    """Handle GET request to listen for server-initiated messages.
 
     Per MCP 2025-11-25 spec:
-    - Client opens GET connection to receive server notifications
-    - Server sends JSON-RPC requests/notifications as SSE events
-    - Keep-alive comments maintain connection
+    - Opens SSE stream for server notifications and requests
+    - Supports resumability via Last-Event-ID header
+    - Server assigns event IDs for resumption
     """
+    session_id = request.headers.get("Mcp-Session-Id")
+    if not session_id:
+        return {"error": "Mcp-Session-Id required"}, 400
+
+    last_event_id = request.headers.get("Last-Event-ID")
+
     def generate():
-        # Initial connection acknowledgment
-        yield ": connected\n\n"
+        event_id = int(last_event_id) if last_event_id else 0
 
-        # Keep connection alive, send notifications as they occur
         while True:
-            # Check for pending notifications for this session
-            # notification = get_pending_notification(session_id)
-            # if notification:
-            #     yield f"event: message\ndata: {json.dumps(notification)}\n\n"
-            yield ": keepalive\n\n"
-            time.sleep(30)
+            # Check for pending messages for this session
+            pending = _get_pending_messages(session_id, after_id=event_id)
+            for msg in pending:
+                event_id += 1
+                yield f"id: {event_id}\nevent: message\ndata: {json.dumps(msg)}\n\n"
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive"
-        }
-    )
+            # Keep-alive comment (not an event)
+            yield ": keepalive\n\n"
+            time.sleep(15)
+
+    response = Response(stream_with_context(generate()), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["Connection"] = "keep-alive"
+    response.headers["Mcp-Session-Id"] = session_id
+    return response
 ```
 
-#### 5.3 Response Content Negotiation
+#### 5.4 Session Management
 
 ```python
-def _select_response_format(request, is_long_running: bool) -> str:
-    """Determine response format based on Accept header and operation type.
+def _create_session() -> str:
+    """Create a new MCP session."""
+    import uuid
+    return str(uuid.uuid4())
+
+def _validate_session(session_id: str) -> bool:
+    """Validate session exists and is active."""
+    # For stateless implementation, always return True
+    # For stateful, check session store
+    return True
+
+def _terminate_session(session_id: str):
+    """Terminate a session (called on client disconnect or explicit close)."""
+    pass
+```
+
+#### 5.5 Response Content Negotiation
+
+```python
+def _should_stream_response(request, method: str) -> bool:
+    """Determine if response should be streamed.
 
     Per MCP 2025-11-25 spec:
-    - Client must include Accept: application/json, text/event-stream
-    - Server chooses based on operation characteristics
+    - Client indicates preference via Accept header
+    - Server decides based on operation characteristics
     """
     accept = request.headers.get("Accept", "")
+    if "text/event-stream" not in accept:
+        return False
 
-    if is_long_running and "text/event-stream" in accept:
-        return "text/event-stream"
-
-    return "application/json"
+    # Stream for potentially long-running operations
+    long_running_methods = {"tools/call", "resources/read"}
+    return method in long_running_methods
 ```
 
 ---
@@ -809,15 +869,17 @@ def _select_response_format(request, is_long_running: bool) -> str:
 
 | ID | Test | Description | Expected Result |
 |----|------|-------------|-----------------|
-| T9.1 | POST to MCP endpoint | POST JSON-RPC to /mcp/{server} | Returns JSON-RPC response |
-| T9.2 | GET listener endpoint | GET /mcp/{server} with Accept: text/event-stream | Returns SSE stream for notifications |
+| T9.1 | POST to MCP endpoint | POST JSON-RPC to /mcp/{server} | Returns JSON-RPC response with Mcp-Session-Id |
+| T9.2 | GET listener endpoint | GET /mcp/{server} with Mcp-Session-Id | Returns SSE stream for notifications |
 | T9.3 | Accept header validation | POST with Accept: application/json, text/event-stream | Server accepts request |
-| T9.4 | Streaming response | POST long-running operation | Returns text/event-stream with chunked events |
+| T9.4 | Streaming response | POST long-running operation | Returns text/event-stream with SSE events |
 | T9.5 | JSON response | POST simple operation | Returns application/json response |
-| T9.6 | Session ID handling | Check Mcp-Session-Id header | Header present and consistent |
-| T9.7 | CORS headers | Check CORS headers in response | Appropriate CORS headers set |
-| T9.8 | Content-Type validation | POST with wrong Content-Type | Returns 415 error |
-| T9.9 | Protocol version header | Check MCP-Protocol-Version header | Contains 2025-11-25 |
+| T9.6 | Session ID on initialize | POST initialize request | Response includes new Mcp-Session-Id |
+| T9.7 | Session ID required for GET | GET without Mcp-Session-Id | Returns 400 error |
+| T9.8 | Last-Event-ID resumability | GET with Last-Event-ID header | Resumes from specified event |
+| T9.9 | CORS headers | Check CORS headers in response | Appropriate CORS headers set |
+| T9.10 | Content-Type validation | POST with wrong Content-Type | Returns 415 error |
+| T9.11 | Accept header required | POST without Accept header | Returns 406 error |
 
 #### Boot Image Tests
 
@@ -1013,9 +1075,11 @@ def _select_response_format(request, is_long_running: bool) -> str:
   - [ ] Shell server introspection
   - [ ] Input schema generation
 
-- [ ] Phase 5: Streamable HTTP Transport
-  - [ ] Streaming response handler
-  - [ ] GET listener endpoint
+- [ ] Phase 5: Streamable HTTP Transport (MCP 2025-11-25)
+  - [ ] POST request handler with session management
+  - [ ] Streaming POST response handler
+  - [ ] GET listener endpoint with resumability
+  - [ ] Session management (create, validate, terminate)
   - [ ] Response content negotiation
 
 - [ ] Testing
