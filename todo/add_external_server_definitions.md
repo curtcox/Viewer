@@ -152,8 +152,13 @@ All open questions have been resolved. The following decisions guide the impleme
 
 - Expand shared helpers (error formatting, HTTP client, secret validation) as additional servers come online.
 - Extend shared HTTP client usage to upcoming servers now that Slack and Airtable are migrated; adjust retry/backoff defaults if production usage reveals new needs.
+- Generate updated `boot.json`, `default.boot.json`, and `readonly.boot.json` (plus `.cid` files) once CID generation is available so Slack and Airtable appear in the compiled boot images.
 - Add integration-style smoke tests for Slack and Airtable using recorded fixtures to verify request shapes against real APIs.
 - Extend Airtable coverage to update/delete operations after the shared HTTP client lands, including rate-limit backoff.
+- Add unit and integration tests for the new servers, along with form/documentation updates to guide sandbox setup and non-dry-run calls.
+- Revisit error payload shapes once the shared `error_response` helper lands to ensure Slack and Airtable match the common schema (status codes, details, retry hints).
+- Replace the ad-hoc `error` helpers in Slack and Airtable once the shared error formatting module is available to avoid duplication.
+- Evaluate whether the shared HTTP client should support per-call instrumentation hooks (e.g., trace IDs) before scaling to additional servers.
 - Expand the GitHub server to cover pagination, issue updates, and comments once initial usage feedback is collected.
 - Expand the Notion server to support database query filters, pagination, and richer property mapping once initial usage is stable.
 - Expand the Zendesk server to support ticket updates, comments, and pagination once initial usage feedback is collected.
@@ -161,6 +166,8 @@ All open questions have been resolved. The following decisions guide the impleme
 - Consider caching OAuth refresh results and normalizing scope handling for Google helpers to reduce redundant calls in future integrations.
 - Add support for Google service account ID token flows for services that require targeted `target_audience` assertions.
 - Expand the Asana server to support project creation, task updates, and pagination once initial usage feedback is gathered.
+
+ - Expand the Google Sheets server to cover batch updates, value render options, and documentation for token scope selection once initial adoption feedback is collected.
 
 ---
 
@@ -1491,18 +1498,6 @@ First servers using shared infrastructure as validation:
 - [ ] Real API tests pass with environment keys
 - [ ] No security vulnerabilities
 - [ ] Performance acceptable (no startup degradation)
-
----
-
-## Future Changes
-
-- Generate updated `boot.json`, `default.boot.json`, and `readonly.boot.json` (plus `.cid` files) once CID generation is available so Slack and Airtable appear in the compiled boot images.
-- Implement the shared Phase 0 abstractions (`server_utils/external_api/*`) and refactor Slack and Airtable to use the common HTTP/error handling utilities. (Completed via shared `error_output` and `ExternalApiClient`; apply the same pattern to the remaining servers.)
-- Add unit and integration tests for the new servers, along with form/documentation updates to guide sandbox setup and non-dry-run calls.
-- Revisit error payload shapes once the shared `error_response` helper lands to ensure Slack and Airtable match the common schema (status codes, details, retry hints).
-- Replace the ad-hoc `error` helpers in Slack and Airtable once the shared error formatting module is available to avoid duplication.
-- Evaluate whether the shared HTTP client should support per-call instrumentation hooks (e.g., trace IDs) before scaling to additional servers.
-- Expand the Google Sheets server to cover batch updates, value render options, and documentation for token scope selection once initial adoption feedback is collected.
 
 ---
 
