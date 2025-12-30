@@ -734,25 +734,20 @@ ripgrep recursive search
 Stream editor
 
 - Default substitution (replaces first match on each line): [Execute](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22) · [Debug](/sed/s/foo/bar/_/printf%20%22foo%20start%5Cnfoo%20middle%5Cnplain%5Cn%22?debug=true)
-          - Bash: `printf "foo start
-foo middle
-plain
-" | sed 's/foo/bar/'`
-          - Output:
-            ```text
-            bar start
-            bar middle
-            plain
-            ```
-        - Global substitution with `g` flag: [Execute](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22) · [Debug](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22?debug=true)
-          - Bash: `printf "path-with-dashes
-other-path
-" | sed 's/-/\//g'`
-          - Output:
-            ```text
-            path/with/dashes
-            other/path
-            ```
+  - Bash: `printf "foo start\nfoo middle\nplain\n" | sed 's/foo/bar/'`
+  - Output:
+    ```text
+    bar start
+    bar middle
+    plain
+    ```
+- Global substitution with `g` flag: [Execute](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22) · [Debug](/sed/s/-/\//g/_/printf%20%22path-with-dashes%5Cnother-path%5Cn%22?debug=true)
+  - Bash: `printf "path-with-dashes\nother-path\n" | sed 's/-/\//g'`
+  - Output:
+    ```text
+    path/with/dashes
+    other/path
+    ```
 
 ### `seq` (Source)
 
