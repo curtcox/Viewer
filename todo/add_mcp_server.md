@@ -59,67 +59,126 @@ The MCP server will implement the **Streamable HTTP Transport**:
 
 ## MCPs Variable Format
 
-The `mcps` variable is a JSON map from server names to MCP configuration:
+The `mcps` variable is a JSON map from server names to CIDs containing the MCP configuration. This follows the same pattern as the `gateways` variable.
+
+### mcps.source.json (Source File)
 
 ```json
 {
   "echo": {
-    "description": "Echo server - returns input as output",
-    "tools": {
-      "echo": {
-        "description": "Echo the provided input",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "message": {
-              "type": "string",
-              "description": "The message to echo"
-            }
-          },
-          "required": ["message"]
-        }
-      }
-    },
-    "resources": {
-      "last-echo": {
-        "uri": "echo://last",
-        "name": "Last Echo",
-        "description": "The last echoed message",
-        "mimeType": "text/plain"
-      }
-    },
-    "prompts": {}
+    "config_cid": "reference_templates/mcps/configs/echo.json"
   },
   "markdown": {
-    "description": "Markdown to HTML converter",
-    "tools": {
-      "convert": {
-        "description": "Convert markdown to HTML",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "markdown": {
-              "type": "string",
-              "description": "The markdown content to convert"
-            }
-          },
-          "required": ["markdown"]
-        }
-      }
-    },
-    "resources": {},
-    "prompts": {}
+    "config_cid": "reference_templates/mcps/configs/markdown.json"
   },
   "jq": {
-    "description": "JQ JSON processor",
-    "auto_discover": true,
-    "tools_transform_cid": "reference_templates/mcps/transforms/jq_tools.py",
-    "resources_transform_cid": "reference_templates/mcps/transforms/jq_resources.py"
+    "config_cid": "reference_templates/mcps/configs/jq.json"
+  },
+  "date": {
+    "config_cid": "reference_templates/mcps/configs/date.json"
   }
 }
 ```
 
-### Configuration Options
+### mcps.json (Generated with CIDs)
+
+After boot image generation, filenames are replaced with CIDs:
+
+```json
+{
+  "echo": {
+    "config_cid": "AAAAA..."
+  },
+  "markdown": {
+    "config_cid": "AAAAA..."
+  },
+  "jq": {
+    "config_cid": "AAAAA..."
+  },
+  "date": {
+    "config_cid": "AAAAA..."
+  }
+}
+```
+
+### Individual Server Configuration Files
+
+Each server's MCP configuration is stored in a separate JSON file.
+
+**File:** `reference_templates/mcps/configs/echo.json`
+```json
+{
+  "description": "Echo server - returns input as output",
+  "tools": {
+    "echo": {
+      "description": "Echo the provided input",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to echo"
+          }
+        },
+        "required": ["message"]
+      }
+    }
+  },
+  "resources": {
+    "last-echo": {
+      "uri": "echo://last",
+      "name": "Last Echo",
+      "description": "The last echoed message",
+      "mimeType": "text/plain"
+    }
+  },
+  "prompts": {}
+}
+```
+
+**File:** `reference_templates/mcps/configs/markdown.json`
+```json
+{
+  "description": "Markdown to HTML converter",
+  "tools": {
+    "convert": {
+      "description": "Convert markdown to HTML",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "description": "The markdown content to convert"
+          }
+        },
+        "required": ["markdown"]
+      }
+    }
+  },
+  "resources": {},
+  "prompts": {}
+}
+```
+
+**File:** `reference_templates/mcps/configs/jq.json`
+```json
+{
+  "description": "JQ JSON processor",
+  "auto_discover": true,
+  "tools_transform_cid": "reference_templates/mcps/transforms/jq_tools.py",
+  "resources_transform_cid": "reference_templates/mcps/transforms/jq_resources.py"
+}
+```
+
+**File:** `reference_templates/mcps/configs/date.json`
+```json
+{
+  "description": "Date/time utilities",
+  "auto_discover": true
+}
+```
+
+### Configuration Options (within config JSON files)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -132,6 +191,15 @@ The `mcps` variable is a JSON map from server names to MCP configuration:
 | `resources_transform_cid` | string | CID of Python function to generate resources dynamically |
 | `prompts_transform_cid` | string | CID of Python function to generate prompts dynamically |
 | `enabled` | boolean | Whether this MCP configuration is active (default: true) |
+
+### Configuration Resolution
+
+The MCP server loads configuration as follows:
+
+1. Load `mcps` variable from context
+2. For each server, resolve `config_cid` to get the configuration JSON
+3. If config contains nested CID references (e.g., `tools_transform_cid`), resolve those as well
+4. Cache resolved configurations for the session
 
 ### Transform Function Interface
 
@@ -226,32 +294,39 @@ Resources represent data that can be read by the MCP client:
 
 ### Phase 1: Core Infrastructure
 
-#### 1.1 Create mcps.source.json
+#### 1.1 Create mcps.source.json and Config Files
 
 **File:** `reference_templates/mcps.source.json`
 
-Initial configuration with a few example servers:
+Maps server names to CIDs of their MCP configuration files:
 
 ```json
 {
   "echo": {
-    "description": "Echo server - returns input as output",
-    "auto_discover": true
+    "config_cid": "reference_templates/mcps/configs/echo.json"
   },
   "markdown": {
-    "description": "Markdown to HTML converter",
-    "auto_discover": true
+    "config_cid": "reference_templates/mcps/configs/markdown.json"
   },
   "jq": {
-    "description": "JQ JSON processor",
-    "auto_discover": true
+    "config_cid": "reference_templates/mcps/configs/jq.json"
   },
   "date": {
-    "description": "Date/time utilities",
-    "auto_discover": true
+    "config_cid": "reference_templates/mcps/configs/date.json"
   }
 }
 ```
+
+**Directory:** `reference_templates/mcps/configs/`
+
+Create individual configuration files for each MCP-enabled server:
+
+- `echo.json` - Echo server config with auto_discover
+- `markdown.json` - Markdown server config with auto_discover
+- `jq.json` - JQ server config with transform CIDs
+- `date.json` - Date server config with auto_discover
+
+See "Individual Server Configuration Files" section above for file contents.
 
 #### 1.2 Update generate_boot_image.py
 
@@ -576,9 +651,13 @@ def _handle_sse_stream(server_name: str, context: dict):
 |----|------|-------------|-----------------|
 | T1.1 | Load empty mcps config | Call `_load_mcps()` with empty `mcps` variable | Returns empty dict `{}` |
 | T1.2 | Load valid mcps config | Call `_load_mcps()` with valid JSON config | Returns parsed config dict |
-| T1.3 | Load mcps from CID | Call `_load_mcps()` with CID-referenced config | Resolves CID and returns config |
+| T1.3 | Load mcps from CID | Call `_load_mcps()` with CID-referenced mcps variable | Resolves CID and returns config |
 | T1.4 | Handle invalid JSON | Call `_load_mcps()` with malformed JSON | Returns empty dict, logs warning |
 | T1.5 | Handle missing server | Access config for non-existent server | Returns empty dict for that server |
+| T1.6 | Resolve server config_cid | Load server with `config_cid` reference | Resolves CID to get server config JSON |
+| T1.7 | Resolve nested CIDs | Config contains `tools_transform_cid` | Nested CID resolved correctly |
+| T1.8 | Handle missing config_cid | Server entry has invalid `config_cid` | Returns error, server not available |
+| T1.9 | Cache resolved configs | Load same config twice | Second load uses cached value |
 
 #### JSON-RPC Message Tests
 
@@ -817,7 +896,11 @@ def _handle_sse_stream(server_name: str, context: dict):
 | `reference_templates/servers/templates/mcp/instruction.html` | Instruction page |
 | `reference_templates/servers/templates/mcp/meta.html` | Server meta page |
 | `reference_templates/servers/templates/mcp/error.html` | Error page |
-| `reference_templates/mcps.source.json` | MCP configurations source |
+| `reference_templates/mcps.source.json` | MCP configurations source (server name -> config_cid) |
+| `reference_templates/mcps/configs/echo.json` | MCP config for echo server |
+| `reference_templates/mcps/configs/markdown.json` | MCP config for markdown server |
+| `reference_templates/mcps/configs/jq.json` | MCP config for jq server |
+| `reference_templates/mcps/configs/date.json` | MCP config for date server |
 | `reference_templates/mcps/transforms/` | Directory for transform functions |
 
 ### Files to Modify
@@ -833,7 +916,9 @@ def _handle_sse_stream(server_name: str, context: dict):
 ## Implementation Checklist
 
 - [ ] Phase 1: Core Infrastructure
-  - [ ] Create `mcps.source.json`
+  - [ ] Create `mcps.source.json` (server name -> config_cid mapping)
+  - [ ] Create `reference_templates/mcps/configs/` directory
+  - [ ] Create individual config files (echo.json, markdown.json, jq.json, date.json)
   - [ ] Update `generate_boot_image.py`
   - [ ] Update boot source files
   - [ ] Create `mcp.py` skeleton
