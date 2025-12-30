@@ -348,17 +348,21 @@ class BootImageGenerator:
 
         return gateways_cid
 
-    def generate_mcps_json(self) -> str:
+    def generate_mcps_json(self) -> Optional[str]:
         """Generate mcps.json from mcps.source.json.
 
         Returns:
-            CID of the generated mcps.json
+            CID of the generated mcps.json, or None if mcps.source.json doesn't exist
         """
         print("\nProcessing mcps.source.json")
         print("=" * 60)
 
         # Read mcps.source.json
         source_path = self.reference_templates_dir / "mcps.source.json"
+        if not source_path.exists():
+            print(f"Skipping: {source_path} does not exist")
+            return None
+            
         with open(source_path, "r", encoding="utf-8") as f:
             source_data = json.load(f)
 
@@ -543,7 +547,8 @@ class BootImageGenerator:
         print(f"Templates CID:     {templates_cid}")
         print(f"UIs CID:           {uis_cid}")
         print(f"Gateways CID:      {gateways_cid}")
-        print(f"MCPs CID:          {mcps_cid}")
+        if mcps_cid:
+            print(f"MCPs CID:          {mcps_cid}")
         print(f"Minimal Boot CID:  {minimal_boot_cid}")
         print(f"Default Boot CID:  {default_boot_cid}")
         print(f"Readonly Boot CID: {readonly_boot_cid}")
