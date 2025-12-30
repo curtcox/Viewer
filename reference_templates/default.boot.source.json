@@ -679,6 +679,10 @@
       "name": "zip",
       "definition_cid": "reference_templates/servers/definitions/zip.sh",
       "enabled": true
+    },
+    {
+      "name": "hubspot",
+      "definition_file": "servers/definitions/hubspot.py"
     }
   ],
   "variables": [

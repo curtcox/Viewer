@@ -1,0 +1,61 @@
+{
+  "name": "hubspot",
+  "description": "Interact with HubSpot CRM to manage contacts and companies",
+  "definition_file": "definitions/hubspot.py",
+  "documentation_url": "https://developers.hubspot.com/docs/api/overview",
+  "operations": {
+    "read": [
+      "list_contacts - List all contacts",
+      "get_contact - Get a specific contact by ID",
+      "list_companies - List all companies",
+      "get_company - Get a specific company by ID"
+    ],
+    "write": [
+      "create_contact - Create a new contact",
+      "create_company - Create a new company"
+    ]
+  },
+  "secrets": {
+    "HUBSPOT_ACCESS_TOKEN": "OAuth access token for HubSpot API"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_contacts",
+        "get_contact",
+        "create_contact",
+        "list_companies",
+        "get_company",
+        "create_company"
+      ],
+      "default": "list_contacts"
+    },
+    "contact_id": {
+      "type": "string",
+      "description": "Contact ID (required for get_contact)",
+      "required_for": ["get_contact"]
+    },
+    "company_id": {
+      "type": "string",
+      "description": "Company ID (required for get_company)",
+      "required_for": ["get_company"]
+    },
+    "properties": {
+      "type": "object",
+      "description": "Properties for creating contacts or companies",
+      "required_for": ["create_contact", "create_company"]
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 100
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

@@ -564,6 +564,10 @@
       "name": "zcat",
       "definition_cid": "reference_templates/servers/definitions/zcat.sh",
       "enabled": true
+    },
+    {
+      "name": "hubspot",
+      "definition_file": "servers/definitions/hubspot.py"
     }
   ],
   "variables": [
