@@ -183,19 +183,12 @@ def _get_cid_content(cid_path: str, context: Optional[Dict] = None) -> Optional[
     # Otherwise, try to resolve as CID
     try:
         from cid_storage import get_cid_content
-        
-        # Try database first - CID paths are stored with leading slash
-        cid_value = cid_path if cid_path.startswith("/") else f"/{cid_path}"
-        content = get_cid_content(cid_value)
-        
-        if content:
-            if hasattr(content, "file_data"):
-                data = content.file_data
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            if hasattr(content, "data"):
-                data = content.data
-                return data.decode("utf-8") if isinstance(data, bytes) else data
-            return content.decode("utf-8") if isinstance(content, bytes) else content
+        cid_value = extract_cid_from_path(cid_path)
+        if cid_value:
+            content = get_cid_content(cid_value)
+            if isinstance(content, bytes):
+                return content.decode("utf-8", errors="replace")
+            return content
     except Exception as e:
         logger.warning(f"Failed to get CID content for {cid_path}: {e}")
 
