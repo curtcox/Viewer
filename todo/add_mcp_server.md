@@ -29,23 +29,31 @@ Reference: [MCP Protocol Documentation](https://modelcontextprotocol.io/docs/get
 |-------|---------|------------|
 | `/mcp` | Instruction page (HTML) | N/A |
 | `/mcp/meta/{server}` | Server MCP metadata and diagnostics (HTML) | N/A |
-| `/mcp/{server}` | MCP endpoint for the server | All MCP methods |
-| `/mcp/{server}/sse` | SSE stream endpoint for server-initiated messages | GET (SSE) |
+| `/mcp/{server}` | MCP endpoint for the server (POST for requests, GET for listening) | All MCP methods |
 
 ### MCP Protocol Mapping
 
-The MCP server will implement the **Streamable HTTP Transport**:
+The MCP server will implement the **Streamable HTTP Transport** (MCP 2025-11-25):
 
-1. **POST `/mcp/{server}`**: Handle JSON-RPC requests
-   - `initialize`: Establish session and exchange capabilities
-   - `tools/list`: List available tools (derived from server functions)
-   - `tools/call`: Execute a tool (invoke server function)
-   - `resources/list`: List available resources (server outputs)
-   - `resources/read`: Read a resource
-   - `prompts/list`: List available prompts
-   - `prompts/get`: Get a specific prompt
+**POST `/mcp/{server}`**: Send JSON-RPC requests
+- Client sends one JSON-RPC message per request
+- Must include `Accept: application/json, text/event-stream` header
+- Server responds with either:
+  - `application/json`: Single JSON-RPC response
+  - `text/event-stream`: Streamed response (for long-running operations)
+- Supported methods:
+  - `initialize`: Establish session and exchange capabilities
+  - `tools/list`: List available tools (derived from server functions)
+  - `tools/call`: Execute a tool (invoke server function)
+  - `resources/list`: List available resources (server outputs)
+  - `resources/read`: Read a resource
+  - `prompts/list`: List available prompts
+  - `prompts/get`: Get a specific prompt
 
-2. **GET `/mcp/{server}/sse`**: Server-Sent Events stream for server-initiated messages
+**GET `/mcp/{server}`**: Listen for server-initiated messages
+- Opens a streaming connection for server notifications
+- Server sends JSON-RPC requests/notifications as SSE events
+- Used for real-time updates (optional capability)
 
 ### Session Management
 
@@ -258,7 +266,7 @@ When `auto_discover: true`, the MCP server will:
 
 ### Tool Invocation Flow
 
-```
+```text
 MCP Client                      MCP Server (/mcp/{server})                    Internal Server (/servers/{server})
     |                                    |                                              |
     |-- POST tools/call --------------->|                                              |
@@ -612,20 +620,64 @@ def _discover_shell_server_tools(server_name: str, server_definition: str) -> li
     }]
 ```
 
-### Phase 5: SSE Support
+### Phase 5: Streamable HTTP Transport
 
-#### 5.1 SSE Stream Endpoint
+#### 5.1 Streaming Response Handler
+
+For long-running operations, the server can return a streaming response using chunked transfer encoding with SSE format:
 
 ```python
-def _handle_sse_stream(server_name: str, context: dict):
-    """Handle SSE stream connection.
+def _handle_streaming_response(server_name: str, request_id: any, context: dict):
+    """Handle a request that requires streaming response.
 
-    Returns a streaming response for server-initiated messages.
+    Per MCP 2025-11-25 Streamable HTTP spec:
+    - Response Content-Type: text/event-stream
+    - Each event contains a JSON-RPC message
+    - Final event contains the result
     """
     def generate():
-        yield f"event: endpoint\ndata: /mcp/{server_name}\n\n"
-        # Keep connection alive
+        # Send progress updates as SSE events
+        yield f"event: message\ndata: {json.dumps({'jsonrpc': '2.0', 'method': 'notifications/progress', 'params': {'progress': 0}})}\n\n"
+
+        # ... perform work ...
+
+        # Send final result
+        result = {"jsonrpc": "2.0", "id": request_id, "result": {...}}
+        yield f"event: message\ndata: {json.dumps(result)}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Transfer-Encoding": "chunked"
+        }
+    )
+```
+
+#### 5.2 GET Listener Endpoint
+
+For server-initiated messages (optional capability):
+
+```python
+def _handle_get_listener(server_name: str, context: dict):
+    """Handle GET request to open listener for server-initiated messages.
+
+    Per MCP 2025-11-25 spec:
+    - Client opens GET connection to receive server notifications
+    - Server sends JSON-RPC requests/notifications as SSE events
+    - Keep-alive comments maintain connection
+    """
+    def generate():
+        # Initial connection acknowledgment
+        yield ": connected\n\n"
+
+        # Keep connection alive, send notifications as they occur
         while True:
+            # Check for pending notifications for this session
+            # notification = get_pending_notification(session_id)
+            # if notification:
+            #     yield f"event: message\ndata: {json.dumps(notification)}\n\n"
             yield ": keepalive\n\n"
             time.sleep(30)
 
@@ -637,6 +689,24 @@ def _handle_sse_stream(server_name: str, context: dict):
             "Connection": "keep-alive"
         }
     )
+```
+
+#### 5.3 Response Content Negotiation
+
+```python
+def _select_response_format(request, is_long_running: bool) -> str:
+    """Determine response format based on Accept header and operation type.
+
+    Per MCP 2025-11-25 spec:
+    - Client must include Accept: application/json, text/event-stream
+    - Server chooses based on operation characteristics
+    """
+    accept = request.headers.get("Accept", "")
+
+    if is_long_running and "text/event-stream" in accept:
+        return "text/event-stream"
+
+    return "application/json"
 ```
 
 ---
@@ -735,17 +805,19 @@ def _handle_sse_stream(server_name: str, context: dict):
 | T8.4 | JQ server via MCP | Execute JQ query via MCP | Returns query result |
 | T8.5 | Date server via MCP | Get date via MCP | Returns formatted date |
 
-#### HTTP Transport Tests
+#### HTTP Transport Tests (Streamable HTTP 2025-11-25)
 
 | ID | Test | Description | Expected Result |
 |----|------|-------------|-----------------|
 | T9.1 | POST to MCP endpoint | POST JSON-RPC to /mcp/{server} | Returns JSON-RPC response |
-| T9.2 | GET MCP info | GET /mcp/{server} | Returns HTML info page |
-| T9.3 | Accept header handling | POST with Accept: application/json | Returns JSON response |
-| T9.4 | SSE stream connection | GET /mcp/{server}/sse | Returns SSE stream |
-| T9.5 | Session ID handling | Check Mcp-Session-Id header | Header present and consistent |
-| T9.6 | CORS headers | Check CORS headers in response | Appropriate CORS headers set |
-| T9.7 | Content-Type validation | POST with wrong Content-Type | Returns 415 error |
+| T9.2 | GET listener endpoint | GET /mcp/{server} with Accept: text/event-stream | Returns SSE stream for notifications |
+| T9.3 | Accept header validation | POST with Accept: application/json, text/event-stream | Server accepts request |
+| T9.4 | Streaming response | POST long-running operation | Returns text/event-stream with chunked events |
+| T9.5 | JSON response | POST simple operation | Returns application/json response |
+| T9.6 | Session ID handling | Check Mcp-Session-Id header | Header present and consistent |
+| T9.7 | CORS headers | Check CORS headers in response | Appropriate CORS headers set |
+| T9.8 | Content-Type validation | POST with wrong Content-Type | Returns 415 error |
+| T9.9 | Protocol version header | Check MCP-Protocol-Version header | Contains 2025-11-25 |
 
 #### Boot Image Tests
 
@@ -815,8 +887,8 @@ def _handle_sse_stream(server_name: str, context: dict):
 
 2. **Q: Should we support both stdio and HTTP transports?**
    - Consideration: stdio requires subprocess management
-   - Recommendation: HTTP only for initial implementation (we're a web server)
-   - Status: RESOLVED - HTTP/SSE only for initial implementation
+   - Recommendation: Streamable HTTP only for initial implementation (we're a web server)
+   - Status: RESOLVED - Streamable HTTP (2025-11-25) only for initial implementation
 
 3. **Q: How should we handle MCP session management?**
    - Option A: Stateless (re-initialize on each request)
@@ -941,9 +1013,10 @@ def _handle_sse_stream(server_name: str, context: dict):
   - [ ] Shell server introspection
   - [ ] Input schema generation
 
-- [ ] Phase 5: SSE Support
-  - [ ] SSE stream endpoint
-  - [ ] Keep-alive handling
+- [ ] Phase 5: Streamable HTTP Transport
+  - [ ] Streaming response handler
+  - [ ] GET listener endpoint
+  - [ ] Response content negotiation
 
 - [ ] Testing
   - [ ] Unit tests
