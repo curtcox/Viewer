@@ -348,12 +348,56 @@ class BootImageGenerator:
 
         return gateways_cid
 
+    def generate_mcps_json(self) -> str:
+        """Generate mcps.json from mcps.source.json.
+
+        Returns:
+            CID of the generated mcps.json
+        """
+        print("\nProcessing mcps.source.json")
+        print("=" * 60)
+
+        # Read mcps.source.json
+        source_path = self.reference_templates_dir / "mcps.source.json"
+        with open(source_path, "r", encoding="utf-8") as f:
+            source_data = json.load(f)
+
+        # Process all referenced files (config files)
+        print("\nProcessing referenced files...")
+        self.process_referenced_files(source_data)
+
+        # Replace filenames with CIDs
+        print("\nReplacing filenames with CIDs...")
+        mcps_data = self.replace_filenames_with_cids(source_data)
+
+        # Write mcps.json
+        target_path = self.reference_templates_dir / "mcps.json"
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(mcps_data, f, indent=2)
+        print(f"\nGenerated: {target_path}")
+
+        # Generate CID for mcps.json
+        mcps_json_content = json.dumps(mcps_data, indent=2).encode("utf-8")
+        mcps_cid = generate_cid(mcps_json_content)
+
+        # Store mcps.json CID (skip literal CIDs)
+        if not is_literal_cid(mcps_cid):
+            cid_file_path = self.cids_dir / mcps_cid
+            with open(cid_file_path, "wb") as f:
+                f.write(mcps_json_content)
+            print(f"Stored mcps.json -> {mcps_cid}")
+        else:
+            print(f"Skipped literal CID for mcps.json -> {mcps_cid}")
+
+        return mcps_cid
+
     def generate_boot_json(
         self,
         templates_cid: str,
         source_name: str = "boot",
         uis_cid: Optional[str] = None,
         gateways_cid: Optional[str] = None,
+        mcps_cid: Optional[str] = None,
     ) -> str:
         """Generate boot.json from a boot.source.json file.
 
@@ -419,6 +463,14 @@ class BootImageGenerator:
                 ):
                     print(f"Replacing gateways variable with CID: {gateways_cid}")
                     var["definition"] = gateways_cid
+                # Replace GENERATED:mcps.json marker with actual mcps CID
+                if (
+                    mcps_cid
+                    and var.get("name") == "mcps"
+                    and var.get("definition") == "GENERATED:mcps.json"
+                ):
+                    print(f"Replacing mcps variable with CID: {mcps_cid}")
+                    var["definition"] = mcps_cid
 
         # Write boot.json
         target_path = self.reference_templates_dir / target_filename
@@ -451,7 +503,7 @@ class BootImageGenerator:
         """Generate the complete boot image.
 
         Returns:
-            Dictionary with 'templates_cid', 'uis_cid', 'gateways_cid', 'minimal_boot_cid', 'default_boot_cid', and 'readonly_boot_cid' keys
+            Dictionary with 'templates_cid', 'uis_cid', 'gateways_cid', 'mcps_cid', 'minimal_boot_cid', 'default_boot_cid', and 'readonly_boot_cid' keys
         """
         print("Generating Boot Image")
         print("=" * 60)
@@ -468,17 +520,20 @@ class BootImageGenerator:
         # Generate gateways.json and get its CID
         gateways_cid = self.generate_gateways_json()
 
+        # Generate mcps.json and get its CID
+        mcps_cid = self.generate_mcps_json()
+
         minimal_boot_cid = self.generate_boot_json(
-            templates_cid, "minimal", uis_cid, gateways_cid
+            templates_cid, "minimal", uis_cid, gateways_cid, mcps_cid
         )
         default_boot_cid = self.generate_boot_json(
-            templates_cid, "default", uis_cid, gateways_cid
+            templates_cid, "default", uis_cid, gateways_cid, mcps_cid
         )
         readonly_boot_cid = self.generate_boot_json(
-            templates_cid, "readonly", uis_cid, gateways_cid
+            templates_cid, "readonly", uis_cid, gateways_cid, mcps_cid
         )
         boot_cid = self.generate_boot_json(
-            templates_cid, "boot", uis_cid, gateways_cid
+            templates_cid, "boot", uis_cid, gateways_cid, mcps_cid
         )
 
         # Summary
@@ -488,6 +543,7 @@ class BootImageGenerator:
         print(f"Templates CID:     {templates_cid}")
         print(f"UIs CID:           {uis_cid}")
         print(f"Gateways CID:      {gateways_cid}")
+        print(f"MCPs CID:          {mcps_cid}")
         print(f"Minimal Boot CID:  {minimal_boot_cid}")
         print(f"Default Boot CID:  {default_boot_cid}")
         print(f"Readonly Boot CID: {readonly_boot_cid}")
@@ -508,6 +564,7 @@ class BootImageGenerator:
             "templates_cid": templates_cid,
             "uis_cid": uis_cid,
             "gateways_cid": gateways_cid,
+            "mcps_cid": mcps_cid,
             "boot_cid": boot_cid,
             "minimal_boot_cid": minimal_boot_cid,
             "default_boot_cid": default_boot_cid,

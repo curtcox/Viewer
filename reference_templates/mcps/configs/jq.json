@@ -1,0 +1,7 @@
+{
+  "description": "JQ JSON processor",
+  "auto_discover": true,
+  "tools": {},
+  "resources": {},
+  "prompts": {}
+}

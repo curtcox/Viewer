@@ -1,0 +1,14 @@
+{
+  "echo": {
+    "config_cid": "reference_templates/mcps/configs/echo.json"
+  },
+  "markdown": {
+    "config_cid": "reference_templates/mcps/configs/markdown.json"
+  },
+  "jq": {
+    "config_cid": "reference_templates/mcps/configs/jq.json"
+  },
+  "date": {
+    "config_cid": "reference_templates/mcps/configs/date.json"
+  }
+}

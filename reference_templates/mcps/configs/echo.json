@@ -1,0 +1,21 @@
+{
+  "description": "Echo server - returns input as output",
+  "auto_discover": true,
+  "tools": {
+    "echo": {
+      "description": "Echo the provided input",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The message to echo"
+          }
+        },
+        "required": ["message"]
+      }
+    }
+  },
+  "resources": {},
+  "prompts": {}
+}
