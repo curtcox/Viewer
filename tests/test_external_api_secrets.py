@@ -22,12 +22,6 @@ class StubRequests:
         return self.response
 
 
-@pytest.fixture
-def patch_requests(monkeypatch: pytest.MonkeyPatch) -> None:
-    stub = StubRequests(FakeResponse(status_code=200))
-    monkeypatch.setattr("server_utils.external_api.secret_validator.requests", stub)
-
-
 def test_validate_secret_missing_value_returns_error() -> None:
     result = validate_secret("", "API_KEY")
 
