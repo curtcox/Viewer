@@ -1,5 +1,6 @@
 {
-  "name": "hubspot",
+  "id": "hubspot",
+  "name": "HubSpot",
   "description": "Interact with HubSpot CRM to manage contacts and companies",
   "definition_file": "definitions/hubspot.py",
   "documentation_url": "https://developers.hubspot.com/docs/api/overview",

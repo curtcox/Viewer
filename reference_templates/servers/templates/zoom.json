@@ -1,5 +1,6 @@
 {
-  "name": "zoom",
+  "id": "zoom",
+  "name": "Zoom",
   "description": "Interact with Zoom API to manage meetings and users",
   "definition_file": "definitions/zoom.py",
   "documentation_url": "https://marketplace.zoom.us/docs/api-reference",

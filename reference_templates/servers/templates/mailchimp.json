@@ -1,5 +1,6 @@
 {
-  "name": "mailchimp",
+  "id": "mailchimp",
+  "name": "Mailchimp",
   "description": "Interact with Mailchimp API to manage audiences, campaigns, and members",
   "definition_file": "definitions/mailchimp.py",
   "documentation_url": "https://mailchimp.com/developer/marketing/api/",
