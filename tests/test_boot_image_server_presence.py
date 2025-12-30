@@ -22,6 +22,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "jsonplaceholder": "jsonplaceholder.py",
     "shell": "shell.py",
     "glom": "glom.py",
+    "gmail": "gmail.py",
     "hrx": "hrx.py",
     "gateway": "gateway.py",
     "mcp": "mcp.py",

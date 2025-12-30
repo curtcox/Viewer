@@ -1,0 +1,71 @@
+{
+  "id": "gmail",
+  "name": "Gmail",
+  "description": "Interact with Gmail API to list, read, and send email messages",
+  "definition_file": "definitions/gmail.py",
+  "documentation_url": "https://developers.google.com/gmail/api",
+  "operations": {
+    "read": [
+      "list_messages - List email messages",
+      "get_message - Get a specific message by ID"
+    ],
+    "write": [
+      "send_message - Send an email message"
+    ]
+  },
+  "secrets": {
+    "GOOGLE_SERVICE_ACCOUNT_JSON": "Google service account JSON string (for service account auth)",
+    "GOOGLE_ACCESS_TOKEN": "Google OAuth access token (alternative to service account)"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_messages",
+        "get_message",
+        "send_message"
+      ],
+      "default": "list_messages"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User's email address or 'me' for authenticated user",
+      "default": "me"
+    },
+    "message_id": {
+      "type": "string",
+      "description": "Message ID (required for get_message)",
+      "required_for": ["get_message"]
+    },
+    "query": {
+      "type": "string",
+      "description": "Search query for list_messages (e.g., 'is:unread')"
+    },
+    "max_results": {
+      "type": "integer",
+      "description": "Maximum number of messages to return",
+      "default": 10
+    },
+    "to": {
+      "type": "string",
+      "description": "Recipient email address (required for send_message)",
+      "required_for": ["send_message"]
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject (required for send_message)",
+      "required_for": ["send_message"]
+    },
+    "body": {
+      "type": "string",
+      "description": "Email body (required for send_message)",
+      "required_for": ["send_message"]
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}
