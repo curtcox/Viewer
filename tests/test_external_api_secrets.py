@@ -22,7 +22,7 @@ class StubRequests:
         return self.response
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def patch_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     stub = StubRequests(FakeResponse(status_code=200))
     monkeypatch.setattr("server_utils.external_api.secret_validator.requests", stub)
