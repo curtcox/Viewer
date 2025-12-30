@@ -1,0 +1,6 @@
+{
+  "id": "airtable",
+  "name": "Airtable",
+  "description": "List, retrieve, or create records in an Airtable base.",
+  "definition_file": "definitions/airtable.py"
+}

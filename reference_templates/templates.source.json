@@ -52,6 +52,46 @@
       "description": "Google Gemini API interface",
       "definition_cid": "reference_templates/servers/definitions/google_gemini.py"
     },
+    "google-sheets": {
+      "name": "Google Sheets",
+      "description": "Read or append rows in Google Sheets",
+      "definition_cid": "reference_templates/servers/definitions/google_sheets.py"
+    },
+    "github": {
+      "name": "GitHub",
+      "description": "List or create issues in a GitHub repository",
+      "definition_cid": "reference_templates/servers/definitions/github.py"
+    },
+    "notion": {
+      "name": "Notion",
+      "description": "Search, retrieve, or create pages in Notion",
+      "definition_cid": "reference_templates/servers/definitions/notion.py"
+    },
+    "slack": {
+      "name": "Slack",
+      "description": "Send messages to Slack using a bot token",
+      "definition_cid": "reference_templates/servers/definitions/slack.py"
+    },
+    "stripe": {
+      "name": "Stripe",
+      "description": "List or create customers, list charges, or validate webhooks in Stripe",
+      "definition_cid": "reference_templates/servers/definitions/stripe.py"
+    },
+    "asana": {
+      "name": "Asana",
+      "description": "List projects, list tasks, retrieve a task, or create a task in Asana",
+      "definition_cid": "reference_templates/servers/definitions/asana.py"
+    },
+    "zendesk": {
+      "name": "Zendesk",
+      "description": "List, retrieve, or create tickets in Zendesk",
+      "definition_cid": "reference_templates/servers/definitions/zendesk.py"
+    },
+    "airtable": {
+      "name": "Airtable",
+      "description": "List, retrieve, or create records in Airtable",
+      "definition_cid": "reference_templates/servers/definitions/airtable.py"
+    },
     "nvidia-nim": {
       "name": "NVIDIA NIM",
       "description": "NVIDIA NIM API interface",

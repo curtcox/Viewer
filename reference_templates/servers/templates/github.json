@@ -1,0 +1,14 @@
+{
+  "name": "GitHub",
+  "description": "List or create issues in a GitHub repository.",
+  "definition_cid": "reference_templates/servers/definitions/github.py",
+  "operations": [
+    "list_issues",
+    "get_issue",
+    "create_issue"
+  ],
+  "secrets": [
+    "GITHUB_TOKEN"
+  ],
+  "notes": "Uses a personal access token with repo scope. Supports dry-run previews by default."
+}
