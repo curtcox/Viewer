@@ -7,6 +7,7 @@ the properly linked contents from an HRX CID archive.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -557,6 +558,7 @@ class TestGatewayTldrIntegration:
                 f"Gateway 'tldr' should be configured: {data[:500]}"
             )
 
+    @pytest.mark.skipif(not shutil.which("tldr"), reason="tldr command not available")
     def test_gateway_tldr_grep_includes_linkified_pipeline_example(self, app_with_gateway):
         """Test that /gateway/tldr/grep includes the stdin pipeline example and linkifies commands."""
         with app_with_gateway.test_client() as client:
