@@ -40,8 +40,8 @@ class TestBootCidOverride:
     @pytest.fixture(autouse=True)
     def setup(self, tmp_path):
         """Set up test environment with isolated database."""
-        self.app = create_app(
-            {  # pylint: disable=attribute-defined-outside-init
+        self.app = create_app(  # pylint: disable=attribute-defined-outside-init
+            {
                 "TESTING": True,
                 "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
                 "WTF_CSRF_ENABLED": False,
@@ -551,8 +551,8 @@ class TestBootCidOverrideCLI:
     def setup(self, tmp_path):
         """Set up test environment with isolated database."""
         self.tmp_path = tmp_path  # pylint: disable=attribute-defined-outside-init
-        self.app = create_app(
-            {  # pylint: disable=attribute-defined-outside-init
+        self.app = create_app(  # pylint: disable=attribute-defined-outside-init
+            {
                 "TESTING": True,
                 "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
                 "WTF_CSRF_ENABLED": False,

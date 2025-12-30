@@ -24,6 +24,7 @@ def generate_form(
     title: str,
     description: str,
     fields: List[FormField],
+    *,
     endpoint: str = "",
     examples: Optional[List[Dict[str, str]]] = None,
     documentation_url: Optional[str] = None,

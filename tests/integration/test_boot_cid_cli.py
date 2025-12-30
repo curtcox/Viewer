@@ -24,8 +24,8 @@ class TestBootCidCLI:
     def setup(self, tmp_path):
         """Set up test environment."""
         # Create app with test configuration
-        self.app = create_app(
-            {  # pylint: disable=attribute-defined-outside-init
+        self.app = create_app(  # pylint: disable=attribute-defined-outside-init
+            {
                 "TESTING": True,
                 "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path}/test.db",
                 "WTF_CSRF_ENABLED": False,

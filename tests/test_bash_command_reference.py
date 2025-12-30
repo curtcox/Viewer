@@ -17,7 +17,7 @@ DEFINITIONS_DIR = Path("reference_templates/servers/definitions")
 
 
 def _load_server_names(source_path: str) -> set[str]:
-    data = json.loads(Path(source_path).read_text())
+    data = json.loads(Path(source_path).read_text(encoding="utf-8"))
     return {server["name"] for server in data["servers"]}
 
 
@@ -41,7 +41,7 @@ def test_bash_commands_doc_is_generated():
     """docs/bash_commands.md should match the generator output."""
 
     expected = render_bash_commands_markdown(COMMON_COMMANDS)
-    actual = Path("docs/bash_commands.md").read_text()
+    actual = Path("docs/bash_commands.md").read_text(encoding="utf-8")
 
     assert actual == expected
 
@@ -53,7 +53,7 @@ def test_all_bash_command_definitions_exist():
         path = Path(f"reference_templates/servers/definitions/{command.name}.sh")
         assert path.exists(), f"Missing definition for {command.name}"
 
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         assert f"@bash_command {command.name}" in text
 
 
@@ -121,7 +121,7 @@ def test_three_command_pipeline_matches_bash():
 def test_pipeline_example_present():
     """The shared three-command pipeline example should be visible in the docs."""
 
-    doc_text = Path("docs/bash_commands.md").read_text()
+    doc_text = Path("docs/bash_commands.md").read_text(encoding="utf-8")
     example_path = "/tr/a-z%20A-Z/rev/_/echo/hello"
     assert example_path in doc_text
     assert f"{example_path}?debug=true" in doc_text

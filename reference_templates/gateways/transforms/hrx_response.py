@@ -122,7 +122,7 @@ def _render_directory(archive_cid: str, current_path: str, file_list_text: str) 
         "<html>",
         "<head>",
         '    <meta charset="utf-8">',
-        '    <title>HRX: {}</title>'.format(escape(current_path or '/')),
+        f'    <title>HRX: {escape(current_path or "/")}</title>',
         "    <style>",
         "        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }",
         "        h1 { color: #4ec9b0; }",
@@ -138,20 +138,20 @@ def _render_directory(archive_cid: str, current_path: str, file_list_text: str) 
         "    </style>",
         "</head>",
         "<body>",
-        '    <div class="breadcrumb">{}</div>'.format(breadcrumb),
+        f'    <div class="breadcrumb">{breadcrumb}</div>',
         "    <h1>Archive Contents</h1>",
-        '    <p>CID: <code>{}</code></p>'.format(escape(archive_cid)),
+        f'    <p>CID: <code>{escape(archive_cid)}</code></p>',
         '    <ul class="file-list">',
     ]
 
     # Add parent directory link if not at root
     if current_path:
         parent = "/".join(current_path.rstrip("/").split("/")[:-1])
-        parent_link = "/gateway/hrx/{}/{}".format(escape(archive_cid), parent) if parent else "/gateway/hrx/{}".format(escape(archive_cid))
-        html_parts.append('        <li><span class="file-icon">..</span><a href="{}">Parent Directory</a></li>'.format(escape(parent_link)))
+        parent_link = f"/gateway/hrx/{escape(archive_cid)}/{parent}" if parent else f"/gateway/hrx/{escape(archive_cid)}"
+        html_parts.append(f'        <li><span class="file-icon">..</span><a href="{escape(parent_link)}">Parent Directory</a></li>')
 
     for file in files:
-        file_link = "/gateway/hrx/{}/{}".format(escape(archive_cid), file)
+        file_link = f"/gateway/hrx/{escape(archive_cid)}/{file}"
         icon = "" if "/" in file or file.endswith("/") else ""
         html_parts.append(f'        <li><span class="file-icon">{icon}</span><a href="{escape(file_link)}">{escape(file)}</a></li>')
 
