@@ -15,6 +15,8 @@ CIDS_DIR = PROJECT_ROOT / "cids"
 NON_COMMAND_SERVER_DEFINITIONS = {
     "ai_stub": "ai_stub.py",
     "anthropic_claude": "anthropic_claude.py",
+    "airtable": "airtable.py",
+    "asana": "asana.py",
     "auto_main": "auto_main.py",
     "markdown": "markdown.py",
     "jsonplaceholder": "jsonplaceholder.py",
@@ -26,8 +28,11 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "files": "files.py",
     "cid_links": "cid_links.py",
     "google_gemini": "google_gemini.py",
+    "google_sheets": "google_sheets.py",
+    "github": "github.py",
     "jinja": "jinja_renderer.py",
     "nvidia_nim": "nvidia_nim.py",
+    "notion": "notion.py",
     "openai_chat": "openai_chat.py",
     "openrouter": "openrouter.py",
     "proxy": "proxy.py",
@@ -37,6 +42,9 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "reflect": "reflect.py",
     "ai_editor": "ai_editor.py",
     "ai_assist": "ai_assist.py",
+    "slack": "slack.py",
+    "stripe": "stripe.py",
+    "zendesk": "zendesk.py",
 }
 
 

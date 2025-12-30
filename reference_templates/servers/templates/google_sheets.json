@@ -1,0 +1,6 @@
+{
+  "id": "google_sheets",
+  "name": "Google Sheets",
+  "description": "Read ranges or append rows to a Google Sheet using service account or OAuth tokens.",
+  "definition_file": "definitions/google_sheets.py"
+}

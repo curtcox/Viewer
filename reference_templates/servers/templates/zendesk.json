@@ -1,0 +1,15 @@
+{
+  "id": "zendesk",
+  "name": "Zendesk",
+  "description": "List, retrieve, or create Zendesk tickets using Basic auth with API tokens.",
+  "definition_cid": "reference_templates/servers/definitions/zendesk.py",
+  "operations": [
+    "list_tickets",
+    "get_ticket",
+    "create_ticket"
+  ],
+  "secrets": [
+    "ZENDESK_API_TOKEN"
+  ],
+  "notes": "Requires an API token and agent email. Supports dry-run previews by default."
+}

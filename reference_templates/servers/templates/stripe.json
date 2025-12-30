@@ -1,0 +1,19 @@
+{
+  "id": "stripe",
+  "name": "Stripe",
+  "description": "List or create customers, list charges, or validate webhooks in Stripe",
+  "definition_cid": "reference_templates/servers/definitions/stripe.py",
+  "operations": [
+    "list_customers",
+    "get_customer",
+    "create_customer",
+    "list_charges",
+    "get_charge",
+    "process_webhook"
+  ],
+  "secrets": [
+    "STRIPE_API_KEY",
+    "STRIPE_WEBHOOK_SECRET"
+  ],
+  "notes": "Uses Stripe secret keys for API calls and the webhook signing secret for signature validation. Supports dry-run previews for all operations."
+}

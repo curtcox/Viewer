@@ -86,6 +86,46 @@
       "enabled": true
     },
     {
+      "name": "airtable",
+      "definition_cid": "reference_templates/servers/definitions/airtable.py",
+      "enabled": true
+    },
+    {
+      "name": "asana",
+      "definition_cid": "reference_templates/servers/definitions/asana.py",
+      "enabled": true
+    },
+    {
+      "name": "google_sheets",
+      "definition_cid": "reference_templates/servers/definitions/google_sheets.py",
+      "enabled": true
+    },
+    {
+      "name": "github",
+      "definition_cid": "reference_templates/servers/definitions/github.py",
+      "enabled": true
+    },
+    {
+      "name": "notion",
+      "definition_cid": "reference_templates/servers/definitions/notion.py",
+      "enabled": true
+    },
+    {
+      "name": "stripe",
+      "definition_cid": "reference_templates/servers/definitions/stripe.py",
+      "enabled": true
+    },
+    {
+      "name": "zendesk",
+      "definition_cid": "reference_templates/servers/definitions/zendesk.py",
+      "enabled": true
+    },
+    {
+      "name": "slack",
+      "definition_cid": "reference_templates/servers/definitions/slack.py",
+      "enabled": true
+    },
+    {
       "name": "jinja",
       "definition_cid": "reference_templates/servers/definitions/jinja_renderer.py",
       "enabled": true

@@ -1,0 +1,6 @@
+{
+  "id": "slack",
+  "name": "Slack",
+  "description": "Send a message to a Slack channel using chat.postMessage.",
+  "definition_file": "definitions/slack.py"
+}
