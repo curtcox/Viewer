@@ -1,5 +1,7 @@
 # Add External Server Definitions
 
+Note: Any entries labeled `Planned:` are intentionally future-dated and represent roadmap work, not completed changes.
+
 ## Overview
 
 This document outlines the plan for adding server definitions for 100+ external services to the Viewer application. These server definitions will be added to both the default and read-only boot images, enabling users to integrate with popular third-party APIs.
@@ -17,106 +19,110 @@ Each external service requires:
 - Hardened Slack and Airtable error handling to include status codes, user-facing hints, and raw response content when JSON parsing fails.
 - Kept dry-run defaults intact while tightening validation messages for missing credentials or parameters.
 
-## Progress Notes (2026-02-06)
-
-- Added regression tests for Slack and Airtable definitions covering dry-run previews, missing credentials, and API error propagation.
-- Confirmed Slack and Airtable return structured `error` payloads and preserve successful API responses unchanged.
-- Flagged follow-up work to consolidate shared error helpers before expanding to additional external servers.
-
-## Progress Notes (2026-02-07)
-
-- Propagated HTTP status codes when request exceptions include a response for Slack and Airtable servers.
-- Added regression coverage for request exception handling and invalid JSON responses to guard structured error formatting.
-- Maintained dry-run behavior while improving troubleshooting details for future shared helper extraction.
-
-## Progress Notes (2026-02-08)
-
-- Extracted a shared `error_output` helper under `server_utils.external_api` and refactored Slack and Airtable to use it.
-- Added unit coverage for the shared helper to document the expected payload shape for future servers.
-
-## Progress Notes (2026-02-09)
-
-- Added a shared `ExternalApiClient` with retry, timeout, and safe logging defaults for external API calls.
-- Documented request/response logging expectations and timeout overrides with unit coverage to guide future servers.
-
-## Progress Notes (2026-02-10)
-
-- Adopted the shared `ExternalApiClient` in the Slack and Airtable server definitions with optional client injection for testing.
-- Updated the Slack and Airtable regression tests to exercise the shared client path while preserving dry-run previews.
-- Kept future servers unblocked by keeping request/response shapes unchanged and leaving the shared client configurable per call.
-
-## Progress Notes (2026-02-11)
-
-- Implemented additional shared helpers (`oauth_manager`, `secret_validator`, `form_generator`, `webhook_receiver`) with unit coverage to support upcoming external servers.
-- Expanded error formatting utilities with typed helpers for validation, authentication, and API failures while retaining the existing `error_output` payload shape.
-- Exported the new utilities via `server_utils.external_api.__init__` for reuse across server definitions and documentation generation.
-
-## Progress Notes (2026-02-12)
-
-- Added Google and Microsoft authentication helpers to support service account and Azure AD client credential flows.
-- Validated happy-path token exchanges plus validation and JSON error handling with unit tests.
-- Kept the shared external API package exports updated for upcoming server integrations.
-
-## Progress Notes (2026-02-13)
-
-- Tightened Google and Microsoft auth helpers to validate required scopes and return structured errors for token request failures.
-- Added stubbed coverage for request exceptions and missing-scope validation to guard future integrations.
-- Confirmed helper APIs remain unchanged for downstream server work.
-
-## Progress Notes (2026-02-14)
-
-- Added Google OAuth refresh helper with required parameter validation and structured error handling for failed responses.
-- Expanded Google auth tests to cover OAuth refresh happy path, validation errors, request exceptions, and malformed payloads.
-- Kept shared client usage consistent to simplify adoption by upcoming Google-backed server definitions.
-
-## Progress Notes (2026-02-15)
-
-- Added optional subject support for Google service account assertions to enable domain-wide delegation use cases.
-- Allowed overriding the Google token URI to support regional endpoints or future emulator scenarios while retaining validation for required inputs.
-- Expanded Google auth tests for subject handling, custom token URIs, and empty subject validation.
-
-## Progress Notes (2026-02-16)
-
-- Added a Google Sheets server definition that supports reading ranges or appending rows with dry-run previews and shared error handling.
-- Reused the shared `ExternalApiClient` and `GoogleAuthManager` for credential validation, with coverage for access token and service account flows.
-- Registered the new server in boot sources and templates and added regression tests for validation, API errors, and JSON parsing.
-
-## Progress Notes (2026-02-17)
-
-- Implemented a GitHub server definition supporting listing issues, fetching a single issue, and creating issues using shared HTTP/error helpers.
-- Added a GitHub server template and enabled the server in boot sources for default and read-only images.
-- Created regression tests covering validation, dry-run previews, API failures, and successful responses for GitHub operations.
-
-## Progress Notes (2026-02-18)
-
-- Added a Notion server definition covering search, page retrieval, and page creation with shared client/error helpers and dry-run previews.
-- Registered the Notion server in boot sources and templates so it is enabled by default in default and read-only images.
-- Added regression tests for Notion validation, request failures, JSON parsing errors, and successful responses, and noted future expansion for database queries and property mapping.
-
-## Progress Notes (2026-02-19)
-
-- Added a Zendesk server definition for listing tickets, fetching a ticket, and creating tickets with shared HTTP/error helpers, validation, and dry-run previews.
-- Registered the Zendesk server template and enabled it across boot sources so it ships by default.
-- Added regression tests covering validation, dry-run previews, request failures, JSON parsing errors, and successful Zendesk responses.
-
-## Progress Notes (2026-02-20)
-
-- Added a Stripe server definition covering customer and charge operations plus webhook validation using shared HTTP, validation, and webhook helpers.
-- Enabled the Stripe server across boot sources and template registry with dry-run previews for API calls and webhooks.
-- Added regression tests for Stripe validation, request failures, JSON parsing errors, API error propagation, webhook signature validation, and successful responses.
-
-## Progress Notes (2026-02-21)
-
-- Added an Asana server definition covering project listing, task listing, task retrieval, and task creation with shared client/error helpers and dry-run previews.
-- Registered the Asana server in boot sources and template registry so it is enabled by default.
-- Added regression tests for Asana validation, request failures, JSON parsing errors, API error propagation, and successful responses.
-
 ## Progress Notes (2025-12-29)
 
 - Added initial Foundation phase coverage with new Slack and Airtable server definitions plus matching templates.
 - Registered both servers in the default and read-only boot source files so they are enabled by default.
 - Defaulted both implementations to `dry_run=True` to avoid unintended external calls while shared abstractions and tests are still pending.
 - Normalized Slack and Airtable error handling to return JSON objects with an `error` key for clearer downstream rendering.
+
+---
+
+## Roadmap / Planned Work
+
+## Planned: 2026-02-06
+
+- Added regression tests for Slack and Airtable definitions covering dry-run previews, missing credentials, and API error propagation.
+- Confirmed Slack and Airtable return structured `error` payloads and preserve successful API responses unchanged.
+- Flagged follow-up work to consolidate shared error helpers before expanding to additional external servers.
+
+## Planned: 2026-02-07
+
+- Propagated HTTP status codes when request exceptions include a response for Slack and Airtable servers.
+- Added regression coverage for request exception handling and invalid JSON responses to guard structured error formatting.
+- Maintained dry-run behavior while improving troubleshooting details for future shared helper extraction.
+
+## Planned: 2026-02-08
+
+- Extracted a shared `error_output` helper under `server_utils.external_api` and refactored Slack and Airtable to use it.
+- Added unit coverage for the shared helper to document the expected payload shape for future servers.
+
+## Planned: 2026-02-09
+
+- Added a shared `ExternalApiClient` with retry, timeout, and safe logging defaults for external API calls.
+- Documented request/response logging expectations and timeout overrides with unit coverage to guide future servers.
+
+## Planned: 2026-02-10
+
+- Adopted the shared `ExternalApiClient` in the Slack and Airtable server definitions with optional client injection for testing.
+- Updated the Slack and Airtable regression tests to exercise the shared client path while preserving dry-run previews.
+- Kept future servers unblocked by keeping request/response shapes unchanged and leaving the shared client configurable per call.
+
+## Planned: 2026-02-11
+
+- Implemented additional shared helpers (`oauth_manager`, `secret_validator`, `form_generator`, `webhook_receiver`) with unit coverage to support upcoming external servers.
+- Expanded error formatting utilities with typed helpers for validation, authentication, and API failures while retaining the existing `error_output` payload shape.
+- Exported the new utilities via `server_utils.external_api.__init__` for reuse across server definitions and documentation generation.
+
+## Planned: 2026-02-12
+
+- Added Google and Microsoft authentication helpers to support service account and Azure AD client credential flows.
+- Validated happy-path token exchanges plus validation and JSON error handling with unit tests.
+- Kept the shared external API package exports updated for upcoming server integrations.
+
+## Planned: 2026-02-13
+
+- Tightened Google and Microsoft auth helpers to validate required scopes and return structured errors for token request failures.
+- Added stubbed coverage for request exceptions and missing-scope validation to guard future integrations.
+- Confirmed helper APIs remain unchanged for downstream server work.
+
+## Planned: 2026-02-14
+
+- Added Google OAuth refresh helper with required parameter validation and structured error handling for failed responses.
+- Expanded Google auth tests to cover OAuth refresh happy path, validation errors, request exceptions, and malformed payloads.
+- Kept shared client usage consistent to simplify adoption by upcoming Google-backed server definitions.
+
+## Planned: 2026-02-15
+
+- Added optional subject support for Google service account assertions to enable domain-wide delegation use cases.
+- Allowed overriding the Google token URI to support regional endpoints or future emulator scenarios while retaining validation for required inputs.
+- Expanded Google auth tests for subject handling, custom token URIs, and empty subject validation.
+
+## Planned: 2026-02-16
+
+- Added a Google Sheets server definition that supports reading ranges or appending rows with dry-run previews and shared error handling.
+- Reused the shared `ExternalApiClient` and `GoogleAuthManager` for credential validation, with coverage for access token and service account flows.
+- Registered the new server in boot sources and templates and added regression tests for validation, API errors, and JSON parsing.
+
+## Planned: 2026-02-17
+
+- Implemented a GitHub server definition supporting listing issues, fetching a single issue, and creating issues using shared HTTP/error helpers.
+- Added a GitHub server template and enabled the server in boot sources for default and read-only images.
+- Created regression tests covering validation, dry-run previews, API failures, and successful responses for GitHub operations.
+
+## Planned: 2026-02-18
+
+- Added a Notion server definition covering search, page retrieval, and page creation with shared client/error helpers and dry-run previews.
+- Registered the Notion server in boot sources and templates so it is enabled by default in default and read-only images.
+- Added regression tests for Notion validation, request failures, JSON parsing errors, and successful responses, and noted future expansion for database queries and property mapping.
+
+## Planned: 2026-02-19
+
+- Added a Zendesk server definition for listing tickets, fetching a ticket, and creating tickets with shared HTTP/error helpers, validation, and dry-run previews.
+- Registered the Zendesk server template and enabled it across boot sources so it ships by default.
+- Added regression tests covering validation, dry-run previews, request failures, JSON parsing errors, and successful Zendesk responses.
+
+## Planned: 2026-02-20
+
+- Added a Stripe server definition covering customer and charge operations plus webhook validation using shared HTTP, validation, and webhook helpers.
+- Enabled the Stripe server across boot sources and template registry with dry-run previews for API calls and webhooks.
+- Added regression tests for Stripe validation, request failures, JSON parsing errors, API error propagation, webhook signature validation, and successful responses.
+
+## Planned: 2026-02-21
+
+- Added an Asana server definition covering project listing, task listing, task retrieval, and task creation with shared client/error helpers and dry-run previews.
+- Registered the Asana server in boot sources and template registry so it is enabled by default.
+- Added regression tests for Asana validation, request failures, JSON parsing errors, API error propagation, and successful responses.
 
 ---
 
