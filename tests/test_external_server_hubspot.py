@@ -2,7 +2,6 @@
 
 from unittest.mock import Mock
 
-import pytest
 import requests
 
 from reference_templates.servers.definitions import hubspot

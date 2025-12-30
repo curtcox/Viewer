@@ -682,15 +682,18 @@
     },
     {
       "name": "hubspot",
-      "definition_file": "servers/definitions/hubspot.py"
+      "definition_cid": "reference_templates/servers/definitions/hubspot.py",
+      "enabled": true
     },
     {
       "name": "mailchimp",
-      "definition_file": "servers/definitions/mailchimp.py"
+      "definition_cid": "reference_templates/servers/definitions/mailchimp.py",
+      "enabled": true
     },
     {
       "name": "zoom",
-      "definition_file": "servers/definitions/zoom.py"
+      "definition_cid": "reference_templates/servers/definitions/zoom.py",
+      "enabled": true
     }
   ],
   "variables": [
