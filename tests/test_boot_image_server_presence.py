@@ -24,6 +24,7 @@ NON_COMMAND_SERVER_DEFINITIONS = {
     "glom": "glom.py",
     "hrx": "hrx.py",
     "gateway": "gateway.py",
+    "mcp": "mcp.py",
     "io": "io.py",
     "files": "files.py",
     "cid_links": "cid_links.py",
