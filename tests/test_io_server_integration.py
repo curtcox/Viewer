@@ -25,7 +25,7 @@ class TestIOBootImageConfiguration(unittest.TestCase):
 
         self.assertTrue(boot_file.exists(), f"Boot file not found: {boot_file}")
 
-        with open(boot_file, "r") as f:
+        with open(boot_file, "r", encoding="utf-8") as f:
             boot_config = json.load(f)
 
         servers = boot_config.get("servers", [])
@@ -40,7 +40,7 @@ class TestIOBootImageConfiguration(unittest.TestCase):
 
         self.assertTrue(boot_file.exists(), f"Boot file not found: {boot_file}")
 
-        with open(boot_file, "r") as f:
+        with open(boot_file, "r", encoding="utf-8") as f:
             boot_config = json.load(f)
 
         servers = boot_config.get("servers", [])

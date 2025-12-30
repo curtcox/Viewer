@@ -90,7 +90,7 @@ def then_response_is_json() -> None:
     try:
         json.loads(data)
     except json.JSONDecodeError as e:
-        raise AssertionError(f"Response is not valid JSON: {e}")
+        raise AssertionError(f"Response is not valid JSON: {e}") from e
 
 
 @step("Then the response should be valid JSON")
