@@ -572,6 +572,10 @@
     {
       "name": "mailchimp",
       "definition_file": "servers/definitions/mailchimp.py"
+    },
+    {
+      "name": "zoom",
+      "definition_file": "servers/definitions/zoom.py"
     }
   ],
   "variables": [

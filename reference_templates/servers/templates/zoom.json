@@ -1,0 +1,59 @@
+{
+  "name": "zoom",
+  "description": "Interact with Zoom API to manage meetings and users",
+  "definition_file": "definitions/zoom.py",
+  "documentation_url": "https://marketplace.zoom.us/docs/api-reference",
+  "operations": {
+    "read": [
+      "list_meetings - List meetings for a user",
+      "get_meeting - Get a specific meeting by ID",
+      "list_users - List all users",
+      "get_user - Get a specific user"
+    ],
+    "write": [
+      "create_meeting - Create a new meeting"
+    ]
+  },
+  "secrets": {
+    "ZOOM_ACCESS_TOKEN": "OAuth access token for Zoom API"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_meetings",
+        "get_meeting",
+        "create_meeting",
+        "list_users",
+        "get_user"
+      ],
+      "default": "list_meetings"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID or 'me' for authenticated user",
+      "default": "me"
+    },
+    "meeting_id": {
+      "type": "string",
+      "description": "Meeting ID (required for get_meeting)",
+      "required_for": ["get_meeting"]
+    },
+    "meeting_data": {
+      "type": "object",
+      "description": "Meeting properties for create_meeting",
+      "required_for": ["create_meeting"]
+    },
+    "page_size": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 30
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}
