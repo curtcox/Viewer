@@ -168,4 +168,3 @@ def test_process_webhook_invalid_signature():
 
     assert result["output"]["error"]["message"] == "Invalid webhook signature"
     assert result["output"]["error"]["status_code"] == 401
-

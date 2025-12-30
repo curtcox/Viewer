@@ -345,8 +345,6 @@ def test_new_server_form_includes_saved_templates(
 
     with integration_app.app_context():
         # Create centralized templates variable with server template
-        import json
-
         templates_config = {
             "aliases": {},
             "servers": {
@@ -383,8 +381,6 @@ def test_new_server_form_includes_template_link(
     """New server form should display a link to /variables/templates with status."""
 
     with integration_app.app_context():
-        import json
-
         templates_config = {
             "aliases": {},
             "servers": {
