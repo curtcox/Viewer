@@ -1,0 +1,65 @@
+{
+  "name": "mailchimp",
+  "description": "Interact with Mailchimp API to manage audiences, campaigns, and members",
+  "definition_file": "definitions/mailchimp.py",
+  "documentation_url": "https://mailchimp.com/developer/marketing/api/",
+  "operations": {
+    "read": [
+      "list_lists - List all audiences/lists",
+      "get_list - Get a specific list by ID",
+      "get_member - Get a specific member from a list",
+      "list_campaigns - List all campaigns",
+      "get_campaign - Get a specific campaign by ID"
+    ],
+    "write": [
+      "add_member - Add a member to a list"
+    ]
+  },
+  "secrets": {
+    "MAILCHIMP_API_KEY": "Mailchimp API key in format key-datacenter (e.g., key-us1)"
+  },
+  "parameters": {
+    "operation": {
+      "type": "string",
+      "description": "Operation to perform",
+      "options": [
+        "list_lists",
+        "get_list",
+        "add_member",
+        "get_member",
+        "list_campaigns",
+        "get_campaign"
+      ],
+      "default": "list_lists"
+    },
+    "list_id": {
+      "type": "string",
+      "description": "List/Audience ID",
+      "required_for": ["get_list", "add_member", "get_member"]
+    },
+    "email": {
+      "type": "string",
+      "description": "Member email address",
+      "required_for": ["add_member", "get_member"]
+    },
+    "member_data": {
+      "type": "object",
+      "description": "Additional member properties for add_member"
+    },
+    "campaign_id": {
+      "type": "string",
+      "description": "Campaign ID",
+      "required_for": ["get_campaign"]
+    },
+    "count": {
+      "type": "integer",
+      "description": "Maximum number of results for list operations",
+      "default": 100
+    },
+    "dry_run": {
+      "type": "boolean",
+      "description": "Preview the request without making API call",
+      "default": true
+    }
+  }
+}

@@ -683,6 +683,10 @@
     {
       "name": "hubspot",
       "definition_file": "servers/definitions/hubspot.py"
+    },
+    {
+      "name": "mailchimp",
+      "definition_file": "servers/definitions/mailchimp.py"
     }
   ],
   "variables": [
