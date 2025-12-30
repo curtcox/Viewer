@@ -1,4 +1,5 @@
 {
+  "id": "stripe",
   "name": "Stripe",
   "description": "List or create customers, list charges, or validate webhooks in Stripe",
   "definition_cid": "reference_templates/servers/definitions/stripe.py",

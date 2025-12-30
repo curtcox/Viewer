@@ -1,4 +1,5 @@
 {
+  "id": "github",
   "name": "GitHub",
   "description": "List or create issues in a GitHub repository.",
   "definition_cid": "reference_templates/servers/definitions/github.py",

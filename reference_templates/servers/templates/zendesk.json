@@ -1,4 +1,5 @@
 {
+  "id": "zendesk",
   "name": "Zendesk",
   "description": "List, retrieve, or create Zendesk tickets using Basic auth with API tokens.",
   "definition_cid": "reference_templates/servers/definitions/zendesk.py",

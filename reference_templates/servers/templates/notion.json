@@ -1,4 +1,5 @@
 {
+  "id": "notion",
   "name": "Notion",
   "description": "Search, retrieve, or create pages in Notion.",
   "definition_cid": "reference_templates/servers/definitions/notion.py",

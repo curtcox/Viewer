@@ -1,4 +1,5 @@
 {
+  "id": "asana",
   "name": "Asana",
   "description": "Manage Asana projects and tasks with personal access tokens.",
   "definition_cid": "reference_templates/servers/definitions/asana.py",

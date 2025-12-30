@@ -92,42 +92,42 @@
     },
     {
       "name": "airtable",
-      "definition_cid": "AAAAABHP8QZ6Gq6NM80SDjK_4rD20aVPJ_rMcz11j2R7D3QOut-4el_nm20jMVOp1z8AZWPVvnhPiwBhITbuThh9K_Irbg",
+      "definition_cid": "AAAAABHoWGnTydVTF_gBwG1um8Y8fS6M7KtRmhCIIcHLte9Ass9Fk8UQHoDED1mEJtlZCp3Cbxbw6JSr_Y8QvmR4cogjOQ",
       "enabled": true
     },
     {
       "name": "asana",
-      "definition_cid": "AAAAABQ4DUQyuMbg-vnXhWLA3RhdUUnRPyTeQTBmnPlu9tsMoKUZaW2DgdODJgERsO_41tq8vGKhTQnvb0I0tAJw5zIC9A",
+      "definition_cid": "AAAAABRRVZqzf62umLVOWqyk4HT9c3AbjKQStJ0nSh_X1Svs4WDQeqVqF3Adx42RjgNq4bRpTfTPE2omy8GTYwhhMdrqFA",
       "enabled": true
     },
     {
       "name": "google_sheets",
-      "definition_cid": "AAAAABoR59FOEVb0LhnvhIHLFNtNQ6QnTpCCK_KsaWS0xMO0J56y1O6vS_6iOF0LK0NRoTWIJhFJqEh1CI7xBv76WCfoAw",
+      "definition_cid": "AAAAABoqPKgOH-KrAi2N8v9E3RmKUGKvBxm2W_uWQm93CC3eKKThbPWUeQHc2cvfMzVSLL8J-M7Aoui9bWP_1J_KraMhvQ",
       "enabled": true
     },
     {
       "name": "github",
-      "definition_cid": "AAAAABFkgYD5SwJ0w8OECQQBlm40jxLdNLpOD4hYlpAqKwF_mXB_Y666XfmimgY7fZmxHcVnURwDTLLPsTXPnh7HB67ceg",
+      "definition_cid": "AAAAABF96PuzvNKl61Ys7eOGn0f4SXHtiZe8xKp1kWYmrR_tU3jdOlyf5BfYUDrytoRPyHGoLmT8ClIM5tLG7nPLttOLTQ",
       "enabled": true
     },
     {
       "name": "notion",
-      "definition_cid": "AAAAABBfUmaUF95IalPv8jfYchJSnPZ8KjpaEkFfZxdYgfZaFnn24Mas_CsgE77Zztdn-ET8I7HxgI7bA5nYFOmLEYkTsg",
+      "definition_cid": "AAAAABB4lY1ZwphGf0XrLnbLLdqpxIAbp82ZquCkV-Mw4RDG5Ind9ZSGsfbWBlayisIv7HrCEx46zavhY19RKwayIF124w",
       "enabled": true
     },
     {
       "name": "stripe",
-      "definition_cid": "AAAAABlYyRKfUrDVVm3s_prCtRGFa-rA1v3wHfuxz3Iob8ozwv3lOAIRYMDmg2f0v3OI_SzXw4z_c1Pk8R0YNHRoX-GoZQ",
+      "definition_cid": "AAAAABlxwvAtLTzJZRs1ylMK1wrGA3mEwYJGRNt7ehQhACJ3xLGHHWzTkIgjql9iisdmukfrg1v3HwKxKcJSUFclrvvsPg",
       "enabled": true
     },
     {
       "name": "zendesk",
-      "definition_cid": "AAAAABJOQDpaFu_OP19J68Hvqi8-1BM-Li4TPj2jsA9sz8TM1hjD3x9Ttq5SyoQB1FHVTnT0u1m7h-r6mBEYZS3QSj554Q",
+      "definition_cid": "AAAAABJnVPpIbgAFju1TQhkGl3m4uLGbfkBiWIoFKTGt0d8e31K865Rb-TBVAHOVArKsj8xnUePvTGGIKJy0EFuquNwUpw",
       "enabled": true
     },
     {
       "name": "slack",
-      "definition_cid": "AAAAAAjq6uAvu7zJ5T0_Nn4wlXAVVrvhK_y4PJVYCFltS-Gxh_Tu6istwJH-bejw7tKQQ3YqVT_HUG7kvev7P5-OVHQZnw",
+      "definition_cid": "AAAAAAkDjEwRhcZSV_ttRzDnx8zi2_togD9wlyPUIojgljQbyw-MPKxGAweRNFXkKd5n8uxXeePj-vt18DvlSTit9a70NA",
       "enabled": true
     },
     {
@@ -679,7 +679,7 @@
   "variables": [
     {
       "name": "templates",
-      "definition": "AAAAACC43hnN7k8OSkLx7voDnRsddqDP-Kz0-3S34sZ9nqVwKRYkkKvxjyFTxV8wkdD-9i_Mze5QJIgnGVBoxwNnUrlx8Q",
+      "definition": "AAAAACC4i4EE0l4swJ4efE67y0iPIyAaelqbAAFhZVJap_VEHJS5SsPtWH5acXI2UNLI-mGsS7gMjmnOxbC4LXmfhjhv2w",
       "enabled": true
     },
     {
