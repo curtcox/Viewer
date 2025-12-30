@@ -613,24 +613,19 @@ def _discover_server_tools(server_name: str, context: Optional[Dict] = None) -> 
     if not server_def:
         return []
 
-    # server_def might be a string (the definition itself) or a dict with definition_cid
-    if isinstance(server_def, str):
-        server_code = server_def
-    elif isinstance(server_def, dict):
-        definition_cid = server_def.get("definition_cid")
-        if not definition_cid:
-            return []
-        # Get the server code
-        server_code = _get_cid_content(definition_cid, context)
-        if not server_code:
-            return []
-    else:
+    definition_cid = server_def.get("definition_cid")
+    if not definition_cid:
+        return []
+
+    # Get the server code
+    server_code = _get_cid_content(definition_cid, context)
+    if not server_code:
         return []
 
     # Check if it's a Python or shell server
-    if "def main(" in server_code:
+    if ".py" in definition_cid or "def main(" in server_code:
         return _discover_python_tools(server_name, server_code)
-    elif "@bash_command" in server_code:
+    elif ".sh" in definition_cid or "@bash_command" in server_code:
         return _discover_shell_tools(server_name, server_code)
 
     return []
