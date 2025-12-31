@@ -3,6 +3,7 @@
 """Response transform for JSONPlaceholder API gateway.
 
 Transforms JSONPlaceholder API responses into formatted HTML with clickable links.
+Uses external Jinja templates from the gateway config.
 """
 
 from html import escape
@@ -21,13 +22,20 @@ def transform_response(response_details: dict, context: dict) -> dict:
     request_path = response_details.get("request_path", "")
     status_code = response_details.get("status_code", 200)
     json_data = response_details.get("json")
+    
+    # Get template resolver from context
+    resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured in gateway config")
 
-    # If not JSON or error, return raw response
+    # If not JSON or error, handle appropriately
     if json_data is None:
         text = response_details.get("text", "")
         if status_code >= 400:
+            template = resolve_template("jsonplaceholder_error.html")
+            html = template.render(status_code=status_code, message=text)
             return {
-                "output": _render_error_page(status_code, text),
+                "output": html,
                 "content_type": "text/html",
             }
         return {
@@ -37,96 +45,21 @@ def transform_response(response_details: dict, context: dict) -> dict:
             ),
         }
 
-    # Format JSON as HTML with links
-    html_output = _render_json_as_html(json_data, request_path)
-
-    return {
-        "output": html_output,
-        "content_type": "text/html",
-    }
-
-
-def _render_error_page(status_code: int, message: str) -> str:
-    """Render an error page."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Error {status_code}</title>
-    <style>
-        body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1e1e1e; color: #d4d4d4; }}
-        .error {{ background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; }}
-        h1 {{ color: #f44; }}
-        a {{ color: #4ec9b0; }}
-    </style>
-</head>
-<body>
-    <div class="error">
-        <h1>Error {status_code}</h1>
-        <p>{escape(message)}</p>
-    </div>
-    <p><a href="/gateway/jsonplaceholder">Back to JSONPlaceholder</a></p>
-</body>
-</html>"""
-
-
-def _render_json_as_html(data, request_path: str) -> str:
-    """Render JSON data as formatted HTML with embedded links."""
-    # Build breadcrumb from path
+    # Format JSON with links and render with template
     breadcrumb = _build_breadcrumb(request_path)
-
-    html_parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        '    <meta charset="utf-8">',
-        "    <title>JSONPlaceholder - " + escape(request_path or "/") + "</title>",
-        "    <style>",
-        "        body { font-family: 'Courier New', monospace; max-width: 1200px; margin: 2rem auto; padding: 0 1rem; background: #1e1e1e; color: #d4d4d4; }",
-        "        pre { background: #252526; padding: 1.5rem; border-radius: 8px; overflow-x: auto; line-height: 1.5; }",
-        "        .json-key { color: #9cdcfe; }",
-        "        .json-string { color: #ce9178; }",
-        "        .json-number { color: #b5cea8; }",
-        "        .json-boolean { color: #569cd6; }",
-        "        .json-null { color: #569cd6; }",
-        "        .json-link { color: #4ec9b0; text-decoration: underline; cursor: pointer; }",
-        "        .json-link:hover { color: #4fc3f7; }",
-        "        h1 { color: #4ec9b0; font-size: 1.5rem; }",
-        "        .breadcrumb { color: #858585; margin-bottom: 1rem; }",
-        "        .breadcrumb a { color: #4ec9b0; text-decoration: none; }",
-        "        .breadcrumb a:hover { text-decoration: underline; }",
-        "        .nav { margin-bottom: 1rem; }",
-        "        .nav a { color: #4ec9b0; margin-right: 1rem; text-decoration: none; }",
-        "        .nav a:hover { text-decoration: underline; }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        f'    <div class="breadcrumb">{breadcrumb}</div>',
-        '    <div class="nav">',
-        '        <a href="/gateway/jsonplaceholder/posts">Posts</a>',
-        '        <a href="/gateway/jsonplaceholder/users">Users</a>',
-        '        <a href="/gateway/jsonplaceholder/comments">Comments</a>',
-        '        <a href="/gateway/jsonplaceholder/albums">Albums</a>',
-        '        <a href="/gateway/jsonplaceholder/photos">Photos</a>',
-        '        <a href="/gateway/jsonplaceholder/todos">Todos</a>',
-        "    </div>",
-        "    <h1>API Response</h1>",
-        "    <pre>",
-    ]
-
-    # Format JSON with syntax highlighting and links
-    formatted_json = _format_json_with_links(data, indent=0)
-    html_parts.append(formatted_json)
-
-    html_parts.extend(
-        [
-            "    </pre>",
-            "</body>",
-            "</html>",
-        ]
+    formatted_json = _format_json_with_links(json_data, indent=0)
+    
+    template = resolve_template("jsonplaceholder_data.html")
+    html = template.render(
+        request_path=request_path,
+        breadcrumb=breadcrumb,
+        formatted_json=formatted_json,
     )
 
-    return "\n".join(html_parts)
+    return {
+        "output": html,
+        "content_type": "text/html",
+    }
 
 
 def _build_breadcrumb(request_path: str) -> str:

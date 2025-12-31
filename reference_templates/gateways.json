@@ -1,8 +1,12 @@
 {
   "jsonplaceholder": {
     "request_transform_cid": "AAAAAAcDEabo_ndn5uPJMow30GGL0RLFsoYfI9pnnqEv8WCexbJ83SRmjz9Ami1Mm107AgKEYZityZOHnuis0XRqxz91Cw",
-    "response_transform_cid": "AAAAAB1-VAz_2GRbZAAX4hfLbCRvvMQ68e-LrChs0VPbbK2AkcUNhuSKDHGwX4QkyVgBuxjpsqlqGVuFkxzYamUYBa6uDg",
-    "description": "JSONPlaceholder fake REST API for testing"
+    "response_transform_cid": "AAAAABMBka1ujKT8nnLo5eRCI5bk6nFk2lkKxAmOs77UHn3LAHZRtS4lAseIzmoRd4EF-xTOr1ihmX_AWlND_k6fjGMhOg",
+    "description": "JSONPlaceholder fake REST API for testing",
+    "templates": {
+      "jsonplaceholder_data.html": "AAAAAAadOwnWJJZIzVUgVozR_MzC-7shgL0tXbXfA2oU1LgLtdnhmdYHKOjgtdRfp98GEgYGV0l0Ks-FL5EocXrBtEFaMA",
+      "jsonplaceholder_error.html": "AAAAAAKQWG0ef5l6OUZ-8j_vWthCXyDxa1uIBjm-a_UlOm5cJhXSspOWd-FGdAIbgxUj2MeWSh8TmO4j8S9La1BfZihJCQ"
+    }
   },
   "man": {
     "request_transform_cid": "AAAAAAaMsYabK_PVL6O5dzLo5umUZVUNc4TCX9_jpOmgZRfYS7q9ucBUhXLj5xUbrDGu7usooPXFj52vkLuEPHVi0RfO2Q",
