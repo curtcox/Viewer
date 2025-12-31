@@ -1,0 +1,15 @@
+{
+  "id": "google_ads",
+  "name": "Google Ads API",
+  "description": "Manage Google Ads campaigns and retrieve reports.",
+  "definition_file": "definitions/google_ads.py",
+  "documentation_url": "https://developers.google.com/google-ads/api",
+  "operations": {
+    "read": [
+      "list_campaigns - List all campaigns",
+      "get_campaign - Get campaign details",
+      "search - Execute GAQL search query"
+    ],
+    "write": []
+  }
+}

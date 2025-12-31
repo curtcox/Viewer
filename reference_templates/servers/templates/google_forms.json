@@ -1,0 +1,17 @@
+{
+  "id": "google_forms",
+  "name": "Google Forms API",
+  "description": "Create forms and retrieve responses.",
+  "definition_file": "definitions/google_forms.py",
+  "documentation_url": "https://developers.google.com/forms/api",
+  "operations": {
+    "read": [
+      "get_form - Get form structure",
+      "list_responses - List form responses",
+      "get_response - Get a specific response"
+    ],
+    "write": [
+      "create_form - Create a new form"
+    ]
+  }
+}

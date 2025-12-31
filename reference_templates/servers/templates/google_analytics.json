@@ -1,0 +1,15 @@
+{
+  "id": "google_analytics",
+  "name": "Google Analytics Data API",
+  "description": "Retrieve analytics reports and metrics.",
+  "definition_file": "definitions/google_analytics.py",
+  "documentation_url": "https://developers.google.com/analytics/devguides/reporting",
+  "operations": {
+    "read": [
+      "run_report - Run a standard report",
+      "run_realtime_report - Run a realtime report",
+      "get_metadata - Get available dimensions and metrics"
+    ],
+    "write": []
+  }
+}
