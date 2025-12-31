@@ -256,6 +256,7 @@ All open questions have been resolved. The following decisions guide the impleme
 
 ## Future Changes
 
+- **Implement `content_decoder.py`** - See `todo/external_request_tool.md` for the plan to add centralized compression handling. Once implemented, servers accessing `response.content` directly should use `auto_decode_response()` instead of implementing their own decompression logic.
 - Expand shared helpers (error formatting, HTTP client, secret validation) as additional servers come online.
 - Extend shared HTTP client usage to upcoming servers now that Slack and Airtable are migrated; adjust retry/backoff defaults if production usage reveals new needs.
 - Generate updated `boot.json`, `default.boot.json`, and `readonly.boot.json` (plus `.cid` files) once CID generation is available so Slack and Airtable appear in the compiled boot images.
@@ -301,7 +302,8 @@ server_utils/
     ├── form_generator.py     # Generate helpful forms for servers
     ├── secret_validator.py   # Validate secrets before API calls
     ├── api_logger.py         # Safe logging (no secrets)
-    └── webhook_receiver.py   # Generic webhook receiver
+    ├── webhook_receiver.py   # Generic webhook receiver
+    └── content_decoder.py    # Handle compressed responses (gzip, deflate, brotli)
 ```
 
 ### 1. HTTP Client (`http_client.py`)
@@ -905,6 +907,52 @@ def validate_api_key_with_endpoint(
 
 Generic webhook receiver for services that support webhooks.
 
+### 8. Content Decoder (`content_decoder.py`)
+
+Centralized handling of compressed HTTP response content. **See `todo/external_request_tool.md` for full details.**
+
+```python
+"""Content decoder for HTTP responses with compressed content."""
+
+import gzip
+import zlib
+from typing import Optional, Union
+
+
+def decode_content(
+    content: Union[bytes, bytearray, str],
+    content_encoding: Optional[str],
+) -> bytes:
+    """
+    Decode HTTP response content based on Content-Encoding header.
+
+    Handles gzip, deflate, and brotli encodings.
+    """
+    # ... implementation in todo/external_request_tool.md ...
+
+
+def auto_decode_response(response) -> bytes:
+    """
+    Extract and decode content from a requests.Response object.
+
+    Use this instead of response.content when the upstream server
+    may return compressed content.
+    """
+    content = response.content
+    content_encoding = response.headers.get("Content-Encoding")
+    return decode_content(content, content_encoding)
+```
+
+**When to use:**
+- When your server accesses `response.content` directly (binary data)
+- When proxying to external servers that may compress responses
+- When you cannot rely on `.json()` or `.text` (which auto-decompress)
+
+**When NOT needed:**
+- When using `response.json()` (requests auto-decompresses)
+- When using `response.text` (requests auto-decompresses)
+- For internal-only servers (no external HTTP calls)
+
 ```python
 """Generic webhook receiver for external services."""
 
@@ -1003,6 +1051,7 @@ Each shared module needs comprehensive tests:
 | `form_generator.py` | `tests/test_external_api_forms.py` | Form generation, field types, examples |
 | `secret_validator.py` | `tests/test_external_api_secrets.py` | Validation, endpoint validation |
 | `webhook_receiver.py` | `tests/test_external_api_webhooks.py` | Signature validation, payload processing |
+| `content_decoder.py` | `tests/test_external_api_content_decoder.py` | gzip/deflate/brotli decompression, stacked encodings, error handling |
 
 ---
 
@@ -1220,6 +1269,31 @@ Pooling servers accept a generic connection string parameter.
 
 ## Updated Implementation Pattern
 
+### Content Encoding Handling
+
+**IMPORTANT:** When implementing servers that access `response.content` directly (e.g., proxy servers, binary data handlers), use the shared `auto_decode_response()` function to handle compressed responses:
+
+```python
+from server_utils.external_api import auto_decode_response
+
+# Instead of:
+# output = response.content  # May be gzip/deflate/brotli compressed!
+
+# Use:
+output = auto_decode_response(response)  # Always returns decoded bytes
+```
+
+**When to use `auto_decode_response()`:**
+- Proxy servers forwarding binary content
+- Servers returning raw response bodies
+- Any server using `response.content` instead of `response.json()` or `response.text`
+
+**When NOT needed:**
+- Servers using `response.json()` (automatically decompressed by requests)
+- Servers using `response.text` (automatically decompressed by requests)
+
+See `todo/external_request_tool.md` for full implementation details and the list of servers requiring updates.
+
 ### Server Definition Template (Using Shared Abstractions)
 
 Each external service server will use the shared abstractions:
@@ -1349,6 +1423,7 @@ def main(
 | `tests/test_external_api_forms.py` | `form_generator.py` | Form generation, all field types, examples, documentation links |
 | `tests/test_external_api_secrets.py` | `secret_validator.py` | Missing secret, invalid format, endpoint validation |
 | `tests/test_external_api_webhooks.py` | `webhook_receiver.py` | Signature validation, payload processing |
+| `tests/test_external_api_content_decoder.py` | `content_decoder.py` | gzip/deflate/brotli decompression, stacked encodings, auto_decode_response |
 
 #### 2. Unit Tests (per server)
 Each server definition needs the following unit tests:
@@ -1408,6 +1483,7 @@ Build and test all shared abstractions before implementing any servers:
 - `server_utils/external_api/form_generator.py`
 - `server_utils/external_api/secret_validator.py`
 - `server_utils/external_api/webhook_receiver.py`
+- `server_utils/external_api/content_decoder.py` *(see `todo/external_request_tool.md`)*
 
 **Tests to create:**
 - `tests/test_external_api_http_client.py`
@@ -1418,6 +1494,7 @@ Build and test all shared abstractions before implementing any servers:
 - `tests/test_external_api_forms.py`
 - `tests/test_external_api_secrets.py`
 - `tests/test_external_api_webhooks.py`
+- `tests/test_external_api_content_decoder.py` *(see `todo/external_request_tool.md`)*
 
 **Acceptance criteria:**
 - [ ] All shared modules implemented
@@ -1591,11 +1668,12 @@ First servers using shared infrastructure as validation:
 - [ ] Sandbox/test account documented
 
 ### Shared Abstractions
-- [ ] All 8 modules implemented
+- [ ] All 9 modules implemented (including `content_decoder.py`)
 - [ ] 100% test coverage
 - [ ] No secrets logged
 - [ ] Retry behavior: max 3 retries, exponential backoff (2s, 4s, 8s)
 - [ ] Rate limit (429) triggers retry
+- [ ] Compression handling: gzip, deflate, brotli support via `auto_decode_response()`
 
 ### Overall
 - [ ] All 100+ servers implemented
@@ -1626,3 +1704,4 @@ First servers using shared infrastructure as validation:
 | Update 1 | Resolved all 17 open questions; added shared abstractions section; revised implementation phases to start with Phase 0 (shared infrastructure); added follow-up questions | Claude |
 | Update 2 | Resolved all 5 follow-up questions (Q18-Q21); confirmed top-level package location; updated OAuth manager to return tokens to caller; added separate connection/query timeouts for database servers; updated pooling servers to use generic connection strings; removed follow-up questions section | Claude |
 | Update 3 | Documented enhanced Slack and Airtable error reporting and noted refactor to shared helpers | Claude |
+| Update 4 | Added `content_decoder.py` module for centralized compression handling. Added guidance on when to use `auto_decode_response()`. See `todo/external_request_tool.md` for implementation plan. | Claude |
