@@ -1,0 +1,19 @@
+{
+  "id": "jira",
+  "name": "Jira Cloud",
+  "description": "Manage Jira Cloud projects and issues with API token and email.",
+  "definition_cid": "reference_templates/servers/definitions/jira.py",
+  "operations": [
+    "list_projects",
+    "get_project",
+    "list_issues",
+    "get_issue",
+    "create_issue"
+  ],
+  "secrets": [
+    "JIRA_API_TOKEN",
+    "JIRA_EMAIL",
+    "JIRA_DOMAIN"
+  ],
+  "notes": "Supports dry-run previews by default. Uses Basic Auth with email and API token. Domain should be like yourcompany.atlassian.net."
+}

@@ -1,0 +1,18 @@
+{
+  "id": "basecamp",
+  "name": "Basecamp",
+  "description": "Manage Basecamp projects and todos with access token.",
+  "definition_cid": "reference_templates/servers/definitions/basecamp.py",
+  "operations": [
+    "list_projects",
+    "get_project",
+    "list_todolists",
+    "list_todos",
+    "get_todo",
+    "create_todo"
+  ],
+  "secrets": [
+    "BASECAMP_ACCESS_TOKEN"
+  ],
+  "notes": "Supports dry-run previews by default. Requires account_id parameter for all operations."
+}

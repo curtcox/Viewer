@@ -1,0 +1,18 @@
+{
+  "id": "clickup",
+  "name": "ClickUp",
+  "description": "Manage ClickUp spaces, lists, and tasks with API key.",
+  "definition_cid": "reference_templates/servers/definitions/clickup.py",
+  "operations": [
+    "list_spaces",
+    "get_space",
+    "list_lists",
+    "list_tasks",
+    "get_task",
+    "create_task"
+  ],
+  "secrets": [
+    "CLICKUP_API_KEY"
+  ],
+  "notes": "Supports dry-run previews by default and requires API key for API calls."
+}
