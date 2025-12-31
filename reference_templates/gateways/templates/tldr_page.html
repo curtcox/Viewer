@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>tldr {{ command }}</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }
+        h1 { color: #4ec9b0; }
+        .description { color: #9cdcfe; margin-bottom: 1.5rem; font-size: 1.1rem; }
+        .example { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+        .example-desc { color: #c586c0; margin-bottom: 0.5rem; }
+        .example-cmd { font-family: 'Courier New', monospace; color: #dcdcaa; background: #1e1e2e; padding: 0.5rem; border-radius: 4px; display: block; white-space: pre-wrap; }
+        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; }
+        .placeholder { color: #ce9178; }
+        a { color: #4ec9b0; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .nav { margin-bottom: 1rem; padding: 0.5rem; background: #252536; border-radius: 4px; }
+        .nav a { margin-right: 1rem; }
+        .see-also { margin-top: 2rem; padding: 1rem; background: #252536; border-radius: 4px; }
+        .see-also h3 { margin-top: 0; color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/gateway/tldr">tldr pages</a>
+        <a href="/gateway/man/{{ command }}">man {{ command }}</a>
+    </div>
+    <h1>{{ command }}</h1>
+    {% if description %}
+    <div class="description">{{ description | safe }}</div>
+    {% endif %}
+    {% for desc, cmd in examples %}
+    <div class="example">
+        <div class="example-desc">{{ desc | safe }}</div>
+        {% if cmd %}
+        <code class="example-cmd">{{ cmd | safe }}</code>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% if see_also %}
+    <div class="see-also">
+        <h3>See also</h3>
+        {{ see_also | safe }}
+    </div>
+    {% endif %}
+</body>
+</html>

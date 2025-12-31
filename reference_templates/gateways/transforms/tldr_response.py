@@ -3,6 +3,7 @@
 """Response transform for tldr gateway.
 
 Transforms tldr output into formatted HTML with command links.
+Uses external Jinja templates from the gateway config.
 """
 
 import re
@@ -25,86 +26,46 @@ def transform_response(response_details: dict, context: dict) -> dict:
 
     # Extract command name from path
     command = request_path.strip("/").split("/")[0] if request_path.strip("/") else "tldr"
+    
+    # Get template resolver from context
+    resolve_template = context.get("resolve_template")
+    if not resolve_template:
+        raise RuntimeError("resolve_template not available - templates must be configured in gateway config")
 
     if status_code >= 400 or not text:
+        template = resolve_template("tldr_error.html")
+        html = template.render(command=command, message=text or "Command not found")
         return {
-            "output": _render_error_page(command, text or "Command not found"),
+            "output": html,
             "content_type": "text/html",
         }
 
     text = _normalize_tldr_terminal_output(text)
 
-    # Convert tldr page to HTML
-    html_output = _render_tldr_as_html(text, command)
+    # Parse tldr format
+    description, examples, see_also_html = _parse_tldr_content(text)
+    
+    # Render with external template
+    template = resolve_template("tldr_page.html")
+    html = template.render(
+        command=command,
+        description=description,
+        examples=examples,
+        see_also=see_also_html,
+    )
 
     return {
-        "output": html_output,
+        "output": html,
         "content_type": "text/html",
     }
 
 
-def _render_error_page(command: str, message: str) -> str:
-    """Render an error page."""
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>tldr {escape(command)} - Error</title>
-    <style>
-        body {{ font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; }}
-        .error {{ background: #3d1f1f; border-left: 4px solid #f44; padding: 1rem; border-radius: 4px; }}
-        h1 {{ color: #f44; }}
-        a {{ color: #4ec9b0; }}
-        .nav {{ margin-bottom: 1rem; }}
-    </style>
-</head>
-<body>
-    <div class="nav">
-        <a href="/gateway/tldr">tldr pages</a> |
-        <a href="/gateway/man/{escape(command)}">Try man {escape(command)}</a>
-    </div>
-    <div class="error">
-        <h1>tldr {escape(command)}</h1>
-        <p>{escape(message)}</p>
-    </div>
-</body>
-</html>"""
-
-
-def _render_tldr_as_html(text: str, command: str) -> str:
-    """Render tldr text as formatted HTML."""
-    html_parts = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        '    <meta charset="utf-8">',
-        '    <title>tldr ' + escape(command) + '</title>',
-        "    <style>",
-        "        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: #1a1a2e; color: #eee; line-height: 1.6; }",
-        "        h1 { color: #4ec9b0; }",
-        "        .description { color: #9cdcfe; margin-bottom: 1.5rem; font-size: 1.1rem; }",
-        "        .example { background: #252536; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }",
-        "        .example-desc { color: #c586c0; margin-bottom: 0.5rem; }",
-        "        .example-cmd { font-family: 'Courier New', monospace; color: #dcdcaa; background: #1e1e2e; padding: 0.5rem; border-radius: 4px; display: block; white-space: pre-wrap; }",
-        "        code { font-family: 'Courier New', monospace; background: #252536; padding: 0.2rem 0.4rem; border-radius: 3px; }",
-        "        .placeholder { color: #ce9178; }",
-        "        a { color: #4ec9b0; text-decoration: none; }",
-        "        a:hover { text-decoration: underline; }",
-        "        .nav { margin-bottom: 1rem; padding: 0.5rem; background: #252536; border-radius: 4px; }",
-        "        .nav a { margin-right: 1rem; }",
-        "        .see-also { margin-top: 2rem; padding: 1rem; background: #252536; border-radius: 4px; }",
-        "        .see-also h3 { margin-top: 0; color: #9cdcfe; }",
-        "    </style>",
-        "</head>",
-        "<body>",
-        '    <div class="nav">',
-        '        <a href="/gateway/tldr">tldr pages</a>',
-        f'        <a href="/gateway/man/{escape(command)}">man {escape(command)}</a>',
-        "    </div>",
-        f"    <h1>{escape(command)}</h1>",
-    ]
-
-    # Parse tldr format
+def _parse_tldr_content(text: str) -> tuple[str | None, list[tuple[str, str | None]], str | None]:
+    """Parse tldr content and return structured data.
+    
+    Returns:
+        (description_html, examples_list, see_also_html)
+    """
     lines = text.split("\n")
     description_lines = []
     examples = []
@@ -163,41 +124,30 @@ def _render_tldr_as_html(text: str, command: str) -> str:
         cmd = "\n".join(current_example_cmd_lines) if current_example_cmd_lines else None
         examples.append((current_example_desc, cmd))
 
-    # Render description
+    # Process description
+    description_html = None
     if description_lines:
-        desc_html = " ".join(description_lines)
-        # Convert command references to links
-        desc_html = _convert_command_references(desc_html)
-        html_parts.append(f'    <div class="description">{desc_html}</div>')
+        desc_text = " ".join(description_lines)
+        description_html = _convert_command_references(desc_text)
 
-    # Render examples
+    # Process examples
+    processed_examples = []
     for desc, cmd in examples:
-        html_parts.append('    <div class="example">')
         desc_html = _convert_command_references(escape(desc))
-        html_parts.append(f'        <div class="example-desc">{desc_html}</div>')
+        cmd_html = None
         if cmd:
             cmd_html = _format_command(cmd).replace("\n", "<br>")
-            html_parts.append(f'        <code class="example-cmd">{cmd_html}</code>')
-        html_parts.append("    </div>")
+        processed_examples.append((desc_html, cmd_html))
 
-    # Render see also
+    # Process see also
+    see_also_html = None
     if see_also:
-        html_parts.append('    <div class="see-also">')
-        html_parts.append("        <h3>See also</h3>")
         links = []
         for cmd in see_also:
             links.append(f'<a href="/gateway/tldr/{escape(cmd)}">{escape(cmd)}</a>')
-        html_parts.append("        " + ", ".join(links))
-        html_parts.append("    </div>")
+        see_also_html = ", ".join(links)
 
-    html_parts.extend(
-        [
-            "</body>",
-            "</html>",
-        ]
-    )
-
-    return "\n".join(html_parts)
+    return description_html, processed_examples, see_also_html
 
 
 def _normalize_tldr_terminal_output(text: str) -> str:
