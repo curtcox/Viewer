@@ -1,0 +1,203 @@
+# ruff: noqa: F821, F706
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+import requests
+
+from server_utils.external_api import ExternalApiClient, error_output, validation_error
+
+
+_DEFAULT_CLIENT = ExternalApiClient()
+
+
+def _build_preview(
+    *,
+    operation: str,
+    conversation_id: Optional[str],
+    payload: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    base_url = "https://api.helpscout.net/v2"
+    
+    if operation == "list_conversations":
+        url = f"{base_url}/conversations"
+        method = "GET"
+    elif operation == "get_conversation":
+        url = f"{base_url}/conversations/{conversation_id}"
+        method = "GET"
+    elif operation == "create_conversation":
+        url = f"{base_url}/conversations"
+        method = "POST"
+    elif operation == "list_customers":
+        url = f"{base_url}/customers"
+        method = "GET"
+    elif operation == "get_customer":
+        url = f"{base_url}/customers/{conversation_id}"  # reusing for customer_id
+        method = "GET"
+    elif operation == "create_customer":
+        url = f"{base_url}/customers"
+        method = "POST"
+    else:
+        url = base_url
+        method = "GET"
+
+    preview: Dict[str, Any] = {
+        "operation": operation,
+        "url": url,
+        "method": method,
+        "auth": "bearer",
+    }
+    if payload:
+        preview["payload"] = payload
+
+    return preview
+
+
+def main(
+    *,
+    operation: str = "list_conversations",
+    conversation_id: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    mailbox_id: Optional[str] = None,
+    subject: str = "",
+    customer_email: str = "",
+    text: str = "",
+    first_name: str = "",
+    last_name: str = "",
+    email: str = "",
+    HELPSCOUT_API_KEY: str = "",
+    dry_run: bool = True,
+    timeout: int = 60,
+    client: Optional[ExternalApiClient] = None,
+    context=None,
+) -> Dict[str, Any]:
+    """Interact with Help Scout conversations and customers."""
+
+    if not HELPSCOUT_API_KEY:
+        return error_output(
+            "Missing HELPSCOUT_API_KEY",
+            status_code=401,
+            details="Provide a Help Scout API key for Bearer authentication",
+        )
+
+    normalized_operation = operation.lower()
+    valid_operations = {
+        "list_conversations",
+        "get_conversation",
+        "create_conversation",
+        "list_customers",
+        "get_customer",
+        "create_customer",
+    }
+    if normalized_operation not in valid_operations:
+        return validation_error("Unsupported operation", field="operation")
+
+    # Validation for specific operations
+    if normalized_operation == "get_conversation":
+        if not conversation_id:
+            return validation_error("Missing required conversation_id", field="conversation_id")
+
+    if normalized_operation == "create_conversation":
+        if not mailbox_id:
+            return validation_error("Missing required mailbox_id", field="mailbox_id")
+        if not subject:
+            return validation_error("Missing required subject", field="subject")
+        if not customer_email:
+            return validation_error("Missing required customer_email", field="customer_email")
+        if not text:
+            return validation_error("Missing required text", field="text")
+
+    if normalized_operation == "get_customer":
+        if not customer_id:
+            return validation_error("Missing required customer_id", field="customer_id")
+
+    if normalized_operation == "create_customer":
+        if not first_name:
+            return validation_error("Missing required first_name", field="first_name")
+        if not last_name:
+            return validation_error("Missing required last_name", field="last_name")
+        if not email:
+            return validation_error("Missing required email", field="email")
+
+    headers = {
+        "Authorization": f"Bearer {HELPSCOUT_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    base_url = "https://api.helpscout.net/v2"
+    payload: Optional[Dict[str, Any]] = None
+
+    # Build URL and payload based on operation
+    if normalized_operation == "list_conversations":
+        url = f"{base_url}/conversations"
+        method = "GET"
+    elif normalized_operation == "get_conversation":
+        url = f"{base_url}/conversations/{conversation_id}"
+        method = "GET"
+    elif normalized_operation == "create_conversation":
+        url = f"{base_url}/conversations"
+        method = "POST"
+        payload = {
+            "subject": subject,
+            "mailboxId": mailbox_id,
+            "customer": {"email": customer_email},
+            "threads": [
+                {
+                    "type": "customer",
+                    "customer": {"email": customer_email},
+                    "text": text,
+                }
+            ],
+        }
+    elif normalized_operation == "list_customers":
+        url = f"{base_url}/customers"
+        method = "GET"
+    elif normalized_operation == "get_customer":
+        url = f"{base_url}/customers/{customer_id}"
+        method = "GET"
+    elif normalized_operation == "create_customer":
+        url = f"{base_url}/customers"
+        method = "POST"
+        payload = {
+            "firstName": first_name,
+            "lastName": last_name,
+            "email": email,
+        }
+    else:
+        url = base_url
+        method = "GET"
+
+    if dry_run:
+        preview = _build_preview(
+            operation=normalized_operation,
+            conversation_id=conversation_id or customer_id,
+            payload=payload,
+        )
+        return {"output": {"preview": preview, "message": "Dry run - no API call made"}}
+
+    api_client = client or _DEFAULT_CLIENT
+
+    try:
+        if method == "POST":
+            response = api_client.post(url, headers=headers, json=payload, timeout=timeout)
+        else:
+            response = api_client.get(url, headers=headers, timeout=timeout)
+    except requests.RequestException as exc:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+        return error_output("Help Scout request failed", status_code=status, details=str(exc))
+
+    try:
+        data = response.json()
+    except ValueError:
+        return error_output(
+            "Invalid JSON response",
+            status_code=getattr(response, "status_code", None),
+            details=getattr(response, "text", None),
+        )
+
+    if not getattr(response, "ok", False):
+        message = data.get("message") or data.get("error") or "Help Scout API error"
+        return error_output(message, status_code=response.status_code, response=data)
+
+    return {"output": data}
