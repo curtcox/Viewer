@@ -2,6 +2,8 @@
 
 Note: Any entries labeled `Planned:` are intentionally future-dated and represent roadmap work, not completed changes.
 
+Status: In progress. Multiple phases are marked completed below (Foundation, Google Suite, Microsoft Suite, Project Management, etc.), but the overall 100+ external server rollout and remaining planned phases are not complete.
+
 ## Overview
 
 This document outlines the plan for adding server definitions for 100+ external services to the Viewer application. These server definitions will be added to both the default and read-only boot images, enabling users to integrate with popular third-party APIs.

@@ -1,7 +1,9 @@
 # Refactor Code Execution: Remaining Items
-
+ 
 ## Outstanding Work
-
+ 
+Status: Not implemented yet. This file is a checklist of remaining cleanup items for the legacy chaining/evaluator paths and related debug/rollback hooks.
+ 
 - Remove legacy chaining branches in `server_execution/code_execution.py`, including `_evaluate_nested_path_to_value_legacy` and any callers that keep the legacy recursion path alive.
 - Remove legacy chained-input resolution paths that can no longer be reached now that `_resolve_chained_input_from_path` and `_resolve_chained_input_for_server` always delegate to the pipeline compatibility layer.
 - Simplify rollback hooks by deleting the legacy evaluator entry points after cleanup.

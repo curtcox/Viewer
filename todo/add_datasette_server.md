@@ -1,4 +1,6 @@
 # Add Datasette and SQLite-Utils Servers
+ 
+Status: Not implemented yet. No `reference_templates/servers/definitions/datasette.py` or `reference_templates/servers/definitions/sqlite_utils.py` present.
 
 ## Overview
 

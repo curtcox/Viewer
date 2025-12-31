@@ -2,6 +2,8 @@
 
 ## Overview
 
+Status: Implemented. Pipeline routing and debug support exist (`routes/pipelines.py`, `server_execution/pipeline_execution.py`, `server_execution/pipeline_debug.py`), with unit tests (`tests/test_pipeline_execution.py`, `tests/test_pipeline_feature_flag.py`) and documentation (`docs/pipeline-requests.md`).
+
 This document details the plan for implementing enhanced pipeline functionality in the Viewer application. A pipeline URL is one that involves at least one server accepting input from something in the URL other than the HTTP request. The implementation will refactor existing chaining logic into a more structured pipeline system with debug capabilities.
 
 ## Current State Analysis

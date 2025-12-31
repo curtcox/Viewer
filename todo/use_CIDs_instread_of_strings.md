@@ -1,9 +1,11 @@
 # Use CIDs instead of raw strings
-
+ 
 This checklist tracks files where values that are semantically CIDs are currently represented and passed around as plain strings.
-
+ 
+Status: In progress. Most runtime boundaries now accept/normalize `CID`/`ValidatedCID` values, but some DB model fields and static template content still represent CIDs as plain strings.
+ 
 The goal of future work would be to tighten typing around these values (e.g., via the `CID` class or a lightweight wrapper / alias) and to reduce the surface area where arbitrary strings can appear in places that must be valid CIDs.
-
+ 
 ## Checklist of files
 
 - [ ] `models.py` *(DB boundary)*

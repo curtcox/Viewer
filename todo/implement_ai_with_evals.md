@@ -1,7 +1,9 @@
 # AI Assist Server Implementation Plan with Evaluation Suite
-
+ 
 ## Overview
-
+ 
+Status: ⚠️ Partially implemented. `reference_templates/servers/definitions/ai_assist.py` exists and `tests/ai_use_cases/` exercises AI features, but `ai_stub` is still present/enabled in the boot templates, so the “replace ai_stub” portion of this plan is not complete.
+ 
 This document provides a detailed plan for implementing an `ai_assist` server that uses real AI (via OpenRouter API) to replace the current `ai_stub` server in the default boot template. The plan includes comprehensive use cases for every AI button location in the application, along with automated tests to verify functionality.
 
 ## Implementation Plan

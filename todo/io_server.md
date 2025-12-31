@@ -1,7 +1,9 @@
 # IO Server Implementation Plan
-
+ 
 ## Overview
-
+ 
+Status: ⚠️ Partially implemented. `reference_templates/servers/definitions/io.py`, `server_execution/io_execution.py`, `server_execution/segment_analysis.py`, and `docs/io-requests.md` exist, and `io` is present in `reference_templates/default.boot.source.json`, but `io.py` still falls back to pass-through execution when no executor is provided.
+ 
 Create a new server named "io" that provides bidirectional request/response piping through a chain of servers. Unlike the existing pipeline execution (which flows right-to-left), the io server flows requests left-to-right and responses right-to-left, creating a circular data flow pattern.
 
 ## Key Differences from Pipeline

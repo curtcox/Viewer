@@ -1,4 +1,4 @@
-Status: ✅ Implemented. Command servers, docs, and boot images updated.
+Status: ✅ Implemented. Command servers, docs (`docs/bash_commands.md`), and boot images updated.
 
 Add a new document in docs/bash_commands.md that lists all commands and their roles.
 

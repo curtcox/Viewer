@@ -1,7 +1,9 @@
 # Gateway Enhancement Plan
-
+ 
 ## Overview
-
+ 
+Status: Not implemented yet. The current `gateway.py` supports variable-driven gateways and templates for gateway pages, but does not appear to include the additional enhancements described here (direct response from request transforms, template CID plumbing via `resolve_template`, response `source` indicator, and template previews in meta).
+ 
 This plan details enhancements to the gateway facility to support:
 1. Request transforms that can directly return responses (bypassing the server)
 2. Response transforms that know whether the response came from a request transform or the server

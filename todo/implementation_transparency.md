@@ -1,11 +1,13 @@
 # Implementation Transparency Audit
-
-**Date:** 2025-12-03
-**Purpose:** Identify opportunities to enhance implementation transparency so users can understand how the app works and make changes as needed.
-
----
-
-## Executive Summary
+ 
+ **Date:** 2025-12-03
+ **Purpose:** Identify opportunities to enhance implementation transparency so users can understand how the app works and make changes as needed.
+ 
+ Status: Ongoing audit/backlog. This document records transparency opportunities; it is not a single feature that can be marked complete.
+ 
+ ---
+ 
+ ## Executive Summary
 
 This audit examines the Viewer application to identify areas where users would benefit from additional visibility into how features are implemented. The application already has strong transparency features including:
 

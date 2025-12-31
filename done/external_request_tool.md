@@ -5,16 +5,16 @@
 The file `reference_templates/servers/definitions/jsonplaceholder.py` contains ~40 lines of code (lines 27-65) dedicated to handling compressed HTTP responses (gzip, deflate, brotli). This logic:
 
 1. **Duplicates code** - Any server that contacts an external API and needs to access `response.content` directly must implement the same decompression logic
-2. **Inflates simple proxies** - For jsonplaceholder.py, this compression handling constitutes ~25% of the file's code
-3. **Is error-prone** - `proxy.py` is missing this logic entirely, making it vulnerable to returning corrupted binary data when upstream servers send compressed responses
+2. **Inflates simple proxies** - For jsonplaceholder.py, this compression handling constituted ~25% of the file's code
+3. **Is error-prone** - `proxy.py` was missing this logic entirely, making it vulnerable to returning corrupted binary data when upstream servers send compressed responses
 4. **Is inconsistent** - Some servers handle compression, others don't, with no clear pattern
 
 ### Current State
 
 | Server | Uses | Compression Handling | Status |
 |--------|------|---------------------|--------|
-| `jsonplaceholder.py` | `requests` directly | ✅ Full (gzip, deflate, brotli) | Correct but duplicated |
-| `proxy.py` | `requests` directly | ❌ None | **BUG: Returns compressed bytes** |
+| `jsonplaceholder.py` | `requests` directly | ✅ Via `auto_decode_response()` | Refactored to shared helper |
+| `proxy.py` | `requests` directly | ✅ Via `auto_decode_response()` | Fixed |
 | `gateway.py` | `requests` directly | N/A (internal only) | OK |
 | 43 servers | `ExternalApiClient` | Relies on `.json()` | OK (auto-decompressed) |
 
@@ -218,18 +218,15 @@ def get_decoded_content(self, response: Response) -> bytes:
 
 ### Must Fix (Bug)
 
-- [ ] **`proxy.py`** - Currently returns compressed bytes without decompression
+- [x] **`proxy.py`** - Uses `auto_decode_response()` to handle compressed responses
   - Location: `reference_templates/servers/definitions/proxy.py`
-  - Line 119: `return {"output": response.content, ...}`
   - Fix: Import and use `auto_decode_response()`
 
 ### Should Refactor (Remove Duplication)
 
-- [ ] **`jsonplaceholder.py`** - Has correct but duplicated compression logic
+- [x] **`jsonplaceholder.py`** - Uses `auto_decode_response()` (shared helper)
   - Location: `reference_templates/servers/definitions/jsonplaceholder.py`
-  - Lines 17-18: Remove `import gzip`, `import zlib`
-  - Lines 27-65: Remove `_decode_content()` function
-  - Line 147: Replace `_decode_content(response.content, content_encoding)` with `auto_decode_response(response)`
+  - Fix: Replace custom decompression logic with `auto_decode_response(response)`
 
 ### No Changes Needed (Safe)
 

@@ -1,7 +1,9 @@
 # In-Memory Database Support Implementation Plan
-
+ 
 ## Overview
-
+ 
+Status: Implemented. `db_config.py` exists, `main.py` supports `--in-memory-db`, `app.py` uses `DatabaseConfig.get_database_uri()`, and tests include memory/disk fixtures (`tests/conftest.py`, `tests/test_db_config.py`, `tests/test_cli_args.py`).
+ 
 This document outlines a detailed plan for adding support for running the application with a custom in-memory "database". The implementation will:
 
 - Enable most tests to use the in-memory database version
