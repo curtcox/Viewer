@@ -1,0 +1,17 @@
+{
+  "id": "youtube",
+  "name": "YouTube Data API",
+  "description": "Search and retrieve YouTube videos, channels, and comments.",
+  "definition_file": "definitions/youtube.py",
+  "documentation_url": "https://developers.google.com/youtube/v3",
+  "operations": {
+    "read": [
+      "search_videos - Search for videos",
+      "list_videos - List videos by ID",
+      "get_video - Get video details",
+      "list_channels - Get channel information",
+      "list_comments - Get video comments"
+    ],
+    "write": []
+  }
+}

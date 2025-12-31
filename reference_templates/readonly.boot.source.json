@@ -589,6 +589,21 @@
       "name": "google_drive",
       "definition_cid": "reference_templates/servers/definitions/google_drive.py",
       "enabled": true
+    },
+    {
+      "name": "google_calendar",
+      "definition_cid": "reference_templates/servers/definitions/google_calendar.py",
+      "enabled": true
+    },
+    {
+      "name": "youtube",
+      "definition_cid": "reference_templates/servers/definitions/youtube.py",
+      "enabled": true
+    },
+    {
+      "name": "google_contacts",
+      "definition_cid": "reference_templates/servers/definitions/google_contacts.py",
+      "enabled": true
     }
   ],
   "variables": [
