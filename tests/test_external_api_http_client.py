@@ -48,6 +48,7 @@ def test_request_uses_defaults_and_logs(caplog: pytest.LogCaptureFixture) -> Non
             "data": None,
             "params": {"q": "x"},
             "timeout": 5,
+            "auth": None,
         }
     ]
     assert "API Request: GET https://example.test" in caplog.text
