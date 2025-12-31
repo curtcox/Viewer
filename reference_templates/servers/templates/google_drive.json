@@ -1,0 +1,18 @@
+{
+  "id": "google_drive",
+  "name": "Google Drive API",
+  "description": "Manage files and folders in Google Drive.",
+  "definition_file": "definitions/google_drive.py",
+  "documentation_url": "https://developers.google.com/drive/api",
+  "operations": {
+    "read": [
+      "list_files - List files in Google Drive",
+      "get_file - Download file content"
+    ],
+    "write": [
+      "upload_file - Upload a new file",
+      "delete_file - Delete a file",
+      "share_file - Share a file with a user"
+    ]
+  }
+}

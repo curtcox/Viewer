@@ -699,6 +699,11 @@
       "name": "gmail",
       "definition_cid": "reference_templates/servers/definitions/gmail.py",
       "enabled": true
+    },
+    {
+      "name": "google_drive",
+      "definition_cid": "reference_templates/servers/definitions/google_drive.py",
+      "enabled": true
     }
   ],
   "variables": [
