@@ -624,6 +624,31 @@
       "name": "google_ads",
       "definition_cid": "reference_templates/servers/definitions/google_ads.py",
       "enabled": true
+    },
+    {
+      "name": "microsoft_outlook",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_outlook.py",
+      "enabled": true
+    },
+    {
+      "name": "microsoft_teams",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_teams.py",
+      "enabled": true
+    },
+    {
+      "name": "onedrive",
+      "definition_cid": "reference_templates/servers/definitions/onedrive.py",
+      "enabled": true
+    },
+    {
+      "name": "microsoft_excel",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_excel.py",
+      "enabled": true
+    },
+    {
+      "name": "dynamics365",
+      "definition_cid": "reference_templates/servers/definitions/dynamics365.py",
+      "enabled": true
     }
   ],
   "variables": [

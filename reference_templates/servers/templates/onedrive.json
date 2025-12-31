@@ -1,0 +1,19 @@
+{
+  "id": "onedrive",
+  "name": "OneDrive API",
+  "description": "Manage files and folders in OneDrive via Microsoft Graph.",
+  "definition_file": "definitions/onedrive.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/graph/api/resources/onedrive",
+  "operations": {
+    "read": [
+      "list_items - List items in OneDrive",
+      "get_item - Get item metadata",
+      "download_file - Download file content"
+    ],
+    "write": [
+      "upload_file - Upload a file",
+      "delete_item - Delete an item",
+      "create_folder - Create a new folder"
+    ]
+  }
+}
