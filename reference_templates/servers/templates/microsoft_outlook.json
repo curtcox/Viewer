@@ -1,0 +1,18 @@
+{
+  "id": "microsoft_outlook",
+  "name": "Microsoft Outlook Mail API",
+  "description": "Manage emails using Microsoft Outlook via Microsoft Graph.",
+  "definition_file": "definitions/microsoft_outlook.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/graph/api/resources/mail-api-overview",
+  "operations": {
+    "read": [
+      "list_messages - List messages in a folder",
+      "get_message - Get a specific message",
+      "list_folders - List mail folders"
+    ],
+    "write": [
+      "send_message - Send an email message",
+      "delete_message - Delete a message"
+    ]
+  }
+}

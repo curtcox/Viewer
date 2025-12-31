@@ -739,6 +739,11 @@
       "name": "google_ads",
       "definition_cid": "reference_templates/servers/definitions/google_ads.py",
       "enabled": true
+    },
+    {
+      "name": "microsoft_outlook",
+      "definition_cid": "reference_templates/servers/definitions/microsoft_outlook.py",
+      "enabled": true
     }
   ],
   "variables": [
