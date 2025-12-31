@@ -1,0 +1,19 @@
+{
+  "id": "dynamics365",
+  "name": "Microsoft Dynamics 365 API",
+  "description": "Interact with Dynamics 365 CRM entities.",
+  "definition_file": "definitions/dynamics365.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/dynamics365/customer-engagement/developer/webapi/web-api-reference",
+  "operations": {
+    "read": [
+      "list_accounts - List CRM accounts",
+      "get_account - Get a specific account",
+      "list_contacts - List CRM contacts",
+      "get_contact - Get a specific contact"
+    ],
+    "write": [
+      "create_account - Create a new account",
+      "update_account - Update an existing account"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "microsoft_teams",
+  "name": "Microsoft Teams API",
+  "description": "Manage teams and channels using Microsoft Teams via Microsoft Graph.",
+  "definition_file": "definitions/microsoft_teams.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/graph/api/resources/teams-api-overview",
+  "operations": {
+    "read": [
+      "list_teams - List teams the user is member of",
+      "get_team - Get a specific team",
+      "list_channels - List channels in a team",
+      "list_messages - List messages in a channel"
+    ],
+    "write": [
+      "send_message - Send a message to a channel"
+    ]
+  }
+}

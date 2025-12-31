@@ -1,0 +1,18 @@
+{
+  "id": "microsoft_excel",
+  "name": "Microsoft Excel API",
+  "description": "Work with Excel workbooks stored in OneDrive via Microsoft Graph.",
+  "definition_file": "definitions/microsoft_excel.py",
+  "documentation_url": "https://docs.microsoft.com/en-us/graph/api/resources/excel",
+  "operations": {
+    "read": [
+      "list_worksheets - List worksheets in a workbook",
+      "get_range - Get cell range values"
+    ],
+    "write": [
+      "update_range - Update cell range values",
+      "add_row - Add row to a table",
+      "create_table - Create a new table"
+    ]
+  }
+}
