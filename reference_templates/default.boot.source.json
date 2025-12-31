@@ -131,6 +131,11 @@
       "enabled": true
     },
     {
+      "name": "intercom",
+      "definition_cid": "reference_templates/servers/definitions/intercom.py",
+      "enabled": true
+    },
+    {
       "name": "slack",
       "definition_cid": "reference_templates/servers/definitions/slack.py",
       "enabled": true
