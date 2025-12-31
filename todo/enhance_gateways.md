@@ -2,23 +2,24 @@
  
 ## Overview
 
-Status: Phase 1 complete, Phase 2 in progress. The gateway.py now supports:
+Status: Phases 1 and 2 mostly complete. The gateway.py now supports:
 - ✅ Request transforms that can directly return responses (bypassing the server)
 - ✅ Response transforms that know whether the response came from a request transform or the server via the `source` field
 - ✅ External Jinja templates resolved via a template function passed to transforms (`resolve_template`)
 - ✅ Template CIDs specified in the gateways variable
-- ✅ Man gateway updated to use external templates
+- ✅ Man, tldr, and jsonplaceholder gateways updated to use external templates
+- ⏳ HRX gateway uses complex multi-format rendering (not yet externalized)
 - ⏳ Enhanced `/gateways/meta/{server}` to list and preview gateway templates (planned)
 
 The following enhancements have been implemented:
 1. Request transforms can return direct responses using `{"response": {...}}` syntax
 2. Response details include a `source` field ("server" or "request_transform")
 3. Template resolver function (`resolve_template`) available in transform context
-4. Man gateway uses external templates (man_page.html, man_error.html)
+4. Man, tldr, and jsonplaceholder gateways use external templates
 5. Comprehensive unit tests for all Phase 1 functionality
 
 Remaining work:
-- Update remaining gateways (tldr, jsonplaceholder, hrx) to use external templates
+- HRX gateway template externalization (complex due to multiple rendering modes)
 - Enhance meta page to show template information
 - Integration tests for end-to-end flows
 
