@@ -46,10 +46,6 @@
             <span class="info-value">{{ server_name }}</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Target URL:</span>
-            <span class="info-value"><code>{{ config.target_url }}</code></span>
-        </div>
-        <div class="info-row">
             <span class="info-label">Description:</span>
             <span class="info-value">{{ config.description }}</span>
         </div>
@@ -84,62 +80,6 @@
         {% if server_definition_info.definition_preview %}
         <pre>{{ server_definition_info.definition_preview }}</pre>
         {% endif %}
-        {% endif %}
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <h3>Target Resolution</h3>
-        {% if resolved_target %}
-        <pre>{{ resolved_target | tojson(indent=2) }}</pre>
-        {% else %}
-        <p><em>No target resolution information available.</em></p>
-        {% endif %}
-    </div>
-
-    <div class="card">
-        <h3>
-            Downstream Probe
-            {% if probe and probe.response and probe.response.status_code is not none %}
-                {% if probe.response.status_code|int < 400 %}
-                    <span class="status valid">{{ probe.response.status_code }}</span>
-                {% else %}
-                    <span class="status error">{{ probe.response.status_code }}</span>
-                {% endif %}
-            {% elif probe and probe.error %}
-                <span class="status error">Error</span>
-            {% else %}
-                <span class="status warning">Unknown</span>
-            {% endif %}
-        </h3>
-        {% if probe and probe.request_details %}
-        <div class="info-row">
-            <span class="info-label">Probe Path:</span>
-            <span class="info-value"><code>{{ probe.sample_path }}</code></span>
-        </div>
-        <pre>{{ probe.request_details | tojson(indent=2) }}</pre>
-        {% endif %}
-
-        {% if probe and probe.resolved_target %}
-        <h4>Resolved Target</h4>
-        <pre>{{ probe.resolved_target | tojson(indent=2) }}</pre>
-        {% endif %}
-
-        {% if probe and probe.response %}
-        <h4>Response Preview</h4>
-        <div class="info-row">
-            <span class="info-label">Content-Type:</span>
-            <span class="info-value"><code>{{ probe.response.content_type }}</code></span>
-        </div>
-        {% if probe.response.body_preview %}
-        <pre>{{ probe.response.body_preview }}</pre>
-        {% endif %}
-        {% endif %}
-
-        {% if probe and probe.error %}
-        <div class="error-detail">{{ probe.error }}</div>
-        {% if probe.error_detail %}
-        <pre>{{ probe.error_detail }}</pre>
         {% endif %}
         {% endif %}
     </div>

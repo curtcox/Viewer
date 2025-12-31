@@ -62,7 +62,7 @@
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAKyiJmhR09aKPWmgy6VOtwGtsPgLePrbiB6IUBbeAOPiMplNuNf3Y5f5-GZe1nqCuL472YwC0cnrc3m8639kf5X8DA",
+      "definition_cid": "AAAAALWBtM-Nf0CtKvL3VQh5T7aOwwBOOhuel0_DBVc3_Cfe7SI2qa4mQCV3tNmPBnGToLqF4usEqpA9KJU58-ARN3FYxA",
       "enabled": true
     },
     {
@@ -72,7 +72,7 @@
     },
     {
       "name": "jsonplaceholder",
-      "definition_cid": "AAAAABKk0AIuACp5ttAKF-glWRohCL65iRr1R4CU6TT2JwgnyOvAKWEc5jVj7NI7wCRGr-c0ToGOg9OR7cgEIBdDuDUqUA",
+      "definition_cid": "AAAAAAzeRHohEBtBmD3CGfiX4fYirg0W3iHmMP5yG07gJGrJAxpvyllwYe4dmOsU0bOP92VC99OlYQuRZBJiMps2PztPOA",
       "enabled": true
     },
     {
@@ -738,31 +738,6 @@
     {
       "name": "google_ads",
       "definition_cid": "AAAAABisWxEascVAWrcQgrzmC9KfJTRLrDe_7watjOLp89kZeAhILmA1qa7aZsrDsACLW_1qmgv7UIRxmHPnqhBPWQN4Hw",
-      "enabled": true
-    },
-    {
-      "name": "microsoft_outlook",
-      "definition_cid": "AAAAACFHspcj9xMOpdXu__hRIT7N10Y43_8O4zo2AJ_AbRbNJkx_bkAgJe4-s4mv_J1mC98Zj4tbPtrRCSLuDZ2S0jEPTA",
-      "enabled": true
-    },
-    {
-      "name": "microsoft_teams",
-      "definition_cid": "AAAAAB3fD-VmeR-fPB4nv6Dqdhajq4d6QBEAVNeRg8OhQsGkwUNUOmNXSV9sBNHpDi8umubUSgiWxiHOcNW7hF4Q6uVXPQ",
-      "enabled": true
-    },
-    {
-      "name": "onedrive",
-      "definition_cid": "AAAAACTPyZ_wBdXgMNxqA47q4qYnMHNmpfn8B3U78ZhfD8QoM2wvviRk4Jx37k-rjOFVqGSHckqhPXjAqAZ-DChnV7SLLQ",
-      "enabled": true
-    },
-    {
-      "name": "microsoft_excel",
-      "definition_cid": "AAAAACNU1Yw0JAX-iaK1I5j9d1r2fzrtIKZYPstzwtldW6z_NC6fSusJpjcpnNSD8vuPi-1kMblPiVjAua3FC-Dzq5x1vw",
-      "enabled": true
-    },
-    {
-      "name": "dynamics365",
-      "definition_cid": "AAAAACPhXflB8Ecx2Dqk8BYjSoc__Ly94MUXfznyg1TIBeA2FENGZjHMubyuuAX08cW_miqdEDH4xUFKcgMLWCdme5efHg",
       "enabled": true
     }
   ],

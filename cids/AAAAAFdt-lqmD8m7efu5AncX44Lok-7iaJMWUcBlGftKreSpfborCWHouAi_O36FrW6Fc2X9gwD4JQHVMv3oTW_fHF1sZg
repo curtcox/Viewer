@@ -62,7 +62,7 @@
     },
     {
       "name": "gateway",
-      "definition_cid": "AAAAAKyiJmhR09aKPWmgy6VOtwGtsPgLePrbiB6IUBbeAOPiMplNuNf3Y5f5-GZe1nqCuL472YwC0cnrc3m8639kf5X8DA",
+      "definition_cid": "AAAAALWBtM-Nf0CtKvL3VQh5T7aOwwBOOhuel0_DBVc3_Cfe7SI2qa4mQCV3tNmPBnGToLqF4usEqpA9KJU58-ARN3FYxA",
       "enabled": true
     },
     {
@@ -72,7 +72,7 @@
     },
     {
       "name": "jsonplaceholder",
-      "definition_cid": "AAAAABKk0AIuACp5ttAKF-glWRohCL65iRr1R4CU6TT2JwgnyOvAKWEc5jVj7NI7wCRGr-c0ToGOg9OR7cgEIBdDuDUqUA",
+      "definition_cid": "AAAAAAzeRHohEBtBmD3CGfiX4fYirg0W3iHmMP5yG07gJGrJAxpvyllwYe4dmOsU0bOP92VC99OlYQuRZBJiMps2PztPOA",
       "enabled": true
     },
     {
