@@ -1,0 +1,19 @@
+{
+  "id": "confluence",
+  "name": "Confluence",
+  "description": "Manage Confluence Cloud spaces and pages with API token and email.",
+  "definition_cid": "reference_templates/servers/definitions/confluence.py",
+  "operations": [
+    "list_spaces",
+    "get_space",
+    "list_pages",
+    "get_page",
+    "create_page"
+  ],
+  "secrets": [
+    "CONFLUENCE_API_TOKEN",
+    "CONFLUENCE_EMAIL",
+    "CONFLUENCE_DOMAIN"
+  ],
+  "notes": "Supports dry-run previews by default. Uses Basic Auth with email and API token. Domain should be like yourcompany.atlassian.net."
+}
